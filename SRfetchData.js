@@ -63,7 +63,7 @@ const promises = gdNumbers.map((gdNumber) => {
 
           if (gdItem.material_id) {
             srItems.push({
-              gd_number: gdNumber,
+              gd_number: gdItem.delivery_no,
               material_id: gdItem.material_id,
               material_desc: gdItem.gd_material_desc,
               quantity_uom: gdItem.gd_order_uom_id,
