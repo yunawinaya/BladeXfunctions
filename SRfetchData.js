@@ -63,12 +63,15 @@ const promises = gdNumbers.map((gdNumber) => {
 
           if (gdItem.material_id) {
             srItems.push({
-              gd_number: gdItem.delivery_no,
+              gd_number: gdData.delivery_no,
               material_id: gdItem.material_id,
               material_desc: gdItem.gd_material_desc,
               quantity_uom: gdItem.gd_order_uom_id,
               good_delivery_qty: gdItem.gd_delivered_qty,
               so_quantity: gdItem.gd_order_quantity,
+              unit_price: gdItem.unit_price,
+              total_price: gdItem.total_price,
+              fifo_sequence: gdItem.fifo_sequence,
             });
           }
         });

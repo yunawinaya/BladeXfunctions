@@ -25,23 +25,24 @@ db.collection("goods_delivery")
 
     // Get source items from the sales order
     const sourceItems = arguments[0]?.fieldModel?.item?.table_so;
+    console.log("sourceItems", sourceItems);
     if (!Array.isArray(sourceItems) || sourceItems.length === 0) {
       return;
     }
 
-    // Calculate accumulated delivered quantities for each item
-    const accumulatedQty = {};
+    // Store the highest delivered quantities for each item
+    let deliveredQty = {};
+
     GDData.forEach((gdRecord) => {
       if (Array.isArray(gdRecord.table_gd)) {
         gdRecord.table_gd.forEach((gdItem) => {
           const itemId = gdItem.material_id;
           if (itemId) {
-            // Initialize if not exists
-            if (!accumulatedQty[itemId]) {
-              accumulatedQty[itemId] = 0;
+            const currentQty = parseFloat(gdItem.gd_delivered_qty || 0);
+
+            if (!deliveredQty[itemId] || currentQty > deliveredQty[itemId]) {
+              deliveredQty[itemId] = currentQty;
             }
-            // Add to accumulated quantity
-            accumulatedQty[itemId] += parseFloat(gdItem.gd_delivered_qty || 0);
           }
         });
       }
@@ -104,8 +105,8 @@ db.collection("goods_delivery")
             const itemId = sourceItem.item_name || "";
             const orderedQty = parseFloat(sourceItem.so_quantity || 0);
 
-            // Calculate remaining quantity to deliver
-            const deliveredSoFar = accumulatedQty[itemId] || 0;
+            // Get the latest delivered quantity for the item
+            const deliveredSoFar = deliveredQty[itemId] || 0;
 
             console.log("deliveredSoFar", deliveredSoFar);
 
