@@ -62,7 +62,7 @@ db.collection("item")
         .get()
         .then((response) => {
           console.log("response item_balance", response);
-          const itemBalanceData = response.data[0];
+          const itemBalanceData = response.data;
 
           if (tempQtyData) {
             const tempQtyDataArray = JSON.parse(tempQtyData);
