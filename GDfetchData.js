@@ -1,5 +1,3 @@
-const data = this.getValues();
-const salesOrderId = data.so_id;
 console.log("arguments", arguments[0]?.fieldModel?.item);
 
 // Check if so_id has a value
@@ -110,7 +108,7 @@ db.collection("goods_delivery")
             console.log("deliveredSoFar", deliveredSoFar);
 
             // Update each field with correct values
-            db.collection("item")
+            db.collection("Item")
               .where({ id: itemId })
               .get()
               .then((res) => {
@@ -118,7 +116,7 @@ db.collection("goods_delivery")
                 if (
                   itemData &&
                   itemData.stock_control !== 0 &&
-                  itemData.show_delivery !== 0
+                  (itemData.show_delivery !== 0 || !itemData.show_delivery)
                 ) {
                   this.setData({
                     [`table_gd.${index}.material_id`]: itemId,
@@ -164,8 +162,7 @@ db.collection("goods_delivery")
 
                 if (
                   itemData.item_batch_management === 1 &&
-                  itemData.stock_control !== 0 &&
-                  itemData.show_delivery !== 0
+                  itemData.stock_control !== 0
                 ) {
                   db.collection("item_batch_balance")
                     .where({
@@ -210,8 +207,7 @@ db.collection("goods_delivery")
                     });
                 } else if (
                   itemData.item_batch_management === 0 &&
-                  itemData.stock_control !== 0 &&
-                  itemData.show_delivery !== 0
+                  itemData.stock_control !== 0
                 ) {
                   db.collection("item_balance")
                     .where({

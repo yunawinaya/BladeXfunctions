@@ -17,7 +17,7 @@ const addBalanceTable = (data) => {
 
       try {
         const itemRes = await db
-          .collection("item")
+          .collection("Item")
           .where({ id: item.material_id })
           .get();
 
@@ -133,7 +133,7 @@ const updateBalanceTable = (data) => {
 
       try {
         const itemRes = await db
-          .collection("item")
+          .collection("Item")
           .where({ id: item.material_id })
           .get();
 

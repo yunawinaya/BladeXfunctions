@@ -63,10 +63,105 @@ const addInventory = (data) => {
         }
       };
 
+      // Function to process FIFO for batch
+      const processFifoForBatch = (itemData, batchId) => {
+        // Improved FIFO sequence generation
+        return db
+          .collection("fifo_costing_history")
+          .where({ material_id: itemData.item_id })
+          .get()
+          .then((fifoResponse) => {
+            // Get the highest existing sequence number and add 1
+            let sequenceNumber = 1;
+            if (
+              fifoResponse.data &&
+              Array.isArray(fifoResponse.data) &&
+              fifoResponse.data.length > 0
+            ) {
+              const existingSequences = fifoResponse.data.map((doc) =>
+                parseInt(doc.fifo_sequence || 0)
+              );
+              sequenceNumber = Math.max(...existingSequences, 0) + 1;
+            }
+
+            // Add a small random component to handle potential concurrent operations
+            const fifoData = {
+              fifo_cost_price: itemData.unit_price,
+              fifo_initial_quantity: itemData.received_qty,
+              fifo_available_quantity: itemData.received_qty,
+              material_id: itemData.item_id,
+              batch_id: batchId,
+              fifo_sequence: sequenceNumber,
+            };
+
+            return db
+              .collection("fifo_costing_history")
+              .add(fifoData)
+              .then((fifoResult) => {
+                createdDocs.push({
+                  collection: "fifo_costing_history",
+                  docId: fifoResult.id,
+                });
+
+                console.log(
+                  `Successfully processed FIFO for item ${itemData.item_id} with batch ${batchId}`
+                );
+                return Promise.resolve();
+              });
+          });
+      };
+
+      // Function to process FIFO for non-batch
+      const processFifoForNonBatch = (itemData) => {
+        // Improved FIFO sequence generation
+        return db
+          .collection("fifo_costing_history")
+          .where({ material_id: itemData.item_id })
+          .get()
+          .then((fifoResponse) => {
+            // Get the highest existing sequence number and add 1
+            let sequenceNumber = 1;
+            if (
+              fifoResponse.data &&
+              Array.isArray(fifoResponse.data) &&
+              fifoResponse.data.length > 0
+            ) {
+              const existingSequences = fifoResponse.data.map((doc) =>
+                parseInt(doc.fifo_sequence || 0)
+              );
+              sequenceNumber = Math.max(...existingSequences, 0) + 1;
+            }
+
+            // Create FIFO record
+            const fifoData = {
+              fifo_cost_price: itemData.unit_price,
+              fifo_initial_quantity: itemData.received_qty,
+              fifo_available_quantity: itemData.received_qty,
+              material_id: itemData.item_id,
+              fifo_sequence: sequenceNumber,
+            };
+
+            return db
+              .collection("fifo_costing_history")
+              .add(fifoData)
+              .then((fifoResult) => {
+                createdDocs.push({
+                  collection: "fifo_costing_history",
+                  docId: fifoResult.id,
+                });
+
+                console.log(
+                  `Successfully processed FIFO for item ${itemData.item_id}`
+                );
+                return Promise.resolve();
+              });
+          });
+      };
+
       try {
         // First check if this item should be processed based on stock_control
         const itemRes = await db
-          .collection("item")
+          .collection("Item")
           .where({ id: item.item_id })
           .get();
 
@@ -176,265 +271,254 @@ const addInventory = (data) => {
           unrestricted_qty = receivedQty;
         }
 
-        // Following your existing logic for batch identification (as requested to keep item #2)
+        // Following your existing logic for batch identification
         if (item.item_batch_no !== "-") {
-          // Create batch record first
-          const batchData = {
-            batch_number: item.item_batch_no,
-            material_id: item.item_id,
-            initial_quantity: item.received_qty,
-            goods_receiving_no: data.gr_no,
-            goods_receiving_id: data.id || "",
-          };
-
-          const batchResult = await db.collection("batch").add(batchData);
-          createdDocs.push({ collection: "batch", docId: batchResult.id });
-
-          // Get the batch document directly from the created result
-          // This avoids race conditions by not querying for the just-created document
-          const batchDocRef = await db
+          // Batch item processing
+          return db
             .collection("batch")
-            .doc(batchResult.id)
-            .get();
-          const batchDoc = batchDocRef.data || batchDocRef;
+            .add({
+              batch_number: item.item_batch_no,
+              material_id: item.item_id,
+              initial_quantity: item.received_qty,
+              goods_receiving_no: data.gr_no,
+              goods_receiving_id: data.id || "",
+            })
+            .then((batchResult) => {
+              // Track created batch document
+              createdDocs.push({
+                collection: "batch",
+                docId: batchResult.id,
+              });
 
-          if (!batchDoc || !batchDoc.id) {
-            throw new Error(`Failed to retrieve batch document after creation`);
-          }
+              // Query for the batch document after creation
+              return db
+                .collection("batch")
+                .where({
+                  batch_number: item.item_batch_no,
+                  material_id: item.item_id,
+                })
+                .get();
+            })
+            .then((response) => {
+              const batchResult = response.data;
+              if (
+                !batchResult ||
+                !Array.isArray(batchResult) ||
+                !batchResult.length
+              ) {
+                throw new Error("Batch not found after creation");
+              }
 
-          // Handle item_batch_balance
-          const balanceResponse = await db
-            .collection("item_batch_balance")
-            .where(itemBalanceParams)
-            .get();
+              const batchId = batchResult[0].id;
 
-          const hasExistingBalance =
-            balanceResponse.data &&
-            Array.isArray(balanceResponse.data) &&
-            balanceResponse.data.length > 0;
-          const existingDoc = hasExistingBalance
-            ? balanceResponse.data[0]
-            : null;
+              // Continue with item_batch_balance handling
+              return db
+                .collection("item_batch_balance")
+                .where(itemBalanceParams)
+                .get();
+            })
+            .then((balanceResponse) => {
+              const hasExistingBalance =
+                balanceResponse.data &&
+                Array.isArray(balanceResponse.data) &&
+                balanceResponse.data.length > 0;
+              const existingDoc = hasExistingBalance
+                ? balanceResponse.data[0]
+                : null;
 
-          let balance_quantity;
+              // Store the batchId from the previous step
+              const batchId = createdDocs.find(
+                (doc) => doc.collection === "batch"
+              ).docId;
 
-          if (existingDoc && existingDoc.id) {
-            // Update existing balance
-            const updatedBlockQty =
-              parseFloat(existingDoc.block_qty || 0) + block_qty;
-            const updatedReservedQty =
-              parseFloat(existingDoc.reserved_qty || 0) + reserved_qty;
-            const updatedUnrestrictedQty =
-              parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty;
-            const updatedQualityInspQty =
-              parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty;
-            balance_quantity =
-              updatedBlockQty +
-              updatedReservedQty +
-              updatedUnrestrictedQty +
-              updatedQualityInspQty;
+              let balance_quantity;
 
-            // Store original values for rollback
-            updatedDocs.push({
-              collection: "item_batch_balance",
-              docId: existingDoc.id,
-              originalData: {
-                block_qty: existingDoc.block_qty || 0,
-                reserved_qty: existingDoc.reserved_qty || 0,
-                unrestricted_qty: existingDoc.unrestricted_qty || 0,
-                qualityinsp_qty: existingDoc.qualityinsp_qty || 0,
-                balance_quantity: existingDoc.balance_quantity || 0,
-              },
+              if (existingDoc && existingDoc.id) {
+                // Update existing balance
+                const updatedBlockQty =
+                  parseFloat(existingDoc.block_qty || 0) + block_qty;
+                const updatedReservedQty =
+                  parseFloat(existingDoc.reserved_qty || 0) + reserved_qty;
+                const updatedUnrestrictedQty =
+                  parseFloat(existingDoc.unrestricted_qty || 0) +
+                  unrestricted_qty;
+                const updatedQualityInspQty =
+                  parseFloat(existingDoc.qualityinsp_qty || 0) +
+                  qualityinsp_qty;
+                balance_quantity =
+                  updatedBlockQty +
+                  updatedReservedQty +
+                  updatedUnrestrictedQty +
+                  updatedQualityInspQty;
+
+                // Store original values for rollback
+                updatedDocs.push({
+                  collection: "item_batch_balance",
+                  docId: existingDoc.id,
+                  originalData: {
+                    block_qty: existingDoc.block_qty || 0,
+                    reserved_qty: existingDoc.reserved_qty || 0,
+                    unrestricted_qty: existingDoc.unrestricted_qty || 0,
+                    qualityinsp_qty: existingDoc.qualityinsp_qty || 0,
+                    balance_quantity: existingDoc.balance_quantity || 0,
+                  },
+                });
+
+                return db
+                  .collection("item_batch_balance")
+                  .doc(existingDoc.id)
+                  .update({
+                    batch_id: batchId,
+                    block_qty: updatedBlockQty,
+                    reserved_qty: updatedReservedQty,
+                    unrestricted_qty: updatedUnrestrictedQty,
+                    qualityinsp_qty: updatedQualityInspQty,
+                    balance_quantity: balance_quantity,
+                  })
+                  .then(() => {
+                    return { batchId };
+                  });
+              } else {
+                // Create new balance record
+                balance_quantity =
+                  block_qty + reserved_qty + unrestricted_qty + qualityinsp_qty;
+
+                const newBalanceData = {
+                  material_id: item.item_id,
+                  location_id: item.location_id,
+                  batch_id: batchId,
+                  block_qty: block_qty,
+                  reserved_qty: reserved_qty,
+                  unrestricted_qty: unrestricted_qty,
+                  qualityinsp_qty: qualityinsp_qty,
+                  balance_quantity: balance_quantity,
+                };
+
+                return db
+                  .collection("item_batch_balance")
+                  .add(newBalanceData)
+                  .then((balanceResult) => {
+                    createdDocs.push({
+                      collection: "item_batch_balance",
+                      docId: balanceResult.id,
+                    });
+
+                    return { batchId };
+                  });
+              }
+            })
+            .then(({ batchId }) => {
+              // Process FIFO
+              return processFifoForBatch(item, batchId);
+            })
+            .then(() => {
+              console.log(
+                `Successfully completed processing for batch item ${item.item_id}`
+              );
+              resolve();
+            })
+            .catch((error) => {
+              console.error(
+                `Error in batch processing chain: ${error.message}`
+              );
+              rollbackChanges().then(() => {
+                resolve();
+              });
             });
+        } else {
+          // Non-batch item processing with async/await
+          try {
+            const balanceResponse = await db
+              .collection("item_balance")
+              .where(itemBalanceParams)
+              .get();
 
-            await db
-              .collection("item_batch_balance")
-              .doc(existingDoc.id)
-              .update({
-                batch_id: batchDoc.id,
+            const hasExistingBalance =
+              balanceResponse.data &&
+              Array.isArray(balanceResponse.data) &&
+              balanceResponse.data.length > 0;
+            const existingDoc = hasExistingBalance
+              ? balanceResponse.data[0]
+              : null;
+
+            let balance_quantity;
+
+            if (existingDoc && existingDoc.id) {
+              // Update existing balance
+              const updatedBlockQty =
+                parseFloat(existingDoc.block_qty || 0) + block_qty;
+              const updatedReservedQty =
+                parseFloat(existingDoc.reserved_qty || 0) + reserved_qty;
+              const updatedUnrestrictedQty =
+                parseFloat(existingDoc.unrestricted_qty || 0) +
+                unrestricted_qty;
+              const updatedQualityInspQty =
+                parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty;
+              balance_quantity =
+                updatedBlockQty +
+                updatedReservedQty +
+                updatedUnrestrictedQty +
+                updatedQualityInspQty;
+
+              // Store original values for rollback
+              updatedDocs.push({
+                collection: "item_balance",
+                docId: existingDoc.id,
+                originalData: {
+                  block_qty: existingDoc.block_qty || 0,
+                  reserved_qty: existingDoc.reserved_qty || 0,
+                  unrestricted_qty: existingDoc.unrestricted_qty || 0,
+                  qualityinsp_qty: existingDoc.qualityinsp_qty || 0,
+                  balance_quantity: existingDoc.balance_quantity || 0,
+                },
+              });
+
+              await db.collection("item_balance").doc(existingDoc.id).update({
                 block_qty: updatedBlockQty,
                 reserved_qty: updatedReservedQty,
                 unrestricted_qty: updatedUnrestrictedQty,
                 qualityinsp_qty: updatedQualityInspQty,
                 balance_quantity: balance_quantity,
               });
-          } else {
-            // Create new balance record
-            balance_quantity =
-              block_qty + reserved_qty + unrestricted_qty + qualityinsp_qty;
+            } else {
+              // Create new balance record
+              balance_quantity =
+                block_qty + reserved_qty + unrestricted_qty + qualityinsp_qty;
 
-            const newBalanceData = {
-              material_id: item.item_id,
-              location_id: item.location_id,
-              batch_id: batchDoc.id,
-              block_qty: block_qty,
-              reserved_qty: reserved_qty,
-              unrestricted_qty: unrestricted_qty,
-              qualityinsp_qty: qualityinsp_qty,
-              balance_quantity: balance_quantity,
-            };
+              const newBalanceData = {
+                material_id: item.item_id,
+                location_id: item.location_id,
+                block_qty: block_qty,
+                reserved_qty: reserved_qty,
+                unrestricted_qty: unrestricted_qty,
+                qualityinsp_qty: qualityinsp_qty,
+                balance_quantity: balance_quantity,
+              };
 
-            const balanceResult = await db
-              .collection("item_batch_balance")
-              .add(newBalanceData);
-            createdDocs.push({
-              collection: "item_batch_balance",
-              docId: balanceResult.id,
-            });
-          }
+              const balanceResult = await db
+                .collection("item_balance")
+                .add(newBalanceData);
+              createdDocs.push({
+                collection: "item_balance",
+                docId: balanceResult.id,
+              });
+            }
 
-          // Improved FIFO sequence generation
-          const fifoResponse = await db
-            .collection("fifo_costing_history")
-            .where({ material_id: item.item_id })
-            .get();
+            // Process FIFO with promises
+            await processFifoForNonBatch(item);
 
-          // Get the highest existing sequence number and add 1
-          let sequenceNumber = 1;
-          if (
-            fifoResponse.data &&
-            Array.isArray(fifoResponse.data) &&
-            fifoResponse.data.length > 0
-          ) {
-            const existingSequences = fifoResponse.data.map((doc) =>
-              parseInt(doc.fifo_sequence || 0)
+            console.log(
+              `Successfully processed non-batch item ${item.item_id}`
             );
-            sequenceNumber = Math.max(...existingSequences, 0) + 1;
-          }
-
-          // Add a small random component to handle potential concurrent operations
-          const fifoData = {
-            fifo_cost_price: item.unit_price,
-            fifo_initial_quantity: item.received_qty,
-            fifo_available_quantity: item.received_qty,
-            material_id: item.item_id,
-            batch_id: batchDoc.id,
-            fifo_sequence: sequenceNumber,
-          };
-
-          const fifoResult = await db
-            .collection("fifo_costing_history")
-            .add(fifoData);
-          createdDocs.push({
-            collection: "fifo_costing_history",
-            docId: fifoResult.id,
-          });
-        } else {
-          // Non-batch item processing
-          const balanceResponse = await db
-            .collection("item_balance")
-            .where(itemBalanceParams)
-            .get();
-
-          const hasExistingBalance =
-            balanceResponse.data &&
-            Array.isArray(balanceResponse.data) &&
-            balanceResponse.data.length > 0;
-          const existingDoc = hasExistingBalance
-            ? balanceResponse.data[0]
-            : null;
-
-          let balance_quantity;
-
-          if (existingDoc && existingDoc.id) {
-            // Update existing balance
-            const updatedBlockQty =
-              parseFloat(existingDoc.block_qty || 0) + block_qty;
-            const updatedReservedQty =
-              parseFloat(existingDoc.reserved_qty || 0) + reserved_qty;
-            const updatedUnrestrictedQty =
-              parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty;
-            const updatedQualityInspQty =
-              parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty;
-            balance_quantity =
-              updatedBlockQty +
-              updatedReservedQty +
-              updatedUnrestrictedQty +
-              updatedQualityInspQty;
-
-            // Store original values for rollback
-            updatedDocs.push({
-              collection: "item_balance",
-              docId: existingDoc.id,
-              originalData: {
-                block_qty: existingDoc.block_qty || 0,
-                reserved_qty: existingDoc.reserved_qty || 0,
-                unrestricted_qty: existingDoc.unrestricted_qty || 0,
-                qualityinsp_qty: existingDoc.qualityinsp_qty || 0,
-                balance_quantity: existingDoc.balance_quantity || 0,
-              },
-            });
-
-            await db.collection("item_balance").doc(existingDoc.id).update({
-              block_qty: updatedBlockQty,
-              reserved_qty: updatedReservedQty,
-              unrestricted_qty: updatedUnrestrictedQty,
-              qualityinsp_qty: updatedQualityInspQty,
-              balance_quantity: balance_quantity,
-            });
-          } else {
-            // Create new balance record
-            balance_quantity =
-              block_qty + reserved_qty + unrestricted_qty + qualityinsp_qty;
-
-            const newBalanceData = {
-              material_id: item.item_id,
-              location_id: item.location_id,
-              block_qty: block_qty,
-              reserved_qty: reserved_qty,
-              unrestricted_qty: unrestricted_qty,
-              qualityinsp_qty: qualityinsp_qty,
-              balance_quantity: balance_quantity,
-            };
-
-            const balanceResult = await db
-              .collection("item_balance")
-              .add(newBalanceData);
-            createdDocs.push({
-              collection: "item_balance",
-              docId: balanceResult.id,
-            });
-          }
-
-          // Improved FIFO sequence generation
-          const fifoResponse = await db
-            .collection("fifo_costing_history")
-            .where({ material_id: item.item_id })
-            .get();
-
-          // Get the highest existing sequence number and add 1
-          let sequenceNumber = 1;
-          if (
-            fifoResponse.data &&
-            Array.isArray(fifoResponse.data) &&
-            fifoResponse.data.length > 0
-          ) {
-            const existingSequences = fifoResponse.data.map((doc) =>
-              parseInt(doc.fifo_sequence || 0)
+            resolve();
+          } catch (nonBatchError) {
+            console.error(
+              `Error processing non-batch item: ${nonBatchError.message}`
             );
-            sequenceNumber = Math.max(...existingSequences, 0) + 1;
+            await rollbackChanges();
+            resolve();
           }
-
-          // Add a small random component to handle potential concurrent operations
-          const fifoData = {
-            fifo_cost_price: item.unit_price,
-            fifo_initial_quantity: item.received_qty,
-            fifo_available_quantity: item.received_qty,
-            material_id: item.item_id,
-            fifo_sequence: sequenceNumber,
-          };
-
-          const fifoResult = await db
-            .collection("fifo_costing_history")
-            .add(fifoData);
-          createdDocs.push({
-            collection: "fifo_costing_history",
-            docId: fifoResult.id,
-          });
         }
-
-        console.log(`Successfully processed item ${item.item_id}`);
-        resolve();
       } catch (error) {
         console.error(`Error processing item ${item.item_id}:`, error);
         // Perform rollback

@@ -31,7 +31,7 @@ const processBalanceTable = async (data, isUpdate = false) => {
 
       // First check if this item should be processed based on stock_control
       const itemRes = await db
-        .collection("item")
+        .collection("Item")
         .where({ id: item.material_id })
         .get();
 

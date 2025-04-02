@@ -48,7 +48,7 @@ const addInventory = (data) => {
         };
 
         // First check if this item should be processed based on stock_control
-        db.collection("item")
+        db.collection("Item")
           .where({ id: item.item_id })
           .get()
           .then((res) => {
@@ -157,7 +157,7 @@ const addInventory = (data) => {
                   unrestricted_qty = receivedQty;
                 }
 
-                if (item.item_batch_no === "-") {
+                if (item.item_batch_no !== "-") {
                   // Batch item processing
                   return db
                     .collection("batch")

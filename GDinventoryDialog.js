@@ -7,7 +7,7 @@ const materialId = lineItemData.material_id;
 
 const tempQtyData = lineItemData.temp_qty_data;
 
-db.collection("item")
+db.collection("Item")
   .where({
     id: materialId,
   })

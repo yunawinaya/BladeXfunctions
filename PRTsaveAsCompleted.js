@@ -88,7 +88,7 @@ const updateInventory = async (data) => {
       try {
         // Check if item has stock control enabled
         const itemRes = await db
-          .collection("item")
+          .collection("Item")
           .where({ id: item.material_id })
           .get();
 
