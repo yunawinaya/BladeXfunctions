@@ -36,33 +36,6 @@ const addInventory = (data) => {
       const createdDocs = [];
       const updatedDocs = [];
 
-      // Function to rollback changes if any operation fails
-      const rollbackChanges = async () => {
-        console.log(`Rolling back changes for item ${item.item_id}`);
-
-        // Delete all created documents in reverse order
-        for (let i = createdDocs.length - 1; i >= 0; i--) {
-          try {
-            const { collection, docId } = createdDocs[i];
-            await db.collection(collection).doc(docId).delete();
-            console.log(`Deleted ${collection} document ${docId}`);
-          } catch (error) {
-            console.error(`Error rolling back created document:`, error);
-          }
-        }
-
-        // Revert all updated documents
-        for (let i = updatedDocs.length - 1; i >= 0; i--) {
-          try {
-            const { collection, docId, originalData } = updatedDocs[i];
-            await db.collection(collection).doc(docId).update(originalData);
-            console.log(`Reverted ${collection} document ${docId}`);
-          } catch (error) {
-            console.error(`Error rolling back updated document:`, error);
-          }
-        }
-      };
-
       // Function to process FIFO for batch
       const processFifoForBatch = (itemData, batchId) => {
         // Improved FIFO sequence generation
@@ -284,12 +257,6 @@ const addInventory = (data) => {
               goods_receiving_id: data.id || "",
             })
             .then((batchResult) => {
-              // Track created batch document
-              createdDocs.push({
-                collection: "batch",
-                docId: batchResult.id,
-              });
-
               // Query for the batch document after creation
               return db
                 .collection("batch")
@@ -309,12 +276,20 @@ const addInventory = (data) => {
                 throw new Error("Batch not found after creation");
               }
 
-              const batchId = batchResult[0].id;
+              // Track created batch document
+              createdDocs.push({
+                collection: "batch",
+                docId: batchResult[0].id,
+              });
 
               // Continue with item_batch_balance handling
               return db
                 .collection("item_batch_balance")
-                .where(itemBalanceParams)
+                .where({
+                  material_id: item.item_id,
+                  location_id: item.location_id,
+                  batch_id: batchResult[0].id,
+                })
                 .get();
             })
             .then((balanceResponse) => {
@@ -421,9 +396,6 @@ const addInventory = (data) => {
               console.error(
                 `Error in batch processing chain: ${error.message}`
               );
-              rollbackChanges().then(() => {
-                resolve();
-              });
             });
         } else {
           // Non-batch item processing with async/await
@@ -515,14 +487,11 @@ const addInventory = (data) => {
             console.error(
               `Error processing non-batch item: ${nonBatchError.message}`
             );
-            await rollbackChanges();
             resolve();
           }
         }
       } catch (error) {
         console.error(`Error processing item ${item.item_id}:`, error);
-        // Perform rollback
-        await rollbackChanges();
         console.log(`Rollback completed for item ${item.item_id}`);
         resolve(); // Resolve after rollback to continue with other items
       }
@@ -708,6 +677,8 @@ this.getData()
         billing_address_country,
         shipping_address_country,
       };
+
+      console.log("GR result", gr);
 
       if (page_status === "Add") {
         await db.collection("goods_receiving").add(gr);
