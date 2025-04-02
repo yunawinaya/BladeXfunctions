@@ -65,7 +65,7 @@ const promises = salesReturnIDs.map((salesReturnID) => {
       // Transform each SR item into a table_srr item, preserving SR identity
       const srrItems = [];
 
-      if (salesReturnData && Array.isArray(salesReturnData.table_srr)) {
+      if (salesReturnData && Array.isArray(salesReturnData.table_sr)) {
         salesReturnData.table_sr.forEach((salesReturnItem) => {
           console.log(
             `Processing Sales Return item from ${salesReturnID}:`,
@@ -74,12 +74,15 @@ const promises = salesReturnIDs.map((salesReturnID) => {
 
           if (salesReturnItem.material_id) {
             srrItems.push({
-              sr_number: salesReturnItem.sales_return_no,
+              sr_number: salesReturnData.sales_return_no,
               material_id: salesReturnItem.material_id,
               so_quantity: salesReturnItem.so_quantity,
-              expected_returned_qty: salesReturnItem.expected_returned_qty,
+              expected_return_qty: salesReturnItem.expected_return_qty,
               quantity_uom: salesReturnItem.quantity_uom,
               return_reason: salesReturnItem.return_reason,
+              unit_price: salesReturnItem.unit_price,
+              total_price: salesReturnItem.total_price,
+              fifo_sequence: salesReturnItem.fifo_sequence,
             });
           }
         });

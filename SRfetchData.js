@@ -67,7 +67,7 @@ const promises = gdNumbers.map((gdNumber) => {
               material_id: gdItem.material_id,
               material_desc: gdItem.gd_material_desc,
               quantity_uom: gdItem.gd_order_uom_id,
-              good_delivery_qty: gdItem.gd_delivered_qty,
+              good_delivery_qty: gdItem.gd_qty,
               so_quantity: gdItem.gd_order_quantity,
               unit_price: gdItem.unit_price,
               total_price: gdItem.total_price,

@@ -1,6 +1,6 @@
 const data = this.getValues();
 console.log("Data", data);
-const items = data.table_pi;
+const items = data.table_si;
 let totalGross = 0;
 let totalDiscount = 0;
 let totalTax = 0;
@@ -9,28 +9,27 @@ let totalAmount = 0;
 if (Array.isArray(items)) {
   items.forEach((item, index) => {
     const quantity = Number(item.invoice_qty) || 0;
-    const unitPrice = Number(item.order_unit_price) || 0;
+    const unitPrice = Number(item.unit_price) || 0;
     const grossValue = quantity * unitPrice;
 
     this.setData({
-      [`table_pi.${index}.order_gross`]: grossValue,
+      [`table_si.${index}.gross`]: grossValue,
     });
     this.setData({
-      [`table_pi.${index}.pi_amount`]: grossValue,
+      [`table_si.${index}.si_amount`]: grossValue,
     });
-    item.order_gross = grossValue;
+    item.gross = grossValue;
     totalGross += grossValue;
 
     this.setData({
       invoice_subtotal: totalGross,
     });
 
-    let discount =
-      Number(this.getValue(`table_pi.${index}.order_discount`)) || 0;
-    const discountUOM = this.getValue(`table_pi.${index}.discount_uom`);
+    let discount = Number(this.getValue(`table_si.${index}.si_discount`)) || 0;
+    const discountUOM = this.getValue(`table_si.${index}.si_discount_uom_id`);
     const taxRate =
-      Number(this.getValue(`table_pi.${index}.tax_rate_percent`)) || 0;
-    let taxInclusive = this.getValue(`table_pi.${index}.tax_inclusive`);
+      Number(this.getValue(`table_si.${index}.tax_rate_percent`)) || 0;
+    let taxInclusive = this.getValue(`table_si.${index}.si_tax_inclusive`);
 
     taxInclusive =
       (taxInclusive && taxInclusive.length > 0) || taxInclusive === 1;
@@ -60,16 +59,16 @@ if (Array.isArray(items)) {
             discountAmount = 0;
 
             this.setData({
-              [`table_pi.${index}.order_discount`]: 0,
-              [`table_pi.${index}.discount_amount`]: 0,
+              [`table_si.${index}.si_discount`]: 0,
+              [`table_si.${index}.discount_amount`]: 0,
             });
           } else {
             this.setData({
-              [`table_pi.${index}.discount_amount`]: discountAmount,
+              [`table_si.${index}.discount_amount`]: discountAmount,
             });
           }
 
-          item.order_discount = discount;
+          item.si_discount = discount;
           item.discount_amount = discountAmount;
         }
 
@@ -91,19 +90,19 @@ if (Array.isArray(items)) {
           }
 
           this.setData({
-            [`table_pi.${index}.tax_amount`]: taxAmount,
+            [`table_si.${index}.tax_amount`]: taxAmount,
           });
           item.tax_amount = taxAmount;
         } else {
           this.hide("invoice_taxes_amount");
           this.setData({
-            [`table_pi.${index}.tax_amount`]: 0,
+            [`table_si.${index}.tax_amount`]: 0,
           });
           item.tax_amount = 0;
         }
 
         this.setData({
-          [`table_pi.${index}.invoice_amount`]: finalAmount,
+          [`table_si.${index}.invoice_amount`]: finalAmount,
         });
         item.invoice_amount = finalAmount;
 

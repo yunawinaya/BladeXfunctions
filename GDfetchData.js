@@ -1,9 +1,8 @@
 const data = this.getValues();
-console.log("Data", data);
+const salesOrderId = data.so_id;
 console.log("arguments", arguments[0]?.fieldModel?.item);
 
 // Check if so_id has a value
-const salesOrderId = data.so_id;
 if (!salesOrderId) {
   console.log("No sales order ID found");
   return;
@@ -111,21 +110,48 @@ db.collection("goods_delivery")
             console.log("deliveredSoFar", deliveredSoFar);
 
             // Update each field with correct values
-            this.setData({
-              [`table_gd.${index}.material_id`]: itemId,
-              [`table_gd.${index}.gd_material_desc`]: sourceItem.so_desc || "",
-              [`table_gd.${index}.gd_order_quantity`]: orderedQty,
-              [`table_gd.${index}.gd_delivered_qty`]: deliveredSoFar,
-              [`table_gd.${index}.gd_initial_delivered_qty`]: deliveredSoFar,
-              [`table_gd.${index}.gd_order_uom_id`]:
-                sourceItem.so_item_uom || "",
-              [`table_gd.${index}.unit_price`]: sourceItem.so_item_price,
-              [`table_gd.${index}.total_price`]: sourceItem.so_amount,
-              [`dialog_insufficient.table_insufficient.${index}.material_id`]:
-                itemId,
-              [`dialog_insufficient.table_insufficient.${index}.order_quantity`]:
-                orderedQty,
-            });
+            db.collection("item")
+              .where({ id: itemId })
+              .get()
+              .then((res) => {
+                const itemData = res.data[0];
+                if (
+                  itemData &&
+                  itemData.stock_control !== 0 &&
+                  itemData.show_delivery !== 0
+                ) {
+                  this.setData({
+                    [`table_gd.${index}.material_id`]: itemId,
+                    [`table_gd.${index}.gd_material_desc`]:
+                      sourceItem.so_desc || "",
+                    [`table_gd.${index}.gd_order_quantity`]: orderedQty,
+                    [`table_gd.${index}.gd_delivered_qty`]: deliveredSoFar,
+                    [`table_gd.${index}.gd_initial_delivered_qty`]:
+                      deliveredSoFar,
+                    [`table_gd.${index}.gd_order_uom_id`]:
+                      sourceItem.so_item_uom || "",
+                    [`table_gd.${index}.good_delivery_uom_id`]:
+                      sourceItem.so_item_uom || "",
+                    [`table_gd.${index}.base_uom_id`]:
+                      sourceItem.so_item_uom || "",
+                    [`table_gd.${index}.unit_price`]: sourceItem.so_item_price,
+                    [`table_gd.${index}.total_price`]: sourceItem.so_amount,
+                    [`table_gd.${index}.item_costing_method`]:
+                      itemData.material_costing_method,
+                    [`dialog_insufficient.table_insufficient.${index}.material_id`]:
+                      itemId,
+                    [`dialog_insufficient.table_insufficient.${index}.order_quantity`]:
+                      orderedQty,
+                  });
+                } else {
+                  console.log(
+                    `Skipping item ${itemId} due to stock_control or show_delivery settings`
+                  );
+                }
+              })
+              .catch((error) => {
+                console.error("Error fetching item:", error);
+              });
 
             db.collection("Item")
               .where({
@@ -136,7 +162,11 @@ db.collection("goods_delivery")
                 console.log("Response from item query:", response);
                 const itemData = response.data[0];
 
-                if (itemData.item_batch_management === 1) {
+                if (
+                  itemData.item_batch_management === 1 &&
+                  itemData.stock_control !== 0 &&
+                  itemData.show_delivery !== 0
+                ) {
                   db.collection("item_batch_balance")
                     .where({
                       material_id: itemId,
@@ -178,7 +208,11 @@ db.collection("goods_delivery")
                         error
                       );
                     });
-                } else {
+                } else if (
+                  itemData.item_batch_management === 0 &&
+                  itemData.stock_control !== 0 &&
+                  itemData.show_delivery !== 0
+                ) {
                   db.collection("item_balance")
                     .where({
                       material_id: itemId,

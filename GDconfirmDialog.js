@@ -1,3 +1,4 @@
+const page_status = this.getParamsVariables("page_status");
 const data = this.getValues();
 const temporaryData = data.gd_item_balance.table_item_balance;
 const rowIndex = data.gd_item_balance.row_index;
@@ -17,10 +18,6 @@ const textareaContent = JSON.stringify(temporaryData);
 
 this.setData({
   [`table_gd.${rowIndex}.temp_qty_data`]: textareaContent,
-});
-
-this.setData({
-  [`gd_item_balance.table_item_balance`]: [],
 });
 
 console.log("Input data:", temporaryData);
@@ -44,6 +41,12 @@ console.log("Final delivered quantity:", deliveredQty);
 // Store the total in the form
 this.setData({
   [`table_gd.${rowIndex}.gd_delivered_qty`]: deliveredQty,
+});
+this.setData({
+  [`table_gd.${rowIndex}.gd_qty`]: totalGdQuantity,
+});
+this.setData({
+  [`table_gd.${rowIndex}.base_qty`]: totalGdQuantity,
 });
 
 // Clear the error message if any
