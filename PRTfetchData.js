@@ -1,4 +1,12 @@
 const data = this.getValues();
+const purchaseReturnId = this.getParamsVariables("purchase_return_no");
+let existingPRT = [];
+db.collection("purchase_return_head")
+  .where({ id: purchaseReturnId })
+  .get()
+  .then((resPRT) => {
+    existingPRT = resPRT.data[0]?.table_prt || [];
+  });
 
 // Get GR numbers from arguments
 const grNumbers = arguments[0].value;
@@ -6,7 +14,12 @@ console.log("GR Numbers:", grNumbers);
 
 // Check if grNumbers is empty or invalid before proceeding
 if (!grNumbers || (Array.isArray(grNumbers) && grNumbers.length === 0)) {
-  this.setData({ table_prt: [] });
+  this.setData({
+    table_prt: [],
+    confirm_inventory: {
+      table_item_balance: [],
+    },
+  });
   console.log("GR numbers is empty, skipping processing");
   return;
 }
@@ -123,7 +136,7 @@ Promise.all(promises)
     });
 
     // Create table items with placeholders
-    const tableItems = allItems.map((item) => {
+    const tableItems = allItems.map((item, index) => {
       const tableItem = {
         material_id: item.item_id,
         material_desc: item.item_desc,
@@ -209,21 +222,33 @@ Promise.all(promises)
     const nonBatchItemsWithBalance = await Promise.all(nonBatchBalancePromises);
 
     // Combine both types of items and sort again
-    const newTablePRT = [
-      ...batchItemsWithBalance,
-      ...nonBatchItemsWithBalance,
-    ].sort((a, b) => {
-      // Sort by material_id
-      if (a.material_id < b.material_id) return -1;
-      if (a.material_id > b.material_id) return 1;
+    const newTablePRT = [...batchItemsWithBalance, ...nonBatchItemsWithBalance]
+      .map((item) => {
+        // Find matching item in existing PRT
+        const existingItem = existingPRT.find(
+          (ei) =>
+            ei.material_id === item.material_id &&
+            ei.gr_number === item.gr_number &&
+            (item.batch_id ? ei.batch_id === item.batch_id : true)
+        );
 
-      // If same material_id, batch items first
-      const aBatch = a.batch_id ? 1 : 0;
-      const bBatch = b.batch_id ? 1 : 0;
-      return bBatch - aBatch;
-    });
+        return {
+          ...item,
+          return_condition: existingItem?.return_condition || "",
+        };
+      })
+      .sort((a, b) => {
+        // Sort by material_id
+        if (a.material_id < b.material_id) return -1;
+        if (a.material_id > b.material_id) return 1;
 
-    console.log("New Table PRT:", newTablePRT);
+        // If same material_id, batch items first
+        const aBatch = a.batch_id ? 1 : 0;
+        const bBatch = b.batch_id ? 1 : 0;
+        return bBatch - aBatch;
+      });
+
+    console.log("New Table PRT:", existingPRT);
 
     // Update the form
     this.setData({

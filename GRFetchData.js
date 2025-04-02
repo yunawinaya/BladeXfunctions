@@ -1,21 +1,17 @@
 // Check if data is ready and contains purchase_order_id
 const checkAndProcessData = () => {
   const data = this.getValues();
-  console.log("Current data values:", data);
 
   // If no data or purchase_order_id yet, try again after a short delay
   if (!data || !data.purchase_order_id) {
-    console.log("Purchase order ID not available yet, waiting...");
-    setTimeout(checkAndProcessData, 500); // Try again in 500ms
+    setTimeout(checkAndProcessData, 500);
     return;
   }
 
   // Once we have the purchase_order_id, proceed with processing
   const purchaseOrderId = data.purchase_order_id;
-  console.log("Found purchase_order_id:", purchaseOrderId);
 
   const goodsReceivingId = this.getParamsVariables("goods_receiving_no");
-  console.log("goodsReceivingId:", goodsReceivingId);
 
   // Now call the main processing function
   processGoodsReceiving(purchaseOrderId, goodsReceivingId);
