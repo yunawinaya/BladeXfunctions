@@ -78,6 +78,83 @@ const updateInventory = async (data) => {
     }
   };
 
+  const updateWeightedAverage = (item, batchId) => {
+    // Input validation
+    if (
+      !item ||
+      !item.material_id ||
+      isNaN(parseFloat(item.return_quantity)) ||
+      parseFloat(item.return_quantity) <= 0
+    ) {
+      console.error("Invalid item data for weighted average update:", item);
+      return Promise.resolve();
+    }
+
+    const returnQty = parseFloat(item.return_quantity);
+    const query = batchId
+      ? db
+          .collection("wa_costing_method")
+          .where({ material_id: item.material_id, batch_id: batchId })
+      : db
+          .collection("wa_costing_method")
+          .where({ material_id: item.material_id });
+
+    return query
+      .get()
+      .then((waResponse) => {
+        const waData = waResponse.data;
+
+        if (!waData || !Array.isArray(waData) || waData.length === 0) {
+          console.warn(
+            `No weighted average records found for material ${item.material_id}`
+          );
+          return Promise.resolve();
+        }
+
+        // Sort by date (newest first) to get the latest record
+        waData.sort((a, b) => {
+          if (a.created_at && b.created_at) {
+            return new Date(b.created_at) - new Date(a.created_at);
+          }
+          return 0;
+        });
+
+        const waDoc = waData[0];
+        const waCostPrice = parseFloat(waDoc.wa_cost_price || 0);
+        const waQuantity = parseFloat(waDoc.wa_quantity || 0);
+
+        const newWaQuantity = Math.max(0, waQuantity + returnQty);
+
+        const newWaCostPrice =
+          (waCostPrice * waQuantity + waCostPrice * returnQty) / newWaQuantity;
+
+        return db
+          .collection("wa_costing_method")
+          .doc(waDoc.id)
+          .update({
+            wa_quantity: newWaQuantity,
+            wa_cost_price: newWaCostPrice,
+            updated_at: new Date(),
+          })
+          .then(() => {
+            console.log(
+              `Successfully processed Weighted Average for item ${item.material_id}, ` +
+                `new quantity: ${newWaQuantity}, new cost price: ${newWaCostPrice}`
+            );
+            return Promise.resolve();
+          });
+      })
+      .catch((error) => {
+        console.error(
+          `Error processing Weighted Average for item ${
+            item?.material_id || "unknown"
+          }:`,
+          error
+        );
+        return Promise.reject(error);
+      });
+  };
+
   if (Array.isArray(items)) {
     for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
       const item = items[itemIndex];
@@ -114,13 +191,15 @@ const updateInventory = async (data) => {
           unit_price: item.unit_price,
           total_price: item.total_price,
           quantity: item.return_quantity,
-          material_id: item.material_id,
+          item_id: item.material_id,
           inventory_category: item.inv_category,
           uom_id: item.return_uom_id,
-          base_uom_id: item.return_uom_id,
+          base_uom_id: itemData.base_uom,
           bin_location_id: item.location_id,
           batch_number_id: item.batch_id,
           costing_method_id: item.costing_method,
+          plant_id: plantId,
+          organization_id: organizationId,
         });
 
         const temporaryData = JSON.parse(item.temp_qty_data);
@@ -140,10 +219,7 @@ const updateInventory = async (data) => {
             const categoryValue = temp.return_quantity;
 
             if (temp.batch_id) {
-              // Add batch_id to query params when querying batch balance
-              if (temp.batch_id) {
-                itemBalanceParams.batch_id = temp.batch_id;
-              }
+              itemBalanceParams.batch_id = temp.batch_id;
 
               const batchResponse = await db
                 .collection("item_batch_balance")
@@ -250,8 +326,12 @@ const updateInventory = async (data) => {
               }
             }
 
-            // Update FIFO inventory
-            await updateFIFOInventory(item.material_id, temp.return_quantity);
+            const costingMethod = itemData.material_costing_method;
+            if (costingMethod === "First In First Out") {
+              await updateFIFOInventory(item.material_id, temp.return_quantity);
+            } else {
+              await updateWeightedAverage(item, temp.batch_id);
+            }
           }
         }
       } catch (error) {
@@ -367,14 +447,32 @@ this.getData()
 
       if (page_status === "Add") {
         await db.collection("purchase_return_head").add(prt);
-        await updateInventory(data);
+
+        const result = await db
+          .collection("purchase_order")
+          .doc(data.purchase_order_id)
+          .get();
+
+        const plantId = result.data[0].po_plant;
+        const organizationId = result.data[0].organization_id;
+
+        await updateInventory(data, plantId, organizationId);
       } else if (page_status === "Edit") {
         const purchaseReturnId = this.getParamsVariables("purchase_return_no");
+
+        const result = await db
+          .collection("purchase_order")
+          .doc(data.purchase_order_id)
+          .get();
+
+        const plantId = result.data[0].po_plant;
+        const organizationId = result.data[0].organization_id;
+
         await db
           .collection("purchase_return_head")
           .doc(purchaseReturnId)
           .update(prt);
-        await updateInventory(data);
+        await updateInventory(data, plantId, organizationId);
       }
 
       closeDialog();

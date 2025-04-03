@@ -81,6 +81,111 @@ const updateFIFOInventory = (materialId, deliveryQty) => {
     );
 };
 
+const updateWeightedAverage = (item, batchId) => {
+  // Input validation
+  if (
+    !item ||
+    !item.material_id ||
+    isNaN(parseFloat(item.received_qty)) ||
+    parseFloat(item.received_qty) <= 0
+  ) {
+    console.error("Invalid item data for weighted average update:", item);
+    return Promise.resolve();
+  }
+
+  const receivedQty = parseFloat(item.received_qty);
+  const query = batchId
+    ? db
+        .collection("wa_costing_method")
+        .where({ material_id: item.material_id, batch_id: batchId })
+    : db
+        .collection("wa_costing_method")
+        .where({ material_id: item.material_id });
+
+  return query
+    .get()
+    .then((waResponse) => {
+      const waData = waResponse.data;
+
+      if (!waData || !Array.isArray(waData) || waData.length === 0) {
+        console.warn(
+          `No weighted average records found for material ${item.material_id}`
+        );
+        return Promise.resolve();
+      }
+
+      // Sort by date (newest first) to get the latest record
+      waData.sort((a, b) => {
+        if (a.created_at && b.created_at) {
+          return new Date(b.created_at) - new Date(a.created_at);
+        }
+        return 0;
+      });
+
+      const waDoc = waData[0];
+      const waCostPrice = parseFloat(waDoc.wa_cost_price || 0);
+      const waQuantity = parseFloat(waDoc.wa_quantity || 0);
+
+      if (waQuantity <= receivedQty) {
+        console.warn(
+          `Warning: Cannot fully update weighted average for ${item.material_id} - ` +
+            `Available: ${waQuantity}, Requested: ${receivedQty}`
+        );
+
+        if (waQuantity <= 0) {
+          return Promise.resolve();
+        }
+      }
+
+      const newWaQuantity = Math.max(0, waQuantity - receivedQty);
+
+      // If new quantity would be zero, handle specially
+      if (newWaQuantity === 0) {
+        return db
+          .collection("wa_costing_method")
+          .doc(waDoc.id)
+          .update({
+            wa_quantity: 0,
+            updated_at: new Date(),
+          })
+          .then(() => {
+            console.log(
+              `Updated Weighted Average for item ${item.material_id} to zero quantity`
+            );
+            return Promise.resolve();
+          });
+      }
+
+      const newWaCostPrice =
+        (waCostPrice * waQuantity - waCostPrice * receivedQty) / newWaQuantity;
+
+      return db
+        .collection("wa_costing_method")
+        .doc(waDoc.id)
+        .update({
+          wa_quantity: newWaQuantity,
+          wa_cost_price: newWaCostPrice,
+          updated_at: new Date(),
+        })
+        .then(() => {
+          console.log(
+            `Successfully processed Weighted Average for item ${item.material_id}, ` +
+              `new quantity: ${newWaQuantity}, new cost price: ${newWaCostPrice}`
+          );
+          return Promise.resolve();
+        });
+    })
+    .catch((error) => {
+      console.error(
+        `Error processing Weighted Average for item ${
+          item?.material_id || "unknown"
+        }:`,
+        error
+      );
+      return Promise.reject(error);
+    });
+};
+
 const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
   const items = data.table_gd;
 
@@ -227,7 +332,13 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
             });
           }
 
-          updateFIFOInventory(item.material_id, temp.gd_quantity);
+          const costingMethod = itemData.material_costing_method;
+
+          if (costingMethod === "First In First Out") {
+            await updateFIFOInventory(item.material_id, temp.gd_quantity);
+          } else {
+            await updateWeightedAverage(item, temp.batch_id);
+          }
         }
       }
     } catch (error) {
