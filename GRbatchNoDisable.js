@@ -1,3 +1,4 @@
+const page_status = this.getParamsVariables("page_status");
 const fieldData = arguments[0];
 const rowIndex = fieldData.rowIndex;
 
@@ -15,7 +16,9 @@ db.collection("Item")
 
       if (batchManagementEnabled) {
         this.disabled(`table_gr.${rowIndex}.item_batch_no`, false);
-        this.setData({ [`table_gr.${rowIndex}.item_batch_no`]: "" });
+        if (page_status === "Add") {
+          this.setData({ [`table_gr.${rowIndex}.item_batch_no`]: "" });
+        }
       } else {
         this.disabled(`table_gr.${rowIndex}.item_batch_no`, true);
       }

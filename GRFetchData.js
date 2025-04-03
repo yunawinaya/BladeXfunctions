@@ -66,12 +66,6 @@ const processGoodsReceiving = async (purchaseOrderId, goodsReceivingId) => {
 
       const GRData = grResult.data || [];
 
-      // Update purchase order number
-      this.setData({
-        purchase_order_number:
-          arguments[0]?.fieldModel?.item?.purchase_order_no,
-      });
-
       // Get source items from the purchase order
       const sourceItems = arguments[0]?.fieldModel?.item?.table_po;
       if (!Array.isArray(sourceItems) || sourceItems.length === 0) {
@@ -317,6 +311,7 @@ const processAddressInformation = async (purchaseOrderId) => {
 
     // Set supplier details
     this.setData({
+      purchase_order_number: arguments[0]?.fieldModel?.item?.purchase_order_no,
       supplier_name: supplierData.id,
       supplier_contact_person: `${
         supplierData.contact_list[0].person_name || ""
