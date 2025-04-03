@@ -32,10 +32,6 @@ const addInventory = (data, plantId, organizationId) => {
         return;
       }
 
-      // Track created documents for potential rollback
-      const createdDocs = [];
-      const updatedDocs = [];
-
       // Function to process FIFO for batch
       const processFifoForBatch = (itemData, batchId) => {
         // Improved FIFO sequence generation
@@ -72,12 +68,7 @@ const addInventory = (data, plantId, organizationId) => {
             return db
               .collection("fifo_costing_history")
               .add(fifoData)
-              .then((fifoResult) => {
-                createdDocs.push({
-                  collection: "fifo_costing_history",
-                  docId: fifoResult.id,
-                });
-
+              .then(() => {
                 console.log(
                   `Successfully processed FIFO for item ${itemData.item_id} with batch ${batchId}`
                 );
@@ -121,12 +112,7 @@ const addInventory = (data, plantId, organizationId) => {
             return db
               .collection("fifo_costing_history")
               .add(fifoData)
-              .then((fifoResult) => {
-                createdDocs.push({
-                  collection: "fifo_costing_history",
-                  docId: fifoResult.id,
-                });
-
+              .then(() => {
                 console.log(
                   `Successfully processed FIFO for item ${itemData.item_id}`
                 );
@@ -147,12 +133,7 @@ const addInventory = (data, plantId, organizationId) => {
             wa_cost_price: item.unit_price,
             created_at: new Date(),
           })
-          .then((waResult) => {
-            createdDocs.push({
-              collection: "wa_costing_method",
-              docId: waResult.id,
-            });
-
+          .then(() => {
             console.log(
               `Successfully processed Weighted Average for item ${item.item_id} with batch ${batchId}`
             );
@@ -201,15 +182,6 @@ const addInventory = (data, plantId, organizationId) => {
                   updated_at: new Date(),
                 })
                 .then(() => {
-                  updatedDocs.push({
-                    collection: "wa_costing_method",
-                    docId: latestWa.id,
-                    originalData: {
-                      wa_quantity: waQuantity,
-                      wa_cost_price: waCostPrice,
-                    },
-                  });
-
                   console.log(
                     `Successfully processed Weighted Average for item ${item.item_id}`
                   );
@@ -226,12 +198,7 @@ const addInventory = (data, plantId, organizationId) => {
                   organization_id: organizationId,
                   created_at: new Date(),
                 })
-                .then((waResult) => {
-                  createdDocs.push({
-                    collection: "wa_costing_method",
-                    docId: waResult.id,
-                  });
-
+                .then(() => {
                   console.log(
                     `Successfully processed Weighted Average for item ${item.item_id}`
                   );
@@ -257,7 +224,7 @@ const addInventory = (data, plantId, organizationId) => {
 
         if (!itemRes.data || !itemRes.data.length) {
           console.error(`Item not found: ${item.item_id}`);
-          resolve(); // Skip if item not found
+          resolve();
           return;
         }
 
@@ -266,7 +233,7 @@ const addInventory = (data, plantId, organizationId) => {
           console.log(
             `Skipping inventory update for item ${item.item_id} (stock_control=0)`
           );
-          resolve(); // Skip inventory updates for this item
+          resolve();
           return;
         }
 
@@ -291,13 +258,7 @@ const addInventory = (data, plantId, organizationId) => {
           organization_id: organizationId,
         };
 
-        const invMovementResult = await db
-          .collection("inventory_movement")
-          .add(inventoryMovementData);
-        createdDocs.push({
-          collection: "inventory_movement",
-          docId: invMovementResult.id,
-        });
+        await db.collection("inventory_movement").add(inventoryMovementData);
 
         // Update purchase order
         const poResponse = await db
@@ -315,25 +276,15 @@ const addInventory = (data, plantId, organizationId) => {
         ) {
           const doc = poResponse.data[0];
           if (doc && doc.id) {
-            const orderedQty = parseFloat(item.ordered_qty || 0);
             const existingReceived = parseFloat(doc.received_qty || 0);
+            const openQuantity = parseFloat(doc.open_qty || 0);
             const newReceived =
               existingReceived + parseFloat(item.received_qty || 0);
-            const openQuantity = orderedQty - newReceived;
-
-            // Store original values for potential rollback
-            updatedDocs.push({
-              collection: "on_order_purchase_order",
-              docId: doc.id,
-              originalData: {
-                received_qty: existingReceived,
-                open_qty: doc.open_qty || 0,
-              },
-            });
+            const newOpenQuantity = openQuantity - newReceived;
 
             await db.collection("on_order_purchase_order").doc(doc.id).update({
               received_qty: newReceived,
-              open_qty: openQuantity,
+              open_qty: newOpenQuantity,
             });
           }
         }
@@ -377,7 +328,7 @@ const addInventory = (data, plantId, organizationId) => {
               plant_id: plantId,
               organization_id: organizationId,
             })
-            .then((batchResult) => {
+            .then(() => {
               // Query for the batch document after creation
               return db
                 .collection("batch")
@@ -397,11 +348,7 @@ const addInventory = (data, plantId, organizationId) => {
                 throw new Error("Batch not found after creation");
               }
 
-              // Track created batch document
-              createdDocs.push({
-                collection: "batch",
-                docId: batchResult[0].id,
-              });
+              const batchId = batchResult[0].id;
 
               // Continue with item_batch_balance handling
               return db
@@ -409,101 +356,81 @@ const addInventory = (data, plantId, organizationId) => {
                 .where({
                   material_id: item.item_id,
                   location_id: item.location_id,
-                  batch_id: batchResult[0].id,
-                })
-                .get();
-            })
-            .then((balanceResponse) => {
-              const hasExistingBalance =
-                balanceResponse.data &&
-                Array.isArray(balanceResponse.data) &&
-                balanceResponse.data.length > 0;
-              const existingDoc = hasExistingBalance
-                ? balanceResponse.data[0]
-                : null;
-
-              // Store the batchId from the previous step
-              const batchId = createdDocs.find(
-                (doc) => doc.collection === "batch"
-              ).docId;
-
-              let balance_quantity;
-
-              if (existingDoc && existingDoc.id) {
-                // Update existing balance
-                const updatedBlockQty =
-                  parseFloat(existingDoc.block_qty || 0) + block_qty;
-                const updatedReservedQty =
-                  parseFloat(existingDoc.reserved_qty || 0) + reserved_qty;
-                const updatedUnrestrictedQty =
-                  parseFloat(existingDoc.unrestricted_qty || 0) +
-                  unrestricted_qty;
-                const updatedQualityInspQty =
-                  parseFloat(existingDoc.qualityinsp_qty || 0) +
-                  qualityinsp_qty;
-                balance_quantity =
-                  updatedBlockQty +
-                  updatedReservedQty +
-                  updatedUnrestrictedQty +
-                  updatedQualityInspQty;
-
-                // Store original values for rollback
-                updatedDocs.push({
-                  collection: "item_batch_balance",
-                  docId: existingDoc.id,
-                  originalData: {
-                    block_qty: existingDoc.block_qty || 0,
-                    reserved_qty: existingDoc.reserved_qty || 0,
-                    unrestricted_qty: existingDoc.unrestricted_qty || 0,
-                    qualityinsp_qty: existingDoc.qualityinsp_qty || 0,
-                    balance_quantity: existingDoc.balance_quantity || 0,
-                  },
-                });
-
-                return db
-                  .collection("item_batch_balance")
-                  .doc(existingDoc.id)
-                  .update({
-                    batch_id: batchId,
-                    block_qty: updatedBlockQty,
-                    reserved_qty: updatedReservedQty,
-                    unrestricted_qty: updatedUnrestrictedQty,
-                    qualityinsp_qty: updatedQualityInspQty,
-                    balance_quantity: balance_quantity,
-                  })
-                  .then(() => {
-                    return { batchId };
-                  });
-              } else {
-                // Create new balance record
-                balance_quantity =
-                  block_qty + reserved_qty + unrestricted_qty + qualityinsp_qty;
-
-                const newBalanceData = {
-                  material_id: item.item_id,
-                  location_id: item.location_id,
                   batch_id: batchId,
-                  block_qty: block_qty,
-                  reserved_qty: reserved_qty,
-                  unrestricted_qty: unrestricted_qty,
-                  qualityinsp_qty: qualityinsp_qty,
-                  balance_quantity: balance_quantity,
-                  plant_id: plantId,
-                  organization_id: organizationId,
-                };
+                })
+                .get()
+                .then((balanceResponse) => {
+                  const hasExistingBalance =
+                    balanceResponse.data &&
+                    Array.isArray(balanceResponse.data) &&
+                    balanceResponse.data.length > 0;
+                  const existingDoc = hasExistingBalance
+                    ? balanceResponse.data[0]
+                    : null;
 
-                return db
-                  .collection("item_batch_balance")
-                  .add(newBalanceData)
-                  .then((balanceResult) => {
-                    createdDocs.push({
-                      collection: "item_batch_balance",
-                      docId: balanceResult.id,
-                    });
+                  let balance_quantity;
 
-                    return { batchId };
-                  });
-              }
+                  if (existingDoc && existingDoc.id) {
+                    // Update existing balance
+                    const updatedBlockQty =
+                      parseFloat(existingDoc.block_qty || 0) + block_qty;
+                    const updatedReservedQty =
+                      parseFloat(existingDoc.reserved_qty || 0) + reserved_qty;
+                    const updatedUnrestrictedQty =
+                      parseFloat(existingDoc.unrestricted_qty || 0) +
+                      unrestricted_qty;
+                    const updatedQualityInspQty =
+                      parseFloat(existingDoc.qualityinsp_qty || 0) +
+                      qualityinsp_qty;
+                    balance_quantity =
+                      updatedBlockQty +
+                      updatedReservedQty +
+                      updatedUnrestrictedQty +
+                      updatedQualityInspQty;
+
+                    return db
+                      .collection("item_batch_balance")
+                      .doc(existingDoc.id)
+                      .update({
+                        batch_id: batchId,
+                        block_qty: updatedBlockQty,
+                        reserved_qty: updatedReservedQty,
+                        unrestricted_qty: updatedUnrestrictedQty,
+                        qualityinsp_qty: updatedQualityInspQty,
+                        balance_quantity: balance_quantity,
+                      })
+                      .then(() => {
+                        return { batchId };
+                      });
+                  } else {
+                    // Create new balance record
+                    balance_quantity =
+                      block_qty +
+                      reserved_qty +
+                      unrestricted_qty +
+                      qualityinsp_qty;
+
+                    const newBalanceData = {
+                      material_id: item.item_id,
+                      location_id: item.location_id,
+                      batch_id: batchId,
+                      block_qty: block_qty,
+                      reserved_qty: reserved_qty,
+                      unrestricted_qty: unrestricted_qty,
+                      qualityinsp_qty: qualityinsp_qty,
+                      balance_quantity: balance_quantity,
+                      plant_id: plantId,
+                      organization_id: organizationId,
+                    };
+
+                    return db
+                      .collection("item_batch_balance")
+                      .add(newBalanceData)
+                      .then(() => {
+                        return { batchId };
+                      });
+                  }
+                });
             })
             .then(({ batchId }) => {
               const costingMethod = itemData.material_costing_method;
@@ -524,6 +451,7 @@ const addInventory = (data, plantId, organizationId) => {
               console.error(
                 `Error in batch processing chain: ${error.message}`
               );
+              resolve();
             });
         } else {
           // Non-batch item processing with async/await
@@ -560,19 +488,6 @@ const addInventory = (data, plantId, organizationId) => {
                 updatedUnrestrictedQty +
                 updatedQualityInspQty;
 
-              // Store original values for rollback
-              updatedDocs.push({
-                collection: "item_balance",
-                docId: existingDoc.id,
-                originalData: {
-                  block_qty: existingDoc.block_qty || 0,
-                  reserved_qty: existingDoc.reserved_qty || 0,
-                  unrestricted_qty: existingDoc.unrestricted_qty || 0,
-                  qualityinsp_qty: existingDoc.qualityinsp_qty || 0,
-                  balance_quantity: existingDoc.balance_quantity || 0,
-                },
-              });
-
               await db.collection("item_balance").doc(existingDoc.id).update({
                 block_qty: updatedBlockQty,
                 reserved_qty: updatedReservedQty,
@@ -597,13 +512,7 @@ const addInventory = (data, plantId, organizationId) => {
                 organization_id: organizationId,
               };
 
-              const balanceResult = await db
-                .collection("item_balance")
-                .add(newBalanceData);
-              createdDocs.push({
-                collection: "item_balance",
-                docId: balanceResult.id,
-              });
+              await db.collection("item_balance").add(newBalanceData);
             }
 
             const costingMethod = itemData.material_costing_method;
@@ -627,8 +536,8 @@ const addInventory = (data, plantId, organizationId) => {
         }
       } catch (error) {
         console.error(`Error processing item ${item.item_id}:`, error);
-        console.log(`Rollback completed for item ${item.item_id}`);
-        resolve(); // Resolve after rollback to continue with other items
+        console.log(`Error encountered for item ${item.item_id}`);
+        resolve();
       }
     });
   });
@@ -641,8 +550,6 @@ const addInventory = (data, plantId, organizationId) => {
 const updatePurchaseOrderStatus = async (purchaseOrderId) => {
   try {
     // Store original PO status for potential rollback
-    let originalPOStatus = null;
-    let originalGRStatus = null;
     let poDoc = null;
 
     const [resGR, resPO] = await Promise.all([
@@ -661,8 +568,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderId) => {
     }
 
     poDoc = resPO.data[0];
-    originalPOStatus = poDoc.po_status;
-    originalGRStatus = poDoc.gr_status;
+    const originalPOStatus = poDoc.po_status;
 
     const poItems = poDoc.table_po || [];
     if (!poItems.length) {
@@ -853,7 +759,7 @@ this.getData()
       alert(
         "An error occurred during processing. Please try again or contact support."
       );
-      throw error; // Re-throw to be caught by outer catch
+      throw error;
     }
   })
   .catch((error) => {

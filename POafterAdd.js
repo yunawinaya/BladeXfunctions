@@ -12,8 +12,8 @@ const addOnPO = () => {
         material_name: item.item_id,
         purchase_order_line: index + 1,
         scheduled_qty: item.quantity,
+        open_qty: item.quantity,
         received_qty: 0,
-        open_qty: 0,
       };
 
       db.collection("on_order_purchase_order")

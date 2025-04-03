@@ -9,97 +9,85 @@ const closeDialog = () => {
 };
 
 // Update FIFO inventory
-const updateFIFOInventory = async (materialId, deliveryQty) => {
-  try {
-    // Get all FIFO records for this material sorted by sequence (oldest first)
-    const response = await db
-      .collection("fifo_costing_history")
-      .where({ material_id: materialId })
-      .get();
+const updateFIFOInventory = (materialId, deliveryQty) => {
+  // Get all FIFO records for this material sorted by sequence (oldest first)
+  db.collection("fifo_costing_history")
+    .where({ material_id: materialId })
+    .get()
+    .then((response) => {
+      const result = response.data;
 
-    const result = response.data;
+      if (result && Array.isArray(result) && result.length > 0) {
+        // Sort by FIFO sequence (lowest/oldest first)
+        const sortedRecords = result.sort(
+          (a, b) => a.fifo_sequence - b.fifo_sequence
+        );
 
-    if (result && Array.isArray(result) && result.length > 0) {
-      // Sort by FIFO sequence (lowest/oldest first)
-      const sortedRecords = result.sort(
-        (a, b) => a.fifo_sequence - b.fifo_sequence
-      );
+        let remainingQtyToDeduct = parseFloat(deliveryQty);
+        console.log(
+          `Need to deduct ${remainingQtyToDeduct} units from FIFO inventory`
+        );
 
-      let remainingQtyToDeduct = parseFloat(deliveryQty);
-      console.log(
-        `Need to deduct ${remainingQtyToDeduct} units from FIFO inventory`
-      );
+        // Process each FIFO record in sequence until we've accounted for all delivery quantity
+        for (const record of sortedRecords) {
+          if (remainingQtyToDeduct <= 0) {
+            break;
+          }
 
-      // Track updated records for rollback
-      const updatedRecords = [];
+          const availableQty = parseFloat(record.fifo_available_quantity || 0);
+          console.log(
+            `FIFO record ${record.fifo_sequence} has ${availableQty} available`
+          );
 
-      // Process each FIFO record in sequence until we've accounted for all delivery quantity
-      for (const record of sortedRecords) {
-        if (remainingQtyToDeduct <= 0) {
-          break;
+          // Calculate how much to take from this record
+          const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
+          const newAvailableQty = availableQty - qtyToDeduct;
+
+          console.log(
+            `Deducting ${qtyToDeduct} from FIFO record ${record.fifo_sequence}, new available: ${newAvailableQty}`
+          );
+
+          // Update this FIFO record
+          db.collection("fifo_costing_history")
+            .doc(record.id)
+            .update({
+              fifo_available_quantity: newAvailableQty,
+            })
+            .catch((error) =>
+              console.error(
+                `Error updating FIFO record ${record.fifo_sequence}:`,
+                error
+              )
+            );
+
+          // Reduce the remaining quantity to deduct
+          remainingQtyToDeduct -= qtyToDeduct;
         }
 
-        const availableQty = parseFloat(record.fifo_available_quantity || 0);
-        console.log(
-          `FIFO record ${record.fifo_sequence} has ${availableQty} available`
-        );
-
-        // Calculate how much to take from this record
-        const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
-        const newAvailableQty = availableQty - qtyToDeduct;
-
-        console.log(
-          `Deducting ${qtyToDeduct} from FIFO record ${record.fifo_sequence}, new available: ${newAvailableQty}`
-        );
-
-        // Store original value for potential rollback
-        updatedRecords.push({
-          docId: record.id,
-          originalData: {
-            fifo_available_quantity: record.fifo_available_quantity,
-          },
-        });
-
-        // Update this FIFO record
-        await db.collection("fifo_costing_history").doc(record.id).update({
-          fifo_available_quantity: newAvailableQty,
-        });
-
-        // Reduce the remaining quantity to deduct
-        remainingQtyToDeduct -= qtyToDeduct;
+        if (remainingQtyToDeduct > 0) {
+          console.warn(
+            `Warning: Couldn't fully satisfy FIFO deduction. Remaining qty: ${remainingQtyToDeduct}`
+          );
+        }
+      } else {
+        console.warn(`No FIFO records found for material ${materialId}`);
       }
-
-      if (remainingQtyToDeduct > 0) {
-        console.warn(
-          `Warning: Couldn't fully satisfy FIFO deduction. Remaining qty: ${remainingQtyToDeduct}`
-        );
-      }
-
-      return updatedRecords;
-    } else {
-      console.warn(`No FIFO records found for material ${materialId}`);
-      return [];
-    }
-  } catch (error) {
-    console.error(
-      `Error retrieving FIFO history for material ${materialId}:`,
-      error
+    })
+    .catch((error) =>
+      console.error(
+        `Error retrieving FIFO history for material ${materialId}:`,
+        error
+      )
     );
-    throw error; // Propagate error for handling in calling function
-  }
 };
 
-// Process balance table
-const processBalanceTable = async (data, isUpdate = false) => {
+const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
   const items = data.table_gd;
 
   if (!Array.isArray(items) || items.length === 0) {
     console.log("No items to process");
     return;
   }
-
-  // Define createdDocs at the beginning of the function
-  const createdDocs = [];
 
   const processedItemPromises = items.map(async (item, itemIndex) => {
     try {
@@ -113,6 +101,7 @@ const processBalanceTable = async (data, isUpdate = false) => {
 
       // Track created or updated documents for potential rollback
       const updatedDocs = [];
+      const createdDocs = [];
 
       // First check if this item should be processed based on stock_control
       const itemRes = await db
@@ -158,14 +147,16 @@ const processBalanceTable = async (data, isUpdate = false) => {
             unit_price: item.unit_price,
             total_price: item.total_price,
             quantity: temp.gd_quantity,
-            material_id: item.material_id,
+            item_id: item.material_id,
             inventory_category: inventoryCategory,
             uom_id: item.item_uom,
             base_qty: item.base_qty,
-            base_uom_id: item.base_uom_id,
+            base_uom_id: itemData.based_uom,
             bin_location_id: temp.location_id,
             batch_number_id: temp.batch_id,
             costing_method_id: item.item_costing_method,
+            plant_id: plantId,
+            organization_id: organizationId,
           };
 
           const invMovementResult = await db
@@ -176,7 +167,6 @@ const processBalanceTable = async (data, isUpdate = false) => {
             docId: invMovementResult.id,
           });
 
-          // Add batch_id to query params when querying item_batch_balance
           const itemBalanceParams = {
             material_id: item.material_id,
             location_id: temp.location_id,
@@ -185,11 +175,6 @@ const processBalanceTable = async (data, isUpdate = false) => {
           const balanceCollection = temp.batch_id
             ? "item_batch_balance"
             : "item_balance";
-
-          // Add batch_id to query params if it exists AND we're querying batch balance
-          if (temp.batch_id && balanceCollection === "item_batch_balance") {
-            itemBalanceParams.batch_id = temp.batch_id;
-          }
 
           const balanceQuery = await db
             .collection(balanceCollection)
@@ -242,23 +227,7 @@ const processBalanceTable = async (data, isUpdate = false) => {
             });
           }
 
-          // Update FIFO inventory
-          try {
-            const updatedFifoRecords = await updateFIFOInventory(
-              item.material_id,
-              temp.gd_quantity
-            );
-            // Add FIFO records to the updatedDocs for potential rollback
-            updatedDocs.push(
-              ...updatedFifoRecords.map((record) => ({
-                collection: "fifo_costing_history",
-                ...record,
-              }))
-            );
-          } catch (fifoError) {
-            console.error(`Error updating FIFO inventory: ${fifoError}`);
-            throw fifoError;
-          }
+          updateFIFOInventory(item.material_id, temp.gd_quantity);
         }
       }
     } catch (error) {
@@ -378,6 +347,8 @@ this.getData()
         gd_billing_address,
         gd_shipping_address,
         delivery_no,
+        plant_id,
+        organization_id,
         gd_ref_doc,
         customer_name,
         gd_contact_name,
@@ -437,6 +408,8 @@ this.getData()
         gd_billing_address,
         gd_shipping_address,
         delivery_no,
+        plant_id,
+        organization_id,
         gd_ref_doc,
         customer_name,
         gd_contact_name,
@@ -482,12 +455,14 @@ this.getData()
       // Perform action based on page status
       if (page_status === "Add") {
         await db.collection("goods_delivery").add(gd);
-        await processBalanceTable(data);
+
+        await processBalanceTable(data, false, plant_id, organization_id);
         await updateSalesOrderStatus(so_id);
       } else if (page_status === "Edit") {
         const goodsDeliveryId = this.getParamsVariables("goods_delivery_no");
         await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
-        await processBalanceTable(data, true);
+
+        await processBalanceTable(data, true, plant_id, organization_id);
         await updateSalesOrderStatus(so_id);
       }
 
