@@ -37,7 +37,7 @@ const addInventory = (data, plantId, organizationId) => {
         // Improved FIFO sequence generation
         return db
           .collection("fifo_costing_history")
-          .where({ material_id: itemData.item_id })
+          .where({ material_id: itemData.item_id, batch_id: batchId })
           .get()
           .then((fifoResponse) => {
             // Get the highest existing sequence number and add 1
@@ -280,7 +280,8 @@ const addInventory = (data, plantId, organizationId) => {
             const openQuantity = parseFloat(doc.open_qty || 0);
             const newReceived =
               existingReceived + parseFloat(item.received_qty || 0);
-            const newOpenQuantity = openQuantity - newReceived;
+            const newOpenQuantity =
+              openQuantity - parseFloat(item.received_qty || 0);
 
             await db.collection("on_order_purchase_order").doc(doc.id).update({
               received_qty: newReceived,
@@ -314,7 +315,6 @@ const addInventory = (data, plantId, organizationId) => {
           unrestricted_qty = receivedQty;
         }
 
-        // Following your existing logic for batch identification
         if (item.item_batch_no !== "-") {
           // Batch item processing
           return db
@@ -329,12 +329,15 @@ const addInventory = (data, plantId, organizationId) => {
               organization_id: organizationId,
             })
             .then(() => {
-              // Query for the batch document after creation
+              return new Promise((resolve) => setTimeout(resolve, 300));
+            })
+            .then(() => {
               return db
                 .collection("batch")
                 .where({
                   batch_number: item.item_batch_no,
                   material_id: item.item_id,
+                  goods_receiving_no: data.gr_no,
                 })
                 .get();
             })
@@ -350,86 +353,35 @@ const addInventory = (data, plantId, organizationId) => {
 
               const batchId = batchResult[0].id;
 
-              // Continue with item_batch_balance handling
+              // Create new balance record
+              balance_quantity =
+                block_qty + reserved_qty + unrestricted_qty + qualityinsp_qty;
+
+              const newBalanceData = {
+                material_id: item.item_id,
+                location_id: item.location_id,
+                batch_id: batchId,
+                block_qty: block_qty,
+                reserved_qty: reserved_qty,
+                unrestricted_qty: unrestricted_qty,
+                qualityinsp_qty: qualityinsp_qty,
+                balance_quantity: balance_quantity,
+                plant_id: plantId,
+                organization_id: organizationId,
+              };
+
               return db
                 .collection("item_batch_balance")
-                .where({
-                  material_id: item.item_id,
-                  location_id: item.location_id,
-                  batch_id: batchId,
+                .add(newBalanceData)
+                .then(() => {
+                  console.log("Successfully added item_batch_balance record");
+                  return { batchId };
                 })
-                .get()
-                .then((balanceResponse) => {
-                  const hasExistingBalance =
-                    balanceResponse.data &&
-                    Array.isArray(balanceResponse.data) &&
-                    balanceResponse.data.length > 0;
-                  const existingDoc = hasExistingBalance
-                    ? balanceResponse.data[0]
-                    : null;
-
-                  let balance_quantity;
-
-                  if (existingDoc && existingDoc.id) {
-                    // Update existing balance
-                    const updatedBlockQty =
-                      parseFloat(existingDoc.block_qty || 0) + block_qty;
-                    const updatedReservedQty =
-                      parseFloat(existingDoc.reserved_qty || 0) + reserved_qty;
-                    const updatedUnrestrictedQty =
-                      parseFloat(existingDoc.unrestricted_qty || 0) +
-                      unrestricted_qty;
-                    const updatedQualityInspQty =
-                      parseFloat(existingDoc.qualityinsp_qty || 0) +
-                      qualityinsp_qty;
-                    balance_quantity =
-                      updatedBlockQty +
-                      updatedReservedQty +
-                      updatedUnrestrictedQty +
-                      updatedQualityInspQty;
-
-                    return db
-                      .collection("item_batch_balance")
-                      .doc(existingDoc.id)
-                      .update({
-                        batch_id: batchId,
-                        block_qty: updatedBlockQty,
-                        reserved_qty: updatedReservedQty,
-                        unrestricted_qty: updatedUnrestrictedQty,
-                        qualityinsp_qty: updatedQualityInspQty,
-                        balance_quantity: balance_quantity,
-                      })
-                      .then(() => {
-                        return { batchId };
-                      });
-                  } else {
-                    // Create new balance record
-                    balance_quantity =
-                      block_qty +
-                      reserved_qty +
-                      unrestricted_qty +
-                      qualityinsp_qty;
-
-                    const newBalanceData = {
-                      material_id: item.item_id,
-                      location_id: item.location_id,
-                      batch_id: batchId,
-                      block_qty: block_qty,
-                      reserved_qty: reserved_qty,
-                      unrestricted_qty: unrestricted_qty,
-                      qualityinsp_qty: qualityinsp_qty,
-                      balance_quantity: balance_quantity,
-                      plant_id: plantId,
-                      organization_id: organizationId,
-                    };
-
-                    return db
-                      .collection("item_batch_balance")
-                      .add(newBalanceData)
-                      .then(() => {
-                        return { batchId };
-                      });
-                  }
+                .catch((error) => {
+                  console.error(
+                    `Error creating item_batch_balance: ${error.message}`
+                  );
+                  resolve();
                 });
             })
             .then(({ batchId }) => {
@@ -488,13 +440,22 @@ const addInventory = (data, plantId, organizationId) => {
                 updatedUnrestrictedQty +
                 updatedQualityInspQty;
 
-              await db.collection("item_balance").doc(existingDoc.id).update({
-                block_qty: updatedBlockQty,
-                reserved_qty: updatedReservedQty,
-                unrestricted_qty: updatedUnrestrictedQty,
-                qualityinsp_qty: updatedQualityInspQty,
-                balance_quantity: balance_quantity,
-              });
+              await db
+                .collection("item_balance")
+                .doc(existingDoc.id)
+                .update({
+                  block_qty: updatedBlockQty,
+                  reserved_qty: updatedReservedQty,
+                  unrestricted_qty: updatedUnrestrictedQty,
+                  qualityinsp_qty: updatedQualityInspQty,
+                  balance_quantity: balance_quantity,
+                })
+                .catch((error) => {
+                  console.error(
+                    `Error updating item_balance: ${error.message}`
+                  );
+                  resolve();
+                });
             } else {
               // Create new balance record
               balance_quantity =
@@ -512,7 +473,15 @@ const addInventory = (data, plantId, organizationId) => {
                 organization_id: organizationId,
               };
 
-              await db.collection("item_balance").add(newBalanceData);
+              await db
+                .collection("item_balance")
+                .add(newBalanceData)
+                .catch((error) => {
+                  console.error(
+                    `Error creating item_balance: ${error.message}`
+                  );
+                  resolve();
+                });
             }
 
             const costingMethod = itemData.material_costing_method;

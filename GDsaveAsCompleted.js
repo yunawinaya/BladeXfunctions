@@ -9,76 +9,93 @@ const closeDialog = () => {
 };
 
 // Update FIFO inventory
-const updateFIFOInventory = (materialId, deliveryQty) => {
-  // Get all FIFO records for this material sorted by sequence (oldest first)
-  db.collection("fifo_costing_history")
-    .where({ material_id: materialId })
-    .get()
-    .then((response) => {
-      const result = response.data;
+const updateFIFOInventory = (materialId, deliveryQty, batchId) => {
+  return new Promise((resolve, reject) => {
+    const query = batchId
+      ? db
+          .collection("fifo_costing_history")
+          .where({ material_id: materialId, batch_id: batchId })
+      : db
+          .collection("fifo_costing_history")
+          .where({ material_id: materialId });
 
-      if (result && Array.isArray(result) && result.length > 0) {
-        // Sort by FIFO sequence (lowest/oldest first)
-        const sortedRecords = result.sort(
-          (a, b) => a.fifo_sequence - b.fifo_sequence
-        );
+    query
+      .get()
+      .then((response) => {
+        const result = response.data;
 
-        let remainingQtyToDeduct = parseFloat(deliveryQty);
-        console.log(
-          `Need to deduct ${remainingQtyToDeduct} units from FIFO inventory`
-        );
-
-        // Process each FIFO record in sequence until we've accounted for all delivery quantity
-        for (const record of sortedRecords) {
-          if (remainingQtyToDeduct <= 0) {
-            break;
-          }
-
-          const availableQty = parseFloat(record.fifo_available_quantity || 0);
-          console.log(
-            `FIFO record ${record.fifo_sequence} has ${availableQty} available`
+        if (result && Array.isArray(result) && result.length > 0) {
+          // Sort by FIFO sequence (lowest/oldest first)
+          const sortedRecords = result.sort(
+            (a, b) => a.fifo_sequence - b.fifo_sequence
           );
 
-          // Calculate how much to take from this record
-          const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
-          const newAvailableQty = availableQty - qtyToDeduct;
-
+          let remainingQtyToDeduct = parseFloat(deliveryQty);
           console.log(
-            `Deducting ${qtyToDeduct} from FIFO record ${record.fifo_sequence}, new available: ${newAvailableQty}`
+            `Need to deduct ${remainingQtyToDeduct} units from FIFO inventory`
           );
 
-          // Update this FIFO record
-          db.collection("fifo_costing_history")
-            .doc(record.id)
-            .update({
-              fifo_available_quantity: newAvailableQty,
-            })
-            .catch((error) =>
-              console.error(
-                `Error updating FIFO record ${record.fifo_sequence}:`,
-                error
-              )
+          // Process each FIFO record in sequence until we've accounted for all delivery quantity
+          for (const record of sortedRecords) {
+            if (remainingQtyToDeduct <= 0) {
+              break;
+            }
+
+            const availableQty = parseFloat(
+              record.fifo_available_quantity || 0
+            );
+            console.log(
+              `FIFO record ${record.fifo_sequence} has ${availableQty} available`
             );
 
-          // Reduce the remaining quantity to deduct
-          remainingQtyToDeduct -= qtyToDeduct;
-        }
+            // Calculate how much to take from this record
+            const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
+            const newAvailableQty = availableQty - qtyToDeduct;
 
-        if (remainingQtyToDeduct > 0) {
-          console.warn(
-            `Warning: Couldn't fully satisfy FIFO deduction. Remaining qty: ${remainingQtyToDeduct}`
-          );
+            console.log(
+              `Deducting ${qtyToDeduct} from FIFO record ${record.fifo_sequence}, new available: ${newAvailableQty}`
+            );
+
+            // Update this FIFO record
+            db.collection("fifo_costing_history")
+              .doc(record.id)
+              .update({
+                fifo_available_quantity: newAvailableQty,
+              })
+              .catch((error) =>
+                console.error(
+                  `Error updating FIFO record ${record.fifo_sequence}:`,
+                  error
+                )
+              );
+
+            // Reduce the remaining quantity to deduct
+            remainingQtyToDeduct -= qtyToDeduct;
+          }
+
+          if (remainingQtyToDeduct > 0) {
+            console.warn(
+              `Warning: Couldn't fully satisfy FIFO deduction. Remaining qty: ${remainingQtyToDeduct}`
+            );
+          }
+        } else {
+          console.warn(`No FIFO records found for material ${materialId}`);
         }
-      } else {
-        console.warn(`No FIFO records found for material ${materialId}`);
-      }
-    })
-    .catch((error) =>
-      console.error(
-        `Error retrieving FIFO history for material ${materialId}:`,
-        error
+      })
+      .catch((error) =>
+        console.error(
+          `Error retrieving FIFO history for material ${materialId}:`,
+          error
+        )
       )
-    );
+      .then(() => {
+        resolve();
+      })
+      .catch((error) => {
+        console.error(`Error in FIFO update:`, error);
+        reject(error);
+      });
+  });
 };
 
 const updateWeightedAverage = (item, batchId) => {
@@ -277,6 +294,10 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
             location_id: temp.location_id,
           };
 
+          if (temp.batch_id) {
+            itemBalanceParams.batch_id = temp.batch_id;
+          }
+
           const balanceCollection = temp.batch_id
             ? "item_batch_balance"
             : "item_balance";
@@ -335,7 +356,11 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
           const costingMethod = itemData.material_costing_method;
 
           if (costingMethod === "First In First Out") {
-            await updateFIFOInventory(item.material_id, temp.gd_quantity);
+            await updateFIFOInventory(
+              item.material_id,
+              temp.gd_quantity,
+              temp.batch_id
+            );
           } else {
             await updateWeightedAverage(item, temp.batch_id);
           }
@@ -388,7 +413,7 @@ const updateSalesOrderStatus = async (salesOrderId) => {
 
     // Initialize with zeros
     soItems.forEach((item) => {
-      deliveredQtyMap[item.material_id] = 0;
+      deliveredQtyMap[item.item_name] = 0;
     });
 
     // Sum delivered quantities from all GDs

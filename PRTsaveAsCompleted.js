@@ -8,17 +8,22 @@ const closeDialog = () => {
   }
 };
 
-const updateInventory = async (data) => {
+const updateInventory = async (data, plantId, organizationId) => {
   const items = data.table_prt;
 
   // Update FIFO inventory
-  const updateFIFOInventory = async (materialId, returnQty) => {
+  const updateFIFOInventory = async (materialId, returnQty, batchId) => {
     try {
       // Get all FIFO records for this material sorted by sequence (oldest first)
-      const response = await db
-        .collection("fifo_costing_history")
-        .where({ material_id: materialId })
-        .get();
+      const query = batchId
+        ? db
+            .collection("fifo_costing_history")
+            .where({ material_id: materialId, batch_id: batchId })
+        : db
+            .collection("fifo_costing_history")
+            .where({ material_id: materialId });
+
+      const response = await query.get();
 
       const result = response.data;
 
@@ -123,10 +128,38 @@ const updateInventory = async (data) => {
         const waCostPrice = parseFloat(waDoc.wa_cost_price || 0);
         const waQuantity = parseFloat(waDoc.wa_quantity || 0);
 
-        const newWaQuantity = Math.max(0, waQuantity + returnQty);
+        if (waQuantity <= returnQty) {
+          console.warn(
+            `Warning: Cannot fully update weighted average for ${item.material_id} - ` +
+              `Available: ${waQuantity}, Requested: ${returnQty}`
+          );
+
+          if (waQuantity <= 0) {
+            return Promise.resolve();
+          }
+        }
+
+        const newWaQuantity = Math.max(0, waQuantity - returnQty);
+
+        // If new quantity would be zero, handle specially
+        if (newWaQuantity === 0) {
+          return db
+            .collection("wa_costing_method")
+            .doc(waDoc.id)
+            .update({
+              wa_quantity: 0,
+              updated_at: new Date(),
+            })
+            .then(() => {
+              console.log(
+                `Updated Weighted Average for item ${item.material_id} to zero quantity`
+              );
+              return Promise.resolve();
+            });
+        }
 
         const newWaCostPrice =
-          (waCostPrice * waQuantity + waCostPrice * returnQty) / newWaQuantity;
+          (waCostPrice * waQuantity - waCostPrice * returnQty) / newWaQuantity;
 
         return db
           .collection("wa_costing_method")
@@ -328,7 +361,11 @@ const updateInventory = async (data) => {
 
             const costingMethod = itemData.material_costing_method;
             if (costingMethod === "First In First Out") {
-              await updateFIFOInventory(item.material_id, temp.return_quantity);
+              await updateFIFOInventory(
+                item.material_id,
+                temp.return_quantity,
+                temp.batch_id
+              );
             } else {
               await updateWeightedAverage(item, temp.batch_id);
             }
