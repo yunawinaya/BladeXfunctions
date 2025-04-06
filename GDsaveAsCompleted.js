@@ -590,7 +590,24 @@ this.getData()
 
       // Perform action based on page status
       if (page_status === "Add") {
-        await db.collection("goods_delivery").add(gd);
+        await db
+          .collection("goods_delivery")
+          .add(gd)
+          .then(() => {
+            return db
+              .collection("prefix_configuration")
+              .where({ document_types: "Goods Delivery", is_deleted: 0 })
+              .get()
+              .then((prefixEntry) => {
+                const data = prefixEntry.data[0];
+                return db
+                  .collection("prefix_configuration")
+                  .where({ document_types: "Goods Delivery", is_deleted: 0 })
+                  .update({
+                    running_number: parseInt(data.running_number) + 1,
+                  });
+              });
+          });
 
         await processBalanceTable(data, false, plant_id, organization_id);
         await updateSalesOrderStatus(so_id);

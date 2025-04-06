@@ -55,6 +55,12 @@ if (lineItemData.batch_id) {
                 itemBalanceData.block_qty,
             });
             break;
+          case "ITR":
+            this.setData({
+              [`confirm_inventory.table_item_balance.${rowIndex}.category_balance`]:
+                itemBalanceData.intransit_qty,
+            });
+            break;
         }
       } else {
         console.log("No item batch balance data found");
@@ -104,6 +110,12 @@ if (lineItemData.batch_id) {
             this.setData({
               [`confirm_inventory.table_item_balance.${rowIndex}.category_balance`]:
                 itemBalanceData.block_qty,
+            });
+            break;
+          case "ITR":
+            this.setData({
+              [`confirm_inventory.table_item_balance.${rowIndex}.category_balance`]:
+                itemBalanceData.intransit_qty,
             });
             break;
         }

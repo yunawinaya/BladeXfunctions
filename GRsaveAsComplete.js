@@ -642,6 +642,7 @@ this.getData()
         purchase_order_id,
         plant_id,
         organization_id,
+        currency_code,
         purchase_order_number,
         gr_billing_name,
         gr_billing_cp,
@@ -677,6 +678,7 @@ this.getData()
         gr_status: "Completed",
         purchase_order_id,
         plant_id,
+        currency_code,
         organization_id,
         purchase_order_number,
         gr_billing_name,
@@ -712,7 +714,24 @@ this.getData()
       console.log("GR result", gr);
 
       if (page_status === "Add") {
-        await db.collection("goods_receiving").add(gr);
+        await db
+          .collection("goods_receiving")
+          .add(gr)
+          .then(() => {
+            return db
+              .collection("prefix_configuration")
+              .where({ document_types: "Goods Receiving", is_deleted: 0 })
+              .get()
+              .then((prefixEntry) => {
+                const data = prefixEntry.data[0];
+                return db
+                  .collection("prefix_configuration")
+                  .where({ document_types: "Goods Receiving", is_deleted: 0 })
+                  .update({
+                    running_number: parseInt(data.running_number) + 1,
+                  });
+              });
+          });
 
         const result = await db
           .collection("purchase_order")
