@@ -299,7 +299,8 @@ const addInventory = (data, plantId, organizationId) => {
         let block_qty = 0,
           reserved_qty = 0,
           unrestricted_qty = 0,
-          qualityinsp_qty = 0;
+          qualityinsp_qty = 0,
+          intransit_qty = 0;
 
         const receivedQty = parseFloat(item.received_qty || 0);
 
@@ -311,6 +312,8 @@ const addInventory = (data, plantId, organizationId) => {
           unrestricted_qty = receivedQty;
         } else if (item.inv_category === "QIP") {
           qualityinsp_qty = receivedQty;
+        } else if (item.inv_category === "ITR") {
+          intransit_qty = receivedQty;
         } else {
           unrestricted_qty = receivedQty;
         }
@@ -355,7 +358,11 @@ const addInventory = (data, plantId, organizationId) => {
 
               // Create new balance record
               balance_quantity =
-                block_qty + reserved_qty + unrestricted_qty + qualityinsp_qty;
+                block_qty +
+                reserved_qty +
+                unrestricted_qty +
+                qualityinsp_qty +
+                intransit_qty;
 
               const newBalanceData = {
                 material_id: item.item_id,
@@ -365,6 +372,7 @@ const addInventory = (data, plantId, organizationId) => {
                 reserved_qty: reserved_qty,
                 unrestricted_qty: unrestricted_qty,
                 qualityinsp_qty: qualityinsp_qty,
+                intransit_qty: intransit_qty,
                 balance_quantity: balance_quantity,
                 plant_id: plantId,
                 organization_id: organizationId,
@@ -434,11 +442,14 @@ const addInventory = (data, plantId, organizationId) => {
                 unrestricted_qty;
               const updatedQualityInspQty =
                 parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty;
+              const updatedIntransitQty =
+                parseFloat(existingDoc.intransit_qty || 0) + intransit_qty;
               balance_quantity =
                 updatedBlockQty +
                 updatedReservedQty +
                 updatedUnrestrictedQty +
-                updatedQualityInspQty;
+                updatedQualityInspQty +
+                updatedIntransitQty;
 
               await db
                 .collection("item_balance")
@@ -448,6 +459,7 @@ const addInventory = (data, plantId, organizationId) => {
                   reserved_qty: updatedReservedQty,
                   unrestricted_qty: updatedUnrestrictedQty,
                   qualityinsp_qty: updatedQualityInspQty,
+                  intransit_qty: updatedIntransitQty,
                   balance_quantity: balance_quantity,
                 })
                 .catch((error) => {
@@ -459,7 +471,11 @@ const addInventory = (data, plantId, organizationId) => {
             } else {
               // Create new balance record
               balance_quantity =
-                block_qty + reserved_qty + unrestricted_qty + qualityinsp_qty;
+                block_qty +
+                reserved_qty +
+                unrestricted_qty +
+                qualityinsp_qty +
+                intransit_qty;
 
               const newBalanceData = {
                 material_id: item.item_id,
@@ -468,6 +484,7 @@ const addInventory = (data, plantId, organizationId) => {
                 reserved_qty: reserved_qty,
                 unrestricted_qty: unrestricted_qty,
                 qualityinsp_qty: qualityinsp_qty,
+                intransit_qty: intransit_qty,
                 balance_quantity: balance_quantity,
                 plant_id: plantId,
                 organization_id: organizationId,

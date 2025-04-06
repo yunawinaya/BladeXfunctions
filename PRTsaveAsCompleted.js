@@ -276,6 +276,9 @@ const updateInventory = async (data, plantId, organizationId) => {
                 let updatedBlockQty = parseFloat(
                   existingBatchDoc.block_qty || 0
                 );
+                let updatedIntransitQty = parseFloat(
+                  existingBatchDoc.intransit_qty || 0
+                );
 
                 if (categoryType === "UNR") {
                   updatedUnrestrictedQty -= categoryValue;
@@ -283,6 +286,8 @@ const updateInventory = async (data, plantId, organizationId) => {
                   updatedQualityInspectionQty -= categoryValue;
                 } else if (categoryType === "BLK") {
                   updatedBlockQty -= categoryValue;
+                } else if (categoryType === "ITR") {
+                  updatedIntransitQty -= categoryValue;
                 }
 
                 const updatedBalanceQty =
@@ -296,6 +301,7 @@ const updateInventory = async (data, plantId, organizationId) => {
                     unrestricted_qty: updatedUnrestrictedQty,
                     qualityinsp_qty: updatedQualityInspectionQty,
                     block_qty: updatedBlockQty,
+                    intransit_qty: updatedIntransitQty,
                     balance_quantity: updatedBalanceQty,
                     last_updated: new Date(),
                     last_transaction: data.purchase_return_no,
@@ -330,6 +336,9 @@ const updateInventory = async (data, plantId, organizationId) => {
                   existingDoc.qualityinsp_qty || 0
                 );
                 let updatedBlockQty = parseFloat(existingDoc.block_qty || 0);
+                let updatedIntransitQty = parseFloat(
+                  existingDoc.intransit_qty || 0
+                );
 
                 if (categoryType === "UNR") {
                   updatedUnrestrictedQty -= categoryValue;
@@ -337,6 +346,8 @@ const updateInventory = async (data, plantId, organizationId) => {
                   updatedQualityInspectionQty -= categoryValue;
                 } else if (categoryType === "BLK") {
                   updatedBlockQty -= categoryValue;
+                } else if (categoryType === "ITR") {
+                  updatedIntransitQty -= categoryValue;
                 }
 
                 const updatedBalanceQty =
@@ -346,6 +357,7 @@ const updateInventory = async (data, plantId, organizationId) => {
                   unrestricted_qty: updatedUnrestrictedQty,
                   qualityinsp_qty: updatedQualityInspectionQty,
                   block_qty: updatedBlockQty,
+                  intransit_qty: updatedIntransitQty,
                   balance_quantity: updatedBalanceQty,
                   last_updated: new Date(),
                   last_transaction: data.purchase_return_no,

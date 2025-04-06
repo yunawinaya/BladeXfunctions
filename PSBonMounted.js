@@ -57,6 +57,7 @@ Promise.all([
           reserved_qty: 0,
           unrestricted_qty: 0,
           qualityinsp_qty: 0,
+          intransit_qty: 0,
           created_at: new Date(),
         });
       });
@@ -87,6 +88,7 @@ Promise.all([
             reserved_qty: 0,
             unrestricted_qty: 0,
             qualityinsp_qty: 0,
+            intransit_qty: 0,
             balance_quantity: 0,
             organization_id: batchBalance.organization_id || "",
           };
@@ -102,13 +104,14 @@ Promise.all([
         aggregate.qualityinsp_qty += parseFloat(
           batchBalance.qualityinsp_qty || 0
         );
-
+        aggregate.intransit_qty += parseFloat(batchBalance.intransit_qty || 0);
         // Update total balance
         aggregate.balance_quantity =
           aggregate.block_qty +
           aggregate.reserved_qty +
           aggregate.unrestricted_qty +
-          aggregate.qualityinsp_qty;
+          aggregate.qualityinsp_qty +
+          aggregate.intransit_qty;
       });
 
       // Process non-batch item_balance records
@@ -134,6 +137,7 @@ Promise.all([
             reserved_qty: parseFloat(itemBalance.reserved_qty || 0),
             unrestricted_qty: parseFloat(itemBalance.unrestricted_qty || 0),
             qualityinsp_qty: parseFloat(itemBalance.qualityinsp_qty || 0),
+            intransit_qty: parseFloat(itemBalance.intransit_qty || 0),
             balance_quantity: parseFloat(itemBalance.balance_quantity || 0),
             organization_id: itemBalance.organization_id || "",
           };
@@ -179,6 +183,7 @@ Promise.all([
                 reserved_qty: aggregatedBalance.reserved_qty,
                 unrestricted_qty: aggregatedBalance.unrestricted_qty,
                 qualityinsp_qty: aggregatedBalance.qualityinsp_qty,
+                intransit_qty: aggregatedBalance.intransit_qty,
                 balance_quantity: aggregatedBalance.balance_quantity,
                 // Only add plant_id if it's a real value (not our default placeholder)
                 ...(aggregatedBalance.plant_id !== "default_plant"
@@ -198,6 +203,7 @@ Promise.all([
               reserved_qty: aggregatedBalance.reserved_qty,
               unrestricted_qty: aggregatedBalance.unrestricted_qty,
               qualityinsp_qty: aggregatedBalance.qualityinsp_qty,
+              intransit_qty: aggregatedBalance.intransit_qty,
               balance_quantity: aggregatedBalance.balance_quantity,
               organization_id: aggregatedBalance.organization_id,
               created_at: new Date(),
