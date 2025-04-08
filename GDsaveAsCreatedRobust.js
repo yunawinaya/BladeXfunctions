@@ -256,11 +256,92 @@ this.getData()
 
       // Perform action based on page status
       if (page_status === "Add") {
-        await db.collection("goods_delivery").add(gd);
+        await db
+          .collection("goods_delivery")
+          .add(gd)
+          .then(() => {
+            return db
+              .collection("prefix_configuration")
+              .where({ document_types: "Goods Delivery", is_deleted: 0 })
+              .get()
+              .then((prefixEntry) => {
+                const data = prefixEntry.data[0];
+                return db
+                  .collection("prefix_configuration")
+                  .where({ document_types: "Goods Delivery", is_deleted: 0 })
+                  .update({
+                    running_number: parseInt(data.running_number) + 1,
+                  });
+              });
+          });
         await processBalanceTable(data);
       } else if (page_status === "Edit") {
         const goodsDeliveryId = this.getParamsVariables("goods_delivery_no");
-        await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+
+        if (gd.delivery_no.startsWith("DRAFT")) {
+          const prefixEntry = db
+            .collection("prefix_configuration")
+            .where({ document_types: "Goods Delivery" })
+            .get()
+            .then((prefixEntry) => {
+              if (prefixEntry) {
+                const prefixData = prefixEntry.data[0];
+                const now = new Date();
+                let prefixToShow = prefixData.current_prefix_config;
+
+                prefixToShow = prefixToShow.replace(
+                  "prefix",
+                  prefixData.prefix_value
+                );
+                prefixToShow = prefixToShow.replace(
+                  "suffix",
+                  prefixData.suffix_value
+                );
+                prefixToShow = prefixToShow.replace(
+                  "month",
+                  String(now.getMonth() + 1).padStart(2, "0")
+                );
+                prefixToShow = prefixToShow.replace(
+                  "day",
+                  String(now.getDate()).padStart(2, "0")
+                );
+                prefixToShow = prefixToShow.replace("year", now.getFullYear());
+                prefixToShow = prefixToShow.replace(
+                  "running_number",
+                  String(prefixData.running_number).padStart(
+                    prefixData.padding_zeroes,
+                    "0"
+                  )
+                );
+                gd.delivery_no = prefixToShow;
+
+                db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+                return prefixData.running_number;
+              }
+            })
+            .then((currentRunningNumber) => {
+              db.collection("prefix_configuration")
+                .where({ document_types: "Goods Delivery", is_deleted: 0 })
+                .update({ running_number: parseInt(currentRunningNumber) + 1 });
+            })
+            .then(() => {
+              closeDialog();
+            })
+            .catch((error) => {
+              console.log(error);
+            });
+        } else {
+          db.collection("goods_delivery")
+            .doc(goodsDeliveryId)
+            .update(gd)
+            .then(() => {
+              closeDialog();
+            })
+            .catch((error) => {
+              console.log(error);
+            });
+        }
+
         await processBalanceTable(data, true);
       }
 

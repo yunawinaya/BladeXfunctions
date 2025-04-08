@@ -103,14 +103,14 @@ const updateWeightedAverage = (item, batchId) => {
   if (
     !item ||
     !item.material_id ||
-    isNaN(parseFloat(item.received_qty)) ||
-    parseFloat(item.received_qty) <= 0
+    isNaN(parseFloat(item.gd_qty)) ||
+    parseFloat(item.gd_qty) <= 0
   ) {
     console.error("Invalid item data for weighted average update:", item);
     return Promise.resolve();
   }
 
-  const receivedQty = parseFloat(item.received_qty);
+  const deliveredQty = parseFloat(item.gd_qty);
   const query = batchId
     ? db
         .collection("wa_costing_method")
@@ -123,7 +123,6 @@ const updateWeightedAverage = (item, batchId) => {
     .get()
     .then((waResponse) => {
       const waData = waResponse.data;
-
       if (!waData || !Array.isArray(waData) || waData.length === 0) {
         console.warn(
           `No weighted average records found for material ${item.material_id}`
@@ -143,10 +142,10 @@ const updateWeightedAverage = (item, batchId) => {
       const waCostPrice = parseFloat(waDoc.wa_cost_price || 0);
       const waQuantity = parseFloat(waDoc.wa_quantity || 0);
 
-      if (waQuantity <= receivedQty) {
+      if (waQuantity <= deliveredQty) {
         console.warn(
           `Warning: Cannot fully update weighted average for ${item.material_id} - ` +
-            `Available: ${waQuantity}, Requested: ${receivedQty}`
+            `Available: ${waQuantity}, Requested: ${deliveredQty}`
         );
 
         if (waQuantity <= 0) {
@@ -154,7 +153,7 @@ const updateWeightedAverage = (item, batchId) => {
         }
       }
 
-      const newWaQuantity = Math.max(0, waQuantity - receivedQty);
+      const newWaQuantity = Math.max(0, waQuantity - deliveredQty);
 
       // If new quantity would be zero, handle specially
       if (newWaQuantity === 0) {
@@ -173,7 +172,8 @@ const updateWeightedAverage = (item, batchId) => {
           });
       }
 
-      (waCostPrice * waQuantity - waCostPrice * receivedQty) / newWaQuantity;
+      const calculatedWaCostPrice =
+        (waCostPrice * waQuantity - waCostPrice * deliveredQty) / newWaQuantity;
       const newWaCostPrice = Math.round(calculatedWaCostPrice * 100) / 100;
 
       return db
@@ -391,7 +391,10 @@ const updateSalesOrderStatus = async (salesOrderId) => {
   try {
     const [resSO, resPO] = await Promise.all([
       db.collection("sales_order").where({ id: salesOrderId }).get(),
-      db.collection("goods_delivery").where({ so_id: salesOrderId }).get(),
+      db
+        .collection("goods_delivery")
+        .where({ so_id: salesOrderId, gd_status: "Completed" })
+        .get(),
     ]);
 
     if (!resSO.data || !resSO.data.length) {
@@ -613,7 +616,70 @@ this.getData()
         await updateSalesOrderStatus(so_id);
       } else if (page_status === "Edit") {
         const goodsDeliveryId = this.getParamsVariables("goods_delivery_no");
-        await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+
+        if (gd.delivery_no.startsWith("DRAFT")) {
+          const prefixEntry = db
+            .collection("prefix_configuration")
+            .where({ document_types: "Goods Delivery" })
+            .get()
+            .then((prefixEntry) => {
+              if (prefixEntry) {
+                const prefixData = prefixEntry.data[0];
+                const now = new Date();
+                let prefixToShow = prefixData.current_prefix_config;
+
+                prefixToShow = prefixToShow.replace(
+                  "prefix",
+                  prefixData.prefix_value
+                );
+                prefixToShow = prefixToShow.replace(
+                  "suffix",
+                  prefixData.suffix_value
+                );
+                prefixToShow = prefixToShow.replace(
+                  "month",
+                  String(now.getMonth() + 1).padStart(2, "0")
+                );
+                prefixToShow = prefixToShow.replace(
+                  "day",
+                  String(now.getDate()).padStart(2, "0")
+                );
+                prefixToShow = prefixToShow.replace("year", now.getFullYear());
+                prefixToShow = prefixToShow.replace(
+                  "running_number",
+                  String(prefixData.running_number).padStart(
+                    prefixData.padding_zeroes,
+                    "0"
+                  )
+                );
+                gd.delivery_no = prefixToShow;
+
+                db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+                return prefixData.running_number;
+              }
+            })
+            .then((currentRunningNumber) => {
+              db.collection("prefix_configuration")
+                .where({ document_types: "Goods Delivery", is_deleted: 0 })
+                .update({ running_number: parseInt(currentRunningNumber) + 1 });
+            })
+            .then(() => {
+              closeDialog();
+            })
+            .catch((error) => {
+              console.log(error);
+            });
+        } else {
+          db.collection("goods_delivery")
+            .doc(goodsDeliveryId)
+            .update(gd)
+            .then(() => {
+              closeDialog();
+            })
+            .catch((error) => {
+              console.log(error);
+            });
+        }
 
         await processBalanceTable(data, true, plant_id, organization_id);
         await updateSalesOrderStatus(so_id);

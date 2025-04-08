@@ -9,6 +9,7 @@ if (!salesOrderId) {
 db.collection("goods_delivery")
   .where({
     so_id: salesOrderId,
+    gd_status: "Completed",
   })
   .get()
   .then((response) => {
@@ -130,8 +131,7 @@ db.collection("goods_delivery")
                       sourceItem.so_item_uom || "",
                     [`table_gd.${index}.good_delivery_uom_id`]:
                       sourceItem.so_item_uom || "",
-                    [`table_gd.${index}.base_uom_id`]:
-                      sourceItem.so_item_uom || "",
+                    [`table_gd.${index}.base_uom_id`]: itemData.base_uom || "",
                     [`table_gd.${index}.unit_price`]: sourceItem.so_item_price,
                     [`table_gd.${index}.total_price`]: sourceItem.so_amount,
                     [`table_gd.${index}.item_costing_method`]:
@@ -231,10 +231,13 @@ db.collection("goods_delivery")
                         totalUnrestrictedQty
                       );
 
-                      const shortfallQty = orderedQty - totalUnrestrictedQty;
-                      console.log("shortfallQty", shortfallQty);
+                      const undeliveredQty = orderedQty - deliveredSoFar;
+                      const shortfallQty =
+                        undeliveredQty - totalUnrestrictedQty;
 
                       this.setData({
+                        [`dialog_insufficient.table_insufficient.${index}.undelivered_qty`]:
+                          undeliveredQty,
                         [`dialog_insufficient.table_insufficient.${index}.available_qty`]:
                           totalUnrestrictedQty,
                         [`dialog_insufficient.table_insufficient.${index}.shortfall_qty`]:

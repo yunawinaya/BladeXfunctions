@@ -155,6 +155,7 @@ const addInventory = (data, plantId, organizationId) => {
           .get()
           .then((waResponse) => {
             const waData = waResponse.data;
+            console.log("waData", waData);
             if (waData && waData.length) {
               waData.sort((a, b) => {
                 if (a.created_at && b.created_at) {
@@ -163,6 +164,7 @@ const addInventory = (data, plantId, organizationId) => {
                 return 0;
               });
               const latestWa = waData[0];
+              console.log("latestWa", latestWa);
               const waCostPrice = latestWa.wa_cost_price;
               const waQuantity = latestWa.wa_quantity;
               const newWaQuantity = waQuantity + item.received_qty;
@@ -172,6 +174,7 @@ const addInventory = (data, plantId, organizationId) => {
                 newWaQuantity;
               const newWaCostPrice =
                 Math.round(calculatedWaCostPrice * 100) / 100;
+              console.log("newWaCostPrice", newWaCostPrice);
 
               return db
                 .collection("wa_costing_method")
@@ -759,6 +762,73 @@ this.getData()
         await updatePurchaseOrderStatus(purchase_order_id);
       } else if (page_status === "Edit") {
         const goodsReceivingId = this.getParamsVariables("goods_receiving_no");
+
+        if (gr.gr_no.startsWith("DRAFT")) {
+          const prefixEntry = db
+            .collection("prefix_configuration")
+            .where({ document_types: "Goods Receiving" })
+            .get()
+            .then((prefixEntry) => {
+              if (prefixEntry) {
+                const prefixData = prefixEntry.data[0];
+                const now = new Date();
+                let prefixToShow = prefixData.current_prefix_config;
+
+                prefixToShow = prefixToShow.replace(
+                  "prefix",
+                  prefixData.prefix_value
+                );
+                prefixToShow = prefixToShow.replace(
+                  "suffix",
+                  prefixData.suffix_value
+                );
+                prefixToShow = prefixToShow.replace(
+                  "month",
+                  String(now.getMonth() + 1).padStart(2, "0")
+                );
+                prefixToShow = prefixToShow.replace(
+                  "day",
+                  String(now.getDate()).padStart(2, "0")
+                );
+                prefixToShow = prefixToShow.replace("year", now.getFullYear());
+                prefixToShow = prefixToShow.replace(
+                  "running_number",
+                  String(prefixData.running_number).padStart(
+                    prefixData.padding_zeroes,
+                    "0"
+                  )
+                );
+                gr.gr_no = prefixToShow;
+
+                db.collection("goods_receiving")
+                  .doc(goodsReceivingId)
+                  .update(gr);
+                return prefixData.running_number;
+              }
+            })
+            .then((currentRunningNumber) => {
+              db.collection("prefix_configuration")
+                .where({ document_types: "Goods Receiving", is_deleted: 0 })
+                .update({ running_number: parseInt(currentRunningNumber) + 1 });
+            })
+            .then(() => {
+              closeDialog();
+            })
+            .catch((error) => {
+              console.log(error);
+            });
+        } else {
+          db.collection("goods_receiving")
+            .doc(goodsReceivingId)
+            .update(gr)
+            .then(() => {
+              closeDialog();
+            })
+            .catch((error) => {
+              console.log(error);
+            });
+        }
+
         await db.collection("goods_receiving").doc(goodsReceivingId).update(gr);
         const result = await db
           .collection("purchase_order")

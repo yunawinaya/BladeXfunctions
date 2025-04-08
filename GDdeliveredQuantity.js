@@ -79,7 +79,7 @@ setTimeout(() => {
     const orderQty = item.gd_order_quantity;
     const remainingQty = orderQty - deliveredQty;
 
-    if (remainingQty > 0) {
+    if (remainingQty >= 0) {
       this.setData({
         [`table_gd.${rowIndex}.gd_undelivered_qty`]: remainingQty,
       });
