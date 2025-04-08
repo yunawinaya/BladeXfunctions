@@ -166,10 +166,12 @@ const addInventory = (data, plantId, organizationId) => {
               const waCostPrice = latestWa.wa_cost_price;
               const waQuantity = latestWa.wa_quantity;
               const newWaQuantity = waQuantity + item.received_qty;
-              const newWaCostPrice =
+              const calculatedWaCostPrice =
                 (waCostPrice * waQuantity +
                   item.unit_price * item.received_qty) /
                 newWaQuantity;
+              const newWaCostPrice =
+                Math.round(calculatedWaCostPrice * 100) / 100;
 
               return db
                 .collection("wa_costing_method")
@@ -186,6 +188,12 @@ const addInventory = (data, plantId, organizationId) => {
                     `Successfully processed Weighted Average for item ${item.item_id}`
                   );
                   return Promise.resolve();
+                })
+                .catch((error) => {
+                  console.error(
+                    `Error processing Weighted Average for item ${item.item_id}:`,
+                    error
+                  );
                 });
             } else {
               return db
@@ -203,6 +211,12 @@ const addInventory = (data, plantId, organizationId) => {
                     `Successfully processed Weighted Average for item ${item.item_id}`
                   );
                   return Promise.resolve();
+                })
+                .catch((error) => {
+                  console.error(
+                    `Error processing Weighted Average for item ${item.item_id}:`,
+                    error
+                  );
                 });
             }
           })

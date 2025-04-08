@@ -173,8 +173,8 @@ const updateWeightedAverage = (item, batchId) => {
           });
       }
 
-      const newWaCostPrice =
-        (waCostPrice * waQuantity - waCostPrice * receivedQty) / newWaQuantity;
+      (waCostPrice * waQuantity - waCostPrice * receivedQty) / newWaQuantity;
+      const newWaCostPrice = Math.round(calculatedWaCostPrice * 100) / 100;
 
       return db
         .collection("wa_costing_method")

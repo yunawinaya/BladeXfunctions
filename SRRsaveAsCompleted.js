@@ -111,8 +111,9 @@ const updateInventory = async (data, plantId, organizationId) => {
 
         const newWaQuantity = Math.max(0, waQuantity + returnQty);
 
-        const newWaCostPrice =
+        const calculatedWaCostPrice =
           (waCostPrice * waQuantity + waCostPrice * returnQty) / newWaQuantity;
+        const newWaCostPrice = Math.round(calculatedWaCostPrice * 100) / 100;
 
         return db
           .collection("wa_costing_method")
@@ -416,7 +417,30 @@ this.getData()
       };
 
       if (page_status === "Add") {
-        await db.collection("sales_return_receiving").add(srr);
+        await db
+          .collection("sales_return_receiving")
+          .add(srr)
+          .then(() => {
+            return db
+              .collection("prefix_configuration")
+              .where({
+                document_types: "Sales Return Receiving",
+                is_deleted: 0,
+              })
+              .get()
+              .then((prefixEntry) => {
+                const data = prefixEntry.data[0];
+                return db
+                  .collection("prefix_configuration")
+                  .where({
+                    document_types: "Sales Return Receiving",
+                    is_deleted: 0,
+                  })
+                  .update({
+                    running_number: parseInt(data.running_number) + 1,
+                  });
+              });
+          });
         const result = await db.collection("sales_order").doc(data.so_no).get();
 
         const plantId = result.data[0].plant_name;
