@@ -33,7 +33,7 @@ const addInventory = (data, plantId, organizationId) => {
       }
 
       // Function to process FIFO for batch
-      const processFifoForBatch = (itemData, batchId) => {
+      const processFifoForBatch = (itemData, baseQty, batchId) => {
         // Improved FIFO sequence generation
         return db
           .collection("fifo_costing_history")
@@ -56,8 +56,8 @@ const addInventory = (data, plantId, organizationId) => {
             // Add a small random component to handle potential concurrent operations
             const fifoData = {
               fifo_cost_price: itemData.unit_price,
-              fifo_initial_quantity: itemData.received_qty,
-              fifo_available_quantity: itemData.received_qty,
+              fifo_initial_quantity: baseQty,
+              fifo_available_quantity: baseQty,
               material_id: itemData.item_id,
               batch_id: batchId,
               fifo_sequence: sequenceNumber,
@@ -78,7 +78,7 @@ const addInventory = (data, plantId, organizationId) => {
       };
 
       // Function to process FIFO for non-batch
-      const processFifoForNonBatch = (itemData) => {
+      const processFifoForNonBatch = (itemData, baseQty) => {
         // Improved FIFO sequence generation
         return db
           .collection("fifo_costing_history")
@@ -101,8 +101,8 @@ const addInventory = (data, plantId, organizationId) => {
             // Create FIFO record
             const fifoData = {
               fifo_cost_price: itemData.unit_price,
-              fifo_initial_quantity: itemData.received_qty,
-              fifo_available_quantity: itemData.received_qty,
+              fifo_initial_quantity: baseQty,
+              fifo_available_quantity: baseQty,
               material_id: itemData.item_id,
               fifo_sequence: sequenceNumber,
               plant_id: plantId,
@@ -121,7 +121,7 @@ const addInventory = (data, plantId, organizationId) => {
           });
       };
 
-      const processWeightedAverageForBatch = (item, batchId) => {
+      const processWeightedAverageForBatch = (item, baseQty, batchId) => {
         return db
           .collection("wa_costing_method")
           .add({
@@ -129,7 +129,7 @@ const addInventory = (data, plantId, organizationId) => {
             batch_id: batchId,
             plant_id: plantId,
             organization_id: organizationId,
-            wa_quantity: item.received_qty,
+            wa_quantity: baseQty,
             wa_cost_price: item.unit_price,
             created_at: new Date(),
           })
@@ -148,7 +148,7 @@ const addInventory = (data, plantId, organizationId) => {
           });
       };
 
-      const processWeightedAverageForNonBatch = (item) => {
+      const processWeightedAverageForNonBatch = (item, baseQty) => {
         return db
           .collection("wa_costing_method")
           .where({ material_id: item.item_id })
@@ -167,10 +167,9 @@ const addInventory = (data, plantId, organizationId) => {
               console.log("latestWa", latestWa);
               const waCostPrice = latestWa.wa_cost_price;
               const waQuantity = latestWa.wa_quantity;
-              const newWaQuantity = waQuantity + item.received_qty;
+              const newWaQuantity = waQuantity + baseQty;
               const calculatedWaCostPrice =
-                (waCostPrice * waQuantity +
-                  item.unit_price * item.received_qty) /
+                (waCostPrice * waQuantity + item.unit_price * baseQty) /
                 newWaQuantity;
               const newWaCostPrice =
                 Math.round(calculatedWaCostPrice * 100) / 100;
@@ -203,7 +202,7 @@ const addInventory = (data, plantId, organizationId) => {
                 .collection("wa_costing_method")
                 .add({
                   material_id: item.item_id,
-                  wa_quantity: item.received_qty,
+                  wa_quantity: baseQty,
                   wa_cost_price: item.unit_price,
                   plant_id: plantId,
                   organization_id: organizationId,
@@ -254,6 +253,41 @@ const addInventory = (data, plantId, organizationId) => {
           return;
         }
 
+        // UOM Conversion
+        let altQty = parseFloat(item.received_qty);
+        let baseQty = altQty;
+        let altUOM = item.item_uom;
+        let baseUOM = itemData.based_uom;
+
+        if (
+          Array.isArray(itemData.table_uom_conversion) &&
+          itemData.table_uom_conversion.length > 0
+        ) {
+          console.log(`Checking UOM conversions for item ${item.item_id}`);
+
+          const uomConversion = itemData.table_uom_conversion.find(
+            (conv) => conv.alt_uom_id === altUOM
+          );
+
+          if (uomConversion) {
+            console.log(
+              `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
+            );
+
+            baseQty = Math.round(altQty * uomConversion.base_qty * 1000) / 1000;
+
+            console.log(
+              `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
+            );
+          } else {
+            console.log(`No conversion found for UOM ${altUOM}, using as-is`);
+          }
+        } else {
+          console.log(
+            `No UOM conversion table for item ${item.item_id}, using received quantity as-is`
+          );
+        }
+
         // Create inventory_movement record
         const inventoryMovementData = {
           transaction_type: "GRN",
@@ -262,12 +296,12 @@ const addInventory = (data, plantId, organizationId) => {
           movement: "IN",
           unit_price: item.unit_price,
           total_price: item.total_price,
-          quantity: item.received_qty,
+          quantity: altQty,
           item_id: item.item_id,
           inventory_category: item.inv_category,
-          uom_id: item.item_uom,
-          base_qty: item.received_qty,
-          base_uom_id: itemData.based_uom,
+          uom_id: altUOM,
+          base_qty: baseQty,
+          base_uom_id: baseUOM,
           bin_location_id: item.location_id,
           batch_number_id: item.item_batch_no,
           costing_method_id: item.item_costing_method,
@@ -295,10 +329,8 @@ const addInventory = (data, plantId, organizationId) => {
           if (doc && doc.id) {
             const existingReceived = parseFloat(doc.received_qty || 0);
             const openQuantity = parseFloat(doc.open_qty || 0);
-            const newReceived =
-              existingReceived + parseFloat(item.received_qty || 0);
-            const newOpenQuantity =
-              openQuantity - parseFloat(item.received_qty || 0);
+            const newReceived = existingReceived + parseFloat(baseQty || 0);
+            const newOpenQuantity = openQuantity - parseFloat(baseQty || 0);
 
             await db.collection("on_order_purchase_order").doc(doc.id).update({
               received_qty: newReceived,
@@ -319,7 +351,7 @@ const addInventory = (data, plantId, organizationId) => {
           qualityinsp_qty = 0,
           intransit_qty = 0;
 
-        const receivedQty = parseFloat(item.received_qty || 0);
+        const receivedQty = parseFloat(baseQty || 0);
 
         if (item.inv_category === "BLK") {
           block_qty = receivedQty;
@@ -342,7 +374,7 @@ const addInventory = (data, plantId, organizationId) => {
             .add({
               batch_number: item.item_batch_no,
               material_id: item.item_id,
-              initial_quantity: item.received_qty,
+              initial_quantity: baseQty,
               goods_receiving_no: data.gr_no,
               goods_receiving_id: data.id || "",
               plant_id: plantId,
@@ -413,9 +445,9 @@ const addInventory = (data, plantId, organizationId) => {
               const costingMethod = itemData.material_costing_method;
 
               if (costingMethod === "First In First Out") {
-                return processFifoForBatch(item, batchId);
+                return processFifoForBatch(item, baseQty, batchId);
               } else {
-                return processWeightedAverageForBatch(item, batchId);
+                return processWeightedAverageForBatch(item, baseQty, batchId);
               }
             })
             .then(() => {
@@ -521,9 +553,9 @@ const addInventory = (data, plantId, organizationId) => {
             const costingMethod = itemData.material_costing_method;
 
             if (costingMethod === "First In First Out") {
-              await processFifoForNonBatch(item);
+              await processFifoForNonBatch(item, baseQty);
             } else {
-              await processWeightedAverageForNonBatch(item);
+              await processWeightedAverageForNonBatch(item, baseQty);
             }
 
             console.log(
