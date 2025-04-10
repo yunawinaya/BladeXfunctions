@@ -64,19 +64,18 @@ const updateInventory = async (data, plantId, organizationId) => {
     }
   };
 
-  const updateWeightedAverage = (item, batchId) => {
+  const updateWeightedAverage = (item, returnQty, batchId) => {
     // Input validation
     if (
       !item ||
       !item.material_id ||
-      isNaN(parseFloat(item.return_quantity)) ||
-      parseFloat(item.return_quantity) <= 0
+      isNaN(parseFloat(returnQty)) ||
+      parseFloat(returnQty) <= 0
     ) {
       console.error("Invalid item data for weighted average update:", item);
       return Promise.resolve();
     }
 
-    const returnQty = parseFloat(item.return_quantity);
     const query = batchId
       ? db
           .collection("wa_costing_method")
@@ -113,7 +112,8 @@ const updateInventory = async (data, plantId, organizationId) => {
 
         const calculatedWaCostPrice =
           (waCostPrice * waQuantity + waCostPrice * returnQty) / newWaQuantity;
-        const newWaCostPrice = Math.round(calculatedWaCostPrice * 100) / 100;
+        const newWaCostPrice =
+          Math.round(calculatedWaCostPrice * 10000) / 10000;
 
         return db
           .collection("wa_costing_method")
@@ -169,6 +169,41 @@ const updateInventory = async (data, plantId, organizationId) => {
           continue;
         }
 
+        // UOM Conversion
+        let altQty = parseFloat(item.return_quantity);
+        let baseQty = altQty;
+        let altUOM = item.quantity_uom;
+        let baseUOM = itemData.based_uom;
+
+        if (
+          Array.isArray(itemData.table_uom_conversion) &&
+          itemData.table_uom_conversion.length > 0
+        ) {
+          console.log(`Checking UOM conversions for item ${item.item_id}`);
+
+          const uomConversion = itemData.table_uom_conversion.find(
+            (conv) => conv.alt_uom_id === altUOM
+          );
+
+          if (uomConversion) {
+            console.log(
+              `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
+            );
+
+            baseQty = Math.round(altQty * uomConversion.base_qty * 1000) / 1000;
+
+            console.log(
+              `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
+            );
+          } else {
+            console.log(`No conversion found for UOM ${altUOM}, using as-is`);
+          }
+        } else {
+          console.log(
+            `No UOM conversion table for item ${item.item_id}, using received quantity as-is`
+          );
+        }
+
         // Create inventory movement record
         await db.collection("inventory_movement").add({
           transaction_type: "SRR",
@@ -177,11 +212,12 @@ const updateInventory = async (data, plantId, organizationId) => {
           movement: "IN",
           unit_price: item.unit_price,
           total_price: item.total_price,
-          quantity: item.return_quantity,
+          quantity: altQty,
           item_id: item.material_id,
           inventory_category: item.inventory_category,
-          uom_id: item.quantity_uom,
-          base_uom_id: itemData.based_uom,
+          uom_id: altUOM,
+          base_qty: baseQty,
+          base_uom_id: baseUOM,
           bin_location_id: item.location_id,
           batch_number_id: item.batch_id,
           costing_method_id: item.costing_method,
@@ -205,7 +241,7 @@ const updateInventory = async (data, plantId, organizationId) => {
           qualityinsp_qty = 0,
           intransit_qty = 0;
 
-        const returnQty = parseFloat(item.return_quantity || 0);
+        const returnQty = parseFloat(baseQty || 0);
 
         if (item.inventory_category === "BLK") {
           block_qty = returnQty;
@@ -366,7 +402,7 @@ const updateInventory = async (data, plantId, organizationId) => {
         if (costingMethod === "First In First Out") {
           await updateFIFOInventory(item, returnQty, item.batch_id);
         } else {
-          await updateWeightedAverage(item, item.batch_id);
+          await updateWeightedAverage(item, returnQty, item.batch_id);
         }
       } catch (error) {
         console.error(`Error processing item ${item.material_id}:`, error);

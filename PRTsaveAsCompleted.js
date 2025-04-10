@@ -83,19 +83,18 @@ const updateInventory = async (data, plantId, organizationId) => {
     }
   };
 
-  const updateWeightedAverage = (item, batchId) => {
+  const updateWeightedAverage = (item, returnQty, batchId) => {
     // Input validation
     if (
       !item ||
       !item.material_id ||
-      isNaN(parseFloat(item.return_quantity)) ||
-      parseFloat(item.return_quantity) <= 0
+      isNaN(parseFloat(returnQty)) ||
+      parseFloat(returnQty) <= 0
     ) {
       console.error("Invalid item data for weighted average update:", item);
       return Promise.resolve();
     }
 
-    const returnQty = parseFloat(item.return_quantity);
     const query = batchId
       ? db
           .collection("wa_costing_method")
@@ -160,7 +159,8 @@ const updateInventory = async (data, plantId, organizationId) => {
 
         const calculatedWaCostPrice =
           (waCostPrice * waQuantity - waCostPrice * returnQty) / newWaQuantity;
-        const newWaCostPrice = Math.round(calculatedWaCostPrice * 100) / 100;
+        const newWaCostPrice =
+          Math.round(calculatedWaCostPrice * 10000) / 10000;
 
         return db
           .collection("wa_costing_method")
@@ -216,26 +216,6 @@ const updateInventory = async (data, plantId, organizationId) => {
           continue;
         }
 
-        // Create inventory movement record
-        await db.collection("inventory_movement").add({
-          transaction_type: "PRT",
-          trx_no: data.purchase_return_no,
-          parent_trx_no: item.gr_number,
-          movement: "OUT",
-          unit_price: item.unit_price,
-          total_price: item.total_price,
-          quantity: item.return_quantity,
-          item_id: item.material_id,
-          inventory_category: item.inv_category,
-          uom_id: item.return_uom_id,
-          base_uom_id: itemData.base_uom,
-          bin_location_id: item.location_id,
-          batch_number_id: item.batch_id,
-          costing_method_id: item.costing_method,
-          plant_id: plantId,
-          organization_id: organizationId,
-        });
-
         const temporaryData = JSON.parse(item.temp_qty_data);
         console.log(
           `Temporary data for item ${item.material_id}:`,
@@ -249,8 +229,72 @@ const updateInventory = async (data, plantId, organizationId) => {
               location_id: temp.location_id,
             };
 
+            // UOM Conversion
+            let altQty = parseFloat(temp.return_quantity);
+            let baseQty = altQty;
+            let altUOM = item.return_uom_id;
+            let baseUOM = itemData.based_uom;
+            let altWAQty = parseFloat(item.return_quantity);
+            let baseWAQty = altWAQty;
+
+            if (
+              Array.isArray(itemData.table_uom_conversion) &&
+              itemData.table_uom_conversion.length > 0
+            ) {
+              console.log(`Checking UOM conversions for item ${item.item_id}`);
+
+              const uomConversion = itemData.table_uom_conversion.find(
+                (conv) => conv.alt_uom_id === altUOM
+              );
+
+              if (uomConversion) {
+                console.log(
+                  `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
+                );
+
+                baseQty =
+                  Math.round(altQty * uomConversion.base_qty * 1000) / 1000;
+
+                baseWAQty =
+                  Math.round(altWAQty * uomConversion.base_qty * 1000) / 1000;
+
+                console.log(
+                  `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
+                );
+              } else {
+                console.log(
+                  `No conversion found for UOM ${altUOM}, using as-is`
+                );
+              }
+            } else {
+              console.log(
+                `No UOM conversion table for item ${item.item_id}, using received quantity as-is`
+              );
+            }
+
+            // Create inventory movement record
+            await db.collection("inventory_movement").add({
+              transaction_type: "PRT",
+              trx_no: data.purchase_return_no,
+              parent_trx_no: item.gr_number,
+              movement: "OUT",
+              unit_price: item.unit_price,
+              total_price: item.total_price,
+              quantity: altQty,
+              item_id: item.material_id,
+              inventory_category: item.inv_category,
+              uom_id: altUOM,
+              base_qty: baseQty,
+              base_uom_id: baseUOM,
+              bin_location_id: temp.location_id,
+              batch_number_id: temp.batch_id,
+              costing_method_id: item.costing_method,
+              plant_id: plantId,
+              organization_id: organizationId,
+            });
+
             const categoryType = temp.inventory_category;
-            const categoryValue = temp.return_quantity;
+            const categoryValue = baseQty;
 
             if (temp.batch_id) {
               itemBalanceParams.batch_id = temp.batch_id;
@@ -376,11 +420,11 @@ const updateInventory = async (data, plantId, organizationId) => {
             if (costingMethod === "First In First Out") {
               await updateFIFOInventory(
                 item.material_id,
-                temp.return_quantity,
+                baseQty,
                 temp.batch_id
               );
             } else {
-              await updateWeightedAverage(item, temp.batch_id);
+              await updateWeightedAverage(item, baseWAQty, temp.batch_id);
             }
           }
         }

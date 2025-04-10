@@ -98,19 +98,19 @@ const updateFIFOInventory = (materialId, deliveryQty, batchId) => {
   });
 };
 
-const updateWeightedAverage = (item, batchId) => {
+const updateWeightedAverage = (item, batchId, baseWAQty) => {
   // Input validation
   if (
     !item ||
     !item.material_id ||
-    isNaN(parseFloat(item.gd_qty)) ||
-    parseFloat(item.gd_qty) <= 0
+    isNaN(parseFloat(baseWAQty)) ||
+    parseFloat(baseWAQty) <= 0
   ) {
     console.error("Invalid item data for weighted average update:", item);
     return Promise.resolve();
   }
 
-  const deliveredQty = parseFloat(item.gd_qty);
+  const deliveredQty = parseFloat(baseWAQty);
   const query = batchId
     ? db
         .collection("wa_costing_method")
@@ -174,7 +174,7 @@ const updateWeightedAverage = (item, batchId) => {
 
       const calculatedWaCostPrice =
         (waCostPrice * waQuantity - waCostPrice * deliveredQty) / newWaQuantity;
-      const newWaCostPrice = Math.round(calculatedWaCostPrice * 100) / 100;
+      const newWaCostPrice = Math.round(calculatedWaCostPrice * 10000) / 10000;
 
       return db
         .collection("wa_costing_method")
@@ -260,6 +260,47 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
           const inventoryCategory =
             data.gd_status === "Created" ? "RES" : "UNR";
 
+          // UOM Conversion
+          let altQty = parseFloat(temp.gd_quantity);
+          let baseQty = altQty;
+          let altUOM = item.gd_order_uom_id;
+          let baseUOM = itemData.based_uom;
+          let altWAQty = parseFloat(item.gd_qty);
+          let baseWAQty = altWAQty;
+
+          if (
+            Array.isArray(itemData.table_uom_conversion) &&
+            itemData.table_uom_conversion.length > 0
+          ) {
+            console.log(`Checking UOM conversions for item ${item.item_id}`);
+
+            const uomConversion = itemData.table_uom_conversion.find(
+              (conv) => conv.alt_uom_id === altUOM
+            );
+
+            if (uomConversion) {
+              console.log(
+                `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
+              );
+
+              baseQty =
+                Math.round(altQty * uomConversion.base_qty * 1000) / 1000;
+
+              baseWAQty =
+                Math.round(altWAQty * uomConversion.base_qty * 1000) / 1000;
+
+              console.log(
+                `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
+              );
+            } else {
+              console.log(`No conversion found for UOM ${altUOM}, using as-is`);
+            }
+          } else {
+            console.log(
+              `No UOM conversion table for item ${item.item_id}, using received quantity as-is`
+            );
+          }
+
           // Create inventory_movement record
           const inventoryMovementData = {
             transaction_type: "GDL",
@@ -268,12 +309,12 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
             movement: "OUT",
             unit_price: item.unit_price,
             total_price: item.total_price,
-            quantity: temp.gd_quantity,
+            quantity: altQty,
             item_id: item.material_id,
             inventory_category: inventoryCategory,
-            uom_id: item.item_uom,
-            base_qty: item.base_qty,
-            base_uom_id: itemData.based_uom,
+            uom_id: altUOM,
+            base_qty: baseQty,
+            base_uom_id: baseUOM,
             bin_location_id: temp.location_id,
             batch_number_id: temp.batch_id,
             costing_method_id: item.item_costing_method,
@@ -323,17 +364,30 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
             let finalBalanceQty = parseFloat(existingDoc.balance_quantity || 0);
 
             if (isUpdate) {
-              const gdQuantity = temp.gd_quantity - prevTemp.gd_quantity;
-              finalUnrestrictedQty -= gdQuantity;
-              finalReservedQty += gdQuantity;
+              let prevAltQty = parseFloat(prevTemp.gd_quantity);
+
+              let prevBaseQty = prevAltQty;
+              if (
+                Array.isArray(itemData.table_uom_conversion) &&
+                itemData.table_uom_conversion.length > 0 &&
+                uomConversion
+              ) {
+                prevBaseQty =
+                  Math.round(prevAltQty * uomConversion.base_qty * 1000) / 1000;
+              }
+
+              const gdQuantityDiff = baseQty - prevBaseQty;
+
+              finalUnrestrictedQty -= gdQuantityDiff;
+              finalReservedQty += gdQuantityDiff;
             }
 
             if (data.gd_status === "Created") {
-              finalReservedQty -= temp.gd_quantity;
-              finalBalanceQty -= temp.gd_quantity;
+              finalReservedQty -= baseQty;
+              finalBalanceQty -= baseQty;
             } else {
-              finalUnrestrictedQty -= temp.gd_quantity;
-              finalBalanceQty -= temp.gd_quantity;
+              finalUnrestrictedQty -= baseQty;
+              finalBalanceQty -= baseQty;
             }
 
             updatedDocs.push({
@@ -356,13 +410,9 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
           const costingMethod = itemData.material_costing_method;
 
           if (costingMethod === "First In First Out") {
-            await updateFIFOInventory(
-              item.material_id,
-              temp.gd_quantity,
-              temp.batch_id
-            );
+            await updateFIFOInventory(item.material_id, baseQty, temp.batch_id);
           } else {
-            await updateWeightedAverage(item, temp.batch_id);
+            await updateWeightedAverage(item, temp.batch_id, baseWAQty);
           }
         }
       }

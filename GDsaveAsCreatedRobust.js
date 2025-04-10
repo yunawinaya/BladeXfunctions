@@ -82,11 +82,47 @@ const processBalanceTable = async (data, isUpdate = false) => {
 
           const existingDoc = hasExistingBalance ? balanceQuery.data[0] : null;
 
+          // UOM Conversion
+          let altQty = parseFloat(temp.gd_quantity);
+          let baseQty = altQty;
+          let altUOM = item.gd_order_uom_id;
+          let baseUOM = itemData.based_uom;
+
+          if (
+            Array.isArray(itemData.table_uom_conversion) &&
+            itemData.table_uom_conversion.length > 0
+          ) {
+            console.log(`Checking UOM conversions for item ${item.item_id}`);
+
+            const uomConversion = itemData.table_uom_conversion.find(
+              (conv) => conv.alt_uom_id === altUOM
+            );
+
+            if (uomConversion) {
+              console.log(
+                `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
+              );
+
+              baseQty =
+                Math.round(altQty * uomConversion.base_qty * 1000) / 1000;
+
+              console.log(
+                `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
+              );
+            } else {
+              console.log(`No conversion found for UOM ${altUOM}, using as-is`);
+            }
+          } else {
+            console.log(
+              `No UOM conversion table for item ${item.item_id}, using received quantity as-is`
+            );
+          }
+
           if (existingDoc && existingDoc.id) {
             // Determine quantity change based on update or add
             const gdQuantity = isUpdate
-              ? temp.gd_quantity - prevTemp.gd_quantity
-              : temp.gd_quantity;
+              ? parseFloat(baseQty) - parseFloat(prevTemp.gd_quantity)
+              : parseFloat(baseQty);
 
             // Store original values for potential rollback
             updatedDocs.push({

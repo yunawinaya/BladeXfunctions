@@ -48,58 +48,22 @@ const addInventory = (data, plantId, organizationId) => {
             const poData = poResponse.data[0];
             const quantity = parseFloat(baseQty) || 0;
 
-            let unitPrice = 0;
-            let discount = 0;
-            let discountUOM = "";
-            let taxRate = 0;
-            let taxInclusive = 0;
+            let poQuantity = 0;
+            let totalAmount = 0;
 
             for (const poItem of poData.table_po) {
               if (poItem.item_id === itemData.item_id) {
-                unitPrice = parseFloat(poItem.unit_price) || 0;
-                discount = parseFloat(poItem.discount) || 0;
-                discountUOM = poItem.discount_uom;
-                taxRate = parseFloat(poItem.tax_rate_percent) || 0;
-                taxInclusive = poItem.tax_inclusive;
+                poQuantity = parseFloat(poItem.quantity) || 0;
+                totalAmount = parseFloat(poItem.amount) || 0;
                 break;
               }
             }
 
-            const grossValue = quantity * unitPrice;
+            const finalAmount = totalAmount / poQuantity;
 
-            let discountAmount = 0;
-            if (discount !== 0 && discountUOM) {
-              if (discountUOM === "Amount") {
-                discountAmount = discount;
-              } else if (discountUOM === "%") {
-                discountAmount = (grossValue * discount) / 100;
-              }
-
-              if (discountAmount > grossValue) {
-                discountAmount = 0;
-              }
-            }
-
-            const amountAfterDiscount = grossValue - discountAmount;
-
-            let taxAmount = 0;
-            let finalAmount = amountAfterDiscount;
-
-            if (taxRate) {
-              const taxRateDecimal = taxRate / 100;
-
-              if (taxInclusive === 1) {
-                taxAmount =
-                  amountAfterDiscount -
-                  amountAfterDiscount / (1 + taxRateDecimal);
-                finalAmount = amountAfterDiscount;
-              } else {
-                taxAmount = amountAfterDiscount * taxRateDecimal;
-                finalAmount = amountAfterDiscount + taxAmount;
-              }
-            }
-
-            const costPrice = quantity > 0 ? finalAmount / quantity : unitPrice;
+            const costPrice =
+              quantity > 0 ? finalAmount / quantity : itemData.unit_price;
+            console.log("costPrice", costPrice);
 
             return Math.round(costPrice * 10000) / 10000;
           })

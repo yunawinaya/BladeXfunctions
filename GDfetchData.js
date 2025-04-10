@@ -6,6 +6,28 @@ if (!salesOrderId) {
   return;
 }
 
+// Function to convert base quantity to alternative quantity
+const convertBaseToAlt = (baseQty, itemData, altUOM) => {
+  if (
+    !Array.isArray(itemData.table_uom_conversion) ||
+    itemData.table_uom_conversion.length === 0 ||
+    !altUOM
+  ) {
+    // No conversion needed or possible
+    return baseQty;
+  }
+
+  const uomConversion = itemData.table_uom_conversion.find(
+    (conv) => conv.alt_uom_id === altUOM
+  );
+
+  if (!uomConversion || !uomConversion.base_qty) {
+    return baseQty;
+  }
+
+  return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
+};
+
 db.collection("goods_delivery")
   .where({
     so_id: salesOrderId,
@@ -102,6 +124,7 @@ db.collection("goods_delivery")
 
             const itemId = sourceItem.item_name || "";
             const orderedQty = parseFloat(sourceItem.so_quantity || 0);
+            const altUOM = sourceItem.so_item_uom || "";
 
             // Get the latest delivered quantity for the item
             const deliveredSoFar = deliveredQty[itemId] || 0;
@@ -127,11 +150,9 @@ db.collection("goods_delivery")
                     [`table_gd.${index}.gd_delivered_qty`]: deliveredSoFar,
                     [`table_gd.${index}.gd_initial_delivered_qty`]:
                       deliveredSoFar,
-                    [`table_gd.${index}.gd_order_uom_id`]:
-                      sourceItem.so_item_uom || "",
-                    [`table_gd.${index}.good_delivery_uom_id`]:
-                      sourceItem.so_item_uom || "",
-                    [`table_gd.${index}.base_uom_id`]: itemData.base_uom || "",
+                    [`table_gd.${index}.gd_order_uom_id`]: altUOM,
+                    [`table_gd.${index}.good_delivery_uom_id`]: altUOM,
+                    [`table_gd.${index}.base_uom_id`]: itemData.based_uom || "",
                     [`table_gd.${index}.unit_price`]: sourceItem.so_item_price,
                     [`table_gd.${index}.total_price`]: sourceItem.so_amount,
                     [`table_gd.${index}.item_costing_method`]:
@@ -159,6 +180,7 @@ db.collection("goods_delivery")
               .then((response) => {
                 console.log("Response from item query:", response);
                 const itemData = response.data[0];
+                const baseUOM = itemData.based_uom || "";
 
                 if (
                   itemData.item_batch_management === 1 &&
@@ -176,12 +198,30 @@ db.collection("goods_delivery")
                       );
                       const itemBatchBalanceData = response.data;
 
-                      const totalUnrestrictedQty = itemBatchBalanceData.reduce(
-                        (sum, balance) => sum + (balance.unrestricted_qty || 0),
-                        0
+                      // Sum unrestricted quantities in base UOM
+                      let totalUnrestrictedQtyBase =
+                        itemBatchBalanceData.reduce(
+                          (sum, balance) =>
+                            sum + (balance.unrestricted_qty || 0),
+                          0
+                        );
+
+                      // Convert to alt UOM if needed
+                      let totalUnrestrictedQty = totalUnrestrictedQtyBase;
+                      if (altUOM !== baseUOM) {
+                        totalUnrestrictedQty = convertBaseToAlt(
+                          totalUnrestrictedQtyBase,
+                          itemData,
+                          altUOM
+                        );
+                      }
+
+                      console.log(
+                        "Total unrestricted quantity in base units:",
+                        totalUnrestrictedQtyBase
                       );
                       console.log(
-                        "Total unrestricted quantity:",
+                        `Total unrestricted quantity in ${altUOM}:`,
                         totalUnrestrictedQty
                       );
 
@@ -220,14 +260,30 @@ db.collection("goods_delivery")
                         response
                       );
 
-                      const itemBatchBalanceData = response.data;
+                      const itemBalanceData = response.data;
 
-                      const totalUnrestrictedQty = itemBatchBalanceData.reduce(
+                      // Sum unrestricted quantities in base UOM
+                      let totalUnrestrictedQtyBase = itemBalanceData.reduce(
                         (sum, balance) => sum + (balance.unrestricted_qty || 0),
                         0
                       );
+
+                      // Convert to alt UOM if needed
+                      let totalUnrestrictedQty = totalUnrestrictedQtyBase;
+                      if (altUOM !== baseUOM) {
+                        totalUnrestrictedQty = convertBaseToAlt(
+                          totalUnrestrictedQtyBase,
+                          itemData,
+                          altUOM
+                        );
+                      }
+
                       console.log(
-                        "Total unrestricted quantity:",
+                        "Total unrestricted quantity in base units:",
+                        totalUnrestrictedQtyBase
+                      );
+                      console.log(
+                        `Total unrestricted quantity in ${altUOM}:`,
                         totalUnrestrictedQty
                       );
 
