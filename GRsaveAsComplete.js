@@ -32,9 +32,85 @@ const addInventory = (data, plantId, organizationId) => {
         return;
       }
 
+      const calculateCostPrice = (itemData, baseQty) => {
+        return db
+          .collection("purchase_order")
+          .where({ id: data.purchase_order_id })
+          .get()
+          .then((poResponse) => {
+            if (!poResponse.data || !poResponse.data.length) {
+              console.log(
+                `No purchase order found for ${itemData.purchase_order_id}`
+              );
+              return itemData.unit_price;
+            }
+
+            const poData = poResponse.data[0];
+            const quantity = parseFloat(baseQty) || 0;
+
+            let unitPrice = 0;
+            let discount = 0;
+            let discountUOM = "";
+            let taxRate = 0;
+            let taxInclusive = 0;
+
+            for (const poItem of poData.table_po) {
+              if (poItem.item_id === itemData.item_id) {
+                unitPrice = parseFloat(poItem.unit_price) || 0;
+                discount = parseFloat(poItem.discount) || 0;
+                discountUOM = poItem.discount_uom;
+                taxRate = parseFloat(poItem.tax_rate_percent) || 0;
+                taxInclusive = poItem.tax_inclusive;
+                break;
+              }
+            }
+
+            const grossValue = quantity * unitPrice;
+
+            let discountAmount = 0;
+            if (discount !== 0 && discountUOM) {
+              if (discountUOM === "Amount") {
+                discountAmount = discount;
+              } else if (discountUOM === "%") {
+                discountAmount = (grossValue * discount) / 100;
+              }
+
+              if (discountAmount > grossValue) {
+                discountAmount = 0;
+              }
+            }
+
+            const amountAfterDiscount = grossValue - discountAmount;
+
+            let taxAmount = 0;
+            let finalAmount = amountAfterDiscount;
+
+            if (taxRate) {
+              const taxRateDecimal = taxRate / 100;
+
+              if (taxInclusive === 1) {
+                taxAmount =
+                  amountAfterDiscount -
+                  amountAfterDiscount / (1 + taxRateDecimal);
+                finalAmount = amountAfterDiscount;
+              } else {
+                taxAmount = amountAfterDiscount * taxRateDecimal;
+                finalAmount = amountAfterDiscount + taxAmount;
+              }
+            }
+
+            const costPrice = quantity > 0 ? finalAmount / quantity : unitPrice;
+
+            return Math.round(costPrice * 10000) / 10000;
+          })
+          .catch((error) => {
+            console.error(`Error calculating cost price: ${error.message}`);
+            return itemData.unit_price;
+          });
+      };
+
       // Function to process FIFO for batch
       const processFifoForBatch = (itemData, baseQty, batchId) => {
-        // Improved FIFO sequence generation
         return db
           .collection("fifo_costing_history")
           .where({ material_id: itemData.item_id, batch_id: batchId })
@@ -53,33 +129,33 @@ const addInventory = (data, plantId, organizationId) => {
               sequenceNumber = Math.max(...existingSequences, 0) + 1;
             }
 
-            // Add a small random component to handle potential concurrent operations
-            const fifoData = {
-              fifo_cost_price: itemData.unit_price,
-              fifo_initial_quantity: baseQty,
-              fifo_available_quantity: baseQty,
-              material_id: itemData.item_id,
-              batch_id: batchId,
-              fifo_sequence: sequenceNumber,
-              plant_id: plantId,
-              organization_id: organizationId,
-            };
+            return calculateCostPrice(itemData, baseQty).then((costPrice) => {
+              const fifoData = {
+                fifo_cost_price: costPrice,
+                fifo_initial_quantity: baseQty,
+                fifo_available_quantity: baseQty,
+                material_id: itemData.item_id,
+                batch_id: batchId,
+                fifo_sequence: sequenceNumber,
+                plant_id: plantId,
+                organization_id: organizationId,
+              };
 
-            return db
-              .collection("fifo_costing_history")
-              .add(fifoData)
-              .then(() => {
-                console.log(
-                  `Successfully processed FIFO for item ${itemData.item_id} with batch ${batchId}`
-                );
-                return Promise.resolve();
-              });
+              return db
+                .collection("fifo_costing_history")
+                .add(fifoData)
+                .then(() => {
+                  console.log(
+                    `Successfully processed FIFO for item ${itemData.item_id} with batch ${batchId}`
+                  );
+                  return Promise.resolve();
+                });
+            });
           });
       };
 
       // Function to process FIFO for non-batch
       const processFifoForNonBatch = (itemData, baseQty) => {
-        // Improved FIFO sequence generation
         return db
           .collection("fifo_costing_history")
           .where({ material_id: itemData.item_id })
@@ -98,54 +174,57 @@ const addInventory = (data, plantId, organizationId) => {
               sequenceNumber = Math.max(...existingSequences, 0) + 1;
             }
 
-            // Create FIFO record
-            const fifoData = {
-              fifo_cost_price: itemData.unit_price,
-              fifo_initial_quantity: baseQty,
-              fifo_available_quantity: baseQty,
-              material_id: itemData.item_id,
-              fifo_sequence: sequenceNumber,
-              plant_id: plantId,
-              organization_id: organizationId,
-            };
+            return calculateCostPrice(itemData, baseQty).then((costPrice) => {
+              const fifoData = {
+                fifo_cost_price: costPrice,
+                fifo_initial_quantity: baseQty,
+                fifo_available_quantity: baseQty,
+                material_id: itemData.item_id,
+                fifo_sequence: sequenceNumber,
+                plant_id: plantId,
+                organization_id: organizationId,
+              };
 
-            return db
-              .collection("fifo_costing_history")
-              .add(fifoData)
-              .then(() => {
-                console.log(
-                  `Successfully processed FIFO for item ${itemData.item_id}`
-                );
-                return Promise.resolve();
-              });
+              return db
+                .collection("fifo_costing_history")
+                .add(fifoData)
+                .then(() => {
+                  console.log(
+                    `Successfully processed FIFO for item ${itemData.item_id}`
+                  );
+                  return Promise.resolve();
+                });
+            });
           });
       };
 
       const processWeightedAverageForBatch = (item, baseQty, batchId) => {
-        return db
-          .collection("wa_costing_method")
-          .add({
-            material_id: item.item_id,
-            batch_id: batchId,
-            plant_id: plantId,
-            organization_id: organizationId,
-            wa_quantity: baseQty,
-            wa_cost_price: item.unit_price,
-            created_at: new Date(),
-          })
-          .then(() => {
-            console.log(
-              `Successfully processed Weighted Average for item ${item.item_id} with batch ${batchId}`
-            );
-            return Promise.resolve();
-          })
-          .catch((error) => {
-            console.error(
-              `Error processing Weighted Average for item ${item.item_id} with batch ${batchId}:`,
-              error
-            );
-            return Promise.reject(error);
-          });
+        return calculateCostPrice(item, baseQty).then((costPrice) => {
+          return db
+            .collection("wa_costing_method")
+            .add({
+              material_id: item.item_id,
+              batch_id: batchId,
+              plant_id: plantId,
+              organization_id: organizationId,
+              wa_quantity: baseQty,
+              wa_cost_price: costPrice,
+              created_at: new Date(),
+            })
+            .then(() => {
+              console.log(
+                `Successfully processed Weighted Average for item ${item.item_id} with batch ${batchId}`
+              );
+              return Promise.resolve();
+            })
+            .catch((error) => {
+              console.error(
+                `Error processing Weighted Average for item ${item.item_id} with batch ${batchId}:`,
+                error
+              );
+              return Promise.reject(error);
+            });
+        });
       };
 
       const processWeightedAverageForNonBatch = (item, baseQty) => {
@@ -168,58 +247,62 @@ const addInventory = (data, plantId, organizationId) => {
               const waCostPrice = latestWa.wa_cost_price;
               const waQuantity = latestWa.wa_quantity;
               const newWaQuantity = waQuantity + baseQty;
-              const calculatedWaCostPrice =
-                (waCostPrice * waQuantity + item.unit_price * baseQty) /
-                newWaQuantity;
-              const newWaCostPrice =
-                Math.round(calculatedWaCostPrice * 100) / 100;
-              console.log("newWaCostPrice", newWaCostPrice);
+              return calculateCostPrice(item, baseQty).then((costPrice) => {
+                const calculatedWaCostPrice =
+                  (waCostPrice * waQuantity + costPrice * baseQty) /
+                  newWaQuantity;
+                const newWaCostPrice =
+                  Math.round(calculatedWaCostPrice * 100) / 100;
+                console.log("newWaCostPrice", newWaCostPrice);
 
-              return db
-                .collection("wa_costing_method")
-                .doc(latestWa.id)
-                .update({
-                  wa_quantity: newWaQuantity,
-                  wa_cost_price: newWaCostPrice,
-                  plant_id: plantId,
-                  organization_id: organizationId,
-                  updated_at: new Date(),
-                })
-                .then(() => {
-                  console.log(
-                    `Successfully processed Weighted Average for item ${item.item_id}`
-                  );
-                  return Promise.resolve();
-                })
-                .catch((error) => {
-                  console.error(
-                    `Error processing Weighted Average for item ${item.item_id}:`,
-                    error
-                  );
-                });
+                return db
+                  .collection("wa_costing_method")
+                  .doc(latestWa.id)
+                  .update({
+                    wa_quantity: newWaQuantity,
+                    wa_cost_price: newWaCostPrice,
+                    plant_id: plantId,
+                    organization_id: organizationId,
+                    updated_at: new Date(),
+                  })
+                  .then(() => {
+                    console.log(
+                      `Successfully processed Weighted Average for item ${item.item_id}`
+                    );
+                    return Promise.resolve();
+                  })
+                  .catch((error) => {
+                    console.error(
+                      `Error processing Weighted Average for item ${item.item_id}:`,
+                      error
+                    );
+                  });
+              });
             } else {
-              return db
-                .collection("wa_costing_method")
-                .add({
-                  material_id: item.item_id,
-                  wa_quantity: baseQty,
-                  wa_cost_price: item.unit_price,
-                  plant_id: plantId,
-                  organization_id: organizationId,
-                  created_at: new Date(),
-                })
-                .then(() => {
-                  console.log(
-                    `Successfully processed Weighted Average for item ${item.item_id}`
-                  );
-                  return Promise.resolve();
-                })
-                .catch((error) => {
-                  console.error(
-                    `Error processing Weighted Average for item ${item.item_id}:`,
-                    error
-                  );
-                });
+              return calculateCostPrice(item, baseQty).then((costPrice) => {
+                return db
+                  .collection("wa_costing_method")
+                  .add({
+                    material_id: item.item_id,
+                    wa_quantity: baseQty,
+                    wa_cost_price: costPrice,
+                    plant_id: plantId,
+                    organization_id: organizationId,
+                    created_at: new Date(),
+                  })
+                  .then(() => {
+                    console.log(
+                      `Successfully processed Weighted Average for item ${item.item_id}`
+                    );
+                    return Promise.resolve();
+                  })
+                  .catch((error) => {
+                    console.error(
+                      `Error processing Weighted Average for item ${item.item_id}:`,
+                      error
+                    );
+                  });
+              });
             }
           })
           .catch((error) => {
