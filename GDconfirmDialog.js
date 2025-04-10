@@ -1,12 +1,14 @@
-const page_status = this.getParamsVariables("page_status");
 const data = this.getValues();
 const temporaryData = data.gd_item_balance.table_item_balance;
 const rowIndex = data.gd_item_balance.row_index;
 
 // Check if all rows have passed validation
-const allValid = temporaryData.every(
-  (item, idx) => window.validationState && window.validationState[idx] !== false
-);
+const allValid = temporaryData.every((item, idx) => {
+  const isValid =
+    window.validationState && window.validationState[idx] !== false;
+  console.log(`Row ${idx} validation: ${isValid}`);
+  return isValid;
+});
 
 if (!allValid) {
   console.log("Validation failed, canceling confirm");
@@ -18,6 +20,10 @@ const textareaContent = JSON.stringify(temporaryData);
 
 this.setData({
   [`table_gd.${rowIndex}.temp_qty_data`]: textareaContent,
+});
+
+this.setData({
+  [`gd_item_balance.table_item_balance`]: [],
 });
 
 console.log("Input data:", temporaryData);

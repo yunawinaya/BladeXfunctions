@@ -1,3 +1,4 @@
+const data = this.getValues();
 const lineItemData = arguments[0]?.row;
 const rowIndex = arguments[0]?.rowIndex;
 
@@ -166,3 +167,9 @@ db.collection("Item")
   .catch((error) => {
     console.error("Error fetching item data:", error);
   });
+
+window.validationState = {};
+const rowCount = data.gd_item_balance.table_item_balance.length;
+for (let i = 0; i < rowCount; i++) {
+  window.validationState[i] = true;
+}

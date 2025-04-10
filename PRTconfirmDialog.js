@@ -3,9 +3,12 @@ const temporaryData = data.confirm_inventory.table_item_balance;
 const rowIndex = data.confirm_inventory.row_index;
 
 // Check if all rows have passed validation
-const allValid = temporaryData.every(
-  (item, idx) => window.validationState && window.validationState[idx] !== false
-);
+const allValid = temporaryData.every((item, idx) => {
+  const isValid =
+    window.validationState && window.validationState[idx] !== false;
+  console.log(`Row ${idx} validation: ${isValid}`);
+  return isValid;
+});
 
 if (!allValid) {
   console.log("Validation failed, canceling confirm");

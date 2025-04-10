@@ -8,17 +8,20 @@ const balance_quantity =
 const category_balance =
   data.confirm_inventory.table_item_balance[index].category_balance;
 
-// Create or use a global validation state
 if (!window.validationState) {
   window.validationState = {};
 }
 
+if (Object.keys(window.validationState).length === 0) {
+  const rowCount = data.confirm_inventory.table_item_balance.length;
+  for (let i = 0; i < rowCount; i++) {
+    window.validationState[i] = true;
+  }
+}
 if (balance_quantity < value || category_balance < value) {
-  // Set validation error for this specific row
   window.validationState[index] = false;
   callback("Not enough quantity to be returned");
 } else {
-  // Clear validation error
   window.validationState[index] = true;
   callback();
 }
