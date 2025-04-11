@@ -118,9 +118,11 @@ db.collection("goods_delivery")
   .get()
   .then((response) => {
     console.log("Response from goods_delivery query:", response);
-    this.setData({
-      so_no: arguments[0]?.fieldModel?.item?.so_no,
-    });
+    if (!this.getValue("so_no")) {
+      this.setData({
+        so_no: arguments[0]?.fieldModel?.item?.so_no,
+      });
+    }
 
     const GDData = response.data || [];
     console.log("GDData extracted:", GDData);

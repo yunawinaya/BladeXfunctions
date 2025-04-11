@@ -211,7 +211,7 @@ const updateInventory = async (data, plantId, organizationId) => {
           parent_trx_no: item.sr_number,
           movement: "IN",
           unit_price: item.unit_price,
-          total_price: item.total_price,
+          total_price: item.unit_price * altQty,
           quantity: altQty,
           item_id: item.material_id,
           inventory_category: item.inventory_category,

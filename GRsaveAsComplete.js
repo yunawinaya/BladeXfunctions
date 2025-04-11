@@ -342,7 +342,7 @@ const addInventory = (data, plantId, organizationId) => {
           parent_trx_no: data.purchase_order_number,
           movement: "IN",
           unit_price: item.unit_price,
-          total_price: item.total_price,
+          total_price: item.unit_price * altQty,
           quantity: altQty,
           item_id: item.item_id,
           inventory_category: item.inv_category,
