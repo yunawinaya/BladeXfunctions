@@ -54,7 +54,7 @@ const addInventory = (data, plantId, organizationId) => {
             for (const poItem of poData.table_po) {
               if (poItem.item_id === itemData.item_id) {
                 poQuantity = parseFloat(poItem.quantity) || 0;
-                totalAmount = parseFloat(poItem.amount) || 0;
+                totalAmount = parseFloat(poItem.po_amount) || 0;
                 break;
               }
             }
@@ -807,25 +807,41 @@ this.getData()
         shipping_address_country,
       };
 
-      console.log("GR result", gr);
-
       if (page_status === "Add") {
         await db
           .collection("goods_receiving")
           .add(gr)
           .then(() => {
+            let organizationId = this.getVarGlobal("deptParentId");
+            if (organizationId === "0") {
+              organizationId = this.getVarSystem("deptIds").split(",")[0];
+            }
+
             return db
               .collection("prefix_configuration")
-              .where({ document_types: "Goods Receiving", is_deleted: 0 })
+              .where({
+                document_types: "Goods Receiving",
+                is_deleted: 0,
+                organization_id: organizationId,
+                is_active: 1,
+              })
               .get()
               .then((prefixEntry) => {
-                const data = prefixEntry.data[0];
-                return db
-                  .collection("prefix_configuration")
-                  .where({ document_types: "Goods Receiving", is_deleted: 0 })
-                  .update({
-                    running_number: parseInt(data.running_number) + 1,
-                  });
+                if (prefixEntry.data.length === 0) return;
+                else {
+                  const data = prefixEntry.data[0];
+                  return db
+                    .collection("prefix_configuration")
+                    .where({
+                      document_types: "Goods Receiving",
+                      is_deleted: 0,
+                      organization_id: organizationId,
+                    })
+                    .update({
+                      running_number: parseInt(data.running_number) + 1,
+                      has_record: 1,
+                    });
+                }
               });
           });
 
@@ -835,93 +851,137 @@ this.getData()
           .get();
 
         const plantId = result.data[0].po_plant;
-        const organizationId = result.data[0].organization_id;
+        let organizationId = result.data[0].organization_id;
 
         await addInventory(data, plantId, organizationId);
         await updatePurchaseOrderStatus(purchase_order_id);
+        await closeDialog();
       } else if (page_status === "Edit") {
         const goodsReceivingId = this.getParamsVariables("goods_receiving_no");
 
-        if (gr.gr_no.startsWith("DRAFT")) {
-          const prefixEntry = db
-            .collection("prefix_configuration")
-            .where({ document_types: "Goods Receiving" })
-            .get()
-            .then((prefixEntry) => {
-              if (prefixEntry) {
-                const prefixData = prefixEntry.data[0];
-                const now = new Date();
-                let prefixToShow = prefixData.current_prefix_config;
+        let organizationId = this.getVarGlobal("deptParentId");
+        if (organizationId === "0") {
+          organizationId = this.getVarSystem("deptIds").split(",")[0];
+        }
+        const prefixEntry = db
+          .collection("prefix_configuration")
+          .where({
+            document_types: "Goods Receiving",
+            is_deleted: 0,
+            organization_id: organizationId,
+            is_active: 1,
+          })
+          .get()
+          .then((prefixEntry) => {
+            if (prefixEntry.data.length > 0) {
+              const prefixData = prefixEntry.data[0];
+              const now = new Date();
+              let prefixToShow;
+              let runningNumber = prefixData.running_number;
+              let isUnique = false;
+              let maxAttempts = 10;
+              let attempts = 0;
 
-                prefixToShow = prefixToShow.replace(
+              const generatePrefix = (runNumber) => {
+                let generated = prefixData.current_prefix_config;
+                generated = generated.replace(
                   "prefix",
                   prefixData.prefix_value
                 );
-                prefixToShow = prefixToShow.replace(
+                generated = generated.replace(
                   "suffix",
                   prefixData.suffix_value
                 );
-                prefixToShow = prefixToShow.replace(
+                generated = generated.replace(
                   "month",
                   String(now.getMonth() + 1).padStart(2, "0")
                 );
-                prefixToShow = prefixToShow.replace(
+                generated = generated.replace(
                   "day",
                   String(now.getDate()).padStart(2, "0")
                 );
-                prefixToShow = prefixToShow.replace("year", now.getFullYear());
-                prefixToShow = prefixToShow.replace(
+                generated = generated.replace("year", now.getFullYear());
+                generated = generated.replace(
                   "running_number",
-                  String(prefixData.running_number).padStart(
-                    prefixData.padding_zeroes,
-                    "0"
-                  )
+                  String(runNumber).padStart(prefixData.padding_zeroes, "0")
                 );
-                gr.gr_no = prefixToShow;
+                return generated;
+              };
 
-                db.collection("goods_receiving")
-                  .doc(goodsReceivingId)
-                  .update(gr);
-                return prefixData.running_number;
-              }
-            })
-            .then((currentRunningNumber) => {
-              db.collection("prefix_configuration")
-                .where({ document_types: "Goods Receiving", is_deleted: 0 })
-                .update({ running_number: parseInt(currentRunningNumber) + 1 });
-            })
-            .then(() => {
-              closeDialog();
-            })
-            .catch((error) => {
-              console.log(error);
-            });
-        } else {
-          db.collection("goods_receiving")
-            .doc(goodsReceivingId)
-            .update(gr)
-            .then(() => {
-              closeDialog();
-            })
-            .catch((error) => {
-              console.log(error);
-            });
-        }
+              const checkUniqueness = async (generatedPrefix) => {
+                const existingDoc = await db
+                  .collection("goods_receiving")
+                  .where({ gr_no: generatedPrefix })
+                  .get();
+                return existingDoc.data[0] ? false : true;
+              };
 
-        await db.collection("goods_receiving").doc(goodsReceivingId).update(gr);
-        const result = await db
-          .collection("purchase_order")
-          .doc(data.purchase_order_id)
-          .get();
+              const findUniquePrefix = async () => {
+                while (!isUnique && attempts < maxAttempts) {
+                  attempts++;
+                  prefixToShow = generatePrefix(runningNumber);
+                  isUnique = await checkUniqueness(prefixToShow);
+                  if (!isUnique) {
+                    runningNumber++;
+                  }
+                }
 
-        const plantId = result.data[0].po_plant;
-        const organizationId = result.data[0].organization_id;
+                if (!isUnique) {
+                  throw new Error(
+                    "Could not generate a unique Goods Receiving number after maximum attempts"
+                  );
+                } else {
+                  gr.gr_no = prefixToShow;
+                  db.collection("goods_receiving")
+                    .doc(goodsReceivingId)
+                    .update(gr)
+                    .then(async () => {
+                      const result = await db
+                        .collection("purchase_order")
+                        .doc(data.purchase_order_id)
+                        .get();
 
-        await addInventory(data, plantId, organizationId);
-        await updatePurchaseOrderStatus(purchase_order_id);
+                      const plantId = result.data[0].po_plant;
+                      organizationId = result.data[0].organization_id;
+
+                      await addInventory(gr, plantId, organizationId);
+                      await updatePurchaseOrderStatus(purchase_order_id);
+                      await closeDialog();
+                    });
+                  db.collection("prefix_configuration")
+                    .where({
+                      document_types: "Goods Receiving",
+                      is_deleted: 0,
+                      organization_id: organizationId,
+                    })
+                    .update({
+                      running_number: parseInt(runningNumber) + 1,
+                      has_record: 1,
+                    });
+                }
+              };
+
+              findUniquePrefix();
+            } else {
+              db.collection("goods_receiving")
+                .doc(goodsReceivingId)
+                .update(gr)
+                .then(async () => {
+                  const result = await db
+                    .collection("purchase_order")
+                    .doc(data.purchase_order_id)
+                    .get();
+
+                  const plantId = result.data[0].po_plant;
+                  organizationId = result.data[0].organization_id;
+
+                  await addInventory(data, plantId, organizationId);
+                  await updatePurchaseOrderStatus(purchase_order_id);
+                  await closeDialog();
+                });
+            }
+          });
       }
-
-      closeDialog();
     } catch (error) {
       console.error("Error in goods receiving process:", error);
       alert(

@@ -279,7 +279,7 @@ const updateInventory = async (data, plantId, organizationId) => {
               parent_trx_no: item.gr_number,
               movement: "OUT",
               unit_price: item.unit_price,
-              total_price: item.total_price,
+              total_price: item.unit_price * altQty,
               quantity: altQty,
               item_id: item.material_id,
               inventory_category: item.inv_category,
@@ -441,6 +441,7 @@ this.getData().then(async (data) => {
       purchase_return_no,
       purchase_order_id,
       goods_receiving_id,
+      gr_ids,
       supplier_id,
       prt_billing_name,
       prt_billing_cp,
@@ -492,6 +493,7 @@ this.getData().then(async (data) => {
       purchase_return_no,
       purchase_order_id,
       goods_receiving_id,
+      gr_ids,
       supplier_id,
       prt_billing_name,
       prt_billing_cp,
@@ -543,24 +545,36 @@ this.getData().then(async (data) => {
         .collection("purchase_return_head")
         .add(entry)
         .then(() => {
+          let organizationId = this.getVarGlobal("deptParentId");
+          if (organizationId === "0") {
+            organizationId = this.getVarSystem("deptIds").split(",")[0];
+          }
+
           return db
             .collection("prefix_configuration")
             .where({
               document_types: "Purchase Returns",
               is_deleted: 0,
+              organization_id: organizationId,
+              is_active: 1,
             })
             .get()
             .then((prefixEntry) => {
-              const data = prefixEntry.data[0];
-              return db
-                .collection("prefix_configuration")
-                .where({
-                  document_types: "Purchase Returns",
-                  is_deleted: 0,
-                })
-                .update({
-                  running_number: parseInt(data.running_number) + 1,
-                });
+              if (prefixEntry.data.length === 0) return;
+              else {
+                const data = prefixEntry.data[0];
+                return db
+                  .collection("prefix_configuration")
+                  .where({
+                    document_types: "Purchase Returns",
+                    is_deleted: 0,
+                    organization_id: organizationId,
+                  })
+                  .update({
+                    running_number: parseInt(data.running_number) + 1,
+                    has_record: 1,
+                  });
+              }
             });
         });
 
@@ -575,76 +589,103 @@ this.getData().then(async (data) => {
       await updateInventory(data, plantId, organizationId);
     } else if (page_status === "Edit") {
       const purchaseReturnId = this.getParamsVariables("purchase_return_no");
+      let organizationId = this.getVarGlobal("deptParentId");
+      if (organizationId === "0") {
+        organizationId = this.getVarSystem("deptIds").split(",")[0];
+      }
 
-      let updatedPrefix = false;
-      if (entry.purchase_return_no.startsWith("DRAFT")) {
-        const prefixEntry = db
-          .collection("prefix_configuration")
-          .where({ document_types: "Purchase Returns", is_deleted: 0 })
-          .get()
-          .then((prefixEntry) => {
-            if (prefixEntry) {
-              const prefixData = prefixEntry.data[0];
-              const now = new Date();
-              let prefixToShow = prefixData.current_prefix_config;
+      const prefixEntry = db
+        .collection("prefix_configuration")
+        .where({
+          document_types: "Purchase Returns",
+          is_deleted: 0,
+          organization_id: organizationId,
+          is_active: 1,
+        })
+        .get()
+        .then((prefixEntry) => {
+          if (prefixEntry.data.length > 0) {
+            const prefixData = prefixEntry.data[0];
+            const now = new Date();
+            let prefixToShow;
+            let runningNumber = prefixData.running_number;
+            let isUnique = false;
+            let maxAttempts = 10;
+            let attempts = 0;
 
-              prefixToShow = prefixToShow.replace(
-                "prefix",
-                prefixData.prefix_value
-              );
-              prefixToShow = prefixToShow.replace(
-                "suffix",
-                prefixData.suffix_value
-              );
-              prefixToShow = prefixToShow.replace(
+            const generatePrefix = (runNumber) => {
+              let generated = prefixData.current_prefix_config;
+              generated = generated.replace("prefix", prefixData.prefix_value);
+              generated = generated.replace("suffix", prefixData.suffix_value);
+              generated = generated.replace(
                 "month",
                 String(now.getMonth() + 1).padStart(2, "0")
               );
-              prefixToShow = prefixToShow.replace(
+              generated = generated.replace(
                 "day",
                 String(now.getDate()).padStart(2, "0")
               );
-              prefixToShow = prefixToShow.replace("year", now.getFullYear());
-              prefixToShow = prefixToShow.replace(
+              generated = generated.replace("year", now.getFullYear());
+              generated = generated.replace(
                 "running_number",
-                String(prefixData.running_number).padStart(
-                  prefixData.padding_zeroes,
-                  "0"
-                )
+                String(runNumber).padStart(prefixData.padding_zeroes, "0")
               );
-              entry.purchase_return_no = prefixToShow;
-              updatedPrefix = true;
-              db.collection("purchase_return_head")
-                .doc(purchaseReturnId)
-                .update(entry);
-              return prefixData.running_number;
-            }
-          })
-          .then((currentRunningNumber) => {
-            if (updatedPrefix) {
-              db.collection("prefix_configuration")
-                .where({ document_types: "Purchase Returns", is_deleted: 0 })
-                .update({ running_number: parseInt(currentRunningNumber) + 1 });
-            }
-          })
-          .catch((error) => {
-            console.log(error);
-          });
-      } else {
-        db.collection("purchase_return_head")
-          .doc(purchaseReturnId)
-          .update(entry)
-          .catch((error) => {
-            console.log(error);
-          });
-      }
+              return generated;
+            };
+
+            const checkUniqueness = async (generatedPrefix) => {
+              const existingDoc = await db
+                .collection("purchase_return_head")
+                .where({ purchase_return_no: generatedPrefix })
+                .get();
+              return existingDoc.data[0] ? false : true;
+            };
+
+            const findUniquePrefix = async () => {
+              while (!isUnique && attempts < maxAttempts) {
+                attempts++;
+                prefixToShow = generatePrefix(runningNumber);
+                isUnique = await checkUniqueness(prefixToShow);
+                if (!isUnique) {
+                  runningNumber++;
+                }
+              }
+
+              if (!isUnique) {
+                throw new Error(
+                  "Could not generate a unique Purchase Return number after maximum attempts"
+                );
+              } else {
+                entry.purchase_return_no = prefixToShow;
+                db.collection("prefix_configuration")
+                  .where({
+                    document_types: "Purchase Returns",
+                    is_deleted: 0,
+                    organization_id: organizationId,
+                  })
+                  .update({
+                    running_number: parseInt(runningNumber) + 1,
+                    has_record: 1,
+                  });
+              }
+            };
+
+            findUniquePrefix();
+          }
+        });
+
+      await db
+        .collection("purchase_return_head")
+        .doc(purchaseReturnId)
+        .update(entry);
+
       const result = await db
         .collection("purchase_order")
         .doc(data.purchase_order_id)
         .get();
 
       const plantId = result.data[0].po_plant;
-      const organizationId = result.data[0].organization_id;
+      organizationId = result.data[0].organization_id;
 
       await db
         .collection("purchase_return_head")

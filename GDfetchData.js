@@ -1,4 +1,86 @@
-console.log("arguments", arguments[0]?.fieldModel?.item);
+let organizationId = this.getVarGlobal("deptParentId");
+if (organizationId === "0") {
+  organizationId = this.getVarSystem("deptIds").split(",")[0];
+}
+
+const plant_id = this.getVarSystem("deptIds").split(",")[0];
+const organization_id = organizationId;
+
+this.setData({ plant_id: plant_id, organization_id: organization_id });
+const data = this.getValues();
+const salesOrderId = data.so_id;
+console.log("salesorderid", salesOrderId);
+
+if (salesOrderId) {
+  this.display("address_grid");
+  const resetFormFields = () => {
+    this.setData({
+      gd_billing_name: "",
+      gd_billing_cp: "",
+      billing_address_line_1: "",
+      billing_address_line_2: "",
+      billing_address_line_3: "",
+      billing_address_line_4: "",
+      billing_address_city: "",
+      billing_address_state: "",
+      billing_postal_code: "",
+      billing_address_country: "",
+      shipping_address_line_1: "",
+      shipping_address_line_2: "",
+      shipping_address_line_3: "",
+      shipping_address_line_4: "",
+      shipping_address_city: "",
+      shipping_address_state: "",
+      shipping_postal_code: "",
+      shipping_address_country: "",
+    });
+  };
+
+  resetFormFields();
+
+  let customerIdFromSO =
+    arguments[0]?.fieldModel?.item.customer_name ||
+    this.getValue("customer_name");
+  if (customerIdFromSO) {
+    Promise.all([
+      db
+        .collection("address_purpose")
+        .where({ purpose_name: "Shipping" })
+        .get(),
+      db.collection("sales_order").where({ id: salesOrderId }).get(),
+    ]).then(([resShipping, resSo]) => {
+      if (resSo.data.length === 0 || resShipping.data.length === 0) return;
+
+      const soData = resSo.data[0];
+
+      this.setData({
+        customer_name: soData.customer_name,
+        gd_billing_name: soData.cust_billing_name,
+        gd_billing_cp: soData.cust_cp,
+
+        shipping_address_line_1: soData.shipping_address_line_1,
+        shipping_address_line_2: soData.shipping_address_line_2,
+        shipping_address_line_3: soData.shipping_address_line_3,
+        shipping_address_line_4: soData.shipping_address_line_4,
+        shipping_address_city: soData.shipping_address_city,
+        shipping_address_state: soData.shipping_address_state,
+        shipping_postal_code: soData.shipping_postal_code,
+        shipping_address_country: soData.shipping_address_country,
+        gd_shipping_address: soData.cust_shipping_address,
+
+        billing_address_line_1: soData.billing_address_line_1,
+        billing_address_line_2: soData.billing_address_line_2,
+        billing_address_line_3: soData.billing_address_line_3,
+        billing_address_line_4: soData.billing_address_line_4,
+        billing_address_city: soData.billing_address_city,
+        billing_address_state: soData.billing_address_state,
+        billing_postal_code: soData.billing_postal_code,
+        billing_address_country: soData.billing_address_country,
+        gd_billing_address: soData.cust_billing_address,
+      });
+    });
+  }
+}
 
 // Check if so_id has a value
 if (!salesOrderId) {
