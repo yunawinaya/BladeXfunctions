@@ -1,0 +1,938 @@
+const page_status = this.getParamsVariables("page_status");
+const self = this;
+const stockAdjustmentId = this.getParamsVariables("stock_adjustment_no");
+
+const closeDialog = () => {
+  if (self.parentGenerateForm) {
+    self.parentGenerateForm.$refs.SuPageDialogRef.hide();
+    self.parentGenerateForm.refresh();
+  }
+};
+
+const logTableState = async (collectionName, queryConditions, logMessage) => {
+  try {
+    let query = db.collection(collectionName);
+    if (queryConditions) {
+      query = query.where(queryConditions);
+    }
+    const response = await query.get();
+    const data = Array.isArray(response?.data)
+      ? response.data
+      : response.data
+      ? [response.data]
+      : [];
+    console.log(`${logMessage}:`, {
+      collection: collectionName,
+      count: data.length,
+      records: data.map((record) => ({
+        id: record.id,
+        ...record,
+      })),
+    });
+  } catch (error) {
+    console.error(`Error logging state for ${collectionName}:`, error);
+  }
+};
+
+const updateInventory = (allData) => {
+  const subformData = allData.subform_dus1f9ob;
+  const plant_id = allData.plant_id;
+  const organization_id = allData.organization_id;
+  const adjustment_type = allData.adjustment_type;
+  console.log("allData", adjustment_type);
+
+  subformData.forEach((item) => {
+    console.log("Processing item:", item.total_quantity);
+
+    db.collection("Item")
+      .where({
+        id: item.material_id,
+      })
+      .get()
+      .then((response) => {
+        const materialData = response.data[0];
+        console.log("materialData:", materialData.id);
+
+        const updateQuantities = async (quantityChange, balanceUnitPrice) => {
+          try {
+            if (!materialData?.id) {
+              throw new Error("Invalid material data: material_id is missing");
+            }
+
+            if (!materialData.material_costing_method) {
+              throw new Error("Material costing method is not defined");
+            }
+
+            const costingMethod = materialData.material_costing_method;
+
+            if (
+              !["Weighted Average", "First In First Out"].includes(
+                costingMethod
+              )
+            ) {
+              throw new Error(`Unsupported costing method: ${costingMethod}`);
+            }
+
+            const unitPrice =
+              balanceUnitPrice !== undefined
+                ? balanceUnitPrice
+                : materialData.purchase_unit_price || 0;
+            const batchId =
+              materialData.item_batch_management == "1"
+                ? item.item_batch_no
+                : null;
+
+            if (costingMethod === "Weighted Average") {
+              const waQueryConditions =
+                materialData.item_batch_management == "1" && batchId
+                  ? {
+                      material_id: materialData.id,
+                      batch_id: batchId,
+                      plant_id: plant_id,
+                    }
+                  : { material_id: materialData.id, plant_id: plant_id };
+
+              await logTableState(
+                "wa_costing_method",
+                waQueryConditions,
+                `Before WA update for material ${materialData.id}`
+              );
+
+              const waQuery = db
+                .collection("wa_costing_method")
+                .where(waQueryConditions);
+
+              const waResponse = await waQuery.get();
+              const waData = Array.isArray(waResponse?.data)
+                ? waResponse.data
+                : [];
+
+              if (waData.length > 0) {
+                const latestWa = waData.sort(
+                  (a, b) => new Date(b.created_at) - new Date(a.created_at)
+                )[0];
+                const currentQty = latestWa.wa_quantity || 0;
+                const currentTotalCost =
+                  (latestWa.wa_cost_price || 0) * currentQty;
+
+                let newWaQuantity, newWaCostPrice;
+                if (quantityChange > 0) {
+                  const addedCost = unitPrice * quantityChange;
+                  newWaQuantity = currentQty + quantityChange;
+                  newWaCostPrice =
+                    newWaQuantity > 0
+                      ? Number(
+                          (
+                            (currentTotalCost + addedCost) /
+                            newWaQuantity
+                          ).toFixed(4)
+                        )
+                      : 0;
+                } else {
+                  newWaQuantity = currentQty + quantityChange;
+                  newWaCostPrice = latestWa.wa_cost_price
+                    ? Number(latestWa.wa_cost_price.toFixed(4))
+                    : 0;
+                }
+
+                if (newWaQuantity < 0) {
+                  throw new Error("Insufficient WA quantity");
+                }
+
+                await db
+                  .collection("wa_costing_method")
+                  .doc(latestWa.id)
+                  .update({
+                    wa_quantity: newWaQuantity,
+                    wa_cost_price: newWaCostPrice,
+                    updated_at: new Date(),
+                  });
+
+                await logTableState(
+                  "wa_costing_method",
+                  waQueryConditions,
+                  `After WA update for material ${materialData.id}`
+                );
+              } else if (quantityChange > 0) {
+                await db.collection("wa_costing_method").add({
+                  material_id: materialData.id,
+                  batch_id: batchId || null,
+                  plant_id: plant_id,
+                  organization_id: organization_id,
+                  wa_quantity: quantityChange,
+                  wa_cost_price: Number(unitPrice.toFixed(4)),
+                  created_at: new Date(),
+                });
+
+                await logTableState(
+                  "wa_costing_method",
+                  waQueryConditions,
+                  `After adding new WA record for material ${materialData.id}`
+                );
+              } else {
+                throw new Error("No WA costing record found for deduction");
+              }
+            } else if (costingMethod === "First In First Out") {
+              // ... FIFO logic remains unchanged ...
+              const fifoQueryConditions =
+                materialData.item_batch_management == "1" && batchId
+                  ? { material_id: materialData.id, batch_id: batchId }
+                  : { material_id: materialData.id };
+
+              await logTableState(
+                "fifo_costing_history",
+                fifoQueryConditions,
+                `Before FIFO update for material ${materialData.id}`
+              );
+
+              const fifoQuery = db
+                .collection("fifo_costing_history")
+                .where(fifoQueryConditions);
+
+              const fifoResponse = await fifoQuery.get();
+              const fifoData = Array.isArray(fifoResponse?.data)
+                ? fifoResponse.data
+                : [];
+              const lastSequence =
+                fifoData.length > 0
+                  ? Math.max(
+                      ...fifoData.map((record) => record.fifo_sequence || 0)
+                    )
+                  : 0;
+              const newSequence = lastSequence + 1;
+
+              if (quantityChange > 0) {
+                await db.collection("fifo_costing_history").add({
+                  material_id: materialData.id,
+                  batch_id: batchId || null,
+                  plant_id: plant_id,
+                  organization_id: organization_id,
+                  fifo_available_quantity: quantityChange,
+                  fifo_cost_price: unitPrice,
+                  fifo_sequence: newSequence,
+                  created_at: new Date(),
+                });
+
+                await logTableState(
+                  "fifo_costing_history",
+                  fifoQueryConditions,
+                  `After adding new FIFO record for material ${materialData.id}`
+                );
+              } else if (quantityChange < 0) {
+                let remainingReduction = -quantityChange;
+
+                if (fifoData.length > 0) {
+                  fifoData.sort((a, b) => a.fifo_sequence - b.fifo_sequence);
+                  for (const fifoRecord of fifoData) {
+                    if (remainingReduction <= 0) break;
+
+                    const available = fifoRecord.fifo_available_quantity || 0;
+                    const reduction = Math.min(available, remainingReduction);
+                    const newAvailable = available - reduction;
+
+                    await db
+                      .collection("fifo_costing_history")
+                      .doc(fifoRecord.id)
+                      .update({
+                        fifo_available_quantity: newAvailable,
+                        updated_at: new Date(),
+                      });
+
+                    remainingReduction -= reduction;
+                  }
+
+                  if (remainingReduction > 0) {
+                    throw new Error("Insufficient FIFO quantity");
+                  }
+
+                  await db.collection("fifo_costing_history").add({
+                    material_id: materialData.id,
+                    batch_id: batchId || null,
+                    plant_id: plant_id,
+                    organization_id: organization_id,
+                    fifo_available_quantity: quantityChange,
+                    fifo_cost_price: unitPrice,
+                    fifo_sequence: newSequence,
+                    created_at: new Date(),
+                  });
+
+                  await logTableState(
+                    "fifo_costing_history",
+                    fifoQueryConditions,
+                    `After FIFO update for material ${materialData.id}`
+                  );
+                } else {
+                  throw new Error("No FIFO costing record found for deduction");
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error in updateQuantities:", {
+              message: error.message,
+              stack: error.stack,
+              materialData,
+              quantityChange,
+              plant_id,
+              unitPrice,
+              batchId,
+            });
+            throw new Error(
+              `Failed to update costing method: ${
+                error.message || "Unknown error"
+              }`
+            );
+          }
+        };
+
+        const updateBalance = async (balance) => {
+          const categoryMap = {
+            Unrestricted: "unrestricted_qty",
+            Reserved: "reserved_qty",
+            "Quality Inspection": "qualityinsp_qty",
+            Blocked: "block_qty",
+          };
+
+          const qtyField = categoryMap[balance.category];
+          const qtyChange =
+            balance.movement_type === "In"
+              ? balance.sa_quantity
+              : -balance.sa_quantity;
+          const collectionName =
+            materialData.item_batch_management == "1"
+              ? "item_batch_balance"
+              : "item_balance";
+
+          await logTableState(
+            collectionName,
+            { material_id: materialData.id, location_id: balance.location_id },
+            `Before balance update for material ${materialData.id}, location ${balance.location_id}`
+          );
+
+          const balanceQuery = db
+            .collection(collectionName)
+            .where({
+              material_id: materialData.id,
+              location_id: balance.location_id,
+              plant_id: plant_id,
+            });
+
+          let balanceData = null;
+          const response = await balanceQuery.get();
+          balanceData = response.data[0];
+
+          if (!balanceData) {
+            const initialData = {
+              material_id: materialData.id,
+              location_id: balance.location_id,
+              balance_quantity: 0,
+              unrestricted_qty: 0,
+              reserved_qty: 0,
+              qualityinsp_qty: 0,
+              block_qty: 0,
+              plant_id: plant_id,
+              organization_id: organization_id,
+            };
+            await db.collection(collectionName).add(initialData);
+
+            await logTableState(
+              collectionName,
+              {
+                material_id: materialData.id,
+                location_id: balance.location_id,
+              },
+              `After adding new balance record for material ${materialData.id}, location ${balance.location_id}`
+            );
+
+            const newResponse = await balanceQuery.get();
+            balanceData = newResponse.data[0];
+          }
+
+          const newBalanceQty = balanceData.balance_quantity + qtyChange;
+          const newCategoryQty = (balanceData[qtyField] || 0) + qtyChange;
+          console.log("newBalanceQty", newBalanceQty);
+          console.log("newCategoryQty", newCategoryQty);
+          if (newBalanceQty < 0 || newCategoryQty < 0) {
+            throw new Error(
+              `Insufficient quantity in ${collectionName} for ${balance.category}`
+            );
+          }
+
+          const updateData = {
+            balance_quantity: newBalanceQty,
+            [qtyField]: newCategoryQty,
+          };
+
+          await db
+            .collection(collectionName)
+            .where({
+              material_id: materialData.id,
+              location_id: balance.location_id,
+            })
+            .update(updateData);
+
+          await logTableState(
+            collectionName,
+            { material_id: materialData.id, location_id: balance.location_id },
+            `After balance update for material ${materialData.id}, location ${balance.location_id}`
+          );
+
+          return balanceData;
+        };
+
+        const recordInventoryMovement = async (balance) => {
+          const movementType = balance.movement_type === "In" ? "IN" : "OUT";
+
+          await logTableState(
+            "inventory_movement",
+            { trx_no: allData.adjustment_no, item_id: item.material_id },
+            `Before adding inventory movement for adjustment ${allData.adjustment_no}, material ${item.material_id}`
+          );
+
+          const inventoryMovementData = {
+            transaction_type: "SA",
+            trx_no: allData.adjustment_no,
+            parent_trx_no: null,
+            movement: movementType,
+            unit_price: balance.unit_price || 0,
+            total_price: (balance.unit_price || 0) * balance.sa_quantity,
+            quantity: balance.sa_quantity,
+            item_id: item.material_id,
+            inventory_category: balance.category,
+            uom_id: materialData.based_uom,
+            base_qty: balance.sa_quantity,
+            base_uom_id: materialData.based_uom,
+            bin_location_id: balance.location_id,
+            bin_location_id: balance.location_id,
+            batch_number_id:
+              materialData.item_batch_management == "1"
+                ? item.item_batch_no
+                : null,
+            costing_method_id: materialData.material_costing_method,
+            created_at: new Date(),
+            adjustment_type: adjustment_type,
+            plant_id: plant_id,
+            organization_id: organization_id,
+          };
+
+          const invMovementResult = await db
+            .collection("inventory_movement")
+            .add(inventoryMovementData);
+          console.log("Inventory movement recorded:", invMovementResult.id);
+
+          await logTableState(
+            "inventory_movement",
+            { trx_no: allData.adjustment_no, item_id: item.material_id },
+            `After adding inventory movement for adjustment ${allData.adjustment_no}, material ${item.material_id}`
+          );
+
+          return invMovementResult;
+        };
+
+        if (adjustment_type === "Write Off") {
+          // For Write Off, assume unit_price is consistent across balance_index entries
+          const balanceUnitPrice =
+            item.balance_index && item.balance_index.length > 0
+              ? item.balance_index[0].unit_price ||
+                materialData.purchase_unit_price ||
+                0
+              : materialData.purchase_unit_price || 0;
+
+          return updateQuantities(-item.total_quantity, balanceUnitPrice)
+            .then(() => {
+              if (item.balance_index && Array.isArray(item.balance_index)) {
+                return Promise.all(
+                  item.balance_index
+                    .filter((balance) => balance.sa_quantity > 0)
+                    .map((balance) =>
+                      Promise.all([
+                        updateBalance(balance),
+                        recordInventoryMovement(balance),
+                      ])
+                    )
+                );
+              }
+              return null;
+            })
+            .then((responses) => {
+              if (responses) {
+                console.log("Write Off update responses:", responses);
+              }
+            })
+            .catch((error) => {
+              console.error("Error in Write Off processing:", error);
+              throw error;
+            });
+        } else if (adjustment_type === "Stock Count") {
+          let netQuantityChange = 0;
+          let totalInCost = 0;
+          let totalInQuantity = 0;
+
+          if (item.balance_index && Array.isArray(item.balance_index)) {
+            item.balance_index.forEach((balance) => {
+              if (balance.movement_type === "In") {
+                netQuantityChange += balance.sa_quantity;
+                totalInCost += (balance.unit_price || 0) * balance.sa_quantity;
+                totalInQuantity += balance.sa_quantity;
+              } else if (balance.movement_type === "Out") {
+                netQuantityChange -= balance.sa_quantity;
+              }
+            });
+          }
+
+          // Calculate weighted average unit price for "In" movements
+          const balanceUnitPrice =
+            totalInQuantity > 0
+              ? totalInCost / totalInQuantity
+              : materialData.purchase_unit_price || 0;
+
+          return updateQuantities(netQuantityChange, balanceUnitPrice)
+            .then(() => {
+              if (item.balance_index && Array.isArray(item.balance_index)) {
+                return Promise.all(
+                  item.balance_index
+                    .filter((balance) => balance.sa_quantity > 0)
+                    .map((balance) =>
+                      Promise.all([
+                        updateBalance(balance),
+                        recordInventoryMovement(balance),
+                      ])
+                    )
+                );
+              }
+              return null;
+            })
+            .then((responses) => {
+              if (responses) {
+                console.log("Stock Count update responses:", responses);
+              }
+            })
+            .catch((error) => {
+              console.error("Error in Stock Count processing:", error);
+              throw error;
+            });
+        }
+        return Promise.resolve(null);
+      })
+      .catch((error) => {
+        console.error(
+          "Error fetching item data or processing adjustment:",
+          error
+        );
+      });
+  });
+};
+async function preCheckQuantitiesAndCosting(allData, context) {
+  try {
+    console.log("Starting preCheckQuantitiesAndCosting with data:", allData);
+
+    // Step 1: Validate top-level required fields
+    const requiredTopLevelFields = [
+      "adjustment_no",
+      "adjustment_type",
+      "adjustment_date",
+      "plant_id",
+    ];
+    requiredTopLevelFields.forEach((field) => {
+      if (!allData[field]) {
+        throw new Error(`Required field ${field} is missing`);
+      }
+    });
+
+    // Step 2: Validate subform data
+    const subformData = allData.subform_dus1f9ob;
+    if (!subformData || subformData.length === 0) {
+      throw new Error("Stock adjustment items are required");
+    }
+
+    // Step 3: Perform item validations and quantity checks
+    for (const item of subformData) {
+      // Fetch material data
+      const materialResponse = await db
+        .collection("Item")
+        .where({ id: item.material_id })
+        .get();
+      const materialData = materialResponse.data[0];
+      if (!materialData) {
+        throw new Error(`Material not found: ${item.material_id}`);
+      }
+      if (!materialData.material_costing_method) {
+        throw new Error(
+          `Costing method not defined for item ${item.material_id}`
+        );
+      }
+
+      const balancesToProcess =
+        item.balance_index?.filter(
+          (balance) => balance.sa_quantity && balance.sa_quantity > 0
+        ) || [];
+
+      const adjustment_type = allData.adjustment_type;
+      const batchId =
+        materialData.item_batch_management == "1" ? item.item_batch_no : null;
+      const plant_id = allData.plant_id;
+
+      // Step 4: Check quantities for Write Off or Stock Count (Out movements)
+      if (
+        adjustment_type === "Write Off" ||
+        (adjustment_type === "Stock Count" && item.total_quantity < 0)
+      ) {
+        const requestedQty = Math.abs(item.total_quantity);
+
+        // Check balance quantities
+        for (const balance of balancesToProcess) {
+          const collectionName =
+            materialData.item_batch_management == "1"
+              ? "item_batch_balance"
+              : "item_balance";
+          const balanceQuery = db.collection(collectionName).where({
+            material_id: materialData.id,
+            location_id: balance.location_id,
+            plant_id: plant_id,
+          });
+          const balanceResponse = await balanceQuery.get();
+          const balanceData = balanceResponse.data[0];
+
+          if (!balanceData) {
+            throw new Error(
+              `No existing balance found for item ${item.material_id} at location ${balance.location_id}`
+            );
+          }
+
+          const categoryMap = {
+            Unrestricted: "unrestricted_qty",
+            Reserved: "reserved_qty",
+            "Quality Inspection": "qualityinsp_qty",
+            Blocked: "block_qty",
+          };
+          const categoryField = categoryMap[balance.category || "Unrestricted"];
+          const currentQty = balanceData[categoryField] || 0;
+
+          if (currentQty < balance.sa_quantity) {
+            throw new Error(
+              `Insufficient quantity in ${
+                balance.category || "Unrestricted"
+              } for item ${item.material_id} at location ${
+                balance.location_id
+              }. Available: ${currentQty}, Requested: ${balance.sa_quantity}`
+            );
+          }
+        }
+
+        // Step 5: Check costing records
+        const costingMethod = materialData.material_costing_method;
+
+        if (costingMethod === "Weighted Average") {
+          const waQueryConditions =
+            materialData.item_batch_management == "1" && batchId
+              ? {
+                  material_id: materialData.id,
+                  batch_id: batchId,
+                  plant_id: plant_id,
+                }
+              : { material_id: materialData.id, plant_id: plant_id };
+
+          const waQuery = db
+            .collection("wa_costing_method")
+            .where(waQueryConditions);
+          const waResponse = await waQuery.get();
+          const waData = Array.isArray(waResponse?.data) ? waResponse.data : [];
+
+          if (waData.length === 0) {
+            throw new Error(
+              `No costing record found for deduction for item ${item.material_id} (Weighted Average)`
+            );
+          }
+
+          const latestWa = waData.sort(
+            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+          )[0];
+          const currentQty = latestWa.wa_quantity || 0;
+
+          if (currentQty < requestedQty) {
+            throw new Error(
+              `Insufficient WA quantity for item ${item.material_id}. Available: ${currentQty}, Requested: ${requestedQty}`
+            );
+          }
+        } else if (costingMethod === "First In First Out") {
+          const fifoQueryConditions =
+            materialData.item_batch_management == "1" && batchId
+              ? { material_id: materialData.id, batch_id: batchId }
+              : { material_id: materialData.id };
+
+          const fifoQuery = db
+            .collection("fifo_costing_history")
+            .where(fifoQueryConditions);
+          const fifoResponse = await fifoQuery.get();
+          const fifoData = Array.isArray(fifoResponse?.data)
+            ? fifoResponse.data
+            : [];
+
+          if (fifoData.length === 0) {
+            throw new Error(
+              `No costing record found for deduction for item ${item.material_id} (FIFO)`
+            );
+          }
+
+          const totalAvailable = fifoData.reduce(
+            (sum, record) => sum + (record.fifo_available_quantity || 0),
+            0
+          );
+          if (totalAvailable < requestedQty) {
+            throw new Error(
+              `Insufficient FIFO quantity for item ${item.material_id}. Available: ${totalAvailable}, Requested: ${requestedQty}`
+            );
+          }
+        }
+      }
+    }
+
+    // Step 6: If all checks pass, show confirmation popup
+    return new Promise((resolve, reject) => {
+      if (context && context.parentGenerateForm) {
+        context.parentGenerateForm
+          .$confirm(
+            "All quantities and costing records are valid. Proceed with storing the Stock Adjustment?",
+            "Confirm Stock Adjustment",
+            {
+              confirmButtonText: "Proceed",
+              cancelButtonText: "Cancel",
+              type: "success",
+            }
+          )
+          .then(() => {
+            resolve(true); // Signal to proceed with storage
+          })
+          .catch(() => {
+            reject(new Error("Stock Adjustment cancelled by user"));
+          });
+      } else {
+        console.warn("No context provided, proceeding without confirmation");
+        resolve(true);
+      }
+    });
+  } catch (error) {
+    console.error("Error in preCheckQuantitiesAndCosting:", error.message);
+    if (context && context.parentGenerateForm) {
+      context.parentGenerateForm.$alert(error.message, "Validation Error", {
+        confirmButtonText: "OK",
+        type: "error",
+      });
+    } else {
+      alert(error.message);
+    }
+    throw error;
+  }
+}
+
+if (page_status === "Add") {
+  const organizationId =
+    this.getParamsVariables("organization_id") ||
+    self.getValues().organization_id;
+
+  const generatePrefix = async () => {
+    try {
+      const prefixEntry = await db
+        .collection("prefix_configuration")
+        .where({
+          document_types: "Stock Adjustment",
+          is_deleted: 0,
+          organization_id: organizationId,
+        })
+        .get();
+
+      const prefixData = prefixEntry.data[0];
+      if (!prefixData) {
+        throw new Error("No prefix configuration found for Stock Adjustment");
+      }
+
+      const now = new Date();
+      let prefixToShow;
+      let runningNumber = prefixData.running_number;
+      let isUnique = false;
+      let maxAttempts = 10;
+      let attempts = 0;
+
+      if (prefixData.is_active === 0) {
+        self.disabled(["adjustment_no"], false);
+      } else {
+        self.disabled(["adjustment_no"], true);
+      }
+
+      const generatePrefixString = (runNumber) => {
+        let generated = prefixData.current_prefix_config;
+        generated = generated.replace("prefix", prefixData.prefix_value || "");
+        generated = generated.replace("suffix", prefixData.suffix_value || "");
+        generated = generated.replace(
+          "month",
+          String(now.getMonth() + 1).padStart(2, "0")
+        );
+        generated = generated.replace(
+          "day",
+          String(now.getDate()).padStart(2, "0")
+        );
+        generated = generated.replace("year", now.getFullYear());
+        generated = generated.replace(
+          "running_number",
+          String(runNumber).padStart(prefixData.padding_zeroes || 4, "0")
+        );
+        return generated;
+      };
+
+      const checkUniqueness = async (generatedPrefix) => {
+        const existingDoc = await db
+          .collection("stock_adjustment")
+          .where({ adjustment_no: generatedPrefix })
+          .get();
+        return existingDoc.data[0] ? false : true;
+      };
+
+      while (!isUnique && attempts < maxAttempts) {
+        attempts++;
+        prefixToShow = generatePrefixString(runningNumber);
+        isUnique = await checkUniqueness(prefixToShow);
+        if (!isUnique) {
+          runningNumber++;
+        }
+      }
+
+      if (!isUnique) {
+        throw new Error(
+          "Could not generate a unique Stock Adjustment number after maximum attempts"
+        );
+      }
+
+      await db
+        .collection("prefix_configuration")
+        .where({
+          document_types: "Stock Adjustment",
+          organization_id: organizationId,
+        })
+        .update({ running_number: runningNumber + 1 });
+
+      return prefixToShow;
+    } catch (error) {
+      console.error("Error generating prefix:", error);
+      throw error;
+    }
+  };
+
+  generatePrefix()
+    .then((adjustmentNo) => {
+      self.getData().then((allData) => {
+        // Pre-check quantities and costing
+        preCheckQuantitiesAndCosting(
+          { ...allData, adjustment_no: adjustmentNo },
+          self
+        )
+          .then(() => {
+            const tableIndex = allData.dialog_index?.table_index;
+            const adjustedBy = allData.adjusted_by || "system";
+            const {
+              organization_id,
+              adjustment_date,
+              adjustment_type,
+              plant_id,
+              adjustment_remarks,
+              reference_documents,
+              subform_dus1f9ob,
+            } = allData;
+
+            const sa = {
+              stock_adjustment_status: "Completed",
+              organization_id,
+              adjustment_no: adjustmentNo,
+              adjustment_date,
+              adjustment_type,
+              adjusted_by: adjustedBy,
+              plant_id,
+              adjustment_remarks,
+              reference_documents,
+              subform_dus1f9ob,
+              table_index: tableIndex,
+            };
+
+            return db
+              .collection("stock_adjustment")
+              .add(sa)
+              .then(() => {
+                updateInventory({ ...allData, adjustment_no: adjustmentNo });
+              });
+          })
+          .then(() => {
+            closeDialog();
+          })
+          .catch((error) => {
+            console.error("Error in stock adjustment:", error);
+            // Error already handled in preCheckQuantitiesAndCosting
+          });
+      });
+    })
+    .catch((error) => {
+      self.$alert(
+        `Please fill in all required fields marked with (*) before submitting.`,
+        "Error",
+        {
+          confirmButtonText: "OK",
+          type: "error",
+        }
+      );
+    });
+} else if (page_status === "Edit") {
+  this.getData().then((allData) => {
+    // Pre-check quantities and costing
+    preCheckQuantitiesAndCosting(allData, self)
+      .then(() => {
+        const tableIndex = allData.dialog_index?.table_index;
+        const adjustedBy = allData.adjusted_by || "system";
+        const {
+          adjustment_no,
+          organization_id,
+          adjustment_date,
+          adjustment_type,
+          plant_id,
+          adjustment_remarks,
+          reference_documents,
+          subform_dus1f9ob,
+        } = allData;
+
+        const sa = {
+          stock_adjustment_status: "Completed",
+          organization_id,
+          adjustment_no,
+          adjustment_date,
+          adjustment_type,
+          adjusted_by: adjustedBy,
+          plant_id,
+          adjustment_remarks,
+          reference_documents,
+          subform_dus1f9ob,
+          table_index: tableIndex,
+        };
+
+        db.collection("stock_adjustment")
+          .doc(stockAdjustmentId)
+          .update(sa)
+          .then(() => {
+            updateInventory(allData);
+          })
+          .then(() => {
+            closeDialog();
+          })
+          .catch((error) => {
+            console.error("Error updating stock adjustment:", error);
+            self.$alert(
+              "Please fill in all required fields marked with (*) before submitting.",
+              "Error",
+              {
+                confirmButtonText: "OK",
+                type: "error",
+              }
+            );
+          });
+      })
+      .catch((error) => {
+        // Error already handled in preCheckQuantitiesAndCosting
+        console.error("Error in pre-check:", error);
+      });
+  });
+}
