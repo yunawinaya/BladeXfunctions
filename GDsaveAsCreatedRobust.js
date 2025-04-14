@@ -5,6 +5,7 @@ const closeDialog = () => {
   if (self.parentGenerateForm) {
     self.parentGenerateForm.$refs.SuPageDialogRef.hide();
     self.parentGenerateForm.refresh();
+    this.hideLoading();
   }
 };
 
@@ -292,6 +293,7 @@ this.getData()
 
       // Perform action based on page status
       if (page_status === "Add") {
+        this.showLoading();
         await db
           .collection("goods_delivery")
           .add(gd)
@@ -312,6 +314,7 @@ this.getData()
           });
         await processBalanceTable(data);
       } else if (page_status === "Edit") {
+        this.showLoading();
         const goodsDeliveryId = this.getParamsVariables("goods_delivery_no");
 
         if (gd.delivery_no.startsWith("DRAFT")) {

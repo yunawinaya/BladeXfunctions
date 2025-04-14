@@ -401,8 +401,10 @@ const updateInventory = async (data, plantId, organizationId) => {
         const costingMethod = item.costing_method;
         if (costingMethod === "First In First Out") {
           await updateFIFOInventory(item, returnQty, item.batch_id);
-        } else {
+        } else if (costingMethod === "Weighted Average") {
           await updateWeightedAverage(item, returnQty, item.batch_id);
+        } else {
+          return Promise.resolve();
         }
       } catch (error) {
         console.error(`Error processing item ${item.material_id}:`, error);
@@ -415,6 +417,7 @@ const closeDialog = () => {
   if (self.parentGenerateForm) {
     self.parentGenerateForm.$refs.SuPageDialogRef.hide();
     self.parentGenerateForm.refresh();
+    this.hideLoading();
   }
 };
 
@@ -424,6 +427,7 @@ this.getData()
       const {
         so_id,
         sales_return_id,
+        sr_no_display,
         contact_person,
         srr_no,
         plant_id,
@@ -440,6 +444,7 @@ this.getData()
         srr_status: "Completed",
         so_id,
         sales_return_id,
+        sr_no_display,
         contact_person,
         srr_no,
         plant_id,
@@ -453,58 +458,191 @@ this.getData()
       };
 
       if (page_status === "Add") {
+        this.showLoading();
         await db
           .collection("sales_return_receiving")
           .add(srr)
           .then(() => {
+            let organizationId = this.getVarGlobal("deptParentId");
+            if (organizationId === "0") {
+              organizationId = this.getVarSystem("deptIds").split(",")[0];
+            }
+
             return db
               .collection("prefix_configuration")
               .where({
                 document_types: "Sales Return Receiving",
                 is_deleted: 0,
+                organization_id: organizationId,
+                is_active: 1,
               })
               .get()
               .then((prefixEntry) => {
-                const data = prefixEntry.data[0];
-                return db
-                  .collection("prefix_configuration")
-                  .where({
-                    document_types: "Sales Return Receiving",
-                    is_deleted: 0,
-                  })
-                  .update({
-                    running_number: parseInt(data.running_number) + 1,
-                  });
+                if (prefixEntry.data.length === 0) return;
+                else {
+                  const data = prefixEntry.data[0];
+                  return db
+                    .collection("prefix_configuration")
+                    .where({
+                      document_types: "Sales Return Receiving",
+                      is_deleted: 0,
+                      organization_id: organizationId,
+                    })
+                    .update({
+                      running_number: parseInt(data.running_number) + 1,
+                      has_record: 1,
+                    });
+                }
               });
-          });
-        const result = await db.collection("sales_order").doc(data.so_no).get();
+          })
+          .then(async () => {
+            const result = await db
+              .collection("sales_order")
+              .doc(srr.so_no)
+              .get();
 
-        const plantId = result.data[0].plant_name;
-        const organizationId = result.data[0].organization_id;
-        await updateInventory(data, plantId, organizationId);
-        await db.collection("sales_return").doc(sales_return_id).update({
-          sr_status: "Completed",
-        });
+            const plantId = result.data[0].plant_name;
+            const organizationId = result.data[0].organization_id;
+            await updateInventory(srr, plantId, organizationId);
+            await db.collection("sales_return").doc(sales_return_id).update({
+              sr_status: "Completed",
+            });
+          })
+          .then(() => {
+            closeDialog();
+          })
+          .catch((error) => {
+            alert(
+              "Please fill in all required fields marked with (*) before submitting."
+            );
+          });
       } else if (page_status === "Edit") {
+        this.showLoading();
         const salesReturnReceivingId = this.getParamsVariables(
           "sales_return_receiving_no"
         );
-        await db
-          .collection("sales_return_receiving")
-          .doc(salesReturnReceivingId)
-          .update(srr);
 
-        const result = await db.collection("sales_order").doc(data.so_no).get();
+        let organizationId = this.getVarGlobal("deptParentId");
+        if (organizationId === "0") {
+          organizationId = this.getVarSystem("deptIds").split(",")[0];
+        }
 
-        const plantId = result.data[0].plant_name;
-        const organizationId = result.data[0].organization_id;
-        await updateInventory(data, plantId, organizationId);
-        await db.collection("sales_return").doc(sales_return_id).update({
-          sr_status: "Completed",
-        });
+        const prefixEntry = db
+          .collection("prefix_configuration")
+          .where({
+            document_types: "Sales Return Receiving",
+            is_deleted: 0,
+            organization_id: organizationId,
+            is_active: 1,
+          })
+          .get()
+          .then((prefixEntry) => {
+            if (prefixEntry.data.length > 0) {
+              const prefixData = prefixEntry.data[0];
+              const now = new Date();
+              let prefixToShow;
+              let runningNumber = prefixData.running_number;
+              let isUnique = false;
+              let maxAttempts = 10;
+              let attempts = 0;
+
+              const generatePrefix = (runNumber) => {
+                let generated = prefixData.current_prefix_config;
+                generated = generated.replace(
+                  "prefix",
+                  prefixData.prefix_value
+                );
+                generated = generated.replace(
+                  "suffix",
+                  prefixData.suffix_value
+                );
+                generated = generated.replace(
+                  "month",
+                  String(now.getMonth() + 1).padStart(2, "0")
+                );
+                generated = generated.replace(
+                  "day",
+                  String(now.getDate()).padStart(2, "0")
+                );
+                generated = generated.replace("year", now.getFullYear());
+                generated = generated.replace(
+                  "running_number",
+                  String(runNumber).padStart(prefixData.padding_zeroes, "0")
+                );
+                return generated;
+              };
+
+              const checkUniqueness = async (generatedPrefix) => {
+                const existingDoc = await db
+                  .collection("sales_return_receiving")
+                  .where({ srr_no: generatedPrefix })
+                  .get();
+                return existingDoc.data[0] ? false : true;
+              };
+
+              const findUniquePrefix = async () => {
+                while (!isUnique && attempts < maxAttempts) {
+                  attempts++;
+                  prefixToShow = generatePrefix(runningNumber);
+                  isUnique = await checkUniqueness(prefixToShow);
+                  if (!isUnique) {
+                    runningNumber++;
+                  }
+                }
+
+                if (!isUnique) {
+                  throw new Error(
+                    "Could not generate a unique Sales Return Receiving number after maximum attempts"
+                  );
+                } else {
+                  srr.srr_no = prefixToShow;
+                  db.collection("sales_return_receiving")
+                    .doc(salesReturnReceivingId)
+                    .update(srr);
+                  db.collection("prefix_configuration")
+                    .where({
+                      document_types: "Sales Return Receiving",
+                      is_deleted: 0,
+                      organization_id: organizationId,
+                    })
+                    .update({
+                      running_number: parseInt(runningNumber) + 1,
+                      has_record: 1,
+                    });
+                }
+              };
+
+              findUniquePrefix();
+            } else {
+              db.collection("sales_return_receiving")
+                .doc(salesReturnReceivingId)
+                .update(srr);
+            }
+          })
+          .then(async () => {
+            await db
+              .collection("sales_return_receiving")
+              .doc(salesReturnReceivingId)
+              .update(srr);
+
+            const result = await db
+              .collection("sales_order")
+              .doc(srr.so_no)
+              .get();
+
+            const plantId = result.data[0].plant_name;
+            await updateInventory(srr, plantId, organizationId);
+            await db.collection("sales_return").doc(sales_return_id).update({
+              sr_status: "Completed",
+            });
+          })
+          .then(() => {
+            closeDialog();
+          })
+          .catch((error) => {
+            alert(error);
+          });
       }
-
-      closeDialog();
     } catch (error) {
       console.error("Error in sales return receiving process:", error);
       alert(

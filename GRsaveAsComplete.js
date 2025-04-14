@@ -5,6 +5,7 @@ const closeDialog = () => {
   if (self.parentGenerateForm) {
     self.parentGenerateForm.$refs.SuPageDialogRef.hide();
     self.parentGenerateForm.refresh();
+    this.hideLoading();
   }
 };
 
@@ -32,7 +33,7 @@ const addInventory = (data, plantId, organizationId) => {
         return;
       }
 
-      const calculateCostPrice = (itemData, baseQty) => {
+      const calculateCostPrice = (itemData, conversion) => {
         return db
           .collection("purchase_order")
           .where({ id: data.purchase_order_id })
@@ -40,13 +41,12 @@ const addInventory = (data, plantId, organizationId) => {
           .then((poResponse) => {
             if (!poResponse.data || !poResponse.data.length) {
               console.log(
-                `No purchase order found for ${itemData.purchase_order_id}`
+                `No purchase order found for ${data.purchase_order_id}`
               );
               return itemData.unit_price;
             }
 
             const poData = poResponse.data[0];
-            const quantity = parseFloat(baseQty) || 0;
 
             let poQuantity = 0;
             let totalAmount = 0;
@@ -59,10 +59,9 @@ const addInventory = (data, plantId, organizationId) => {
               }
             }
 
-            const finalAmount = totalAmount / poQuantity;
+            const pricePerUnit = totalAmount / poQuantity;
 
-            const costPrice =
-              quantity > 0 ? finalAmount / quantity : itemData.unit_price;
+            const costPrice = pricePerUnit / conversion;
             console.log("costPrice", costPrice);
 
             return Math.round(costPrice * 10000) / 10000;
@@ -93,7 +92,10 @@ const addInventory = (data, plantId, organizationId) => {
               sequenceNumber = Math.max(...existingSequences, 0) + 1;
             }
 
-            return calculateCostPrice(itemData, baseQty).then((costPrice) => {
+            return calculateCostPrice(
+              itemData,
+              baseQty / parseFloat(itemData.received_qty)
+            ).then((costPrice) => {
               const fifoData = {
                 fifo_cost_price: costPrice,
                 fifo_initial_quantity: baseQty,
@@ -138,7 +140,10 @@ const addInventory = (data, plantId, organizationId) => {
               sequenceNumber = Math.max(...existingSequences, 0) + 1;
             }
 
-            return calculateCostPrice(itemData, baseQty).then((costPrice) => {
+            return calculateCostPrice(
+              itemData,
+              baseQty / parseFloat(itemData.received_qty)
+            ).then((costPrice) => {
               const fifoData = {
                 fifo_cost_price: costPrice,
                 fifo_initial_quantity: baseQty,
@@ -163,7 +168,10 @@ const addInventory = (data, plantId, organizationId) => {
       };
 
       const processWeightedAverageForBatch = (item, baseQty, batchId) => {
-        return calculateCostPrice(item, baseQty).then((costPrice) => {
+        return calculateCostPrice(
+          item,
+          baseQty / parseFloat(item.received_qty)
+        ).then((costPrice) => {
           return db
             .collection("wa_costing_method")
             .add({
@@ -211,7 +219,10 @@ const addInventory = (data, plantId, organizationId) => {
               const waCostPrice = latestWa.wa_cost_price;
               const waQuantity = latestWa.wa_quantity;
               const newWaQuantity = waQuantity + baseQty;
-              return calculateCostPrice(item, baseQty).then((costPrice) => {
+              return calculateCostPrice(
+                item,
+                baseQty / parseFloat(item.received_qty)
+              ).then((costPrice) => {
                 const calculatedWaCostPrice =
                   (waCostPrice * waQuantity + costPrice * baseQty) /
                   newWaQuantity;
@@ -243,7 +254,10 @@ const addInventory = (data, plantId, organizationId) => {
                   });
               });
             } else {
-              return calculateCostPrice(item, baseQty).then((costPrice) => {
+              return calculateCostPrice(
+                item,
+                baseQty / parseFloat(item.received_qty)
+              ).then((costPrice) => {
                 return db
                   .collection("wa_costing_method")
                   .add({
@@ -493,8 +507,10 @@ const addInventory = (data, plantId, organizationId) => {
 
               if (costingMethod === "First In First Out") {
                 return processFifoForBatch(item, baseQty, batchId);
-              } else {
+              } else if (costingMethod === "Weighted Average") {
                 return processWeightedAverageForBatch(item, baseQty, batchId);
+              } else {
+                return Promise.resolve();
               }
             })
             .then(() => {
@@ -601,8 +617,10 @@ const addInventory = (data, plantId, organizationId) => {
 
             if (costingMethod === "First In First Out") {
               await processFifoForNonBatch(item, baseQty);
-            } else {
+            } else if (costingMethod === "Weighted Average") {
               await processWeightedAverageForNonBatch(item, baseQty);
+            } else {
+              return Promise.resolve();
             }
 
             console.log(
@@ -808,6 +826,7 @@ this.getData()
       };
 
       if (page_status === "Add") {
+        this.showLoading();
         await db
           .collection("goods_receiving")
           .add(gr)
@@ -857,6 +876,7 @@ this.getData()
         await updatePurchaseOrderStatus(purchase_order_id);
         await closeDialog();
       } else if (page_status === "Edit") {
+        this.showLoading();
         const goodsReceivingId = this.getParamsVariables("goods_receiving_no");
 
         let organizationId = this.getVarGlobal("deptParentId");

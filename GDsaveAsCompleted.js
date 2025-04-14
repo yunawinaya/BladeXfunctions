@@ -30,6 +30,7 @@ const closeDialog = () => {
   if (self.parentGenerateForm) {
     self.parentGenerateForm.$refs.SuPageDialogRef.hide();
     self.parentGenerateForm.refresh();
+    this.hideLoading();
   }
 };
 
@@ -228,6 +229,80 @@ const updateWeightedAverage = (item, batchId, baseWAQty) => {
     });
 };
 
+// Function to get latest FIFO cost price
+const getLatestFIFOCostPrice = async (materialId, batchId) => {
+  try {
+    const query = batchId
+      ? db
+          .collection("fifo_costing_history")
+          .where({ material_id: materialId, batch_id: batchId })
+      : db
+          .collection("fifo_costing_history")
+          .where({ material_id: materialId });
+
+    const response = await query.get();
+    const result = response.data;
+
+    if (result && Array.isArray(result) && result.length > 0) {
+      // Sort by FIFO sequence (highest/newest first)
+      const sortedRecords = result.sort(
+        (a, b) => b.fifo_sequence - a.fifo_sequence
+      );
+
+      // Return the cost price of the latest sequence
+      return parseFloat(sortedRecords[0].fifo_cost_price || 0);
+    }
+
+    console.warn(`No FIFO records found for material ${materialId}`);
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving FIFO cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
+// Function to get Weighted Average cost price
+const getWeightedAverageCostPrice = async (materialId, batchId) => {
+  try {
+    const query = batchId
+      ? db
+          .collection("wa_costing_method")
+          .where({ material_id: materialId, batch_id: batchId })
+      : db.collection("wa_costing_method").where({ material_id: materialId });
+
+    const response = await query.get();
+    const waData = response.data;
+
+    if (waData && Array.isArray(waData) && waData.length > 0) {
+      // Sort by date (newest first) to get the latest record
+      waData.sort((a, b) => {
+        if (a.created_at && b.created_at) {
+          return new Date(b.created_at) - new Date(a.created_at);
+        }
+        return 0;
+      });
+
+      return parseFloat(waData[0].wa_cost_price || 0);
+    }
+
+    console.warn(
+      `No weighted average records found for material ${materialId}`
+    );
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving WA cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
+// Function to get Fixed Cost price
+const getFixedCostPrice = async (materialId) => {
+  const query = db.collection("Item").where({ id: materialId });
+  const response = await query.get();
+  const result = response.data;
+  return parseFloat(result[0].purchase_unit_price || 0);
+};
+
 const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
   const items = data.table_gd;
 
@@ -326,14 +401,44 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
             );
           }
 
+          const costingMethod = itemData.material_costing_method;
+
+          let unitPrice = item.unit_price;
+          let totalPrice = item.unit_price * altQty;
+
+          if (costingMethod === "First In First Out") {
+            // Get unit price from latest FIFO sequence
+            const fifoCostPrice = await getLatestFIFOCostPrice(
+              item.material_id,
+              temp.batch_id
+            );
+            unitPrice = fifoCostPrice;
+            totalPrice = fifoCostPrice * baseQty;
+          } else if (costingMethod === "Weighted Average") {
+            // Get unit price from WA cost price
+            const waCostPrice = await getWeightedAverageCostPrice(
+              item.material_id,
+              temp.batch_id
+            );
+            unitPrice = waCostPrice;
+            totalPrice = waCostPrice * baseQty;
+          } else if (costingMethod === "Fixed Cost") {
+            // Get unit price from Fixed Cost
+            const fixedCostPrice = await getFixedCostPrice(item.material_id);
+            unitPrice = fixedCostPrice;
+            totalPrice = fixedCostPrice * baseQty;
+          } else {
+            return Promise.resolve();
+          }
+
           // Create inventory_movement record
           const inventoryMovementData = {
             transaction_type: "GDL",
             trx_no: data.delivery_no,
             parent_trx_no: data.so_no,
             movement: "OUT",
-            unit_price: item.unit_price,
-            total_price: item.unit_price * altQty,
+            unit_price: unitPrice,
+            total_price: totalPrice,
             quantity: altQty,
             item_id: item.material_id,
             inventory_category: inventoryCategory,
@@ -432,12 +537,12 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
             });
           }
 
-          const costingMethod = itemData.material_costing_method;
-
           if (costingMethod === "First In First Out") {
             await updateFIFOInventory(item.material_id, baseQty, temp.batch_id);
-          } else {
+          } else if (costingMethod === "Weighted Average") {
             await updateWeightedAverage(item, temp.batch_id, baseWAQty);
+          } else {
+            return Promise.resolve();
           }
         }
       }
@@ -668,6 +773,7 @@ this.getData()
 
       // Perform action based on page status
       if (page_status === "Add") {
+        this.showLoading();
         await db
           .collection("goods_delivery")
           .add(gd)
@@ -691,6 +797,7 @@ this.getData()
         await updateSalesOrderStatus(so_id);
         await closeDialog();
       } else if (page_status === "Edit") {
+        this.showLoading();
         const goodsDeliveryId = this.getParamsVariables("goods_delivery_no");
 
         if (gd.gd_status === "Draft") {
