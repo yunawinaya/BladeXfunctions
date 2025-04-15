@@ -63,6 +63,7 @@ this.getData().then((data) => {
     po_total,
     po_remark,
     po_tnc,
+    preq_no,
     billing_address_line_1,
     billing_address_line_2,
     billing_address_line_3,
@@ -108,6 +109,7 @@ this.getData().then((data) => {
     po_total,
     po_remark,
     po_tnc,
+    preq_no,
     billing_address_line_1,
     billing_address_line_2,
     billing_address_line_3,
@@ -164,6 +166,110 @@ this.getData().then((data) => {
                 });
             }
           });
+      })
+      .then(async () => {
+        entry.table_po.forEach(async (poLineItem, index) => {
+          const itemData = await db
+            .collection("Item")
+            .where({ id: poLineItem.item_id })
+            .get();
+          const supplierData = await db
+            .collection("supplier_head")
+            .where({ id: entry.po_supplier_id })
+            .get();
+          const uomData = await db
+            .collection("unit_of_measurement")
+            .where({ id: poLineItem.quantity_uom })
+            .get();
+
+          let prData = [];
+          let prUserData = [];
+
+          if (entry.preq_no) {
+            const resPR = await db
+              .collection("purchase_requisition")
+              .where({ pr_no: entry.preq_no })
+              .get();
+            prData.push(resPR.data[0]);
+
+            const resUser = await db
+              .collection("blade_user")
+              .where({ id: prData[0].create_user })
+              .get();
+            prUserData.push(resUser.data[0]);
+          }
+
+          const taxData = await db
+            .collection("tax_rate")
+            .where({ id: poLineItem.tax_preference })
+            .get();
+          const termData = await db
+            .collection("payment_terms")
+            .where({ id: entry.po_payment_terms })
+            .get();
+          const plantData = await db
+            .collection("blade_dept")
+            .where({ id: entry.po_plant })
+            .get();
+          const userData = await db
+            .collection("blade_user")
+            .where({ id: this.getVarSystem("uid") })
+            .get();
+
+          db.collection("purchase_order_line").add({
+            po_line_item_no: index + 1,
+            material_code: itemData?.data[0]?.material_code
+              ? itemData.data[0].material_code
+              : "",
+            item_name: itemData?.data[0]?.material_name
+              ? itemData.data[0].material_name
+              : "",
+            purchase_order_number: entry.purchase_order_no,
+            po_date: entry.po_date,
+            po_created_by: userData.data[0].name,
+            plant: plantData.data[0].dept_name,
+            expected_delivery_date: entry.po_expected_date,
+            pr_number: entry.preq_no || "N/A",
+            pr_date: prData[0] ? prData[0].pr_date : null,
+            pr_created_by: prUserData[0] ? prUserData[0].name : null,
+            supplier_code: supplierData?.data[0]?.supplier_code
+              ? supplierData.data[0].supplier_code
+              : "",
+            supplier_name: supplierData?.data[0]?.supplier_com_name
+              ? supplierData.data[0].supplier_com_name
+              : "",
+            category: itemData?.data[0]?.material_category
+              ? itemData.data[0].material_category
+              : "",
+            sub_category: itemData?.data[0]?.material_sub_category
+              ? itemData.data[0].material_sub_category
+              : "",
+            material_desc: itemData?.data[0]?.material_desc
+              ? itemData.data[0].material_desc
+              : "",
+            remarks: entry.po_remark,
+            po_line_qty: poLineItem.quantity,
+            po_line_uom_name: uomData?.data[0]?.uom_name
+              ? uomData.data[0].uom_name
+              : "",
+            po_line_unit_price: poLineItem.unit_price,
+            currency_code: entry.po_currency,
+            po_line_discount: poLineItem.discount,
+            po_line_tax_rate_id: taxData?.data[0]?.tax_code
+              ? taxData.data[0].tax_code
+              : "",
+            tax_percentage: poLineItem.tax_rate_percent,
+            po_line_tax_fee_amount: poLineItem.tax_amount,
+            po_line_amount: poLineItem.po_amount,
+            po_total_amount: poLineItem.po_total,
+            payment_term: termData?.data[0]?.term_code
+              ? termData.data[0].term_code
+              : "",
+            status: entry.po_status,
+            po_line_invoice_id: "",
+            po_line_receive_id: "",
+          });
+        });
       })
       .then(() => {
         addOnPO();
@@ -261,9 +367,135 @@ this.getData().then((data) => {
 
           findUniquePrefix();
         } else {
-          db.collection("purchase_order").doc(purchaseOrderId).update(entry);
+          db.collection("purchase_order")
+            .doc(purchaseOrderId)
+            .update(entry)
+            .then(async () => {
+              entry.table_po.forEach(async (poLineItem, index) => {
+                const itemData = await db
+                  .collection("Item")
+                  .where({ id: poLineItem.item_id })
+                  .get();
+                const supplierData = await db
+                  .collection("supplier_head")
+                  .where({ id: entry.po_supplier_id })
+                  .get();
+                const uomData = await db
+                  .collection("unit_of_measurement")
+                  .where({ id: poLineItem.quantity_uom })
+                  .get();
+
+                let prData = [];
+                let prUserData = [];
+
+                if (entry.preq_no) {
+                  const resPR = await db
+                    .collection("purchase_requisition")
+                    .where({ pr_no: entry.preq_no })
+                    .get();
+                  prData.push(resPR.data[0]);
+
+                  const resUser = await db
+                    .collection("blade_user")
+                    .where({ id: prData[0].create_user })
+                    .get();
+                  prUserData.push(resUser.data[0]);
+                }
+
+                const taxData = await db
+                  .collection("tax_rate")
+                  .where({ id: poLineItem.tax_preference })
+                  .get();
+                const termData = await db
+                  .collection("payment_terms")
+                  .where({ id: entry.po_payment_terms })
+                  .get();
+                const plantData = await db
+                  .collection("blade_dept")
+                  .where({ id: entry.po_plant })
+                  .get();
+                const userData = await db
+                  .collection("blade_user")
+                  .where({ id: this.getVarSystem("uid") })
+                  .get();
+
+                const poLineData = await db
+                  .collection("purchase_order_line")
+                  .where({
+                    purchase_order_number: entry.purchase_order_no,
+                    po_line_item_no: index + 1,
+                  })
+                  .get();
+
+                const updatedData = {
+                  //po_line_item_no: index +1,
+                  material_code: itemData?.data[0]?.material_code
+                    ? itemData.data[0].material_code
+                    : "",
+                  item_name: itemData?.data[0]?.material_name
+                    ? itemData.data[0].material_name
+                    : "",
+                  purchase_order_number: entry.purchase_order_no,
+                  po_date: entry.po_date,
+                  po_created_by: userData.name,
+                  plant: plantData.data[0].dept_name,
+                  expected_delivery_date: entry.po_expected_date,
+                  pr_number: entry.preq_no || "N/A",
+                  pr_date: prData[0] ? prData[0].pr_date : null,
+                  pr_created_by: prUserData[0] ? prUserData[0].name : null,
+                  supplier_code: supplierData?.data[0]?.supplier_code
+                    ? supplierData.data[0].supplier_code
+                    : "",
+                  supplier_name: supplierData?.data[0]?.supplier_com_name
+                    ? supplierData.data[0].supplier_com_name
+                    : "",
+                  category: itemData?.data[0]?.material_category
+                    ? itemData.data[0].material_category
+                    : "",
+                  sub_category: itemData?.data[0]?.material_sub_category
+                    ? itemData.data[0].material_sub_category
+                    : "",
+                  material_desc: itemData?.data[0]?.material_desc
+                    ? itemData.data[0].material_desc
+                    : "",
+                  remarks: entry.po_remark,
+                  po_line_qty: poLineItem.quantity,
+                  po_line_uom_name: uomData?.data[0]?.uom_name
+                    ? uomData.data[0].uom_name
+                    : "",
+                  po_line_unit_price: poLineItem.unit_price,
+                  currency_code: entry.po_currency,
+                  po_line_discount: poLineItem.discount,
+                  po_line_tax_rate_id: taxData?.data[0]?.tax_code
+                    ? taxData.data[0].tax_code
+                    : "",
+                  tax_percentage: poLineItem.tax_rate_percent,
+                  po_line_tax_fee_amount: poLineItem.tax_amount,
+                  po_line_amount: poLineItem.po_amount,
+                  po_total_amount: poLineItem.po_total,
+                  payment_term: termData?.data[0]?.term_code
+                    ? termData.data[0].term_code
+                    : "",
+                  status: entry.po_status,
+                  po_line_invoice_id: "",
+                  po_line_receive_id: "",
+                };
+
+                if (poLineData.data.length > 0) {
+                  db.collection("purchase_order_line")
+                    .where({
+                      purchase_order_number: entry.purchase_order_no,
+                      po_line_item_no: index + 1,
+                    })
+                    .update(updatedData);
+                } else {
+                  db.collection("purchase_order_line").add(updatedData);
+                }
+              });
+            });
         }
       })
+
       .then(() => {
         addOnPO();
         closeDialog();

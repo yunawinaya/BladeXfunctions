@@ -173,7 +173,6 @@ const updateInventory = (allData) => {
                 throw new Error("No WA costing record found for deduction");
               }
             } else if (costingMethod === "First In First Out") {
-              // ... FIFO logic remains unchanged ...
               const fifoQueryConditions =
                 materialData.item_batch_management == "1" && batchId
                   ? { material_id: materialData.id, batch_id: batchId }
@@ -207,6 +206,7 @@ const updateInventory = (allData) => {
                   batch_id: batchId || null,
                   plant_id: plant_id,
                   organization_id: organization_id,
+                  fifo_initial_quantity: quantityChange,
                   fifo_available_quantity: quantityChange,
                   fifo_cost_price: unitPrice,
                   fifo_sequence: newSequence,
@@ -222,7 +222,9 @@ const updateInventory = (allData) => {
                 let remainingReduction = -quantityChange;
 
                 if (fifoData.length > 0) {
+                  // Sort by sequence (oldest first)
                   fifoData.sort((a, b) => a.fifo_sequence - b.fifo_sequence);
+
                   for (const fifoRecord of fifoData) {
                     if (remainingReduction <= 0) break;
 
@@ -242,19 +244,16 @@ const updateInventory = (allData) => {
                   }
 
                   if (remainingReduction > 0) {
-                    throw new Error("Insufficient FIFO quantity");
+                    throw new Error(
+                      `Insufficient FIFO quantity for material ${
+                        materialData.id
+                      }. Available: ${fifoData.reduce(
+                        (sum, record) =>
+                          sum + (record.fifo_available_quantity || 0),
+                        0
+                      )}, Requested: ${-quantityChange}`
+                    );
                   }
-
-                  await db.collection("fifo_costing_history").add({
-                    material_id: materialData.id,
-                    batch_id: batchId || null,
-                    plant_id: plant_id,
-                    organization_id: organization_id,
-                    fifo_available_quantity: quantityChange,
-                    fifo_cost_price: unitPrice,
-                    fifo_sequence: newSequence,
-                    created_at: new Date(),
-                  });
 
                   await logTableState(
                     "fifo_costing_history",
@@ -262,7 +261,9 @@ const updateInventory = (allData) => {
                     `After FIFO update for material ${materialData.id}`
                   );
                 } else {
-                  throw new Error("No FIFO costing record found for deduction");
+                  throw new Error(
+                    `No FIFO costing records found for deduction for material ${materialData.id}`
+                  );
                 }
               }
             }
@@ -308,13 +309,11 @@ const updateInventory = (allData) => {
             `Before balance update for material ${materialData.id}, location ${balance.location_id}`
           );
 
-          const balanceQuery = db
-            .collection(collectionName)
-            .where({
-              material_id: materialData.id,
-              location_id: balance.location_id,
-              plant_id: plant_id,
-            });
+          const balanceQuery = db.collection(collectionName).where({
+            material_id: materialData.id,
+            location_id: balance.location_id,
+            plant_id: plant_id,
+          });
 
           let balanceData = null;
           const response = await balanceQuery.get();
@@ -401,7 +400,6 @@ const updateInventory = (allData) => {
             uom_id: materialData.based_uom,
             base_qty: balance.sa_quantity,
             base_uom_id: materialData.based_uom,
-            bin_location_id: balance.location_id,
             bin_location_id: balance.location_id,
             batch_number_id:
               materialData.item_batch_management == "1"

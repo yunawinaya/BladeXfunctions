@@ -292,6 +292,14 @@ const addInventory = (data, plantId, organizationId) => {
           });
       };
 
+      // Function to get Fixed Cost price
+      const getFixedCostPrice = async (materialId) => {
+        const query = db.collection("Item").where({ id: materialId });
+        const response = await query.get();
+        const result = response.data;
+        return parseFloat(result[0].purchase_unit_price || 0);
+      };
+
       try {
         // First check if this item should be processed based on stock_control
         const itemRes = await db
@@ -349,14 +357,35 @@ const addInventory = (data, plantId, organizationId) => {
           );
         }
 
+        let unitPrice = item.unit_price;
+        let totalPrice = item.unit_price * baseQty;
+
+        const costingMethod = itemData.material_costing_method;
+
+        if (
+          costingMethod === "First In First Out" ||
+          costingMethod === "Weighted Average"
+        ) {
+          const fifoCostPrice = await calculateCostPrice(
+            item,
+            baseQty / parseFloat(item.received_qty)
+          );
+          unitPrice = fifoCostPrice;
+          totalPrice = fifoCostPrice * baseQty;
+        } else if (costingMethod === "Fixed Cost") {
+          const fixedCostPrice = await getFixedCostPrice(item.item_id);
+          unitPrice = fixedCostPrice;
+          totalPrice = fixedCostPrice * baseQty;
+        }
+
         // Create inventory_movement record
         const inventoryMovementData = {
           transaction_type: "GRN",
           trx_no: data.gr_no,
           parent_trx_no: data.purchase_order_number,
           movement: "IN",
-          unit_price: item.unit_price,
-          total_price: item.unit_price * altQty,
+          unit_price: unitPrice,
+          total_price: totalPrice,
           quantity: altQty,
           item_id: item.item_id,
           inventory_category: item.inv_category,
@@ -503,8 +532,6 @@ const addInventory = (data, plantId, organizationId) => {
                 });
             })
             .then(({ batchId }) => {
-              const costingMethod = itemData.material_costing_method;
-
               if (costingMethod === "First In First Out") {
                 return processFifoForBatch(item, baseQty, batchId);
               } else if (costingMethod === "Weighted Average") {
