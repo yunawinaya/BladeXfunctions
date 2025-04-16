@@ -4,6 +4,43 @@ const self = this;
 const updateInventory = async (data, plantId, organizationId) => {
   const items = data.table_srr;
 
+  const calculateCostPrice = (itemData, conversion) => {
+    return db
+      .collection("purchase_order")
+      .where({ id: data.purchase_order_id })
+      .get()
+      .then((poResponse) => {
+        if (!poResponse.data || !poResponse.data.length) {
+          console.log(`No purchase order found for ${data.purchase_order_id}`);
+          return itemData.unit_price;
+        }
+
+        const poData = poResponse.data[0];
+
+        let poQuantity = 0;
+        let totalAmount = 0;
+
+        for (const poItem of poData.table_po) {
+          if (poItem.item_id === itemData.item_id) {
+            poQuantity = parseFloat(poItem.quantity) || 0;
+            totalAmount = parseFloat(poItem.po_amount) || 0;
+            break;
+          }
+        }
+
+        const pricePerUnit = totalAmount / poQuantity;
+
+        const costPrice = pricePerUnit / conversion;
+        console.log("costPrice", costPrice);
+
+        return Math.round(costPrice * 10000) / 10000;
+      })
+      .catch((error) => {
+        console.error(`Error calculating cost price: ${error.message}`);
+        return itemData.unit_price;
+      });
+  };
+
   // Extracted FIFO update logic
   const updateFIFOInventory = async (item, returnQty, batchId) => {
     try {
@@ -204,14 +241,35 @@ const updateInventory = async (data, plantId, organizationId) => {
           );
         }
 
+        let unitPrice = item.unit_price;
+        let totalPrice = item.unit_price * baseQty;
+
+        const costingMethod = itemData.material_costing_method;
+
+        if (
+          costingMethod === "First In First Out" ||
+          costingMethod === "Weighted Average"
+        ) {
+          const fifoCostPrice = await calculateCostPrice(
+            item,
+            baseQty / parseFloat(item.received_qty)
+          );
+          unitPrice = fifoCostPrice;
+          totalPrice = fifoCostPrice * baseQty;
+        } else if (costingMethod === "Fixed Cost") {
+          const fixedCostPrice = await getFixedCostPrice(item.item_id);
+          unitPrice = fixedCostPrice;
+          totalPrice = fixedCostPrice * baseQty;
+        }
+
         // Create inventory movement record
         await db.collection("inventory_movement").add({
           transaction_type: "SRR",
           trx_no: data.srr_no,
           parent_trx_no: item.sr_number,
           movement: "IN",
-          unit_price: item.unit_price,
-          total_price: item.unit_price * altQty,
+          unit_price: unitPrice,
+          total_price: totalPrice,
           quantity: altQty,
           item_id: item.material_id,
           inventory_category: item.inventory_category,
@@ -398,7 +456,6 @@ const updateInventory = async (data, plantId, organizationId) => {
           }
         }
 
-        const costingMethod = item.costing_method;
         if (costingMethod === "First In First Out") {
           await updateFIFOInventory(item, returnQty, item.batch_id);
         } else if (costingMethod === "Weighted Average") {

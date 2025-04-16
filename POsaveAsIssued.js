@@ -1,22 +1,73 @@
 const page_status = this.getParamsVariables("page_status");
 const self = this;
 
-const addOnPO = () => {
+const addOnPO = async () => {
   const data = this.getValues();
   const items = data.table_po;
-  if (Array.isArray(items)) {
-    items.forEach((item, index) => {
+
+  if (!Array.isArray(items)) {
+    console.log("table_po is not an array:", items);
+    return;
+  }
+
+  const processPromises = items.map(async (item, index) => {
+    try {
+      const itemRes = await db
+        .collection("Item")
+        .where({ id: item.item_id })
+        .get();
+
+      if (!itemRes.data || !itemRes.data.length) {
+        console.error(`Item not found: ${item.item_id}`);
+        return;
+      }
+
+      const itemData = itemRes.data[0];
+
+      let altQty = parseFloat(item.quantity);
+      let baseQty = altQty;
+      let altUOM = item.quantity_uom;
+      let baseUOM = itemData.based_uom;
+
+      if (
+        Array.isArray(itemData.table_uom_conversion) &&
+        itemData.table_uom_conversion.length > 0
+      ) {
+        console.log(`Checking UOM conversions for item ${item.item_id}`);
+
+        const uomConversion = itemData.table_uom_conversion.find(
+          (conv) => conv.alt_uom_id === altUOM
+        );
+
+        if (uomConversion) {
+          console.log(
+            `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
+          );
+
+          baseQty = Math.round(altQty * uomConversion.base_qty * 1000) / 1000;
+
+          console.log(`Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`);
+        } else {
+          console.log(`No conversion found for UOM ${altUOM}, using as-is`);
+        }
+      } else {
+        console.log(
+          `No UOM conversion table for item ${item.item_id}, using ordered quantity as-is`
+        );
+      }
+
       const onOrderData = {
         purchase_order_number: data.purchase_order_no,
         material_id: item.item_id,
         material_name: item.item_id,
         purchase_order_line: index + 1,
-        scheduled_qty: item.quantity,
-        open_qty: item.quantity,
+        scheduled_qty: baseQty,
+        open_qty: baseQty,
         received_qty: 0,
       };
 
-      db.collection("on_order_purchase_order")
+      await db
+        .collection("on_order_purchase_order")
         .add(onOrderData)
         .catch((error) => {
           console.log(
@@ -24,10 +75,13 @@ const addOnPO = () => {
             error
           );
         });
-    });
-  } else {
-    console.log("table_po is not an array:", items);
-  }
+    } catch (error) {
+      console.error(`Error processing item ${item.item_id}:`, error);
+    }
+  });
+
+  // Wait for all items to be processed
+  await Promise.all(processPromises);
 };
 
 const closeDialog = () => {

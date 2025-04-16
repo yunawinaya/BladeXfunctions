@@ -190,7 +190,7 @@ const updateInventory = async (data, plantId, organizationId) => {
       });
   };
 
-  // Function to get latest FIFO cost price
+  // Function to get latest FIFO cost price with available quantity check
   const getLatestFIFOCostPrice = async (materialId, batchId) => {
     try {
       const query = batchId
@@ -205,13 +205,29 @@ const updateInventory = async (data, plantId, organizationId) => {
       const result = response.data;
 
       if (result && Array.isArray(result) && result.length > 0) {
-        // Sort by FIFO sequence (highest/newest first)
+        // Sort by FIFO sequence (lowest/oldest first, as per FIFO principle)
         const sortedRecords = result.sort(
-          (a, b) => b.fifo_sequence - a.fifo_sequence
+          (a, b) => a.fifo_sequence - b.fifo_sequence
         );
 
-        // Return the cost price of the latest sequence
-        return parseFloat(sortedRecords[0].fifo_cost_price || 0);
+        // First look for records with available quantity
+        for (const record of sortedRecords) {
+          const availableQty = parseFloat(record.fifo_available_quantity || 0);
+          if (availableQty > 0) {
+            console.log(
+              `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
+            );
+            return parseFloat(record.fifo_cost_price || 0);
+          }
+        }
+
+        // If no records with available quantity, use the most recent record
+        console.warn(
+          `No FIFO records with available quantity found for ${materialId}, using most recent cost price`
+        );
+        return parseFloat(
+          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+        );
       }
 
       console.warn(`No FIFO records found for material ${materialId}`);
