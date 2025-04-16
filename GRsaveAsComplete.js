@@ -420,7 +420,11 @@ const addInventory = (data, plantId, organizationId) => {
             const existingReceived = parseFloat(doc.received_qty || 0);
             const openQuantity = parseFloat(doc.open_qty || 0);
             const newReceived = existingReceived + parseFloat(baseQty || 0);
-            const newOpenQuantity = openQuantity - parseFloat(baseQty || 0);
+            let newOpenQuantity = openQuantity - parseFloat(baseQty || 0);
+
+            if (newOpenQuantity < 0) {
+              newOpenQuantity = 0;
+            }
 
             await db.collection("on_order_purchase_order").doc(doc.id).update({
               received_qty: newReceived,
