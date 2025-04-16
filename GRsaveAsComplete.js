@@ -893,6 +893,76 @@ this.getData()
                     });
                 }
               });
+          })
+
+          .then(async () => {
+            gr.table_gr.forEach(async (grLineItem, index) => {
+              const itemData = await db
+                .collection("Item")
+                .where({ id: grLineItem.item_id })
+                .get();
+              const userData = await db
+                .collection("blade_user")
+                .where({ id: this.getVarSystem("uid") })
+                .get();
+              const plantData = await db
+                .collection("blade_dept")
+                .where({ id: gr.po_plant })
+                .get();
+              // const poData = await db.collection('purchase_order').where({id: gr.purchase_order_id}).get();
+              let poData = [];
+              let poUserData = [];
+
+              if (gr.purchase_order_id) {
+                const resPO = await db
+                  .collection("purchase_order")
+                  .where({ id: gr.purchase_order_id })
+                  .get();
+                poData.push(resPO.data[0]);
+
+                const resUser = await db
+                  .collection("blade_user")
+                  .where({ id: this.getVarSystem("uid") })
+                  .get();
+                poUserData.push(resUser.data[0]);
+              }
+
+              const supplierData = await db
+                .collection("supplier_head")
+                .where({ id: gr.supplier_name })
+                .get();
+
+              db.collection("goods_receiving_line").add({
+                goods_receiving_id: index + 1,
+                material_id: itemData?.data[0]?.material_code
+                  ? itemData.data[0].material_code
+                  : "",
+                item_name: itemData?.data[0]?.material_name
+                  ? itemData.data[0].material_name
+                  : "",
+                gr_no: gr.gr_no,
+                gr_date: gr.gr_date,
+                gr_created_by: userData.data[0].name,
+                plant_id: plantData.data[0].dept_name,
+                expected_delivery_date: poData[0]
+                  ? poData[0].po_expected_date
+                  : null,
+                po_no: gr.purchase_order_id,
+                po_date: poData[0] ? poData[0].po_date : null,
+                po_created_by: poUserData[0] ? poUserData[0].name : null,
+                supplier_code: supplierData?.data[0]?.supplier_code
+                  ? supplierData.data[0].supplier_code
+                  : "",
+                supplier_name: supplierData?.data[0]?.supplier_com_name
+                  ? supplierData.data[0].supplier_com_name
+                  : "",
+                received_quantity: grLineItem.received_qty,
+                currency_code: gr.currency_code,
+                gr_amount: grLineItem.total_price,
+                payment_term: poData[0] ? poData[0].po_payment_terms : "",
+                gr_status: gr.gr_status,
+              });
+            });
           });
 
         const result = await db
@@ -998,6 +1068,101 @@ this.getData()
                       await addInventory(gr, plantId, organizationId);
                       await updatePurchaseOrderStatus(purchase_order_id);
                       await closeDialog();
+                    })
+                    .then(() => {
+                      gr.table_gr.forEach(async (grLineItem, index) => {
+                        const itemData = await db
+                          .collection("Item")
+                          .where({ id: grLineItem.item_id })
+                          .get();
+                        const userData = await db
+                          .collection("blade_user")
+                          .where({ id: this.getVarSystem("uid") })
+                          .get();
+                        const plantData = await db
+                          .collection("blade_dept")
+                          .where({ id: gr.po_plant })
+                          .get();
+                        // const poData = await db.collection('purchase_order').where({id: gr.purchase_order_id}).get();
+                        let poData = [];
+                        let poUserData = [];
+
+                        if (gr.purchase_order_id) {
+                          const resPO = await db
+                            .collection("purchase_order")
+                            .where({ id: gr.purchase_order_id })
+                            .get();
+                          poData.push(resPO.data[0]);
+
+                          const resUser = await db
+                            .collection("blade_user")
+                            .where({ id: this.getVarSystem("uid") })
+                            .get();
+                          poUserData.push(resUser.data[0]);
+                        }
+
+                        const supplierData = await db
+                          .collection("supplier_head")
+                          .where({ id: gr.supplier_name })
+                          .get();
+
+                        const grLineData = await db
+                          .collection("goods_receiving_line")
+                          .where({
+                            gr_no: gr.gr_no,
+                            goods_receiving_id: index + 1,
+                          })
+                          .get();
+
+                        const updatedData = {
+                          //goods_receiving_id : index + 1,
+                          material_id: itemData?.data[0]?.material_code
+                            ? itemData.data[0].material_code
+                            : "",
+                          item_name: itemData?.data[0]?.material_name
+                            ? itemData.data[0].material_name
+                            : "",
+                          gr_no: gr.gr_no,
+                          gr_date: gr.gr_date,
+                          gr_created_by: userData.data[0].name,
+                          plant_id: plantData.data[0].dept_name,
+                          expected_delivery_date: poData[0]
+                            ? poData[0].po_expected_date
+                            : null,
+                          po_no: gr.purchase_order_id,
+                          po_date: poData[0] ? poData[0].po_date : null,
+                          po_created_by: poUserData[0]
+                            ? poUserData[0].name
+                            : null,
+                          supplier_code: supplierData?.data[0]?.supplier_code
+                            ? supplierData.data[0].supplier_code
+                            : "",
+                          supplier_name: supplierData?.data[0]
+                            ?.supplier_com_name
+                            ? supplierData.data[0].supplier_com_name
+                            : "",
+                          received_quantity: grLineItem.received_qty,
+                          currency_code: gr.currency_code,
+                          gr_amount: grLineItem.total_price,
+                          payment_term: poData[0]
+                            ? poData[0].po_payment_terms
+                            : "",
+                          gr_status: gr.gr_status,
+                        };
+
+                        if (grLineData.data.length > 0) {
+                          db.collection("goods_receiving_line")
+                            .where({
+                              gr_no: gr.gr_no,
+                              goods_receiving_id: index + 1,
+                            })
+                            .update(updatedData);
+                        } else {
+                          db.collection("goods_receiving_line").add(
+                            updatedData
+                          );
+                        }
+                      });
                     });
                   db.collection("prefix_configuration")
                     .where({
@@ -1029,6 +1194,95 @@ this.getData()
                   await addInventory(data, plantId, organizationId);
                   await updatePurchaseOrderStatus(purchase_order_id);
                   await closeDialog();
+                })
+
+                .then(() => {
+                  gr.table_gr.forEach(async (grLineItem, index) => {
+                    const itemData = await db
+                      .collection("Item")
+                      .where({ id: grLineItem.item_id })
+                      .get();
+                    const userData = await db
+                      .collection("blade_user")
+                      .where({ id: this.getVarSystem("uid") })
+                      .get();
+                    const plantData = await db
+                      .collection("blade_dept")
+                      .where({ id: gr.po_plant })
+                      .get();
+                    // const poData = await db.collection('purchase_order').where({id: gr.purchase_order_id}).get();
+                    let poData = [];
+                    let poUserData = [];
+
+                    if (gr.purchase_order_id) {
+                      const resPO = await db
+                        .collection("purchase_order")
+                        .where({ id: gr.purchase_order_id })
+                        .get();
+                      poData.push(resPO.data[0]);
+
+                      const resUser = await db
+                        .collection("blade_user")
+                        .where({ id: this.getVarSystem("uid") })
+                        .get();
+                      poUserData.push(resUser.data[0]);
+                    }
+
+                    const supplierData = await db
+                      .collection("supplier_head")
+                      .where({ id: gr.supplier_name })
+                      .get();
+
+                    const grLineData = await db
+                      .collection("goods_receiving_line")
+                      .where({
+                        gr_no: gr.gr_no,
+                        goods_receiving_id: index + 1,
+                      })
+                      .get();
+
+                    const updatedData = {
+                      //goods_receiving_id : index + 1,
+                      material_id: itemData?.data[0]?.material_code
+                        ? itemData.data[0].material_code
+                        : "",
+                      item_name: itemData?.data[0]?.material_name
+                        ? itemData.data[0].material_name
+                        : "",
+                      gr_no: gr.gr_no,
+                      gr_date: gr.gr_date,
+                      gr_created_by: userData.data[0].name,
+                      plant_id: plantData.data[0].dept_name,
+                      expected_delivery_date: poData[0]
+                        ? poData[0].po_expected_date
+                        : null,
+                      po_no: gr.purchase_order_id,
+                      po_date: poData[0] ? poData[0].po_date : null,
+                      po_created_by: poUserData[0] ? poUserData[0].name : null,
+                      supplier_code: supplierData?.data[0]?.supplier_code
+                        ? supplierData.data[0].supplier_code
+                        : "",
+                      supplier_name: supplierData?.data[0]?.supplier_com_name
+                        ? supplierData.data[0].supplier_com_name
+                        : "",
+                      received_quantity: grLineItem.received_qty,
+                      currency_code: gr.currency_code,
+                      gr_amount: grLineItem.total_price,
+                      payment_term: poData[0] ? poData[0].po_payment_terms : "",
+                      gr_status: gr.gr_status,
+                    };
+
+                    if (grLineData.data.length > 0) {
+                      db.collection("goods_receiving_line")
+                        .where({
+                          gr_no: gr.gr_no,
+                          goods_receiving_id: index + 1,
+                        })
+                        .update(updatedData);
+                    } else {
+                      db.collection("goods_receiving_line").add(updatedData);
+                    }
+                  });
                 });
             }
           });
