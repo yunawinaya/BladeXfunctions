@@ -6,6 +6,7 @@ const closeDialog = () => {
   if (self.parentGenerateForm) {
     self.parentGenerateForm.$refs.SuPageDialogRef.hide();
     self.parentGenerateForm.refresh();
+    this.hideLoading();
   }
 };
 
@@ -32,6 +33,95 @@ const logTableState = async (collectionName, queryConditions, logMessage) => {
   } catch (error) {
     console.error(`Error logging state for ${collectionName}:`, error);
   }
+};
+
+// Function to get latest FIFO cost price with available quantity check
+const getLatestFIFOCostPrice = async (materialId, batchId) => {
+  try {
+    const query = batchId
+      ? db
+          .collection("fifo_costing_history")
+          .where({ material_id: materialId, batch_id: batchId })
+      : db
+          .collection("fifo_costing_history")
+          .where({ material_id: materialId });
+
+    const response = await query.get();
+    const result = response.data;
+
+    if (result && Array.isArray(result) && result.length > 0) {
+      // Sort by FIFO sequence (lowest/oldest first, as per FIFO principle)
+      const sortedRecords = result.sort(
+        (a, b) => a.fifo_sequence - b.fifo_sequence
+      );
+
+      // First look for records with available quantity
+      for (const record of sortedRecords) {
+        const availableQty = parseFloat(record.fifo_available_quantity || 0);
+        if (availableQty > 0) {
+          console.log(
+            `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
+          );
+          return parseFloat(record.fifo_cost_price || 0);
+        }
+      }
+
+      // If no records with available quantity, use the most recent record
+      console.warn(
+        `No FIFO records with available quantity found for ${materialId}, using most recent cost price`
+      );
+      return parseFloat(
+        sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+      );
+    }
+
+    console.warn(`No FIFO records found for material ${materialId}`);
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving FIFO cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
+// Function to get Weighted Average cost price
+const getWeightedAverageCostPrice = async (materialId, batchId) => {
+  try {
+    const query = batchId
+      ? db
+          .collection("wa_costing_method")
+          .where({ material_id: materialId, batch_id: batchId })
+      : db.collection("wa_costing_method").where({ material_id: materialId });
+
+    const response = await query.get();
+    const waData = response.data;
+
+    if (waData && Array.isArray(waData) && waData.length > 0) {
+      // Sort by date (newest first) to get the latest record
+      waData.sort((a, b) => {
+        if (a.created_at && b.created_at) {
+          return new Date(b.created_at) - new Date(a.created_at);
+        }
+        return 0;
+      });
+
+      return parseFloat(waData[0].wa_cost_price || 0);
+    }
+
+    console.warn(
+      `No weighted average records found for material ${materialId}`
+    );
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving WA cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
+const getFixedCostPrice = async (materialId) => {
+  const query = db.collection("Item").where({ id: materialId });
+  const response = await query.get();
+  const result = response.data;
+  return parseFloat(result[0].purchase_unit_price || 0);
 };
 
 const updateInventory = (allData) => {
@@ -387,13 +477,43 @@ const updateInventory = (allData) => {
             `Before adding inventory movement for adjustment ${allData.adjustment_no}, material ${item.material_id}`
           );
 
+          let unitPrice = balance.unit_price || 0;
+          let totalPrice = balance.unit_price * balance.sa_quantity;
+
+          const costingMethod = materialData.material_costing_method;
+
+          if (costingMethod === "First In First Out") {
+            // Get unit price from latest FIFO sequence
+            const fifoCostPrice = await getLatestFIFOCostPrice(
+              item.material_id,
+              item.item_batch_no
+            );
+            unitPrice = fifoCostPrice;
+            totalPrice = fifoCostPrice * balance.sa_quantity;
+          } else if (costingMethod === "Weighted Average") {
+            // Get unit price from WA cost price
+            const waCostPrice = await getWeightedAverageCostPrice(
+              item.material_id,
+              item.item_batch_no
+            );
+            unitPrice = waCostPrice;
+            totalPrice = waCostPrice * balance.sa_quantity;
+          } else if (costingMethod === "Fixed Cost") {
+            // Get unit price from Fixed Cost
+            const fixedCostPrice = await getFixedCostPrice(item.material_id);
+            unitPrice = fixedCostPrice;
+            totalPrice = fixedCostPrice * balance.sa_quantity;
+          } else {
+            return Promise.resolve();
+          }
+
           const inventoryMovementData = {
             transaction_type: "SA",
             trx_no: allData.adjustment_no,
             parent_trx_no: null,
             movement: movementType,
-            unit_price: balance.unit_price || 0,
-            total_price: (balance.unit_price || 0) * balance.sa_quantity,
+            unit_price: unitPrice,
+            total_price: totalPrice,
             quantity: balance.sa_quantity,
             item_id: item.material_id,
             inventory_category: balance.category,
@@ -519,6 +639,7 @@ const updateInventory = (allData) => {
       });
   });
 };
+
 async function preCheckQuantitiesAndCosting(allData, context) {
   try {
     console.log("Starting preCheckQuantitiesAndCosting with data:", allData);
@@ -685,29 +806,7 @@ async function preCheckQuantitiesAndCosting(allData, context) {
     }
 
     // Step 6: If all checks pass, show confirmation popup
-    return new Promise((resolve, reject) => {
-      if (context && context.parentGenerateForm) {
-        context.parentGenerateForm
-          .$confirm(
-            "All quantities and costing records are valid. Proceed with storing the Stock Adjustment?",
-            "Confirm Stock Adjustment",
-            {
-              confirmButtonText: "Proceed",
-              cancelButtonText: "Cancel",
-              type: "success",
-            }
-          )
-          .then(() => {
-            resolve(true); // Signal to proceed with storage
-          })
-          .catch(() => {
-            reject(new Error("Stock Adjustment cancelled by user"));
-          });
-      } else {
-        console.warn("No context provided, proceeding without confirmation");
-        resolve(true);
-      }
-    });
+    return true;
   } catch (error) {
     console.error("Error in preCheckQuantitiesAndCosting:", error.message);
     if (context && context.parentGenerateForm) {
@@ -723,147 +822,90 @@ async function preCheckQuantitiesAndCosting(allData, context) {
 }
 
 if (page_status === "Add") {
-  const organizationId =
-    this.getParamsVariables("organization_id") ||
-    self.getValues().organization_id;
+  this.showLoading();
+  let organizationId = this.getVarGlobal("deptParentId");
+  if (organizationId === "0") {
+    organizationId = this.getVarSystem("deptIds").split(",")[0];
+  }
 
-  const generatePrefix = async () => {
-    try {
-      const prefixEntry = await db
-        .collection("prefix_configuration")
-        .where({
-          document_types: "Stock Adjustment",
-          is_deleted: 0,
-          organization_id: organizationId,
+  self
+    .getData()
+    .then((allData) => {
+      // Pre-check quantities and costing
+      preCheckQuantitiesAndCosting(
+        { ...allData, adjustment_no: adjustmentNo },
+        self
+      )
+        .then(() => {
+          const tableIndex = allData.dialog_index?.table_index;
+          const adjustedBy = allData.adjusted_by || "system";
+          const {
+            organization_id,
+            adjustment_date,
+            adjustment_type,
+            plant_id,
+            adjustment_no,
+            adjustment_remarks,
+            reference_documents,
+            subform_dus1f9ob,
+          } = allData;
+
+          const sa = {
+            stock_adjustment_status: "Completed",
+            organization_id,
+            adjustment_no,
+            adjustment_date,
+            adjustment_type,
+            adjusted_by: adjustedBy,
+            plant_id,
+            adjustment_remarks,
+            reference_documents,
+            subform_dus1f9ob,
+            table_index: tableIndex,
+          };
+
+          return db
+            .collection("stock_adjustment")
+            .add(sa)
+            .then(() => {
+              updateInventory(sa);
+            });
         })
-        .get();
-
-      const prefixData = prefixEntry.data[0];
-      if (!prefixData) {
-        throw new Error("No prefix configuration found for Stock Adjustment");
-      }
-
-      const now = new Date();
-      let prefixToShow;
-      let runningNumber = prefixData.running_number;
-      let isUnique = false;
-      let maxAttempts = 10;
-      let attempts = 0;
-
-      if (prefixData.is_active === 0) {
-        self.disabled(["adjustment_no"], false);
-      } else {
-        self.disabled(["adjustment_no"], true);
-      }
-
-      const generatePrefixString = (runNumber) => {
-        let generated = prefixData.current_prefix_config;
-        generated = generated.replace("prefix", prefixData.prefix_value || "");
-        generated = generated.replace("suffix", prefixData.suffix_value || "");
-        generated = generated.replace(
-          "month",
-          String(now.getMonth() + 1).padStart(2, "0")
-        );
-        generated = generated.replace(
-          "day",
-          String(now.getDate()).padStart(2, "0")
-        );
-        generated = generated.replace("year", now.getFullYear());
-        generated = generated.replace(
-          "running_number",
-          String(runNumber).padStart(prefixData.padding_zeroes || 4, "0")
-        );
-        return generated;
-      };
-
-      const checkUniqueness = async (generatedPrefix) => {
-        const existingDoc = await db
-          .collection("stock_adjustment")
-          .where({ adjustment_no: generatedPrefix })
-          .get();
-        return existingDoc.data[0] ? false : true;
-      };
-
-      while (!isUnique && attempts < maxAttempts) {
-        attempts++;
-        prefixToShow = generatePrefixString(runningNumber);
-        isUnique = await checkUniqueness(prefixToShow);
-        if (!isUnique) {
-          runningNumber++;
-        }
-      }
-
-      if (!isUnique) {
-        throw new Error(
-          "Could not generate a unique Stock Adjustment number after maximum attempts"
-        );
-      }
-
-      await db
-        .collection("prefix_configuration")
-        .where({
-          document_types: "Stock Adjustment",
-          organization_id: organizationId,
+        .then(() => {
+          return db
+            .collection("prefix_configuration")
+            .where({
+              document_types: "Stock Adjustment",
+              is_deleted: 0,
+              organization_id: organizationId,
+              is_active: 1,
+            })
+            .get()
+            .then((prefixEntry) => {
+              if (prefixEntry.data.length === 0) return;
+              else {
+                const data = prefixEntry.data[0];
+                return db
+                  .collection("prefix_configuration")
+                  .where({
+                    document_types: "Stock Adjustment",
+                    is_deleted: 0,
+                    organization_id: organizationId,
+                  })
+                  .update({
+                    running_number: parseInt(data.running_number) + 1,
+                    has_record: 1,
+                  });
+              }
+            });
         })
-        .update({ running_number: runningNumber + 1 });
-
-      return prefixToShow;
-    } catch (error) {
-      console.error("Error generating prefix:", error);
-      throw error;
-    }
-  };
-
-  generatePrefix()
-    .then((adjustmentNo) => {
-      self.getData().then((allData) => {
-        // Pre-check quantities and costing
-        preCheckQuantitiesAndCosting(
-          { ...allData, adjustment_no: adjustmentNo },
-          self
-        )
-          .then(() => {
-            const tableIndex = allData.dialog_index?.table_index;
-            const adjustedBy = allData.adjusted_by || "system";
-            const {
-              organization_id,
-              adjustment_date,
-              adjustment_type,
-              plant_id,
-              adjustment_remarks,
-              reference_documents,
-              subform_dus1f9ob,
-            } = allData;
-
-            const sa = {
-              stock_adjustment_status: "Completed",
-              organization_id,
-              adjustment_no: adjustmentNo,
-              adjustment_date,
-              adjustment_type,
-              adjusted_by: adjustedBy,
-              plant_id,
-              adjustment_remarks,
-              reference_documents,
-              subform_dus1f9ob,
-              table_index: tableIndex,
-            };
-
-            return db
-              .collection("stock_adjustment")
-              .add(sa)
-              .then(() => {
-                updateInventory({ ...allData, adjustment_no: adjustmentNo });
-              });
-          })
-          .then(() => {
-            closeDialog();
-          })
-          .catch((error) => {
-            console.error("Error in stock adjustment:", error);
-            // Error already handled in preCheckQuantitiesAndCosting
-          });
-      });
+        .then(() => {
+          closeDialog();
+        })
+        .catch((error) => {
+          console.error("Error in stock adjustment:", error);
+          // Error already handled in preCheckQuantitiesAndCosting
+        });
     })
     .catch((error) => {
       self.$alert(
@@ -876,6 +918,11 @@ if (page_status === "Add") {
       );
     });
 } else if (page_status === "Edit") {
+  this.showLoading();
+  let organizationId = this.getVarGlobal("deptParentId");
+  if (organizationId === "0") {
+    organizationId = this.getVarSystem("deptIds").split(",")[0];
+  }
   this.getData().then((allData) => {
     // Pre-check quantities and costing
     preCheckQuantitiesAndCosting(allData, self)
@@ -907,11 +954,103 @@ if (page_status === "Add") {
           table_index: tableIndex,
         };
 
-        db.collection("stock_adjustment")
-          .doc(stockAdjustmentId)
-          .update(sa)
-          .then(() => {
-            updateInventory(allData);
+        const prefixEntry = db
+          .collection("prefix_configuration")
+          .where({
+            document_types: "Stock Adjustment",
+            is_deleted: 0,
+            organization_id: organizationId,
+            is_active: 1,
+          })
+          .get()
+          .then((prefixEntry) => {
+            if (prefixEntry.data.length > 0) {
+              const prefixData = prefixEntry.data[0];
+              const now = new Date();
+              let prefixToShow;
+              let runningNumber = prefixData.running_number;
+              let isUnique = false;
+              let maxAttempts = 10;
+              let attempts = 0;
+
+              const generatePrefix = (runNumber) => {
+                let generated = prefixData.current_prefix_config;
+                generated = generated.replace(
+                  "prefix",
+                  prefixData.prefix_value
+                );
+                generated = generated.replace(
+                  "suffix",
+                  prefixData.suffix_value
+                );
+                generated = generated.replace(
+                  "month",
+                  String(now.getMonth() + 1).padStart(2, "0")
+                );
+                generated = generated.replace(
+                  "day",
+                  String(now.getDate()).padStart(2, "0")
+                );
+                generated = generated.replace("year", now.getFullYear());
+                generated = generated.replace(
+                  "running_number",
+                  String(runNumber).padStart(prefixData.padding_zeroes, "0")
+                );
+                return generated;
+              };
+
+              const checkUniqueness = async (generatedPrefix) => {
+                const existingDoc = await db
+                  .collection("stock_adjustment")
+                  .where({ adjustment_no: generatedPrefix })
+                  .get();
+                return existingDoc.data[0] ? false : true;
+              };
+
+              const findUniquePrefix = async () => {
+                while (!isUnique && attempts < maxAttempts) {
+                  attempts++;
+                  prefixToShow = generatePrefix(runningNumber);
+                  isUnique = await checkUniqueness(prefixToShow);
+                  if (!isUnique) {
+                    runningNumber++;
+                  }
+                }
+
+                if (!isUnique) {
+                  throw new Error(
+                    "Could not generate a unique Stock Adjustment number after maximum attempts"
+                  );
+                } else {
+                  sa.adjustment_no = prefixToShow;
+                  db.collection("stock_adjustment")
+                    .doc(stockAdjustmentId)
+                    .update(sa)
+                    .then(() => {
+                      updateInventory(sa);
+                    });
+                  db.collection("prefix_configuration")
+                    .where({
+                      document_types: "Stock Adjustment",
+                      is_deleted: 0,
+                      organization_id: organizationId,
+                    })
+                    .update({
+                      running_number: parseInt(runningNumber) + 1,
+                      has_record: 1,
+                    });
+                }
+              };
+
+              findUniquePrefix();
+            } else {
+              db.collection("stock_adjustment")
+                .doc(stockAdjustmentId)
+                .update(sa)
+                .then(() => {
+                  updateInventory(sa);
+                });
+            }
           })
           .then(() => {
             closeDialog();
