@@ -1,5 +1,7 @@
 const page_status = this.getParamsVariables("page_status");
 const self = this;
+const initialData = this.getValues();
+const gdStatus = initialData.gd_status;
 
 if (window.isProcessing) {
   console.log("Process already running, skipping...");
@@ -372,8 +374,9 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
           const temp = temporaryData[i];
           const prevTemp = isUpdate ? prevTempData[i] : null;
 
+          console.log("data.gd_status", data.gd_status);
           const inventoryCategory =
-            data.gd_status === "Created" ? "RES" : "UNR";
+            gdStatus === "Created" ? "Reserved" : "Unrestricted";
 
           // UOM Conversion
           let altQty = parseFloat(temp.gd_quantity);
@@ -527,7 +530,7 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
               finalReservedQty += gdQuantityDiff;
             }
 
-            if (data.gd_status === "Created") {
+            if (gdStatus === "Created") {
               finalReservedQty -= baseQty;
               finalBalanceQty -= baseQty;
             } else {
