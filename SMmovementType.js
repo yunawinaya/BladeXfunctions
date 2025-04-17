@@ -9,53 +9,43 @@ const movementTypeOptions = [
 ];
 
 const currentValues = this.getValues();
-console.log("currentValues", currentValues);
 const savedBalanceIndex = currentValues.balance_index || [];
-console.log("savedBalanceIndex", savedBalanceIndex);
 const originalMovementType = currentValues.movement_type;
-console.log("originalMovementType", originalMovementType);
 
 const enhanceStockMovementUI = async () => {
   try {
     // Get page and form data
     const pageAction = this.getParamsVariables("page_status"); // Add, Edit, View
+
+    const currentValues = this.getValues();
     const { movement_type: movementTypeId, stock_movement_status: pageStatus } =
-      this.getValues();
+      currentValues;
 
     // Validate page action
     if (!["Add", "Edit", "View", undefined].includes(pageAction)) {
       console.warn(`Invalid page action: ${pageAction}`);
     }
 
-    this.setData({
-      // 'movement_reason': '',
-      // 'issued_by': '',
-      // 'tenant_id': '',
-      // 'issuing_operation_faci': '',
-      // 'receiving_operation_faci': '',
-      // 'reference_documents': '',
-      sm_item_balance: [],
-      table_item_balance: [],
-      stock_movement: [],
-      // 'remarks': '',
-      // 'delivery_method': '',
-      // 'driver_name': '',
-      // 'vehicle_no': '',
-      // 'pickup_date': '',
-      // 'courier_company': '',
-      // 'tracking_number': '',
-      // 'freight_charges': '',
-      // 'driver_contact_no': '',
-      // 'delivery_cost': '',
-      // 'est_delivery_date': '',
-      // 'shipping_company': '',
-      // 'date_qn0dl3t6': '',
-      // 'input_77h4nsq8': '',
-      // 'shipping_method': '',
-      // 'est_arrival_date': '',
-      // 'tracking_no': '',
-      balance_index: [],
-    });
+    const movementTypeChanged =
+      pageAction === "Edit" && movementTypeId !== originalMovementType;
+
+    if (pageAction === "Add" || movementTypeChanged) {
+      console.log(
+        `Resetting data fields. Reason: ${
+          pageAction === "Add" ? "New record" : "Movement type changed"
+        }`
+      );
+      this.setData({
+        sm_item_balance: [],
+        table_item_balance: [],
+        stock_movement: [],
+        balance_index: [],
+      });
+    } else {
+      console.log(
+        "Preserving existing data - no movement type change detected"
+      );
+    }
 
     // Fetch stock movement type from database
     const { data: movementTypes } = await db
@@ -65,16 +55,20 @@ const enhanceStockMovementUI = async () => {
       throw new Error("No stock movement types found in database");
     }
 
-    const {
-      data: [movementTypeEntry],
-    } = await db
-      .collection("stock_movement_type")
-      .where({ id: movementTypeId })
-      .get();
-    if (!movementTypeEntry) {
-      throw new Error("Invalid movement type ID");
+    let movementTypeName;
+    if (movementTypeId) {
+      const {
+        data: [movementTypeEntry],
+      } = await db
+        .collection("stock_movement_type")
+        .where({ id: movementTypeId })
+        .get();
+
+      if (!movementTypeEntry) {
+        throw new Error("Invalid movement type ID");
+      }
+      movementTypeName = movementTypeEntry.sm_type_name;
     }
-    const movementTypeName = movementTypeEntry.sm_type_name;
 
     // Create mapping of stock movement types to IDs
     const stockMovementMap = Object.fromEntries(
@@ -218,6 +212,7 @@ const enhanceStockMovementUI = async () => {
         hideFields: [
           "delivery_method",
           "receiving_operation_faci",
+          "stock_movement.category",
           "stock_movement.recv_location_id",
           "stock_movement.received_quantity",
           "stock_movement.received_quantity_uom",
@@ -622,18 +617,17 @@ const enhanceStockMovementUI = async () => {
 enhanceStockMovementUI();
 
 if (
-  this.getParamsVariables("page_status") === "Edit" ||
-  this.getParamsVariables("page_status") === "View"
+  (this.getParamsVariables("page_status") === "Edit" ||
+    this.getParamsVariables("page_status") === "View") &&
+  this.getValues().movement_type === originalMovementType &&
+  savedBalanceIndex &&
+  savedBalanceIndex.length > 0
 ) {
-  const newValues = this.getValues();
-  const newMovementType = newValues.movement_type;
-
-  if (newMovementType === originalMovementType) {
-    setTimeout(() => {
-      this.setData({
-        balance_index: savedBalanceIndex,
-      });
-      console.log("Restored balance_index", this.getValues());
-    }, 1000);
-  }
+  setTimeout(() => {
+    console.log("Restoring balance_index", savedBalanceIndex);
+    this.setData({
+      balance_index: savedBalanceIndex,
+    });
+    console.log("Restored balance_index", this.getValues().balance_index);
+  }, 2000);
 }

@@ -332,139 +332,66 @@ class StockAdjuster {
   }
 
   async processItem(item, movementType, allData) {
-    try {
-      const materialResponse = await this.db
-        .collection("Item")
-        .where({ id: item.item_selection })
-        .get();
-      const materialData = materialResponse.data[0];
+    const materialResponse = await this.db
+      .collection("Item")
+      .where({ id: item.item_selection })
+      .get();
+    const materialData = materialResponse.data[0];
 
-      if (!materialData) {
-        throw new Error(`Material not found for item ${item.item_selection}`);
-      }
+    const balancesToProcess =
+      allData.balance_index?.filter(
+        (balance) => balance.sm_quantity && balance.sm_quantity > 0
+      ) || [];
 
-      const balancesToProcess =
-        allData.balance_index?.filter(
-          (balance) => balance.sm_quantity && balance.sm_quantity > 0
-        ) || [];
-
-      if (
-        movementType === "Miscellaneous Receipt" &&
-        (!item.received_quantity || item.received_quantity <= 0)
-      ) {
-        return {
-          itemId: item.item_selection,
-          status: "skipped",
-          reason: "No received quantity provided",
-        };
-      }
-
-      const updates = [];
-      for (const balance of balancesToProcess) {
-        try {
-          console.log(
-            `Processing balance for ${item.item_selection} at location ${balance.location_id}`
-          );
-
-          await this.updateQuantities(
-            materialData,
-            movementType,
-            balance,
-            allData,
-            item
-          );
-
-          const movementResult = await this.recordInventoryMovement(
-            materialData,
-            movementType,
-            balance,
-            allData,
-            item
-          );
-
-          updates.push({
-            balance: balance.location_id,
-            status: "success",
-            result: movementResult,
-          });
-        } catch (balanceError) {
-          console.error(
-            `Error processing balance for ${item.item_selection} at ${balance.location_id}:`,
-            balanceError
-          );
-
-          updates.push({
-            balance: balance.location_id,
-            status: "error",
-            error: balanceError.message,
-          });
-
-          return {
-            itemId: item.item_selection,
-            status: "error",
-            error: balanceError.message,
-          };
-        }
-      }
-
-      if (
-        movementType === "Miscellaneous Receipt" &&
-        item.received_quantity > 0
-      ) {
-        try {
-          await this.updateQuantities(
-            materialData,
-            movementType,
-            {},
-            allData,
-            item
-          );
-          await this.recordInventoryMovement(
-            materialData,
-            movementType,
-            { sm_quantity: item.received_quantity },
-            allData,
-            item
-          );
-
-          updates.push({
-            type: "receipt",
-            status: "success",
-          });
-        } catch (receiptError) {
-          console.error(
-            `Error processing receipt for ${item.item_selection}:`,
-            receiptError
-          );
-
-          updates.push({
-            type: "receipt",
-            status: "error",
-            error: receiptError.message,
-          });
-          return {
-            itemId: item.item_selection,
-            status: "error",
-            error: receiptError.message,
-          };
-        }
-      }
-
+    if (
+      movementType === "Miscellaneous Receipt" &&
+      (!item.received_quantity || item.received_quantity <= 0)
+    ) {
       return {
         itemId: item.item_selection,
-        status: updates.some((u) => u.status === "error")
-          ? "partial"
-          : "success",
-        details: updates,
-      };
-    } catch (error) {
-      console.error(`Error in processItem for ${item.item_selection}:`, error);
-      return {
-        itemId: item.item_selection,
-        status: "failed",
-        error: error.message,
+        status: "skipped",
+        reason: "No received quantity provided",
       };
     }
+
+    const updates = await Promise.all(
+      balancesToProcess.map((balance) =>
+        Promise.all([
+          this.updateQuantities(
+            materialData,
+            movementType,
+            balance,
+            allData,
+            item
+          ),
+          this.recordInventoryMovement(
+            materialData,
+            movementType,
+            balance,
+            allData,
+            item
+          ),
+        ])
+      )
+    );
+
+    if (
+      movementType === "Miscellaneous Receipt" &&
+      item.received_quantity > 0
+    ) {
+      await Promise.all([
+        this.updateQuantities(materialData, movementType, {}, allData, item),
+        this.recordInventoryMovement(
+          materialData,
+          movementType,
+          { sm_quantity: item.received_quantity },
+          allData,
+          item
+        ),
+      ]);
+    }
+
+    return { itemId: item.item_selection, status: "success" };
   }
 
   async updateQuantities(
@@ -504,11 +431,10 @@ class StockAdjuster {
 
     // Derive the category field without modifying balance.category
     const categoryKey =
-      movementType === "Location Transfer"
-        ? "Unrestricted"
-        : movementType === "Miscellaneous Receipt"
-        ? subformData.category || "Unrestricted"
-        : balance.category || "Unrestricted";
+      movementType === "Location Transfer" ||
+      movementType === "Miscellaneous Receipt"
+        ? subformData.category
+        : balance.category;
     const categoryField = this.categoryMap[categoryKey];
 
     // if (!categoryField && movementType != 'Inventory Category Transfer Posting') {
@@ -716,11 +642,10 @@ class StockAdjuster {
         };
 
     const categoryField =
-      movementType === "Location Transfer"
-        ? this.categoryMap["Unrestricted"]
-        : movementType === "Miscellaneous Receipt"
-        ? this.categoryMap[subformData.category || "Unrestricted"]
-        : this.categoryMap[balance.category || "Unrestricted"];
+      movementType === "Location Transfer" ||
+      movementType === "Miscellaneous Receipt"
+        ? this.categoryMap[subformData.category]
+        : this.categoryMap[balance.category];
     updateData.balance_quantity =
       (updateData.balance_quantity || 0) + qtyChangeValue;
     updateData[categoryField] =
@@ -836,11 +761,7 @@ class StockAdjuster {
         return;
       }
 
-      if (
-        !["Weighted Average", "First In First Out", "Fixed Cost"].includes(
-          costingMethod
-        )
-      ) {
+      if (!["Weighted Average", "First In First Out"].includes(costingMethod)) {
         throw new Error(`Unsupported costing method: ${costingMethod}`);
       }
 
@@ -901,6 +822,7 @@ class StockAdjuster {
             hasId: waData.map((item) => Boolean(item.id)),
           });
 
+          // Safely sort and get the latest record
           let latestWa;
           try {
             latestWa = waData.sort(
@@ -908,6 +830,7 @@ class StockAdjuster {
                 new Date(b.created_at || 0) - new Date(a.created_at || 0)
             )[0];
 
+            // Verify latestWa is valid
             if (!latestWa) {
               throw new Error("No WA records found after sorting");
             }
@@ -929,8 +852,11 @@ class StockAdjuster {
             );
           }
 
+          // Continue with your existing code
           const currentQty = latestWa.wa_quantity || 0;
           const currentCostPrice = latestWa.wa_cost_price || 0;
+
+          // Rest of your code...
 
           if (qtyChangeValue > 0) {
             // Receipt
@@ -1061,9 +987,6 @@ class StockAdjuster {
             );
           }
         }
-      } else if (costingMethod === "Fixed Cost") {
-        console.log("Fixed Cost method - no costing records to update");
-        return;
       }
     } catch (error) {
       console.error("Detailed error in updateCostingMethod:", {
@@ -1081,100 +1004,6 @@ class StockAdjuster {
         `Failed to update costing method: ${error.message || "Unknown error"}`
       );
     }
-  }
-
-  // Function to get latest FIFO cost price with available quantity check
-  async getLatestFIFOCostPrice(materialId, batchId) {
-    try {
-      const query = batchId
-        ? this.db
-            .collection("fifo_costing_history")
-            .where({ material_id: materialId, batch_id: batchId })
-        : this.db
-            .collection("fifo_costing_history")
-            .where({ material_id: materialId });
-
-      const response = await query.get();
-      const result = response.data;
-
-      if (result && Array.isArray(result) && result.length > 0) {
-        // Sort by FIFO sequence (lowest/oldest first, as per FIFO principle)
-        const sortedRecords = result.sort(
-          (a, b) => a.fifo_sequence - b.fifo_sequence
-        );
-
-        // First look for records with available quantity
-        for (const record of sortedRecords) {
-          const availableQty = parseFloat(record.fifo_available_quantity || 0);
-          if (availableQty > 0) {
-            console.log(
-              `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
-            );
-            return parseFloat(record.fifo_cost_price || 0);
-          }
-        }
-
-        // If no records with available quantity, use the most recent record
-        console.warn(
-          `No FIFO records with available quantity found for ${materialId}, using most recent cost price`
-        );
-        return parseFloat(
-          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
-        );
-      }
-
-      console.warn(`No FIFO records found for material ${materialId}`);
-      return 0;
-    } catch (error) {
-      console.error(
-        `Error retrieving FIFO cost price for ${materialId}:`,
-        error
-      );
-      return 0;
-    }
-  }
-
-  // Function to get Weighted Average cost price
-  async getWeightedAverageCostPrice(materialId, batchId) {
-    try {
-      const query = batchId
-        ? this.db
-            .collection("wa_costing_method")
-            .where({ material_id: materialId, batch_id: batchId })
-        : this.db
-            .collection("wa_costing_method")
-            .where({ material_id: materialId });
-
-      const response = await query.get();
-      const waData = response.data;
-
-      if (waData && Array.isArray(waData) && waData.length > 0) {
-        // Sort by date (newest first) to get the latest record
-        waData.sort((a, b) => {
-          if (a.created_at && b.created_at) {
-            return new Date(b.created_at) - new Date(a.created_at);
-          }
-          return 0;
-        });
-
-        return parseFloat(waData[0].wa_cost_price || 0);
-      }
-
-      console.warn(
-        `No weighted average records found for material ${materialId}`
-      );
-      return 0;
-    } catch (error) {
-      console.error(`Error retrieving WA cost price for ${materialId}:`, error);
-      return 0;
-    }
-  }
-
-  async getFixedCostPrice(materialId) {
-    const query = this.db.collection("Item").where({ id: materialId });
-    const response = await query.get();
-    const result = response.data;
-    return parseFloat(result[0].purchase_unit_price || 0);
   }
 
   async recordInventoryMovement(
@@ -1212,34 +1041,12 @@ class StockAdjuster {
       );
     }
 
-    let unitPrice =
+    const unitPrice =
       balance.unit_price && balance.unit_price !== 0
         ? balance.unit_price
         : subformData.unit_price && subformData.unit_price !== 0
         ? subformData.unit_price
         : materialData.purchase_unit_price || 0;
-
-    if (materialData.material_costing_method === "First In First Out") {
-      // Get unit price from latest FIFO sequence
-      const fifoCostPrice = await this.getLatestFIFOCostPrice(
-        materialData.id,
-        balance.batch_id
-      );
-      unitPrice = fifoCostPrice;
-    } else if (materialData.material_costing_method === "Weighted Average") {
-      // Get unit price from WA cost price
-      const waCostPrice = await this.getWeightedAverageCostPrice(
-        materialData.id,
-        balance.batch_id
-      );
-      unitPrice = waCostPrice;
-    } else if (materialData.material_costing_method === "Fixed Cost") {
-      // Get unit price from Fixed Cost
-      const fixedCostPrice = await this.getFixedCostPrice(materialData.id);
-      unitPrice = fixedCostPrice;
-    } else {
-      return Promise.resolve();
-    }
 
     const baseMovementData = {
       transaction_type: "SM",
@@ -1266,13 +1073,13 @@ class StockAdjuster {
           ...baseMovementData,
           movement: "OUT",
           bin_location_id: balance.location_id,
-          inventory_category: "Unrestricted",
+          inventory_category: balance.category,
         };
         const inMovement = {
           ...baseMovementData,
           movement: "IN",
           bin_location_id: subformData.location_id,
-          inventory_category: "Unrestricted",
+          inventory_category: subformData.category || balance.category,
         };
         const [outResult, inResult] = await Promise.all([
           this.db.collection("inventory_movement").add(outMovement),
@@ -1433,11 +1240,7 @@ class StockAdjuster {
             // }
 
             const categoryField =
-              movementType === "Location Transfer"
-                ? this.categoryMap["Unrestricted"]
-                : this.categoryMap[
-                    balance.category || subformData.category || "Unrestricted"
-                  ];
+              this.categoryMap[balance.category || subformData.category];
             const currentQty = balanceData[categoryField] || 0;
             const requestedQty =
               balance.quantity_converted || balance.sm_quantity;
