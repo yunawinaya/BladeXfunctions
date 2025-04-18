@@ -329,6 +329,7 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
   }
 
   const processedItemPromises = items.map(async (item, itemIndex) => {
+    const updatedDocs = [];
     try {
       console.log(`Processing item ${itemIndex + 1}/${items.length}`);
 
@@ -339,7 +340,7 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
       }
 
       // Track created or updated documents for potential rollback
-      const updatedDocs = [];
+
       const createdDocs = [];
 
       // First check if this item should be processed based on stock_control
@@ -542,9 +543,9 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
               collection: balanceCollection,
               docId: existingDoc.id,
               originalData: {
-                unrestricted_qty: existingDoc.unrestricted_qty || 0,
-                reserved_qty: existingDoc.reserved_qty || 0,
-                balance_quantity: existingDoc.balance_quantity || 0,
+                unrestricted_qty: parseFloat(existingDoc.unrestricted_qty || 0),
+                reserved_qty: parseFloat(existingDoc.reserved_qty || 0),
+                balance_quantity: parseFloat(existingDoc.balance_quantity || 0),
               },
             });
 
@@ -833,7 +834,7 @@ this.getData()
               is_active: 1,
             })
             .get()
-            .then((prefixEntry) => {
+            .then(async (prefixEntry) => {
               if (prefixEntry.data.length > 0) {
                 const prefixData = prefixEntry.data[0];
                 const now = new Date();
@@ -893,7 +894,8 @@ this.getData()
                     );
                   } else {
                     gd.delivery_no = prefixToShow;
-                    db.collection("goods_delivery")
+                    await db
+                      .collection("goods_delivery")
                       .doc(goodsDeliveryId)
                       .update(gd);
                     db.collection("prefix_configuration")
@@ -909,23 +911,23 @@ this.getData()
                   }
                 };
 
-                findUniquePrefix();
+                await findUniquePrefix();
               } else {
-                db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+                await db
+                  .collection("goods_delivery")
+                  .doc(goodsDeliveryId)
+                  .update(gd);
               }
             })
             .catch((error) => {
-              console.log(error);
+              this.$message.error(error);
             });
         } else {
           db.collection("goods_delivery")
             .doc(goodsDeliveryId)
             .update(gd)
-            .then(() => {
-              closeDialog();
-            })
             .catch((error) => {
-              console.log(error);
+              this.$message.error(error);
             });
         }
 
@@ -935,9 +937,7 @@ this.getData()
       }
     } catch (error) {
       console.error("Error in goods delivery process:", error);
-      alert(
-        "An error occurred during processing. Please try again or contact support."
-      );
+      this.$message.error(error);
       throw error;
     } finally {
       window.isProcessing = false;
@@ -945,8 +945,6 @@ this.getData()
   })
   .catch((error) => {
     console.error("Error in goods delivery process:", error);
-    alert(
-      "Please fill in all required fields marked with (*) before submitting."
-    );
+    this.$message.error(error);
     window.isProcessing = false;
   });

@@ -361,6 +361,10 @@ this.getData()
         throw new Error("Missing required data for goods delivery");
       }
 
+      let organizationId = this.getVarGlobal("deptParentId");
+      if (organizationId === "0") {
+        organizationId = this.getVarSystem("deptIds").split(",")[0];
+      }
       // Destructure required fields
       const {
         so_id,
@@ -484,19 +488,29 @@ this.getData()
           .then(() => {
             return db
               .collection("prefix_configuration")
-              .where({ document_types: "Goods Delivery", is_deleted: 0 })
+              .where({
+                document_types: "Goods Delivery",
+                is_deleted: 0,
+                organization_id: organizationId,
+                is_active: 1,
+              })
               .get()
               .then((prefixEntry) => {
                 const data = prefixEntry.data[0];
                 return db
                   .collection("prefix_configuration")
-                  .where({ document_types: "Goods Delivery", is_deleted: 0 })
+                  .where({
+                    document_types: "Goods Delivery",
+                    is_deleted: 0,
+                    organization_id: organizationId,
+                  })
                   .update({
                     running_number: parseInt(data.running_number) + 1,
+                    has_record: 1,
                   });
               });
           });
-        await processBalanceTable(data);
+        await processBalanceTable(gd);
       } else if (page_status === "Edit") {
         this.showLoading();
         const goodsDeliveryId = this.getParamsVariables("goods_delivery_no");
@@ -504,83 +518,118 @@ this.getData()
         if (gd.delivery_no.startsWith("DRAFT")) {
           const prefixEntry = db
             .collection("prefix_configuration")
-            .where({ document_types: "Goods Delivery" })
+            .where({
+              document_types: "Goods Delivery",
+              organization_id: organizationId,
+              is_active: 1,
+            })
             .get()
             .then((prefixEntry) => {
-              if (prefixEntry) {
+              if (prefixEntry.data.length > 0) {
                 const prefixData = prefixEntry.data[0];
                 const now = new Date();
-                let prefixToShow = prefixData.current_prefix_config;
+                let prefixToShow;
+                let runningNumber = prefixData.running_number;
+                let isUnique = false;
+                let maxAttempts = 10;
+                let attempts = 0;
 
-                prefixToShow = prefixToShow.replace(
-                  "prefix",
-                  prefixData.prefix_value
-                );
-                prefixToShow = prefixToShow.replace(
-                  "suffix",
-                  prefixData.suffix_value
-                );
-                prefixToShow = prefixToShow.replace(
-                  "month",
-                  String(now.getMonth() + 1).padStart(2, "0")
-                );
-                prefixToShow = prefixToShow.replace(
-                  "day",
-                  String(now.getDate()).padStart(2, "0")
-                );
-                prefixToShow = prefixToShow.replace("year", now.getFullYear());
-                prefixToShow = prefixToShow.replace(
-                  "running_number",
-                  String(prefixData.running_number).padStart(
-                    prefixData.padding_zeroes,
-                    "0"
-                  )
-                );
-                gd.delivery_no = prefixToShow;
+                const generatePrefix = (runNumber) => {
+                  let generated = prefixData.current_prefix_config;
+                  generated = generated.replace(
+                    "prefix",
+                    prefixData.prefix_value
+                  );
+                  generated = generated.replace(
+                    "suffix",
+                    prefixData.suffix_value
+                  );
+                  generated = generated.replace(
+                    "month",
+                    String(now.getMonth() + 1).padStart(2, "0")
+                  );
+                  generated = generated.replace(
+                    "day",
+                    String(now.getDate()).padStart(2, "0")
+                  );
+                  generated = generated.replace("year", now.getFullYear());
+                  generated = generated.replace(
+                    "running_number",
+                    String(runNumber).padStart(prefixData.padding_zeroes, "0")
+                  );
+                  return generated;
+                };
 
+                const checkUniqueness = async (generatedPrefix) => {
+                  const existingDoc = await db
+                    .collection("goods_delivery")
+                    .where({ delivery_no: generatedPrefix })
+                    .get();
+                  return existingDoc.data[0] ? false : true;
+                };
+
+                const findUniquePrefix = async () => {
+                  while (!isUnique && attempts < maxAttempts) {
+                    attempts++;
+                    prefixToShow = generatePrefix(runningNumber);
+                    isUnique = await checkUniqueness(prefixToShow);
+                    if (!isUnique) {
+                      runningNumber++;
+                    }
+                  }
+
+                  if (!isUnique) {
+                    throw new Error(
+                      "Could not generate a unique Goods Delivery number after maximum attempts"
+                    );
+                  } else {
+                    gd.delivery_no = prefixToShow;
+                    db.collection("goods_delivery")
+                      .doc(goodsDeliveryId)
+                      .update(gd);
+                    db.collection("prefix_configuration")
+                      .where({
+                        document_types: "Goods Delivery",
+                        is_deleted: 0,
+                        organization_id: organizationId,
+                      })
+                      .update({
+                        running_number: parseInt(runningNumber) + 1,
+                        has_record: 1,
+                      });
+                  }
+                };
+
+                findUniquePrefix();
+              } else {
                 db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
-                return prefixData.running_number;
               }
             })
-            .then((currentRunningNumber) => {
-              db.collection("prefix_configuration")
-                .where({ document_types: "Goods Delivery", is_deleted: 0 })
-                .update({ running_number: parseInt(currentRunningNumber) + 1 });
-            })
-            .then(() => {
-              closeDialog();
-            })
             .catch((error) => {
-              console.log(error);
+              this.$message.error(error);
             });
         } else {
           db.collection("goods_delivery")
             .doc(goodsDeliveryId)
             .update(gd)
-            .then(() => {
-              closeDialog();
-            })
             .catch((error) => {
-              console.log(error);
+              this.$message.error(error);
             });
         }
 
-        await processBalanceTable(data, true);
+        await processBalanceTable(gd, true);
       }
-
-      // Close dialog
-      closeDialog();
     } catch (error) {
       console.error("Error in goods delivery process:", error);
-      alert(
+      this.$message.error(
         "An error occurred during processing. Please try again or contact support."
       );
-      throw error;
     }
+  })
+  .then(() => {
+    closeDialog();
   })
   .catch((error) => {
     console.error("Error in goods delivery process:", error);
-    alert(
-      "Please fill in all required fields marked with (*) before submitting."
-    );
+    this.$message.error(error);
   });

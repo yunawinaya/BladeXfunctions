@@ -644,27 +644,8 @@ async function preCheckQuantitiesAndCosting(allData, context) {
   try {
     console.log("Starting preCheckQuantitiesAndCosting with data:", allData);
 
-    // Step 1: Validate top-level required fields
-    const requiredTopLevelFields = [
-      "adjustment_no",
-      "adjustment_type",
-      "adjustment_date",
-      "plant_id",
-    ];
-    requiredTopLevelFields.forEach((field) => {
-      if (!allData[field]) {
-        throw new Error(`Required field ${field} is missing`);
-      }
-    });
-
-    // Step 2: Validate subform data
-    const subformData = allData.subform_dus1f9ob;
-    if (!subformData || subformData.length === 0) {
-      throw new Error("Stock adjustment items are required");
-    }
-
     // Step 3: Perform item validations and quantity checks
-    for (const item of subformData) {
+    for (const item of allData.subform_dus1f9ob) {
       // Fetch material data
       const materialResponse = await db
         .collection("Item")
@@ -832,11 +813,9 @@ if (page_status === "Add") {
     .getData()
     .then((allData) => {
       // Pre-check quantities and costing
-      preCheckQuantitiesAndCosting(
-        { ...allData, adjustment_no: adjustmentNo },
-        self
-      )
+      preCheckQuantitiesAndCosting(allData, self)
         .then(() => {
+          console.log("allData", allData);
           const tableIndex = allData.dialog_index?.table_index;
           const adjustedBy = allData.adjusted_by || "system";
           const {
@@ -908,14 +887,10 @@ if (page_status === "Add") {
         });
     })
     .catch((error) => {
-      self.$alert(
-        `Please fill in all required fields marked with (*) before submitting.`,
-        "Error",
-        {
-          confirmButtonText: "OK",
-          type: "error",
-        }
-      );
+      self.$alert(error, "Error", {
+        confirmButtonText: "OK",
+        type: "error",
+      });
     });
 } else if (page_status === "Edit") {
   this.showLoading();
