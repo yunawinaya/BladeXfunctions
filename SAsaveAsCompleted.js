@@ -62,7 +62,7 @@ const getLatestFIFOCostPrice = async (materialId, batchId) => {
           console.log(
             `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
           );
-          return parseFloat(record.fifo_cost_price || 0);
+          return Number(parseFloat(record.fifo_cost_price || 0).toFixed(4));
         }
       }
 
@@ -104,7 +104,7 @@ const getWeightedAverageCostPrice = async (materialId, batchId) => {
         return 0;
       });
 
-      return parseFloat(waData[0].wa_cost_price || 0);
+      return Number(parseFloat(waData[0].wa_cost_price || 0).toFixed(4));
     }
 
     console.warn(
@@ -121,7 +121,7 @@ const getFixedCostPrice = async (materialId) => {
   const query = db.collection("Item").where({ id: materialId });
   const response = await query.get();
   const result = response.data;
-  return parseFloat(result[0].purchase_unit_price || 0);
+  return Number(parseFloat(result[0].purchase_unit_price || 0).toFixed(4));
 };
 
 const updateInventory = (allData) => {
@@ -298,7 +298,7 @@ const updateInventory = (allData) => {
                   organization_id: organization_id,
                   fifo_initial_quantity: quantityChange,
                   fifo_available_quantity: quantityChange,
-                  fifo_cost_price: unitPrice,
+                  fifo_cost_price: Number(unitPrice.toFixed(4)),
                   fifo_sequence: newSequence,
                   created_at: new Date(),
                 });
@@ -512,8 +512,8 @@ const updateInventory = (allData) => {
             trx_no: allData.adjustment_no,
             parent_trx_no: null,
             movement: movementType,
-            unit_price: unitPrice,
-            total_price: totalPrice,
+            unit_price: Number(unitPrice.toFixed(4)),
+            total_price: Number(totalPrice.toFixed(4)),
             quantity: balance.sa_quantity,
             item_id: item.material_id,
             inventory_category: balance.category,
