@@ -21,9 +21,22 @@ const enhanceStockMovementUI = async () => {
     const { movement_type: movementTypeId, stock_movement_status: pageStatus } =
       currentValues;
 
+    console.log("Current page action:", pageAction);
+    console.log("Current movement type ID:", movementTypeId);
+
     // Validate page action
     if (!["Add", "Edit", "View", undefined].includes(pageAction)) {
       console.warn(`Invalid page action: ${pageAction}`);
+    }
+
+    // Hide delivery_method and receiving_operation_faci when movement_type is empty
+    // or when in Add mode before selecting a movement type
+    if (!movementTypeId || pageAction === "Add") {
+      console.log(
+        "Hiding delivery_method and receiving_operation_faci due to empty movement type or Add mode"
+      );
+      this.hide("delivery_method");
+      this.hide("receiving_operation_faci");
     }
 
     const movementTypeChanged =
@@ -36,6 +49,9 @@ const enhanceStockMovementUI = async () => {
         }`
       );
       this.setData({
+        movement_reason: "",
+        issued_by: "",
+        issuing_operation_faci: "",
         sm_item_balance: [],
         table_item_balance: [],
         stock_movement: [],
@@ -68,12 +84,23 @@ const enhanceStockMovementUI = async () => {
         throw new Error("Invalid movement type ID");
       }
       movementTypeName = movementTypeEntry.sm_type_name;
+      console.log(
+        `Found movement type: "${movementTypeName}" for ID: ${movementTypeId}`
+      );
     }
 
     // Create mapping of stock movement types to IDs
     const stockMovementMap = Object.fromEntries(
       movementTypes.map((item) => [item.sm_type_name, item.id])
     );
+
+    // Create reverse mapping for debugging purposes
+    const idToNameMap = Object.fromEntries(
+      movementTypes.map((item) => [item.id, item.sm_type_name])
+    );
+
+    console.log("Stock movement map:", stockMovementMap);
+    console.log("Reverse ID to name map:", idToNameMap);
 
     // Helper functions for button visibility
     const hideAllButtons = () => {
@@ -522,9 +549,39 @@ const enhanceStockMovementUI = async () => {
       this.disabled([field], false);
     });
 
-    // Apply UI conditions
-    const matchedCondition = uiConditions.find(
-      (condition) => movementTypeId === stockMovementMap[condition.name]
+    // Apply UI conditions - Using different comparison approaches for large IDs
+    let matchedCondition = null;
+
+    // First try to find by movement type name
+    if (movementTypeName) {
+      matchedCondition = uiConditions.find(
+        (condition) => condition.name === movementTypeName
+      );
+
+      if (matchedCondition) {
+        console.log(
+          `Found UI condition by name match: ${matchedCondition.name}`
+        );
+      }
+    }
+
+    // If that fails, try string comparison of IDs
+    if (!matchedCondition && movementTypeId) {
+      matchedCondition = uiConditions.find(
+        (condition) =>
+          String(stockMovementMap[condition.name]) === String(movementTypeId)
+      );
+
+      if (matchedCondition) {
+        console.log(
+          `Found UI condition by string ID comparison: ${matchedCondition.name}`
+        );
+      }
+    }
+
+    console.log(
+      "Matched condition:",
+      matchedCondition ? matchedCondition.name : "None"
     );
 
     if (matchedCondition) {
@@ -544,6 +601,13 @@ const enhanceStockMovementUI = async () => {
       console.warn(
         `No UI condition matched for movement type ID: ${movementTypeId}`
       );
+
+      // If no match is found and we're in Add mode or no movement type is selected,
+      // ensure delivery_method and receiving_operation_faci are hidden
+      if (!movementTypeId || pageAction === "Add") {
+        this.hide("delivery_method");
+        this.hide("receiving_operation_faci");
+      }
     }
 
     // Apply button visibility logic
