@@ -688,10 +688,22 @@ class StockAdjuster {
       );
     }
 
+    // For batch-managed items, we need to check for the specific batch
+    const queryConditions = {
+      material_id: materialData.id,
+      location_id: receivingLocationId,
+    };
+
+    // Add batch_id to query conditions for batch-managed items
+    if (materialData.item_batch_management == "1" && balance.batch_id) {
+      queryConditions.batch_id = balance.batch_id;
+    }
+
     const balanceResponse = await this.db
       .collection(collectionName)
-      .where({ material_id: materialData.id, location_id: receivingLocationId })
+      .where(queryConditions)
       .get();
+
     let balanceData = balanceResponse.data[0];
 
     let updateData = balanceData
@@ -721,6 +733,7 @@ class StockAdjuster {
         : movementType === "Miscellaneous Receipt"
         ? this.categoryMap[subformData.category || "Unrestricted"]
         : this.categoryMap[balance.category || "Unrestricted"];
+
     updateData.balance_quantity =
       (updateData.balance_quantity || 0) + qtyChangeValue;
     updateData[categoryField] =
@@ -730,7 +743,11 @@ class StockAdjuster {
     updateData.update_user = allData.user_id || "system";
 
     if (!balanceData) {
+      // For new entries, ensure we're creating a properly-formatted record
       await this.db.collection(collectionName).add(updateData);
+      console.log(
+        `Created new ${collectionName} record for batch ${balance.batch_id} at location ${receivingLocationId}`
+      );
     } else {
       const updateFields = {
         balance_quantity: updateData.balance_quantity,
@@ -742,13 +759,20 @@ class StockAdjuster {
         update_user: updateData.update_user,
         plant_id: updateData.plant_id,
       };
+
+      // Only update batch_id if it's a batch-managed item and not already set
       if (materialData.item_batch_management == "1") {
         updateFields.batch_id = updateData.batch_id;
       }
+
       await this.db
         .collection(collectionName)
         .doc(balanceData.id)
         .update(updateFields);
+
+      console.log(
+        `Updated existing ${collectionName} record for batch ${balance.batch_id} at location ${receivingLocationId}`
+      );
     }
   }
 

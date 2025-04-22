@@ -6,6 +6,8 @@ const movementTypeOptions = [
   "Miscellaneous Issue",
   "Location Transfer",
   "Inter Operation Facility Transfer",
+  "Good Issue",
+  "Production Receipt",
 ];
 
 const currentValues = this.getValues();
@@ -49,13 +51,13 @@ const enhanceStockMovementUI = async () => {
         }`
       );
       this.setData({
-        movement_reason: "",
-        issued_by: "",
-        issuing_operation_faci: "",
-        sm_item_balance: [],
-        table_item_balance: [],
-        stock_movement: [],
-        balance_index: [],
+        [`movement_reason`]: "",
+        [`issued_by`]: "",
+        [`issuing_operation_faci`]: "",
+        [`sm_item_balance`]: [],
+        [`table_item_balance`]: [],
+        [`stock_movement`]: [],
+        [`balance_index`]: [],
       });
     } else {
       console.log(
@@ -250,7 +252,7 @@ const enhanceStockMovementUI = async () => {
           "stock_movement.batch_id",
         ],
         disableFields: {
-          Add: [],
+          Add: ["stock_movement.total_quantity"],
           Edit: ["stock_movement.total_quantity"],
           View: [
             "stock_movement.item_selection",
@@ -260,6 +262,7 @@ const enhanceStockMovementUI = async () => {
             "stock_movement.unit_price",
             "stock_movement.amount",
             "stock_movement.location_id",
+            "stock_movement.total_quantity",
             "movement_reason",
           ],
         },
@@ -285,6 +288,58 @@ const enhanceStockMovementUI = async () => {
         },
       },
       {
+        name: "Production Receipt",
+        hideFields: [
+          "delivery_method",
+          "receiving_operation_faci",
+          "stock_movement.recv_location_id",
+          "stock_movement.transfer_stock",
+          "stock_movement.total_quantity",
+          "stock_movement.to_recv_qty",
+        ],
+        disableFields: {
+          Add: ["stock_movement.amount"],
+          Edit: [],
+          View: [
+            "stock_movement.item_selection",
+            "stock_movement.total_quantity",
+            "stock_movement.category",
+            "stock_movement.received_quantity",
+            "stock_movement.unit_price",
+            "stock_movement.amount",
+            "stock_movement.location_id",
+            "movement_reason",
+            "stock_movement",
+          ],
+        },
+        pageSpecificFields: {
+          Add: {
+            show: [],
+            hide: [
+              "stock_movement.edit_stock",
+              "stock_movement.view_stock",
+              "stock_movement.transfer_stock",
+            ],
+          },
+          Edit: {
+            show: [],
+            hide: [
+              "stock_movement.transfer_stock",
+              "stock_movement.view_stock",
+              "stock_movement.edit_stock",
+            ],
+          },
+          View: {
+            show: [],
+            hide: [
+              "stock_movement.transfer_stock",
+              "stock_movement.edit_stock",
+              "stock_movement.view_stock",
+            ],
+          },
+        },
+      },
+      {
         name: "Miscellaneous Receipt",
         hideFields: [
           "delivery_method",
@@ -303,8 +358,10 @@ const enhanceStockMovementUI = async () => {
             "stock_movement.total_quantity",
             "stock_movement.category",
             "stock_movement.received_quantity",
+            "stock_movement.received_quantity_uom",
             "stock_movement.unit_price",
             "stock_movement.amount",
+            "stock_movement.batch_id",
             "stock_movement.location_id",
             "movement_reason",
             "stock_movement",
@@ -409,6 +466,58 @@ const enhanceStockMovementUI = async () => {
           "stock_movement.batch_id",
         ],
         disableFields: {
+          Add: ["stock_movement.total_quantity"],
+          Edit: ["stock_movement.total_quantity"],
+          View: [
+            "stock_movement.item_selection",
+            "stock_movement.total_quantity",
+            "stock_movement.category",
+            "stock_movement.received_quantity",
+            "stock_movement.received_quantity_uom",
+            "stock_movement.unit_price",
+            "stock_movement.amount",
+            "stock_movement.location_id",
+            "movement_reason",
+          ],
+        },
+        pageSpecificFields: {
+          Add: {
+            show: ["stock_movement.transfer_stock"],
+            hide: ["stock_movement.edit_stock", "stock_movement.view_stock"],
+          },
+          Edit: {
+            show: ["stock_movement.edit_stock"],
+            hide: [
+              "stock_movement.transfer_stock",
+              "stock_movement.view_stock",
+            ],
+          },
+          View: {
+            show: ["stock_movement.view_stock"],
+            hide: [
+              "stock_movement.transfer_stock",
+              "stock_movement.edit_stock",
+            ],
+          },
+        },
+      },
+      {
+        name: "Good Issue",
+        hideFields: [
+          "receiving_operation_faci",
+          "delivery_method",
+          "stock_movement.category",
+          "stock_movement.recv_location_id",
+          "stock_movement.received_quantity",
+          "stock_movement.received_quantity_uom",
+          "stock_movement.unit_price",
+          "stock_movement.amount",
+          "stock_movement.location_id",
+          "stock_movement.uom_id",
+          "stock_movement.to_recv_qty",
+          "stock_movement.batch_id",
+        ],
+        disableFields: {
           Add: [],
           Edit: [],
           View: [
@@ -462,8 +571,8 @@ const enhanceStockMovementUI = async () => {
           "stock_movement.batch_id",
         ],
         disableFields: {
-          Add: [],
-          Edit: [],
+          Add: ["stock_movement.total_quantity"],
+          Edit: ["stock_movement.total_quantity"],
           View: [
             "stock_movement.item_selection",
             "stock_movement.total_quantity",
@@ -626,7 +735,9 @@ const enhanceStockMovementUI = async () => {
           showButton("button_completed");
           break;
         case "Miscellaneous Issue":
+        case "Good Issue":
         case "Miscellaneous Receipt":
+        case "Production Receipt":
         case "Disposal/Scrap":
           showButton("button_save_as_draft");
           showButton("button_completed");
@@ -655,7 +766,9 @@ const enhanceStockMovementUI = async () => {
         [
           "Inter Operation Facility Transfer",
           "Miscellaneous Issue",
+          "Good Issue",
           "Miscellaneous Receipt",
+          "Production Receipt",
           "Disposal/Scrap",
           "Inter Operation Facility Transfer (Receiving)",
         ].includes(movementTypeName)
@@ -690,7 +803,7 @@ if (
   setTimeout(() => {
     console.log("Restoring balance_index", savedBalanceIndex);
     this.setData({
-      balance_index: savedBalanceIndex,
+      [`balance_index`]: savedBalanceIndex,
     });
     console.log("Restored balance_index", this.getValues().balance_index);
   }, 2000);
