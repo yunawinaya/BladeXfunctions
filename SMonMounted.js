@@ -1,5 +1,10 @@
 const page_status = this.getParamsVariables("page_status");
 
+let organizationId = this.getVarGlobal("deptParentId");
+if (organizationId === "0") {
+  organizationId = this.getVarSystem("deptIds").split(",")[0];
+}
+
 if (page_status !== "Add") {
   const stockMovementId = this.getParamsVariables("stock_movement_no");
   db.collection("stock_movement")
@@ -76,56 +81,25 @@ if (page_status !== "Add") {
         balance_index,
       };
 
-      // Function to set stock_movement_no based on prefix configuration
-      const setStockMovementNoWithPrefix = () => {
-        return db
-          .collection("prefix_configuration")
-          .where({ document_types: "Stock Movement" })
-          .get()
-          .then((prefixEntry) => {
-            if (prefixEntry && prefixEntry.data[0]) {
-              const prefixData = prefixEntry.data[0];
-              const now = new Date();
-              let prefixToShow = prefixData.current_prefix_config;
-              prefixToShow = prefixToShow.replace(
-                "prefix",
-                prefixData.prefix_value
-              );
-              prefixToShow = prefixToShow.replace(
-                "suffix",
-                prefixData.suffix_value
-              );
-              prefixToShow = prefixToShow.replace(
-                "month",
-                String(now.getMonth() + 1).padStart(2, "0")
-              );
-              prefixToShow = prefixToShow.replace(
-                "day",
-                String(now.getDate()).padStart(2, "0")
-              );
-              prefixToShow = prefixToShow.replace("year", now.getFullYear());
-              prefixToShow = prefixToShow.replace(
-                "running_number",
-                String(prefixData.running_number).padStart(
-                  prefixData.padding_zeroes,
-                  "0"
-                )
-              );
-              return prefixToShow;
-            }
-            return stock_movement_no; // Fallback to original if no prefix found
-          });
-      };
-
       // Handle stock_movement_no based on page_status and stock_movement_status
       if (page_status !== "Clone") {
         if (stock_movement_status === "Draft") {
+          const prefixEntry = db
+            .collection("prefix_configuration")
+            .where({
+              document_types: "Stock Movement",
+              is_deleted: 0,
+              organization_id: organizationId,
+            })
+            .get()
+            .then((prefixEntry) => {
+              if (prefixEntry.data[0].is_active === 0) {
+                this.disabled(["stock_movement_no"], false);
+              }
+            });
           // Override stock_movement_no for Draft status
-          setStockMovementNoWithPrefix().then((newStockMovementNo) => {
-            data.stock_movement_no = newStockMovementNo;
-            this.setData(data);
-            this.display(["draft_status"]);
-          });
+          this.setData(data);
+          this.display(["draft_status"]);
         } else {
           // Keep original stock_movement_no
           data.stock_movement_status = stock_movement_status;
@@ -134,11 +108,21 @@ if (page_status !== "Add") {
         }
       } else {
         // Clone case
-        setStockMovementNoWithPrefix().then((newStockMovementNo) => {
-          data.stock_movement_no = newStockMovementNo;
-          this.setData(data);
-          this.display(["draft_status"]);
-        });
+        const prefixEntry = db
+          .collection("prefix_configuration")
+          .where({
+            document_types: "Stock Movement",
+            is_deleted: 0,
+            organization_id: organizationId,
+          })
+          .get()
+          .then((prefixEntry) => {
+            if (prefixEntry.data[0].is_active === 0) {
+              this.disabled(["stock_movement_no"], false);
+            }
+          });
+        this.setData(data);
+        this.display(["draft_status"]);
       }
 
       // Display status-specific UI
@@ -153,6 +137,11 @@ if (page_status !== "Add") {
           break;
         case "In Progress":
           this.display(["processing_status"]);
+
+          break;
+
+        case "Created":
+          this.display(["created_status"]);
 
           break;
         case "Completed":
@@ -234,36 +223,80 @@ if (page_status !== "Add") {
   this.disabled(["stock_movement"], true);
   this.display("button_save_as_draft");
   this.display(["draft_status"]);
-  db.collection("prefix_configuration")
-    .where({ document_types: "Stock Movement" })
+  const prefixEntry = db
+    .collection("prefix_configuration")
+    .where({
+      document_types: "Stock Movement",
+      is_deleted: 0,
+      organization_id: organizationId,
+    })
     .get()
     .then((prefixEntry) => {
-      if (prefixEntry && prefixEntry.data[0]) {
-        const prefixData = prefixEntry.data[0];
-        const now = new Date();
-        let prefixToShow = prefixData.current_prefix_config;
-        prefixToShow = prefixToShow.replace("prefix", prefixData.prefix_value);
-        prefixToShow = prefixToShow.replace("suffix", prefixData.suffix_value);
-        prefixToShow = prefixToShow.replace(
+      const prefixData = prefixEntry.data[0];
+      const now = new Date();
+      let prefixToShow;
+      let runningNumber = prefixData.running_number;
+      let isUnique = false;
+      let maxAttempts = 10;
+      let attempts = 0;
+
+      if (prefixData.is_active === 0) {
+        this.disabled(["stock_movement_no"], false);
+      }
+
+      const generatePrefix = (runNumber) => {
+        let generated = prefixData.current_prefix_config;
+        generated = generated.replace("prefix", prefixData.prefix_value);
+        generated = generated.replace("suffix", prefixData.suffix_value);
+        generated = generated.replace(
           "month",
           String(now.getMonth() + 1).padStart(2, "0")
         );
-        prefixToShow = prefixToShow.replace(
+        generated = generated.replace(
           "day",
           String(now.getDate()).padStart(2, "0")
         );
-        prefixToShow = prefixToShow.replace("year", now.getFullYear());
-        prefixToShow = prefixToShow.replace(
+        generated = generated.replace("year", now.getFullYear());
+        generated = generated.replace(
           "running_number",
-          String(prefixData.running_number).padStart(
-            prefixData.padding_zeroes,
-            "0"
-          )
+          String(runNumber).padStart(prefixData.padding_zeroes, "0")
         );
-        this.setData({ stock_movement_no: prefixToShow });
-        this.setData({ stock_movement_status: "Draft" });
-      }
+        return generated;
+      };
 
-      this.reset();
+      const checkUniqueness = async (generatedPrefix) => {
+        const existingDoc = await db
+          .collection("stock_movement")
+          .where({ stock_movement_no: generatedPrefix })
+          .get();
+        return existingDoc.data[0] ? false : true;
+      };
+
+      const findUniquePrefix = async () => {
+        while (!isUnique && attempts < maxAttempts) {
+          attempts++;
+          prefixToShow = generatePrefix(runningNumber);
+          isUnique = await checkUniqueness(prefixToShow);
+          if (!isUnique) {
+            runningNumber++;
+          }
+        }
+
+        if (!isUnique) {
+          throw new Error(
+            "Could not generate a unique Quotation number after maximum attempts"
+          );
+        }
+        return { prefixToShow, runningNumber };
+      };
+
+      return findUniquePrefix();
+    })
+    .then(({ prefixToShow, runningNumber }) => {
+      this.setData({ stock_movement_no: prefixToShow });
+      this.setData({ stock_movement_status: "Draft" });
+    })
+    .catch((error) => {
+      alert(error);
     });
 }

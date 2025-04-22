@@ -92,7 +92,7 @@ if (page_status === "Add") {
         stock_movement_no: entry.stock_movement_no,
         movement_type: allData.movement_type,
         movement_reason: allData.movement_reason || null,
-        issued_by: allData.issued_by || allData.user_id || "system",
+        issued_by: allData.issued_by || allData.user_id || "System",
         issue_date: allData.issue_date,
         tenant_id: allData.tenant_id || "000000",
         issuing_operation_faci: allData.issuing_operation_faci,

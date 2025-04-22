@@ -5,7 +5,6 @@ const movement_type = allData.movement_type;
 const plant_id = allData.issuing_operation_faci;
 const materialId = lineItemData.item_selection;
 const tempQtyData = lineItemData.temp_qty_data;
-console.log("movement_type", materialId);
 
 // First, get the movement type details
 db.collection("stock_movement_type")
@@ -39,9 +38,11 @@ db.collection("stock_movement_type")
         console.log("itemData", itemData);
 
         this.setData({
-          [`sm_item_balance.material_id`]: itemData.material_code,
-          [`sm_item_balance.material_name`]: itemData.material_name,
-          [`sm_item_balance.row_index`]: rowIndex,
+          sm_item_balance: {
+            material_id: itemData.material_code,
+            material_name: itemData.material_name,
+            row_index: rowIndex,
+          },
         });
 
         if (itemData.item_batch_management === 1) {
@@ -50,7 +51,6 @@ db.collection("stock_movement_type")
           db.collection("item_batch_balance")
             .where({
               material_id: materialId,
-              plant_id: plant_id,
             })
             .get()
             .then((response) => {
@@ -86,7 +86,6 @@ db.collection("stock_movement_type")
           db.collection("item_balance")
             .where({
               material_id: materialId,
-              plant_id: plant_id,
             })
             .get()
             .then((response) => {

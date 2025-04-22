@@ -1,4 +1,4 @@
-class StockAdjuster {
+class ReceivingIOFTProcessor {
   constructor(db) {
     this.db = db;
     this.categoryMap = {
@@ -8,6 +8,15 @@ class StockAdjuster {
       Reserved: "reserved_qty",
       "In Transit": "intransit_qty",
     };
+  }
+
+  // Helper functions for consistent decimal formatting
+  formatQuantity(value) {
+    return Number(Number(value).toFixed(3));
+  }
+
+  formatPrice(value) {
+    return Number(Number(value).toFixed(4));
   }
 
   validateRequiredFields(data, requiredFields, context = "") {
@@ -22,84 +31,116 @@ class StockAdjuster {
     return null;
   }
 
-  async processStockAdjustment(db, self) {
+  async processReceivingIOFT(db, self) {
     const errors = [];
-    const stockMovementNo = self.getParamsVariables("stock_movement_no");
     const allData = self.getValues();
-
-    // Step 1: Validate top-level required fields
-    const requiredTopLevelFields = [
-      "issuing_operation_faci",
-      "stock_movement_no",
-      "movement_type",
-      "issue_date",
-    ];
-    const topLevelValidationError = this.validateRequiredFields(
-      allData,
-      requiredTopLevelFields
-    );
-    if (topLevelValidationError) {
-      errors.push(topLevelValidationError);
-    }
-
-    // Step 2: Validate stock movement existence and fetch data
-    let receivingData,
-      issuingData,
-      issuingStockMovementId,
-      receivingStockMovementId,
-      receivingStockMovementPlantId,
-      receivingStockMovementNumber,
-      issuingStockMovementPlantId,
-      issuingStockMovementNo;
+    const stockMovementId = self.getParamsVariables("stock_movement_no");
+    // Step 1: Validate and fetch receiving IOFT data
+    let receivingIOFT, receivingIOFTId, issuingIOFT, issuingIOFTId;
     try {
       const receivingResponse = await db
         .collection("stock_movement")
-        .where({ id: stockMovementNo })
+        .where({ id: stockMovementId })
         .get();
-      if (!receivingResponse.data[0]) {
-        errors.push(
-          `Receiving stock movement not found for ID: ${stockMovementNo}`
-        );
+
+      if (!receivingResponse.data || receivingResponse.data.length === 0) {
+        errors.push(`Receiving IOFT not found for ID: ${stockMovementId}`);
       } else {
-        receivingData = receivingResponse.data[0];
-        issuingStockMovementId = receivingData.movement_id;
-        receivingStockMovementId = receivingData.id;
-        receivingStockMovementPlantId = receivingData.issuing_operation_faci;
-        receivingStockMovementNumber = receivingData.stock_movement_no;
+        receivingIOFT = receivingResponse.data[0];
+        receivingIOFTId = receivingIOFT.id;
+        console.log("Receiving IOFT", receivingIOFT);
+
+        const issuingId = receivingIOFT.movement_id;
 
         const issuingResponse = await db
           .collection("stock_movement")
-          .where({ id: issuingStockMovementId })
+          .where({ id: issuingId })
           .get();
-        if (!issuingResponse.data[0]) {
-          errors.push(
-            `Issuing stock movement not found for ID: ${issuingStockMovementId}`
-          );
+
+        if (!issuingResponse.data || issuingResponse.data.length === 0) {
+          errors.push(`Issuing IOFT not found for number: ${issuingId}`);
         } else {
-          issuingData = issuingResponse.data[0];
-          issuingStockMovementPlantId = issuingData.issuing_operation_faci;
-          issuingStockMovementNo = issuingData.stock_movement_no;
+          issuingIOFT = issuingResponse.data[0];
+          issuingIOFTId = issuingIOFT.id;
+          console.log("Issuing IOFT", issuingIOFT);
         }
       }
-    } catch {
-      errors.push(
-        `Failed to fetch stock movement data for ID: ${stockMovementNo}`
-      );
+    } catch (error) {
+      errors.push(`Error fetching IOFT data: ${error.message}`);
     }
 
-    // Step 3: Validate stock movement items
-    let processedItems = [];
+    // Step 2: Process the items for receiving
+    const processedItems = [];
     if (allData.stock_movement && allData.stock_movement.length > 0) {
-      const itemValidationErrors = await this.validateStockMovementItems(
-        allData
-      );
-      errors.push(...itemValidationErrors);
-      processedItems = this.processStockMovementItems(allData);
+      for (const item of allData.stock_movement) {
+        try {
+          // Fetch material data
+          const materialResponse = await this.db
+            .collection("Item")
+            .where({ id: item.item_selection })
+            .get();
+
+          if (!materialResponse.data || materialResponse.data.length === 0) {
+            errors.push(`Material not found for ID: ${item.item_selection}`);
+            continue;
+          }
+
+          const materialData = materialResponse.data[0];
+
+          // Check if the material has sufficient in-transit quantity
+          const isBatchManaged =
+            materialData.item_batch_management == "1" ||
+            materialData.item_isbatch_managed == "1";
+
+          const collectionName = isBatchManaged
+            ? "item_batch_balance"
+            : "item_balance";
+
+          // Find the balance at the issuing plant with in-transit quantity
+          const balanceResponse = await this.db
+            .collection(collectionName)
+            .where({
+              material_id: item.item_selection,
+              plant_id: issuingIOFT.issuing_operation_faci,
+            })
+            .get();
+
+          if (!balanceResponse.data || balanceResponse.data.length === 0) {
+            errors.push(
+              `No balance found for material ${item.item_selection} at issuing plant`
+            );
+            continue;
+          }
+
+          // Collect all balances with in-transit quantity
+          const validBalances = balanceResponse.data.filter(
+            (balance) => (balance.intransit_qty || 0) > 0
+          );
+
+          if (validBalances.length === 0) {
+            errors.push(
+              `No in-transit quantity available for material ${item.item_selection}`
+            );
+            continue;
+          }
+
+          // Add to processed items
+          processedItems.push({
+            item,
+            materialData,
+            balances: validBalances,
+          });
+        } catch (error) {
+          errors.push(
+            `Error processing item ${item.item_selection}: ${error.message}`
+          );
+        }
+      }
     } else {
-      errors.push("Stock movement items are required");
+      errors.push("No items found in the stock movement");
     }
 
-    // Step 4: Display errors if any
+    // Step 3: Display errors if any
     if (errors.length > 0) {
       const errorMessage = errors.join("\n");
       if (self && self.parentGenerateForm) {
@@ -117,13 +158,13 @@ class StockAdjuster {
       throw new Error("Validation failed with multiple errors");
     }
 
-    // Step 5: Show confirmation popup before proceeding
+    // Step 4: Show confirmation popup before proceeding
     return new Promise((resolve, reject) => {
       if (self && self.parentGenerateForm) {
         self.parentGenerateForm
           .$confirm(
-            "All validations passed. Proceed with processing the stock movement?",
-            "Confirm Stock Movement",
+            "All validations passed. Proceed with receiving the IOFT?",
+            "Confirm IOFT Receipt",
             {
               confirmButtonText: "Proceed",
               cancelButtonText: "Cancel",
@@ -132,21 +173,14 @@ class StockAdjuster {
           )
           .then(async () => {
             try {
-              const updateResults = await this.updateRelatedTables(
+              const results = await this.updateRelatedTables(
+                receivingIOFTId,
+                issuingIOFTId,
                 processedItems,
-                issuingStockMovementNo,
-                stockMovementNo,
-                issuingStockMovementPlantId,
-                receivingStockMovementPlantId,
-                receivingStockMovementId,
-                receivingStockMovementNumber,
-                allData
+                receivingIOFT,
+                issuingIOFT
               );
-              resolve({
-                receivingStockMovement: receivingData,
-                issuingStockMovement: issuingData,
-                ...updateResults,
-              });
+              resolve(results);
             } catch (err) {
               const processingErrors = [err.message];
               const errorMessage = processingErrors.join("\n");
@@ -166,26 +200,19 @@ class StockAdjuster {
             }
           })
           .catch(() => {
-            reject(new Error("Stock movement cancelled by user"));
+            reject(new Error("IOFT receipt cancelled by user"));
           });
       } else {
         console.warn("No context provided, proceeding without confirmation");
         this.updateRelatedTables(
+          receivingIOFTId,
+          issuingIOFTId,
           processedItems,
-          issuingStockMovementNo,
-          stockMovementNo,
-          issuingStockMovementPlantId,
-          receivingStockMovementPlantId,
-          receivingStockMovementId,
-          receivingStockMovementNumber,
-          allData
+          receivingIOFT,
+          issuingIOFT
         )
-          .then((updateResults) => {
-            resolve({
-              receivingStockMovement: receivingData,
-              issuingStockMovement: issuingData,
-              ...updateResults,
-            });
+          .then((results) => {
+            resolve(results);
           })
           .catch((err) => {
             const errorMessage = `Processing failed: ${err.message}`;
@@ -196,183 +223,26 @@ class StockAdjuster {
     });
   }
 
-  async validateStockMovementItems(allData) {
-    const errors = [];
-    for (const stockItem of allData.stock_movement) {
-      const requiredFields = [
-        "item_selection",
-        "received_quantity",
-        "total_quantity",
-        "received_quantity_uom",
-        "unit_price",
-        "to_recv_qty",
-      ];
-      const itemValidationError = this.validateRequiredFields(
-        stockItem,
-        requiredFields,
-        `for item ${stockItem.item_selection || "unknown"}`
-      );
-      if (itemValidationError) {
-        errors.push(itemValidationError);
-        continue;
-      }
-
-      // Fetch material data and validate
-      try {
-        const materialResponse = await this.db
-          .collection("Item")
-          .where({ id: stockItem.item_selection })
-          .get();
-        const materialData = materialResponse.data[0];
-        if (!materialData) {
-          errors.push(`Material not found for ID: ${stockItem.item_selection}`);
-          continue;
-        }
-        if (!materialData.id) {
-          errors.push(
-            `Invalid material data: material_id is missing for item ${stockItem.item_selection}`
-          );
-          continue;
-        }
-        if (!materialData.material_costing_method) {
-          errors.push(
-            `Material costing method is not defined for item ${stockItem.item_selection}`
-          );
-          continue;
-        }
-        if (!allData.issuing_operation_faci) {
-          errors.push(
-            `Plant ID is required for costing update for item ${stockItem.item_selection}`
-          );
-          continue;
-        }
-      } catch {
-        errors.push(
-          `Failed to fetch material data for item ${stockItem.item_selection}`
-        );
-        continue;
-      }
-
-      // Validate balances
-      const relatedBalances = allData.balance_index.filter(
-        (balance) => balance.material_id === stockItem.item_selection
-      );
-      if (!relatedBalances.length) {
-        errors.push(`No balances found for item ${stockItem.item_selection}`);
-        continue;
-      }
-
-      for (const balance of relatedBalances) {
-        const balanceRequiredFields = [
-          "material_id",
-          "balance_id",
-          "sm_quantity",
-          "intransit_qty",
-        ];
-        const balanceValidationError = this.validateRequiredFields(
-          balance,
-          balanceRequiredFields,
-          `for balance of item ${stockItem.item_selection}`
-        );
-        if (balanceValidationError) {
-          errors.push(balanceValidationError);
-          continue;
-        }
-
-        // Validate intransit quantity
-        try {
-          const materialResponse = await this.db
-            .collection("Item")
-            .where({ id: balance.material_id })
-            .get();
-          const materialData = materialResponse.data[0];
-          const collectionName =
-            materialData.item_isbatch_managed == "1"
-              ? "item_batch_balance"
-              : "item_balance";
-          const balanceResponse = await this.db
-            .collection(collectionName)
-            .where({ id: balance.balance_id })
-            .get();
-          const balanceData = balanceResponse.data[0];
-          if (!balanceData) {
-            errors.push(`Balance not found for ID: ${balance.balance_id}`);
-            continue;
-          }
-          if ((balanceData.intransit_qty || 0) < stockItem.received_quantity) {
-            errors.push(
-              `Insufficient intransit quantity for item ${
-                stockItem.item_selection
-              }. Available: ${balanceData.intransit_qty || 0}, Requested: ${
-                stockItem.received_quantity
-              }`
-            );
-          }
-        } catch {
-          errors.push(
-            `Failed to validate balance for item ${stockItem.item_selection}`
-          );
-        }
-      }
-    }
-    return errors;
-  }
-
-  processStockMovementItems(allData) {
-    const processedItems = [];
-
-    allData.stock_movement.forEach((stockItem) => {
-      const itemDetails = {
-        item_selection: stockItem.item_selection,
-        category: stockItem.category || "Unrestricted",
-        location_id: stockItem.location_id,
-        received_quantity: Number(stockItem.received_quantity) || 0,
-        total_quantity: Number(stockItem.total_quantity) || 0,
-        received_quantity_uom: stockItem.received_quantity_uom,
-        unit_price: Number(stockItem.unit_price) || 0,
-        to_recv_qty: Number(stockItem.to_recv_qty) || 0,
-      };
-
-      const relatedBalances = allData.balance_index
-        .filter((balance) => balance.material_id === stockItem.item_selection)
-        .map((balance) => ({
-          material_id: balance.material_id,
-          balance_id: balance.balance_id,
-          category: itemDetails.category,
-          location_id: itemDetails.location_id,
-          received_quantity: itemDetails.received_quantity,
-          unit_price: itemDetails.unit_price,
-          received_quantity_uom: itemDetails.received_quantity_uom,
-          to_recv_qty: itemDetails.to_recv_qty,
-          quantities: {
-            sm_quantity: balance.sm_quantity,
-            intransit_qty: balance.intransit_qty,
-          },
-        }));
-
-      processedItems.push({
-        itemDetails,
-        balances: relatedBalances,
-      });
-    });
-    console.log("processedItems", processedItems);
-    return processedItems;
-  }
-
   async updateRelatedTables(
+    receivingIOFTId,
+    issuingIOFTId,
     processedItems,
-    issuingStockMovementNo,
-    stockMovementNo,
-    issuingPlantId,
-    receivingPlantId,
-    receivingStockMovementId,
-    receivingStockMovementNumber,
-    allData
+    receivingIOFT,
+    issuingIOFT
   ) {
     const results = {
-      balanceUpdates: [],
-      inventoryMovements: [],
-      costingUpdates: [],
+      balanceUpdates: {
+        issuing: [],
+        receiving: [],
+      },
+      inventoryMovements: {
+        issuing: [],
+        receiving: [],
+      },
+      costingUpdates: {
+        issuing: [],
+        receiving: [],
+      },
       stockMovementUpdates: {
         issuing: null,
         receiving: null,
@@ -380,172 +250,131 @@ class StockAdjuster {
     };
     const errors = [];
 
-    for (const item of processedItems) {
-      const { itemDetails, balances } = item;
+    // Process each item
+    for (const { item, materialData, balances } of processedItems) {
+      const quantityToReceive = Number(item.total_quantity);
+      let remainingQuantity = quantityToReceive;
 
+      // Process against each balance until the full quantity is covered
       for (const balance of balances) {
+        if (remainingQuantity <= 0) break;
+
+        const availableInTransit = Number(balance.intransit_qty || 0);
+        const quantityFromThisBalance = Math.min(
+          availableInTransit,
+          remainingQuantity
+        );
+
+        if (quantityFromThisBalance <= 0) continue;
+
         try {
+          // 1. Update issuing plant balance (decrease in-transit)
           const issuingBalanceUpdate = await this.updateIssuingBalance(
-            balance.balance_id,
-            balance.material_id,
-            balance.received_quantity,
-            balance.unit_price,
-            balance.received_quantity_uom
+            balance.id,
+            materialData.id,
+            quantityFromThisBalance
           );
-          results.balanceUpdates.push({ issuing: issuingBalanceUpdate });
-        } catch (err) {
-          errors.push(
-            `Failed to update issuing balance for item ${balance.material_id}: ${err.message}`
-          );
-          continue;
-        }
+          results.balanceUpdates.issuing.push(issuingBalanceUpdate);
 
-        try {
+          // 2. Update or create receiving plant balance (increase unrestricted)
           const receivingBalanceUpdate = await this.updateReceivingBalance(
-            balance.material_id,
-            receivingPlantId,
-            balance.location_id,
-            balance.received_quantity,
-            balance.category,
-            balance.unit_price,
-            balance.received_quantity_uom
+            materialData.id,
+            receivingIOFT.issuing_operation_faci, // This is the receiving plant ID
+            item.location_id || balance.location_id,
+            quantityFromThisBalance,
+            item.category || "Unrestricted",
+            item.unit_price
           );
-          results.balanceUpdates[results.balanceUpdates.length - 1].receiving =
-            receivingBalanceUpdate;
-        } catch (err) {
-          errors.push(
-            `Failed to update receiving balance for item ${balance.material_id}: ${err.message}`
-          );
-          continue;
-        }
+          results.balanceUpdates.receiving.push(receivingBalanceUpdate);
 
-        try {
-          const inventoryMovement = await this.recordInventoryMovement(
-            balance.material_id,
-            balance.received_quantity,
-            balance.category,
-            balance.location_id,
-            issuingStockMovementNo,
-            stockMovementNo,
-            issuingPlantId,
-            receivingPlantId,
-            receivingStockMovementId,
-            receivingStockMovementNumber,
-            balance.unit_price,
-            balance.received_quantity_uom
+          // 3. Record inventory movements
+          const inventoryMovements = await this.recordInventoryMovements(
+            materialData.id,
+            quantityFromThisBalance,
+            "In Transit", // Source category at issuing plant
+            item.category || "Unrestricted", // Target category at receiving plant
+            item.location_id || balance.location_id,
+            issuingIOFT.stock_movement_no,
+            receivingIOFT.stock_movement_no,
+            issuingIOFT.issuing_operation_faci,
+            receivingIOFT.issuing_operation_faci,
+            item.unit_price,
+            item.received_quantity_uom,
+            materialData
           );
-          results.inventoryMovements.push(inventoryMovement);
-        } catch (err) {
-          errors.push(
-            `Failed to record inventory movement for item ${balance.material_id}: ${err.message}`
+          results.inventoryMovements.issuing.push(
+            inventoryMovements.issuingMovement
           );
-          continue;
-        }
+          results.inventoryMovements.receiving.push(
+            inventoryMovements.receivingMovement
+          );
 
-        try {
-          const costingUpdate = await this.updateCosting(
-            balance.material_id,
-            balance.received_quantity,
-            issuingPlantId,
-            receivingPlantId,
-            balance.unit_price,
-            balance.received_quantity_uom
+          // 4. Update costing records
+          const costingUpdates = await this.updateCosting(
+            materialData,
+            quantityFromThisBalance,
+            issuingIOFT.issuing_operation_faci,
+            receivingIOFT.issuing_operation_faci,
+            item.unit_price
           );
-          results.costingUpdates.push(costingUpdate);
-        } catch (err) {
+          results.costingUpdates.issuing.push(costingUpdates.issuingCosting);
+          results.costingUpdates.receiving.push(
+            costingUpdates.receivingCosting
+          );
+
+          // Reduce remaining quantity
+          remainingQuantity -= quantityFromThisBalance;
+        } catch (error) {
           errors.push(
-            `Failed to update costing for item ${balance.material_id}: ${err.message}`
+            `Error processing balance for item ${materialData.id}: ${error.message}`
           );
-          continue;
         }
+      }
+
+      // Check if all quantity was processed
+      if (remainingQuantity > 0) {
+        errors.push(
+          `Could not process full quantity for item ${materialData.id}. Remaining: ${remainingQuantity}`
+        );
       }
     }
 
-    // Update stock movement status
-    const allComplete = processedItems.every(
-      (item) =>
-        item.itemDetails.received_quantity === item.itemDetails.total_quantity
-    );
-    const status = allComplete ? "Completed" : "In Progress";
-
+    // Update receiving IOFT status to Completed
     try {
-      const issuingStockMovementResponse = await this.db
+      await this.db.collection("stock_movement").doc(receivingIOFTId).update({
+        stock_movement_status: "Completed",
+        update_time: new Date().toISOString(),
+      });
+
+      const updatedReceivingIOFT = await this.db
         .collection("stock_movement")
-        .where({ stock_movement_no: issuingStockMovementNo })
+        .where({ id: receivingIOFTId })
         .get();
-      const issuingStockMovement = issuingStockMovementResponse.data[0];
 
-      if (issuingStockMovement) {
-        await this.db
-          .collection("stock_movement")
-          .doc(issuingStockMovement.id)
-          .update({
-            stock_movement_status: status,
-            update_time: new Date().toISOString(),
-          });
+      console.log("Updated Receiving IOFT", updatedReceivingIOFT.data);
 
-        const updatedIssuingStockMovementResponse = await this.db
-          .collection("stock_movement")
-          .doc(issuingStockMovement.id)
-          .get();
-        results.stockMovementUpdates.issuing =
-          updatedIssuingStockMovementResponse.data[0];
-      } else {
-        errors.push(
-          `Issuing stock movement not found for stock_movement_no: ${issuingStockMovementNo}`
-        );
-      }
-    } catch (err) {
-      errors.push(`Failed to update issuing stock movement: ${err.message}`);
+      results.stockMovementUpdates.receiving = updatedReceivingIOFT.data;
+    } catch (error) {
+      errors.push(`Error updating receiving IOFT status: ${error.message}`);
     }
 
+    // Update issuing IOFT status to Completed
     try {
-      const receivingStockMovementResponse = await this.db
+      await this.db.collection("stock_movement").doc(issuingIOFTId).update({
+        stock_movement_status: "Completed",
+        update_time: new Date().toISOString(),
+      });
+
+      const updatedIssuingIOFT = await this.db
         .collection("stock_movement")
-        .where({ id: stockMovementNo })
+        .where({ id: issuingIOFTId })
         .get();
-      const receivingStockMovement = receivingStockMovementResponse.data[0];
 
-      if (receivingStockMovement) {
-        const updatedStockMovementItems = processedItems.map((item) => {
-          const itemDetails = item.itemDetails;
-          const receivedQty = Number(itemDetails.received_quantity) || 0;
-          const toRecvQty = Number(itemDetails.to_recv_qty) || 0;
-          return {
-            item_selection: itemDetails.item_selection,
-            category: itemDetails.category || "Unrestricted",
-            location_id: itemDetails.location_id || null,
-            received_quantity: receivedQty,
-            total_quantity: Number(itemDetails.total_quantity) || 0,
-            received_quantity_uom: itemDetails.received_quantity_uom || null,
-            unit_price: Number(itemDetails.unit_price) || 0,
-            to_recv_qty: toRecvQty + receivedQty,
-            amount: receivedQty * Number(itemDetails.unit_price) || 0,
-          };
-        });
+      console.log("Updated Issuing IOFT", updatedIssuingIOFT.data);
 
-        await this.db
-          .collection("stock_movement")
-          .doc(receivingStockMovementId)
-          .update({
-            stock_movement_status: status,
-            stock_movement: updatedStockMovementItems,
-            update_time: new Date().toISOString(),
-          });
-
-        const updatedReceivingStockMovementResponse = await this.db
-          .collection("stock_movement")
-          .doc(receivingStockMovementId)
-          .get();
-        results.stockMovementUpdates.receiving =
-          updatedReceivingStockMovementResponse.data[0];
-      } else {
-        errors.push(
-          `Receiving stock movement not found for id: ${stockMovementNo}`
-        );
-      }
-    } catch (err) {
-      errors.push(`Failed to update receiving stock movement: ${err.message}`);
+      results.stockMovementUpdates.issuing = updatedIssuingIOFT.data;
+    } catch (error) {
+      errors.push(`Error updating issuing IOFT status: ${error.message}`);
     }
 
     if (errors.length > 0) {
@@ -555,13 +384,7 @@ class StockAdjuster {
     return results;
   }
 
-  async updateIssuingBalance(
-    balanceId,
-    materialId,
-    receivedQuantity,
-    unitPrice,
-    uom
-  ) {
+  async updateIssuingBalance(balanceId, materialId, quantity) {
     let materialData;
     try {
       const materialResponse = await this.db
@@ -576,10 +399,15 @@ class StockAdjuster {
       throw new Error(`Failed to fetch material: ${err.message}`);
     }
 
-    const collectionName =
-      materialData.item_isbatch_managed == "1"
-        ? "item_batch_balance"
-        : "item_balance";
+    // Determine the collection based on whether the material is batch managed
+    const isBatchManaged =
+      materialData.item_batch_management == "1" ||
+      materialData.item_isbatch_managed == "1";
+    const collectionName = isBatchManaged
+      ? "item_batch_balance"
+      : "item_balance";
+
+    // Fetch the current balance
     let balanceData;
     try {
       const balanceResponse = await this.db
@@ -594,9 +422,22 @@ class StockAdjuster {
       throw new Error(`Failed to fetch balance: ${err.message}`);
     }
 
+    const formattedQuantity = this.formatQuantity(quantity);
+
+    // Ensure we don't go below zero
+    const currentInTransit = balanceData.intransit_qty || 0;
+    if (currentInTransit < formattedQuantity) {
+      throw new Error(
+        `Insufficient in-transit quantity. Available: ${currentInTransit}, Requested: ${formattedQuantity}`
+      );
+    }
+
+    // Update balance - decrease in-transit quantity
     const updateData = {
-      intransit_qty: (balanceData.intransit_qty || 0) - receivedQuantity,
-      balance_quantity: (balanceData.balance_quantity || 0) - receivedQuantity,
+      intransit_qty: this.formatQuantity(currentInTransit - formattedQuantity),
+      balance_quantity: this.formatQuantity(
+        (balanceData.balance_quantity || 0) - formattedQuantity
+      ),
       update_time: new Date().toISOString(),
     };
 
@@ -609,17 +450,21 @@ class StockAdjuster {
       throw new Error(`Failed to update issuing balance: ${err.message}`);
     }
 
-    return { balanceId, ...updateData };
+    return {
+      balanceId,
+      materialId,
+      quantityReduced: formattedQuantity,
+      ...updateData,
+    };
   }
 
   async updateReceivingBalance(
     materialId,
     plantId,
     locationId,
-    receivedQuantity,
-    category,
-    unitPrice,
-    uom
+    quantity,
+    category = "Unrestricted",
+    unitPrice
   ) {
     let materialData;
     try {
@@ -635,32 +480,57 @@ class StockAdjuster {
       throw new Error(`Failed to fetch material: ${err.message}`);
     }
 
-    const collectionName =
-      materialData.item_isbatch_managed == "1"
-        ? "item_batch_balance"
-        : "item_balance";
-    const categoryField = this.categoryMap[category];
+    // Determine the collection based on whether the material is batch managed
+    const isBatchManaged =
+      materialData.item_batch_management == "1" ||
+      materialData.item_isbatch_managed == "1";
+    const collectionName = isBatchManaged
+      ? "item_batch_balance"
+      : "item_balance";
 
+    const categoryField = this.categoryMap[category];
+    if (!categoryField) {
+      throw new Error(`Invalid category: ${category}`);
+    }
+
+    const formattedQuantity = this.formatQuantity(quantity);
+
+    // Check if the balance already exists
     let balanceData;
     try {
+      const balanceQuery = {
+        material_id: materialId,
+        plant_id: plantId,
+      };
+
+      if (locationId) {
+        balanceQuery.location_id = locationId;
+      }
+
       const balanceResponse = await this.db
         .collection(collectionName)
-        .where({
-          material_id: materialId,
-          plant_id: plantId,
-          location_id: locationId,
-        })
+        .where(balanceQuery)
         .get();
-      balanceData = balanceResponse.data[0];
+
+      if (balanceResponse.data && balanceResponse.data.length > 0) {
+        balanceData = balanceResponse.data[0];
+      }
     } catch (err) {
       throw new Error(`Failed to fetch receiving balance: ${err.message}`);
     }
 
+    // If balance exists, update it
     if (balanceData) {
+      const currentCategoryQty = balanceData[categoryField] || 0;
+      const currentBalanceQty = balanceData.balance_quantity || 0;
+
       const updateData = {
-        balance_quantity:
-          (balanceData.balance_quantity || 0) + receivedQuantity,
-        [categoryField]: (balanceData[categoryField] || 0) + receivedQuantity,
+        [categoryField]: this.formatQuantity(
+          currentCategoryQty + formattedQuantity
+        ),
+        balance_quantity: this.formatQuantity(
+          currentBalanceQty + formattedQuantity
+        ),
         update_time: new Date().toISOString(),
       };
 
@@ -669,402 +539,382 @@ class StockAdjuster {
           .collection(collectionName)
           .doc(balanceData.id)
           .update(updateData);
-        return { balanceId: balanceData.id, ...updateData };
+
+        return {
+          balanceId: balanceData.id,
+          materialId,
+          quantityAdded: formattedQuantity,
+          ...updateData,
+        };
       } catch (err) {
         throw new Error(`Failed to update receiving balance: ${err.message}`);
       }
-    } else {
+    }
+    // If balance doesn't exist, create a new one
+    else {
+      // Initialize all category fields to 0
       const newBalanceData = {
         material_id: materialId,
         plant_id: plantId,
         location_id: locationId,
-        balance_quantity: receivedQuantity,
-        [categoryField]: receivedQuantity,
-        unrestricted_qty: category === "Unrestricted" ? receivedQuantity : 0,
-        qualityinsp_qty:
-          category === "Quality Inspection" ? receivedQuantity : 0,
-        block_qty: category === "Blocked" ? receivedQuantity : 0,
-        reserved_qty: category === "Reserved" ? receivedQuantity : 0,
+        balance_quantity: formattedQuantity,
+        unrestricted_qty: 0,
+        qualityinsp_qty: 0,
+        block_qty: 0,
+        reserved_qty: 0,
         intransit_qty: 0,
         create_time: new Date().toISOString(),
         update_time: new Date().toISOString(),
         organization_id: materialData.organization_id || "default_org",
       };
 
+      // Set the specific category quantity
+      newBalanceData[categoryField] = formattedQuantity;
+
       try {
         const response = await this.db
           .collection(collectionName)
           .add(newBalanceData);
-        return { balanceId: response.data[0].id, ...newBalanceData };
+
+        return {
+          balanceId: response.data[0].id,
+          materialId,
+          quantityAdded: formattedQuantity,
+          ...newBalanceData,
+        };
       } catch (err) {
         throw new Error(`Failed to create receiving balance: ${err.message}`);
       }
     }
   }
 
-  async recordInventoryMovement(
+  async recordInventoryMovements(
     materialId,
     quantity,
-    category,
+    sourceCategory,
+    targetCategory,
     locationId,
     issuingStockMovementNo,
-    stockMovementNo,
+    receivingStockMovementNo,
     issuingPlantId,
     receivingPlantId,
-    receivingStockMovementId,
-    receivingStockMovementNumber,
     unitPrice,
-    uom
+    uom,
+    materialData
   ) {
-    let materialData;
-    try {
-      const materialResponse = await this.db
-        .collection("Item")
-        .where({ id: materialId })
-        .get();
-      materialData = materialResponse.data[0];
-      if (!materialData) {
-        throw new Error(`Material not found for ID: ${materialId}`);
-      }
-    } catch (err) {
-      throw new Error(`Failed to fetch material: ${err.message}`);
-    }
+    const formattedQuantity = this.formatQuantity(quantity);
+    const formattedUnitPrice = this.formatPrice(unitPrice || 0);
+    const totalPrice = this.formatPrice(formattedUnitPrice * formattedQuantity);
 
-    const outMovement = {
+    // Determine batch management
+    const isBatchManaged =
+      materialData.item_batch_management == "1" ||
+      materialData.item_isbatch_managed == "1";
+    const batchId = isBatchManaged ? materialData.id : null;
+
+    // Use the material's UOM if not specified
+    const itemUom = uom || materialData.based_uom || materialData.uom_id;
+
+    // Create OUT movement from in-transit in issuing plant
+    const issuingMovement = {
       transaction_type: "SM",
       trx_no: issuingStockMovementNo,
       movement: "OUT",
-      inventory_category: "In Transit",
+      inventory_category: sourceCategory,
       parent_trx_no: null,
-      unit_price: unitPrice || 0,
-      total_price: unitPrice * quantity || 0,
-      quantity: quantity,
+      unit_price: formattedUnitPrice,
+      total_price: totalPrice,
+      quantity: formattedQuantity,
       item_id: materialId,
-      uom_id: uom,
-      base_qty: quantity,
-      base_uom_id: uom,
+      uom_id: itemUom,
+      base_qty: formattedQuantity,
+      base_uom_id: itemUom,
       bin_location_id: locationId,
-      batch_number_id:
-        materialData.item_isbatch_managed == "1" ? materialId : null,
+      batch_number_id: batchId,
       costing_method_id: materialData.material_costing_method,
       organization_id: materialData.organization_id || "default_org",
       plant_id: issuingPlantId,
       created_at: new Date(),
     };
 
-    const inMovement = {
+    // Create IN movement to unrestricted in receiving plant
+    const receivingMovement = {
       transaction_type: "SM",
-      trx_no: receivingStockMovementNumber,
+      trx_no: receivingStockMovementNo,
       parent_trx_no: null,
       movement: "IN",
-      unit_price: unitPrice || 0,
-      total_price: unitPrice * quantity || 0,
-      quantity: quantity,
+      unit_price: formattedUnitPrice,
+      total_price: totalPrice,
+      quantity: formattedQuantity,
       item_id: materialId,
-      inventory_category: category,
-      uom_id: uom,
-      base_qty: quantity,
-      base_uom_id: uom,
+      inventory_category: targetCategory,
+      uom_id: itemUom,
+      base_qty: formattedQuantity,
+      base_uom_id: itemUom,
       bin_location_id: locationId,
-      batch_number_id:
-        materialData.item_isbatch_managed == "1" ? materialId : null,
+      batch_number_id: batchId,
       costing_method_id: materialData.material_costing_method,
       created_at: new Date(),
-      plant_id: issuingPlantId,
+      plant_id: receivingPlantId,
       organization_id: materialData.organization_id || "default_org",
     };
 
     try {
-      const [outResult, inResult] = await Promise.all([
-        this.db.collection("inventory_movement").add(outMovement),
-        this.db.collection("inventory_movement").add(inMovement),
+      const [issuingResult, receivingResult] = await Promise.all([
+        this.db.collection("inventory_movement").add(issuingMovement),
+        this.db.collection("inventory_movement").add(receivingMovement),
       ]);
+
       return {
-        out: outResult.data[0],
-        in: inResult.data[0],
+        issuingMovement: {
+          id: issuingResult.data[0].id,
+          ...issuingMovement,
+        },
+        receivingMovement: {
+          id: receivingResult.data[0].id,
+          ...receivingMovement,
+        },
       };
     } catch (err) {
-      throw new Error(`Failed to record inventory movement: ${err.message}`);
+      throw new Error(`Failed to record inventory movements: ${err.message}`);
     }
   }
 
   async updateCosting(
-    materialId,
-    receivedQuantity,
+    materialData,
+    quantity,
     issuingPlantId,
     receivingPlantId,
-    unitPrice,
-    uom
+    unitPrice
   ) {
-    const costingUpdates = {};
+    const results = {
+      issuingCosting: null,
+      receivingCosting: null,
+    };
 
-    // Input validation
-    if (!materialId || !issuingPlantId || !receivingPlantId) {
-      throw new Error(
-        "Material ID, issuing plant ID, and receiving plant ID are required"
-      );
-    }
-    if (receivedQuantity <= 0 || unitPrice < 0) {
-      throw new Error("Invalid quantity or unit price");
-    }
+    const formattedQuantity = this.formatQuantity(quantity);
+    const formattedUnitPrice = this.formatPrice(unitPrice || 0);
+    const totalValue = this.formatPrice(formattedQuantity * formattedUnitPrice);
 
-    // Fetch material data
-    const materialResponse = await this.db
-      .collection("Item")
-      .where({ id: materialId })
-      .get();
-    const materialData = materialResponse.data[0];
-    if (!materialData) {
-      throw new Error(`Material not found for ID: ${materialId}`);
-    }
-
-    const organizationId = materialData.organization_id || "default_org";
-
+    // Handle based on costing method
     if (materialData.material_costing_method === "Weighted Average") {
-      // Issuing plant (deduct)
-      const waIssuingResponse = await this.db
-        .collection("wa_costing_method")
-        .where({ material_id: materialId, plant_id: issuingPlantId })
-        .get();
-      let waData = waIssuingResponse.data || [];
-      if (waData.length > 0) {
-        waData.sort((a, b) => {
-          if (a.created_at && b.created_at) {
-            return new Date(b.created_at) - new Date(a.created_at);
-          }
-          return 0;
-        });
+      // Process issuing plant (reduce in-transit)
+      try {
+        const waIssuingResponse = await this.db
+          .collection("wa_costing_method")
+          .where({
+            material_id: materialData.id,
+            plant_id: issuingPlantId,
+          })
+          .get();
 
-        const waDoc = waData[0];
-        const waCostPrice = parseFloat(waDoc.wa_cost_price || 0);
-        const waQuantity = parseFloat(waDoc.wa_quantity || 0);
+        if (waIssuingResponse.data && waIssuingResponse.data.length > 0) {
+          const waData = waIssuingResponse.data[0];
+          const currentQuantity = Number(waData.wa_quantity || 0);
+          const currentCostPrice = Number(waData.wa_cost_price || 0);
 
-        if (waQuantity < receivedQuantity) {
-          console.warn(
-            `Warning: Cannot fully update weighted average for ${materialId} - ` +
-              `Available: ${waQuantity}, Requested: ${receivedQuantity}`
-          );
+          // Reduce quantity but maintain cost price in issuing plant
+          // Since we're just reducing in-transit quantity
+          const newQuantity = Math.max(0, currentQuantity - formattedQuantity);
 
-          if (waQuantity <= 0) {
-            costingUpdates.issuingWA = { id: waDoc.id, wa_quantity: 0 };
-            return costingUpdates; // Early return if no quantity available
-          }
-        }
-
-        const newWaQuantity = Math.max(0, waQuantity - receivedQuantity);
-
-        if (newWaQuantity === 0) {
-          await this.db.collection("wa_costing_method").doc(waDoc.id).update({
-            wa_quantity: 0,
+          await this.db.collection("wa_costing_method").doc(waData.id).update({
+            wa_quantity: newQuantity,
             updated_at: new Date(),
           });
-          console.log(
-            `Updated Weighted Average for item ${materialId} to zero quantity`
-          );
-          costingUpdates.issuingWA = { id: waDoc.id, wa_quantity: 0 };
-        } else {
-          const calculatedWaCostPrice =
-            (waCostPrice * waQuantity - waCostPrice * receivedQuantity) /
-            newWaQuantity;
-          const newWaCostPrice =
-            Math.round(calculatedWaCostPrice * 10000) / 10000;
 
-          await this.db.collection("wa_costing_method").doc(waDoc.id).update({
-            wa_quantity: newWaQuantity,
-            wa_cost_price: newWaCostPrice,
-            updated_at: new Date(),
-          });
-          console.log(
-            `Issuing Plant: Updated ${materialId} from wa_quantity=${waQuantity} to ${newWaQuantity}, ` +
-              `wa_cost_price=${newWaCostPrice}`
-          );
-          costingUpdates.issuingWA = {
-            id: waDoc.id,
-            wa_quantity: newWaQuantity,
-            wa_cost_price: newWaCostPrice,
+          results.issuingCosting = {
+            id: waData.id,
+            quantity: newQuantity,
+            costPrice: currentCostPrice,
           };
         }
+      } catch (error) {
+        throw new Error(
+          `Failed to update issuing plant WA costing: ${error.message}`
+        );
       }
 
-      // Receiving plant (add)
-      const waReceivingResponse = await this.db
-        .collection("wa_costing_method")
-        .where({ material_id: materialId, plant_id: receivingPlantId })
-        .get();
-      const waReceivingData = waReceivingResponse.data[0];
-      if (waReceivingData) {
-        const existingQuantity = waReceivingData.wa_quantity || 0;
-        const existingCostPrice = waReceivingData.wa_cost_price || 0;
-        const newQuantity = existingQuantity + receivedQuantity;
-
-        const newCostPrice =
-          (existingQuantity * existingCostPrice +
-            receivedQuantity * unitPrice) /
-          newQuantity;
-        const roundedNewCostPrice = Math.round(newCostPrice * 10000) / 10000;
-
-        await this.db
+      // Process receiving plant (add to unrestricted)
+      try {
+        const waReceivingResponse = await this.db
           .collection("wa_costing_method")
-          .doc(waReceivingData.id)
-          .update({
-            wa_quantity: newQuantity,
-            wa_cost_price: roundedNewCostPrice,
+          .where({
+            material_id: materialData.id,
+            plant_id: receivingPlantId,
+          })
+          .get();
+
+        if (waReceivingResponse.data && waReceivingResponse.data.length > 0) {
+          // Update existing WA record
+          const waData = waReceivingResponse.data[0];
+          const currentQuantity = Number(waData.wa_quantity || 0);
+          const currentCostPrice = Number(waData.wa_cost_price || 0);
+          const currentValue = currentQuantity * currentCostPrice;
+
+          const newQuantity = currentQuantity + formattedQuantity;
+          const newValue = currentValue + totalValue;
+          const newCostPrice = newValue / newQuantity;
+
+          await this.db
+            .collection("wa_costing_method")
+            .doc(waData.id)
+            .update({
+              wa_quantity: newQuantity,
+              wa_cost_price: this.formatPrice(newCostPrice),
+              updated_at: new Date(),
+            });
+
+          results.receivingCosting = {
+            id: waData.id,
+            quantity: newQuantity,
+            costPrice: this.formatPrice(newCostPrice),
+          };
+        } else {
+          // Create new WA record
+          const newWaData = {
+            material_id: materialData.id,
+            plant_id: receivingPlantId,
+            wa_quantity: formattedQuantity,
+            wa_cost_price: formattedUnitPrice,
+            organization_id: materialData.organization_id || "default_org",
+            created_at: new Date(),
             updated_at: new Date(),
-          });
-        console.log(
-          `Receiving Plant: Updated ${materialId} from wa_quantity=${existingQuantity} to ${newQuantity}, ` +
-            `wa_cost_price=${roundedNewCostPrice}`
+          };
+
+          const response = await this.db
+            .collection("wa_costing_method")
+            .add(newWaData);
+
+          results.receivingCosting = {
+            id: response.data[0].id,
+            ...newWaData,
+          };
+        }
+      } catch (error) {
+        throw new Error(
+          `Failed to update receiving plant WA costing: ${error.message}`
         );
-        costingUpdates.receivingWA = {
-          id: waReceivingData.id,
-          wa_quantity: newQuantity,
-          wa_cost_price: roundedNewCostPrice,
-        };
-      } else {
-        const newWAData = {
-          material_id: materialId,
+      }
+    } else if (materialData.material_costing_method === "First In First Out") {
+      // Process issuing plant (reduce in-transit)
+      try {
+        const fifoIssuingResponse = await this.db
+          .collection("fifo_costing_history")
+          .where({
+            material_id: materialData.id,
+            plant_id: issuingPlantId,
+          })
+          .get();
+
+        if (fifoIssuingResponse.data && fifoIssuingResponse.data.length > 0) {
+          // Sort by FIFO sequence
+          const fifoData = fifoIssuingResponse.data.sort(
+            (a, b) => a.fifo_sequence - b.fifo_sequence
+          );
+
+          let remainingQty = formattedQuantity;
+
+          // Process FIFO records until we've covered the full quantity
+          for (const record of fifoData) {
+            if (remainingQty <= 0) break;
+
+            const availableQty = Number(record.fifo_available_quantity || 0);
+            if (availableQty <= 0) continue;
+
+            const reduceQty = Math.min(availableQty, remainingQty);
+            const newAvailable = availableQty - reduceQty;
+
+            await this.db
+              .collection("fifo_costing_history")
+              .doc(record.id)
+              .update({
+                fifo_available_quantity: newAvailable,
+                updated_at: new Date(),
+              });
+
+            remainingQty -= reduceQty;
+
+            results.issuingCosting = {
+              id: record.id,
+              reducedQuantity: reduceQty,
+              remainingQuantity: newAvailable,
+              costPrice: record.fifo_cost_price,
+            };
+          }
+
+          if (remainingQty > 0) {
+            throw new Error(
+              `Insufficient FIFO quantity at issuing plant. Remaining: ${remainingQty}`
+            );
+          }
+        }
+      } catch (error) {
+        throw new Error(
+          `Failed to update issuing plant FIFO costing: ${error.message}`
+        );
+      }
+
+      // Process receiving plant (add new FIFO record)
+      try {
+        const fifoReceivingResponse = await this.db
+          .collection("fifo_costing_history")
+          .where({
+            material_id: materialData.id,
+            plant_id: receivingPlantId,
+          })
+          .get();
+
+        // Determine next sequence number
+        let sequenceNumber = 1;
+        if (
+          fifoReceivingResponse.data &&
+          fifoReceivingResponse.data.length > 0
+        ) {
+          const existingSequences = fifoReceivingResponse.data.map((doc) =>
+            Number(doc.fifo_sequence || 0)
+          );
+          sequenceNumber = Math.max(...existingSequences, 0) + 1;
+        }
+
+        // Create new FIFO record
+        const newFifoData = {
+          material_id: materialData.id,
           plant_id: receivingPlantId,
-          wa_quantity: receivedQuantity,
-          wa_cost_price: Number(unitPrice).toFixed(4),
-          organization_id: organizationId,
+          fifo_sequence: sequenceNumber,
+          fifo_cost_price: formattedUnitPrice,
+          fifo_initial_quantity: formattedQuantity,
+          fifo_available_quantity: formattedQuantity,
+          batch_id:
+            materialData.item_isbatch_managed === "1" ? materialData.id : null,
+          organization_id: materialData.organization_id || "default_org",
           created_at: new Date(),
           updated_at: new Date(),
         };
-        const newWAResponse = await this.db
-          .collection("wa_costing_method")
-          .add(newWAData);
-        console.log(
-          `Receiving Plant: Created WA record for ${materialId}, wa_quantity=${receivedQuantity}, wa_cost_price=${newWAData.wa_cost_price}`
-        );
-        costingUpdates.receivingWA = {
-          id: newWAResponse.data[0].id,
-          ...newWAData,
+
+        const response = await this.db
+          .collection("fifo_costing_history")
+          .add(newFifoData);
+
+        results.receivingCosting = {
+          id: response.data[0].id,
+          ...newFifoData,
         };
-      }
-    } else if (materialData.material_costing_method === "First In First Out") {
-      // Issuing Plant (deduct)
-      const fifoIssuingResponse = await this.db
-        .collection("fifo_costing_history")
-        .where({ material_id: materialId, plant_id: issuingPlantId })
-        .get();
-      let fifoIssuingData = fifoIssuingResponse.data || [];
-      if (fifoIssuingData.length && receivedQuantity > 0) {
-        let remainingReduction = receivedQuantity;
-        fifoIssuingData.sort((a, b) => a.fifo_sequence - b.fifo_sequence);
-
-        for (const fifoRecord of fifoIssuingData) {
-          if (remainingReduction <= 0) break;
-
-          const available = fifoRecord.fifo_available_quantity;
-          const reduction = Math.min(available, remainingReduction);
-          const newAvailable = available - reduction;
-
-          await this.db
-            .collection("fifo_costing_history")
-            .doc(fifoRecord.id)
-            .update({
-              fifo_available_quantity: newAvailable,
-              updated_at: new Date(),
-            });
-          console.log(
-            `Issuing Plant: Updated ${materialId} FIFO record ${fifoRecord.id}, ` +
-              `fifo_available_quantity from ${available} to ${newAvailable}`
-          );
-          costingUpdates.issuingFIFO = costingUpdates.issuingFIFO || [];
-          costingUpdates.issuingFIFO.push({
-            id: fifoRecord.id,
-            fifo_available_quantity: newAvailable,
-            fifo_cost_price: fifoRecord.fifo_cost_price,
-          });
-
-          remainingReduction -= reduction;
-        }
-
-        if (remainingReduction > 0) {
-          throw new Error("Insufficient FIFO quantity at issuing plant");
-        }
-      }
-
-      // Replenish Issuing Plant (Plant A)
-      const fifoIssuingResponseAfter = await this.db
-        .collection("fifo_costing_history")
-        .where({ material_id: materialId, plant_id: issuingPlantId })
-        .get();
-      const fifoIssuingDataAfter = fifoIssuingResponseAfter.data || [];
-      let sequenceNumberIssuing = 1;
-      if (fifoIssuingDataAfter.length) {
-        const existingSequences = fifoIssuingDataAfter.map((doc) =>
-          parseInt(doc.fifo_sequence || 0)
+      } catch (error) {
+        throw new Error(
+          `Failed to update receiving plant FIFO costing: ${error.message}`
         );
-        sequenceNumberIssuing = Math.max(...existingSequences, 0) + 1;
       }
-      // Use issuing plant's cost price if available, else unitPrice
-      const issuingCostPrice = fifoIssuingData.length
-        ? fifoIssuingData[0].fifo_cost_price
-        : unitPrice;
-      const newFifoDataIssuing = {
-        fifo_cost_price: Number(issuingCostPrice).toFixed(4),
-        fifo_initial_quantity: receivedQuantity,
-        fifo_available_quantity: receivedQuantity,
-        material_id: materialId,
-        batch_id: materialData.item_isbatch_managed === "1" ? materialId : null,
-        fifo_sequence: sequenceNumberIssuing,
-        plant_id: issuingPlantId,
-        organization_id: organizationId,
-        created_at: new Date(),
-        updated_at: new Date(),
+    } else if (materialData.material_costing_method === "Fixed Cost") {
+      // For fixed cost, we don't need to update any costing records
+      // The cost simply follows the material
+      results.issuingCosting = {
+        message:
+          "Fixed cost method - no costing records updated for issuing plant",
       };
-      const newFifoResponseIssuing = await this.db
-        .collection("fifo_costing_history")
-        .add(newFifoDataIssuing);
-      console.log(
-        `Issuing Plant: Created FIFO record for ${materialId}, ` +
-          `fifo_available_quantity=${receivedQuantity}, fifo_cost_price=${newFifoDataIssuing.fifo_cost_price}, ` +
-          `fifo_sequence=${sequenceNumberIssuing}`
-      );
-      costingUpdates.issuingFIFO = costingUpdates.issuingFIFO || [];
-      costingUpdates.issuingFIFO.push({
-        id: newFifoResponseIssuing.data[0].id,
-        ...newFifoDataIssuing,
-      });
 
-      // Receiving Plant (add)
-      const fifoReceivingResponse = await this.db
-        .collection("fifo_costing_history")
-        .where({ material_id: materialId, plant_id: receivingPlantId })
-        .get();
-      const fifoReceivingData = fifoReceivingResponse.data || [];
-      let sequenceNumber = 1;
-      if (fifoReceivingData.length) {
-        const existingSequences = fifoReceivingData.map((doc) =>
-          parseInt(doc.fifo_sequence || 0)
-        );
-        sequenceNumber = Math.max(...existingSequences, 0) + 1;
-      }
-
-      const newFifoData = {
-        fifo_cost_price: Number(issuingCostPrice).toFixed(4), // Use issuing plant’s cost price
-        fifo_initial_quantity: receivedQuantity,
-        fifo_available_quantity: receivedQuantity,
-        material_id: materialId,
-        batch_id: materialData.item_isbatch_managed === "1" ? materialId : null,
-        fifo_sequence: sequenceNumber,
-        plant_id: receivingPlantId,
-        organization_id: organizationId,
-        created_at: new Date(),
-        updated_at: new Date(),
-      };
-      const newFifoResponse = await this.db
-        .collection("fifo_costing_history")
-        .add(newFifoData);
-      console.log(
-        `Receiving Plant: Created FIFO record for ${materialId}, ` +
-          `fifo_available_quantity=${receivedQuantity}, fifo_cost_price=${newFifoData.fifo_cost_price}, ` +
-          `fifo_sequence=${sequenceNumber}`
-      );
-      costingUpdates.receivingFIFO = {
-        id: newFifoResponse.data[0].id,
-        ...newFifoData,
+      results.receivingCosting = {
+        message:
+          "Fixed cost method - no costing records updated for receiving plant",
       };
     } else {
       throw new Error(
@@ -1072,12 +922,12 @@ class StockAdjuster {
       );
     }
 
-    return costingUpdates;
+    return results;
   }
 }
 
 async function processFormData(db, self) {
-  const adjuster = new StockAdjuster(db);
+  const processor = new ReceivingIOFTProcessor(db);
   const closeDialog = () => {
     if (self.parentGenerateForm) {
       self.parentGenerateForm.$refs.SuPageDialogRef.hide();
@@ -1086,13 +936,13 @@ async function processFormData(db, self) {
   };
 
   try {
-    const results = await adjuster.processStockAdjustment(db, self);
+    const results = await processor.processReceivingIOFT(db, self);
     closeDialog();
-    console.log("Stock movement processed:", results);
+    console.log("IOFT receipt processed:", results);
     return results;
   } catch (error) {
-    console.error("Error processing stock adjustment:", error.message);
-    throw error; // Error already displayed in processStockAdjustment
+    console.error("Error processing IOFT receipt:", error.message);
+    throw error; // Error already displayed in processReceivingIOFT
   }
 }
 

@@ -194,6 +194,7 @@ const enhanceStockMovementUI = async () => {
           Edit: [
             "stock_movement.item_selection",
             "stock_movement.total_quantity",
+            "stock_movement.to_recv_qty",
             "movement_reason",
           ],
           View: [
@@ -262,7 +263,6 @@ const enhanceStockMovementUI = async () => {
             "stock_movement.unit_price",
             "stock_movement.amount",
             "stock_movement.location_id",
-            "stock_movement.total_quantity",
             "movement_reason",
           ],
         },
@@ -775,6 +775,13 @@ const enhanceStockMovementUI = async () => {
       ) {
         showButton("button_post");
       }
+    } else if (
+      pageStatus === "Created" &&
+      (pageAction === "View" || pageAction === "Edit") &&
+      movementTypeName === "Inter Operation Facility Transfer (Receiving)"
+    ) {
+      hideAllButtons();
+      showButton("button_complete_receive");
     }
 
     if (movementTypeId) {
