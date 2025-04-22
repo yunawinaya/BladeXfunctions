@@ -884,7 +884,10 @@ class StockAdjuster {
 
           await this.db.collection("wa_costing_method").add({
             material_id: materialData.id,
-            batch_id: balanceData.batch_id || null,
+            batch_id:
+              materialData.item_batch_management == "1"
+                ? balanceData.batch_id
+                : null,
             plant_id: plantId,
             organization_id: organizationId,
             wa_quantity: newWaQuantity,
@@ -1004,7 +1007,10 @@ class StockAdjuster {
 
           await this.db.collection("fifo_costing_history").add({
             material_id: materialData.id,
-            batch_id: balanceData.batch_id || null,
+            batch_id:
+              materialData.item_batch_management == "1"
+                ? balanceData.batch_id
+                : null,
             plant_id: plantId,
             organization_id: organizationId,
             fifo_initial_quantity: qtyChangeValue,
@@ -1084,15 +1090,16 @@ class StockAdjuster {
   }
 
   // Function to get latest FIFO cost price with available quantity check
-  async getLatestFIFOCostPrice(materialId, batchId) {
+  async getLatestFIFOCostPrice(materialData, batchId) {
     try {
-      const query = batchId
-        ? this.db
-            .collection("fifo_costing_history")
-            .where({ material_id: materialId, batch_id: batchId })
-        : this.db
-            .collection("fifo_costing_history")
-            .where({ material_id: materialId });
+      const query =
+        materialData.item_batch_management == "1" && batchId
+          ? this.db
+              .collection("fifo_costing_history")
+              .where({ material_id: materialData.id, batch_id: batchId })
+          : this.db
+              .collection("fifo_costing_history")
+              .where({ material_id: materialData.id });
 
       const response = await query.get();
       const result = response.data;
@@ -1116,18 +1123,18 @@ class StockAdjuster {
 
         // If no records with available quantity, use the most recent record
         console.warn(
-          `No FIFO records with available quantity found for ${materialId}, using most recent cost price`
+          `No FIFO records with available quantity found for ${materialData.id}, using most recent cost price`
         );
         return parseFloat(
           sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
         );
       }
 
-      console.warn(`No FIFO records found for material ${materialId}`);
+      console.warn(`No FIFO records found for material ${materialData.id}`);
       return 0;
     } catch (error) {
       console.error(
-        `Error retrieving FIFO cost price for ${materialId}:`,
+        `Error retrieving FIFO cost price for ${materialData.id}:`,
         error
       );
       return 0;
@@ -1135,15 +1142,16 @@ class StockAdjuster {
   }
 
   // Function to get Weighted Average cost price
-  async getWeightedAverageCostPrice(materialId, batchId) {
+  async getWeightedAverageCostPrice(materialData, batchId) {
     try {
-      const query = batchId
-        ? this.db
-            .collection("wa_costing_method")
-            .where({ material_id: materialId, batch_id: batchId })
-        : this.db
-            .collection("wa_costing_method")
-            .where({ material_id: materialId });
+      const query =
+        materialData.item_batch_management == "1" && batchId
+          ? this.db
+              .collection("wa_costing_method")
+              .where({ material_id: materialData.id, batch_id: batchId })
+          : this.db
+              .collection("wa_costing_method")
+              .where({ material_id: materialData.id });
 
       const response = await query.get();
       const waData = response.data;
@@ -1161,11 +1169,14 @@ class StockAdjuster {
       }
 
       console.warn(
-        `No weighted average records found for material ${materialId}`
+        `No weighted average records found for material ${materialData.id}`
       );
       return 0;
     } catch (error) {
-      console.error(`Error retrieving WA cost price for ${materialId}:`, error);
+      console.error(
+        `Error retrieving WA cost price for ${materialData.id}:`,
+        error
+      );
       return 0;
     }
   }
@@ -1222,14 +1233,14 @@ class StockAdjuster {
     if (materialData.material_costing_method === "First In First Out") {
       // Get unit price from latest FIFO sequence
       const fifoCostPrice = await this.getLatestFIFOCostPrice(
-        materialData.id,
+        materialData,
         balance.batch_id
       );
       unitPrice = fifoCostPrice;
     } else if (materialData.material_costing_method === "Weighted Average") {
       // Get unit price from WA cost price
       const waCostPrice = await this.getWeightedAverageCostPrice(
-        materialData.id,
+        materialData,
         balance.batch_id
       );
       unitPrice = waCostPrice;
@@ -1241,16 +1252,35 @@ class StockAdjuster {
       return Promise.resolve();
     }
 
+    const formatQuantity = (value) => Number(Number(value).toFixed(3));
+    const formatPrice = (value) => Number(Number(value).toFixed(4));
+
+    let receiptUnitPrice = unitPrice;
+    if (movementType === "Miscellaneous Receipt") {
+      receiptUnitPrice =
+        balance.unit_price && balance.unit_price !== 0
+          ? balance.unit_price
+          : subformData.unit_price && subformData.unit_price !== 0
+          ? subformData.unit_price
+          : materialData.purchase_unit_price || 0;
+    }
+
+    const formattedUnitPrice = formatPrice(
+      movementType === "Miscellaneous Receipt" ? receiptUnitPrice : unitPrice
+    );
+    const formattedConvertedQty = formatQuantity(convertedQty);
+    const formattedOriginalQty = formatQuantity(originalQty);
+
     const baseMovementData = {
       transaction_type: "SM",
       trx_no: allData.stock_movement_no,
-      unit_price: unitPrice,
-      total_price: unitPrice * convertedQty,
-      quantity: originalQty,
+      unit_price: formattedUnitPrice,
+      total_price: formatPrice(formattedUnitPrice * formattedConvertedQty),
+      quantity: formattedOriginalQty,
       item_id: materialData.id,
       inventory_category: balance.category || subformData.category,
       uom_id: effectiveUom,
-      base_qty: convertedQty,
+      base_qty: formattedConvertedQty,
       base_uom_id: materialData.based_uom,
       batch_number_id:
         materialData.item_batch_management == "1" ? balance.batch_id : null,
