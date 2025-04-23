@@ -51,7 +51,6 @@ const enhanceStockMovementUI = async () => {
         }`
       );
       this.setData({
-        [`movement_reason`]: "",
         [`issued_by`]: "",
         [`issuing_operation_faci`]: "",
         [`sm_item_balance`]: [],
@@ -59,6 +58,15 @@ const enhanceStockMovementUI = async () => {
         [`stock_movement`]: [],
         [`balance_index`]: [],
       });
+
+      const movementReason = this.getValue("movement_reason");
+      console.log("Movement reason:", movementReason);
+
+      if (movementReason !== undefined) {
+        this.setData({
+          [`movement_reason`]: "",
+        });
+      }
     } else {
       console.log(
         "Preserving existing data - no movement type change detected"
