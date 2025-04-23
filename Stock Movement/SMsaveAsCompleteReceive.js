@@ -11,11 +11,11 @@ class ReceivingIOFTProcessor {
   }
 
   // Helper functions for consistent decimal formatting
-  formatQuantity(value) {
+  roundQty(value) {
     return Number(Number(value).toFixed(3));
   }
 
-  formatPrice(value) {
+  roundPrice(value) {
     return Number(Number(value).toFixed(4));
   }
 
@@ -422,10 +422,10 @@ class ReceivingIOFTProcessor {
       throw new Error(`Failed to fetch balance: ${err.message}`);
     }
 
-    const formattedQuantity = this.formatQuantity(quantity);
+    const formattedQuantity = this.roundQty(quantity);
 
     // Ensure we don't go below zero
-    const currentInTransit = balanceData.intransit_qty || 0;
+    const currentInTransit = this.roundQty(balanceData.intransit_qty || 0);
     if (currentInTransit < formattedQuantity) {
       throw new Error(
         `Insufficient in-transit quantity. Available: ${currentInTransit}, Requested: ${formattedQuantity}`
@@ -434,8 +434,8 @@ class ReceivingIOFTProcessor {
 
     // Update balance - decrease in-transit quantity
     const updateData = {
-      intransit_qty: this.formatQuantity(currentInTransit - formattedQuantity),
-      balance_quantity: this.formatQuantity(
+      intransit_qty: this.roundQty(currentInTransit - formattedQuantity),
+      balance_quantity: this.roundQty(
         (balanceData.balance_quantity || 0) - formattedQuantity
       ),
       update_time: new Date().toISOString(),
@@ -493,7 +493,7 @@ class ReceivingIOFTProcessor {
       throw new Error(`Invalid category: ${category}`);
     }
 
-    const formattedQuantity = this.formatQuantity(quantity);
+    const formattedQuantity = this.roundQty(quantity);
 
     // Check if the balance already exists
     let balanceData;
@@ -521,16 +521,14 @@ class ReceivingIOFTProcessor {
 
     // If balance exists, update it
     if (balanceData) {
-      const currentCategoryQty = balanceData[categoryField] || 0;
-      const currentBalanceQty = balanceData.balance_quantity || 0;
+      const currentCategoryQty = this.roundQty(balanceData[categoryField] || 0);
+      const currentBalanceQty = this.roundQty(
+        balanceData.balance_quantity || 0
+      );
 
       const updateData = {
-        [categoryField]: this.formatQuantity(
-          currentCategoryQty + formattedQuantity
-        ),
-        balance_quantity: this.formatQuantity(
-          currentBalanceQty + formattedQuantity
-        ),
+        [categoryField]: this.roundQty(currentCategoryQty + formattedQuantity),
+        balance_quantity: this.roundQty(currentBalanceQty + formattedQuantity),
         update_time: new Date().toISOString(),
       };
 
@@ -602,9 +600,9 @@ class ReceivingIOFTProcessor {
     uom,
     materialData
   ) {
-    const formattedQuantity = this.formatQuantity(quantity);
-    const formattedUnitPrice = this.formatPrice(unitPrice || 0);
-    const totalPrice = this.formatPrice(formattedUnitPrice * formattedQuantity);
+    const formattedQuantity = this.roundQty(quantity);
+    const formattedUnitPrice = this.roundPrice(unitPrice || 0);
+    const totalPrice = this.roundPrice(formattedUnitPrice * formattedQuantity);
 
     // Determine batch management
     const isBatchManaged =
@@ -692,9 +690,9 @@ class ReceivingIOFTProcessor {
       receivingCosting: null,
     };
 
-    const formattedQuantity = this.formatQuantity(quantity);
-    const formattedUnitPrice = this.formatPrice(unitPrice || 0);
-    const totalValue = this.formatPrice(formattedQuantity * formattedUnitPrice);
+    const formattedQuantity = this.roundQty(quantity);
+    const formattedUnitPrice = this.roundPrice(unitPrice || 0);
+    const totalValue = this.roundPrice(formattedQuantity * formattedUnitPrice);
 
     // Handle based on costing method
     if (materialData.material_costing_method === "Weighted Average") {
@@ -710,22 +708,25 @@ class ReceivingIOFTProcessor {
 
         if (waIssuingResponse.data && waIssuingResponse.data.length > 0) {
           const waData = waIssuingResponse.data[0];
-          const currentQuantity = Number(waData.wa_quantity || 0);
-          const currentCostPrice = Number(waData.wa_cost_price || 0);
+          const currentQuantity = this.roundQty(waData.wa_quantity || 0);
+          const currentCostPrice = this.roundPrice(waData.wa_cost_price || 0);
 
           // Reduce quantity but maintain cost price in issuing plant
           // Since we're just reducing in-transit quantity
           const newQuantity = Math.max(0, currentQuantity - formattedQuantity);
 
-          await this.db.collection("wa_costing_method").doc(waData.id).update({
-            wa_quantity: newQuantity,
-            updated_at: new Date(),
-          });
+          await this.db
+            .collection("wa_costing_method")
+            .doc(waData.id)
+            .update({
+              wa_quantity: this.roundQty(newQuantity),
+              updated_at: new Date(),
+            });
 
           results.issuingCosting = {
             id: waData.id,
-            quantity: newQuantity,
-            costPrice: currentCostPrice,
+            quantity: this.roundQty(newQuantity),
+            costPrice: this.roundPrice(currentCostPrice),
           };
         }
       } catch (error) {
@@ -747,27 +748,28 @@ class ReceivingIOFTProcessor {
         if (waReceivingResponse.data && waReceivingResponse.data.length > 0) {
           // Update existing WA record
           const waData = waReceivingResponse.data[0];
-          const currentQuantity = Number(waData.wa_quantity || 0);
-          const currentCostPrice = Number(waData.wa_cost_price || 0);
-          const currentValue = currentQuantity * currentCostPrice;
+          const currentQuantity = this.roundQty(waData.wa_quantity || 0);
+          const currentCostPrice = this.roundPrice(waData.wa_cost_price || 0);
+          const currentValue = this.roundPrice(
+            currentQuantity * currentCostPrice
+          );
 
-          const newQuantity = currentQuantity + formattedQuantity;
-          const newValue = currentValue + totalValue;
-          const newCostPrice = newValue / newQuantity;
+          const newQuantity = this.roundQty(
+            currentQuantity + formattedQuantity
+          );
+          const newValue = this.roundPrice(currentValue + totalValue);
+          const newCostPrice = this.roundPrice(newValue / newQuantity);
 
-          await this.db
-            .collection("wa_costing_method")
-            .doc(waData.id)
-            .update({
-              wa_quantity: newQuantity,
-              wa_cost_price: this.formatPrice(newCostPrice),
-              updated_at: new Date(),
-            });
+          await this.db.collection("wa_costing_method").doc(waData.id).update({
+            wa_quantity: newQuantity,
+            wa_cost_price: newCostPrice,
+            updated_at: new Date(),
+          });
 
           results.receivingCosting = {
             id: waData.id,
             quantity: newQuantity,
-            costPrice: this.formatPrice(newCostPrice),
+            costPrice: newCostPrice,
           };
         } else {
           // Create new WA record
@@ -818,11 +820,15 @@ class ReceivingIOFTProcessor {
           for (const record of fifoData) {
             if (remainingQty <= 0) break;
 
-            const availableQty = Number(record.fifo_available_quantity || 0);
+            const availableQty = this.roundQty(
+              record.fifo_available_quantity || 0
+            );
             if (availableQty <= 0) continue;
 
-            const reduceQty = Math.min(availableQty, remainingQty);
-            const newAvailable = availableQty - reduceQty;
+            const reduceQty = this.roundQty(
+              Math.min(availableQty, remainingQty)
+            );
+            const newAvailable = this.roundQty(availableQty - reduceQty);
 
             await this.db
               .collection("fifo_costing_history")
@@ -832,13 +838,13 @@ class ReceivingIOFTProcessor {
                 updated_at: new Date(),
               });
 
-            remainingQty -= reduceQty;
+            remainingQty = this.roundQty(remainingQty - reduceQty);
 
             results.issuingCosting = {
               id: record.id,
               reducedQuantity: reduceQty,
               remainingQuantity: newAvailable,
-              costPrice: record.fifo_cost_price,
+              costPrice: this.roundPrice(record.fifo_cost_price),
             };
           }
 

@@ -9,6 +9,15 @@ class StockAdjuster {
     };
   }
 
+  // Helper functions for consistent decimal formatting
+  roundQty(value) {
+    return parseFloat(parseFloat(value || 0).toFixed(3));
+  }
+
+  roundPrice(value) {
+    return parseFloat(parseFloat(value || 0).toFixed(4));
+  }
+
   validateRequiredFields(data, requiredFields, context = "") {
     const missingFields = requiredFields.filter(
       (field) => !data[field] && data[field] !== 0
@@ -903,8 +912,8 @@ class StockAdjuster {
 
         if (waData.length === 0 && qtyChangeValue > 0) {
           // Create new WA record for first receipt
-          newWaQuantity = qtyChangeValue;
-          newWaCostPrice = unitPrice;
+          newWaQuantity = this.roundQty(qtyChangeValue);
+          newWaCostPrice = this.roundPrice(unitPrice);
 
           await this.db.collection("wa_costing_method").add({
             material_id: materialData.id,
@@ -956,22 +965,26 @@ class StockAdjuster {
             );
           }
 
-          const currentQty = latestWa.wa_quantity || 0;
-          const currentCostPrice = latestWa.wa_cost_price || 0;
+          const currentQty = this.roundQty(latestWa.wa_quantity || 0);
+          const currentCostPrice = this.roundPrice(latestWa.wa_cost_price || 0);
 
           if (qtyChangeValue > 0) {
             // Receipt
-            newWaQuantity = currentQty + qtyChangeValue;
-            const currentTotalCost = currentCostPrice * currentQty;
-            const newTotalCost = unitPrice * qtyChangeValue;
+            newWaQuantity = this.roundQty(currentQty + qtyChangeValue);
+            const currentTotalCost = this.roundPrice(
+              currentCostPrice * currentQty
+            );
+            const newTotalCost = this.roundPrice(unitPrice * qtyChangeValue);
             newWaCostPrice =
               newWaQuantity > 0
-                ? (currentTotalCost + newTotalCost) / newWaQuantity
+                ? this.roundPrice(
+                    (currentTotalCost + newTotalCost) / newWaQuantity
+                  )
                 : 0;
           } else {
             // Delivery
             const deliveredQuantity = Math.abs(qtyChangeValue);
-            newWaQuantity = currentQty - deliveredQuantity;
+            newWaQuantity = this.roundQty(currentQty - deliveredQuantity);
 
             if (newWaQuantity < 0) {
               throw new Error(
@@ -979,11 +992,17 @@ class StockAdjuster {
               );
             }
 
-            const currentTotalCost = currentCostPrice * currentQty;
-            const deliveryTotalCost = currentCostPrice * deliveredQuantity;
+            const currentTotalCost = this.roundPrice(
+              currentCostPrice * currentQty
+            );
+            const deliveryTotalCost = this.roundPrice(
+              currentCostPrice * deliveredQuantity
+            );
             newWaCostPrice =
               newWaQuantity > 0
-                ? (currentTotalCost - deliveryTotalCost) / newWaQuantity
+                ? this.roundPrice(
+                    (currentTotalCost - deliveryTotalCost) / newWaQuantity
+                  )
                 : 0;
           }
 
@@ -1037,9 +1056,9 @@ class StockAdjuster {
                 : null,
             plant_id: plantId,
             organization_id: organizationId,
-            fifo_initial_quantity: qtyChangeValue,
-            fifo_available_quantity: qtyChangeValue,
-            fifo_cost_price: unitPrice,
+            fifo_initial_quantity: this.roundQty(qtyChangeValue),
+            fifo_available_quantity: this.roundQty(qtyChangeValue),
+            fifo_cost_price: this.roundPrice(unitPrice),
             fifo_sequence: latestSequence + 1,
             created_at: new Date().toISOString(),
           });
@@ -1053,9 +1072,11 @@ class StockAdjuster {
           );
 
           // Verify we have enough total quantity
-          const totalAvailable = sortedFifoData.reduce(
-            (sum, record) => sum + (record.fifo_available_quantity || 0),
-            0
+          const totalAvailable = this.roundQty(
+            sortedFifoData.reduce(
+              (sum, record) => sum + (record.fifo_available_quantity || 0),
+              0
+            )
           );
 
           if (totalAvailable < remainingDeduction) {
@@ -1068,11 +1089,13 @@ class StockAdjuster {
           for (const record of sortedFifoData) {
             if (remainingDeduction <= 0) break;
 
-            const available = record.fifo_available_quantity || 0;
+            const available = this.roundQty(
+              record.fifo_available_quantity || 0
+            );
             if (available <= 0) continue;
 
             const deduction = Math.min(available, remainingDeduction);
-            const newAvailable = available - deduction;
+            const newAvailable = this.roundQty(available - deduction);
 
             await this.db
               .collection("fifo_costing_history")
@@ -1136,12 +1159,14 @@ class StockAdjuster {
 
         // First look for records with available quantity
         for (const record of sortedRecords) {
-          const availableQty = parseFloat(record.fifo_available_quantity || 0);
+          const availableQty = this.roundQty(
+            record.fifo_available_quantity || 0
+          );
           if (availableQty > 0) {
             console.log(
               `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
             );
-            return parseFloat(record.fifo_cost_price || 0);
+            return this.roundPrice(record.fifo_cost_price || 0);
           }
         }
 
@@ -1149,7 +1174,7 @@ class StockAdjuster {
         console.warn(
           `No FIFO records with available quantity found for ${materialData.id}, using most recent cost price`
         );
-        return parseFloat(
+        return this.roundPrice(
           sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
         );
       }
@@ -1189,7 +1214,7 @@ class StockAdjuster {
           return 0;
         });
 
-        return parseFloat(waData[0].wa_cost_price || 0);
+        return this.roundPrice(waData[0].wa_cost_price || 0);
       }
 
       console.warn(
@@ -1209,7 +1234,7 @@ class StockAdjuster {
     const query = this.db.collection("Item").where({ id: materialId });
     const response = await query.get();
     const result = response.data;
-    return parseFloat(result[0].purchase_unit_price || 0);
+    return this.roundPrice(result[0].purchase_unit_price || 0);
   }
 
   async recordInventoryMovement(
@@ -1260,24 +1285,21 @@ class StockAdjuster {
         materialData,
         balance.batch_id
       );
-      unitPrice = fifoCostPrice;
+      unitPrice = this.roundPrice(fifoCostPrice);
     } else if (materialData.material_costing_method === "Weighted Average") {
       // Get unit price from WA cost price
       const waCostPrice = await this.getWeightedAverageCostPrice(
         materialData,
         balance.batch_id
       );
-      unitPrice = waCostPrice;
+      unitPrice = this.roundPrice(waCostPrice);
     } else if (materialData.material_costing_method === "Fixed Cost") {
       // Get unit price from Fixed Cost
       const fixedCostPrice = await this.getFixedCostPrice(materialData.id);
-      unitPrice = fixedCostPrice;
+      unitPrice = this.roundPrice(fixedCostPrice);
     } else {
       return Promise.resolve();
     }
-
-    const formatQuantity = (value) => Number(Number(value).toFixed(3));
-    const formatPrice = (value) => Number(Number(value).toFixed(4));
 
     let receiptUnitPrice = unitPrice;
     if (movementType === "Miscellaneous Receipt") {
@@ -1289,17 +1311,17 @@ class StockAdjuster {
           : materialData.purchase_unit_price || 0;
     }
 
-    const formattedUnitPrice = formatPrice(
+    const formattedUnitPrice = this.roundPrice(
       movementType === "Miscellaneous Receipt" ? receiptUnitPrice : unitPrice
     );
-    const formattedConvertedQty = formatQuantity(convertedQty);
-    const formattedOriginalQty = formatQuantity(originalQty);
+    const formattedConvertedQty = this.roundQty(convertedQty);
+    const formattedOriginalQty = this.roundQty(originalQty);
 
     const baseMovementData = {
       transaction_type: "SM",
       trx_no: allData.stock_movement_no,
       unit_price: formattedUnitPrice,
-      total_price: formatPrice(formattedUnitPrice * formattedConvertedQty),
+      total_price: this.roundPrice(formattedUnitPrice * formattedConvertedQty),
       quantity: formattedOriginalQty,
       item_id: materialData.id,
       inventory_category: balance.category || subformData.category,
@@ -1599,7 +1621,7 @@ class StockAdjuster {
   }
 }
 
-// Modified processFormData to use preCheckQuantitiesAn`dCosting
+// Modified processFormData to use preCheckQuantitiesAndCosting
 async function processFormData(db, formData, context) {
   const adjuster = new StockAdjuster(db);
   let results;

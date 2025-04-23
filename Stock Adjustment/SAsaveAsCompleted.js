@@ -2,6 +2,16 @@ const page_status = this.getParamsVariables("page_status");
 const self = this;
 const stockAdjustmentId = this.getParamsVariables("stock_adjustment_no");
 
+// For quantities - 3 decimal places
+const roundQty = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(3));
+};
+
+// For prices - 4 decimal places
+const roundPrice = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(4));
+};
+
 const closeDialog = () => {
   if (self.parentGenerateForm) {
     self.parentGenerateForm.$refs.SuPageDialogRef.hide();
@@ -165,8 +175,8 @@ const updateInventory = (allData) => {
 
             const unitPrice =
               balanceUnitPrice !== undefined
-                ? balanceUnitPrice
-                : materialData.purchase_unit_price || 0;
+                ? roundPrice(balanceUnitPrice)
+                : roundPrice(materialData.purchase_unit_price || 0);
             const batchId =
               materialData.item_batch_management == "1"
                 ? item.item_batch_no
@@ -201,27 +211,24 @@ const updateInventory = (allData) => {
                 const latestWa = waData.sort(
                   (a, b) => new Date(b.created_at) - new Date(a.created_at)
                 )[0];
-                const currentQty = latestWa.wa_quantity || 0;
+                const currentQty = roundQty(latestWa.wa_quantity || 0);
                 const currentTotalCost =
-                  (latestWa.wa_cost_price || 0) * currentQty;
+                  roundPrice(latestWa.wa_cost_price || 0) * currentQty;
 
                 let newWaQuantity, newWaCostPrice;
                 if (quantityChange > 0) {
-                  const addedCost = unitPrice * quantityChange;
-                  newWaQuantity = currentQty + quantityChange;
+                  const addedCost = roundPrice(unitPrice * quantityChange);
+                  newWaQuantity = roundQty(currentQty + quantityChange);
                   newWaCostPrice =
                     newWaQuantity > 0
-                      ? Number(
-                          (
-                            (currentTotalCost + addedCost) /
-                            newWaQuantity
-                          ).toFixed(4)
+                      ? roundPrice(
+                          (currentTotalCost + addedCost) / newWaQuantity
                         )
                       : 0;
                 } else {
-                  newWaQuantity = currentQty + quantityChange;
+                  newWaQuantity = roundQty(currentQty + quantityChange);
                   newWaCostPrice = latestWa.wa_cost_price
-                    ? Number(latestWa.wa_cost_price.toFixed(4))
+                    ? roundPrice(latestWa.wa_cost_price)
                     : 0;
                 }
 
@@ -249,8 +256,8 @@ const updateInventory = (allData) => {
                   batch_id: batchId || null,
                   plant_id: plant_id,
                   organization_id: organization_id,
-                  wa_quantity: quantityChange,
-                  wa_cost_price: Number(unitPrice.toFixed(4)),
+                  wa_quantity: roundQty(quantityChange),
+                  wa_cost_price: roundPrice(unitPrice),
                   created_at: new Date(),
                 });
 
@@ -296,9 +303,9 @@ const updateInventory = (allData) => {
                   batch_id: batchId || null,
                   plant_id: plant_id,
                   organization_id: organization_id,
-                  fifo_initial_quantity: quantityChange,
-                  fifo_available_quantity: quantityChange,
-                  fifo_cost_price: Number(unitPrice.toFixed(4)),
+                  fifo_initial_quantity: roundQty(quantityChange),
+                  fifo_available_quantity: roundQty(quantityChange),
+                  fifo_cost_price: roundPrice(unitPrice),
                   fifo_sequence: newSequence,
                   created_at: new Date(),
                 });
@@ -309,7 +316,7 @@ const updateInventory = (allData) => {
                   `After adding new FIFO record for material ${materialData.id}`
                 );
               } else if (quantityChange < 0) {
-                let remainingReduction = -quantityChange;
+                let remainingReduction = roundQty(-quantityChange);
 
                 if (fifoData.length > 0) {
                   // Sort by sequence (oldest first)
@@ -318,9 +325,13 @@ const updateInventory = (allData) => {
                   for (const fifoRecord of fifoData) {
                     if (remainingReduction <= 0) break;
 
-                    const available = fifoRecord.fifo_available_quantity || 0;
-                    const reduction = Math.min(available, remainingReduction);
-                    const newAvailable = available - reduction;
+                    const available = roundQty(
+                      fifoRecord.fifo_available_quantity || 0
+                    );
+                    const reduction = roundQty(
+                      Math.min(available, remainingReduction)
+                    );
+                    const newAvailable = roundQty(available - reduction);
 
                     await db
                       .collection("fifo_costing_history")
@@ -330,18 +341,22 @@ const updateInventory = (allData) => {
                         updated_at: new Date(),
                       });
 
-                    remainingReduction -= reduction;
+                    remainingReduction = roundQty(
+                      remainingReduction - reduction
+                    );
                   }
 
                   if (remainingReduction > 0) {
                     throw new Error(
                       `Insufficient FIFO quantity for material ${
                         materialData.id
-                      }. Available: ${fifoData.reduce(
-                        (sum, record) =>
-                          sum + (record.fifo_available_quantity || 0),
-                        0
-                      )}, Requested: ${-quantityChange}`
+                      }. Available: ${roundQty(
+                        fifoData.reduce(
+                          (sum, record) =>
+                            sum + (record.fifo_available_quantity || 0),
+                          0
+                        )
+                      )}, Requested: ${roundQty(-quantityChange)}`
                     );
                   }
 
@@ -386,8 +401,8 @@ const updateInventory = (allData) => {
           const qtyField = categoryMap[balance.category];
           const qtyChange =
             balance.movement_type === "In"
-              ? balance.sa_quantity
-              : -balance.sa_quantity;
+              ? roundQty(balance.sa_quantity)
+              : roundQty(-balance.sa_quantity);
           const collectionName =
             materialData.item_batch_management == "1"
               ? "item_batch_balance"
@@ -436,8 +451,12 @@ const updateInventory = (allData) => {
             balanceData = newResponse.data[0];
           }
 
-          const newBalanceQty = balanceData.balance_quantity + qtyChange;
-          const newCategoryQty = (balanceData[qtyField] || 0) + qtyChange;
+          const newBalanceQty = roundQty(
+            balanceData.balance_quantity + qtyChange
+          );
+          const newCategoryQty = roundQty(
+            (balanceData[qtyField] || 0) + qtyChange
+          );
           console.log("newBalanceQty", newBalanceQty);
           console.log("newCategoryQty", newCategoryQty);
           if (newBalanceQty < 0 || newCategoryQty < 0) {
@@ -477,8 +496,8 @@ const updateInventory = (allData) => {
             `Before adding inventory movement for adjustment ${allData.adjustment_no}, material ${item.material_id}`
           );
 
-          let unitPrice = balance.unit_price || 0;
-          let totalPrice = balance.unit_price * balance.sa_quantity;
+          let unitPrice = roundPrice(balance.unit_price || 0);
+          let totalPrice = roundPrice(balance.unit_price * balance.sa_quantity);
 
           const costingMethod = materialData.material_costing_method;
 
@@ -488,21 +507,21 @@ const updateInventory = (allData) => {
               item.material_id,
               item.item_batch_no
             );
-            unitPrice = fifoCostPrice;
-            totalPrice = fifoCostPrice * balance.sa_quantity;
+            unitPrice = roundPrice(fifoCostPrice);
+            totalPrice = roundPrice(fifoCostPrice * balance.sa_quantity);
           } else if (costingMethod === "Weighted Average") {
             // Get unit price from WA cost price
             const waCostPrice = await getWeightedAverageCostPrice(
               item.material_id,
               item.item_batch_no
             );
-            unitPrice = waCostPrice;
-            totalPrice = waCostPrice * balance.sa_quantity;
+            unitPrice = roundPrice(waCostPrice);
+            totalPrice = roundPrice(waCostPrice * balance.sa_quantity);
           } else if (costingMethod === "Fixed Cost") {
             // Get unit price from Fixed Cost
             const fixedCostPrice = await getFixedCostPrice(item.material_id);
-            unitPrice = fixedCostPrice;
-            totalPrice = fixedCostPrice * balance.sa_quantity;
+            unitPrice = roundPrice(fixedCostPrice);
+            totalPrice = roundPrice(fixedCostPrice * balance.sa_quantity);
           } else {
             return Promise.resolve();
           }
@@ -512,13 +531,13 @@ const updateInventory = (allData) => {
             trx_no: allData.adjustment_no,
             parent_trx_no: null,
             movement: movementType,
-            unit_price: Number(unitPrice.toFixed(4)),
-            total_price: Number(totalPrice.toFixed(4)),
-            quantity: balance.sa_quantity,
+            unit_price: unitPrice,
+            total_price: totalPrice,
+            quantity: roundQty(balance.sa_quantity),
             item_id: item.material_id,
             inventory_category: balance.category,
             uom_id: materialData.based_uom,
-            base_qty: balance.sa_quantity,
+            base_qty: roundQty(balance.sa_quantity),
             base_uom_id: materialData.based_uom,
             bin_location_id: balance.location_id,
             batch_number_id:

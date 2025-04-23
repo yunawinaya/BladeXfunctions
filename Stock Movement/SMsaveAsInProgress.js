@@ -11,11 +11,11 @@ class StockAdjuster {
   }
 
   // Helper functions for consistent decimal formatting
-  formatQuantity(value) {
+  roundQty(value) {
     return Number(Number(value).toFixed(3));
   }
 
-  formatPrice(value) {
+  roundPrice(value) {
     return Number(Number(value).toFixed(4));
   }
 
@@ -468,18 +468,18 @@ class StockAdjuster {
       throw new Error(`Failed to fetch balance: ${err.message}`);
     }
 
-    const formattedSmQuantity = this.formatQuantity(smQuantity);
+    const formattedSmQuantity = this.roundQty(smQuantity);
 
     const categoryField = this.categoryMap[category];
 
     const updateData = {
-      [categoryField]: this.formatQuantity(
+      [categoryField]: this.roundQty(
         (balanceData[categoryField] || 0) - formattedSmQuantity
       ),
-      intransit_qty: this.formatQuantity(
+      intransit_qty: this.roundQty(
         (balanceData.intransit_qty || 0) + formattedSmQuantity
       ),
-      balance_quantity: balanceData.balance_quantity,
+      balance_quantity: this.roundQty(balanceData.balance_quantity),
       update_time: new Date().toISOString(),
     };
 
@@ -518,12 +518,14 @@ class StockAdjuster {
 
         // First look for records with available quantity
         for (const record of sortedRecords) {
-          const availableQty = parseFloat(record.fifo_available_quantity || 0);
+          const availableQty = this.roundQty(
+            record.fifo_available_quantity || 0
+          );
           if (availableQty > 0) {
             console.log(
               `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
             );
-            return parseFloat(record.fifo_cost_price || 0);
+            return this.roundPrice(record.fifo_cost_price || 0);
           }
         }
 
@@ -531,7 +533,7 @@ class StockAdjuster {
         console.warn(
           `No FIFO records with available quantity found for ${materialData.id}, using most recent cost price`
         );
-        return parseFloat(
+        return this.roundPrice(
           sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
         );
       }
@@ -571,7 +573,7 @@ class StockAdjuster {
           return 0;
         });
 
-        return parseFloat(waData[0].wa_cost_price || 0);
+        return this.roundPrice(waData[0].wa_cost_price || 0);
       }
 
       console.warn(
@@ -591,7 +593,7 @@ class StockAdjuster {
     const query = this.db.collection("Item").where({ id: materialId });
     const response = await query.get();
     const result = response.data;
-    return parseFloat(result[0].purchase_unit_price || 0);
+    return this.roundPrice(result[0].purchase_unit_price || 0);
   }
 
   async recordInventoryMovement(
@@ -647,8 +649,8 @@ class StockAdjuster {
       return Promise.resolve();
     }
 
-    const formattedSmQuantity = this.formatQuantity(smQuantity);
-    const formattedUnitPrice = this.formatPrice(unitPrice || 0);
+    const formattedSmQuantity = this.roundQty(smQuantity);
+    const formattedUnitPrice = this.roundPrice(unitPrice || 0);
 
     const outMovement = {
       transaction_type: "SM",
@@ -657,7 +659,7 @@ class StockAdjuster {
       inventory_category: category,
       parent_trx_no: null,
       unit_price: formattedUnitPrice,
-      total_price: this.formatPrice(formattedUnitPrice * formattedSmQuantity),
+      total_price: this.roundPrice(formattedUnitPrice * formattedSmQuantity),
       quantity: formattedSmQuantity,
       item_id: materialId,
       uom_id: materialData.based_uom,
@@ -677,7 +679,7 @@ class StockAdjuster {
       parent_trx_no: null,
       movement: "IN",
       unit_price: formattedUnitPrice,
-      total_price: this.formatPrice(formattedUnitPrice * formattedSmQuantity),
+      total_price: this.roundPrice(formattedUnitPrice * formattedSmQuantity),
       quantity: formattedSmQuantity,
       item_id: materialId,
       inventory_category: "In Transit",
