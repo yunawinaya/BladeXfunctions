@@ -1,6 +1,16 @@
 const page_status = this.getParamsVariables("page_status");
 const self = this;
 
+// For quantities - 3 decimal places
+const roundQty = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(3));
+};
+
+// For prices - 4 decimal places
+const roundPrice = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(4));
+};
+
 const closeDialog = () => {
   if (self.parentGenerateForm) {
     self.parentGenerateForm.$refs.SuPageDialogRef.hide();
@@ -31,12 +41,12 @@ const getLatestFIFOCostPrice = async (materialId, batchId) => {
 
       // First look for records with available quantity
       for (const record of sortedRecords) {
-        const availableQty = parseFloat(record.fifo_available_quantity || 0);
+        const availableQty = roundQty(record.fifo_available_quantity || 0);
         if (availableQty > 0) {
           console.log(
             `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
           );
-          return parseFloat(record.fifo_cost_price || 0);
+          return roundPrice(record.fifo_cost_price || 0);
         }
       }
 
@@ -44,7 +54,7 @@ const getLatestFIFOCostPrice = async (materialId, batchId) => {
       console.warn(
         `No FIFO records with available quantity found for ${materialId}, using most recent cost price`
       );
-      return parseFloat(
+      return roundPrice(
         sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
       );
     }
@@ -78,7 +88,7 @@ const getWeightedAverageCostPrice = async (materialId, batchId) => {
         return 0;
       });
 
-      return parseFloat(waData[0].wa_cost_price || 0);
+      return roundPrice(waData[0].wa_cost_price || 0);
     }
 
     console.warn(
@@ -95,7 +105,7 @@ const getFixedCostPrice = async (materialId) => {
   const query = db.collection("Item").where({ id: materialId });
   const response = await query.get();
   const result = response.data;
-  return parseFloat(result[0].purchase_unit_price || 0);
+  return roundPrice(result[0].purchase_unit_price || 0);
 };
 
 const processBalanceTable = async (data, isUpdate = false) => {
@@ -173,7 +183,7 @@ const processBalanceTable = async (data, isUpdate = false) => {
           const existingDoc = hasExistingBalance ? balanceQuery.data[0] : null;
 
           // UOM Conversion
-          let altQty = parseFloat(temp.gd_quantity);
+          let altQty = roundQty(temp.gd_quantity);
           let baseQty = altQty;
           let altUOM = item.gd_order_uom_id;
           let baseUOM = itemData.based_uom;
@@ -193,8 +203,7 @@ const processBalanceTable = async (data, isUpdate = false) => {
                 `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
               );
 
-              baseQty =
-                Math.round(altQty * uomConversion.base_qty * 1000) / 1000;
+              baseQty = roundQty(altQty * uomConversion.base_qty);
 
               console.log(
                 `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
@@ -210,8 +219,8 @@ const processBalanceTable = async (data, isUpdate = false) => {
 
           const costingMethod = itemData.material_costing_method;
 
-          let unitPrice = item.unit_price;
-          let totalPrice = item.unit_price * altQty;
+          let unitPrice = roundPrice(item.unit_price);
+          let totalPrice = roundPrice(unitPrice * altQty);
 
           if (costingMethod === "First In First Out") {
             // Get unit price from latest FIFO sequence
@@ -220,7 +229,7 @@ const processBalanceTable = async (data, isUpdate = false) => {
               temp.batch_id
             );
             unitPrice = fifoCostPrice;
-            totalPrice = fifoCostPrice * baseQty;
+            totalPrice = roundPrice(fifoCostPrice * baseQty);
           } else if (costingMethod === "Weighted Average") {
             // Get unit price from WA cost price
             const waCostPrice = await getWeightedAverageCostPrice(
@@ -228,12 +237,12 @@ const processBalanceTable = async (data, isUpdate = false) => {
               temp.batch_id
             );
             unitPrice = waCostPrice;
-            totalPrice = waCostPrice * baseQty;
+            totalPrice = roundPrice(waCostPrice * baseQty);
           } else if (costingMethod === "Fixed Cost") {
             // Get unit price from Fixed Cost
             const fixedCostPrice = await getFixedCostPrice(item.material_id);
             unitPrice = fixedCostPrice;
-            totalPrice = fixedCostPrice * baseQty;
+            totalPrice = roundPrice(fixedCostPrice * baseQty);
           } else {
             return Promise.resolve();
           }
@@ -298,16 +307,16 @@ const processBalanceTable = async (data, isUpdate = false) => {
           if (existingDoc && existingDoc.id) {
             // Determine quantity change based on update or add
             const gdQuantity = isUpdate
-              ? parseFloat(baseQty) - parseFloat(prevTemp.gd_quantity)
-              : parseFloat(baseQty);
+              ? roundQty(parseFloat(baseQty) - parseFloat(prevTemp.gd_quantity))
+              : roundQty(parseFloat(baseQty));
 
             // Store original values for potential rollback
             updatedDocs.push({
               collection: balanceCollection,
               docId: existingDoc.id,
               originalData: {
-                unrestricted_qty: existingDoc.unrestricted_qty || 0,
-                reserved_qty: existingDoc.reserved_qty || 0,
+                unrestricted_qty: roundQty(existingDoc.unrestricted_qty || 0),
+                reserved_qty: roundQty(existingDoc.reserved_qty || 0),
               },
             });
 
@@ -316,10 +325,12 @@ const processBalanceTable = async (data, isUpdate = false) => {
               .collection(balanceCollection)
               .doc(existingDoc.id)
               .update({
-                unrestricted_qty:
-                  parseFloat(existingDoc.unrestricted_qty || 0) - gdQuantity,
-                reserved_qty:
-                  parseFloat(existingDoc.reserved_qty || 0) + gdQuantity,
+                unrestricted_qty: roundQty(
+                  parseFloat(existingDoc.unrestricted_qty || 0) - gdQuantity
+                ),
+                reserved_qty: roundQty(
+                  parseFloat(existingDoc.reserved_qty || 0) + gdQuantity
+                ),
               });
           }
         }

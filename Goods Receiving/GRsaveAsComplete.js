@@ -1,6 +1,16 @@
 const page_status = this.getParamsVariables("page_status");
 const self = this;
 
+// For quantities - 3 decimal places
+const roundQty = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(3));
+};
+
+// For prices - 4 decimal places
+const roundPrice = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(4));
+};
+
 const closeDialog = () => {
   if (self.parentGenerateForm) {
     self.parentGenerateForm.$refs.SuPageDialogRef.hide();
@@ -43,7 +53,7 @@ const addInventory = (data, plantId, organizationId) => {
               console.log(
                 `No purchase order found for ${data.purchase_order_id}`
               );
-              return itemData.unit_price;
+              return roundPrice(itemData.unit_price);
             }
 
             const poData = poResponse.data[0];
@@ -53,22 +63,21 @@ const addInventory = (data, plantId, organizationId) => {
 
             for (const poItem of poData.table_po) {
               if (poItem.item_id === itemData.item_id) {
-                poQuantity = parseFloat(poItem.quantity) || 0;
-                totalAmount = parseFloat(poItem.po_amount) || 0;
+                poQuantity = roundQty(parseFloat(poItem.quantity) || 0);
+                totalAmount = roundPrice(parseFloat(poItem.po_amount) || 0);
                 break;
               }
             }
 
-            const pricePerUnit = totalAmount / poQuantity;
-
-            const costPrice = pricePerUnit / conversion;
+            const pricePerUnit = roundPrice(totalAmount / poQuantity);
+            const costPrice = roundPrice(pricePerUnit / conversion);
             console.log("costPrice", costPrice);
 
-            return Math.round(costPrice * 10000) / 10000;
+            return costPrice;
           })
           .catch((error) => {
             console.error(`Error calculating cost price: ${error.message}`);
-            return itemData.unit_price;
+            return roundPrice(itemData.unit_price);
           });
       };
 
@@ -94,12 +103,12 @@ const addInventory = (data, plantId, organizationId) => {
 
             return calculateCostPrice(
               itemData,
-              baseQty / parseFloat(itemData.received_qty)
+              roundQty(baseQty / parseFloat(itemData.received_qty))
             ).then((costPrice) => {
               const fifoData = {
-                fifo_cost_price: costPrice,
-                fifo_initial_quantity: baseQty,
-                fifo_available_quantity: baseQty,
+                fifo_cost_price: roundPrice(costPrice),
+                fifo_initial_quantity: roundQty(baseQty),
+                fifo_available_quantity: roundQty(baseQty),
                 material_id: itemData.item_id,
                 batch_id: batchId,
                 fifo_sequence: sequenceNumber,
@@ -142,12 +151,12 @@ const addInventory = (data, plantId, organizationId) => {
 
             return calculateCostPrice(
               itemData,
-              baseQty / parseFloat(itemData.received_qty)
+              roundQty(baseQty / parseFloat(itemData.received_qty))
             ).then((costPrice) => {
               const fifoData = {
-                fifo_cost_price: costPrice,
-                fifo_initial_quantity: baseQty,
-                fifo_available_quantity: baseQty,
+                fifo_cost_price: roundPrice(costPrice),
+                fifo_initial_quantity: roundQty(baseQty),
+                fifo_available_quantity: roundQty(baseQty),
                 material_id: itemData.item_id,
                 fifo_sequence: sequenceNumber,
                 plant_id: plantId,
@@ -170,7 +179,7 @@ const addInventory = (data, plantId, organizationId) => {
       const processWeightedAverageForBatch = (item, baseQty, batchId) => {
         return calculateCostPrice(
           item,
-          baseQty / parseFloat(item.received_qty)
+          roundQty(baseQty / parseFloat(item.received_qty))
         ).then((costPrice) => {
           return db
             .collection("wa_costing_method")
@@ -179,8 +188,8 @@ const addInventory = (data, plantId, organizationId) => {
               batch_id: batchId,
               plant_id: plantId,
               organization_id: organizationId,
-              wa_quantity: baseQty,
-              wa_cost_price: costPrice,
+              wa_quantity: roundQty(baseQty),
+              wa_cost_price: roundPrice(costPrice),
               created_at: new Date(),
             })
             .then(() => {
@@ -216,18 +225,18 @@ const addInventory = (data, plantId, organizationId) => {
               });
               const latestWa = waData[0];
               console.log("latestWa", latestWa);
-              const waCostPrice = latestWa.wa_cost_price;
-              const waQuantity = latestWa.wa_quantity;
-              const newWaQuantity = waQuantity + baseQty;
+              const waCostPrice = roundPrice(latestWa.wa_cost_price);
+              const waQuantity = roundQty(latestWa.wa_quantity);
+              const newWaQuantity = roundQty(waQuantity + baseQty);
               return calculateCostPrice(
                 item,
-                baseQty / parseFloat(item.received_qty)
+                roundQty(baseQty / parseFloat(item.received_qty))
               ).then((costPrice) => {
-                const calculatedWaCostPrice =
+                const calculatedWaCostPrice = roundPrice(
                   (waCostPrice * waQuantity + costPrice * baseQty) /
-                  newWaQuantity;
-                const newWaCostPrice =
-                  Math.round(calculatedWaCostPrice * 100) / 100;
+                    newWaQuantity
+                );
+                const newWaCostPrice = roundPrice(calculatedWaCostPrice);
                 console.log("newWaCostPrice", newWaCostPrice);
 
                 return db
@@ -256,14 +265,14 @@ const addInventory = (data, plantId, organizationId) => {
             } else {
               return calculateCostPrice(
                 item,
-                baseQty / parseFloat(item.received_qty)
+                roundQty(baseQty / parseFloat(item.received_qty))
               ).then((costPrice) => {
                 return db
                   .collection("wa_costing_method")
                   .add({
                     material_id: item.item_id,
-                    wa_quantity: baseQty,
-                    wa_cost_price: costPrice,
+                    wa_quantity: roundQty(baseQty),
+                    wa_cost_price: roundPrice(costPrice),
                     plant_id: plantId,
                     organization_id: organizationId,
                     created_at: new Date(),
@@ -297,7 +306,7 @@ const addInventory = (data, plantId, organizationId) => {
         const query = db.collection("Item").where({ id: materialId });
         const response = await query.get();
         const result = response.data;
-        return parseFloat(result[0].purchase_unit_price || 0);
+        return roundPrice(parseFloat(result[0].purchase_unit_price || 0));
       };
 
       try {
@@ -323,7 +332,7 @@ const addInventory = (data, plantId, organizationId) => {
         }
 
         // UOM Conversion
-        let altQty = parseFloat(item.received_qty);
+        let altQty = roundQty(parseFloat(item.received_qty));
         let baseQty = altQty;
         let altUOM = item.item_uom;
         let baseUOM = itemData.based_uom;
@@ -343,7 +352,7 @@ const addInventory = (data, plantId, organizationId) => {
               `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
             );
 
-            baseQty = Math.round(altQty * uomConversion.base_qty * 1000) / 1000;
+            baseQty = roundQty(altQty * uomConversion.base_qty);
 
             console.log(
               `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
@@ -357,8 +366,8 @@ const addInventory = (data, plantId, organizationId) => {
           );
         }
 
-        let unitPrice = item.unit_price;
-        let totalPrice = item.unit_price * baseQty;
+        let unitPrice = roundPrice(item.unit_price);
+        let totalPrice = roundPrice(item.unit_price * baseQty);
 
         const costingMethod = itemData.material_costing_method;
 
@@ -368,14 +377,14 @@ const addInventory = (data, plantId, organizationId) => {
         ) {
           const fifoCostPrice = await calculateCostPrice(
             item,
-            baseQty / parseFloat(item.received_qty)
+            roundQty(baseQty / parseFloat(item.received_qty))
           );
-          unitPrice = fifoCostPrice;
-          totalPrice = fifoCostPrice * baseQty;
+          unitPrice = roundPrice(fifoCostPrice);
+          totalPrice = roundPrice(fifoCostPrice * baseQty);
         } else if (costingMethod === "Fixed Cost") {
           const fixedCostPrice = await getFixedCostPrice(item.item_id);
-          unitPrice = fixedCostPrice;
-          totalPrice = fixedCostPrice * baseQty;
+          unitPrice = roundPrice(fixedCostPrice);
+          totalPrice = roundPrice(fixedCostPrice * baseQty);
         }
 
         // Create inventory_movement record
@@ -384,13 +393,13 @@ const addInventory = (data, plantId, organizationId) => {
           trx_no: data.gr_no,
           parent_trx_no: data.purchase_order_number,
           movement: "IN",
-          unit_price: unitPrice,
-          total_price: totalPrice,
-          quantity: altQty,
+          unit_price: roundPrice(unitPrice),
+          total_price: roundPrice(totalPrice),
+          quantity: roundQty(altQty),
           item_id: item.item_id,
           inventory_category: item.inv_category,
           uom_id: altUOM,
-          base_qty: baseQty,
+          base_qty: roundQty(baseQty),
           base_uom_id: baseUOM,
           bin_location_id: item.location_id,
           batch_number_id: item.item_batch_no,
@@ -417,10 +426,16 @@ const addInventory = (data, plantId, organizationId) => {
         ) {
           const doc = poResponse.data[0];
           if (doc && doc.id) {
-            const existingReceived = parseFloat(doc.received_qty || 0);
-            const openQuantity = parseFloat(doc.open_qty || 0);
-            const newReceived = existingReceived + parseFloat(baseQty || 0);
-            let newOpenQuantity = openQuantity - parseFloat(baseQty || 0);
+            const existingReceived = roundQty(
+              parseFloat(doc.received_qty || 0)
+            );
+            const openQuantity = roundQty(parseFloat(doc.open_qty || 0));
+            const newReceived = roundQty(
+              existingReceived + parseFloat(baseQty || 0)
+            );
+            let newOpenQuantity = roundQty(
+              openQuantity - parseFloat(baseQty || 0)
+            );
 
             if (newOpenQuantity < 0) {
               newOpenQuantity = 0;
@@ -445,7 +460,7 @@ const addInventory = (data, plantId, organizationId) => {
           qualityinsp_qty = 0,
           intransit_qty = 0;
 
-        const receivedQty = parseFloat(baseQty || 0);
+        const receivedQty = roundQty(parseFloat(baseQty || 0));
 
         if (item.inv_category === "BLK") {
           block_qty = receivedQty;
@@ -893,76 +908,6 @@ this.getData()
                     });
                 }
               });
-          })
-
-          .then(async () => {
-            gr.table_gr.forEach(async (grLineItem, index) => {
-              const itemData = await db
-                .collection("Item")
-                .where({ id: grLineItem.item_id })
-                .get();
-              const userData = await db
-                .collection("blade_user")
-                .where({ id: this.getVarSystem("uid") })
-                .get();
-              const plantData = await db
-                .collection("blade_dept")
-                .where({ id: gr.po_plant })
-                .get();
-              // const poData = await db.collection('purchase_order').where({id: gr.purchase_order_id}).get();
-              let poData = [];
-              let poUserData = [];
-
-              if (gr.purchase_order_id) {
-                const resPO = await db
-                  .collection("purchase_order")
-                  .where({ id: gr.purchase_order_id })
-                  .get();
-                poData.push(resPO.data[0]);
-
-                const resUser = await db
-                  .collection("blade_user")
-                  .where({ id: this.getVarSystem("uid") })
-                  .get();
-                poUserData.push(resUser.data[0]);
-              }
-
-              const supplierData = await db
-                .collection("supplier_head")
-                .where({ id: gr.supplier_name })
-                .get();
-
-              db.collection("goods_receiving_line").add({
-                goods_receiving_id: index + 1,
-                material_id: itemData?.data[0]?.material_code
-                  ? itemData.data[0].material_code
-                  : "",
-                item_name: itemData?.data[0]?.material_name
-                  ? itemData.data[0].material_name
-                  : "",
-                gr_no: gr.gr_no,
-                gr_date: gr.gr_date,
-                gr_created_by: userData.data[0].name,
-                plant_id: plantData.data[0].dept_name,
-                expected_delivery_date: poData[0]
-                  ? poData[0].po_expected_date
-                  : null,
-                po_no: gr.purchase_order_id,
-                po_date: poData[0] ? poData[0].po_date : null,
-                po_created_by: poUserData[0] ? poUserData[0].name : null,
-                supplier_code: supplierData?.data[0]?.supplier_code
-                  ? supplierData.data[0].supplier_code
-                  : "",
-                supplier_name: supplierData?.data[0]?.supplier_com_name
-                  ? supplierData.data[0].supplier_com_name
-                  : "",
-                received_quantity: grLineItem.received_qty,
-                currency_code: gr.currency_code,
-                gr_amount: grLineItem.total_price,
-                payment_term: poData[0] ? poData[0].po_payment_terms : "",
-                gr_status: gr.gr_status,
-              });
-            });
           });
 
         const result = await db
@@ -993,7 +938,7 @@ this.getData()
             is_active: 1,
           })
           .get()
-          .then((prefixEntry) => {
+          .then(async (prefixEntry) => {
             if (prefixEntry.data.length > 0) {
               const prefixData = prefixEntry.data[0];
               const now = new Date();
@@ -1068,101 +1013,6 @@ this.getData()
                       await addInventory(gr, plantId, organizationId);
                       await updatePurchaseOrderStatus(purchase_order_id);
                       await closeDialog();
-                    })
-                    .then(() => {
-                      gr.table_gr.forEach(async (grLineItem, index) => {
-                        const itemData = await db
-                          .collection("Item")
-                          .where({ id: grLineItem.item_id })
-                          .get();
-                        const userData = await db
-                          .collection("blade_user")
-                          .where({ id: this.getVarSystem("uid") })
-                          .get();
-                        const plantData = await db
-                          .collection("blade_dept")
-                          .where({ id: gr.po_plant })
-                          .get();
-                        // const poData = await db.collection('purchase_order').where({id: gr.purchase_order_id}).get();
-                        let poData = [];
-                        let poUserData = [];
-
-                        if (gr.purchase_order_id) {
-                          const resPO = await db
-                            .collection("purchase_order")
-                            .where({ id: gr.purchase_order_id })
-                            .get();
-                          poData.push(resPO.data[0]);
-
-                          const resUser = await db
-                            .collection("blade_user")
-                            .where({ id: this.getVarSystem("uid") })
-                            .get();
-                          poUserData.push(resUser.data[0]);
-                        }
-
-                        const supplierData = await db
-                          .collection("supplier_head")
-                          .where({ id: gr.supplier_name })
-                          .get();
-
-                        const grLineData = await db
-                          .collection("goods_receiving_line")
-                          .where({
-                            gr_no: gr.gr_no,
-                            goods_receiving_id: index + 1,
-                          })
-                          .get();
-
-                        const updatedData = {
-                          //goods_receiving_id : index + 1,
-                          material_id: itemData?.data[0]?.material_code
-                            ? itemData.data[0].material_code
-                            : "",
-                          item_name: itemData?.data[0]?.material_name
-                            ? itemData.data[0].material_name
-                            : "",
-                          gr_no: gr.gr_no,
-                          gr_date: gr.gr_date,
-                          gr_created_by: userData.data[0].name,
-                          plant_id: plantData.data[0].dept_name,
-                          expected_delivery_date: poData[0]
-                            ? poData[0].po_expected_date
-                            : null,
-                          po_no: gr.purchase_order_id,
-                          po_date: poData[0] ? poData[0].po_date : null,
-                          po_created_by: poUserData[0]
-                            ? poUserData[0].name
-                            : null,
-                          supplier_code: supplierData?.data[0]?.supplier_code
-                            ? supplierData.data[0].supplier_code
-                            : "",
-                          supplier_name: supplierData?.data[0]
-                            ?.supplier_com_name
-                            ? supplierData.data[0].supplier_com_name
-                            : "",
-                          received_quantity: grLineItem.received_qty,
-                          currency_code: gr.currency_code,
-                          gr_amount: grLineItem.total_price,
-                          payment_term: poData[0]
-                            ? poData[0].po_payment_terms
-                            : "",
-                          gr_status: gr.gr_status,
-                        };
-
-                        if (grLineData.data.length > 0) {
-                          db.collection("goods_receiving_line")
-                            .where({
-                              gr_no: gr.gr_no,
-                              goods_receiving_id: index + 1,
-                            })
-                            .update(updatedData);
-                        } else {
-                          db.collection("goods_receiving_line").add(
-                            updatedData
-                          );
-                        }
-                      });
                     });
                   db.collection("prefix_configuration")
                     .where({
@@ -1177,7 +1027,7 @@ this.getData()
                 }
               };
 
-              findUniquePrefix();
+              await findUniquePrefix();
             } else {
               db.collection("goods_receiving")
                 .doc(goodsReceivingId)
@@ -1194,110 +1044,18 @@ this.getData()
                   await addInventory(data, plantId, organizationId);
                   await updatePurchaseOrderStatus(purchase_order_id);
                   await closeDialog();
-                })
-
-                .then(() => {
-                  gr.table_gr.forEach(async (grLineItem, index) => {
-                    const itemData = await db
-                      .collection("Item")
-                      .where({ id: grLineItem.item_id })
-                      .get();
-                    const userData = await db
-                      .collection("blade_user")
-                      .where({ id: this.getVarSystem("uid") })
-                      .get();
-                    const plantData = await db
-                      .collection("blade_dept")
-                      .where({ id: gr.po_plant })
-                      .get();
-                    // const poData = await db.collection('purchase_order').where({id: gr.purchase_order_id}).get();
-                    let poData = [];
-                    let poUserData = [];
-
-                    if (gr.purchase_order_id) {
-                      const resPO = await db
-                        .collection("purchase_order")
-                        .where({ id: gr.purchase_order_id })
-                        .get();
-                      poData.push(resPO.data[0]);
-
-                      const resUser = await db
-                        .collection("blade_user")
-                        .where({ id: this.getVarSystem("uid") })
-                        .get();
-                      poUserData.push(resUser.data[0]);
-                    }
-
-                    const supplierData = await db
-                      .collection("supplier_head")
-                      .where({ id: gr.supplier_name })
-                      .get();
-
-                    const grLineData = await db
-                      .collection("goods_receiving_line")
-                      .where({
-                        gr_no: gr.gr_no,
-                        goods_receiving_id: index + 1,
-                      })
-                      .get();
-
-                    const updatedData = {
-                      //goods_receiving_id : index + 1,
-                      material_id: itemData?.data[0]?.material_code
-                        ? itemData.data[0].material_code
-                        : "",
-                      item_name: itemData?.data[0]?.material_name
-                        ? itemData.data[0].material_name
-                        : "",
-                      gr_no: gr.gr_no,
-                      gr_date: gr.gr_date,
-                      gr_created_by: userData.data[0].name,
-                      plant_id: plantData.data[0].dept_name,
-                      expected_delivery_date: poData[0]
-                        ? poData[0].po_expected_date
-                        : null,
-                      po_no: gr.purchase_order_id,
-                      po_date: poData[0] ? poData[0].po_date : null,
-                      po_created_by: poUserData[0] ? poUserData[0].name : null,
-                      supplier_code: supplierData?.data[0]?.supplier_code
-                        ? supplierData.data[0].supplier_code
-                        : "",
-                      supplier_name: supplierData?.data[0]?.supplier_com_name
-                        ? supplierData.data[0].supplier_com_name
-                        : "",
-                      received_quantity: grLineItem.received_qty,
-                      currency_code: gr.currency_code,
-                      gr_amount: grLineItem.total_price,
-                      payment_term: poData[0] ? poData[0].po_payment_terms : "",
-                      gr_status: gr.gr_status,
-                    };
-
-                    if (grLineData.data.length > 0) {
-                      db.collection("goods_receiving_line")
-                        .where({
-                          gr_no: gr.gr_no,
-                          goods_receiving_id: index + 1,
-                        })
-                        .update(updatedData);
-                    } else {
-                      db.collection("goods_receiving_line").add(updatedData);
-                    }
-                  });
                 });
             }
           });
       }
     } catch (error) {
       console.error("Error in goods receiving process:", error);
-      alert(
+      this.$message.error(
         "An error occurred during processing. Please try again or contact support."
       );
-      throw error;
     }
   })
   .catch((error) => {
     console.error("Error in goods receiving process:", error);
-    alert(
-      "Please fill in all required fields marked with (*) before submitting."
-    );
+    this.$message.error(error);
   });

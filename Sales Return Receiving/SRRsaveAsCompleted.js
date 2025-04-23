@@ -1,6 +1,16 @@
 const page_status = this.getParamsVariables("page_status");
 const self = this;
 
+// For quantities - 3 decimal places
+const roundQty = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(3));
+};
+
+// For prices - 4 decimal places
+const roundPrice = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(4));
+};
+
 const updateInventory = async (data, plantId, organizationId) => {
   const items = data.table_srr;
 
@@ -12,7 +22,7 @@ const updateInventory = async (data, plantId, organizationId) => {
       .then((poResponse) => {
         if (!poResponse.data || !poResponse.data.length) {
           console.log(`No purchase order found for ${data.purchase_order_id}`);
-          return itemData.unit_price;
+          return roundPrice(itemData.unit_price);
         }
 
         const poData = poResponse.data[0];
@@ -22,22 +32,21 @@ const updateInventory = async (data, plantId, organizationId) => {
 
         for (const poItem of poData.table_po) {
           if (poItem.item_id === itemData.item_id) {
-            poQuantity = parseFloat(poItem.quantity) || 0;
-            totalAmount = parseFloat(poItem.po_amount) || 0;
+            poQuantity = roundQty(poItem.quantity);
+            totalAmount = roundPrice(poItem.po_amount);
             break;
           }
         }
 
-        const pricePerUnit = totalAmount / poQuantity;
-
-        const costPrice = pricePerUnit / conversion;
+        const pricePerUnit = roundPrice(totalAmount / poQuantity);
+        const costPrice = roundPrice(pricePerUnit / conversion);
         console.log("costPrice", costPrice);
 
-        return Math.round(costPrice * 10000) / 10000;
+        return costPrice;
       })
       .catch((error) => {
         console.error(`Error calculating cost price: ${error.message}`);
-        return itemData.unit_price;
+        return roundPrice(itemData.unit_price);
       });
   };
 
@@ -72,8 +81,9 @@ const updateInventory = async (data, plantId, organizationId) => {
             : null;
 
         if (fifoDoc && fifoDoc.id) {
-          const updatedAvailableQuantity =
-            parseFloat(fifoDoc.fifo_available_quantity || 0) + returnQty;
+          const updatedAvailableQuantity = roundQty(
+            parseFloat(fifoDoc.fifo_available_quantity || 0) + returnQty
+          );
 
           await db.collection("fifo_costing_history").doc(fifoDoc.id).update({
             fifo_available_quantity: updatedAvailableQuantity,
@@ -142,28 +152,27 @@ const updateInventory = async (data, plantId, organizationId) => {
         });
 
         const waDoc = waData[0];
-        const waCostPrice = parseFloat(waDoc.wa_cost_price || 0);
-        const waQuantity = parseFloat(waDoc.wa_quantity || 0);
+        const waCostPrice = roundPrice(waDoc.wa_cost_price || 0);
+        const waQuantity = roundQty(waDoc.wa_quantity || 0);
 
-        const newWaQuantity = Math.max(0, waQuantity + returnQty);
+        const newWaQuantity = Math.max(0, roundQty(waQuantity + returnQty));
 
-        const calculatedWaCostPrice =
-          (waCostPrice * waQuantity + waCostPrice * returnQty) / newWaQuantity;
-        const newWaCostPrice =
-          Math.round(calculatedWaCostPrice * 10000) / 10000;
+        const calculatedWaCostPrice = roundPrice(
+          (waCostPrice * waQuantity + waCostPrice * returnQty) / newWaQuantity
+        );
 
         return db
           .collection("wa_costing_method")
           .doc(waDoc.id)
           .update({
             wa_quantity: newWaQuantity,
-            wa_cost_price: newWaCostPrice,
+            wa_cost_price: calculatedWaCostPrice,
             updated_at: new Date(),
           })
           .then(() => {
             console.log(
               `Successfully processed Weighted Average for item ${item.material_id}, ` +
-                `new quantity: ${newWaQuantity}, new cost price: ${newWaCostPrice}`
+                `new quantity: ${newWaQuantity}, new cost price: ${calculatedWaCostPrice}`
             );
             return Promise.resolve();
           });
@@ -207,7 +216,7 @@ const updateInventory = async (data, plantId, organizationId) => {
         }
 
         // UOM Conversion
-        let altQty = parseFloat(item.return_quantity);
+        let altQty = roundQty(item.return_quantity);
         let baseQty = altQty;
         let altUOM = item.quantity_uom;
         let baseUOM = itemData.based_uom;
@@ -227,7 +236,7 @@ const updateInventory = async (data, plantId, organizationId) => {
               `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
             );
 
-            baseQty = Math.round(altQty * uomConversion.base_qty * 1000) / 1000;
+            baseQty = roundQty(altQty * uomConversion.base_qty);
 
             console.log(
               `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
@@ -241,8 +250,8 @@ const updateInventory = async (data, plantId, organizationId) => {
           );
         }
 
-        let unitPrice = item.unit_price;
-        let totalPrice = item.unit_price * baseQty;
+        let unitPrice = roundPrice(item.unit_price);
+        let totalPrice = roundPrice(unitPrice * baseQty);
 
         const costingMethod = itemData.material_costing_method;
 
@@ -252,14 +261,14 @@ const updateInventory = async (data, plantId, organizationId) => {
         ) {
           const fifoCostPrice = await calculateCostPrice(
             item,
-            baseQty / parseFloat(item.received_qty)
+            baseQty / roundQty(item.received_qty)
           );
           unitPrice = fifoCostPrice;
-          totalPrice = fifoCostPrice * baseQty;
+          totalPrice = roundPrice(fifoCostPrice * baseQty);
         } else if (costingMethod === "Fixed Cost") {
           const fixedCostPrice = await getFixedCostPrice(item.item_id);
           unitPrice = fixedCostPrice;
-          totalPrice = fixedCostPrice * baseQty;
+          totalPrice = roundPrice(fixedCostPrice * baseQty);
         }
 
         // Create inventory movement record
@@ -299,17 +308,17 @@ const updateInventory = async (data, plantId, organizationId) => {
           qualityinsp_qty = 0,
           intransit_qty = 0;
 
-        const returnQty = parseFloat(baseQty || 0);
+        const returnQty = roundQty(baseQty || 0);
 
-        if (item.inventory_category === "BLK") {
+        if (item.inventory_category === "Blocked") {
           block_qty = returnQty;
-        } else if (item.inventory_category === "RES") {
+        } else if (item.inventory_category === "Reserved") {
           reserved_qty = returnQty;
-        } else if (item.inventory_category === "UNR") {
+        } else if (item.inventory_category === "Unrestricted") {
           unrestricted_qty = returnQty;
-        } else if (item.inventory_category === "QIP") {
+        } else if (item.inventory_category === "Quality Inspection") {
           qualityinsp_qty = returnQty;
-        } else if (item.inventory_category === "ITR") {
+        } else if (item.inventory_category === "In Transit") {
           intransit_qty = returnQty;
         } else {
           unrestricted_qty = returnQty;
@@ -329,23 +338,29 @@ const updateInventory = async (data, plantId, organizationId) => {
           let balance_quantity;
 
           if (existingDoc && existingDoc.id) {
-            const updatedBlockQty =
-              parseFloat(existingDoc.block_qty || 0) + block_qty;
-            const updatedReservedQty =
-              parseFloat(existingDoc.reserved_qty || 0) + reserved_qty;
-            const updatedUnrestrictedQty =
-              parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty;
-            const updatedQualityInspQty =
-              parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty;
-            const updatedIntransitQty =
-              parseFloat(existingDoc.intransit_qty || 0) + intransit_qty;
+            const updatedBlockQty = roundQty(
+              parseFloat(existingDoc.block_qty || 0) + block_qty
+            );
+            const updatedReservedQty = roundQty(
+              parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
+            );
+            const updatedUnrestrictedQty = roundQty(
+              parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
+            );
+            const updatedQualityInspQty = roundQty(
+              parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
+            );
+            const updatedIntransitQty = roundQty(
+              parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
+            );
 
-            balance_quantity =
+            balance_quantity = roundQty(
               updatedBlockQty +
-              updatedReservedQty +
-              updatedUnrestrictedQty +
-              updatedQualityInspQty +
-              updatedIntransitQty;
+                updatedReservedQty +
+                updatedUnrestrictedQty +
+                updatedQualityInspQty +
+                updatedIntransitQty
+            );
 
             await db
               .collection("item_batch_balance")
@@ -364,12 +379,13 @@ const updateInventory = async (data, plantId, organizationId) => {
               `Updated batch balance for item ${item.material_id}, batch ${item.batch_id}`
             );
           } else {
-            balance_quantity =
+            balance_quantity = roundQty(
               block_qty +
-              reserved_qty +
-              unrestricted_qty +
-              qualityinsp_qty +
-              intransit_qty;
+                reserved_qty +
+                unrestricted_qty +
+                qualityinsp_qty +
+                intransit_qty
+            );
 
             await db.collection("item_batch_balance").add({
               material_id: item.material_id,
@@ -403,23 +419,29 @@ const updateInventory = async (data, plantId, organizationId) => {
           let balance_quantity;
 
           if (existingDoc && existingDoc.id) {
-            const updatedBlockQty =
-              parseFloat(existingDoc.block_qty || 0) + block_qty;
-            const updatedReservedQty =
-              parseFloat(existingDoc.reserved_qty || 0) + reserved_qty;
-            const updatedUnrestrictedQty =
-              parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty;
-            const updatedQualityInspQty =
-              parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty;
-            const updatedIntransitQty =
-              parseFloat(existingDoc.intransit_qty || 0) + intransit_qty;
+            const updatedBlockQty = roundQty(
+              parseFloat(existingDoc.block_qty || 0) + block_qty
+            );
+            const updatedReservedQty = roundQty(
+              parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
+            );
+            const updatedUnrestrictedQty = roundQty(
+              parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
+            );
+            const updatedQualityInspQty = roundQty(
+              parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
+            );
+            const updatedIntransitQty = roundQty(
+              parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
+            );
 
-            balance_quantity =
+            balance_quantity = roundQty(
               updatedBlockQty +
-              updatedReservedQty +
-              updatedUnrestrictedQty +
-              updatedQualityInspQty +
-              updatedIntransitQty;
+                updatedReservedQty +
+                updatedUnrestrictedQty +
+                updatedQualityInspQty +
+                updatedIntransitQty
+            );
 
             await db.collection("item_balance").doc(existingDoc.id).update({
               block_qty: updatedBlockQty,
@@ -432,12 +454,13 @@ const updateInventory = async (data, plantId, organizationId) => {
 
             console.log(`Updated balance for item ${item.material_id}`);
           } else {
-            balance_quantity =
+            balance_quantity = roundQty(
               block_qty +
-              reserved_qty +
-              unrestricted_qty +
-              qualityinsp_qty +
-              intransit_qty;
+                reserved_qty +
+                unrestricted_qty +
+                qualityinsp_qty +
+                intransit_qty
+            );
 
             await db.collection("item_balance").add({
               material_id: item.material_id,
@@ -555,23 +578,23 @@ this.getData()
           .then(async () => {
             const result = await db
               .collection("sales_order")
-              .doc(srr.so_no)
+              .doc(srr.so_id)
               .get();
 
             const plantId = result.data[0].plant_name;
             const organizationId = result.data[0].organization_id;
             await updateInventory(srr, plantId, organizationId);
-            await db.collection("sales_return").doc(sales_return_id).update({
-              sr_status: "Completed",
+            srr.sales_return_id.forEach(async (salesReturnId) => {
+              await db.collection("sales_return").doc(salesReturnId).update({
+                sr_status: "Completed",
+              });
             });
           })
           .then(() => {
             closeDialog();
           })
           .catch((error) => {
-            alert(
-              "Please fill in all required fields marked with (*) before submitting."
-            );
+            this.$message.error(error);
           });
       } else if (page_status === "Edit") {
         this.showLoading();
@@ -593,7 +616,7 @@ this.getData()
             is_active: 1,
           })
           .get()
-          .then((prefixEntry) => {
+          .then(async (prefixEntry) => {
             if (prefixEntry.data.length > 0) {
               const prefixData = prefixEntry.data[0];
               const now = new Date();
@@ -669,7 +692,7 @@ this.getData()
                 }
               };
 
-              findUniquePrefix();
+              await findUniquePrefix();
             } else {
               db.collection("sales_return_receiving")
                 .doc(salesReturnReceivingId)
@@ -684,32 +707,28 @@ this.getData()
 
             const result = await db
               .collection("sales_order")
-              .doc(srr.so_no)
+              .doc(srr.so_id)
               .get();
 
             const plantId = result.data[0].plant_name;
             await updateInventory(srr, plantId, organizationId);
-            await db.collection("sales_return").doc(sales_return_id).update({
-              sr_status: "Completed",
+            srr.sales_return_id.forEach(async (salesReturnId) => {
+              await db.collection("sales_return").doc(salesReturnId).update({
+                sr_status: "Completed",
+              });
             });
           })
           .then(() => {
             closeDialog();
           })
           .catch((error) => {
-            alert(error);
+            this.$message.error(error);
           });
       }
     } catch (error) {
-      console.error("Error in sales return receiving process:", error);
-      alert(
-        "An error occurred during processing. Please try again or contact support."
-      );
+      this.$message.error(error);
     }
   })
   .catch((error) => {
-    console.error("Error in sales return receiving process:", error);
-    alert(
-      "Please fill in all required fields marked with (*) before submitting."
-    );
+    this.$message.error(error);
   });

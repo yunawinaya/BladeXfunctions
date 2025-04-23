@@ -1,6 +1,16 @@
 const page_status = this.getParamsVariables("page_status");
 const self = this;
 
+// For quantities - 3 decimal places
+const roundQty = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(3));
+};
+
+// For prices - 4 decimal places
+const roundPrice = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(4));
+};
+
 const closeDialog = () => {
   if (self.parentGenerateForm) {
     self.parentGenerateForm.$refs.SuPageDialogRef.hide();
@@ -34,7 +44,7 @@ const updateInventory = async (data, plantId, organizationId) => {
           (a, b) => a.fifo_sequence - b.fifo_sequence
         );
 
-        let remainingQtyToDeduct = parseFloat(returnQty);
+        let remainingQtyToDeduct = roundQty(returnQty);
         console.log(
           `Need to deduct ${remainingQtyToDeduct} units from FIFO inventory for material ${materialId}`
         );
@@ -45,14 +55,14 @@ const updateInventory = async (data, plantId, organizationId) => {
             break;
           }
 
-          const availableQty = parseFloat(record.fifo_available_quantity || 0);
+          const availableQty = roundQty(record.fifo_available_quantity || 0);
           console.log(
             `FIFO record ${record.fifo_sequence} has ${availableQty} available`
           );
 
           // Calculate how much to take from this record
           const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
-          const newAvailableQty = availableQty - qtyToDeduct;
+          const newAvailableQty = roundQty(availableQty - qtyToDeduct);
 
           console.log(
             `Deducting ${qtyToDeduct} from FIFO record ${record.fifo_sequence}, new available: ${newAvailableQty}`
@@ -64,7 +74,7 @@ const updateInventory = async (data, plantId, organizationId) => {
           });
 
           // Reduce the remaining quantity to deduct
-          remainingQtyToDeduct -= qtyToDeduct;
+          remainingQtyToDeduct = roundQty(remainingQtyToDeduct - qtyToDeduct);
         }
 
         if (remainingQtyToDeduct > 0) {
@@ -125,8 +135,8 @@ const updateInventory = async (data, plantId, organizationId) => {
         });
 
         const waDoc = waData[0];
-        const waCostPrice = parseFloat(waDoc.wa_cost_price || 0);
-        const waQuantity = parseFloat(waDoc.wa_quantity || 0);
+        const waCostPrice = roundPrice(waDoc.wa_cost_price || 0);
+        const waQuantity = roundQty(waDoc.wa_quantity || 0);
 
         if (waQuantity <= returnQty) {
           console.warn(
@@ -139,7 +149,7 @@ const updateInventory = async (data, plantId, organizationId) => {
           }
         }
 
-        const newWaQuantity = Math.max(0, waQuantity - returnQty);
+        const newWaQuantity = Math.max(0, roundQty(waQuantity - returnQty));
 
         // If new quantity would be zero, handle specially
         if (newWaQuantity === 0) {
@@ -158,23 +168,22 @@ const updateInventory = async (data, plantId, organizationId) => {
             });
         }
 
-        const calculatedWaCostPrice =
-          (waCostPrice * waQuantity - waCostPrice * returnQty) / newWaQuantity;
-        const newWaCostPrice =
-          Math.round(calculatedWaCostPrice * 10000) / 10000;
+        const calculatedWaCostPrice = roundPrice(
+          (waCostPrice * waQuantity - waCostPrice * returnQty) / newWaQuantity
+        );
 
         return db
           .collection("wa_costing_method")
           .doc(waDoc.id)
           .update({
             wa_quantity: newWaQuantity,
-            wa_cost_price: newWaCostPrice,
+            wa_cost_price: calculatedWaCostPrice,
             updated_at: new Date(),
           })
           .then(() => {
             console.log(
               `Successfully processed Weighted Average for item ${item.material_id}, ` +
-                `new quantity: ${newWaQuantity}, new cost price: ${newWaCostPrice}`
+                `new quantity: ${newWaQuantity}, new cost price: ${calculatedWaCostPrice}`
             );
             return Promise.resolve();
           });
@@ -212,12 +221,12 @@ const updateInventory = async (data, plantId, organizationId) => {
 
         // First look for records with available quantity
         for (const record of sortedRecords) {
-          const availableQty = parseFloat(record.fifo_available_quantity || 0);
+          const availableQty = roundQty(record.fifo_available_quantity || 0);
           if (availableQty > 0) {
             console.log(
               `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
             );
-            return parseFloat(record.fifo_cost_price || 0);
+            return roundPrice(record.fifo_cost_price || 0);
           }
         }
 
@@ -225,7 +234,7 @@ const updateInventory = async (data, plantId, organizationId) => {
         console.warn(
           `No FIFO records with available quantity found for ${materialId}, using most recent cost price`
         );
-        return parseFloat(
+        return roundPrice(
           sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
         );
       }
@@ -262,7 +271,7 @@ const updateInventory = async (data, plantId, organizationId) => {
           return 0;
         });
 
-        return parseFloat(waData[0].wa_cost_price || 0);
+        return roundPrice(waData[0].wa_cost_price || 0);
       }
 
       console.warn(
@@ -280,7 +289,7 @@ const updateInventory = async (data, plantId, organizationId) => {
     const query = db.collection("Item").where({ id: materialId });
     const response = await query.get();
     const result = response.data;
-    return parseFloat(result[0].purchase_unit_price || 0);
+    return roundPrice(result[0].purchase_unit_price || 0);
   };
 
   if (Array.isArray(items)) {
@@ -310,7 +319,9 @@ const updateInventory = async (data, plantId, organizationId) => {
           continue;
         }
 
-        const temporaryData = JSON.parse(item.temp_qty_data);
+        const temporaryData = item.temp_qty_data
+          ? JSON.parse(item.temp_qty_data)
+          : [];
         console.log(
           `Temporary data for item ${item.material_id}:`,
           temporaryData
@@ -324,11 +335,11 @@ const updateInventory = async (data, plantId, organizationId) => {
             };
 
             // UOM Conversion
-            let altQty = parseFloat(temp.return_quantity);
+            let altQty = roundQty(temp.return_quantity);
             let baseQty = altQty;
             let altUOM = item.return_uom_id;
             let baseUOM = itemData.based_uom;
-            let altWAQty = parseFloat(item.return_quantity);
+            let altWAQty = roundQty(item.return_quantity);
             let baseWAQty = altWAQty;
 
             if (
@@ -346,11 +357,8 @@ const updateInventory = async (data, plantId, organizationId) => {
                   `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
                 );
 
-                baseQty =
-                  Math.round(altQty * uomConversion.base_qty * 1000) / 1000;
-
-                baseWAQty =
-                  Math.round(altWAQty * uomConversion.base_qty * 1000) / 1000;
+                baseQty = roundQty(altQty * uomConversion.base_qty);
+                baseWAQty = roundQty(altWAQty * uomConversion.base_qty);
 
                 console.log(
                   `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
@@ -368,8 +376,8 @@ const updateInventory = async (data, plantId, organizationId) => {
 
             const costingMethod = itemData.material_costing_method;
 
-            let unitPrice = item.unit_price;
-            let totalPrice = item.unit_price * altQty;
+            let unitPrice = roundPrice(item.unit_price);
+            let totalPrice = roundPrice(unitPrice * altQty);
 
             if (costingMethod === "First In First Out") {
               // Get unit price from latest FIFO sequence
@@ -377,21 +385,21 @@ const updateInventory = async (data, plantId, organizationId) => {
                 item.material_id,
                 temp.batch_id
               );
-              unitPrice = fifoCostPrice;
-              totalPrice = fifoCostPrice * baseQty;
+              unitPrice = roundPrice(fifoCostPrice);
+              totalPrice = roundPrice(fifoCostPrice * baseQty);
             } else if (costingMethod === "Weighted Average") {
               // Get unit price from WA cost price
               const waCostPrice = await getWeightedAverageCostPrice(
                 item.material_id,
                 temp.batch_id
               );
-              unitPrice = waCostPrice;
-              totalPrice = waCostPrice * baseQty;
+              unitPrice = roundPrice(waCostPrice);
+              totalPrice = roundPrice(waCostPrice * baseQty);
             } else if (costingMethod === "Fixed Cost") {
               // Get unit price from Fixed Cost
               const fixedCostPrice = await getFixedCostPrice(item.material_id);
-              unitPrice = fixedCostPrice;
-              totalPrice = fixedCostPrice * baseQty;
+              unitPrice = roundPrice(fixedCostPrice);
+              totalPrice = roundPrice(fixedCostPrice * baseQty);
             } else {
               return Promise.resolve();
             }
@@ -436,32 +444,37 @@ const updateInventory = async (data, plantId, organizationId) => {
               const existingBatchDoc = hasBatchBalance ? batchResult[0] : null;
 
               if (existingBatchDoc && existingBatchDoc.id) {
-                let updatedUnrestrictedQty = parseFloat(
+                let updatedUnrestrictedQty = roundQty(
                   existingBatchDoc.unrestricted_qty || 0
                 );
-                let updatedQualityInspectionQty = parseFloat(
+                let updatedQualityInspectionQty = roundQty(
                   existingBatchDoc.qualityinsp_qty || 0
                 );
-                let updatedBlockQty = parseFloat(
-                  existingBatchDoc.block_qty || 0
-                );
-                let updatedIntransitQty = parseFloat(
+                let updatedBlockQty = roundQty(existingBatchDoc.block_qty || 0);
+                let updatedIntransitQty = roundQty(
                   existingBatchDoc.intransit_qty || 0
                 );
 
-                if (categoryType === "UNR") {
-                  updatedUnrestrictedQty -= categoryValue;
-                } else if (categoryType === "QIP") {
-                  updatedQualityInspectionQty -= categoryValue;
-                } else if (categoryType === "BLK") {
-                  updatedBlockQty -= categoryValue;
-                } else if (categoryType === "ITR") {
-                  updatedIntransitQty -= categoryValue;
+                if (categoryType === "Unrestricted") {
+                  updatedUnrestrictedQty = roundQty(
+                    updatedUnrestrictedQty - categoryValue
+                  );
+                } else if (categoryType === "Quality Inspection") {
+                  updatedQualityInspectionQty = roundQty(
+                    updatedQualityInspectionQty - categoryValue
+                  );
+                } else if (categoryType === "Blocked") {
+                  updatedBlockQty = roundQty(updatedBlockQty - categoryValue);
+                } else if (categoryType === "In Transit") {
+                  updatedIntransitQty = roundQty(
+                    updatedIntransitQty - categoryValue
+                  );
                 }
 
-                const updatedBalanceQty =
+                const updatedBalanceQty = roundQty(
                   parseFloat(existingBatchDoc.balance_quantity || 0) -
-                  categoryValue;
+                    categoryValue
+                );
 
                 await db
                   .collection("item_batch_balance")
@@ -498,29 +511,36 @@ const updateInventory = async (data, plantId, organizationId) => {
               const existingDoc = hasBalance ? balanceResult[0] : null;
 
               if (existingDoc && existingDoc.id) {
-                let updatedUnrestrictedQty = parseFloat(
+                let updatedUnrestrictedQty = roundQty(
                   existingDoc.unrestricted_qty || 0
                 );
-                let updatedQualityInspectionQty = parseFloat(
+                let updatedQualityInspectionQty = roundQty(
                   existingDoc.qualityinsp_qty || 0
                 );
-                let updatedBlockQty = parseFloat(existingDoc.block_qty || 0);
-                let updatedIntransitQty = parseFloat(
+                let updatedBlockQty = roundQty(existingDoc.block_qty || 0);
+                let updatedIntransitQty = roundQty(
                   existingDoc.intransit_qty || 0
                 );
 
-                if (categoryType === "UNR") {
-                  updatedUnrestrictedQty -= categoryValue;
-                } else if (categoryType === "QIP") {
-                  updatedQualityInspectionQty -= categoryValue;
-                } else if (categoryType === "BLK") {
-                  updatedBlockQty -= categoryValue;
-                } else if (categoryType === "ITR") {
-                  updatedIntransitQty -= categoryValue;
+                if (categoryType === "Unrestricted") {
+                  updatedUnrestrictedQty = roundQty(
+                    updatedUnrestrictedQty - categoryValue
+                  );
+                } else if (categoryType === "Quality Inspection") {
+                  updatedQualityInspectionQty = roundQty(
+                    updatedQualityInspectionQty - categoryValue
+                  );
+                } else if (categoryType === "Blocked") {
+                  updatedBlockQty = roundQty(updatedBlockQty - categoryValue);
+                } else if (categoryType === "In Transit") {
+                  updatedIntransitQty = roundQty(
+                    updatedIntransitQty - categoryValue
+                  );
                 }
 
-                const updatedBalanceQty =
-                  parseFloat(existingDoc.balance_quantity || 0) - categoryValue;
+                const updatedBalanceQty = roundQty(
+                  parseFloat(existingDoc.balance_quantity || 0) - categoryValue
+                );
 
                 await db.collection("item_balance").doc(existingDoc.id).update({
                   unrestricted_qty: updatedUnrestrictedQty,
@@ -560,272 +580,282 @@ const updateInventory = async (data, plantId, organizationId) => {
   }
 };
 
-this.getData().then(async (data) => {
-  try {
-    const {
-      purchase_return_no,
-      purchase_order_id,
-      goods_receiving_id,
-      gr_ids,
-      supplier_id,
-      prt_billing_name,
-      prt_billing_cp,
-      prt_billing_address,
-      prt_shipping_address,
-      gr_date,
-      plant,
-      purchase_return_date,
-      input_hvxpruem,
-      return_delivery_method,
-      purchase_return_ref,
-      shipping_details,
-      reason_for_return,
-      driver_name,
-      vehicle_no,
-      driver_contact,
-      pickup_date,
-      courier_company,
-      shipping_date,
-      estimated_arrival,
-      shipping_method,
-      freight_charge,
-      driver_name2,
-      driver_contact_no2,
-      estimated_arrival2,
-      vehicle_no2,
-      delivery_cost,
-      table_prt,
-      billing_address_line_1,
-      billing_address_line_2,
-      billing_address_line_3,
-      billing_address_line_4,
-      billing_address_city,
-      billing_address_state,
-      billing_address_country,
-      billing_postal_code,
-      shipping_address_line_1,
-      shipping_address_line_2,
-      shipping_address_line_3,
-      shipping_address_line_4,
-      shipping_address_city,
-      shipping_address_state,
-      shipping_address_country,
-      shipping_postal_code,
-    } = data;
+this.getData()
+  .then(async (data) => {
+    try {
+      const {
+        purchase_return_no,
+        purchase_order_id,
+        goods_receiving_id,
+        gr_ids,
+        supplier_id,
+        prt_billing_name,
+        prt_billing_cp,
+        prt_billing_address,
+        prt_shipping_address,
+        gr_date,
+        plant,
+        organization_id,
+        purchase_return_date,
+        input_hvxpruem,
+        return_delivery_method,
+        purchase_return_ref,
+        shipping_details,
+        reason_for_return,
+        driver_name,
+        vehicle_no,
+        driver_contact,
+        pickup_date,
+        courier_company,
+        shipping_date,
+        estimated_arrival,
+        shipping_method,
+        freight_charge,
+        driver_name2,
+        driver_contact_no2,
+        estimated_arrival2,
+        vehicle_no2,
+        delivery_cost,
+        table_prt,
+        billing_address_line_1,
+        billing_address_line_2,
+        billing_address_line_3,
+        billing_address_line_4,
+        billing_address_city,
+        billing_address_state,
+        billing_address_country,
+        billing_postal_code,
+        shipping_address_line_1,
+        shipping_address_line_2,
+        shipping_address_line_3,
+        shipping_address_line_4,
+        shipping_address_city,
+        shipping_address_state,
+        shipping_address_country,
+        shipping_postal_code,
+      } = data;
 
-    const entry = {
-      purchase_return_status: "Issued",
-      purchase_return_no,
-      purchase_order_id,
-      goods_receiving_id,
-      gr_ids,
-      supplier_id,
-      prt_billing_name,
-      prt_billing_cp,
-      prt_billing_address,
-      prt_shipping_address,
-      gr_date,
-      plant,
-      purchase_return_date,
-      input_hvxpruem,
-      return_delivery_method,
-      purchase_return_ref,
-      shipping_details,
-      reason_for_return,
-      driver_name,
-      vehicle_no,
-      driver_contact,
-      pickup_date,
-      courier_company,
-      shipping_date,
-      estimated_arrival,
-      shipping_method,
-      freight_charge,
-      driver_name2,
-      driver_contact_no2,
-      estimated_arrival2,
-      vehicle_no2,
-      delivery_cost,
-      table_prt,
-      billing_address_line_1,
-      billing_address_line_2,
-      billing_address_line_3,
-      billing_address_line_4,
-      billing_address_city,
-      billing_address_state,
-      billing_address_country,
-      billing_postal_code,
-      shipping_address_line_1,
-      shipping_address_line_2,
-      shipping_address_line_3,
-      shipping_address_line_4,
-      shipping_address_city,
-      shipping_address_state,
-      shipping_address_country,
-      shipping_postal_code,
-    };
+      const entry = {
+        purchase_return_status: "Issued",
+        purchase_return_no,
+        purchase_order_id,
+        goods_receiving_id,
+        gr_ids,
+        supplier_id,
+        prt_billing_name,
+        prt_billing_cp,
+        prt_billing_address,
+        prt_shipping_address,
+        gr_date,
+        plant,
+        organization_id,
+        purchase_return_date,
+        input_hvxpruem,
+        return_delivery_method,
+        purchase_return_ref,
+        shipping_details,
+        reason_for_return,
+        driver_name,
+        vehicle_no,
+        driver_contact,
+        pickup_date,
+        courier_company,
+        shipping_date,
+        estimated_arrival,
+        shipping_method,
+        freight_charge,
+        driver_name2,
+        driver_contact_no2,
+        estimated_arrival2,
+        vehicle_no2,
+        delivery_cost,
+        table_prt,
+        billing_address_line_1,
+        billing_address_line_2,
+        billing_address_line_3,
+        billing_address_line_4,
+        billing_address_city,
+        billing_address_state,
+        billing_address_country,
+        billing_postal_code,
+        shipping_address_line_1,
+        shipping_address_line_2,
+        shipping_address_line_3,
+        shipping_address_line_4,
+        shipping_address_city,
+        shipping_address_state,
+        shipping_address_country,
+        shipping_postal_code,
+      };
 
-    if (page_status === "Add") {
-      this.showLoading();
-      await db
-        .collection("purchase_return_head")
-        .add(entry)
-        .then(() => {
-          let organizationId = this.getVarGlobal("deptParentId");
-          if (organizationId === "0") {
-            organizationId = this.getVarSystem("deptIds").split(",")[0];
-          }
+      if (page_status === "Add") {
+        this.showLoading();
+        await db
+          .collection("purchase_return_head")
+          .add(entry)
+          .then(() => {
+            let organizationId = this.getVarGlobal("deptParentId");
+            if (organizationId === "0") {
+              organizationId = this.getVarSystem("deptIds").split(",")[0];
+            }
 
-          return db
-            .collection("prefix_configuration")
-            .where({
-              document_types: "Purchase Returns",
-              is_deleted: 0,
-              organization_id: organizationId,
-              is_active: 1,
-            })
-            .get()
-            .then((prefixEntry) => {
-              if (prefixEntry.data.length === 0) return;
-              else {
-                const data = prefixEntry.data[0];
-                return db
-                  .collection("prefix_configuration")
-                  .where({
-                    document_types: "Purchase Returns",
-                    is_deleted: 0,
-                    organization_id: organizationId,
-                  })
-                  .update({
-                    running_number: parseInt(data.running_number) + 1,
-                    has_record: 1,
-                  });
-              }
-            });
-        });
+            return db
+              .collection("prefix_configuration")
+              .where({
+                document_types: "Purchase Returns",
+                is_deleted: 0,
+                organization_id: organizationId,
+                is_active: 1,
+              })
+              .get()
+              .then((prefixEntry) => {
+                if (prefixEntry.data.length === 0) return;
+                else {
+                  const data = prefixEntry.data[0];
+                  return db
+                    .collection("prefix_configuration")
+                    .where({
+                      document_types: "Purchase Returns",
+                      is_deleted: 0,
+                      organization_id: organizationId,
+                    })
+                    .update({
+                      running_number: parseInt(data.running_number) + 1,
+                      has_record: 1,
+                    });
+                }
+              });
+          });
 
-      const result = await db
-        .collection("purchase_order")
-        .doc(data.purchase_order_id)
-        .get();
+        const result = await db
+          .collection("purchase_order")
+          .doc(data.purchase_order_id)
+          .get();
 
-      const plantId = result.data[0].po_plant;
-      const organizationId = result.data[0].organization_id;
+        const plantId = result.data[0].po_plant;
+        const organizationId = result.data[0].organization_id;
 
-      await updateInventory(data, plantId, organizationId);
-    } else if (page_status === "Edit") {
-      this.showLoading();
-      const purchaseReturnId = this.getParamsVariables("purchase_return_no");
-      let organizationId = this.getVarGlobal("deptParentId");
-      if (organizationId === "0") {
-        organizationId = this.getVarSystem("deptIds").split(",")[0];
+        await updateInventory(data, plantId, organizationId);
+      } else if (page_status === "Edit") {
+        this.showLoading();
+        const purchaseReturnId = this.getParamsVariables("purchase_return_no");
+        let organizationId = this.getVarGlobal("deptParentId");
+        if (organizationId === "0") {
+          organizationId = this.getVarSystem("deptIds").split(",")[0];
+        }
+
+        const prefixEntry = db
+          .collection("prefix_configuration")
+          .where({
+            document_types: "Purchase Returns",
+            is_deleted: 0,
+            organization_id: organizationId,
+            is_active: 1,
+          })
+          .get()
+          .then(async (prefixEntry) => {
+            if (prefixEntry.data.length > 0) {
+              const prefixData = prefixEntry.data[0];
+              const now = new Date();
+              let prefixToShow;
+              let runningNumber = prefixData.running_number;
+              let isUnique = false;
+              let maxAttempts = 10;
+              let attempts = 0;
+
+              const generatePrefix = (runNumber) => {
+                let generated = prefixData.current_prefix_config;
+                generated = generated.replace(
+                  "prefix",
+                  prefixData.prefix_value
+                );
+                generated = generated.replace(
+                  "suffix",
+                  prefixData.suffix_value
+                );
+                generated = generated.replace(
+                  "month",
+                  String(now.getMonth() + 1).padStart(2, "0")
+                );
+                generated = generated.replace(
+                  "day",
+                  String(now.getDate()).padStart(2, "0")
+                );
+                generated = generated.replace("year", now.getFullYear());
+                generated = generated.replace(
+                  "running_number",
+                  String(runNumber).padStart(prefixData.padding_zeroes, "0")
+                );
+                return generated;
+              };
+
+              const checkUniqueness = async (generatedPrefix) => {
+                const existingDoc = await db
+                  .collection("purchase_return_head")
+                  .where({ purchase_return_no: generatedPrefix })
+                  .get();
+                return existingDoc.data[0] ? false : true;
+              };
+
+              const findUniquePrefix = async () => {
+                while (!isUnique && attempts < maxAttempts) {
+                  attempts++;
+                  prefixToShow = generatePrefix(runningNumber);
+                  isUnique = await checkUniqueness(prefixToShow);
+                  if (!isUnique) {
+                    runningNumber++;
+                  }
+                }
+
+                if (!isUnique) {
+                  throw new Error(
+                    "Could not generate a unique Purchase Return number after maximum attempts"
+                  );
+                } else {
+                  entry.purchase_return_no = prefixToShow;
+                  db.collection("prefix_configuration")
+                    .where({
+                      document_types: "Purchase Returns",
+                      is_deleted: 0,
+                      organization_id: organizationId,
+                    })
+                    .update({
+                      running_number: parseInt(runningNumber) + 1,
+                      has_record: 1,
+                    });
+                }
+              };
+
+              await findUniquePrefix();
+            }
+          });
+
+        await db
+          .collection("purchase_return_head")
+          .doc(purchaseReturnId)
+          .update(entry);
+
+        const result = await db
+          .collection("purchase_order")
+          .doc(data.purchase_order_id)
+          .get();
+
+        const plantId = result.data[0].po_plant;
+        organizationId = result.data[0].organization_id;
+
+        await db
+          .collection("purchase_return_head")
+          .doc(purchaseReturnId)
+          .update(entry);
+        await updateInventory(data, plantId, organizationId);
       }
 
-      const prefixEntry = db
-        .collection("prefix_configuration")
-        .where({
-          document_types: "Purchase Returns",
-          is_deleted: 0,
-          organization_id: organizationId,
-          is_active: 1,
-        })
-        .get()
-        .then((prefixEntry) => {
-          if (prefixEntry.data.length > 0) {
-            const prefixData = prefixEntry.data[0];
-            const now = new Date();
-            let prefixToShow;
-            let runningNumber = prefixData.running_number;
-            let isUnique = false;
-            let maxAttempts = 10;
-            let attempts = 0;
-
-            const generatePrefix = (runNumber) => {
-              let generated = prefixData.current_prefix_config;
-              generated = generated.replace("prefix", prefixData.prefix_value);
-              generated = generated.replace("suffix", prefixData.suffix_value);
-              generated = generated.replace(
-                "month",
-                String(now.getMonth() + 1).padStart(2, "0")
-              );
-              generated = generated.replace(
-                "day",
-                String(now.getDate()).padStart(2, "0")
-              );
-              generated = generated.replace("year", now.getFullYear());
-              generated = generated.replace(
-                "running_number",
-                String(runNumber).padStart(prefixData.padding_zeroes, "0")
-              );
-              return generated;
-            };
-
-            const checkUniqueness = async (generatedPrefix) => {
-              const existingDoc = await db
-                .collection("purchase_return_head")
-                .where({ purchase_return_no: generatedPrefix })
-                .get();
-              return existingDoc.data[0] ? false : true;
-            };
-
-            const findUniquePrefix = async () => {
-              while (!isUnique && attempts < maxAttempts) {
-                attempts++;
-                prefixToShow = generatePrefix(runningNumber);
-                isUnique = await checkUniqueness(prefixToShow);
-                if (!isUnique) {
-                  runningNumber++;
-                }
-              }
-
-              if (!isUnique) {
-                throw new Error(
-                  "Could not generate a unique Purchase Return number after maximum attempts"
-                );
-              } else {
-                entry.purchase_return_no = prefixToShow;
-                db.collection("prefix_configuration")
-                  .where({
-                    document_types: "Purchase Returns",
-                    is_deleted: 0,
-                    organization_id: organizationId,
-                  })
-                  .update({
-                    running_number: parseInt(runningNumber) + 1,
-                    has_record: 1,
-                  });
-              }
-            };
-
-            findUniquePrefix();
-          }
-        });
-
-      await db
-        .collection("purchase_return_head")
-        .doc(purchaseReturnId)
-        .update(entry);
-
-      const result = await db
-        .collection("purchase_order")
-        .doc(data.purchase_order_id)
-        .get();
-
-      const plantId = result.data[0].po_plant;
-      organizationId = result.data[0].organization_id;
-
-      await db
-        .collection("purchase_return_head")
-        .doc(purchaseReturnId)
-        .update(entry);
-      await updateInventory(data, plantId, organizationId);
+      closeDialog();
+    } catch (error) {
+      console.error("Error in purchase return process:", error);
+      this.$message.error(error);
     }
-
-    closeDialog();
-  } catch (error) {
-    console.error("Error in purchase return process:", error);
-    alert(
-      "An error occurred during processing. Please try again or contact support."
-    );
-  }
-});
+  })
+  .catch((error) => {
+    this.$message.error(error);
+  });
