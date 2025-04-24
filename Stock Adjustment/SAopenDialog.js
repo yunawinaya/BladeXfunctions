@@ -21,7 +21,8 @@ db.collection("Item")
       [`sa_item_balance.row_index`]: rowIndex,
     });
 
-    const previousBalanceData = allData.sa_item_balance.table_item_balance;
+    const previousBalanceData =
+      allData.subform_dus1f9ob[rowIndex].balance_index;
 
     if (itemData.item_batch_management === 1) {
       this.display("sa_item_balance.table_item_balance.batch_id");
