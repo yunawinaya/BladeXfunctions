@@ -850,6 +850,7 @@ if (page_status === "Add") {
 
           const sa = {
             stock_adjustment_status: "Completed",
+            posted_status: "Unposted",
             organization_id,
             adjustment_no,
             adjustment_date,
@@ -937,6 +938,7 @@ if (page_status === "Add") {
         const sa = {
           stock_adjustment_status: "Completed",
           organization_id,
+          posted_status: "Unposted",
           adjustment_no,
           adjustment_date,
           adjustment_type,
