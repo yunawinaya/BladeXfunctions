@@ -31,7 +31,7 @@ class StockAdjuster {
     }
   }
 
-  async updateProductionOrder(allData, subformData) {
+  async updateProductionOrder(allData, subformData, balanceIndex) {
     if (allData.is_production_order !== 1 || !allData.production_order_id) {
       return; // Skip if not a production order or no production order ID
     }
@@ -41,7 +41,7 @@ class StockAdjuster {
       material_required_qty: item.total_quantity || item.received_quantity || 0,
       bin_location_id: item.location_id,
     }));
-
+    console.log("Table Mat Confirmation", balanceIndex);
     try {
       const productionOrderResponse = await this.db
         .collection("production_order")
@@ -56,13 +56,13 @@ class StockAdjuster {
           `Production order ${allData.production_order_id} not found`
         );
       }
-
       const productionOrderId = productionOrderResponse.data[0].id;
       await this.db
         .collection("production_order")
         .doc(productionOrderId)
         .update({
           table_mat_confirmation: tableMatConfirmation,
+          balance_index: balanceIndex || [],
           production_order_status: "In Progress",
           update_time: new Date().toISOString(),
         });
@@ -220,7 +220,7 @@ class StockAdjuster {
     console.log("This is all data", allData);
     const subformData = allData.stock_movement;
     const movementTypeId = allData.movement_type;
-
+    const balanceIndex = allData.balance_index;
     const requiredTopLevelFields = [
       "stock_movement_no",
       "movement_type",
@@ -242,7 +242,7 @@ class StockAdjuster {
       movementType === "Location Transfer" &&
       allData.is_production_order === 1
     ) {
-      await this.updateProductionOrder(allData, subformData);
+      await this.updateProductionOrder(allData, subformData, balanceIndex);
     }
 
     const updates = await Promise.all(
@@ -524,10 +524,20 @@ class StockAdjuster {
     // throw new Error(`Invalid category: ${categoryKey}`);
     // }
 
+    const queryConditions = {
+      material_id: materialData.id,
+      location_id: locationId,
+    };
+
+    if (materialData.item_batch_management == "1" && balance.batch_id) {
+      queryConditions.batch_id = balance.batch_id;
+    }
+
     const balanceResponse = await this.db
       .collection(collectionName)
-      .where({ material_id: materialData.id, location_id: locationId })
+      .where(queryConditions)
       .get();
+
     let balanceData = balanceResponse.data[0];
 
     let updateData = balanceData
