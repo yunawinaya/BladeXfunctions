@@ -496,8 +496,8 @@ const updateInventory = (allData) => {
             `Before adding inventory movement for adjustment ${allData.adjustment_no}, material ${item.material_id}`
           );
 
-          let unitPrice = roundPrice(balance.unit_price || 0);
-          let totalPrice = roundPrice(balance.unit_price * balance.sa_quantity);
+          let unitPrice = roundPrice(item.unit_price || 0);
+          let totalPrice = roundPrice(item.unit_price * balance.sa_quantity);
 
           const costingMethod = materialData.material_costing_method;
 
@@ -569,9 +569,7 @@ const updateInventory = (allData) => {
           // For Write Off, assume unit_price is consistent across balance_index entries
           const balanceUnitPrice =
             item.balance_index && item.balance_index.length > 0
-              ? item.balance_index[0].unit_price ||
-                materialData.purchase_unit_price ||
-                0
+              ? item.unit_price || materialData.purchase_unit_price || 0
               : materialData.purchase_unit_price || 0;
 
           return updateQuantities(-item.total_quantity, balanceUnitPrice)
@@ -608,7 +606,7 @@ const updateInventory = (allData) => {
             item.balance_index.forEach((balance) => {
               if (balance.movement_type === "In") {
                 netQuantityChange += balance.sa_quantity;
-                totalInCost += (balance.unit_price || 0) * balance.sa_quantity;
+                totalInCost += (item.unit_price || 0) * balance.sa_quantity;
                 totalInQuantity += balance.sa_quantity;
               } else if (balance.movement_type === "Out") {
                 netQuantityChange -= balance.sa_quantity;

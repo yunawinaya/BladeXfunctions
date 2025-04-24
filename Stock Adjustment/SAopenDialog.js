@@ -45,11 +45,12 @@ db.collection("Item")
           });
 
           if (adjustment_type === "Write Off") {
-            this.hide("sa_item_balance.table_item_balance.unit_price");
             this.setData({
               [`sa_item_balance.table_item_balance.movement_type`]: "Out",
             });
             this.hide("sa_item_balance.table_item_balance.movement_type");
+          } else {
+            this.display([`sa_item_balance.table_item_balance.movement_type`]);
           }
         })
         .catch((error) => {
@@ -66,7 +67,7 @@ db.collection("Item")
         .get()
         .then((response) => {
           console.log("response item_balance", response.data);
-          const itemBalanceData = response.data;
+          let itemBalanceData = response.data;
 
           if (previousBalanceData && previousBalanceData.length > 0) {
             itemBalanceData = previousBalanceData;
@@ -74,16 +75,15 @@ db.collection("Item")
 
           this.setData({
             [`sa_item_balance.table_item_balance`]: itemBalanceData,
-            [`sa_item_balance.table_item_balance.unit_price`]:
-              itemData.purchase_unit_price,
           });
 
           if (adjustment_type === "Write Off") {
-            this.hide("sa_item_balance.table_item_balance.unit_price");
             this.setData({
               [`sa_item_balance.table_item_balance.movement_type`]: "Out",
             });
             this.hide("sa_item_balance.table_item_balance.movement_type");
+          } else {
+            this.display([`sa_item_balance.table_item_balance.movement_type`]);
           }
         })
         .catch((error) => {
