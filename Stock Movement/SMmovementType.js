@@ -1,120 +1,296 @@
-const movementTypeOptions = [
-  "Inter Operation Facility Transfer (Receiving)",
-  "Inventory Category Transfer Posting",
-  "Disposal/Scrap",
-  "Miscellaneous Receipt",
-  "Miscellaneous Issue",
-  "Location Transfer",
-  "Inter Operation Facility Transfer",
-  "Good Issue",
-  "Production Receipt",
-];
+const data = this.getValues();
+const balanceIndex = data.balance_index || [];
+let movementType = data.movement_type || "";
 
-const currentValues = this.getValues();
-const savedBalanceIndex = currentValues.balance_index || [];
-const originalMovementType = currentValues.movement_type;
+const page_status = this.getParamsVariables("page_status");
 
-const enhanceStockMovementUI = async () => {
-  try {
-    // Get page and form data
-    const pageAction = this.getParamsVariables("page_status"); // Add, Edit, View
+db.collection("blade_dict")
+  .where({ id: movementType })
+  .get()
+  .then((resMovementType) => {
+    movementType = resMovementType.data[0].dict_key;
+    console.log("movmenttype", movementType);
+  })
+  .then(async () => {
+    // reset the fields
+    await this.setData({
+      [`movement_reason`]: "",
+      [`stock_movement_no`]: "",
+      [`issued_by`]: "",
+      [`issuing_operation_faci`]: "",
+      [`sm_item_balance`]: [],
+      [`table_item_balance`]: [],
+      [`stock_movement`]: [],
+      [`balance_index`]: [],
+    });
 
-    const currentValues = this.getValues();
-    const { movement_type: movementTypeId, stock_movement_status: pageStatus } =
-      currentValues;
+    const displayAllFields = () => {
+      this.display([
+        "stock_movement.item_selection",
+        "stock_movement.view_stock",
+        "stock_movement.transfer_stock",
+        "stock_movement.edit_stock",
+        "stock_movement.total_quantity",
+        "stock_movement.to_recv_qty",
+        "stock_movement.received_quantity",
+        "stock_movement.received_quantity_uom",
+        "stock_movement.unit_price",
+        "stock_movement.amount",
+        "stock_movement.location_id",
+        "stock_movement.batch_id",
+        "stock_movement.category",
+        "movement_reason",
+        "delivery_method",
+        "receiving_operation_faci",
+        "is_production_order",
+      ]);
+    };
 
-    console.log("Current page action:", pageAction);
-    console.log("Current movement type ID:", movementTypeId);
-
-    // Validate page action
-    if (!["Add", "Edit", "View", undefined].includes(pageAction)) {
-      console.warn(`Invalid page action: ${pageAction}`);
-    }
-
-    // Hide delivery_method and receiving_operation_faci when movement_type is empty
-    // or when in Add mode before selecting a movement type
-    if (!movementTypeId || pageAction === "Add") {
-      console.log(
-        "Hiding delivery_method and receiving_operation_faci due to empty movement type or Add mode"
-      );
-      this.hide("delivery_method");
-      this.hide("receiving_operation_faci");
-    }
-
-    const movementTypeChanged =
-      pageAction === "Edit" && movementTypeId !== originalMovementType;
-
-    if (pageAction === "Add" || movementTypeChanged) {
-      console.log(
-        `Resetting data fields. Reason: ${
-          pageAction === "Add" ? "New record" : "Movement type changed"
-        }`
-      );
-      this.setData({
-        [`issued_by`]: "",
-        [`issuing_operation_faci`]: "",
-        [`sm_item_balance`]: [],
-        [`table_item_balance`]: [],
-        [`stock_movement`]: [],
-        [`balance_index`]: [],
-      });
-
-      const movementReason = this.getValue("movement_reason");
-      console.log("Movement reason:", movementReason);
-
-      if (movementReason !== undefined) {
-        this.setData({
-          [`movement_reason`]: "",
-        });
-      }
+    if (movementType) {
+      this.disabled(["stock_movement"], false);
     } else {
-      console.log(
-        "Preserving existing data - no movement type change detected"
-      );
+      this.disabled(["stock_movement"], true);
     }
 
-    // Fetch stock movement type from database
-    const { data: movementTypes } = await db
-      .collection("stock_movement_type")
-      .get();
-    if (!movementTypes?.length) {
-      throw new Error("No stock movement types found in database");
-    }
-
-    let movementTypeName;
-    if (movementTypeId) {
-      const {
-        data: [movementTypeEntry],
-      } = await db
-        .collection("stock_movement_type")
-        .where({ id: movementTypeId })
-        .get();
-
-      if (!movementTypeEntry) {
-        throw new Error("Invalid movement type ID");
+    // set prefix
+    if (page_status !== "View") {
+      let organizationId = this.getVarGlobal("deptParentId");
+      if (organizationId === "0") {
+        organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
-      movementTypeName = movementTypeEntry.sm_type_name;
-      console.log(
-        `Found movement type: "${movementTypeName}" for ID: ${movementTypeId}`
-      );
+
+      await db
+        .collection("prefix_configuration")
+        .where({
+          document_types: "Stock Movement",
+          movement_type: movementType,
+          is_deleted: 0,
+          organization_id: organizationId,
+          is_active: 1,
+        })
+        .get()
+        .then((prefixEntry) => {
+          const prefixData = prefixEntry.data[0];
+          const now = new Date();
+          let prefixToShow;
+          let runningNumber = prefixData.running_number;
+          let isUnique = false;
+          let maxAttempts = 10;
+          let attempts = 0;
+
+          if (prefixData.is_active === 0) {
+            this.disabled(["stock_movement_no"], false);
+          } else {
+            this.disabled(["stock_movement_no"], true);
+          }
+
+          const generatePrefix = (runNumber) => {
+            let generated = prefixData.current_prefix_config;
+            generated = generated.replace("prefix", prefixData.prefix_value);
+            generated = generated.replace("suffix", prefixData.suffix_value);
+            generated = generated.replace(
+              "month",
+              String(now.getMonth() + 1).padStart(2, "0")
+            );
+            generated = generated.replace(
+              "day",
+              String(now.getDate()).padStart(2, "0")
+            );
+            generated = generated.replace("year", now.getFullYear());
+            generated = generated.replace(
+              "running_number",
+              String(runNumber).padStart(prefixData.padding_zeroes, "0")
+            );
+            return generated;
+          };
+
+          const checkUniqueness = async (generatedPrefix) => {
+            const existingDoc = await db
+              .collection("stock_movement")
+              .where({ stock_movement_no: generatedPrefix })
+              .get();
+            return existingDoc.data[0] ? false : true;
+          };
+
+          const findUniquePrefix = async () => {
+            while (!isUnique && attempts < maxAttempts) {
+              attempts++;
+              prefixToShow = generatePrefix(runningNumber);
+              isUnique = await checkUniqueness(prefixToShow);
+              if (!isUnique) {
+                runningNumber++;
+              }
+            }
+
+            if (!isUnique) {
+              throw new Error(
+                "Could not generate a unique Stock Movement number after maximum attempts"
+              );
+            }
+            return { prefixToShow, runningNumber };
+          };
+
+          return findUniquePrefix();
+        })
+        .then(async ({ prefixToShow, runningNumber }) => {
+          await this.setData({ stock_movement_no: prefixToShow });
+        })
+        .catch((error) => {
+          this.$message.error(error);
+        });
     }
 
-    // Create mapping of stock movement types to IDs
-    const stockMovementMap = Object.fromEntries(
-      movementTypes.map((item) => [item.sm_type_name, item.id])
-    );
+    // hide/show fields based on movement type
+    switch (movementType) {
+      case "Inter Operation Facility Transfer":
+        displayAllFields();
+        this.hide([
+          "stock_movement.received_quantity",
+          "stock_movement.category",
+          "stock_movement.received_quantity_uom",
+          "stock_movement.unit_price",
+          "stock_movement.amount",
+          "stock_movement.location_id",
+          "is_production_order",
+          "stock_movement.to_recv_qty",
+          "stock_movement.batch_id",
+        ]);
+        break;
 
-    // Create reverse mapping for debugging purposes
-    const idToNameMap = Object.fromEntries(
-      movementTypes.map((item) => [item.id, item.sm_type_name])
-    );
+      case "Location Transfer":
+        displayAllFields();
+        this.hide([
+          "delivery_method",
+          "receiving_operation_faci",
+          "stock_movement.category",
+          "stock_movement.received_quantity",
+          "stock_movement.received_quantity_uom",
+          "stock_movement.unit_price",
+          "stock_movement.amount",
+          "stock_movement.to_recv_qty",
+          "stock_movement.batch_id",
+        ]);
+        this.disabled(["stock_movement.total_quantity"], true);
+        break;
 
-    console.log("Stock movement map:", stockMovementMap);
-    console.log("Reverse ID to name map:", idToNameMap);
+      case "Miscellaneous Issue":
+        displayAllFields();
+        this.hide([
+          "receiving_operation_faci",
+          "delivery_method",
+          "stock_movement.category",
+          "stock_movement.received_quantity",
+          "stock_movement.received_quantity_uom",
+          "stock_movement.unit_price",
+          "stock_movement.amount",
+          "stock_movement.location_id",
+          "is_production_order",
+          "stock_movement.to_recv_qty",
+          "stock_movement.batch_id",
+        ]);
+        this.disabled(["stock_movement.total_quantity"], true);
+        break;
+
+      case "Miscellaneous Receipt":
+        displayAllFields();
+        this.hide([
+          "delivery_method",
+          "receiving_operation_faci",
+          "stock_movement.transfer_stock",
+          "stock_movement.total_quantity",
+          "is_production_order",
+          "stock_movement.to_recv_qty",
+          "stock_movement.transfer_stock",
+          "stock_movement.view_stock",
+          "stock_movement.edit_stock",
+        ]);
+        break;
+
+      case "Disposal/Scrap":
+        displayAllFields();
+        this.hide([
+          "receiving_operation_faci",
+          "delivery_method",
+          "stock_movement.category",
+          "stock_movement.received_quantity",
+          "stock_movement.received_quantity_uom",
+          "stock_movement.unit_price",
+          "stock_movement.amount",
+          "stock_movement.location_id",
+          "is_production_order",
+          "stock_movement.to_recv_qty",
+          "stock_movement.batch_id",
+        ]);
+        this.disabled(["stock_movement.total_quantity"], true);
+        break;
+
+      case "Inventory Category Transfer Posting":
+        displayAllFields();
+        this.hide([
+          "receiving_operation_faci",
+          "delivery_method",
+          "movement_reason",
+          "stock_movement.category",
+          "stock_movement.received_quantity",
+          "stock_movement.received_quantity_uom",
+          "stock_movement.unit_price",
+          "stock_movement.amount",
+          "stock_movement.location_id",
+          "is_production_order",
+          "stock_movement.to_recv_qty",
+          "stock_movement.batch_id",
+        ]);
+        break;
+
+      case "Inter Operation Facility Transfer (Receiving)":
+        displayAllFields();
+        this.hide([
+          "stock_movement.transfer_stock",
+          "stock_movement.amount",
+          "is_production_order",
+          "delivery_method",
+          "receiving_operation_faci",
+          "stock_movement.batch_id",
+          "stock_movement.view_stock",
+          "stock_movement.transfer_stock",
+          "stock_movement.edit_stock",
+        ]);
+        break;
+
+      case "Good Issue":
+        displayAllFields();
+        this.hide([
+          "receiving_operation_faci",
+          "delivery_method",
+          "stock_movement.category",
+          "stock_movement.received_quantity",
+          "stock_movement.received_quantity_uom",
+          "stock_movement.unit_price",
+          "stock_movement.amount",
+          "stock_movement.location_id",
+          "stock_movement.to_recv_qty",
+          "stock_movement.batch_id",
+        ]);
+        break;
+
+      case "Production Receipt":
+        displayAllFields();
+        this.hide([
+          "delivery_method",
+          "receiving_operation_faci",
+          "stock_movement.transfer_stock",
+          "stock_movement.total_quantity",
+          "stock_movement.to_recv_qty",
+          "stock_movement.transfer_stock",
+          "stock_movement.view_stock",
+          "stock_movement.edit_stock",
+        ]);
+        break;
+    }
 
     // Helper functions for button visibility
     const hideAllButtons = () => {
-      [
+      this.hide([
         "button_post",
         "comp_post_button",
         "button_inprogress_ift",
@@ -122,653 +298,57 @@ const enhanceStockMovementUI = async () => {
         "button_save_as_draft",
         "button_issued_ift",
         "button_completed",
-      ].forEach((button) => this.hide(button));
+      ]);
     };
-
-    const showButton = (buttonId) => {
-      this.display(buttonId);
-    };
-
-    // UI conditions for fields (hide/disable)
-    const uiConditions = [
-      {
-        name: "Inter Operation Facility Transfer",
-        hideFields: [
-          "stock_movement.received_quantity",
-          "stock_movement.recv_location_id",
-          "stock_movement.category",
-          "stock_movement.received_quantity_uom",
-          "stock_movement.unit_price",
-          "stock_movement.amount",
-          "stock_movement.location_id",
-          "stock_movement.uom_id",
-          "is_production_order",
-          "stock_movement.to_recv_qty",
-          "stock_movement.batch_id",
-        ],
-        disableFields: {
-          Add: [],
-          Edit: [],
-          View: [
-            "stock_movement.item_selection",
-            "stock_movement.total_quantity",
-            "stock_movement.category",
-            "stock_movement.received_quantity",
-            "stock_movement.received_quantity_uom",
-            "stock_movement.unit_price",
-            "stock_movement.amount",
-            "stock_movement.location_id",
-            "movement_reason",
-            "stock_movement",
-          ],
-        },
-        pageSpecificFields: {
-          Add: {
-            show: ["stock_movement.transfer_stock"],
-            hide: ["stock_movement.edit_stock", "stock_movement.view_stock"],
-          },
-          Edit: {
-            show: ["stock_movement.edit_stock"],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.view_stock",
-            ],
-          },
-          View: {
-            show: ["stock_movement.view_stock"],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.edit_stock",
-            ],
-          },
-        },
-      },
-      {
-        name: "Inter Operation Facility Transfer (Receiving)",
-        hideFields: [
-          "stock_movement.transfer_stock",
-          "stock_movement.amount",
-          "is_production_order",
-          "delivery_method",
-          "receiving_operation_faci",
-          "stock_movement.batch_id",
-        ],
-        disableFields: {
-          Add: [
-            "stock_movement.item_selection",
-            "stock_movement.total_quantity",
-            "movement_reason",
-          ],
-          Edit: [
-            "stock_movement.item_selection",
-            "stock_movement.total_quantity",
-            "stock_movement.to_recv_qty",
-            "movement_reason",
-          ],
-          View: [
-            "stock_movement.item_selection",
-            "stock_movement.total_quantity",
-            "stock_movement.category",
-            "stock_movement.received_quantity",
-            "stock_movement.received_quantity_uom",
-            "stock_movement.unit_price",
-            "stock_movement.amount",
-            "stock_movement.location_id",
-            "movement_reason",
-            "stock_movement",
-          ],
-        },
-        pageSpecificFields: {
-          Add: {
-            show: [],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.edit_stock",
-              "stock_movement.view_stock",
-            ],
-          },
-          Edit: {
-            show: [],
-            hide: [
-              "stock_movement.edit_stock",
-              "stock_movement.transfer_stock",
-              "stock_movement.view_stock",
-            ],
-          },
-          View: {
-            show: [],
-            hide: [
-              "stock_movement.view_stock",
-              "stock_movement.transfer_stock",
-              "stock_movement.edit_stock",
-            ],
-          },
-        },
-      },
-      {
-        name: "Location Transfer",
-        hideFields: [
-          "delivery_method",
-          "receiving_operation_faci",
-          "stock_movement.category",
-          "stock_movement.recv_location_id",
-          "stock_movement.received_quantity",
-          "stock_movement.received_quantity_uom",
-          "stock_movement.unit_price",
-          "stock_movement.amount",
-          "stock_movement.uom_id",
-          "stock_movement.to_recv_qty",
-          "stock_movement.batch_id",
-        ],
-        disableFields: {
-          Add: ["stock_movement.total_quantity"],
-          Edit: ["stock_movement.total_quantity"],
-          View: [
-            "stock_movement.item_selection",
-            "stock_movement.category",
-            "stock_movement.received_quantity",
-            "stock_movement.received_quantity_uom",
-            "stock_movement.unit_price",
-            "stock_movement.amount",
-            "stock_movement.location_id",
-            "movement_reason",
-          ],
-        },
-        pageSpecificFields: {
-          Add: {
-            show: ["stock_movement.transfer_stock"],
-            hide: ["stock_movement.edit_stock", "stock_movement.view_stock"],
-          },
-          Edit: {
-            show: ["stock_movement.edit_stock"],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.view_stock",
-            ],
-          },
-          View: {
-            show: ["stock_movement.view_stock"],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.edit_stock",
-            ],
-          },
-        },
-      },
-      {
-        name: "Production Receipt",
-        hideFields: [
-          "delivery_method",
-          "receiving_operation_faci",
-          "stock_movement.recv_location_id",
-          "stock_movement.transfer_stock",
-          "stock_movement.total_quantity",
-          "stock_movement.to_recv_qty",
-        ],
-        disableFields: {
-          Add: ["stock_movement.amount"],
-          Edit: [],
-          View: [
-            "stock_movement.item_selection",
-            "stock_movement.total_quantity",
-            "stock_movement.category",
-            "stock_movement.received_quantity",
-            "stock_movement.unit_price",
-            "stock_movement.amount",
-            "stock_movement.location_id",
-            "movement_reason",
-            "stock_movement",
-          ],
-        },
-        pageSpecificFields: {
-          Add: {
-            show: [],
-            hide: [
-              "stock_movement.edit_stock",
-              "stock_movement.view_stock",
-              "stock_movement.transfer_stock",
-            ],
-          },
-          Edit: {
-            show: [],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.view_stock",
-              "stock_movement.edit_stock",
-            ],
-          },
-          View: {
-            show: [],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.edit_stock",
-              "stock_movement.view_stock",
-            ],
-          },
-        },
-      },
-      {
-        name: "Miscellaneous Receipt",
-        hideFields: [
-          "delivery_method",
-          "receiving_operation_faci",
-          "stock_movement.recv_location_id",
-          "stock_movement.transfer_stock",
-          "stock_movement.total_quantity",
-          "is_production_order",
-          "stock_movement.to_recv_qty",
-        ],
-        disableFields: {
-          Add: ["stock_movement.amount"],
-          Edit: [],
-          View: [
-            "stock_movement.item_selection",
-            "stock_movement.total_quantity",
-            "stock_movement.category",
-            "stock_movement.received_quantity",
-            "stock_movement.received_quantity_uom",
-            "stock_movement.unit_price",
-            "stock_movement.amount",
-            "stock_movement.batch_id",
-            "stock_movement.location_id",
-            "movement_reason",
-            "stock_movement",
-          ],
-        },
-        pageSpecificFields: {
-          Add: {
-            show: [],
-            hide: [
-              "stock_movement.edit_stock",
-              "stock_movement.view_stock",
-              "stock_movement.transfer_stock",
-            ],
-          },
-          Edit: {
-            show: [],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.view_stock",
-              "stock_movement.edit_stock",
-            ],
-          },
-          View: {
-            show: [],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.edit_stock",
-              "stock_movement.view_stock",
-            ],
-          },
-        },
-      },
-      {
-        name: "Inventory Category Transfer Posting",
-        hideFields: [
-          "receiving_operation_faci",
-          "delivery_method",
-          "movement_reason",
-          "stock_movement.category",
-          "stock_movement.recv_location_id",
-          "stock_movement.received_quantity",
-          "stock_movement.received_quantity_uom",
-          "stock_movement.unit_price",
-          "stock_movement.amount",
-          "stock_movement.location_id",
-          "stock_movement.uom_id",
-          "is_production_order",
-          "stock_movement.to_recv_qty",
-          "stock_movement.batch_id",
-        ],
-        disableFields: {
-          Add: [],
-          Edit: [],
-          View: [
-            "stock_movement.item_selection",
-            "stock_movement.total_quantity",
-            "stock_movement.category",
-            "stock_movement.received_quantity",
-            "stock_movement.received_quantity_uom",
-            "stock_movement.unit_price",
-            "stock_movement.amount",
-            "stock_movement.location_id",
-            "movement_reason",
-          ],
-        },
-        pageSpecificFields: {
-          Add: {
-            show: ["stock_movement.transfer_stock"],
-            hide: ["stock_movement.edit_stock", "stock_movement.view_stock"],
-          },
-          Edit: {
-            show: ["stock_movement.edit_stock"],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.view_stock",
-            ],
-          },
-          View: {
-            show: ["stock_movement.view_stock"],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.edit_stock",
-            ],
-          },
-        },
-      },
-      {
-        name: "Miscellaneous Issue",
-        hideFields: [
-          "receiving_operation_faci",
-          "delivery_method",
-          "stock_movement.category",
-          "stock_movement.recv_location_id",
-          "stock_movement.received_quantity",
-          "stock_movement.received_quantity_uom",
-          "stock_movement.unit_price",
-          "stock_movement.amount",
-          "stock_movement.location_id",
-          "stock_movement.uom_id",
-          "is_production_order",
-          "stock_movement.to_recv_qty",
-          "stock_movement.batch_id",
-        ],
-        disableFields: {
-          Add: ["stock_movement.total_quantity"],
-          Edit: ["stock_movement.total_quantity"],
-          View: [
-            "stock_movement.item_selection",
-            "stock_movement.total_quantity",
-            "stock_movement.category",
-            "stock_movement.received_quantity",
-            "stock_movement.received_quantity_uom",
-            "stock_movement.unit_price",
-            "stock_movement.amount",
-            "stock_movement.location_id",
-            "movement_reason",
-          ],
-        },
-        pageSpecificFields: {
-          Add: {
-            show: ["stock_movement.transfer_stock"],
-            hide: ["stock_movement.edit_stock", "stock_movement.view_stock"],
-          },
-          Edit: {
-            show: ["stock_movement.edit_stock"],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.view_stock",
-            ],
-          },
-          View: {
-            show: ["stock_movement.view_stock"],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.edit_stock",
-            ],
-          },
-        },
-      },
-      {
-        name: "Good Issue",
-        hideFields: [
-          "receiving_operation_faci",
-          "delivery_method",
-          "stock_movement.category",
-          "stock_movement.recv_location_id",
-          "stock_movement.received_quantity",
-          "stock_movement.received_quantity_uom",
-          "stock_movement.unit_price",
-          "stock_movement.amount",
-          "stock_movement.location_id",
-          "stock_movement.uom_id",
-          "stock_movement.to_recv_qty",
-          "stock_movement.batch_id",
-        ],
-        disableFields: {
-          Add: [],
-          Edit: [],
-          View: [
-            "stock_movement.item_selection",
-            "stock_movement.total_quantity",
-            "stock_movement.category",
-            "stock_movement.received_quantity",
-            "stock_movement.received_quantity_uom",
-            "stock_movement.unit_price",
-            "stock_movement.amount",
-            "stock_movement.location_id",
-            "movement_reason",
-          ],
-        },
-        pageSpecificFields: {
-          Add: {
-            show: ["stock_movement.transfer_stock"],
-            hide: ["stock_movement.edit_stock", "stock_movement.view_stock"],
-          },
-          Edit: {
-            show: ["stock_movement.edit_stock"],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.view_stock",
-            ],
-          },
-          View: {
-            show: ["stock_movement.view_stock"],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.edit_stock",
-            ],
-          },
-        },
-      },
-      {
-        name: "Disposal/Scrap",
-        hideFields: [
-          "receiving_operation_faci",
-          "stock_movement.recv_location_id",
-          "delivery_method",
-          "stock_movement.category",
-          "stock_movement.received_quantity",
-          "stock_movement.received_quantity_uom",
-          "stock_movement.unit_price",
-          "stock_movement.amount",
-          "stock_movement.location_id",
-          "stock_movement.uom_id",
-          "is_production_order",
-          "stock_movement.to_recv_qty",
-          "stock_movement.batch_id",
-        ],
-        disableFields: {
-          Add: ["stock_movement.total_quantity"],
-          Edit: ["stock_movement.total_quantity"],
-          View: [
-            "stock_movement.item_selection",
-            "stock_movement.total_quantity",
-            "stock_movement.category",
-            "stock_movement.received_quantity",
-            "stock_movement.received_quantity_uom",
-            "stock_movement.unit_price",
-            "stock_movement.amount",
-            "stock_movement.location_id",
-            "movement_reason",
-          ],
-        },
-        pageSpecificFields: {
-          Add: {
-            show: ["stock_movement.transfer_stock"],
-            hide: ["stock_movement.edit_stock", "stock_movement.view_stock"],
-          },
-          Edit: {
-            show: ["stock_movement.edit_stock"],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.view_stock",
-            ],
-          },
-          View: {
-            show: ["stock_movement.view_stock"],
-            hide: [
-              "stock_movement.transfer_stock",
-              "stock_movement.edit_stock",
-            ],
-          },
-        },
-      },
-      {
-        name: "",
-        hideFields: [],
-        disableFields: { Add: [], Edit: [], View: [] },
-        pageSpecificFields: {
-          Add: { show: [], hide: [] },
-          Edit: { show: [], hide: [] },
-          View: { show: [], hide: [] },
-        },
-      },
-    ];
-
-    // Update category options for Location Transfer
-    if (movementTypeName === "Location Transfer") {
-      const allowedCategories = [
-        "Unrestricted",
-        "Quality Inspection",
-        "Blocked",
-        "Reserved",
-      ];
-      this.setOptionData(
-        ["sm_item_balance.table_item_balance.category"],
-        allowedCategories.map((category) => ({
-          label: category,
-          value: category,
-        }))
-      );
-    }
-
-    // Reset UI
-    const allFields = [
-      ...new Set(
-        uiConditions.flatMap((condition) => [
-          ...condition.hideFields,
-          ...(condition.disableFields.Add || []),
-          ...(condition.disableFields.Edit || []),
-          ...(condition.disableFields.View || []),
-          ...(condition.pageSpecificFields.Add?.show || []),
-          ...(condition.pageSpecificFields.Add?.hide || []),
-          ...(condition.pageSpecificFields.Edit?.show || []),
-          ...(condition.pageSpecificFields.Edit?.hide || []),
-          ...(condition.pageSpecificFields.View?.show || []),
-          ...(condition.pageSpecificFields.View?.hide || []),
-        ])
-      ),
-    ];
-
-    allFields.forEach((field) => {
-      this.display(field);
-      this.disabled([field], false);
-    });
-
-    // Apply UI conditions - Using different comparison approaches for large IDs
-    let matchedCondition = null;
-
-    // First try to find by movement type name
-    if (movementTypeName) {
-      matchedCondition = uiConditions.find(
-        (condition) => condition.name === movementTypeName
-      );
-
-      if (matchedCondition) {
-        console.log(
-          `Found UI condition by name match: ${matchedCondition.name}`
-        );
-      }
-    }
-
-    // If that fails, try string comparison of IDs
-    if (!matchedCondition && movementTypeId) {
-      matchedCondition = uiConditions.find(
-        (condition) =>
-          String(stockMovementMap[condition.name]) === String(movementTypeId)
-      );
-
-      if (matchedCondition) {
-        console.log(
-          `Found UI condition by string ID comparison: ${matchedCondition.name}`
-        );
-      }
-    }
-
-    console.log(
-      "Matched condition:",
-      matchedCondition ? matchedCondition.name : "None"
-    );
-
-    if (matchedCondition) {
-      matchedCondition.hideFields.forEach((field) => this.hide(field));
-
-      if (pageAction && matchedCondition.pageSpecificFields?.[pageAction]) {
-        const { show = [], hide = [] } =
-          matchedCondition.pageSpecificFields[pageAction];
-        show.forEach((field) => this.display(field));
-        hide.forEach((field) => this.hide(field));
-      }
-
-      if (pageAction && matchedCondition.disableFields?.[pageAction]) {
-        this.disabled(matchedCondition.disableFields[pageAction], true);
-      }
-    } else {
-      console.warn(
-        `No UI condition matched for movement type ID: ${movementTypeId}`
-      );
-
-      // If no match is found and we're in Add mode or no movement type is selected,
-      // ensure delivery_method and receiving_operation_faci are hidden
-      if (!movementTypeId || pageAction === "Add") {
-        this.hide("delivery_method");
-        this.hide("receiving_operation_faci");
-      }
-    }
 
     // Apply button visibility logic
     if (
-      pageStatus === "Draft" &&
-      (pageAction === "Add" || pageAction === "Edit")
+      page_status === "Add" ||
+      (data.stock_movement_status === "Draft" && page_status === "Edit")
     ) {
-      hideAllButtons();
-      switch (movementTypeName) {
+      switch (movementType) {
+        case "Inter Operation Facility Transfer (Receiving)":
+          hideAllButtons();
+          console.log("helllo");
+          this.display([
+            "button_save_as_draft",
+            "button_complete_receive",
+            "comp_post_button",
+          ]);
+          break;
         case "Inter Operation Facility Transfer":
-          showButton("button_issued_ift");
-          showButton("button_save_as_draft");
+          hideAllButtons();
+          this.display(["button_issued_ift", "button_save_as_draft"]);
           break;
         case "Location Transfer":
-          showButton("button_save_as_draft");
-          showButton("button_completed");
+        case "Inventory Category Transfer Posting":
+          hideAllButtons();
+          this.display(["button_save_as_draft", "button_completed"]);
           break;
         case "Miscellaneous Issue":
         case "Good Issue":
         case "Miscellaneous Receipt":
         case "Production Receipt":
         case "Disposal/Scrap":
-          showButton("button_save_as_draft");
-          showButton("button_completed");
-          showButton("comp_post_button");
-          break;
-        case "Inventory Category Transfer Posting":
-          showButton("button_save_as_draft");
-          showButton("button_completed");
-          break;
-        case "Inter Operation Facility Transfer (Receiving)":
-          showButton("button_save_as_draft");
-          showButton("button_complete_receive");
-          showButton("comp_post_button");
+          hideAllButtons();
+          this.display([
+            "button_save_as_draft",
+            "button_completed",
+            "comp_post_button",
+          ]);
           break;
       }
     } else if (
-      pageStatus === "Issued" &&
-      pageAction === "Edit" &&
-      movementTypeName === "Inter Operation Facility Transfer"
+      data.stock_movement_status === "Issued" &&
+      page_status === "Edit" &&
+      movementType === "Inter Operation Facility Transfer"
     ) {
       hideAllButtons();
-      showButton("button_inprogress_ift");
-    } else if (pageStatus === "Completed" && pageAction === "View") {
+      this.display(["button_inprogress_ift"]);
+    } else if (
+      data.stock_movement_status === "Completed" &&
+      page_status === "View"
+    ) {
       hideAllButtons();
       if (
         [
@@ -779,47 +359,28 @@ const enhanceStockMovementUI = async () => {
           "Production Receipt",
           "Disposal/Scrap",
           "Inter Operation Facility Transfer (Receiving)",
-        ].includes(movementTypeName)
+        ].includes(movementType)
       ) {
-        showButton("button_post");
+        this.display(["button_post"]);
       }
     } else if (
-      pageStatus === "Created" &&
-      (pageAction === "View" || pageAction === "Edit") &&
-      movementTypeName === "Inter Operation Facility Transfer (Receiving)"
+      data.stock_movement_status === "Created" &&
+      (page_status === "View" || page_status === "Edit") &&
+      movementType === "Inter Operation Facility Transfer (Receiving)"
     ) {
       hideAllButtons();
-      showButton("button_complete_receive");
+      this.display(["button_complete_receive"]);
     }
 
-    if (movementTypeId) {
-      this.disabled(["stock_movement"], false);
-    } else {
-      this.disabled(["stock_movement"], true);
-    }
-  } catch (error) {
-    console.error("Failed to enhance stock movement UI:", {
-      message: error.message,
-      stack: error.stack,
-    });
-    this.showError?.("Unable to load stock movement configuration");
-  }
-};
-
-enhanceStockMovementUI();
-
-if (
-  (this.getParamsVariables("page_status") === "Edit" ||
-    this.getParamsVariables("page_status") === "View") &&
-  this.getValues().movement_type === originalMovementType &&
-  savedBalanceIndex &&
-  savedBalanceIndex.length > 0
-) {
-  setTimeout(() => {
-    console.log("Restoring balance_index", savedBalanceIndex);
-    this.setData({
-      [`balance_index`]: savedBalanceIndex,
-    });
-    console.log("Restored balance_index", this.getValues().balance_index);
-  }, 2000);
-}
+    // if (
+    //   page_status !== "Add" && movementType &&
+    //   savedBalanceIndex &&
+    //   savedBalanceIndex.length > 0
+    // ) {
+    //   setTimeout(() => {
+    //     this.setData({
+    //       [`balance_index`]: savedBalanceIndex,
+    //     });
+    //   }, 2000);
+    // }
+  });

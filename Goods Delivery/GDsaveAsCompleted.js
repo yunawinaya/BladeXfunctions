@@ -46,6 +46,234 @@ const closeDialog = () => {
   }
 };
 
+// check credit & overdue limit before doing any process
+const checkCreditOverdueLimit = async (customer_name, so_id) => {
+  try {
+    const fetchCustomer = await db
+      .collection("customer")
+      .where({ customer_name, is_deleted: 0 })
+      .get();
+
+    const customerData = fetchCustomer.data[0];
+    if (!customerData) {
+      console.error(`Customer ${customer_name} not found`);
+      return false;
+    }
+
+    const soData = await db
+      .collection("sales_order")
+      .where({ id: so_id, is_deleted: 0 })
+      .get();
+
+    const so_total = parseFloat(soData.data[0].so_total || 0);
+
+    const controlTypes = customerData.control_type_list;
+    const isAccurate = customerData.is_accurate;
+    const outstandingAmount = parseFloat(customerData.outstanding_balance || 0);
+    const overdueAmount = parseFloat(customerData.overdue_inv_total_am || 0);
+    const overdueLimit = parseFloat(customerData.overdue_limit || 0);
+    const creditLimit = parseFloat(customerData.customer_credit_limit || 0);
+    const revisedOutstandingAmount =
+      outstandingAmount + parseFloat(so_total || 0);
+
+    // Helper function to show popup with appropriate messages and data
+    const showLimitDialog = (
+      type,
+      includeCredit = false,
+      includeOverdue = false,
+      isBlock = true
+    ) => {
+      this.openDialog("dialog_credit_limit");
+
+      const alerts = {
+        credit: "alert_credit_limit",
+        overdue: "alert_overdue_limit",
+        both: "alert_credit_overdue",
+        suspended: "alert_suspended",
+      };
+
+      const texts = {
+        credit: "text_credit_limit",
+        overdue: "text_overdue_limit",
+        both: "text_credit_overdue",
+        suspended: "text_suspended",
+      };
+
+      const alertType = type;
+
+      this.display(`dialog_credit_limit.${alerts[alertType]}`);
+      this.display(`dialog_credit_limit.${texts[alertType]}`);
+
+      const dataToSet = {};
+
+      if (includeCredit) {
+        this.display("dialog_credit_limit.total_allowed_credit");
+        this.display("dialog_credit_limit.total_credit");
+        dataToSet["dialog_credit_limit.total_allowed_credit"] = creditLimit;
+        dataToSet["dialog_credit_limit.total_credit"] =
+          revisedOutstandingAmount;
+      }
+
+      if (includeOverdue) {
+        this.display("dialog_credit_limit.total_allowed_overdue");
+        this.display("dialog_credit_limit.total_overdue");
+        dataToSet["dialog_credit_limit.total_allowed_overdue"] = overdueLimit;
+        dataToSet["dialog_credit_limit.total_overdue"] = overdueAmount;
+      }
+
+      this.display(
+        `dialog_credit_limit.text_${
+          isBlock ? (includeCredit && includeOverdue ? "3" : "1") : "4"
+        }`
+      );
+
+      if (isBlock) {
+        this.display("dialog_credit_limit.button_back");
+      } else {
+        this.display("dialog_credit_limit.button_yes");
+        this.display("dialog_credit_limit.button_no");
+      }
+
+      this.setData(dataToSet);
+
+      return false;
+    };
+
+    // Check if accuracy flag is set
+    if (controlTypes) {
+      if (isAccurate === 0) {
+        this.openDialog("dialog_sync_customer");
+        return false;
+      }
+
+      // Define control type behaviors
+      const controlTypeChecks = {
+        // Check overdue limit (block)
+        1: () => {
+          if (overdueAmount > overdueLimit) {
+            return showLimitDialog("overdue", false, true, true);
+          }
+          return true;
+        },
+
+        // Check overdue limit (override)
+        2: () => {
+          if (overdueAmount > overdueLimit) {
+            return showLimitDialog("overdue", false, true, false);
+          }
+          return true;
+        },
+
+        // Check credit limit (block)
+        3: () => {
+          if (revisedOutstandingAmount > creditLimit) {
+            return showLimitDialog("credit", true, false, true);
+          }
+          return true;
+        },
+
+        // Check both limits (block)
+        4: () => {
+          if (
+            revisedOutstandingAmount > creditLimit &&
+            overdueAmount > overdueLimit
+          ) {
+            return showLimitDialog("both", true, true, true);
+          } else if (revisedOutstandingAmount > creditLimit) {
+            return showLimitDialog("credit", true, false, true);
+          } else if (overdueAmount > overdueLimit) {
+            return showLimitDialog("overdue", false, true, true);
+          }
+          return true;
+        },
+
+        // Check both limits (credit block, overdue override)
+        5: () => {
+          if (
+            revisedOutstandingAmount > creditLimit &&
+            overdueAmount > overdueLimit
+          ) {
+            return showLimitDialog("both", true, true, true);
+          } else if (revisedOutstandingAmount > creditLimit) {
+            return showLimitDialog("credit", true, false, true);
+          } else if (overdueAmount > overdueLimit) {
+            return showLimitDialog("overdue", false, true, false);
+          }
+          return true;
+        },
+
+        // Check credit limit (override)
+        6: () => {
+          if (revisedOutstandingAmount > creditLimit) {
+            return showLimitDialog("credit", true, false, false);
+          }
+          return true;
+        },
+
+        // Check both limits (credit override, overdue block)
+        7: () => {
+          if (overdueAmount > overdueLimit) {
+            return showLimitDialog("overdue", false, true, true);
+          } else if (revisedOutstandingAmount > creditLimit) {
+            return showLimitDialog("credit", true, false, false);
+          }
+          return true;
+        },
+
+        // Check both limits (credit override, overdue override)
+        8: () => {
+          if (
+            revisedOutstandingAmount > creditLimit &&
+            overdueAmount > overdueLimit
+          ) {
+            return showLimitDialog("both", true, true, false);
+          } else if (revisedOutstandingAmount > creditLimit) {
+            return showLimitDialog("credit", true, false, false);
+          } else if (overdueAmount > overdueLimit) {
+            return showLimitDialog("overdue", false, true, false);
+          }
+          return true;
+        },
+
+        9: () => {
+          return showLimitDialog("suspended", false, false, true);
+        },
+      };
+
+      // Check each control type that applies to Sales Orders
+      for (const controlType of controlTypes) {
+        const { control_type, document_type } = controlType;
+        if (
+          document_type === "Sales Orders" &&
+          controlTypeChecks[control_type]
+        ) {
+          const result = controlTypeChecks[control_type]();
+          if (result !== true) {
+            return result; // Return false if a limit check fails
+          }
+        }
+      }
+
+      // All checks passed
+      return true;
+    } else {
+      console.log("No control type defined for customer");
+      return true;
+    }
+  } catch (error) {
+    console.error("Error checking credit/overdue limits:", error);
+    this.$alert(
+      "An error occurred while checking credit limits. Please try again.",
+      "Error",
+      {
+        confirmButtonText: "OK",
+        type: "error",
+      }
+    );
+    return false;
+  }
+};
+
 // Update FIFO inventory
 const updateFIFOInventory = (materialId, deliveryQty, batchId) => {
   return new Promise((resolve, reject) => {
@@ -745,6 +973,12 @@ this.getData()
         shipping_address_country,
         shipping_postal_code,
       } = data;
+
+      const canProceed = await checkCreditOverdueLimit(customer_name, so_id);
+      if (!canProceed) {
+        this.hideLoading();
+        return;
+      }
 
       // If this is an edit, store previous temporary quantities
       if (page_status === "Edit" && Array.isArray(table_gd)) {
