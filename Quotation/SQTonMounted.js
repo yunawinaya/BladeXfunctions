@@ -10,7 +10,7 @@ this.hide([
   "myr_total_amount",
   "total_amount_myr",
 ]);
-this.display(["sqt_customer_id"]);
+this.display("sqt_customer_id");
 
 const generatePrefix = (runNumber, now, prefixData) => {
   let generated = prefixData.current_prefix_config;
@@ -86,7 +86,7 @@ const getPrefixData = async (organizationId) => {
   return prefixData;
 };
 
-const showStatusHTML = (status) => {
+const showStatusHTML = async (status) => {
   switch (status) {
     case "Draft":
       this.display(["draft_status"]);
@@ -105,163 +105,67 @@ const showStatusHTML = (status) => {
   }
 };
 
-const getQuotationData = async (quotationNo) => {
-  const res = await db.collection("Quotation").where({ id: quotationNo }).get();
-  return res.data[0];
-};
-
 (async () => {
   try {
+    const status = await this.getValue("sqt_status");
+
     let pageStatus = "";
 
     if (this.isAdd) pageStatus = "Add";
     else if (this.isEdit) pageStatus = "Edit";
     else if (this.isView) pageStatus = "View";
     else if (this.isCopy) pageStatus = "Clone";
-    else throw new Error();
+    else throw new Error("Invalid page state");
 
     let organizationId = this.getVarGlobal("deptParentId");
     if (organizationId === "0") {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
-    this.setData({ organization_id: organizationId });
+    this.setData({ organization_id: organizationId, page_status: pageStatus });
+    this.hide([
+      "exchange_rate",
+      "exchange_rate_myr",
+      "exchange_rate_currency",
+      "myr_total_amount",
+      "total_amount_myr",
+    ]);
 
-    if (pageStatus !== "Add") {
-      const quotationNo = this.getParamsVariables("quotation_no");
-      const quotation = await getQuotationData(quotationNo);
+    const sqtCustomer = this.getValue("sqt_customer_id");
 
-      const {
-        sqt_status,
-        sqt_customer_id,
-        currency_code,
-        sqt_billing_name,
-        sqt_billing_address,
-        sqt_billing_cp,
-        sqt_shipping_address,
-        sqt_no,
-        sqt_plant,
-        organization_id,
-        sqt_date,
-        sqt_validity_period,
-        sales_person_id,
-        sqt_payment_term,
-        sqt_delivery_method_id,
-        cp_customer_pickup,
-        driver_contact_no,
-        courier_company,
-        vehicle_number,
-        pickup_date,
-        shipping_date,
-        ct_driver_name,
-        ct_vehicle_number,
-        ct_driver_contact_no,
-        ct_est_delivery_date,
-        ct_delivery_cost,
-        ct_shipping_company,
-        ss_shipping_method,
-        ss_shipping_date,
-        est_arrival_date,
-        ss_freight_charges,
-        ss_tracking_number,
-        sqt_sub_total,
-        sqt_total_discount,
-        sqt_total_tax,
-        sqt_totalsum,
-        sqt_remarks,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_postal_code,
-        billing_address_country,
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_postal_code,
-        shipping_address_country,
-        table_sqt,
-        sqt_ref_no,
-        exchange_rate,
-        myr_total_amount,
-      } = quotation;
+    if (sqtCustomer) {
+      await this.setData({ sqt_customer_id: undefined });
+      await this.setData({ sqt_customer_id: sqtCustomer });
+    }
 
-      const data = {
-        sqt_customer_id,
-        currency_code,
-        sqt_billing_name,
-        sqt_billing_address,
-        sqt_billing_cp,
-        sqt_shipping_address,
-        sqt_plant,
-        organization_id,
-        sqt_date,
-        sqt_validity_period,
-        sales_person_id,
-        sqt_payment_term,
-        sqt_delivery_method_id,
-        cp_customer_pickup,
-        driver_contact_no,
-        courier_company,
-        vehicle_number,
-        pickup_date,
-        shipping_date,
-        ct_driver_name,
-        ct_vehicle_number,
-        ct_driver_contact_no,
-        ct_est_delivery_date,
-        ct_delivery_cost,
-        ct_shipping_company,
-        ss_shipping_method,
-        ss_shipping_date,
-        est_arrival_date,
-        ss_freight_charges,
-        ss_tracking_number,
-        sqt_sub_total,
-        sqt_total_discount,
-        sqt_total_tax,
-        sqt_totalsum,
-        sqt_remarks,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_postal_code,
-        billing_address_country,
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_postal_code,
-        shipping_address_country,
-        table_sqt,
-        sqt_ref_no,
-        exchange_rate,
-        myr_total_amount,
-      };
-
-      if (pageStatus !== "Clone") {
-        data.sqt_status = sqt_status;
-        data.sqt_no = sqt_no;
-        await getPrefixData(organizationId);
-      } else {
-        // Clone case - generate new number
+    switch (pageStatus) {
+      case "Add":
+        this.display(["draft_status"]);
         await setPrefix(organizationId);
-      }
+        break;
 
-      this.setData(data);
-      showStatusHTML(data.sqt_status);
+      case "Edit":
+        await getPrefixData(organizationId);
+        await showStatusHTML(status);
+        break;
 
-      if (pageStatus === "View") {
+      case "Clone":
+        this.display(["draft_status"]);
+        await setPrefix(organizationId);
+        break;
+
+      case "View":
+        this.hide([
+          "link_billing_address",
+          "link_shipping_address",
+          "button_save_as_draft",
+          "button_issued",
+          "sqt_customer_id",
+        ]);
+        this.display(["sqt_customer_id"]);
+        await showStatusHTML(status);
+
+        // Disable all form fields in View mode
         this.disabled(
           [
             "sqt_customer_id",
@@ -324,19 +228,7 @@ const getQuotationData = async (quotationNo) => {
           ],
           true
         );
-
-        this.hide([
-          "link_billing_address",
-          "link_shipping_address",
-          "button_save_as_draft",
-          "button_issued",
-        ]);
-      }
-    } else {
-      // Add new quotation
-      this.reset();
-      this.display(["draft_status"]);
-      await setPrefix(organizationId);
+        break;
     }
   } catch (error) {
     console.error(error);
