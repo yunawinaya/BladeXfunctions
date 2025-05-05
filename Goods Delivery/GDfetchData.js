@@ -11,15 +11,15 @@ const data = this.getValues();
 const salesOrderId = data.so_id;
 console.log("salesorderid", salesOrderId);
 
-const currentValues = this.getValues();
-const savedTableGd = currentValues.table_gd || [];
-const originalSoId = currentValues.so_id;
+const savedTableGd = data.table_gd || [];
 const newSoId = arguments[0]?.fieldModel?.item?.so_id || salesOrderId;
 
+if (arguments[0]?.fieldModel?.item) {
+  this.setData({ so_no: arguments[0]?.fieldModel?.item?.so_no });
+}
 const isSOUnchanged =
-  (this.getParamsVariables("page_status") === "Edit" ||
-    this.getParamsVariables("page_status") === "View") &&
-  originalSoId === newSoId &&
+  (data.page_status === "Edit" || data.page_status === "View") &&
+  salesOrderId === newSoId &&
   savedTableGd.length > 0;
 
 if (salesOrderId) {
@@ -129,7 +129,7 @@ db.collection("goods_delivery")
   .get()
   .then((response) => {
     console.log("Response from goods_delivery query:", response);
-    if (!this.getValue("so_no")) {
+    if (response.data.length === 0) {
       this.setData({
         so_no: arguments[0]?.fieldModel?.item?.so_no,
       });

@@ -1,5 +1,10 @@
-const page_status = this.getParamsVariables("page_status");
-const self = this;
+const closeDialog = () => {
+  if (this.parentGenerateForm) {
+    this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+    this.parentGenerateForm.refresh();
+    this.hideLoading();
+  }
+};
 
 // For quantities - 3 decimal places
 const roundQty = (value) => {
@@ -9,242 +14,6 @@ const roundQty = (value) => {
 // For prices - 4 decimal places
 const roundPrice = (value) => {
   return parseFloat(parseFloat(value || 0).toFixed(4));
-};
-
-const closeDialog = () => {
-  if (self.parentGenerateForm) {
-    self.parentGenerateForm.$refs.SuPageDialogRef.hide();
-    self.parentGenerateForm.refresh();
-    this.hideLoading();
-  }
-};
-
-// check credit & overdue limit before doing any process
-const checkCreditOverdueLimit = async (customer_name, so_id) => {
-  try {
-    const fetchCustomer = await db
-      .collection("customer")
-      .where({ customer_name, is_deleted: 0 })
-      .get();
-
-    const customerData = fetchCustomer.data[0];
-    if (!customerData) {
-      console.error(`Customer ${customer_name} not found`);
-      return false;
-    }
-
-    const soData = await db
-      .collection("sales_order")
-      .where({ id: so_id, is_deleted: 0 })
-      .get();
-
-    const so_total = parseFloat(soData.data[0].so_total || 0);
-
-    const controlTypes = customerData.control_type_list;
-    const isAccurate = customerData.is_accurate;
-    const outstandingAmount = parseFloat(customerData.outstanding_balance || 0);
-    const overdueAmount = parseFloat(customerData.overdue_inv_total_am || 0);
-    const overdueLimit = parseFloat(customerData.overdue_limit || 0);
-    const creditLimit = parseFloat(customerData.customer_credit_limit || 0);
-    const revisedOutstandingAmount =
-      outstandingAmount + parseFloat(so_total || 0);
-
-    // Helper function to show popup with appropriate messages and data
-    const showLimitDialog = (
-      type,
-      includeCredit = false,
-      includeOverdue = false,
-      isBlock = true
-    ) => {
-      this.openDialog("dialog_credit_limit");
-
-      const alerts = {
-        credit: "alert_credit_limit",
-        overdue: "alert_overdue_limit",
-        both: "alert_credit_overdue",
-        suspended: "alert_suspended",
-      };
-
-      const texts = {
-        credit: "text_credit_limit",
-        overdue: "text_overdue_limit",
-        both: "text_credit_overdue",
-        suspended: "text_suspended",
-      };
-
-      const alertType = type;
-
-      this.display(`dialog_credit_limit.${alerts[alertType]}`);
-      this.display(`dialog_credit_limit.${texts[alertType]}`);
-
-      const dataToSet = {};
-
-      if (includeCredit) {
-        this.display("dialog_credit_limit.total_allowed_credit");
-        this.display("dialog_credit_limit.total_credit");
-        dataToSet["dialog_credit_limit.total_allowed_credit"] = creditLimit;
-        dataToSet["dialog_credit_limit.total_credit"] =
-          revisedOutstandingAmount;
-      }
-
-      if (includeOverdue) {
-        this.display("dialog_credit_limit.total_allowed_overdue");
-        this.display("dialog_credit_limit.total_overdue");
-        dataToSet["dialog_credit_limit.total_allowed_overdue"] = overdueLimit;
-        dataToSet["dialog_credit_limit.total_overdue"] = overdueAmount;
-      }
-
-      this.display(
-        `dialog_credit_limit.text_${
-          isBlock ? (includeCredit && includeOverdue ? "3" : "1") : "4"
-        }`
-      );
-
-      if (isBlock) {
-        this.display("dialog_credit_limit.button_back");
-      } else {
-        this.display("dialog_credit_limit.button_yes");
-        this.display("dialog_credit_limit.button_no");
-      }
-
-      this.setData(dataToSet);
-
-      return false;
-    };
-
-    // Check if accuracy flag is set
-    if (controlTypes) {
-      if (isAccurate === 0) {
-        this.openDialog("dialog_sync_customer");
-        return false;
-      }
-
-      // Define control type behaviors
-      const controlTypeChecks = {
-        // Check overdue limit (block)
-        1: () => {
-          if (overdueAmount > overdueLimit) {
-            return showLimitDialog("overdue", false, true, true);
-          }
-          return true;
-        },
-
-        // Check overdue limit (override)
-        2: () => {
-          if (overdueAmount > overdueLimit) {
-            return showLimitDialog("overdue", false, true, false);
-          }
-          return true;
-        },
-
-        // Check credit limit (block)
-        3: () => {
-          if (revisedOutstandingAmount > creditLimit) {
-            return showLimitDialog("credit", true, false, true);
-          }
-          return true;
-        },
-
-        // Check both limits (block)
-        4: () => {
-          if (
-            revisedOutstandingAmount > creditLimit &&
-            overdueAmount > overdueLimit
-          ) {
-            return showLimitDialog("both", true, true, true);
-          } else if (revisedOutstandingAmount > creditLimit) {
-            return showLimitDialog("credit", true, false, true);
-          } else if (overdueAmount > overdueLimit) {
-            return showLimitDialog("overdue", false, true, true);
-          }
-          return true;
-        },
-
-        // Check both limits (credit block, overdue override)
-        5: () => {
-          if (
-            revisedOutstandingAmount > creditLimit &&
-            overdueAmount > overdueLimit
-          ) {
-            return showLimitDialog("both", true, true, true);
-          } else if (revisedOutstandingAmount > creditLimit) {
-            return showLimitDialog("credit", true, false, true);
-          } else if (overdueAmount > overdueLimit) {
-            return showLimitDialog("overdue", false, true, false);
-          }
-          return true;
-        },
-
-        // Check credit limit (override)
-        6: () => {
-          if (revisedOutstandingAmount > creditLimit) {
-            return showLimitDialog("credit", true, false, false);
-          }
-          return true;
-        },
-
-        // Check both limits (credit override, overdue block)
-        7: () => {
-          if (overdueAmount > overdueLimit) {
-            return showLimitDialog("overdue", false, true, true);
-          } else if (revisedOutstandingAmount > creditLimit) {
-            return showLimitDialog("credit", true, false, false);
-          }
-          return true;
-        },
-
-        // Check both limits (credit override, overdue override)
-        8: () => {
-          if (
-            revisedOutstandingAmount > creditLimit &&
-            overdueAmount > overdueLimit
-          ) {
-            return showLimitDialog("both", true, true, false);
-          } else if (revisedOutstandingAmount > creditLimit) {
-            return showLimitDialog("credit", true, false, false);
-          } else if (overdueAmount > overdueLimit) {
-            return showLimitDialog("overdue", false, true, false);
-          }
-          return true;
-        },
-
-        9: () => {
-          return showLimitDialog("suspended", false, false, true);
-        },
-      };
-
-      // Check each control type that applies to Sales Orders
-      for (const controlType of controlTypes) {
-        const { control_type, document_type } = controlType;
-        if (
-          document_type === "Sales Orders" &&
-          controlTypeChecks[control_type]
-        ) {
-          const result = controlTypeChecks[control_type]();
-          if (result !== true) {
-            return result; // Return false if a limit check fails
-          }
-        }
-      }
-
-      // All checks passed
-      return true;
-    } else {
-      console.log("No control type defined for customer");
-      return true;
-    }
-  } catch (error) {
-    console.error("Error checking credit/overdue limits:", error);
-    this.$alert(
-      "An error occurred while checking credit limits. Please try again.",
-      "Error",
-      {
-        confirmButtonText: "OK",
-        type: "error",
-      }
-    );
-    return false;
-  }
 };
 
 // Function to get latest FIFO cost price with available quantity check
@@ -330,13 +99,166 @@ const getWeightedAverageCostPrice = async (materialId, batchId) => {
 };
 
 const getFixedCostPrice = async (materialId) => {
-  const query = db.collection("Item").where({ id: materialId });
-  const response = await query.get();
-  const result = response.data;
-  return roundPrice(result[0].purchase_unit_price || 0);
+  try {
+    const query = db.collection("Item").where({ id: materialId });
+    const response = await query.get();
+    const result = response.data;
+
+    if (result && result.length > 0) {
+      return roundPrice(parseFloat(result[0].purchase_unit_price || 0));
+    }
+
+    return 0;
+  } catch (error) {
+    console.error(
+      `Error retrieving fixed cost price for ${materialId}:`,
+      error
+    );
+    return 0;
+  }
+};
+
+const getPrefixData = async (organizationId) => {
+  console.log("Getting prefix data for organization:", organizationId);
+  try {
+    const prefixEntry = await db
+      .collection("prefix_configuration")
+      .where({
+        document_types: "Goods Delivery",
+        is_deleted: 0,
+        organization_id: organizationId,
+        is_active: 1,
+      })
+      .get();
+
+    console.log("Prefix data result:", prefixEntry);
+
+    if (!prefixEntry.data || prefixEntry.data.length === 0) {
+      console.log("No prefix configuration found");
+      return null;
+    }
+
+    return prefixEntry.data[0];
+  } catch (error) {
+    console.error("Error getting prefix data:", error);
+    throw error;
+  }
+};
+
+const updatePrefix = async (organizationId, runningNumber) => {
+  console.log(
+    "Updating prefix for organization:",
+    organizationId,
+    "with running number:",
+    runningNumber
+  );
+  try {
+    await db
+      .collection("prefix_configuration")
+      .where({
+        document_types: "Goods Delivery",
+        is_deleted: 0,
+        organization_id: organizationId,
+      })
+      .update({
+        running_number: parseInt(runningNumber) + 1,
+        has_record: 1,
+      });
+    console.log("Prefix update successful");
+  } catch (error) {
+    console.error("Error updating prefix:", error);
+    throw error;
+  }
+};
+
+const generatePrefix = (runNumber, now, prefixData) => {
+  console.log("Generating prefix with running number:", runNumber);
+  try {
+    let generated = prefixData.current_prefix_config;
+    generated = generated.replace("prefix", prefixData.prefix_value);
+    generated = generated.replace("suffix", prefixData.suffix_value);
+    generated = generated.replace(
+      "month",
+      String(now.getMonth() + 1).padStart(2, "0")
+    );
+    generated = generated.replace(
+      "day",
+      String(now.getDate()).padStart(2, "0")
+    );
+    generated = generated.replace("year", now.getFullYear());
+    generated = generated.replace(
+      "running_number",
+      String(runNumber).padStart(prefixData.padding_zeroes, "0")
+    );
+    console.log("Generated prefix:", generated);
+    return generated;
+  } catch (error) {
+    console.error("Error generating prefix:", error);
+    throw error;
+  }
+};
+
+const checkUniqueness = async (generatedPrefix) => {
+  console.log("Checking uniqueness for prefix:", generatedPrefix);
+  try {
+    const existingDoc = await db
+      .collection("goods_delivery")
+      .where({ delivery_no: generatedPrefix })
+      .get();
+
+    const isUnique = !existingDoc.data || existingDoc.data.length === 0;
+    console.log("Is unique:", isUnique);
+    return isUnique;
+  } catch (error) {
+    console.error("Error checking uniqueness:", error);
+    throw error;
+  }
+};
+
+const findUniquePrefix = async (prefixData) => {
+  console.log("Finding unique prefix");
+  try {
+    const now = new Date();
+    let prefixToShow;
+    let runningNumber = prefixData.running_number || 1;
+    let isUnique = false;
+    let maxAttempts = 10;
+    let attempts = 0;
+
+    while (!isUnique && attempts < maxAttempts) {
+      attempts++;
+      console.log(`Attempt ${attempts} to find unique prefix`);
+      prefixToShow = generatePrefix(runningNumber, now, prefixData);
+      isUnique = await checkUniqueness(prefixToShow);
+      if (!isUnique) {
+        console.log("Prefix not unique, incrementing running number");
+        runningNumber++;
+      }
+    }
+
+    if (!isUnique) {
+      console.error("Could not find unique prefix after maximum attempts");
+      throw new Error(
+        "Could not generate a unique Goods Delivery number after maximum attempts"
+      );
+    }
+
+    console.log(
+      "Found unique prefix:",
+      prefixToShow,
+      "with running number:",
+      runningNumber
+    );
+    return { prefixToShow, runningNumber };
+  } catch (error) {
+    console.error("Error finding unique prefix:", error);
+    throw error;
+  }
 };
 
 const processBalanceTable = async (data, isUpdate = false) => {
+  console.log("Processing balance table");
+
   const items = data.table_gd;
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -357,6 +279,7 @@ const processBalanceTable = async (data, isUpdate = false) => {
       // Track created or updated documents for potential rollback
       const updatedDocs = [];
       const createdDocs = [];
+
       // First check if this item should be processed based on stock_control
       const itemRes = await db
         .collection("Item")
@@ -393,6 +316,10 @@ const processBalanceTable = async (data, isUpdate = false) => {
             material_id: item.material_id,
             location_id: temp.location_id,
           };
+
+          if (temp.batch_id) {
+            itemBalanceParams.batch_id = temp.batch_id;
+          }
 
           const balanceCollection = temp.batch_id
             ? "item_batch_balance"
@@ -475,7 +402,7 @@ const processBalanceTable = async (data, isUpdate = false) => {
             return Promise.resolve();
           }
 
-          // Create inventory_movement record
+          // Create inventory_movement record - OUT from Unrestricted
           const inventoryMovementDataUNR = {
             transaction_type: "GDL",
             trx_no: data.delivery_no,
@@ -496,6 +423,7 @@ const processBalanceTable = async (data, isUpdate = false) => {
             organization_id: data.organization_id,
           };
 
+          // Create inventory_movement record - IN to Reserved
           const inventoryMovementDataRES = {
             transaction_type: "GDL",
             trx_no: data.delivery_no,
@@ -516,6 +444,7 @@ const processBalanceTable = async (data, isUpdate = false) => {
             organization_id: data.organization_id,
           };
 
+          // Add both movement records
           const invMovementResultUNR = await db
             .collection("inventory_movement")
             .add(inventoryMovementDataUNR);
@@ -591,290 +520,214 @@ const processBalanceTable = async (data, isUpdate = false) => {
   await Promise.all(processedItemPromises);
 };
 
-// Main execution flow with improved error handling
-this.getData()
-  .then(async (data) => {
-    try {
-      // Input validation
-      if (!data || !data.so_id || !Array.isArray(data.table_gd)) {
-        throw new Error("Missing required data for goods delivery");
+const validateForm = (data, requiredFields) => {
+  console.log("Validating form");
+  const missingFields = requiredFields.filter((field) => {
+    const value = data[field.name];
+    if (Array.isArray(value)) return value.length === 0;
+    if (typeof value === "string") return value.trim() === "";
+    return !value;
+  });
+  console.log("Missing fields:", missingFields);
+  return missingFields;
+};
+
+// Main execution wrapped in an async IIFE
+(async () => {
+  console.log("Starting Goods Delivery Created function");
+
+  try {
+    const data = await this.getValues();
+    console.log("Form data:", data);
+
+    // Get page status
+    const page_status = data.page_status;
+    console.log("Page status:", page_status);
+
+    // Define required fields
+    const requiredFields = [
+      { name: "customer_name", label: "Customer" },
+      { name: "plant_id", label: "Plant" },
+      { name: "so_id", label: "Sales Order" },
+    ];
+
+    // Validate form
+    const missingFields = validateForm(data, requiredFields);
+
+    if (missingFields.length > 0) {
+      this.hideLoading();
+      const missingFieldNames = missingFields.map((f) => f.label).join(", ");
+      this.$message.error(
+        `Please fill in all required fields: ${missingFieldNames}`
+      );
+      console.log("Validation failed, missing fields:", missingFieldNames);
+      return;
+    }
+
+    console.log("Validation passed");
+
+    // If this is an edit, store previous temporary quantities
+    if (page_status === "Edit" && Array.isArray(data.table_gd)) {
+      data.table_gd.forEach((item) => {
+        item.prev_temp_qty_data = item.temp_qty_data;
+      });
+    }
+
+    // Get organization ID
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
+    }
+    console.log("Organization ID:", organizationId);
+
+    // Prepare goods delivery object
+    const gd = {
+      gd_status: "Created",
+      so_id: data.so_id,
+      so_no: data.so_no,
+      gd_billing_name: data.gd_billing_name,
+      gd_billing_cp: data.gd_billing_cp,
+      gd_billing_address: data.gd_billing_address,
+      gd_shipping_address: data.gd_shipping_address,
+      delivery_no: data.delivery_no,
+      plant_id: data.plant_id,
+      organization_id: organizationId,
+      gd_ref_doc: data.gd_ref_doc,
+      customer_name: data.customer_name,
+      gd_contact_name: data.gd_contact_name,
+      contact_number: data.contact_number,
+      email_address: data.email_address,
+      document_description: data.document_description,
+      gd_delivery_method: data.gd_delivery_method,
+      delivery_date: data.delivery_date,
+      driver_name: data.driver_name,
+      driver_contact_no: data.driver_contact_no,
+      validity_of_collection: data.validity_of_collection,
+      vehicle_no: data.vehicle_no,
+      pickup_date: data.pickup_date,
+      courier_company: data.courier_company,
+      shipping_date: data.shipping_date,
+      freight_charges: data.freight_charges,
+      tracking_number: data.tracking_number,
+      est_arrival_date: data.est_arrival_date,
+      driver_cost: data.driver_cost,
+      est_delivery_date: data.est_delivery_date,
+      shipping_company: data.shipping_company,
+      shipping_method: data.shipping_method,
+      table_gd: data.table_gd,
+      order_remark: data.order_remark,
+      billing_address_line_1: data.billing_address_line_1,
+      billing_address_line_2: data.billing_address_line_2,
+      billing_address_line_3: data.billing_address_line_3,
+      billing_address_line_4: data.billing_address_line_4,
+      billing_address_city: data.billing_address_city,
+      billing_address_state: data.billing_address_state,
+      billing_address_country: data.billing_address_country,
+      billing_postal_code: data.billing_postal_code,
+      shipping_address_line_1: data.shipping_address_line_1,
+      shipping_address_line_2: data.shipping_address_line_2,
+      shipping_address_line_3: data.shipping_address_line_3,
+      shipping_address_line_4: data.shipping_address_line_4,
+      shipping_address_city: data.shipping_address_city,
+      shipping_address_state: data.shipping_address_state,
+      shipping_address_country: data.shipping_address_country,
+      shipping_postal_code: data.shipping_postal_code,
+    };
+
+    // Clean up undefined/null values
+    Object.keys(gd).forEach((key) => {
+      if (gd[key] === undefined || gd[key] === null) {
+        delete gd[key];
       }
+    });
 
-      let organizationId = this.getVarGlobal("deptParentId");
-      if (organizationId === "0") {
-        organizationId = this.getVarSystem("deptIds").split(",")[0];
-      }
-      // Destructure required fields
-      const {
-        so_id,
-        so_no,
-        gd_billing_name,
-        gd_billing_cp,
-        gd_billing_address,
-        gd_shipping_address,
-        delivery_no,
-        gd_ref_doc,
-        plant_id,
-        organization_id,
-        customer_name,
-        gd_contact_name,
-        contact_number,
-        email_address,
-        document_description,
-        gd_delivery_method,
-        delivery_date,
-        driver_name,
-        driver_contact_no,
-        validity_of_collection,
-        vehicle_no,
-        pickup_date,
-        courier_company,
-        shipping_date,
-        freight_charges,
-        tracking_number,
-        est_arrival_date,
-        driver_cost,
-        est_delivery_date,
-        shipping_company,
-        shipping_method,
-        table_gd,
-        order_remark,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_address_country,
-        billing_postal_code,
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_address_country,
-        shipping_postal_code,
-      } = data;
+    console.log("Entry prepared with keys:", Object.keys(gd));
 
-      const canProceed = await checkCreditOverdueLimit(customer_name, so_id);
-      if (!canProceed) {
-        this.hideLoading();
-        return;
-      }
+    this.showLoading();
 
-      // If this is an edit, store previous temporary quantities
-      if (page_status === "Edit" && Array.isArray(table_gd)) {
-        table_gd.forEach((item) => {
-          item.prev_temp_qty_data = item.temp_qty_data;
-        });
-      }
+    // Perform action based on page status
+    if (page_status === "Add") {
+      console.log("Adding new GD entry (Add)");
 
-      // Prepare goods delivery object
-      const gd = {
-        gd_status: "Created",
-        so_id,
-        so_no,
-        plant_id,
-        organization_id,
-        gd_billing_name,
-        gd_billing_cp,
-        gd_billing_address,
-        gd_shipping_address,
-        delivery_no,
-        gd_ref_doc,
-        customer_name,
-        gd_contact_name,
-        contact_number,
-        email_address,
-        document_description,
-        gd_delivery_method,
-        delivery_date,
-        driver_name,
-        driver_contact_no,
-        validity_of_collection,
-        vehicle_no,
-        pickup_date,
-        courier_company,
-        shipping_date,
-        freight_charges,
-        tracking_number,
-        est_arrival_date,
-        driver_cost,
-        est_delivery_date,
-        shipping_company,
-        shipping_method,
-        table_gd,
-        order_remark,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_address_country,
-        billing_postal_code,
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_address_country,
-        shipping_postal_code,
-      };
-
-      // Perform action based on page status
-      if (page_status === "Add") {
-        this.showLoading();
-        await db
-          .collection("goods_delivery")
-          .add(gd)
-          .then(() => {
-            return db
-              .collection("prefix_configuration")
-              .where({
-                document_types: "Goods Delivery",
-                is_deleted: 0,
-                organization_id: organizationId,
-                is_active: 1,
-              })
-              .get()
-              .then((prefixEntry) => {
-                const data = prefixEntry.data[0];
-                return db
-                  .collection("prefix_configuration")
-                  .where({
-                    document_types: "Goods Delivery",
-                    is_deleted: 0,
-                    organization_id: organizationId,
-                  })
-                  .update({
-                    running_number: parseInt(data.running_number) + 1,
-                    has_record: 1,
-                  });
-              });
-          });
-        await processBalanceTable(gd);
-      } else if (page_status === "Edit") {
-        this.showLoading();
-        const goodsDeliveryId = this.getParamsVariables("goods_delivery_no");
-
-        if (gd.delivery_no.startsWith("DRAFT")) {
-          const prefixEntry = db
+      // Add new document
+      await db
+        .collection("goods_delivery")
+        .add(gd)
+        .then(() => {
+          return db
             .collection("prefix_configuration")
             .where({
               document_types: "Goods Delivery",
+              is_deleted: 0,
               organization_id: organizationId,
               is_active: 1,
             })
             .get()
             .then((prefixEntry) => {
-              if (prefixEntry.data.length > 0) {
-                const prefixData = prefixEntry.data[0];
-                const now = new Date();
-                let prefixToShow;
-                let runningNumber = prefixData.running_number;
-                let isUnique = false;
-                let maxAttempts = 10;
-                let attempts = 0;
-
-                const generatePrefix = (runNumber) => {
-                  let generated = prefixData.current_prefix_config;
-                  generated = generated.replace(
-                    "prefix",
-                    prefixData.prefix_value
-                  );
-                  generated = generated.replace(
-                    "suffix",
-                    prefixData.suffix_value
-                  );
-                  generated = generated.replace(
-                    "month",
-                    String(now.getMonth() + 1).padStart(2, "0")
-                  );
-                  generated = generated.replace(
-                    "day",
-                    String(now.getDate()).padStart(2, "0")
-                  );
-                  generated = generated.replace("year", now.getFullYear());
-                  generated = generated.replace(
-                    "running_number",
-                    String(runNumber).padStart(prefixData.padding_zeroes, "0")
-                  );
-                  return generated;
-                };
-
-                const checkUniqueness = async (generatedPrefix) => {
-                  const existingDoc = await db
-                    .collection("goods_delivery")
-                    .where({ delivery_no: generatedPrefix })
-                    .get();
-                  return existingDoc.data[0] ? false : true;
-                };
-
-                const findUniquePrefix = async () => {
-                  while (!isUnique && attempts < maxAttempts) {
-                    attempts++;
-                    prefixToShow = generatePrefix(runningNumber);
-                    isUnique = await checkUniqueness(prefixToShow);
-                    if (!isUnique) {
-                      runningNumber++;
-                    }
-                  }
-
-                  if (!isUnique) {
-                    throw new Error(
-                      "Could not generate a unique Goods Delivery number after maximum attempts"
-                    );
-                  } else {
-                    gd.delivery_no = prefixToShow;
-                    db.collection("goods_delivery")
-                      .doc(goodsDeliveryId)
-                      .update(gd);
-                    db.collection("prefix_configuration")
-                      .where({
-                        document_types: "Goods Delivery",
-                        is_deleted: 0,
-                        organization_id: organizationId,
-                      })
-                      .update({
-                        running_number: parseInt(runningNumber) + 1,
-                        has_record: 1,
-                      });
-                  }
-                };
-
-                findUniquePrefix();
-              } else {
-                db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+              if (!prefixEntry.data || prefixEntry.data.length === 0) {
+                return;
               }
-            })
-            .catch((error) => {
-              this.$message.error(error);
-            });
-        } else {
-          db.collection("goods_delivery")
-            .doc(goodsDeliveryId)
-            .update(gd)
-            .catch((error) => {
-              this.$message.error(error);
-            });
-        }
 
-        await processBalanceTable(gd, true);
+              const data = prefixEntry.data[0];
+              return db
+                .collection("prefix_configuration")
+                .where({
+                  document_types: "Goods Delivery",
+                  is_deleted: 0,
+                  organization_id: organizationId,
+                })
+                .update({
+                  running_number: parseInt(data.running_number) + 1,
+                  has_record: 1,
+                });
+            });
+        });
+
+      // Process inventory updates
+      await processBalanceTable(gd);
+    } else if (page_status === "Edit") {
+      console.log("Updating existing GD entry (Edit)");
+
+      // Get the GD document ID
+      const goodsDeliveryId = data.id;
+      console.log("Goods Delivery ID:", goodsDeliveryId);
+
+      if (gd.delivery_no.startsWith("DRAFT")) {
+        // For draft -> created, generate a new number if needed
+        const prefixData = await getPrefixData(organizationId);
+
+        if (prefixData) {
+          // Generate new prefix
+          const { prefixToShow, runningNumber } = await findUniquePrefix(
+            prefixData
+          );
+          gd.delivery_no = prefixToShow;
+
+          // Update document with new prefix
+          await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+
+          // Update prefix configuration
+          await updatePrefix(organizationId, runningNumber);
+        } else {
+          // Just update without changing number
+          await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+        }
+      } else {
+        // Normal update (not changing from draft)
+        await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
       }
-    } catch (error) {
-      console.error("Error in goods delivery process:", error);
-      this.$message.error(
-        "An error occurred during processing. Please try again or contact support."
-      );
+
+      // Process inventory updates
+      await processBalanceTable(gd, true);
     }
-  })
-  .then(() => {
+
+    console.log("Completed GD operation successfully");
     closeDialog();
-  })
-  .catch((error) => {
+  } catch (error) {
     console.error("Error in goods delivery process:", error);
-    this.$message.error(error);
-  });
+    this.$message.error(
+      error.message || "An error occurred processing the goods delivery"
+    );
+    this.hideLoading();
+  }
+})();

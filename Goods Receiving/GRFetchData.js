@@ -1,3 +1,13 @@
+const plant = arguments[0]?.fieldModel?.item?.po_plant;
+const organization = arguments[0]?.fieldModel?.item?.organization_id;
+const page_status = this.getValue("page_status");
+
+this.setData({
+  plant_id: plant,
+  organization_id: organization,
+  currency_code: arguments[0].fieldModel.item.po_currency,
+});
+
 // Check if data is ready and contains purchase_order_id
 const checkAndProcessData = () => {
   const data = this.getValues();
@@ -11,7 +21,7 @@ const checkAndProcessData = () => {
   // Once we have the purchase_order_id, proceed with processing
   const purchaseOrderId = data.purchase_order_id;
 
-  const goodsReceivingId = this.getParamsVariables("goods_receiving_no");
+  const goodsReceivingId = this.getValue("id");
 
   // Now call the main processing function
   processGoodsReceiving(purchaseOrderId, goodsReceivingId);
@@ -22,6 +32,16 @@ const processGoodsReceiving = async (purchaseOrderId, goodsReceivingId) => {
   try {
     let hasPOChanged = true;
     let existingGRData = null;
+
+    const plantId = this.getValue("plant_id");
+    const resBinLocation = await db
+      .collection("bin_location")
+      .where({
+        plant_id: plantId,
+        is_default: true,
+      })
+      .get();
+    const binLocation = resBinLocation.data[0].id;
 
     // Check if this is an existing GR and if PO has changed
     if (goodsReceivingId) {
@@ -101,7 +121,7 @@ const processGoodsReceiving = async (purchaseOrderId, goodsReceivingId) => {
       console.log("Accumulated quantities:", accumulatedQty);
 
       // Process all items concurrently
-      const itemPromises = sourceItems.map(async (sourceItem) => {
+      const itemPromises = sourceItems.map(async (sourceItem, rowIndex) => {
         const itemId = sourceItem.item_id || "";
         if (!itemId) return null;
 
@@ -125,18 +145,35 @@ const processGoodsReceiving = async (purchaseOrderId, goodsReceivingId) => {
               .toString(36)
               .substr(0, 4)}`;
 
+            const batchManagementEnabled =
+              itemData.item_batch_management === 1 ||
+              itemData.item_batch_management === true ||
+              itemData.item_batch_management === "1";
+
+            let batch_number = "";
+
+            if (batchManagementEnabled) {
+              batch_number = "";
+            } else {
+              batch_number = "-";
+            }
+
             return {
               item_id: itemId,
               item_desc: sourceItem.item_desc || "",
               ordered_qty: orderedQty,
               to_received_qty: remainingQty,
               received_qty: 0,
-              item_uom: sourceItem.quantity_uom || "",
+              // item_uom: sourceItem.quantity_uom || "",
               unit_price: sourceItem.unit_price || 0,
               total_price: sourceItem.po_amount || 0,
+              location_id: binLocation,
               fm_key: stableKey,
+              item_costing_method: itemData.material_costing_method,
+              item_batch_no: batch_number,
             };
           }
+
           return null;
         } catch (error) {
           console.error(`Error processing item ${itemId}:`, error);
@@ -155,18 +192,30 @@ const processGoodsReceiving = async (purchaseOrderId, goodsReceivingId) => {
         ordered_qty: item.ordered_qty,
         to_received_qty: item.to_received_qty,
         received_qty: item.received_qty,
-        item_uom: item.item_uom,
+        // item_uom: item.item_uom,
         unit_price: item.unit_price,
         total_price: item.total_price,
+        location_id: binLocation,
         fm_key: item.fm_key,
+        item_costing_method: item.item_costing_method,
+        item_batch_no: item.item_batch_no,
       }));
 
       console.log("Final table_gr data:", newTableGr);
 
       // Update the table once with all processed items
-      this.setData({
+      await this.setData({
         table_gr: newTableGr,
       });
+
+      setTimeout(() => {
+        const table_gr = this.getValue("table_gr");
+        table_gr.forEach((gr, index) => {
+          const path = `table_gr.${index}.item_batch_no`;
+          this.disabled(path, gr.item_batch_no !== "");
+          console.log(`Field ${path} disabled:`, gr.item_batch_no !== "");
+        });
+      }, 100);
     } else {
       console.log("Skipping table_gr update as PO hasn't changed");
     }
@@ -218,6 +267,21 @@ const processExistingAddressInformation = async (grData) => {
   } catch (error) {
     console.error("Error processing existing address information:", error);
   }
+};
+
+const formatAddress = (address, state, country) => {
+  const addressComponents = [
+    address.address_line_1,
+    address.address_line_2,
+    address.address_line_3,
+    address.address_line_4,
+    address.address_city,
+    address.address_postal_code,
+    state.state_name,
+    country.country_name,
+  ].filter((component) => component);
+
+  return addressComponents.join(",\n");
 };
 
 // Extract address processing to a separate function
@@ -335,31 +399,41 @@ const processAddressInformation = async (purchaseOrderId) => {
     console.log(`Found ${addresses.length} addresses for supplier`);
 
     addresses.forEach((address) => {
-      const isShipping = address.address_purpose_id === shippingAddrId;
-      const addressType = isShipping ? "shipping" : "billing";
-
-      // Set address fields
-      this.setData({
-        [`${addressType}_address_line_1`]: address.address_line_1 || "",
-        [`${addressType}_address_line_2`]: address.address_line_2 || "",
-        [`${addressType}_address_line_3`]: address.address_line_3 || "",
-        [`${addressType}_address_line_4`]: address.address_line_4 || "",
-        [`${addressType}_address_city`]: address.address_city || "",
-        [`${addressType}_address_state`]: address.address_state || "",
-        [`${addressType}_postal_code`]: address.address_postal_code || "",
-        [`${addressType}_address_country`]: address.address_country || "",
-      });
-
-      // Set billing-specific fields
-      if (addressType === "billing") {
+      Promise.all([
+        db
+          .collection("country")
+          .where({ id: address.address_country_id })
+          .get(),
+        db.collection("state").where({ id: address.address_state }).get(),
+      ]).then(([resCountry, resState]) => {
+        const isShipping = address.address_purpose_id === shippingAddrId;
+        const addressType = isShipping ? "shipping" : "billing";
+        const country = resCountry.data[0];
+        const state = resState.data[0];
+        // Set address fields
         this.setData({
-          gr_billing_name: address.address_name || "",
-          gr_billing_cp: address.address_phone || "",
+          [`${addressType}_address_line_1`]: address.address_line_1,
+          [`${addressType}_address_line_2`]: address.address_line_2,
+          [`${addressType}_address_line_3`]: address.address_line_3,
+          [`${addressType}_address_line_4`]: address.address_line_4,
+          [`${addressType}_address_city`]: address.address_city,
+          [`${addressType}_address_state`]: state.id,
+          [`${addressType}_postal_code`]: address.address_postal_code,
+          [`${addressType}_address_country`]: country.id,
+          [`gr_${addressType}_address`]: formatAddress(address, state, country),
         });
-      }
+
+        // Set billing-specific fields
+        if (addressType === "billing") {
+          this.setData({
+            gr_billing_name: address.address_name || "",
+            gr_billing_cp: address.address_phone || "",
+          });
+        }
+      });
     });
   } catch (error) {
-    console.error("Error processing address information:", error);
+    this.$message.error("Error processing address information:", error);
   }
 };
 
