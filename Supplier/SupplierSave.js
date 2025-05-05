@@ -13,15 +13,14 @@ const closeDialog = () => {
     const data = this.getValues();
     console.log("Form data:", data);
 
-    // Get page status from form data
     const page_status = data.page_status;
-    const item_no = data.id;
+    const supplier_no = data.id;
 
     // Define required fields
     const requiredFields = [
-      { name: "material_type", label: "Material Type" },
-      { name: "material_name", label: "Material Name" },
-      { name: "material_category", label: "Material Category" },
+      { name: "supplier_type", label: "Supplier Type" },
+      { name: "supplier_com_name", label: "Company Name" },
+      { name: "supplier_com_reg_no", label: "Company Registration No" },
     ];
 
     // Validate form
@@ -48,51 +47,59 @@ const closeDialog = () => {
     }
 
     // Prepare entry data
+    const {
+      supplier_status,
+      supplier_type,
+      supplier_com_name,
+      supplier_com_reg_no,
+      supplier_business_type,
+      supplier_irbm_id,
+      supplier_code,
+      supplier_com_old_reg_no,
+      business_activity_id,
+      supplier_area_id,
+      supplier_agent_id,
+      currency_id,
+      supplier_tax_rate,
+      supplier_tin_no,
+      supplier_credit_limit,
+      supplier_payment_term_id,
+      supplier_sst_sales_no,
+      supplier_sst_service_no,
+      supplier_exceed_limit,
+      address_list,
+      contact_list,
+      supplier_website,
+      remarks,
+      attachment,
+    } = data;
+
     const entry = {
-      is_active: data.is_active,
-      imgupload_wk19nrhg: data.imgupload_wk19nrhg,
-      material_type: data.material_type,
+      supplier_status,
       organization_id: organizationId,
-      material_code: data.material_code,
-      material_name: data.material_name,
-      material_category: data.material_category,
-      material_sub_category: data.material_sub_category,
-      material_desc: data.material_desc,
-      material_costing_method: data.material_costing_method,
-      stock_control: data.stock_control,
-      show_delivery: data.show_delivery,
-      show_receiving: data.show_receiving,
-      based_uom: data.based_uom,
-      table_uom_conversion: data.table_uom_conversion,
-      purchase_tariff_id: data.purchase_tariff_id,
-      mat_purchase_currency_id: data.mat_purchase_currency_id,
-      mat_purchase_tax_id: data.mat_purchase_tax_id,
-      purchase_tax_percent: data.purchase_tax_percent,
-      purchase_unit_price: data.purchase_unit_price,
-      sales_tariff_id: data.sales_tariff_id,
-      mat_sales_tax_id: data.mat_sales_tax_id,
-      sales_tax_percent: data.sales_tax_percent,
-      mat_sales_currency_id: data.mat_sales_currency_id,
-      sales_unit_price: data.sales_unit_price,
-      item_batch_management: data.item_batch_management,
-      batch_number_genaration: data.batch_number_genaration,
-      brand_id: data.brand_id,
-      brand_artwork_id: data.brand_artwork_id,
-      subform_packaging_remark: data.subform_packaging_remark,
-      reorder_level: data.reorder_level,
-      shelf: data.shelf,
-      lead_time: data.lead_time,
-      assembly_cost: data.assembly_cost,
-      bom_related: data.bom_related,
-      reorder_quantity: data.reorder_quantity,
-      irbm_id: data.irbm_id,
-      production_time: data.production_time,
-      additional_remark: data.additional_remark,
-      over_receive_tolerance: data.over_receive_tolerance,
-      under_receive_tolerance: data.under_receive_tolerance,
-      over_delivery_tolerance: data.over_delivery_tolerance,
-      under_delivery_tolerance: data.under_delivery_tolerance,
-      posted_status: 0,
+      supplier_type,
+      supplier_com_name,
+      supplier_com_reg_no,
+      supplier_business_type,
+      supplier_irbm_id,
+      supplier_code,
+      supplier_com_old_reg_no,
+      business_activity_id,
+      supplier_area_id,
+      supplier_agent_id,
+      currency_id,
+      supplier_tax_rate,
+      supplier_tin_no,
+      supplier_credit_limit,
+      supplier_payment_term_id,
+      supplier_sst_sales_no,
+      supplier_sst_service_no,
+      supplier_exceed_limit,
+      address_list,
+      contact_list,
+      supplier_website,
+      remarks,
+      attachment,
     };
 
     // Clean up undefined/null values
@@ -106,13 +113,13 @@ const closeDialog = () => {
     if (page_status === "Add" || page_status === "Clone") {
       try {
         // First add the entry
-        await db.collection("Item").add(entry);
+        await db.collection("supplier_head").add(entry);
 
         // Then update the prefix
         const prefixEntry = await db
           .collection("prefix_configuration")
           .where({
-            document_types: "Items",
+            document_types: "Suppliers",
             is_deleted: 0,
             organization_id: organizationId,
             is_active: 1,
@@ -120,69 +127,45 @@ const closeDialog = () => {
           .get();
 
         if (prefixEntry.data && prefixEntry.data.length > 0) {
-          const prefixData = prefixEntry.data[0];
+          const data = prefixEntry.data[0];
           await db
             .collection("prefix_configuration")
             .where({
-              document_types: "Items",
+              document_types: "Suppliers",
               is_deleted: 0,
               organization_id: organizationId,
             })
             .update({
-              running_number: parseInt(prefixData.running_number) + 1,
+              running_number: parseInt(data.running_number) + 1,
               has_record: 1,
             });
         }
 
-        // Run workflow
-        await this.runWorkflow(
-          "1906666085143818241",
-          { key: "value" },
-          (res) => {
-            console.log("成功结果：", res);
-          },
-          (err) => {
-            console.error("失败结果：", err);
-          }
-        );
-
         // Close dialog after successful operation
         closeDialog();
       } catch (error) {
-        console.error("Error adding item:", error);
+        console.error("Error adding supplier:", error);
         this.hideLoading();
         this.$message.error(
-          error.message || "An error occurred while adding the item."
+          error.message || "An error occurred while adding the supplier."
         );
       }
     } else if (page_status === "Edit") {
       try {
-        // Update the existing item
-        if (!item_no) {
-          throw new Error("Item ID not found");
+        // Update the existing supplier
+        if (!supplier_no) {
+          throw new Error("Supplier ID not found");
         }
 
-        await db.collection("Item").doc(item_no).update(entry);
-
-        // Run workflow
-        await this.runWorkflow(
-          "1906666085143818241",
-          { key: "value" },
-          (res) => {
-            console.log("成功结果：", res);
-          },
-          (err) => {
-            console.error("失败结果：", err);
-          }
-        );
+        await db.collection("supplier_head").doc(supplier_no).update(entry);
 
         // Close dialog after successful operation
         closeDialog();
       } catch (error) {
-        console.error("Error updating item:", error);
+        console.error("Error updating supplier:", error);
         this.hideLoading();
         this.$message.error(
-          error.message || "An error occurred while updating the item."
+          error.message || "An error occurred while updating the supplier."
         );
       }
     } else {
@@ -193,7 +176,7 @@ const closeDialog = () => {
     console.error("Error in main function:", error);
     this.hideLoading();
     this.$message.error(
-      error.message || "An error occurred while processing the item."
+      error.message || "An error occurred while processing the supplier."
     );
   }
 })();
