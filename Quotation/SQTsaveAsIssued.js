@@ -264,8 +264,8 @@ const updateEntry = async (organizationId, entry, quotationId) => {
 
     // Get page status and quotation ID from parameters
     const page_status = data.page_status;
-    const quotation_no = data.quotation_no;
-    console.log("Page status:", page_status, "Quotation no:", quotation_no);
+    const quotation_id = data.id;
+    console.log("Page status:", page_status, "Quotation ID:", quotation_id);
 
     // Define required fields
     const requiredFields = [
@@ -377,7 +377,7 @@ const updateEntry = async (organizationId, entry, quotationId) => {
       success = await addEntry(organizationId, entry);
     } else if (page_status === "Edit") {
       console.log("Updating existing entry (Edit)");
-      success = await updateEntry(organizationId, entry, quotation_no);
+      success = await updateEntry(organizationId, entry, quotation_id);
     } else {
       console.log("Unknown page status:", page_status);
       this.hideLoading();
