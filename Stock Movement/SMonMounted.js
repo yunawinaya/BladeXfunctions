@@ -72,10 +72,8 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
     let movementType = data.movement_type || "";
 
     if (movementType) {
-      console.log("movementType", movementType);
-      console.log("Triggering JN");
-      this.setData({ movement_type: undefined });
-      this.setData({ movement_type: movementType });
+      await this.setData({ movement_type: undefined });
+      await this.setData({ movement_type: movementType });
     }
 
     if (pageStatus !== "Add") {

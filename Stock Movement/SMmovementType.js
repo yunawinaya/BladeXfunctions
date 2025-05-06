@@ -145,6 +145,7 @@ const init = async () => {
   if (page_status === "Add") {
     await init();
   }
+
   // hide/show fields based on movement type
   switch (movementType) {
     case "Inter Operation Facility Transfer":
@@ -401,15 +402,17 @@ const init = async () => {
     }, 2000);
   }
 
-  const resType = await db
-    .collection("blade_dict")
-    .where({ dict_key: movementType })
-    .get();
-  const movementTypeId = resType.data[0].id;
-  await this.setData({ movement_type_id: movementTypeId });
-  const resReason = await db
-    .collection("blade_dict")
-    .where({ parent_id: movementTypeId })
-    .get();
-  await this.setOptionData("movement_reason", resReason.data);
+  if (movementType) {
+    const resType = await db
+      .collection("blade_dict")
+      .where({ dict_key: movementType })
+      .get();
+    const movementTypeId = resType.data[0].id;
+    await this.setData({ movement_type_id: movementTypeId });
+    const resReason = await db
+      .collection("blade_dict")
+      .where({ parent_id: movementTypeId })
+      .get();
+    await this.setOptionData("movement_reason", resReason.data);
+  }
 })();

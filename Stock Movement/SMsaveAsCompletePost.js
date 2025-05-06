@@ -247,119 +247,132 @@ class StockAdjuster {
   }
 
   async updateStockMovementTable(allData, subformData, movementType) {
-    let organizationId = this.getVarGlobal("deptParentId");
-    if (organizationId === "0") {
-      organizationId = this.getVarSystem("deptIds").split(",")[0];
-    }
-    const table_item_balance = allData.sm_item_balance?.table_item_balance;
-    const stockMovementData = {
-      stock_movement_no: allData.stock_movement_no,
-      movement_type: allData.movement_type,
-      movement_type_id: allData.movement_type_id,
-      movement_reason: allData.movement_reason || null,
-      issued_by: allData.issued_by || allData.user_id || "system",
-      issue_date: allData.issue_date,
-      issuing_operation_faci: allData.issuing_operation_faci,
-      stock_movement: subformData,
-      sm_item_balance: allData.sm_item_balance,
-      table_item_balance: table_item_balance,
-      remarks: allData.remarks,
-      delivery_method: allData.delivery_method,
-      driver_name: allData.driver_name,
-      vehicle_no: allData.vehicle_no,
-      pickup_date: allData.pickup_date,
-      courier_company: allData.courier_company,
-      tracking_number: allData.tracking_number,
-      est_arrival_date: allData.est_arrival_date,
-      freight_charges: allData.freight_charges,
-      driver_contact_no: allData.driver_contact_no,
-      delivery_cost: allData.delivery_cost,
-      est_delivery_date: allData.est_delivery_date,
-      shipping_company: allData.shipping_company,
-      shipping_method: allData.shipping_method,
-      date_qn0dl3t6: allData.date_qn0dl3t6,
-      input_77h4nsq8: allData.input_77h4nsq8,
-      tracking_no: allData.tracking_no,
-      balance_index: allData.balance_index,
-      organization_id: organizationId,
-      posted_status: "Pending Post",
-    };
-
-    const page_status = allData.page_status;
-    const stockMovementNo = allData.id;
-
-    if (page_status === "Add") {
-      const result = await this.db.collection("stock_movement").add({
-        stock_movement_status: "Completed",
-        ...stockMovementData,
-      });
-      console.log("Stock Movement Added:", result);
-
-      await this.db
-        .collection("prefix_configuration")
-        .where({
-          document_types: "Stock Movement",
-          is_deleted: 0,
-          organization_id: organizationId,
-          is_active: 1,
-          movement_type: movementType,
-        })
-        .get()
-        .then((prefixEntry) => {
-          if (prefixEntry.data.length > 0) {
-            const data = prefixEntry.data[0];
-            return this.db
-              .collection("prefix_configuration")
-              .where({
-                document_types: "Stock Movement",
-                is_deleted: 0,
-                organization_id: organizationId,
-                movement_type: movementType,
-              })
-              .update({
-                running_number: parseInt(data.running_number) + 1,
-                has_record: 1,
-              });
-          }
-        });
-    } else if (page_status === "Edit") {
-      if (!stockMovementNo) {
-        throw new Error("Stock movement number is required for editing");
-      }
-      const existingRecord = await this.db
-        .collection("stock_movement")
-        .where({ id: stockMovementNo })
-        .get();
-
-      if (existingRecord.data.length === 0) {
-        throw new Error(
-          `Stock movement ${stockMovementNo} not found for editing`
-        );
+    try {
+      let organizationId = this.getVarGlobal("deptParentId");
+      if (organizationId === "0") {
+        organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
 
-      const recordId = existingRecord.data[0].id;
-      const result = await this.db
-        .collection("stock_movement")
-        .doc(recordId)
-        .update({
+      const table_item_balance = allData.sm_item_balance?.table_item_balance;
+      const stockMovementData = {
+        stock_movement_no: allData.stock_movement_no,
+        movement_type: allData.movement_type,
+        movement_type_id: allData.movement_type_id,
+        movement_reason: allData.movement_reason || null,
+        issued_by: allData.issued_by || allData.user_id || "system",
+        issue_date: allData.issue_date,
+        issuing_operation_faci: allData.issuing_operation_faci,
+        stock_movement: subformData,
+        sm_item_balance: allData.sm_item_balance,
+        table_item_balance: table_item_balance,
+        remarks: allData.remarks,
+        delivery_method: allData.delivery_method,
+        driver_name: allData.driver_name,
+        vehicle_no: allData.vehicle_no,
+        pickup_date: allData.pickup_date,
+        courier_company: allData.courier_company,
+        tracking_number: allData.tracking_number,
+        est_arrival_date: allData.est_arrival_date,
+        freight_charges: allData.freight_charges,
+        driver_contact_no: allData.driver_contact_no,
+        delivery_cost: allData.delivery_cost,
+        est_delivery_date: allData.est_delivery_date,
+        shipping_company: allData.shipping_company,
+        shipping_method: allData.shipping_method,
+        date_qn0dl3t6: allData.date_qn0dl3t6,
+        input_77h4nsq8: allData.input_77h4nsq8,
+        tracking_no: allData.tracking_no,
+        balance_index: allData.balance_index,
+        organization_id: organizationId,
+        posted_status: "Pending Post",
+      };
+
+      const page_status = allData.page_status;
+      const stockMovementNo = allData.id;
+      let result;
+
+      if (page_status === "Add") {
+        result = await this.db.collection("stock_movement").add({
           stock_movement_status: "Completed",
           ...stockMovementData,
-          update_time: new Date().toISOString(),
         });
-      console.log("Stock Movement Updated:", result);
-    }
-    await this.runWorkflow(
-      "1910197713380311041",
-      { key: "value" },
-      (res) => {
-        console.log("成功结果：", res);
-        //this.$message.success("Stock Movement posted successfully.");
-      },
-      (err) => {
-        console.error("失败结果：", err);
-        //this.$message.error(err)
+        console.log("Stock Movement Added:", result);
+
+        await this.db
+          .collection("prefix_configuration")
+          .where({
+            document_types: "Stock Movement",
+            is_deleted: 0,
+            organization_id: organizationId,
+            is_active: 1,
+            movement_type: movementType,
+          })
+          .get()
+          .then((prefixEntry) => {
+            if (prefixEntry.data.length > 0) {
+              const data = prefixEntry.data[0];
+              return this.db
+                .collection("prefix_configuration")
+                .where({
+                  document_types: "Stock Movement",
+                  is_deleted: 0,
+                  organization_id: organizationId,
+                  movement_type: movementType,
+                })
+                .update({
+                  running_number: parseInt(data.running_number) + 1,
+                  has_record: 1,
+                });
+            }
+          });
+      } else if (page_status === "Edit") {
+        if (!stockMovementNo) {
+          throw new Error("Stock movement number is required for editing");
+        }
+        const existingRecord = await this.db
+          .collection("stock_movement")
+          .where({ id: stockMovementNo })
+          .get();
+
+        if (existingRecord.data.length === 0) {
+          throw new Error(
+            `Stock movement ${stockMovementNo} not found for editing`
+          );
+        }
+
+        const recordId = existingRecord.data[0].id;
+        result = await this.db
+          .collection("stock_movement")
+          .doc(recordId)
+          .update({
+            stock_movement_status: "Completed",
+            ...stockMovementData,
+            update_time: new Date().toISOString(),
+          });
+        console.log("Stock Movement Updated:", result);
       }
-    );
+
+      // Fix for workflow call: Convert callback-style to Promise
+      return new Promise((resolve, reject) => {
+        this.runWorkflow(
+          "1910197713380311041",
+          { key: "value" },
+          (res) => {
+            console.log("Workflow success:", res);
+            resolve(result); // Resolve with original DB result
+          },
+          (err) => {
+            console.error("Workflow error:", err);
+            // Still resolve with the DB result, as the SM is created/updated successfully
+            // Just log the workflow error, don't reject the whole operation
+            resolve(result);
+          }
+        );
+      });
+    } catch (error) {
+      console.error("Error in updateStockMovementTable:", error);
+      throw error; // Propagate the error
+    }
   }
 
   async processItem(item, movementType, allData) {
@@ -1648,55 +1661,75 @@ class StockAdjuster {
 // Modified processFormData to use preCheckQuantitiesAndCosting
 async function processFormData(db, formData, context) {
   const adjuster = new StockAdjuster(db);
-  let results;
 
+  // Properly bind all necessary context functions
   if (context) {
-    adjuster.getParamsVariables = context.getParamsVariables.bind(context);
     adjuster.getVarGlobal = context.getVarGlobal.bind(context);
     adjuster.getVarSystem = context.getVarSystem.bind(context);
     adjuster.runWorkflow = context.runWorkflow.bind(context);
     adjuster.parentGenerateForm = context.parentGenerateForm;
   }
 
-  const closeDialog = () => {
-    if (context.parentGenerateForm) {
-      context.parentGenerateForm.$refs.SuPageDialogRef.hide();
-      context.parentGenerateForm.refresh();
-      context.hideLoading();
-    }
-  };
-
   try {
+    console.log("🔍 Running pre-validation checks");
     const isValid = await adjuster.preCheckQuantitiesAndCosting(
       formData,
       context
     );
+    console.log("✅ Validation result:", isValid);
 
     if (isValid) {
-      results = await adjuster.processStockAdjustment(formData);
+      console.log("📝 Processing stock adjustment");
+      const results = await adjuster.processStockAdjustment(formData);
+      console.log("✓ Stock adjustment completed");
+      return results;
     }
-    return results;
   } catch (error) {
-    console.error("Error in processFormData:", error.message);
+    console.error("❌ Error in processFormData:", error);
     throw error;
   } finally {
-    closeDialog();
+    // Don't close dialog here - we'll handle it in the main handler
+    console.log("⚙️ ProcessFormData completed (finally block)");
   }
 }
 
 // Example usage remains the same
 const self = this;
 const allData = self.getValues();
-this.showLoading();
+
+console.log("Starting Save as Completed process");
+self.showLoading();
+
+// Improved handler with proper error management
 processFormData(db, allData, self)
   .then((results) => {
+    console.log("ProcessFormData completed successfully", results);
     if (allData.page_status === "Add") {
-      console.log("New stock movement created:", results);
+      self.$message.success("New stock movement created successfully");
     } else if (allData.page_status === "Edit") {
-      console.log("Stock movement updated:", results);
+      self.$message.success("Stock movement updated successfully");
+    }
+
+    // Explicit UI cleanup after successful completion
+    self.hideLoading();
+    if (
+      self.parentGenerateForm &&
+      self.parentGenerateForm.$refs.SuPageDialogRef
+    ) {
+      self.parentGenerateForm.$refs.SuPageDialogRef.hide();
+      self.parentGenerateForm.refresh();
     }
   })
   .catch((error) => {
-    alert(error.message);
-    console.error("Error:", error);
+    console.error("Error in Save as Completed:", error);
+    self.hideLoading();
+    self.$message.error(error.message || "An unknown error occurred");
+
+    // Still try to clean up UI on error
+    if (
+      self.parentGenerateForm &&
+      self.parentGenerateForm.$refs.SuPageDialogRef
+    ) {
+      self.parentGenerateForm.$refs.SuPageDialogRef.hide();
+    }
   });
