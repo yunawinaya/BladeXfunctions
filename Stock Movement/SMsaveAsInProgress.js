@@ -51,7 +51,7 @@ class StockAdjuster {
       errors.push(topLevelValidationError);
     }
 
-    const stockMovementId = self.getParamsVariables("stock_movement_no");
+    const stockMovementId = allData.id;
     const stockMovementIssuingPlantId = allData.issuing_operation_faci;
     const stockMovementReceivingPlantId = allData.receiving_operation_faci;
     const stockMovementNumber = allData.stock_movement_no;
@@ -106,7 +106,8 @@ class StockAdjuster {
                 stockMovementIssuingPlantId,
                 stockMovementReceivingPlantId,
                 stockMovementNumber,
-                allData
+                allData,
+                self
               );
               resolve({
                 ...updateResults,
@@ -139,7 +140,8 @@ class StockAdjuster {
           stockMovementIssuingPlantId,
           stockMovementReceivingPlantId,
           stockMovementNumber,
-          allData
+          allData,
+          self
         )
           .then((updateResults) => {
             resolve({
@@ -305,7 +307,8 @@ class StockAdjuster {
     stockMovementIssuingPlantId,
     stockMovementReceivingPlantId,
     stockMovementNumber,
-    allData
+    allData,
+    self
   ) {
     const results = {
       balanceUpdates: [],
@@ -416,7 +419,8 @@ class StockAdjuster {
         const receivingIOFT = await this.createReceivingIOFT(
           stockMovementReceivingPlantId,
           allData,
-          stockMovementId
+          stockMovementId,
+          self
         );
         results.receivingIOFT = receivingIOFT.data[0];
       } catch (err) {
@@ -708,29 +712,97 @@ class StockAdjuster {
     }
   }
 
-  async createReceivingIOFT(receivingPlantId, allData, stockMovementId) {
+  async createReceivingIOFT(receivingPlantId, allData, stockMovementId, self) {
     try {
+      let movementType = allData.movement_type || "";
+
+      let organizationId = self.getVarGlobal("deptParentId");
+      if (organizationId === "0") {
+        organizationId = self.getVarSystem("deptIds").split(",")[0];
+      }
       const prefixResponse = await this.db
         .collection("prefix_configuration")
-        .where({ document_types: "Stock Movement", is_deleted: 0 })
+        .where({
+          document_types: "Stock Movement",
+          movement_type: movementType,
+          is_deleted: 0,
+          organization_id: organizationId,
+          is_active: 1,
+        })
         .get();
 
       if (!prefixResponse.data || prefixResponse.data.length === 0) {
         throw new Error("No prefix configuration found");
       }
 
-      const newPrefix = "RECV-" + allData.stock_movement_no;
+      const prefixData = prefixResponse.data[0];
+      const now = new Date();
+      let newPrefix = "";
+      let prefixToShow;
+      let runningNumber = prefixData.running_number;
+      let isUnique = false;
+      let maxAttempts = 10;
+      let attempts = 0;
 
-      const movementType = await this.db
-        .collection("stock_movement_type")
-        .where({
-          sm_type_name: "Inter Operation Facility Transfer (Receiving)",
-        })
-        .get();
+      const generatePrefix = (runNumber) => {
+        let generated = prefixData.current_prefix_config;
+        generated = generated.replace("prefix", prefixData.prefix_value);
+        generated = generated.replace("suffix", prefixData.suffix_value);
+        generated = generated.replace(
+          "month",
+          String(now.getMonth() + 1).padStart(2, "0")
+        );
+        generated = generated.replace(
+          "day",
+          String(now.getDate()).padStart(2, "0")
+        );
+        generated = generated.replace("year", now.getFullYear());
+        generated = generated.replace(
+          "running_number",
+          String(runNumber).padStart(prefixData.padding_zeroes, "0")
+        );
+        return generated;
+      };
 
-      if (!movementType.data || movementType.data.length === 0) {
-        throw new Error("Movement type not found");
-      }
+      const checkUniqueness = async (generatedPrefix) => {
+        const existingDoc = await db
+          .collection("stock_movement")
+          .where({ stock_movement_no: generatedPrefix })
+          .get();
+        return existingDoc.data[0] ? false : true;
+      };
+
+      const findUniquePrefix = async () => {
+        while (!isUnique && attempts < maxAttempts) {
+          attempts++;
+          prefixToShow = generatePrefix(runningNumber);
+          isUnique = await checkUniqueness(prefixToShow);
+          if (!isUnique) {
+            runningNumber++;
+          }
+        }
+
+        if (!isUnique) {
+          throw new Error(
+            "Could not generate a unique Stock Movement number after maximum attempts"
+          );
+        } else {
+          newPrefix = prefixToShow;
+          db.collection("prefix_configuration")
+            .where({
+              document_types: "Stock Movement",
+              is_deleted: 0,
+              organization_id: organizationId,
+              movement_type: movementType,
+            })
+            .update({
+              running_number: parseInt(runningNumber) + 1,
+              has_record: 1,
+            });
+        }
+      };
+
+      await findUniquePrefix();
 
       const materialsMap = {};
 
@@ -752,7 +824,7 @@ class StockAdjuster {
       const receivingIOFT = {
         stock_movement_status: "Created",
         stock_movement_no: newPrefix,
-        movement_type: movementType.data[0].id,
+        movement_type: allData.movement_type,
         issuing_operation_faci: receivingPlantId,
         movement_id: stockMovementId,
         stock_movement: allData.stock_movement.map((item) => {
@@ -772,8 +844,9 @@ class StockAdjuster {
         }),
         issue_date: allData.issue_date,
         issued_by: allData.issued_by || allData.user_id || "System",
-        tenant_id: allData.tenant_id || "000000",
         remarks: allData.remarks,
+        organization_id: organizationId,
+        posted_status: "Unposted",
       };
 
       const result = await this.db
@@ -794,6 +867,7 @@ async function processFormData(db, self) {
     if (self.parentGenerateForm) {
       self.parentGenerateForm.$refs.SuPageDialogRef.hide();
       self.parentGenerateForm.refresh();
+      self.hideLoading();
     }
   };
 
@@ -809,6 +883,7 @@ async function processFormData(db, self) {
 }
 
 const self = this;
+this.showLoading();
 processFormData(db, self)
   .then((results) => console.log("Success:", results))
   .catch((error) => console.error("Error:", error.message));

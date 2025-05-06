@@ -216,7 +216,7 @@ class StockAdjuster {
     }
   }
 
-  async processStockAdjustment(allData, organizationId) {
+  async processStockAdjustment(allData) {
     console.log("This is all data", allData);
     const subformData = allData.stock_movement;
     const movementType = allData.movement_type;
@@ -229,12 +229,7 @@ class StockAdjuster {
     this.validateRequiredFields(allData, requiredTopLevelFields);
 
     await this.preValidateItems(subformData, movementType, allData);
-    await this.updateStockMovementTable(
-      allData,
-      subformData,
-      movementType,
-      organizationId
-    );
+    await this.updateStockMovementTable(allData, subformData, movementType);
 
     // Update production order for Location Transfer if applicable
     if (
@@ -251,12 +246,11 @@ class StockAdjuster {
     return updates;
   }
 
-  async updateStockMovementTable(
-    allData,
-    subformData,
-    movementType,
-    organizationId
-  ) {
+  async updateStockMovementTable(allData, subformData, movementType) {
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
+    }
     const table_item_balance = allData.sm_item_balance?.table_item_balance;
     const stockMovementData = {
       stock_movement_no: allData.stock_movement_no,
@@ -288,10 +282,10 @@ class StockAdjuster {
       tracking_no: allData.tracking_no,
       balance_index: allData.balance_index,
       organization_id: organizationId,
-      posted_status: "Unposted",
+      posted_status: "Pending Post",
     };
 
-    const page_status = allData.page_status ? allData.page_status : null;
+    const page_status = allData.page_status;
     const stockMovementNo = allData.id;
 
     if (page_status === "Add") {
@@ -354,6 +348,18 @@ class StockAdjuster {
         });
       console.log("Stock Movement Updated:", result);
     }
+    await this.runWorkflow(
+      "1910197713380311041",
+      { key: "value" },
+      (res) => {
+        console.log("成功结果：", res);
+        //this.$message.success("Stock Movement posted successfully.");
+      },
+      (err) => {
+        console.error("失败结果：", err);
+        //this.$message.error(err)
+      }
+    );
   }
 
   async processItem(item, movementType, allData) {
@@ -1364,22 +1370,9 @@ class StockAdjuster {
 
     switch (movementType) {
       case "Location Transfer":
-        let productionOrderNo = null;
-        if (allData.is_production_order === 1) {
-          const productionOrder = await this.db
-            .collection("production_order")
-            .where({
-              id: allData.production_order_id,
-            })
-            .get();
-          productionOrderNo =
-            productionOrder.data[0]?.production_order_no || null;
-          console.log("Production Order No:", productionOrderNo);
-        }
         const outMovement = {
           ...baseMovementData,
           movement: "OUT",
-          parent_trx_no: productionOrderNo,
           bin_location_id: balance.location_id,
           inventory_category: "Unrestricted",
         };
@@ -1387,7 +1380,6 @@ class StockAdjuster {
           ...baseMovementData,
           movement: "IN",
           bin_location_id: subformData.location_id,
-          parent_trx_no: productionOrderNo,
           inventory_category: "Unrestricted",
         };
         const [outResult, inResult] = await Promise.all([
@@ -1631,7 +1623,7 @@ class StockAdjuster {
         }
       }
 
-      console.log("⭐ Validation successful - all checks passed");
+      // Step 7: If all checks pass, show confirmation popup
       return true;
     } catch (error) {
       // Step 8: Handle errors (excluding required fields, which are handled above)
@@ -1648,20 +1640,21 @@ class StockAdjuster {
       } else {
         alert(error.message);
       }
-      console.error("❌ Validation failed with error:", error.message);
       throw error;
     }
   }
 }
 
 // Modified processFormData to use preCheckQuantitiesAndCosting
-async function processFormData(db, formData, context, organizationId) {
+async function processFormData(db, formData, context) {
   const adjuster = new StockAdjuster(db);
   let results;
 
   if (context) {
     adjuster.getParamsVariables = context.getParamsVariables.bind(context);
-    //adjuster.getParamsVariables = this.getParamsVariables('page_status');
+    adjuster.getVarGlobal = context.getVarGlobal.bind(context);
+    adjuster.getVarSystem = context.getVarSystem.bind(context);
+    adjuster.runWorkflow = context.runWorkflow.bind(context);
     adjuster.parentGenerateForm = context.parentGenerateForm;
   }
 
@@ -1674,66 +1667,36 @@ async function processFormData(db, formData, context, organizationId) {
   };
 
   try {
-    console.log("🔍 About to run validation checks");
     const isValid = await adjuster.preCheckQuantitiesAndCosting(
       formData,
       context
     );
-    console.log("✅ Validation result:", isValid);
 
     if (isValid) {
-      console.log("📝 Starting stock adjustment processing");
-      results = await adjuster.processStockAdjustment(formData, organizationId);
-      console.log("✓ Stock adjustment completed");
+      results = await adjuster.processStockAdjustment(formData);
     }
     return results;
   } catch (error) {
-    console.error("❌ Error in processFormData:", error.message);
+    console.error("Error in processFormData:", error.message);
     throw error;
   } finally {
     closeDialog();
   }
 }
 
-// Add this at the bottom of your Save as Completed button handler
+// Example usage remains the same
 const self = this;
 const allData = self.getValues();
-let organizationId = this.getVarGlobal("deptParentId");
-console.log("organization id", organizationId);
-if (organizationId === "0") {
-  organizationId = this.getVarSystem("deptIds").split(",")[0];
-}
-
-console.log("this.getVarGlobal", this.getVarGlobal("deptParentId"));
 this.showLoading();
-
-// Improved error handling and debugging
-console.log("Starting processFormData with data:", JSON.stringify(allData));
-
-processFormData(db, allData, self, organizationId)
+processFormData(db, allData, self)
   .then((results) => {
-    console.log(
-      "ProcessFormData completed successfully with results:",
-      results
-    );
     if (allData.page_status === "Add") {
       console.log("New stock movement created:", results);
-      self.hideLoading();
-      self.$message.success("Stock movement created successfully");
-      self.parentGenerateForm.$refs.SuPageDialogRef.hide();
-      self.parentGenerateForm.refresh();
     } else if (allData.page_status === "Edit") {
       console.log("Stock movement updated:", results);
-      self.hideLoading();
-      self.$message.success("Stock movement updated successfully");
-      self.parentGenerateForm.$refs.SuPageDialogRef.hide();
-      self.parentGenerateForm.refresh();
     }
   })
   .catch((error) => {
-    console.error("Error in processFormData:", error);
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
-    self.hideLoading();
-    self.$message.error(error.message || "An unknown error occurred");
+    alert(error.message);
+    console.error("Error:", error);
   });

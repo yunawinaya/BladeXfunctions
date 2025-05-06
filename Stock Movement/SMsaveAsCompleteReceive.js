@@ -34,7 +34,7 @@ class ReceivingIOFTProcessor {
   async processReceivingIOFT(db, self) {
     const errors = [];
     const allData = self.getValues();
-    const stockMovementId = self.getParamsVariables("stock_movement_no");
+    const stockMovementId = allData.id;
     // Step 1: Validate and fetch receiving IOFT data
     let receivingIOFT, receivingIOFTId, issuingIOFT, issuingIOFTId;
     try {
@@ -938,6 +938,7 @@ async function processFormData(db, self) {
     if (self.parentGenerateForm) {
       self.parentGenerateForm.$refs.SuPageDialogRef.hide();
       self.parentGenerateForm.refresh();
+      self.hideLoading();
     }
   };
 
@@ -953,6 +954,7 @@ async function processFormData(db, self) {
 }
 
 const self = this;
+this.showLoading();
 processFormData(db, self)
   .then((results) => console.log("Success:", results))
   .catch((error) => console.error("Error:", error.message));
