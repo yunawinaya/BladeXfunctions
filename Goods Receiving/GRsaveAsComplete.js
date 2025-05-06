@@ -1,6 +1,3 @@
-const page_status = this.getParamsVariables("page_status");
-const self = this;
-
 // For quantities - 3 decimal places
 const roundQty = (value) => {
   return parseFloat(parseFloat(value || 0).toFixed(3));
@@ -12,9 +9,9 @@ const roundPrice = (value) => {
 };
 
 const closeDialog = () => {
-  if (self.parentGenerateForm) {
-    self.parentGenerateForm.$refs.SuPageDialogRef.hide();
-    self.parentGenerateForm.refresh();
+  if (this.parentGenerateForm) {
+    this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+    this.parentGenerateForm.refresh();
     this.hideLoading();
   }
 };
@@ -462,15 +459,15 @@ const addInventory = (data, plantId, organizationId) => {
 
         const receivedQty = roundQty(parseFloat(baseQty || 0));
 
-        if (item.inv_category === "BLK") {
+        if (item.inv_category === "Blocked") {
           block_qty = receivedQty;
-        } else if (item.inv_category === "RES") {
+        } else if (item.inv_category === "Reserved") {
           reserved_qty = receivedQty;
-        } else if (item.inv_category === "UNR") {
+        } else if (item.inv_category === "Unrestricted") {
           unrestricted_qty = receivedQty;
-        } else if (item.inv_category === "QIP") {
+        } else if (item.inv_category === "Quality Inspection") {
           qualityinsp_qty = receivedQty;
-        } else if (item.inv_category === "ITR") {
+        } else if (item.inv_category === "In Transit") {
           intransit_qty = receivedQty;
         } else {
           unrestricted_qty = receivedQty;
@@ -509,7 +506,7 @@ const addInventory = (data, plantId, organizationId) => {
                 !Array.isArray(batchResult) ||
                 !batchResult.length
               ) {
-                throw new Error("Batch not found after creation");
+                this.$message.error("Batch not found after creation");
               }
 
               const batchId = batchResult[0].id;
@@ -784,25 +781,241 @@ const updatePurchaseOrderStatus = async (purchaseOrderId) => {
   }
 };
 
-// Main execution flow with better error handling
-this.getData()
-  .then(async (data) => {
-    try {
-      // Input validation
-      if (
-        !data ||
-        !data.purchase_order_id ||
-        !data.gr_no ||
-        !Array.isArray(data.table_gr)
-      ) {
-        throw new Error("Missing required data for goods receiving");
+const validateForm = (data, requiredFields) => {
+  const missingFields = [];
+
+  requiredFields.forEach((field) => {
+    const value = data[field.name];
+
+    // Handle non-array fields (unchanged)
+    if (!field.isArray) {
+      if (validateField(value, field)) {
+        missingFields.push(field.label);
+      }
+      return;
+    }
+
+    // Handle array fields
+    if (!Array.isArray(value)) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    if (value.length === 0) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    // Check each item in the array
+    if (field.arrayType === "object" && field.arrayFields) {
+      value.forEach((item, index) => {
+        field.arrayFields.forEach((subField) => {
+          const subValue = item[subField.name];
+          if (validateField(subValue, subField)) {
+            missingFields.push(
+              `${subField.label} (in ${field.label} #${index + 1})`
+            );
+          }
+        });
+      });
+    }
+  });
+
+  return missingFields;
+};
+
+const validateField = (value, field) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return !value;
+};
+
+const getPrefixData = async (organizationId) => {
+  const prefixEntry = await db
+    .collection("prefix_configuration")
+    .where({
+      document_types: "Goods Receiving",
+      is_deleted: 0,
+      organization_id: organizationId,
+      is_active: 1,
+    })
+    .get();
+
+  const prefixData = await prefixEntry.data[0];
+
+  return prefixData;
+};
+
+const updatePrefix = async (organizationId, runningNumber) => {
+  try {
+    await db
+      .collection("prefix_configuration")
+      .where({
+        document_types: "Goods Receiving",
+        is_deleted: 0,
+        organization_id: organizationId,
+      })
+      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
+  } catch (error) {
+    this.$message.error(error);
+  }
+};
+
+const generatePrefix = (runNumber, now, prefixData) => {
+  let generated = prefixData.current_prefix_config;
+  generated = generated.replace("prefix", prefixData.prefix_value);
+  generated = generated.replace("suffix", prefixData.suffix_value);
+  generated = generated.replace(
+    "month",
+    String(now.getMonth() + 1).padStart(2, "0")
+  );
+  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
+  generated = generated.replace("year", now.getFullYear());
+  generated = generated.replace(
+    "running_number",
+    String(runNumber).padStart(prefixData.padding_zeroes, "0")
+  );
+  return generated;
+};
+
+const checkUniqueness = async (generatedPrefix) => {
+  const existingDoc = await db
+    .collection("goods_receiving")
+    .where({ gr_no: generatedPrefix })
+    .get();
+  return existingDoc.data[0] ? false : true;
+};
+
+const findUniquePrefix = async (prefixData) => {
+  const now = new Date();
+  let prefixToShow;
+  let runningNumber = prefixData.running_number;
+  let isUnique = false;
+  let maxAttempts = 10;
+  let attempts = 0;
+
+  while (!isUnique && attempts < maxAttempts) {
+    attempts++;
+    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
+    isUnique = await checkUniqueness(prefixToShow);
+    if (!isUnique) {
+      runningNumber++;
+    }
+  }
+
+  if (!isUnique) {
+    this.$message.error(
+      "Could not generate a unique Goods Receiving number after maximum attempts"
+    );
+  }
+
+  return { prefixToShow, runningNumber };
+};
+
+const addEntry = async (organizationId, entry) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+    if (prefixData.length !== 0) {
+      await updatePrefix(organizationId, prefixData.running_number);
+      await db.collection("goods_receiving").add(entry);
+      this.runWorkflow(
+        "1917412667253141505",
+        { gr_no: entry.gr_no },
+        async (res) => {
+          console.log("成功结果：", res);
+        },
+        (err) => {
+          console.error("失败结果：", err);
+          closeDialog();
+        }
+      );
+      await addInventory(entry, entry.plant_id, organizationId);
+      await updatePurchaseOrderStatus(entry.purchase_order_id);
+      this.$message.success("Add successfully");
+      closeDialog();
+    }
+  } catch (error) {
+    this.$message.error(error);
+  }
+};
+
+const updateEntry = async (organizationId, entry, goodsReceivingId) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+
+    if (prefixData.length !== 0) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      entry.gr_no = prefixToShow;
+      await db
+        .collection("goods_receiving")
+        .doc(goodsReceivingId)
+        .update(entry);
+      this.runWorkflow(
+        "1917412667253141505",
+        { gr_no: entry.gr_no },
+        async (res) => {
+          console.log("成功结果：", res);
+        },
+        (err) => {
+          console.error("失败结果：", err);
+          closeDialog();
+        }
+      );
+      await addInventory(entry, entry.plant_id, organizationId);
+      await updatePurchaseOrderStatus(entry.purchase_order_id);
+      this.$message.success("Update successfully");
+      await closeDialog();
+    }
+  } catch (error) {
+    this.$message.error(error);
+  }
+};
+
+(async () => {
+  try {
+    const data = this.getValues();
+    this.showLoading();
+
+    const requiredFields = [
+      { name: "purchase_order_id", label: "PO Number" },
+      { name: "gr_no", label: "GR Number" },
+      { name: "gr_date", label: "GR Date" },
+      {
+        name: "table_gr",
+        label: "GR Items",
+        isArray: true,
+        arrayType: "object",
+        arrayFields: [
+          { name: "received_qty", label: "Received Qty" },
+          { name: "location_id", label: "Target Location" },
+          { name: "item_batch_no", label: "Batch Number" },
+          { name: "inv_category", label: "Inventory Category" },
+        ],
+      },
+    ];
+
+    const missingFields = await validateForm(data, requiredFields);
+
+    if (missingFields.length === 0) {
+      const page_status = this.getValue("page_status");
+
+      let organizationId = this.getVarGlobal("deptParentId");
+      if (organizationId === "0") {
+        organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
 
       const {
         purchase_order_id,
         plant_id,
-        organization_id,
         currency_code,
+        organization_id,
         purchase_order_number,
         gr_billing_name,
         gr_billing_cp,
@@ -834,7 +1047,7 @@ this.getData()
         shipping_address_country,
       } = data;
 
-      const gr = {
+      const entry = {
         gr_status: "Completed",
         purchase_order_id,
         plant_id,
@@ -872,190 +1085,19 @@ this.getData()
       };
 
       if (page_status === "Add") {
-        this.showLoading();
-        await db
-          .collection("goods_receiving")
-          .add(gr)
-          .then(() => {
-            let organizationId = this.getVarGlobal("deptParentId");
-            if (organizationId === "0") {
-              organizationId = this.getVarSystem("deptIds").split(",")[0];
-            }
-
-            return db
-              .collection("prefix_configuration")
-              .where({
-                document_types: "Goods Receiving",
-                is_deleted: 0,
-                organization_id: organizationId,
-                is_active: 1,
-              })
-              .get()
-              .then((prefixEntry) => {
-                if (prefixEntry.data.length === 0) return;
-                else {
-                  const data = prefixEntry.data[0];
-                  return db
-                    .collection("prefix_configuration")
-                    .where({
-                      document_types: "Goods Receiving",
-                      is_deleted: 0,
-                      organization_id: organizationId,
-                    })
-                    .update({
-                      running_number: parseInt(data.running_number) + 1,
-                      has_record: 1,
-                    });
-                }
-              });
-          });
-
-        const result = await db
-          .collection("purchase_order")
-          .doc(data.purchase_order_id)
-          .get();
-
-        const plantId = result.data[0].po_plant;
-        let organizationId = result.data[0].organization_id;
-
-        await addInventory(data, plantId, organizationId);
-        await updatePurchaseOrderStatus(purchase_order_id);
-        await closeDialog();
+        await addEntry(organizationId, entry);
+        closeDialog();
       } else if (page_status === "Edit") {
-        this.showLoading();
-        const goodsReceivingId = this.getParamsVariables("goods_receiving_no");
-
-        let organizationId = this.getVarGlobal("deptParentId");
-        if (organizationId === "0") {
-          organizationId = this.getVarSystem("deptIds").split(",")[0];
-        }
-        const prefixEntry = db
-          .collection("prefix_configuration")
-          .where({
-            document_types: "Goods Receiving",
-            is_deleted: 0,
-            organization_id: organizationId,
-            is_active: 1,
-          })
-          .get()
-          .then(async (prefixEntry) => {
-            if (prefixEntry.data.length > 0) {
-              const prefixData = prefixEntry.data[0];
-              const now = new Date();
-              let prefixToShow;
-              let runningNumber = prefixData.running_number;
-              let isUnique = false;
-              let maxAttempts = 10;
-              let attempts = 0;
-
-              const generatePrefix = (runNumber) => {
-                let generated = prefixData.current_prefix_config;
-                generated = generated.replace(
-                  "prefix",
-                  prefixData.prefix_value
-                );
-                generated = generated.replace(
-                  "suffix",
-                  prefixData.suffix_value
-                );
-                generated = generated.replace(
-                  "month",
-                  String(now.getMonth() + 1).padStart(2, "0")
-                );
-                generated = generated.replace(
-                  "day",
-                  String(now.getDate()).padStart(2, "0")
-                );
-                generated = generated.replace("year", now.getFullYear());
-                generated = generated.replace(
-                  "running_number",
-                  String(runNumber).padStart(prefixData.padding_zeroes, "0")
-                );
-                return generated;
-              };
-
-              const checkUniqueness = async (generatedPrefix) => {
-                const existingDoc = await db
-                  .collection("goods_receiving")
-                  .where({ gr_no: generatedPrefix })
-                  .get();
-                return existingDoc.data[0] ? false : true;
-              };
-
-              const findUniquePrefix = async () => {
-                while (!isUnique && attempts < maxAttempts) {
-                  attempts++;
-                  prefixToShow = generatePrefix(runningNumber);
-                  isUnique = await checkUniqueness(prefixToShow);
-                  if (!isUnique) {
-                    runningNumber++;
-                  }
-                }
-
-                if (!isUnique) {
-                  throw new Error(
-                    "Could not generate a unique Goods Receiving number after maximum attempts"
-                  );
-                } else {
-                  gr.gr_no = prefixToShow;
-                  db.collection("goods_receiving")
-                    .doc(goodsReceivingId)
-                    .update(gr)
-                    .then(async () => {
-                      const result = await db
-                        .collection("purchase_order")
-                        .doc(data.purchase_order_id)
-                        .get();
-
-                      const plantId = result.data[0].po_plant;
-                      organizationId = result.data[0].organization_id;
-
-                      await addInventory(gr, plantId, organizationId);
-                      await updatePurchaseOrderStatus(purchase_order_id);
-                      await closeDialog();
-                    });
-                  db.collection("prefix_configuration")
-                    .where({
-                      document_types: "Goods Receiving",
-                      is_deleted: 0,
-                      organization_id: organizationId,
-                    })
-                    .update({
-                      running_number: parseInt(runningNumber) + 1,
-                      has_record: 1,
-                    });
-                }
-              };
-
-              await findUniquePrefix();
-            } else {
-              db.collection("goods_receiving")
-                .doc(goodsReceivingId)
-                .update(gr)
-                .then(async () => {
-                  const result = await db
-                    .collection("purchase_order")
-                    .doc(data.purchase_order_id)
-                    .get();
-
-                  const plantId = result.data[0].po_plant;
-                  organizationId = result.data[0].organization_id;
-
-                  await addInventory(data, plantId, organizationId);
-                  await updatePurchaseOrderStatus(purchase_order_id);
-                  await closeDialog();
-                });
-            }
-          });
+        const goodsReceivingId = this.getValue("id");
+        await updateEntry(organizationId, entry, goodsReceivingId);
+        closeDialog();
       }
-    } catch (error) {
-      console.error("Error in goods receiving process:", error);
-      this.$message.error(
-        "An error occurred during processing. Please try again or contact support."
-      );
+    } else {
+      this.hideLoading();
+      this.$message.error(`Missing fields: ${missingFields.join(", ")}`);
     }
-  })
-  .catch((error) => {
-    console.error("Error in goods receiving process:", error);
+  } catch (error) {
+    this.hideLoading();
     this.$message.error(error);
-  });
+  }
+})();

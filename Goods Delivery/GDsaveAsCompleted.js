@@ -867,6 +867,7 @@ const validateForm = (data, requiredFields) => {
       console.log("Adding new GD entry (Add)");
 
       // Add new document
+      console.log("GD", gd);
       const addResult = await db.collection("goods_delivery").add(gd);
       console.log("Added GD document:", addResult);
 
