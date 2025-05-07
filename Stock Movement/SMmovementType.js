@@ -296,6 +296,7 @@ const init = async () => {
   switch (page_status) {
     case "View":
       this.hide(["stock_movement.transfer_stock", "stock_movement.edit_stock"]);
+      this.disabled(["stock_movement.view_stock"], false);
       break;
     case "Edit":
       this.hide(["stock_movement.transfer_stock", "stock_movement.view_stock"]);

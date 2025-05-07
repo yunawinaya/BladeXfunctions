@@ -71,9 +71,16 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
     // Get movement type
     let movementType = data.movement_type || "";
 
+    let stockMovement = data.stock_movement || [];
+
     if (movementType) {
       await this.setData({ movement_type: undefined });
       await this.setData({ movement_type: movementType });
+    }
+
+    if (stockMovement) {
+      await this.setData({ stock_movement: [] });
+      await this.setData({ stock_movement: stockMovement });
     }
 
     if (pageStatus !== "Add") {
