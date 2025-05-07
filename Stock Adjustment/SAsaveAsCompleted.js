@@ -1,6 +1,6 @@
-const page_status = this.getParamsVariables("page_status");
+const page_status = this.getValue("page_status");
 const self = this;
-const stockAdjustmentId = this.getParamsVariables("stock_adjustment_no");
+const stockAdjustmentId = this.getValue("id");
 
 // For quantities - 3 decimal places
 const roundQty = (value) => {

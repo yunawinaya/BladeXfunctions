@@ -1,5 +1,5 @@
 const allData = this.getValues();
-const movementTypeId = allData.movement_type;
+const movementType = allData.movement_type;
 const rowIndex = arguments[0]?.rowIndex;
 const movementTypeCategories = {
   "Inter Operation Facility Transfer": [
@@ -30,15 +30,6 @@ const fetchCategory = async () => {
       .collection("inventory_category")
       .get();
 
-    const response = await db
-      .collection("stock_movement_type")
-      .where({ id: movementTypeId })
-      .get();
-    if (!response.data[0]) {
-      throw new Error("Invalid movement type ID");
-    }
-    const movementType = response.data[0].sm_type_name;
-
     // Filter categories based on movement type
     const allowedCategories = movementTypeCategories[movementType] || [
       "Unrestricted",
@@ -49,10 +40,24 @@ const fetchCategory = async () => {
 
     console.log("Filtered categories:", filteredCategories);
 
-    // Set the filtered categories to the option data
-    this.setOptionData(
+    await this.setData({
+      [`sm_item_balance.table_item_balance.${rowIndex}.category`]: [],
+    });
+
+    await this.setOptions(
       [`sm_item_balance.table_item_balance.${rowIndex}.category`],
-      filteredCategories
+      {
+        remote: false,
+        remoteType: "datasource",
+        datasource: { source: "static" },
+      }
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Set the filtered categories to the option data
+    await this.setOptionData(
+      [`sm_item_balance.table_item_balance.${rowIndex}.category`],
+      allowedCategories
     );
   } catch (error) {
     console.error("Error fetching category:", error);

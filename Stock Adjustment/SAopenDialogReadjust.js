@@ -2,11 +2,11 @@ const allData = this.getValues();
 console.log("allData", allData);
 const lineItemData = arguments[0]?.row;
 const rowIndex = arguments[0]?.rowIndex;
-const adjustment_type = this.getValue("adjustment_type");
+const adjustment_type = allData.adjustment_type;
 const materialId = lineItemData.material_id;
 const tempQtyData = lineItemData.temp_qty_data;
 const plantId = allData.plant_id;
-const page_status = this.getParamsVariables("page_status");
+const page_status = allData.page_status;
 if (page_status === "View") {
   this.disabled(
     [

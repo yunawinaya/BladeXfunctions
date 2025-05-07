@@ -1,7 +1,7 @@
 const allData = this.getValues();
 const temporaryData = allData.sa_item_balance.table_item_balance;
 const rowIndex = allData.sa_item_balance.row_index;
-const page_status = this.getParamsVariables("page_status");
+const page_status = allData.page_status;
 if (page_status === "View") {
   this.closeDialog("sa_item_balance");
 }

@@ -1,6 +1,6 @@
-const page_status = this.getParamsVariables("page_status");
 const self = this;
 const allData = this.getValues();
+const page_status = allData.page_status;
 const tableIndex = allData.dialog_index.table_index;
 console.log("allData", allData);
 
@@ -78,7 +78,7 @@ this.getData()
           return db.collection("stock_adjustment").add(updatedSa);
         });
     } else if (page_status === "Edit") {
-      const stockAdjustmentId = this.getParamsVariables("stock_adjustment_no");
+      const stockAdjustmentId = allData.id;
       return db
         .collection("stock_adjustment")
         .doc(stockAdjustmentId)
