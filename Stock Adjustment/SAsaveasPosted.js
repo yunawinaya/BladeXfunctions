@@ -1,93 +1,39 @@
-const page_status = this.getValue("page_status");
-const self = this;
-const stockAdjustmentId = this.getValue("id");
-
-this.showLoading();
-let organizationId = this.getVarGlobal("deptParentId");
-if (organizationId === "0") {
-  organizationId = this.getVarSystem("deptIds").split(",")[0];
-}
-
 const closeDialog = () => {
-  if (self.parentGenerateForm) {
-    self.parentGenerateForm.$refs.SuPageDialogRef.hide();
-    self.parentGenerateForm.refresh();
-    self.hideLoading();
+  if (this.parentGenerateForm) {
+    this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+    this.parentGenerateForm.refresh();
+    this.hideLoading();
   }
 };
 
-self
-  .getData()
-  .then(async (allData) => {
-    if (page_status === "Edit") {
-      const tableIndex = allData.dialog_index?.table_index;
-      const adjustedBy = allData.adjusted_by || "system";
-      const {
-        adjustment_date,
-        adjustment_type,
-        plant_id,
-        adjustment_no,
-        adjustment_remarks,
-        reference_documents,
-        subform_dus1f9ob,
-      } = allData;
+(async () => {
+  try {
+    this.showLoading();
 
-      const sa = {
-        stock_adjustment_status: "Completed",
-        posted_status: "Pending Post",
-        organization_id: organizationId,
-        adjustment_no,
-        adjustment_date,
-        adjustment_type,
-        adjusted_by: adjustedBy,
-        plant_id,
-        adjustment_remarks,
-        reference_documents,
-        subform_dus1f9ob,
-        table_index: tableIndex,
-      };
-
-      console.log("Updating stock adjustment with:", sa);
-
-      const initialData = await db
+    try {
+      const stockAdjustmentId = this.getValue("id");
+      await db
         .collection("stock_adjustment")
         .doc(stockAdjustmentId)
-        .get();
-
-      console.log("Initial data:", initialData);
-
-      return db
-        .collection("stock_adjustment")
-        .doc(stockAdjustmentId)
-        .update(sa);
-    }
-  })
-  .then(() => {
-    return new Promise((resolve, reject) => {
-      self.runWorkflow(
+        .update({ posted_status: "Pending Post" });
+      await this.runWorkflow(
         "1909088441531375617",
         { key: "value" },
         (res) => {
-          console.log("Workflow success:", res);
-          self.$message.success("Stock Adjustment posted successfully.");
-          resolve(res);
+          console.log("成功结果：", res);
+
+          this.$message.success("Post successfully");
+          closeDialog();
         },
         (err) => {
-          console.error("Workflow error:", err);
-          self.$message.warning(
-            "Stock Adjustment saved but not posted: " + err
-          );
-          resolve();
+          this.$message.error("失败结果：", err);
         }
       );
-    });
-  })
-  .then(() => {
-    console.log("Closing dialog");
-    closeDialog();
-  })
-  .catch((error) => {
-    console.error("Error in Stock Adjustment process:", error);
-    self.$message.error(error.message || "An error occurred");
-    self.hideLoading();
-  });
+    } catch (error) {
+      this.$message.error(error);
+    }
+  } catch (error) {
+    this.hideLoading();
+    this.$message.error(error);
+  }
+})();

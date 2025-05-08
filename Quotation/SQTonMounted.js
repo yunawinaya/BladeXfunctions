@@ -12,6 +12,28 @@ this.hide([
 ]);
 this.display("sqt_customer_id");
 
+const fixValidityPeriod = () => {
+  // Check if we're in edit or view mode
+  if (this.isEdit || this.isView) {
+    setTimeout(() => {
+      // Get the current value
+      const validityPeriod = this.getValue("sqt_validity_period");
+
+      // If it's malformed (empty array with object, causing the Long conversion error)
+      if (
+        Array.isArray(validityPeriod) &&
+        validityPeriod.length > 0 &&
+        typeof validityPeriod[0] === "object" &&
+        Object.keys(validityPeriod[0]).length === 0
+      ) {
+        // Reset it to empty array
+        this.setData({ sqt_validity_period: [] });
+        console.log("Fixed malformed validity period");
+      }
+    }, 500); // Short delay to ensure the form has loaded
+  }
+};
+
 const generatePrefix = (runNumber, now, prefixData) => {
   let generated = prefixData.current_prefix_config;
   generated = generated.replace("prefix", prefixData.prefix_value);
@@ -228,6 +250,12 @@ const showStatusHTML = async (status) => {
           ],
           true
         );
+
+        const totalTax = this.getValue("sqt_total_tax");
+        if (totalTax) {
+          this.display(["sqt_total_tax"]);
+          this.display(["total_tax_currency"]);
+        }
         break;
     }
   } catch (error) {
@@ -235,3 +263,5 @@ const showStatusHTML = async (status) => {
     this.$message.error(error.message || "An error occurred");
   }
 })();
+
+fixValidityPeriod();
