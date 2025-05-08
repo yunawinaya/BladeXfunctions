@@ -44,16 +44,8 @@ const fetchCategory = async () => {
       [`sm_item_balance.table_item_balance.${rowIndex}.category`]: [],
     });
 
-    await this.setOptions(
-      [`sm_item_balance.table_item_balance.${rowIndex}.category`],
-      {
-        remote: false,
-        remoteType: "datasource",
-        datasource: { source: "static" },
-      }
-    );
-
     await new Promise((resolve) => setTimeout(resolve, 0));
+
     // Set the filtered categories to the option data
     await this.setOptionData(
       [`sm_item_balance.table_item_balance.${rowIndex}.category`],

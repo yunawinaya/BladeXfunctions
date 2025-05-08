@@ -17,7 +17,7 @@ db.collection("Item")
     }
 
     if (page_status === "Edit") {
-      const currentItemId = this.getParamsVariables("item_no");
+      const currentItemId = this.getValue("id");
       const isSameItem = matchingItems.some(
         (item) => item.id === currentItemId
       );

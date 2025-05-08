@@ -919,18 +919,23 @@ const addEntry = async (organizationId, entry) => {
     const prefixData = await getPrefixData(organizationId);
     if (prefixData.length !== 0) {
       await updatePrefix(organizationId, prefixData.running_number);
-      await db.collection("goods_receiving").add(entry);
-      this.runWorkflow(
-        "1917412667253141505",
-        { gr_no: entry.gr_no },
-        async (res) => {
-          console.log("成功结果：", res);
-        },
-        (err) => {
-          console.error("失败结果：", err);
-          closeDialog();
-        }
-      );
+      await db
+        .collection("goods_receiving")
+        .add(entry)
+        .then(() => {
+          this.runWorkflow(
+            "1917412667253141505",
+            { gr_no: entry.gr_no },
+            async (res) => {
+              console.log("成功结果：", res);
+            },
+            (err) => {
+              alert();
+              console.error("失败结果：", err);
+              closeDialog();
+            }
+          );
+        });
       await addInventory(entry, entry.plant_id, organizationId);
       await updatePurchaseOrderStatus(entry.purchase_order_id);
       this.$message.success("Add successfully");
@@ -956,18 +961,21 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
       await db
         .collection("goods_receiving")
         .doc(goodsReceivingId)
-        .update(entry);
-      this.runWorkflow(
-        "1917412667253141505",
-        { gr_no: entry.gr_no },
-        async (res) => {
-          console.log("成功结果：", res);
-        },
-        (err) => {
-          console.error("失败结果：", err);
-          closeDialog();
-        }
-      );
+        .update(entry)
+        .then(() => {
+          this.runWorkflow(
+            "1917412667253141505",
+            { gr_no: entry.gr_no },
+            async (res) => {
+              console.log("成功结果：", res);
+            },
+            (err) => {
+              alert();
+              console.error("失败结果：", err);
+              closeDialog();
+            }
+          );
+        });
       await addInventory(entry, entry.plant_id, organizationId);
       await updatePurchaseOrderStatus(entry.purchase_order_id);
       this.$message.success("Update successfully");
@@ -993,7 +1001,6 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         isArray: true,
         arrayType: "object",
         arrayFields: [
-          { name: "received_qty", label: "Received Qty" },
           { name: "location_id", label: "Target Location" },
           { name: "item_batch_no", label: "Batch Number" },
           { name: "inv_category", label: "Inventory Category" },

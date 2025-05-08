@@ -113,3 +113,7 @@ db.collection("Item")
   .catch((error) => {
     console.error("Error fetching item data:", error);
   });
+
+this.setData({
+  [`sm_item_balance.table_item_balance.category`]: undefined,
+});
