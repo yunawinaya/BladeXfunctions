@@ -588,17 +588,21 @@ const addInventory = (data, plantId, organizationId) => {
 
             if (existingDoc && existingDoc.id) {
               // Update existing balance
-              const updatedBlockQty =
-                parseFloat(existingDoc.block_qty || 0) + block_qty;
-              const updatedReservedQty =
-                parseFloat(existingDoc.reserved_qty || 0) + reserved_qty;
-              const updatedUnrestrictedQty =
-                parseFloat(existingDoc.unrestricted_qty || 0) +
-                unrestricted_qty;
-              const updatedQualityInspQty =
-                parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty;
-              const updatedIntransitQty =
-                parseFloat(existingDoc.intransit_qty || 0) + intransit_qty;
+              const updatedBlockQty = roundQty(
+                parseFloat(existingDoc.block_qty || 0) + block_qty
+              );
+              const updatedReservedQty = roundQty(
+                parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
+              );
+              const updatedUnrestrictedQty = roundQty(
+                parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
+              );
+              const updatedQualityInspQty = roundQty(
+                parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
+              );
+              const updatedIntransitQty = roundQty(
+                parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
+              );
               balance_quantity =
                 updatedBlockQty +
                 updatedReservedQty +

@@ -32,16 +32,21 @@ const processGoodsReceiving = async (purchaseOrderId, goodsReceivingId) => {
   try {
     let hasPOChanged = true;
     let existingGRData = null;
-
+    let binLocation = "";
     const plantId = this.getValue("plant_id");
-    const resBinLocation = await db
-      .collection("bin_location")
-      .where({
-        plant_id: plantId,
-        is_default: true,
-      })
-      .get();
-    const binLocation = resBinLocation.data[0].id;
+    if (plantId) {
+      const resBinLocation = await db
+        .collection("bin_location")
+        .where({
+          plant_id: plantId,
+          is_default: true,
+        })
+        .get();
+
+      binLocation = resBinLocation.data[0].id;
+    } else {
+      binLocation = "";
+    }
 
     // Check if this is an existing GR and if PO has changed
     if (goodsReceivingId) {
@@ -75,6 +80,7 @@ const processGoodsReceiving = async (purchaseOrderId, goodsReceivingId) => {
 
     // Only proceed if this is a new record or PO has changed
     if (hasPOChanged) {
+      await this.setData({ table_gr: [] });
       // Get all existing goods receiving data for this purchase order
       const grResult = await db
         .collection("goods_receiving")
@@ -171,6 +177,7 @@ const processGoodsReceiving = async (purchaseOrderId, goodsReceivingId) => {
               fm_key: stableKey,
               item_costing_method: itemData.material_costing_method,
               item_batch_no: batch_number,
+              inv_category: "Unrestricted",
             };
           }
 
@@ -199,6 +206,7 @@ const processGoodsReceiving = async (purchaseOrderId, goodsReceivingId) => {
         fm_key: item.fm_key,
         item_costing_method: item.item_costing_method,
         item_batch_no: item.item_batch_no,
+        inv_category: "Unrestricted",
       }));
 
       console.log("Final table_gr data:", newTableGr);
@@ -213,59 +221,14 @@ const processGoodsReceiving = async (purchaseOrderId, goodsReceivingId) => {
         table_gr.forEach((gr, index) => {
           const path = `table_gr.${index}.item_batch_no`;
           this.disabled(path, gr.item_batch_no !== "");
-          console.log(`Field ${path} disabled:`, gr.item_batch_no !== "");
         });
       }, 100);
     } else {
       console.log("Skipping table_gr update as PO hasn't changed");
     }
-
-    // Process address information (runs regardless of PO change)
-    // If we have existing GR data, use it for addresses instead of looking it up again
-    if (existingGRData) {
-      await processExistingAddressInformation(existingGRData);
-    } else {
-      await processAddressInformation(purchaseOrderId);
-    }
+    await processAddressInformation(purchaseOrderId);
   } catch (error) {
     console.error("Error in goods receiving process:", error);
-  }
-};
-
-// Process existing address information from GR data
-const processExistingAddressInformation = async (grData) => {
-  try {
-    this.display("address_grid");
-
-    // Use the existing GR data directly for addresses
-    console.log("Setting address fields from existing GR data");
-
-    this.setData({
-      gr_billing_name: grData.gr_billing_name || "",
-      gr_billing_cp: grData.gr_billing_cp || "",
-      supplier_name: grData.supplier_name || "",
-      supplier_contact_person: grData.supplier_contact_person || "",
-      supplier_contact_number: grData.supplier_contact_number || "",
-      supplier_email: grData.supplier_email || "",
-      billing_address_line_1: grData.billing_address_line_1 || "",
-      billing_address_line_2: grData.billing_address_line_2 || "",
-      billing_address_line_3: grData.billing_address_line_3 || "",
-      billing_address_line_4: grData.billing_address_line_4 || "",
-      billing_address_city: grData.billing_address_city || "",
-      billing_address_state: grData.billing_address_state || "",
-      billing_postal_code: grData.billing_postal_code || "",
-      billing_address_country: grData.billing_address_country || "",
-      shipping_address_line_1: grData.shipping_address_line_1 || "",
-      shipping_address_line_2: grData.shipping_address_line_2 || "",
-      shipping_address_line_3: grData.shipping_address_line_3 || "",
-      shipping_address_line_4: grData.shipping_address_line_4 || "",
-      shipping_address_city: grData.shipping_address_city || "",
-      shipping_address_state: grData.shipping_address_state || "",
-      shipping_postal_code: grData.shipping_postal_code || "",
-      shipping_address_country: grData.shipping_address_country || "",
-    });
-  } catch (error) {
-    console.error("Error processing existing address information:", error);
   }
 };
 
@@ -279,9 +242,12 @@ const formatAddress = (address, state, country) => {
     address.address_postal_code,
     state.state_name,
     country.country_name,
-  ].filter((component) => component);
+  ];
 
-  return addressComponents.join(",\n");
+  return addressComponents
+    .filter(Boolean)
+    .join(",\n")
+    .replace(/([^,])\n/g, "$1,\n");
 };
 
 // Extract address processing to a separate function
@@ -293,6 +259,8 @@ const processAddressInformation = async (purchaseOrderId) => {
     this.setData({
       gr_billing_name: "",
       gr_billing_cp: "",
+      gr_billing_address: "",
+      gr_shipping_address: "",
       billing_address_line_1: "",
       billing_address_line_2: "",
       billing_address_line_3: "",
@@ -311,37 +279,8 @@ const processAddressInformation = async (purchaseOrderId) => {
       shipping_address_country: "",
     });
 
-    // First try to get supplier_id from the form data
-    let supplierIdFromPO = this.getValues().supplier_id;
-
     // If not found, try from arguments
-    if (!supplierIdFromPO) {
-      supplierIdFromPO = arguments[0]?.fieldModel?.item?.po_supplier_id;
-    }
-
-    // If still not found, try getting it from the PO directly
-    if (!supplierIdFromPO) {
-      try {
-        console.log("Fetching PO to get supplier ID");
-        const poResult = await db
-          .collection("purchase_order")
-          .where({ id: purchaseOrderId })
-          .get();
-
-        if (poResult.data && poResult.data.length > 0) {
-          supplierIdFromPO = poResult.data[0].po_supplier_id;
-        }
-      } catch (error) {
-        console.error("Error fetching PO for supplier ID:", error);
-      }
-    }
-
-    if (!supplierIdFromPO) {
-      console.warn(
-        "No supplier ID found, unable to process address information"
-      );
-      return;
-    }
+    supplierIdFromPO = arguments[0]?.fieldModel?.item?.po_supplier_id;
 
     console.log("Using supplier ID for address:", supplierIdFromPO);
 
@@ -370,18 +309,21 @@ const processAddressInformation = async (purchaseOrderId) => {
     // Check contact list exists
     if (!supplierData.contact_list || !supplierData.contact_list.length) {
       console.warn("Supplier has no contact information");
-      return;
+    } else {
+      this.setData({
+        supplier_contact_person: `${
+          supplierData.contact_list[0].person_name || ""
+        } ${supplierData.contact_list[0].person_last_name || ""}`.trim(),
+        supplier_contact_number:
+          supplierData.contact_list[0].phone_number || "",
+        supplier_email: supplierData.contact_list[0].person_email || "",
+      });
     }
 
     // Set supplier details
     this.setData({
       purchase_order_number: arguments[0]?.fieldModel?.item?.purchase_order_no,
       supplier_name: supplierData.id,
-      supplier_contact_person: `${
-        supplierData.contact_list[0].person_name || ""
-      } ${supplierData.contact_list[0].person_last_name || ""}`.trim(),
-      supplier_contact_number: supplierData.contact_list[0].phone_number || "",
-      supplier_email: supplierData.contact_list[0].person_email || "",
     });
 
     // Process addresses
@@ -404,7 +346,7 @@ const processAddressInformation = async (purchaseOrderId) => {
           .collection("country")
           .where({ id: address.address_country_id })
           .get(),
-        db.collection("state").where({ id: address.address_state }).get(),
+        db.collection("state").where({ id: address.adddress_state }).get(),
       ]).then(([resCountry, resState]) => {
         const isShipping = address.address_purpose_id === shippingAddrId;
         const addressType = isShipping ? "shipping" : "billing";

@@ -248,6 +248,12 @@ const showStatusHTML = async (status) => {
           ],
           true
         );
+
+        const totalTax = this.getValue("so_total_tax");
+        if (totalTax) {
+          this.display("so_total_tax");
+          this.display("total_tax_currency");
+        }
         break;
     }
   } catch (error) {
