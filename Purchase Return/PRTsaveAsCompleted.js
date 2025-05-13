@@ -1,24 +1,3 @@
-const page_status = this.getParamsVariables("page_status");
-const self = this;
-
-// For quantities - 3 decimal places
-const roundQty = (value) => {
-  return parseFloat(parseFloat(value || 0).toFixed(3));
-};
-
-// For prices - 4 decimal places
-const roundPrice = (value) => {
-  return parseFloat(parseFloat(value || 0).toFixed(4));
-};
-
-const closeDialog = () => {
-  if (self.parentGenerateForm) {
-    self.parentGenerateForm.$refs.SuPageDialogRef.hide();
-    self.parentGenerateForm.refresh();
-    this.hideLoading();
-  }
-};
-
 const updateInventory = async (data, plantId, organizationId) => {
   const items = data.table_prt;
 
@@ -168,22 +147,22 @@ const updateInventory = async (data, plantId, organizationId) => {
             });
         }
 
-        const calculatedWaCostPrice = roundPrice(
-          (waCostPrice * waQuantity - waCostPrice * returnQty) / newWaQuantity
-        );
+        // const calculatedWaCostPrice = roundPrice(
+        //   (waCostPrice * waQuantity - waCostPrice * returnQty) / newWaQuantity
+        // );
 
         return db
           .collection("wa_costing_method")
           .doc(waDoc.id)
           .update({
             wa_quantity: newWaQuantity,
-            wa_cost_price: calculatedWaCostPrice,
+            wa_cost_price: waCostPrice,
             updated_at: new Date(),
           })
           .then(() => {
             console.log(
               `Successfully processed Weighted Average for item ${item.material_id}, ` +
-                `new quantity: ${newWaQuantity}, new cost price: ${calculatedWaCostPrice}`
+                `new quantity: ${newWaQuantity}, new cost price: ${waCostPrice}`
             );
             return Promise.resolve();
           });
@@ -580,9 +559,255 @@ const updateInventory = async (data, plantId, organizationId) => {
   }
 };
 
-this.getData()
-  .then(async (data) => {
-    try {
+// For quantities - 3 decimal places
+const roundQty = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(3));
+};
+
+// For prices - 4 decimal places
+const roundPrice = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(4));
+};
+
+const closeDialog = () => {
+  if (this.parentGenerateForm) {
+    this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+    this.parentGenerateForm.refresh();
+    this.hideLoading();
+  }
+};
+
+const validateForm = (data, requiredFields) => {
+  const missingFields = [];
+
+  requiredFields.forEach((field) => {
+    const value = data[field.name];
+
+    // Handle non-array fields (unchanged)
+    if (!field.isArray) {
+      if (validateField(value, field)) {
+        missingFields.push(field.label);
+      }
+      return;
+    }
+
+    // Handle array fields
+    if (!Array.isArray(value)) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    if (value.length === 0) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    // Check each item in the array
+    if (field.arrayType === "object" && field.arrayFields) {
+      value.forEach((item, index) => {
+        field.arrayFields.forEach((subField) => {
+          const subValue = item[subField.name];
+          if (validateField(subValue, subField)) {
+            missingFields.push(
+              `${subField.label} (in ${field.label} #${index + 1})`
+            );
+          }
+        });
+      });
+    }
+  });
+
+  return missingFields;
+};
+
+const validateField = (value, field) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return !value;
+};
+
+const getPrefixData = async (organizationId) => {
+  const prefixEntry = await db
+    .collection("prefix_configuration")
+    .where({
+      document_types: "Purchase Returns",
+      is_deleted: 0,
+      organization_id: organizationId,
+      is_active: 1,
+    })
+    .get();
+
+  const prefixData = await prefixEntry.data[0];
+
+  return prefixData;
+};
+
+const updatePrefix = async (organizationId, runningNumber) => {
+  try {
+    await db
+      .collection("prefix_configuration")
+      .where({
+        document_types: "Purchase Returns",
+        is_deleted: 0,
+        organization_id: organizationId,
+      })
+      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
+  } catch (error) {
+    this.$message.error(error);
+  }
+};
+
+const generatePrefix = (runNumber, now, prefixData) => {
+  let generated = prefixData.current_prefix_config;
+  generated = generated.replace("prefix", prefixData.prefix_value);
+  generated = generated.replace("suffix", prefixData.suffix_value);
+  generated = generated.replace(
+    "month",
+    String(now.getMonth() + 1).padStart(2, "0")
+  );
+  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
+  generated = generated.replace("year", now.getFullYear());
+  generated = generated.replace(
+    "running_number",
+    String(runNumber).padStart(prefixData.padding_zeroes, "0")
+  );
+  return generated;
+};
+
+const checkUniqueness = async (generatedPrefix) => {
+  const existingDoc = await db
+    .collection("purchase_return_head")
+    .where({ purchase_return_no: generatedPrefix })
+    .get();
+  return existingDoc.data[0] ? false : true;
+};
+
+const findUniquePrefix = async (prefixData) => {
+  const now = new Date();
+  let prefixToShow;
+  let runningNumber = prefixData.running_number;
+  let isUnique = false;
+  let maxAttempts = 10;
+  let attempts = 0;
+
+  while (!isUnique && attempts < maxAttempts) {
+    attempts++;
+    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
+    isUnique = await checkUniqueness(prefixToShow);
+    if (!isUnique) {
+      runningNumber++;
+    }
+  }
+
+  if (!isUnique) {
+    this.$message.error(
+      "Could not generate a unique Purchase Returns number after maximum attempts"
+    );
+  }
+
+  return { prefixToShow, runningNumber };
+};
+
+const addEntry = async (organizationId, entry) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+    if (prefixData.length !== 0) {
+      await updatePrefix(organizationId, prefixData.running_number);
+      await db
+        .collection("purchase_return_head")
+        .add(entry)
+        .then(() => {
+          this.runWorkflow(
+            "1917415391491338241",
+            { purchase_return_no: entry.purchase_return_no },
+            async (res) => {
+              console.log("成功结果：", res);
+            },
+            (err) => {
+              alert();
+              console.error("失败结果：", err);
+              closeDialog();
+            }
+          );
+        });
+      await updateInventory(entry, entry.plant, organizationId);
+      this.$message.success("Add successfully");
+      closeDialog();
+    }
+  } catch (error) {
+    this.$message.error(error);
+  }
+};
+
+const updateEntry = async (organizationId, entry, purchaseReturnId) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+
+    if (prefixData.length !== 0) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      entry.purchase_return_no = prefixToShow;
+      await db
+        .collection("purchase_return_head")
+        .doc(purchaseReturnId)
+        .update(entry)
+        .then(() => {
+          this.runWorkflow(
+            "1917415391491338241",
+            { purchase_return_no: entry.purchase_return_no },
+            async (res) => {
+              console.log("成功结果：", res);
+            },
+            (err) => {
+              alert();
+              console.error("失败结果：", err);
+              closeDialog();
+            }
+          );
+        });
+      await updateInventory(entry, entry.plant, organizationId);
+      this.$message.success("Update successfully");
+      await closeDialog();
+    }
+  } catch (error) {
+    this.$message.error(error);
+  }
+};
+
+(async () => {
+  try {
+    const data = this.getValues();
+    this.showLoading();
+
+    const requiredFields = [
+      { name: "purchase_return_no", label: "Return ID" },
+      { name: "purchase_order_id", label: "PO Number" },
+      { name: "goods_receiving_id", label: "Good Receiving  Number" },
+      {
+        name: "table_prt",
+        label: "PRT Items",
+        isArray: true,
+        arrayType: "object",
+        arrayFields: [{ name: "return_condition", label: "Condition" }],
+      },
+    ];
+
+    const missingFields = await validateForm(data, requiredFields);
+
+    if (missingFields.length === 0) {
+      const page_status = this.getValue("page_status");
+
+      let organizationId = this.getVarGlobal("deptParentId");
+      if (organizationId === "0") {
+        organizationId = this.getVarSystem("deptIds").split(",")[0];
+      }
+
       const {
         purchase_return_no,
         purchase_order_id,
@@ -689,173 +914,17 @@ this.getData()
       };
 
       if (page_status === "Add") {
-        this.showLoading();
-        await db
-          .collection("purchase_return_head")
-          .add(entry)
-          .then(() => {
-            let organizationId = this.getVarGlobal("deptParentId");
-            if (organizationId === "0") {
-              organizationId = this.getVarSystem("deptIds").split(",")[0];
-            }
-
-            return db
-              .collection("prefix_configuration")
-              .where({
-                document_types: "Purchase Returns",
-                is_deleted: 0,
-                organization_id: organizationId,
-                is_active: 1,
-              })
-              .get()
-              .then((prefixEntry) => {
-                if (prefixEntry.data.length === 0) return;
-                else {
-                  const data = prefixEntry.data[0];
-                  return db
-                    .collection("prefix_configuration")
-                    .where({
-                      document_types: "Purchase Returns",
-                      is_deleted: 0,
-                      organization_id: organizationId,
-                    })
-                    .update({
-                      running_number: parseInt(data.running_number) + 1,
-                      has_record: 1,
-                    });
-                }
-              });
-          });
-
-        const result = await db
-          .collection("purchase_order")
-          .doc(data.purchase_order_id)
-          .get();
-
-        const plantId = result.data[0].po_plant;
-        const organizationId = result.data[0].organization_id;
-
-        await updateInventory(data, plantId, organizationId);
+        await addEntry(organizationId, entry);
       } else if (page_status === "Edit") {
-        this.showLoading();
-        const purchaseReturnId = this.getParamsVariables("purchase_return_no");
-        let organizationId = this.getVarGlobal("deptParentId");
-        if (organizationId === "0") {
-          organizationId = this.getVarSystem("deptIds").split(",")[0];
-        }
-
-        const prefixEntry = db
-          .collection("prefix_configuration")
-          .where({
-            document_types: "Purchase Returns",
-            is_deleted: 0,
-            organization_id: organizationId,
-            is_active: 1,
-          })
-          .get()
-          .then(async (prefixEntry) => {
-            if (prefixEntry.data.length > 0) {
-              const prefixData = prefixEntry.data[0];
-              const now = new Date();
-              let prefixToShow;
-              let runningNumber = prefixData.running_number;
-              let isUnique = false;
-              let maxAttempts = 10;
-              let attempts = 0;
-
-              const generatePrefix = (runNumber) => {
-                let generated = prefixData.current_prefix_config;
-                generated = generated.replace(
-                  "prefix",
-                  prefixData.prefix_value
-                );
-                generated = generated.replace(
-                  "suffix",
-                  prefixData.suffix_value
-                );
-                generated = generated.replace(
-                  "month",
-                  String(now.getMonth() + 1).padStart(2, "0")
-                );
-                generated = generated.replace(
-                  "day",
-                  String(now.getDate()).padStart(2, "0")
-                );
-                generated = generated.replace("year", now.getFullYear());
-                generated = generated.replace(
-                  "running_number",
-                  String(runNumber).padStart(prefixData.padding_zeroes, "0")
-                );
-                return generated;
-              };
-
-              const checkUniqueness = async (generatedPrefix) => {
-                const existingDoc = await db
-                  .collection("purchase_return_head")
-                  .where({ purchase_return_no: generatedPrefix })
-                  .get();
-                return existingDoc.data[0] ? false : true;
-              };
-
-              const findUniquePrefix = async () => {
-                while (!isUnique && attempts < maxAttempts) {
-                  attempts++;
-                  prefixToShow = generatePrefix(runningNumber);
-                  isUnique = await checkUniqueness(prefixToShow);
-                  if (!isUnique) {
-                    runningNumber++;
-                  }
-                }
-
-                if (!isUnique) {
-                  throw new Error(
-                    "Could not generate a unique Purchase Return number after maximum attempts"
-                  );
-                } else {
-                  entry.purchase_return_no = prefixToShow;
-                  db.collection("prefix_configuration")
-                    .where({
-                      document_types: "Purchase Returns",
-                      is_deleted: 0,
-                      organization_id: organizationId,
-                    })
-                    .update({
-                      running_number: parseInt(runningNumber) + 1,
-                      has_record: 1,
-                    });
-                }
-              };
-
-              await findUniquePrefix();
-            }
-          });
-
-        await db
-          .collection("purchase_return_head")
-          .doc(purchaseReturnId)
-          .update(entry);
-
-        const result = await db
-          .collection("purchase_order")
-          .doc(data.purchase_order_id)
-          .get();
-
-        const plantId = result.data[0].po_plant;
-        organizationId = result.data[0].organization_id;
-
-        await db
-          .collection("purchase_return_head")
-          .doc(purchaseReturnId)
-          .update(entry);
-        await updateInventory(data, plantId, organizationId);
+        const goodsReceivingId = this.getValue("id");
+        await updateEntry(organizationId, entry, goodsReceivingId);
       }
-
-      closeDialog();
-    } catch (error) {
-      console.error("Error in purchase return process:", error);
-      this.$message.error(error);
+    } else {
+      this.hideLoading();
+      this.$message.error(`Missing fields: ${missingFields.join(", ")}`);
     }
-  })
-  .catch((error) => {
+  } catch (error) {
+    this.hideLoading();
     this.$message.error(error);
-  });
+  }
+})();

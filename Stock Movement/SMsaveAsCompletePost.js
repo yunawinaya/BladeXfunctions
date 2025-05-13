@@ -1061,18 +1061,19 @@ class StockAdjuster {
               );
             }
 
-            const currentTotalCost = this.roundPrice(
-              currentCostPrice * currentQty
-            );
-            const deliveryTotalCost = this.roundPrice(
-              currentCostPrice * deliveredQuantity
-            );
-            newWaCostPrice =
-              newWaQuantity > 0
-                ? this.roundPrice(
-                    (currentTotalCost - deliveryTotalCost) / newWaQuantity
-                  )
-                : 0;
+            // const currentTotalCost = this.roundPrice(
+            //   currentCostPrice * currentQty
+            // );
+            // const deliveryTotalCost = this.roundPrice(
+            //   currentCostPrice * deliveredQuantity
+            // );
+            // newWaCostPrice =
+            //   newWaQuantity > 0
+            //     ? this.roundPrice(
+            //         (currentTotalCost - deliveryTotalCost) / newWaQuantity
+            //       )
+            //     : 0;
+            newWaCostPrice = currentCostPrice;
           }
 
           await this.db

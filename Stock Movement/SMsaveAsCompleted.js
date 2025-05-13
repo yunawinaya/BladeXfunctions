@@ -1036,18 +1036,19 @@ class StockAdjuster {
               );
             }
 
-            const currentTotalCost = this.roundPrice(
-              currentCostPrice * currentQty
-            );
-            const deliveryTotalCost = this.roundPrice(
-              currentCostPrice * deliveredQuantity
-            );
-            newWaCostPrice =
-              newWaQuantity > 0
-                ? this.roundPrice(
-                    (currentTotalCost - deliveryTotalCost) / newWaQuantity
-                  )
-                : 0;
+            // const currentTotalCost = this.roundPrice(
+            //   currentCostPrice * currentQty
+            // );
+            // const deliveryTotalCost = this.roundPrice(
+            //   currentCostPrice * deliveredQuantity
+            // );
+            // newWaCostPrice =
+            //   newWaQuantity > 0
+            //     ? this.roundPrice(
+            //         (currentTotalCost - deliveryTotalCost) / newWaQuantity
+            //       )
+            //     : 0;
+            newWaCostPrice = currentCostPrice;
           }
 
           await this.db
@@ -1364,6 +1365,8 @@ class StockAdjuster {
     const formattedConvertedQty = this.roundQty(convertedQty);
     const formattedOriginalQty = this.roundQty(originalQty);
 
+    console.log("formattedUnitPrice JN", formattedUnitPrice);
+
     const baseMovementData = {
       transaction_type: "SM",
       trx_no: allData.stock_movement_no,
@@ -1382,6 +1385,8 @@ class StockAdjuster {
       created_at: new Date(),
       organization_id: organizationId,
     };
+
+    console.log("baseMovementData JN", baseMovementData);
 
     switch (movementType) {
       case "Location Transfer":
@@ -1424,6 +1429,9 @@ class StockAdjuster {
           movement: "OUT",
           bin_location_id: balance.location_id,
         };
+
+        console.log("outData JN", outData);
+
         return await this.db.collection("inventory_movement").add(outData);
 
       case "Miscellaneous Receipt":

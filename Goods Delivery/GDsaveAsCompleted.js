@@ -207,23 +207,23 @@ const updateWeightedAverage = (item, batchId, baseWAQty) => {
           });
       }
 
-      const calculatedWaCostPrice = roundPrice(
-        (waCostPrice * waQuantity - waCostPrice * deliveredQty) / newWaQuantity
-      );
-      const newWaCostPrice = Math.round(calculatedWaCostPrice * 10000) / 10000;
+      // const calculatedWaCostPrice = roundPrice(
+      //   (waCostPrice * waQuantity - waCostPrice * deliveredQty) / newWaQuantity
+      // );
+      // const newWaCostPrice = Math.round(calculatedWaCostPrice * 10000) / 10000;
 
       return db
         .collection("wa_costing_method")
         .doc(waDoc.id)
         .update({
           wa_quantity: newWaQuantity,
-          wa_cost_price: newWaCostPrice,
+          wa_cost_price: waCostPrice,
           updated_at: new Date(),
         })
         .then(() => {
           console.log(
             `Successfully processed Weighted Average for item ${item.material_id}, ` +
-              `new quantity: ${newWaQuantity}, new cost price: ${newWaCostPrice}`
+              `new quantity: ${newWaQuantity}, new cost price: ${waCostPrice}`
           );
           return Promise.resolve();
         });
