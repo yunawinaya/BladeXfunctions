@@ -245,7 +245,9 @@ class StockAdjuster {
     }
 
     const updates = await Promise.all(
-      subformData.map((item) => this.processItem(item, movementType, allData))
+      subformData.map((item) =>
+        this.processItem(item, movementType, allData, organizationId)
+      )
     );
 
     return updates;
@@ -356,7 +358,7 @@ class StockAdjuster {
     }
   }
 
-  async processItem(item, movementType, allData) {
+  async processItem(item, movementType, allData, organizationId) {
     try {
       const materialResponse = await this.db
         .collection("Item")
@@ -396,7 +398,8 @@ class StockAdjuster {
             movementType,
             balance,
             allData,
-            item
+            item,
+            organizationId
           );
 
           const movementResult = await this.recordInventoryMovement(
@@ -404,7 +407,8 @@ class StockAdjuster {
             movementType,
             balance,
             allData,
-            item
+            item,
+            organizationId
           );
 
           updates.push({
@@ -442,14 +446,16 @@ class StockAdjuster {
             movementType,
             {},
             allData,
-            item
+            item,
+            organizationId
           );
           await this.recordInventoryMovement(
             materialData,
             movementType,
             { sm_quantity: item.received_quantity },
             allData,
-            item
+            item,
+            organizationId
           );
 
           updates.push({
@@ -497,7 +503,8 @@ class StockAdjuster {
     movementType,
     balance,
     allData,
-    subformData
+    subformData,
+    organizationId
   ) {
     const collectionName =
       materialData.item_batch_management == "1"
@@ -574,6 +581,7 @@ class StockAdjuster {
           update_user: allData.user_id || "system",
           is_deleted: 0,
           tenant_id: allData.tenant_id || "000000",
+          organization_id: organizationId,
         };
 
     switch (movementType) {
@@ -609,7 +617,8 @@ class StockAdjuster {
             materialData,
             qtyChangeValue,
             allData,
-            subformData
+            subformData,
+            organizationId
           );
           console.log("batchId", batchId);
           updateData.batch_id = batchId;
@@ -673,7 +682,8 @@ class StockAdjuster {
         qtyChange,
         allData.issuing_operation_faci,
         subformData,
-        updateData
+        updateData,
+        organizationId
       );
     }
 
@@ -686,7 +696,8 @@ class StockAdjuster {
         balance,
         allData,
         subformData,
-        movementType
+        movementType,
+        organizationId
       );
     }
   }
@@ -699,7 +710,8 @@ class StockAdjuster {
     balance,
     allData,
     subformData,
-    movementType
+    movementType,
+    organizationId
   ) {
     if (!receivingLocationId) {
       throw new Error(
@@ -759,7 +771,7 @@ class StockAdjuster {
           update_user: allData.user_id || "system",
           is_deleted: 0,
           tenant_id: allData.tenant_id || "000000",
-          organization_id: materialData.organization_id || "default_org",
+          organization_id: organizationId,
         };
 
     const categoryField =
@@ -818,7 +830,13 @@ class StockAdjuster {
       .get();
   }
 
-  async createBatch(materialData, quantity, allData, subformData) {
+  async createBatch(
+    materialData,
+    quantity,
+    allData,
+    subformData,
+    organizationId
+  ) {
     const batchNumber = `BATCH-${Date.now()}-${Math.random()
       .toString(36)
       .substr(2, 5)}`;
@@ -828,7 +846,7 @@ class StockAdjuster {
       initial_quantity: quantity,
       plant_id: allData.issuing_operation_faci,
       transaction_no: allData.stock_movement_no,
-      organization_id: materialData.organization_id || "default_org",
+      organization_id: organizationId,
       created_at: new Date(),
       create_user: allData.user_id || "system",
     };
@@ -862,7 +880,8 @@ class StockAdjuster {
     quantityChange,
     plantId,
     subformData,
-    balanceData
+    balanceData,
+    organizationId
   ) {
     try {
       console.log("updateCostingMethod inputs:", {
@@ -885,7 +904,6 @@ class StockAdjuster {
         throw new Error("Plant ID is required for costing update");
       }
 
-      const organizationId = materialData.organization_id || "default_org";
       const costingMethod = materialData.material_costing_method;
       const qtyChangeValue =
         subformData.quantity_converted || quantityChange || 0;
@@ -1268,7 +1286,8 @@ class StockAdjuster {
     movementType,
     balance,
     allData,
-    subformData
+    subformData,
+    organizationId
   ) {
     console.log("recordInventoryMovement inputs:", {
       materialData,
@@ -1361,7 +1380,7 @@ class StockAdjuster {
       costing_method_id: materialData.material_costing_method,
       plant_id: allData.issuing_operation_faci,
       created_at: new Date(),
-      organization_id: materialData.organization_id || "default_org",
+      organization_id: organizationId,
     };
 
     switch (movementType) {
