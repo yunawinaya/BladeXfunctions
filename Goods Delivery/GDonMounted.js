@@ -137,8 +137,8 @@ const disableTableRows = () => {
 
     const salesOrderId = this.getValue("so_id");
     if (salesOrderId) {
-      this.setData({ so_id: undefined });
-      this.setData({ so_id: salesOrderId });
+      await this.setData({ so_id: undefined });
+      await this.setData({ so_id: salesOrderId });
     }
 
     if (pageStatus !== "Add") {

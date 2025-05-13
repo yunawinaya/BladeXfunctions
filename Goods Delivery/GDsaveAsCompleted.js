@@ -341,7 +341,13 @@ const getFixedCostPrice = async (materialId) => {
   }
 };
 
-const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
+const processBalanceTable = async (
+  data,
+  isUpdate,
+  plantId,
+  organizationId,
+  gdStatus
+) => {
   console.log("Processing balance table");
   const items = data.table_gd;
 
@@ -396,9 +402,9 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
           const temp = temporaryData[i];
           const prevTemp = isUpdate ? prevTempData[i] : null;
 
-          console.log("data.gd_status", data.gd_status);
+          console.log("gdStatus", gdStatus);
           const inventoryCategory =
-            data.gd_status === "Created" ? "Reserved" : "Unrestricted";
+            gdStatus === "Created" ? "Reserved" : "Unrestricted";
 
           // UOM Conversion
           let altQty = roundQty(temp.gd_quantity);
@@ -407,14 +413,14 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
           let baseUOM = itemData.based_uom;
           let altWAQty = roundQty(item.gd_qty);
           let baseWAQty = altWAQty;
-
+          let uomConversion = null;
           if (
             Array.isArray(itemData.table_uom_conversion) &&
             itemData.table_uom_conversion.length > 0
           ) {
             console.log(`Checking UOM conversions for item ${item.item_id}`);
 
-            const uomConversion = itemData.table_uom_conversion.find(
+            uomConversion = itemData.table_uom_conversion.find(
               (conv) => conv.alt_uom_id === altUOM
             );
 
@@ -554,9 +560,11 @@ const processBalanceTable = async (data, isUpdate, plantId, organizationId) => {
               finalReservedQty = roundQty(finalReservedQty + gdQuantityDiff);
             }
 
-            if (data.gd_status === "Created") {
+            if (gdStatus === "Created") {
               finalReservedQty = roundQty(finalReservedQty - baseQty);
               finalBalanceQty = roundQty(finalBalanceQty - baseQty);
+              console.log("finalReservedQty", finalReservedQty);
+              console.log("finalBalanceQty", finalBalanceQty);
             } else {
               finalUnrestrictedQty = roundQty(finalUnrestrictedQty - baseQty);
               finalBalanceQty = roundQty(finalBalanceQty - baseQty);
@@ -797,58 +805,110 @@ const validateForm = (data, requiredFields) => {
     }
     console.log("Organization ID:", organizationId);
 
+    const {
+      so_id,
+      so_no,
+      gd_billing_name,
+      gd_billing_cp,
+      gd_billing_address,
+      gd_shipping_address,
+      delivery_no,
+      plant_id,
+      organization_id,
+      gd_ref_doc,
+      customer_name,
+      gd_contact_name,
+      contact_number,
+      email_address,
+      document_description,
+      gd_delivery_method,
+      delivery_date,
+      driver_name,
+      driver_contact_no,
+      validity_of_collection,
+      vehicle_no,
+      pickup_date,
+      courier_company,
+      shipping_date,
+      freight_charges,
+      tracking_number,
+      est_arrival_date,
+      driver_cost,
+      est_delivery_date,
+      shipping_company,
+      shipping_method,
+      table_gd,
+      order_remark,
+      billing_address_line_1,
+      billing_address_line_2,
+      billing_address_line_3,
+      billing_address_line_4,
+      billing_address_city,
+      billing_address_state,
+      billing_address_country,
+      billing_postal_code,
+      shipping_address_line_1,
+      shipping_address_line_2,
+      shipping_address_line_3,
+      shipping_address_line_4,
+      shipping_address_city,
+      shipping_address_state,
+      shipping_address_country,
+      shipping_postal_code,
+    } = data;
+
     // Prepare goods delivery object
     const gd = {
       gd_status: "Completed",
-      so_id: data.so_id,
-      so_no: data.so_no,
-      gd_billing_name: data.gd_billing_name,
-      gd_billing_cp: data.gd_billing_cp,
-      gd_billing_address: data.gd_billing_address,
-      gd_shipping_address: data.gd_shipping_address,
-      delivery_no: data.delivery_no,
-      plant_id: data.plant_id,
-      organization_id: organizationId,
-      gd_ref_doc: data.gd_ref_doc,
-      customer_name: data.customer_name,
-      gd_contact_name: data.gd_contact_name,
-      contact_number: data.contact_number,
-      email_address: data.email_address,
-      document_description: data.document_description,
-      gd_delivery_method: data.gd_delivery_method,
-      delivery_date: data.delivery_date,
-      driver_name: data.driver_name,
-      driver_contact_no: data.driver_contact_no,
-      validity_of_collection: data.validity_of_collection,
-      vehicle_no: data.vehicle_no,
-      pickup_date: data.pickup_date,
-      courier_company: data.courier_company,
-      shipping_date: data.shipping_date,
-      freight_charges: data.freight_charges,
-      tracking_number: data.tracking_number,
-      est_arrival_date: data.est_arrival_date,
-      driver_cost: data.driver_cost,
-      est_delivery_date: data.est_delivery_date,
-      shipping_company: data.shipping_company,
-      shipping_method: data.shipping_method,
-      table_gd: data.table_gd,
-      order_remark: data.order_remark,
-      billing_address_line_1: data.billing_address_line_1,
-      billing_address_line_2: data.billing_address_line_2,
-      billing_address_line_3: data.billing_address_line_3,
-      billing_address_line_4: data.billing_address_line_4,
-      billing_address_city: data.billing_address_city,
-      billing_address_state: data.billing_address_state,
-      billing_address_country: data.billing_address_country,
-      billing_postal_code: data.billing_postal_code,
-      shipping_address_line_1: data.shipping_address_line_1,
-      shipping_address_line_2: data.shipping_address_line_2,
-      shipping_address_line_3: data.shipping_address_line_3,
-      shipping_address_line_4: data.shipping_address_line_4,
-      shipping_address_city: data.shipping_address_city,
-      shipping_address_state: data.shipping_address_state,
-      shipping_address_country: data.shipping_address_country,
-      shipping_postal_code: data.shipping_postal_code,
+      so_id,
+      so_no,
+      gd_billing_name,
+      gd_billing_cp,
+      gd_billing_address,
+      gd_shipping_address,
+      delivery_no,
+      plant_id,
+      organization_id,
+      gd_ref_doc,
+      customer_name,
+      gd_contact_name,
+      contact_number,
+      email_address,
+      document_description,
+      gd_delivery_method,
+      delivery_date,
+      driver_name,
+      driver_contact_no,
+      validity_of_collection,
+      vehicle_no,
+      pickup_date,
+      courier_company,
+      shipping_date,
+      freight_charges,
+      tracking_number,
+      est_arrival_date,
+      driver_cost,
+      est_delivery_date,
+      shipping_company,
+      shipping_method,
+      table_gd,
+      order_remark,
+      billing_address_line_1,
+      billing_address_line_2,
+      billing_address_line_3,
+      billing_address_line_4,
+      billing_address_city,
+      billing_address_state,
+      billing_address_country,
+      billing_postal_code,
+      shipping_address_line_1,
+      shipping_address_line_2,
+      shipping_address_line_3,
+      shipping_address_line_4,
+      shipping_address_city,
+      shipping_address_state,
+      shipping_address_country,
+      shipping_postal_code,
     };
 
     // Clean up undefined/null values
@@ -868,14 +928,36 @@ const validateForm = (data, requiredFields) => {
 
       // Add new document
       console.log("GD", gd);
-      const addResult = await db.collection("goods_delivery").add(gd);
+      const addResult = await db
+        .collection("goods_delivery")
+        .add(gd)
+        .then(() => {
+          this.runWorkflow(
+            "1918140858502557698",
+            { delivery_no: gd.delivery_no },
+            async (res) => {
+              console.log("成功结果：", res);
+            },
+            (err) => {
+              alert();
+              console.error("失败结果：", err);
+              closeDialog();
+            }
+          );
+        });
       console.log("Added GD document:", addResult);
 
       // Update prefix
       await updatePrefix(organizationId);
 
       // Process inventory updates
-      await processBalanceTable(gd, false, gd.plant_id, organizationId);
+      await processBalanceTable(
+        gd,
+        false,
+        gd.plant_id,
+        organizationId,
+        gdStatus
+      );
 
       // Update related SO status
       await updateSalesOrderStatus(gd.so_id);
@@ -962,7 +1044,24 @@ const validateForm = (data, requiredFields) => {
           gd.delivery_no = prefixToShow;
 
           // Update document with new prefix
-          await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+          await db
+            .collection("goods_delivery")
+            .doc(goodsDeliveryId)
+            .update(gd)
+            .then(() => {
+              this.runWorkflow(
+                "1918140858502557698",
+                { delivery_no: gd.delivery_no },
+                async (res) => {
+                  console.log("成功结果：", res);
+                },
+                (err) => {
+                  alert();
+                  console.error("失败结果：", err);
+                  closeDialog();
+                }
+              );
+            });
 
           // Update prefix configuration
           await db
@@ -978,15 +1077,55 @@ const validateForm = (data, requiredFields) => {
             });
         } else {
           // Just update without changing number
-          await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+          await db
+            .collection("goods_delivery")
+            .doc(goodsDeliveryId)
+            .update(gd)
+            .then(() => {
+              this.runWorkflow(
+                "1918140858502557698",
+                { delivery_no: gd.delivery_no },
+                async (res) => {
+                  console.log("成功结果：", res);
+                },
+                (err) => {
+                  alert();
+                  console.error("失败结果：", err);
+                  closeDialog();
+                }
+              );
+            });
         }
       } else {
         // Normal update (not changing from draft)
-        await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+        await db
+          .collection("goods_delivery")
+          .doc(goodsDeliveryId)
+          .update(gd)
+          .then(() => {
+            this.runWorkflow(
+              "1918140858502557698",
+              { delivery_no: gd.delivery_no },
+              async (res) => {
+                console.log("成功结果：", res);
+              },
+              (err) => {
+                alert();
+                console.error("失败结果：", err);
+                closeDialog();
+              }
+            );
+          });
       }
 
       // Process inventory updates
-      await processBalanceTable(gd, true, gd.plant_id, organizationId);
+      await processBalanceTable(
+        gd,
+        true,
+        gd.plant_id,
+        organizationId,
+        gdStatus
+      );
 
       // Update related SO status
       await updateSalesOrderStatus(gd.so_id);

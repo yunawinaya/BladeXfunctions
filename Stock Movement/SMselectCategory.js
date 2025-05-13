@@ -1,59 +1,96 @@
-const allData = this.getValues();
-const movementType = allData.movement_type;
-const rowIndex = arguments[0]?.rowIndex;
-const movementTypeCategories = {
-  "Inter Operation Facility Transfer": [
-    "Unrestricted",
-    "Quality Inspection",
-    "Blocked",
-  ],
-  "Inter Operation Facility Transfer (Receiving)": [
-    "Unrestricted",
-    "Quality Inspection",
-    "Blocked",
-  ],
-  "Location Transfer": ["Unrestricted"],
-  "Miscellaneous Issue": ["Unrestricted"],
-  "Miscellaneous Receipt": ["Unrestricted", "Quality Inspection", "Blocked"],
-  "Disposal/Scrap": ["Unrestricted", "Quality Inspection", "Blocked"],
-  "Inventory Category Transfer Posting": [
-    "Unrestricted",
-    "Quality Inspection",
-    "Blocked",
-  ],
-};
+(async () => {
+  const allData = this.getValues();
+  const movementType = allData.movement_type;
+  const rowIndex = arguments[0]?.rowIndex;
+  const movementTypeCategories = {
+    "Inter Operation Facility Transfer": [
+      {
+        value: "Unrestricted",
+        label: "Unrestricted",
+      },
+      {
+        value: "Quality Inspection",
+        label: "Quality Inspection",
+      },
+      {
+        value: "Blocked",
+        label: "Blocked",
+      },
+    ],
+    "Inter Operation Facility Transfer (Receiving)": [
+      {
+        value: "Unrestricted",
+        label: "Unrestricted",
+      },
+      {
+        value: "Quality Inspection",
+        label: "Quality Inspection",
+      },
+      {
+        value: "Blocked",
+        label: "Blocked",
+      },
+    ],
+    "Location Transfer": [
+      {
+        value: "Unrestricted",
+        label: "Unrestricted",
+      },
+    ],
+    "Miscellaneous Issue": [
+      {
+        value: "Unrestricted",
+        label: "Unrestricted",
+      },
+    ],
+    "Miscellaneous Receipt": [
+      {
+        value: "Unrestricted",
+        label: "Unrestricted",
+      },
+      {
+        value: "Quality Inspection",
+        label: "Quality Inspection",
+      },
+      {
+        value: "Blocked",
+        label: "Blocked",
+      },
+    ],
+    "Disposal/Scrap": [
+      {
+        value: "Unrestricted",
+        label: "Unrestricted",
+      },
+      {
+        value: "Quality Inspection",
+        label: "Quality Inspection",
+      },
+      {
+        value: "Blocked",
+        label: "Blocked",
+      },
+    ],
+    "Inventory Category Transfer Posting": [
+      {
+        value: "Unrestricted",
+        label: "Unrestricted",
+      },
+      {
+        value: "Quality Inspection",
+        label: "Quality Inspection",
+      },
+      {
+        value: "Blocked",
+        label: "Blocked",
+      },
+    ],
+  };
 
-const fetchCategory = async () => {
-  try {
-    console.log("Fetching category");
-    const categoryObjectResponse = await db
-      .collection("inventory_category")
-      .get();
+  const allowedCategories = movementTypeCategories[movementType];
 
-    // Filter categories based on movement type
-    const allowedCategories = movementTypeCategories[movementType] || [
-      "Unrestricted",
-    ]; // Default to Unrestricted if movementType not found
-    const filteredCategories = categoryObjectResponse.data.filter((category) =>
-      allowedCategories.includes(category.inventory_category_name)
-    );
-
-    console.log("Filtered categories:", filteredCategories);
-
-    await this.setData({
-      [`sm_item_balance.table_item_balance.${rowIndex}.category`]: [],
-    });
-
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    // Set the filtered categories to the option data
-    await this.setOptionData(
-      [`sm_item_balance.table_item_balance.${rowIndex}.category`],
-      allowedCategories
-    );
-  } catch (error) {
-    console.error("Error fetching category:", error);
-  }
-};
-
-fetchCategory();
+  await this.setOptionData(
+    [`sm_item_balance.table_item_balance.${rowIndex}.category`],
+    allowedCategories
+  );
+})();

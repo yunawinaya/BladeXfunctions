@@ -154,10 +154,26 @@ const showStatusHTML = async (status) => {
     ]);
 
     const sqtCustomer = this.getValue("sqt_customer_id");
+    const sqtDeliveryMethod = this.getValue("sqt_delivery_method_id");
+    const tableSQT = this.getValue("table_sqt");
 
     if (sqtCustomer) {
       await this.setData({ sqt_customer_id: undefined });
       await this.setData({ sqt_customer_id: sqtCustomer });
+    }
+
+    if (sqtDeliveryMethod) {
+      await this.setData({ sqt_delivery_method_id: undefined });
+      await this.setData({ sqt_delivery_method_id: sqtDeliveryMethod });
+    }
+
+    if (tableSQT) {
+      for (let i = 0; i < tableSQT.length; i++) {
+        await this.setData({ [`table_sqt.${i}.material_id`]: undefined });
+        await this.setData({
+          [`table_sqt.${i}.material_id`]: tableSQT[i].material_id,
+        });
+      }
     }
 
     switch (pageStatus) {
