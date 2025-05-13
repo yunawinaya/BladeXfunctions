@@ -43,6 +43,7 @@ db.collection("Item")
       db.collection("item_batch_balance")
         .where({
           material_id: materialId,
+          plant_id: plant_id,
         })
         .get()
         .then((response) => {
@@ -78,6 +79,7 @@ db.collection("Item")
       db.collection("item_balance")
         .where({
           material_id: materialId,
+          plant_id: plant_id,
         })
         .get()
         .then((response) => {

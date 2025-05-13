@@ -37,13 +37,13 @@ const updateUomOption = async () => {
     [`table_sqt.${rowIndex}.sqt_order_uom_id`],
     uomOptions
   );
-  for (let i = 0; i < uomOptions.length; i++) {
-    if (uomOptions[i].value === based_uom) {
-      await this.setData({
-        [`table_sqt.${rowIndex}.sqt_order_uom_id`]: uomOptions[i],
-      });
-    }
-  }
+  // for (let i = 0; i < uomOptions.length; i++) {
+  //   if (uomOptions[i].value === based_uom) {
+  //     await this.setData({
+  //       [`table_sqt.${rowIndex}.sqt_order_uom_id`]: uomOptions[i].value,
+  //     });
+  //   }
+  // }
 };
 
 updateUomOption();

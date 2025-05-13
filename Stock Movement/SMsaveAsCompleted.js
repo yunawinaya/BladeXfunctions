@@ -1305,6 +1305,8 @@ class StockAdjuster {
         ? subformData.unit_price
         : materialData.purchase_unit_price || 0;
 
+    console.log("unitPrice JN", unitPrice);
+
     if (materialData.material_costing_method === "First In First Out") {
       // Get unit price from latest FIFO sequence
       const fifoCostPrice = await this.getLatestFIFOCostPrice(

@@ -1,17 +1,3 @@
-this.hide("qt_self_pickup");
-this.hide("qt_courier_service");
-this.hide("qt_company_truck");
-this.hide("qt_shipping_service");
-this.hide("third_party_transporter");
-this.hide([
-  "exchange_rate",
-  "exchange_rate_myr",
-  "exchange_rate_currency",
-  "myr_total_amount",
-  "total_amount_myr",
-]);
-this.display("sqt_customer_id");
-
 const fixValidityPeriod = () => {
   // Check if we're in edit or view mode
   if (this.isEdit || this.isView) {
@@ -127,6 +113,80 @@ const showStatusHTML = async (status) => {
   }
 };
 
+const setUOM = async () => {
+  const allUOMData = await db.collection("unit_of_measurement").get();
+
+  const tableSQT = this.getValue("table_sqt");
+
+  const uomOptions = [];
+
+  for (let i = 0; i < tableSQT.length; i++) {
+    const uom = tableSQT[i].sqt_order_uom_id;
+    for (let j = 0; j < allUOMData.data.length; j++) {
+      if (allUOMData.data[j].id === uom) {
+        uomOptions.push({
+          value: allUOMData.data[j].id,
+          label: allUOMData.data[j].uom_name,
+        });
+      }
+    }
+    this.setOptionData([`table_sqt.${i}.sqt_order_uom_id`], uomOptions);
+  }
+};
+
+const displayDeliveryMethod = async () => {
+  const deliveryMethodName = this.getValue("sqt_delivery_method_id");
+  if (deliveryMethodName) {
+    this.setData({ delivery_method_text: deliveryMethodName });
+
+    const visibilityMap = {
+      "Self Pickup": "qt_self_pickup",
+      "Courier Service": "qt_courier_service",
+      "Company Truck": "qt_company_truck",
+      "Shipping Service": "qt_shipping_service",
+      "3rd Party Transporter": "third_party_transporter",
+    };
+
+    const selectedField = visibilityMap[deliveryMethodName] || null;
+    const fields = [
+      "qt_self_pickup",
+      "qt_courier_service",
+      "qt_company_truck",
+      "qt_shipping_service",
+      "third_party_transporter",
+    ];
+
+    if (!selectedField) {
+      this.hide(fields);
+    }
+    fields.forEach((field) => {
+      field === selectedField ? this.display(field) : this.hide(field);
+    });
+  }
+};
+
+const displayCurrency = async () => {
+  const currencyCode = this.getValue("currency_code");
+
+  if (currencyCode !== "----" && currencyCode !== "MYR") {
+    this.display([
+      "exchange_rate",
+      "exchange_rate_myr",
+      "exchange_rate_currency",
+      "myr_total_amount",
+      "total_amount_myr",
+    ]);
+  }
+
+  this.setData({
+    total_gross_currency: currencyCode,
+    total_discount_currency: currencyCode,
+    total_tax_currency: currencyCode,
+    total_amount_currency: currencyCode,
+    exchange_rate_currency: currencyCode,
+  });
+};
+
 (async () => {
   try {
     const status = await this.getValue("sqt_status");
@@ -154,26 +214,9 @@ const showStatusHTML = async (status) => {
     ]);
 
     const sqtCustomer = this.getValue("sqt_customer_id");
-    const sqtDeliveryMethod = this.getValue("sqt_delivery_method_id");
-    const tableSQT = this.getValue("table_sqt");
 
     if (sqtCustomer) {
-      await this.setData({ sqt_customer_id: undefined });
-      await this.setData({ sqt_customer_id: sqtCustomer });
-    }
-
-    if (sqtDeliveryMethod) {
-      await this.setData({ sqt_delivery_method_id: undefined });
-      await this.setData({ sqt_delivery_method_id: sqtDeliveryMethod });
-    }
-
-    if (tableSQT) {
-      for (let i = 0; i < tableSQT.length; i++) {
-        await this.setData({ [`table_sqt.${i}.material_id`]: undefined });
-        await this.setData({
-          [`table_sqt.${i}.material_id`]: tableSQT[i].material_id,
-        });
-      }
+      this.display("address_grid");
     }
 
     switch (pageStatus) {
@@ -185,6 +228,10 @@ const showStatusHTML = async (status) => {
       case "Edit":
         await getPrefixData(organizationId);
         await showStatusHTML(status);
+        await displayDeliveryMethod();
+        await displayCurrency();
+        await fixValidityPeriod();
+        await setUOM();
         break;
 
       case "Clone":
@@ -202,75 +249,13 @@ const showStatusHTML = async (status) => {
         ]);
         this.display(["sqt_customer_id"]);
         await showStatusHTML(status);
-
-        // Disable all form fields in View mode
-        this.disabled(
-          [
-            "sqt_customer_id",
-            "currency_code",
-            "organization_id",
-            "sqt_billing_name",
-            "sqt_billing_address",
-            "sqt_billing_cp",
-            "sqt_shipping_address",
-            "sqt_no",
-            "sqt_plant",
-            "sqt_date",
-            "sqt_validity_period",
-            "sales_person_id",
-            "sqt_payment_term",
-            "sqt_delivery_method_id",
-            "cp_customer_pickup",
-            "driver_contact_no",
-            "courier_company",
-            "vehicle_number",
-            "pickup_date",
-            "shipping_date",
-            "ct_driver_name",
-            "ct_vehicle_number",
-            "ct_driver_contact_no",
-            "ct_est_delivery_date",
-            "ct_delivery_cost",
-            "ct_shipping_company",
-            "ss_shipping_method",
-            "ss_shipping_date",
-            "est_arrival_date",
-            "ss_freight_charges",
-            "ss_tracking_number",
-            "sqt_sub_total",
-            "sqt_total_discount",
-            "sqt_total_tax",
-            "sqt_totalsum",
-            "sqt_remarks",
-            "billing_address_line_1",
-            "billing_address_line_2",
-            "billing_address_line_3",
-            "billing_address_line_4",
-            "billing_address_city",
-            "billing_address_state",
-            "billing_postal_code",
-            "billing_address_country",
-            "shipping_address_line_1",
-            "shipping_address_line_2",
-            "shipping_address_line_3",
-            "shipping_address_line_4",
-            "shipping_address_city",
-            "shipping_address_state",
-            "shipping_postal_code",
-            "shipping_address_country",
-            "table_sqt",
-            "sqt_ref_no",
-            "sqt_ref_doc",
-            "exchange_rate",
-            "myr_total_amount",
-          ],
-          true
-        );
-
+        await displayDeliveryMethod();
+        await displayCurrency();
+        await fixValidityPeriod();
+        await setUOM();
         const totalTax = this.getValue("sqt_total_tax");
         if (totalTax) {
-          this.display(["sqt_total_tax"]);
-          this.display(["total_tax_currency"]);
+          this.display(["sqt_total_tax", "total_tax_currency"]);
         }
         break;
     }
@@ -279,5 +264,3 @@ const showStatusHTML = async (status) => {
     this.$message.error(error.message || "An error occurred");
   }
 })();
-
-fixValidityPeriod();

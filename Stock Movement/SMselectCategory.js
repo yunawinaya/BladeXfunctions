@@ -36,6 +36,18 @@
         value: "Unrestricted",
         label: "Unrestricted",
       },
+      {
+        value: "Quality Inspection",
+        label: "Quality Inspection",
+      },
+      {
+        value: "Blocked",
+        label: "Blocked",
+      },
+      {
+        value: "Reserved",
+        label: "Reserved",
+      },
     ],
     "Miscellaneous Issue": [
       {
@@ -93,4 +105,6 @@
     [`sm_item_balance.table_item_balance.${rowIndex}.category`],
     allowedCategories
   );
+
+  console.log("allowedCategories", allowedCategories);
 })();
