@@ -31,7 +31,7 @@ class ReceivingIOFTProcessor {
     return null;
   }
 
-  async processReceivingIOFT(db, self) {
+  async processReceivingIOFT(db, self, organizationId) {
     const errors = [];
     const allData = self.getValues();
     const stockMovementId = allData.id;
@@ -178,7 +178,8 @@ class ReceivingIOFTProcessor {
                 issuingIOFTId,
                 processedItems,
                 receivingIOFT,
-                issuingIOFT
+                issuingIOFT,
+                organizationId
               );
               resolve(results);
             } catch (err) {
@@ -209,7 +210,8 @@ class ReceivingIOFTProcessor {
           issuingIOFTId,
           processedItems,
           receivingIOFT,
-          issuingIOFT
+          issuingIOFT,
+          organizationId
         )
           .then((results) => {
             resolve(results);
@@ -228,7 +230,8 @@ class ReceivingIOFTProcessor {
     issuingIOFTId,
     processedItems,
     receivingIOFT,
-    issuingIOFT
+    issuingIOFT,
+    organizationId
   ) {
     const results = {
       balanceUpdates: {
@@ -283,7 +286,8 @@ class ReceivingIOFTProcessor {
             item.location_id || balance.location_id,
             quantityFromThisBalance,
             item.category || "Unrestricted",
-            item.unit_price
+            item.unit_price,
+            organizationId
           );
           results.balanceUpdates.receiving.push(receivingBalanceUpdate);
 
@@ -300,7 +304,8 @@ class ReceivingIOFTProcessor {
             receivingIOFT.issuing_operation_faci,
             item.unit_price,
             item.received_quantity_uom,
-            materialData
+            materialData,
+            organizationId
           );
           results.inventoryMovements.issuing.push(
             inventoryMovements.issuingMovement
@@ -315,7 +320,8 @@ class ReceivingIOFTProcessor {
             quantityFromThisBalance,
             issuingIOFT.issuing_operation_faci,
             receivingIOFT.issuing_operation_faci,
-            item.unit_price
+            item.unit_price,
+            organizationId
           );
           results.costingUpdates.issuing.push(costingUpdates.issuingCosting);
           results.costingUpdates.receiving.push(
@@ -464,7 +470,8 @@ class ReceivingIOFTProcessor {
     locationId,
     quantity,
     category = "Unrestricted",
-    unitPrice
+    unitPrice,
+    organizationId
   ) {
     let materialData;
     try {
@@ -563,7 +570,7 @@ class ReceivingIOFTProcessor {
         intransit_qty: 0,
         create_time: new Date().toISOString(),
         update_time: new Date().toISOString(),
-        organization_id: materialData.organization_id || "default_org",
+        organization_id: organizationId,
       };
 
       // Set the specific category quantity
@@ -598,7 +605,8 @@ class ReceivingIOFTProcessor {
     receivingPlantId,
     unitPrice,
     uom,
-    materialData
+    materialData,
+    organizationId
   ) {
     const formattedQuantity = this.roundQty(quantity);
     const formattedUnitPrice = this.roundPrice(unitPrice || 0);
@@ -630,7 +638,7 @@ class ReceivingIOFTProcessor {
       bin_location_id: locationId,
       batch_number_id: batchId,
       costing_method_id: materialData.material_costing_method,
-      organization_id: materialData.organization_id || "default_org",
+      organization_id: organizationId,
       plant_id: issuingPlantId,
       created_at: new Date(),
     };
@@ -654,7 +662,7 @@ class ReceivingIOFTProcessor {
       costing_method_id: materialData.material_costing_method,
       created_at: new Date(),
       plant_id: receivingPlantId,
-      organization_id: materialData.organization_id || "default_org",
+      organization_id: organizationId,
     };
 
     try {
@@ -683,7 +691,8 @@ class ReceivingIOFTProcessor {
     quantity,
     issuingPlantId,
     receivingPlantId,
-    unitPrice
+    unitPrice,
+    organizationId
   ) {
     const results = {
       issuingCosting: null,
@@ -778,7 +787,7 @@ class ReceivingIOFTProcessor {
             plant_id: receivingPlantId,
             wa_quantity: formattedQuantity,
             wa_cost_price: formattedUnitPrice,
-            organization_id: materialData.organization_id || "default_org",
+            organization_id: organizationId,
             created_at: new Date(),
             updated_at: new Date(),
           };
@@ -892,7 +901,7 @@ class ReceivingIOFTProcessor {
           fifo_available_quantity: formattedQuantity,
           batch_id:
             materialData.item_isbatch_managed === "1" ? materialData.id : null,
-          organization_id: materialData.organization_id || "default_org",
+          organization_id: organizationId,
           created_at: new Date(),
           updated_at: new Date(),
         };
@@ -932,7 +941,7 @@ class ReceivingIOFTProcessor {
   }
 }
 
-async function processFormData(db, self) {
+async function processFormData(db, self, organizationId) {
   const processor = new ReceivingIOFTProcessor(db);
   const closeDialog = () => {
     if (self.parentGenerateForm) {
@@ -943,7 +952,11 @@ async function processFormData(db, self) {
   };
 
   try {
-    const results = await processor.processReceivingIOFT(db, self);
+    const results = await processor.processReceivingIOFT(
+      db,
+      self,
+      organizationId
+    );
     closeDialog();
     console.log("IOFT receipt processed:", results);
     return results;
@@ -955,6 +968,13 @@ async function processFormData(db, self) {
 
 const self = this;
 this.showLoading();
-processFormData(db, self)
+
+let organizationId = this.getVarGlobal("deptParentId");
+console.log("organization id", organizationId);
+if (organizationId === "0") {
+  organizationId = this.getVarSystem("deptIds").split(",")[0];
+}
+
+processFormData(db, self, organizationId)
   .then((results) => console.log("Success:", results))
   .catch((error) => console.error("Error:", error.message));

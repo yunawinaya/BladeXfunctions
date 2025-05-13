@@ -31,7 +31,7 @@ class StockAdjuster {
     return null;
   }
 
-  async processStockAdjustment(db, self) {
+  async processStockAdjustment(db, self, organizationId) {
     const errors = [];
     const allData = self.getValues();
 
@@ -107,7 +107,8 @@ class StockAdjuster {
                 stockMovementReceivingPlantId,
                 stockMovementNumber,
                 allData,
-                self
+                self,
+                organizationId
               );
               resolve({
                 ...updateResults,
@@ -141,7 +142,8 @@ class StockAdjuster {
           stockMovementReceivingPlantId,
           stockMovementNumber,
           allData,
-          self
+          self,
+          organizationId
         )
           .then((updateResults) => {
             resolve({
@@ -308,7 +310,8 @@ class StockAdjuster {
     stockMovementReceivingPlantId,
     stockMovementNumber,
     allData,
-    self
+    self,
+    organizationId
   ) {
     const results = {
       balanceUpdates: [],
@@ -349,7 +352,8 @@ class StockAdjuster {
             stockMovementIssuingPlantId,
             stockMovementReceivingPlantId,
             stockMovementNumber,
-            balance.batch_id
+            balance.batch_id,
+            organizationId
           );
           results.inventoryMovements.push(inventoryMovement);
         } catch (err) {
@@ -420,7 +424,8 @@ class StockAdjuster {
           stockMovementReceivingPlantId,
           allData,
           stockMovementId,
-          self
+          self,
+          organizationId
         );
         results.receivingIOFT = receivingIOFT.data[0];
       } catch (err) {
@@ -608,7 +613,8 @@ class StockAdjuster {
     stockMovementIssuingPlantId,
     stockMovementReceivingPlantId,
     stockMovementNumber,
-    batchId
+    batchId,
+    organizationId
   ) {
     let materialData;
     try {
@@ -672,7 +678,7 @@ class StockAdjuster {
       bin_location_id: locationId,
       batch_number_id: isBatchManaged ? batchId : null,
       costing_method_id: materialData.material_costing_method,
-      organization_id: materialData.organization_id || "default_org",
+      organization_id: organizationId,
       plant_id: stockMovementIssuingPlantId,
       created_at: new Date(),
     };
@@ -695,7 +701,7 @@ class StockAdjuster {
       costing_method_id: materialData.material_costing_method,
       created_at: new Date(),
       plant_id: stockMovementReceivingPlantId,
-      organization_id: materialData.organization_id || "default_org",
+      organization_id: organizationId,
     };
 
     try {
@@ -712,14 +718,16 @@ class StockAdjuster {
     }
   }
 
-  async createReceivingIOFT(receivingPlantId, allData, stockMovementId, self) {
+  async createReceivingIOFT(
+    receivingPlantId,
+    allData,
+    stockMovementId,
+    self,
+    organizationId
+  ) {
     try {
       let movementType = allData.movement_type || "";
 
-      let organizationId = self.getVarGlobal("deptParentId");
-      if (organizationId === "0") {
-        organizationId = self.getVarSystem("deptIds").split(",")[0];
-      }
       const prefixResponse = await this.db
         .collection("prefix_configuration")
         .where({
@@ -861,7 +869,7 @@ class StockAdjuster {
   }
 }
 
-async function processFormData(db, self) {
+async function processFormData(db, self, organizationId) {
   const adjuster = new StockAdjuster(db);
   const closeDialog = () => {
     if (self.parentGenerateForm) {
@@ -872,7 +880,11 @@ async function processFormData(db, self) {
   };
 
   try {
-    const results = await adjuster.processStockAdjustment(db, self);
+    const results = await adjuster.processStockAdjustment(
+      db,
+      self,
+      organizationId
+    );
     closeDialog();
     console.log("Stock movement processed:", results);
     return results;
@@ -884,6 +896,12 @@ async function processFormData(db, self) {
 
 const self = this;
 this.showLoading();
-processFormData(db, self)
+let organizationId = this.getVarGlobal("deptParentId");
+console.log("organization id", organizationId);
+if (organizationId === "0") {
+  organizationId = this.getVarSystem("deptIds").split(",")[0];
+}
+
+processFormData(db, self, organizationId)
   .then((results) => console.log("Success:", results))
   .catch((error) => console.error("Error:", error.message));

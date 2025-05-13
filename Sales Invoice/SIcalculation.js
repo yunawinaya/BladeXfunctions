@@ -1,6 +1,6 @@
 const data = this.getValues();
-console.log("Data", data);
 const items = data.table_si;
+const exchangeRate = data.exchange_rate;
 let totalGross = 0;
 let totalDiscount = 0;
 let totalTax = 0;
@@ -9,132 +9,109 @@ let totalAmount = 0;
 if (Array.isArray(items)) {
   items.forEach((item, index) => {
     const quantity = Number(item.invoice_qty) || 0;
-    const unitPrice = Number(item.unit_price) || 0;
+    const unitPrice = parseFloat(item.unit_price) || 0;
     const grossValue = quantity * unitPrice;
 
-    this.setData({
-      [`table_si.${index}.gross`]: grossValue,
-    });
-    this.setData({
-      [`table_si.${index}.si_amount`]: grossValue,
-    });
-    item.gross = grossValue;
     totalGross += grossValue;
 
     this.setData({
+      [`table_si.${index}.gross`]: grossValue,
+      [`table_si.${index}.si_amount`]: grossValue,
       invoice_subtotal: totalGross,
     });
 
-    let discount = Number(this.getValue(`table_si.${index}.si_discount`)) || 0;
-    const discountUOM = this.getValue(`table_si.${index}.si_discount_uom_id`);
-    const taxRate =
-      Number(this.getValue(`table_si.${index}.tax_rate_percent`)) || 0;
-    let taxInclusive = this.getValue(`table_si.${index}.si_tax_inclusive`);
+    let discount = parseFloat(item.si_discount) || 0;
+    const discountUOM = item.si_discount_uom_id;
+    let discountAmount = 0.0;
+    const taxRate = Number(item.tax_rate_percent) || 0;
+    const taxInclusive = item.si_tax_inclusive;
 
-    taxInclusive =
-      (taxInclusive && taxInclusive.length > 0) || taxInclusive === 1;
-
-    db.collection("unit_of_measurement")
-      .where({ id: discountUOM })
-      .get()
-      .then((response) => {
-        const uomData = response.data[0];
-        if (!uomData) {
-          console.error("UOM not found for ID:", discountUOM);
-          return;
+    if (discountUOM) {
+      if (discount !== 0) {
+        if (discountUOM === "Amount") {
+          discountAmount = discount;
+        } else if (discountUOM === "%") {
+          discountAmount = (grossValue * discount) / 100;
         }
 
-        let discountAmount = 0;
-        if (discount) {
-          if (uomData.uom_name === "Amount") {
-            discountAmount = discount;
-          } else if (uomData.uom_name === "%") {
-            discountAmount = (grossValue * discount) / 100;
-          }
-          if (discountAmount > grossValue) {
-            console.log(
-              `Resetting discount and discount_amount for index ${index} as discount > gross`
-            );
-            discount = 0;
-            discountAmount = 0;
-
-            this.setData({
-              [`table_si.${index}.si_discount`]: 0,
-              [`table_si.${index}.discount_amount`]: 0,
-            });
-          } else {
-            this.setData({
-              [`table_si.${index}.discount_amount`]: discountAmount,
-            });
-          }
-
-          item.si_discount = discount;
-          item.discount_amount = discountAmount;
-        }
-
-        const amountAfterDiscount = grossValue - discountAmount;
-        let taxAmount = 0;
-        let finalAmount = amountAfterDiscount;
-
-        if (taxRate) {
-          const taxRateDecimal = taxRate / 100;
-          this.display("invoice_taxes_amount");
-
-          if (taxInclusive) {
-            taxAmount =
-              amountAfterDiscount - amountAfterDiscount / (1 + taxRateDecimal);
-            finalAmount = amountAfterDiscount;
-          } else {
-            taxAmount = amountAfterDiscount * taxRateDecimal;
-            finalAmount = amountAfterDiscount + taxAmount;
-          }
+        if (discountAmount > grossValue) {
+          discount = 0;
+          discountAmount = 0;
 
           this.setData({
-            [`table_si.${index}.tax_amount`]: taxAmount,
+            [`table_si.${index}.si_discount`]: 0,
+            [`table_si.${index}.discount_amount`]: 0,
           });
-          item.tax_amount = taxAmount;
         } else {
-          this.hide("invoice_taxes_amount");
           this.setData({
-            [`table_si.${index}.tax_amount`]: 0,
+            [`table_si.${index}.discount_amount`]: parseFloat(
+              discountAmount.toFixed(2)
+            ),
           });
-          item.tax_amount = 0;
         }
-
-        this.setData({
-          [`table_si.${index}.invoice_amount`]: finalAmount,
-        });
-        item.invoice_amount = finalAmount;
-
-        totalDiscount += discountAmount;
-        totalTax += taxAmount;
-        totalAmount += finalAmount;
-
-        this.setData({
-          invoice_total_discount: totalDiscount,
-          invoice_taxes_amount: totalTax,
-          invoice_total: totalAmount,
-        });
+      }
+    } else {
+      this.setData({
+        [`table_si.${index}.discount_amount`]: 0,
       });
+    }
+    const amountAfterDiscount = grossValue - discountAmount;
+
+    // Calculate tax amount based on taxInclusive flag
+    let taxAmount = 0;
+    let finalAmount = amountAfterDiscount;
+
+    if (taxRate) {
+      const taxRateDecimal = taxRate / 100;
+
+      if (taxInclusive === 1) {
+        // Tax inclusive calculation
+        taxAmount =
+          amountAfterDiscount - amountAfterDiscount / (1 + taxRateDecimal);
+        finalAmount = amountAfterDiscount;
+      } else {
+        // Tax exclusive calculation
+        taxAmount = amountAfterDiscount * taxRateDecimal;
+        finalAmount = amountAfterDiscount + taxAmount;
+      }
+
+      // Set tax amount
+      this.setData({
+        [`table_si.${index}.tax_amount`]: parseFloat(taxAmount.toFixed(2)),
+      });
+    } else {
+      this.setData({
+        [`table_si.${index}.tax_amount`]: 0,
+      });
+    }
+
+    // Set final amount
+    this.setData({
+      [`table_si.${index}.si_amount`]: parseFloat(finalAmount.toFixed(2)),
+    });
+
+    totalDiscount += discountAmount;
+    totalTax += taxAmount;
+    totalAmount += finalAmount;
+
+    if (totalTax > 0) {
+      this.display(["invoice_taxes_amount", "total_tax_currency"]);
+    }
+
+    this.setData({
+      invoice_total_discount: parseFloat(totalDiscount.toFixed(2)),
+      invoice_taxes_amount: parseFloat(totalTax.toFixed(2)),
+      invoice_total: parseFloat(totalAmount.toFixed(2)),
+    });
+
+    if (!exchangeRate) {
+      return;
+    } else {
+      this.setData({
+        myr_total_amount: exchangeRate * parseFloat(totalAmount.toFixed(2)),
+      });
+    }
   });
-
-  this.setData({
-    invoice_total: totalGross,
-  });
-
-  console.log("Updated items with calculations:", items);
-  console.log("Totals calculated:", {
-    totalGross,
-    totalDiscount,
-    totalTax,
-    totalAmount,
-  });
-
-  const updatedData = this.getValues();
-  console.log("Form data after update:", updatedData);
-
-  return items;
 } else {
   console.log("Not an array:", items);
-  return items;
 }

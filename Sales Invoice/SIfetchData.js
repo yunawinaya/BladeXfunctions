@@ -1,11 +1,24 @@
 const data = this.getValues();
-const salesOrderId = data.sales_order_id;
+const salesOrderId = data.so_id;
 console.log("Sales Order ID:", salesOrderId);
 
 // Get GR numbers from arguments
 const gdNumbers = arguments[0].value;
 console.log("GD Numbers:", gdNumbers);
 
+Promise.all(
+  gdNumbers.map((gdId) =>
+    db
+      .collection("goods_delivery")
+      .doc(gdId) // Direct document reference
+      .get()
+      .then((doc) => (doc ? doc.data[0].delivery_no : null))
+  )
+).then((results) => {
+  const displayText = results.filter(Boolean).join(", ");
+  console.log("gd", results);
+  this.setData({ gd_no_display: displayText });
+});
 // Check if grNumbers is empty or invalid before proceeding
 if (!gdNumbers || (Array.isArray(gdNumbers) && gdNumbers.length === 0)) {
   this.setData({ table_si: [] });
@@ -136,6 +149,7 @@ db.collection("sales_order")
                   tax_rate: soItem.so_tax_percentage,
                   tax_preference: soItem.so_tax_preference,
                   tax_inclusive: soItem.so_tax_inclusive,
+                  delivery_qty: 0,
                 };
                 console.log(`Added SO item ${itemId} to map:`, itemMap[itemId]);
               }
@@ -150,7 +164,7 @@ db.collection("sales_order")
           if (gdRecord && Array.isArray(gdRecord.table_gd)) {
             gdRecord.table_gd.forEach((item) => {
               console.log("Processing GD item:", item);
-              const itemId = item.item_id;
+              const itemId = item.material_id;
 
               if (!itemId) {
                 return;
@@ -166,7 +180,7 @@ db.collection("sales_order")
                 );
               }
 
-              const deliveryQty = parseFloat(item.gd_qty || 0);
+              const deliveryQty = parseFloat(item.gd_qty) || 0;
               itemMap[itemId].delivery_qty += deliveryQty;
               console.log(
                 `Updated delivery qty for ${itemId} to ${itemMap[itemId].delivery_qty}`
@@ -181,8 +195,8 @@ db.collection("sales_order")
         const newTableSI = consolidatedItems.map((item) => ({
           material_id: item.item_id,
           material_desc: item.item_desc,
-          so_order_quantity: item.item_uom,
-          so_order_uom_id: item.ordered_qty,
+          so_order_quantity: item.ordered_qty,
+          so_order_uom_id: item.item_uom,
           good_delivery_quantity: item.delivery_qty,
           unit_price: item.unit_price,
           si_discount: item.discount,
@@ -190,6 +204,8 @@ db.collection("sales_order")
           si_tax_rate_id: item.tax_preference,
           tax_rate_percent: item.tax_rate,
           si_tax_inclusive: item.tax_inclusive,
+          invoice_qty: item.delivery_qty,
+          invoice_qty_uom_id: item.item_uom,
         }));
 
         console.log("Final table_si data:", newTableSI);
