@@ -4,107 +4,47 @@
   const rowIndex = arguments[0]?.rowIndex;
   const movementTypeCategories = {
     "Inter Operation Facility Transfer": [
-      {
-        value: "Unrestricted",
-        label: "Unrestricted",
-      },
-      {
-        value: "Quality Inspection",
-        label: "Quality Inspection",
-      },
-      {
-        value: "Blocked",
-        label: "Blocked",
-      },
+      "Unrestricted",
+      "Quality Inspection",
+      "Blocked",
     ],
     "Inter Operation Facility Transfer (Receiving)": [
-      {
-        value: "Unrestricted",
-        label: "Unrestricted",
-      },
-      {
-        value: "Quality Inspection",
-        label: "Quality Inspection",
-      },
-      {
-        value: "Blocked",
-        label: "Blocked",
-      },
+      "Unrestricted",
+      "Quality Inspection",
+      "Blocked",
     ],
     "Location Transfer": [
-      {
-        value: "Unrestricted",
-        label: "Unrestricted",
-      },
-      {
-        value: "Quality Inspection",
-        label: "Quality Inspection",
-      },
-      {
-        value: "Blocked",
-        label: "Blocked",
-      },
-      {
-        value: "Reserved",
-        label: "Reserved",
-      },
+      "Unrestricted",
+      "Quality Inspection",
+      "Blocked",
+      "Reserved",
     ],
-    "Miscellaneous Issue": [
-      {
-        value: "Unrestricted",
-        label: "Unrestricted",
-      },
-    ],
-    "Miscellaneous Receipt": [
-      {
-        value: "Unrestricted",
-        label: "Unrestricted",
-      },
-      {
-        value: "Quality Inspection",
-        label: "Quality Inspection",
-      },
-      {
-        value: "Blocked",
-        label: "Blocked",
-      },
-    ],
-    "Disposal/Scrap": [
-      {
-        value: "Unrestricted",
-        label: "Unrestricted",
-      },
-      {
-        value: "Quality Inspection",
-        label: "Quality Inspection",
-      },
-      {
-        value: "Blocked",
-        label: "Blocked",
-      },
-    ],
+    "Miscellaneous Issue": ["Unrestricted"],
+    "Miscellaneous Receipt": ["Unrestricted", "Quality Inspection", "Blocked"],
+    "Disposal/Scrap": ["Unrestricted", "Quality Inspection", "Blocked"],
     "Inventory Category Transfer Posting": [
-      {
-        value: "Unrestricted",
-        label: "Unrestricted",
-      },
-      {
-        value: "Quality Inspection",
-        label: "Quality Inspection",
-      },
-      {
-        value: "Blocked",
-        label: "Blocked",
-      },
+      "Unrestricted",
+      "Quality Inspection",
+      "Blocked",
     ],
   };
 
-  const allowedCategories = movementTypeCategories[movementType];
+  console.log("movementType", movementType);
+
+  const categoryObjectResponse = await db
+    .collection("inventory_category")
+    .get();
+  const allowedCategories = movementTypeCategories[movementType] || [
+    "Unrestricted",
+  ];
+  const filteredCategories = categoryObjectResponse.data.filter((category) =>
+    allowedCategories.includes(category.inventory_category_name)
+  );
+
+  console.log("filteredCategories", filteredCategories);
 
   await this.setOptionData(
     [`sm_item_balance.table_item_balance.${rowIndex}.category`],
-    allowedCategories
+    filteredCategories
   );
-
-  console.log("allowedCategories", allowedCategories);
 })();

@@ -4,6 +4,10 @@ const page_status = allData.page_status;
 
 const rowIndex = arguments[0].rowIndex;
 
+console.log("Triggered JN");
+console.log("arguments[0]", arguments[0]);
+console.log("page_status", page_status);
+
 const {
   material_desc,
   based_uom,
@@ -12,6 +16,8 @@ const {
   mat_purchase_tax_id,
   item_batch_management,
 } = arguments[0].fieldModel.item;
+
+console.log("page_status 2", page_status);
 
 const movementTypeCategories = {
   "Inter Operation Facility Transfer": [
@@ -62,13 +68,15 @@ const fetchItemData = async () => {
       allowedCategories.includes(category.inventory_category_name)
     );
 
+    console.log("filteredCategories", filteredCategories);
+
     // Set category options
-    this.setOptionData(
+    await this.setOptionData(
       [`stock_movement.${rowIndex}.category`],
       filteredCategories
     );
 
-    this.setData({
+    await this.setData({
       [`stock_movement.${rowIndex}.received_quantity_uom`]: based_uom,
       [`stock_movement.${rowIndex}.unit_price`]: purchase_unit_price,
     });
@@ -93,7 +101,7 @@ const fetchItemData = async () => {
     const updateUomOption = async () => {
       await processData();
 
-      this.setOptionData(
+      await this.setOptionData(
         [`stock_movement.${rowIndex}.received_quantity_uom`],
         uomOptions
       );

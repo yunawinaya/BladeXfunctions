@@ -4562,14 +4562,21 @@
                     "width": "",
                     "options": [
                       {
-                        "value": "Unrestricted",
-                        "label": "Unrestricted",
-                        "image": []
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
                       }
                     ],
-                    "remote": false,
-                    "remoteType": "datasource",
-                    "remoteOption": "option_em4nswid",
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_438vr08m",
                     "filterable": true,
                     "pagingEnabled": true,
                     "remoteOptions": [],
@@ -4581,7 +4588,7 @@
                       "image": "",
                       "icon": ""
                     },
-                    "remoteFunc": "func_em4nswid",
+                    "remoteFunc": "func_438vr08m",
                     "customClass": "",
                     "labelWidth": 100,
                     "isLabelWidth": false,
@@ -4596,13 +4603,13 @@
                     "page_size": 10,
                     "more_fields": [],
                     "datasource": {
-                      "source": "static",
+                      "source": "Inventory Category:Table:1902909580332601345",
                       "rules": {
-                        "collectionId": "",
+                        "collectionId": "1902909580332601345",
                         "list": [
                           {
-                            "id": 1746501696069,
-                            "parentId": 1746501696068,
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
                             "isTop": true,
                             "prop": "",
                             "operator": "",
@@ -4659,11 +4666,11 @@
                   },
                   "events": {
                     "onChange": "",
-                    "onFocus": "fksr8haf",
+                    "onFocus": "",
                     "onBlur": ""
                   },
                   "novalid": {},
-                  "key": "gnwcorai",
+                  "key": "438vr08m",
                   "model": "category",
                   "rules": []
                 },
@@ -6177,23 +6184,33 @@
                 "width": "",
                 "options": [
                   {
-                    "value": "Unrestricted",
-                    "label": "Unrestricted",
-                    "image": [],
-                    "icon": ""
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
                   }
                 ],
-                "remote": false,
-                "remoteType": "datasource",
-                "remoteOption": "option_zoet7l2k",
-                "filterable": false,
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_1uftez33",
+                "filterable": true,
                 "pagingEnabled": true,
                 "remoteOptions": [],
                 "props": {
-                  "value": "value",
-                  "label": "label"
+                  "value": "inventory_category_name",
+                  "label": "inventory_category_name",
+                  "cascade": "",
+                  "children": "",
+                  "image": "",
+                  "icon": ""
                 },
-                "remoteFunc": "func_zoet7l2k",
+                "remoteFunc": "func_1uftez33",
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
@@ -6208,9 +6225,9 @@
                 "page_size": 10,
                 "more_fields": [],
                 "datasource": {
-                  "source": "static",
+                  "source": "Inventory Category:Table:1902909580332601345",
                   "rules": {
-                    "collectionId": "",
+                    "collectionId": "1902909580332601345",
                     "list": [
                       {
                         "id": 1723795236686,
@@ -6270,12 +6287,12 @@
                 }
               },
               "events": {
-                "onChange": "kwe2etps",
-                "onFocus": "ygqhd3jr",
+                "onChange": "ygqhd3jr",
+                "onFocus": "",
                 "onBlur": ""
               },
               "novalid": {},
-              "key": "zoet7l2k",
+              "key": "1uftez33",
               "model": "category",
               "rules": []
             },
@@ -8139,7 +8156,7 @@
       {
         "key": "llytn27o",
         "name": "onAfterUpdate_item",
-        "func": "const allData = this.getValues();\nconst movementType = allData.movement_type;\nconst page_status = allData.page_status;\n\nconst rowIndex = arguments[0].rowIndex;\n\nconsole.log(\"Triggered JN\");\nconsole.log(\"arguments[0]\", arguments[0]);\nconsole.log(\"page_status\", page_status);\n\nconst {\n  material_desc,\n  based_uom,\n  purchase_unit_price,\n  table_uom_conversion,\n  mat_purchase_tax_id,\n  item_batch_management,\n} = arguments[0].fieldModel.item;\n\nconsole.log(\"page_status 2\", page_status);\n\nconst movementTypeCategories = {\n  \"Inter Operation Facility Transfer\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n  ],\n  \"Inter Operation Facility Transfer (Receiving)\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n  ],\n  \"Location Transfer\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n    \"Reserved\",\n  ],\n  \"Miscellaneous Issue\": [\"Unrestricted\"],\n  \"Miscellaneous Receipt\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n  \"Disposal/Scrap\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n  \"Inventory Category Transfer Posting\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n  ],\n};\n\nconst fetchItemData = async () => {\n  try {\n    if (\n      item_batch_management === 1 &&\n      movementType === \"Miscellaneous Receipt\"\n    ) {\n      this.display(\"stock_movement.batch_id\");\n    } else {\n      this.hide(\"stock_movement.batch_id\");\n    }\n\n    // Fetch and filter categories\n    const categoryObjectResponse = await db\n      .collection(\"inventory_category\")\n      .get();\n    const allowedCategories = movementTypeCategories[movementType] || [\n      \"Unrestricted\",\n    ];\n    const filteredCategories = categoryObjectResponse.data.filter((category) =>\n      allowedCategories.includes(category.inventory_category_name)\n    );\n\n    // Set category options\n    this.setOptionData(\n      [`stock_movement.${rowIndex}.category`],\n      filteredCategories\n    );\n\n    this.setData({\n      [`stock_movement.${rowIndex}.received_quantity_uom`]: based_uom,\n      [`stock_movement.${rowIndex}.unit_price`]: purchase_unit_price,\n    });\n\n    const altUoms = table_uom_conversion.map((data) => data.alt_uom_id);\n    altUoms.push(based_uom);\n\n    const uomOptions = [];\n\n    const processData = async () => {\n      for (let i = 0; i < altUoms.length; i++) {\n        const res = await db\n          .collection(\"unit_of_measurement\")\n          .where({ id: altUoms[i] })\n          .get();\n        uomOptions.push(res.data[0]);\n      }\n\n      console.log(\"UomOptions\", uomOptions);\n    };\n\n    const updateUomOption = async () => {\n      await processData();\n\n      this.setOptionData(\n        [`stock_movement.${rowIndex}.received_quantity_uom`],\n        uomOptions\n      );\n    };\n\n    updateUomOption();\n  } catch (error) {\n    console.error(\"Error fetching item data:\", error);\n  }\n};\n\nif (page_status === \"Add\") {\n  console.log(\"Triggering fetch Item\");\n  fetchItemData();\n}\n",
+        "func": "const allData = this.getValues();\nconst movementType = allData.movement_type;\nconst page_status = allData.page_status;\n\nconst rowIndex = arguments[0].rowIndex;\n\nconsole.log(\"Triggered JN\");\nconsole.log(\"arguments[0]\", arguments[0]);\nconsole.log(\"page_status\", page_status);\n\nconst {\n  material_desc,\n  based_uom,\n  purchase_unit_price,\n  table_uom_conversion,\n  mat_purchase_tax_id,\n  item_batch_management,\n} = arguments[0].fieldModel.item;\n\nconsole.log(\"page_status 2\", page_status);\n\nconst movementTypeCategories = {\n  \"Inter Operation Facility Transfer\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n  ],\n  \"Inter Operation Facility Transfer (Receiving)\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n  ],\n  \"Location Transfer\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n    \"Reserved\",\n  ],\n  \"Miscellaneous Issue\": [\"Unrestricted\"],\n  \"Miscellaneous Receipt\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n  \"Disposal/Scrap\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n  \"Inventory Category Transfer Posting\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n  ],\n};\n\nconst fetchItemData = async () => {\n  try {\n    if (\n      item_batch_management === 1 &&\n      movementType === \"Miscellaneous Receipt\"\n    ) {\n      this.display(\"stock_movement.batch_id\");\n    } else {\n      this.hide(\"stock_movement.batch_id\");\n    }\n\n    // Fetch and filter categories\n    const categoryObjectResponse = await db\n      .collection(\"inventory_category\")\n      .get();\n    const allowedCategories = movementTypeCategories[movementType] || [\n      \"Unrestricted\",\n    ];\n    const filteredCategories = categoryObjectResponse.data.filter((category) =>\n      allowedCategories.includes(category.inventory_category_name)\n    );\n\n    console.log(\"filteredCategories\", filteredCategories);\n\n    // Set category options\n    await this.setOptionData(\n      [`stock_movement.${rowIndex}.category`],\n      filteredCategories\n    );\n\n    await this.setData({\n      [`stock_movement.${rowIndex}.received_quantity_uom`]: based_uom,\n      [`stock_movement.${rowIndex}.unit_price`]: purchase_unit_price,\n    });\n\n    const altUoms = table_uom_conversion.map((data) => data.alt_uom_id);\n    altUoms.push(based_uom);\n\n    const uomOptions = [];\n\n    const processData = async () => {\n      for (let i = 0; i < altUoms.length; i++) {\n        const res = await db\n          .collection(\"unit_of_measurement\")\n          .where({ id: altUoms[i] })\n          .get();\n        uomOptions.push(res.data[0]);\n      }\n\n      console.log(\"UomOptions\", uomOptions);\n    };\n\n    const updateUomOption = async () => {\n      await processData();\n\n      await this.setOptionData(\n        [`stock_movement.${rowIndex}.received_quantity_uom`],\n        uomOptions\n      );\n    };\n\n    updateUomOption();\n  } catch (error) {\n    console.error(\"Error fetching item data:\", error);\n  }\n};\n\nif (page_status === \"Add\") {\n  console.log(\"Triggering fetch Item\");\n  fetchItemData();\n}\n",
         "type": "js"
       },
       {
@@ -8313,7 +8330,7 @@
       {
         "key": "ygqhd3jr",
         "name": "onClick_selectCategory",
-        "func": "(async () => {\n  const allData = this.getValues();\n  const movementType = allData.movement_type;\n  const rowIndex = arguments[0]?.rowIndex;\n  const movementTypeCategories = {\n    \"Inter Operation Facility Transfer\": [\n      {\n        value: \"Unrestricted\",\n        label: \"Unrestricted\",\n      },\n      {\n        value: \"Quality Inspection\",\n        label: \"Quality Inspection\",\n      },\n      {\n        value: \"Blocked\",\n        label: \"Blocked\",\n      },\n    ],\n    \"Inter Operation Facility Transfer (Receiving)\": [\n      {\n        value: \"Unrestricted\",\n        label: \"Unrestricted\",\n      },\n      {\n        value: \"Quality Inspection\",\n        label: \"Quality Inspection\",\n      },\n      {\n        value: \"Blocked\",\n        label: \"Blocked\",\n      },\n    ],\n    \"Location Transfer\": [\n      {\n        value: \"Unrestricted\",\n        label: \"Unrestricted\",\n      },\n      {\n        value: \"Quality Inspection\",\n        label: \"Quality Inspection\",\n      },\n      {\n        value: \"Blocked\",\n        label: \"Blocked\",\n      },\n      {\n        value: \"Reserved\",\n        label: \"Reserved\",\n      },\n    ],\n    \"Miscellaneous Issue\": [\n      {\n        value: \"Unrestricted\",\n        label: \"Unrestricted\",\n      },\n    ],\n    \"Miscellaneous Receipt\": [\n      {\n        value: \"Unrestricted\",\n        label: \"Unrestricted\",\n      },\n      {\n        value: \"Quality Inspection\",\n        label: \"Quality Inspection\",\n      },\n      {\n        value: \"Blocked\",\n        label: \"Blocked\",\n      },\n    ],\n    \"Disposal/Scrap\": [\n      {\n        value: \"Unrestricted\",\n        label: \"Unrestricted\",\n      },\n      {\n        value: \"Quality Inspection\",\n        label: \"Quality Inspection\",\n      },\n      {\n        value: \"Blocked\",\n        label: \"Blocked\",\n      },\n    ],\n    \"Inventory Category Transfer Posting\": [\n      {\n        value: \"Unrestricted\",\n        label: \"Unrestricted\",\n      },\n      {\n        value: \"Quality Inspection\",\n        label: \"Quality Inspection\",\n      },\n      {\n        value: \"Blocked\",\n        label: \"Blocked\",\n      },\n    ],\n  };\n\n  const allowedCategories = movementTypeCategories[movementType];\n\n  await this.setOptionData(\n    [`sm_item_balance.table_item_balance.${rowIndex}.category`],\n    allowedCategories\n  );\n\n  console.log(\"allowedCategories\", allowedCategories);\n})();\n",
+        "func": "(async () => {\n  const allData = this.getValues();\n  const movementType = allData.movement_type;\n  const rowIndex = arguments[0]?.rowIndex;\n  const movementTypeCategories = {\n    \"Inter Operation Facility Transfer\": [\n      \"Unrestricted\",\n      \"Quality Inspection\",\n      \"Blocked\",\n    ],\n    \"Inter Operation Facility Transfer (Receiving)\": [\n      \"Unrestricted\",\n      \"Quality Inspection\",\n      \"Blocked\",\n    ],\n    \"Location Transfer\": [\n      \"Unrestricted\",\n      \"Quality Inspection\",\n      \"Blocked\",\n      \"Reserved\",\n    ],\n    \"Miscellaneous Issue\": [\"Unrestricted\"],\n    \"Miscellaneous Receipt\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n    \"Disposal/Scrap\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n    \"Inventory Category Transfer Posting\": [\n      \"Unrestricted\",\n      \"Quality Inspection\",\n      \"Blocked\",\n    ],\n  };\n\n  const categoryObjectResponse = await db\n    .collection(\"inventory_category\")\n    .get();\n  const allowedCategories = movementTypeCategories[movementType] || [\n    \"Unrestricted\",\n  ];\n  const filteredCategories = categoryObjectResponse.data.filter((category) =>\n    allowedCategories.includes(category.inventory_category_name)\n  );\n\n  await this.setOptionData(\n    [`sm_item_balance.table_item_balance.${rowIndex}.category`],\n    filteredCategories\n  );\n})();\n",
         "type": "js"
       },
       {
@@ -8400,6 +8417,12 @@
       {
         "key": "qx2wq86n",
         "name": "onChange_qx2wq86n",
+        "func": "",
+        "type": "rule"
+      },
+      {
+        "key": "mtwvoslq",
+        "name": "onChange_mtwvoslq",
         "func": "",
         "type": "rule"
       }
