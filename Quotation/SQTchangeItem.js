@@ -47,7 +47,9 @@ updateUomOption();
 const taxPercent = arguments[0]?.fieldModel?.item?.sales_tax_percent || null;
 
 if (taxPercent) {
-  this.setData({
-    [`table_sqt.${rowIndex}.sqt_tax_rate_percent`]: taxPercent,
-  });
+  setTimeout(() => {
+    this.setData({
+      [`table_sqt.${rowIndex}.sqt_tax_rate_percent`]: taxPercent,
+    });
+  }, 1000);
 }

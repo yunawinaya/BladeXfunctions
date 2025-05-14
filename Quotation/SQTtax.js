@@ -12,6 +12,10 @@ const taxRatePercent = await db
       }
 
       console.log("taxRateOptions", taxRateOptions);
+
+      await this.setData({
+        [`table_sqt.${arguments[0].rowIndex}.sqt_tax_rate_percent`]: undefined,
+      });
       await this.setOptionData(
         [`table_sqt.${arguments[0].rowIndex}.sqt_tax_rate_percent`],
         taxRateOptions

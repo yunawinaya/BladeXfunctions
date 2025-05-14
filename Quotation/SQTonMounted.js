@@ -215,10 +215,6 @@ const displayCurrency = async () => {
 
     const sqtCustomer = this.getValue("sqt_customer_id");
 
-    if (sqtCustomer) {
-      this.display("address_grid");
-    }
-
     switch (pageStatus) {
       case "Add":
         this.display(["draft_status"]);
@@ -226,6 +222,9 @@ const displayCurrency = async () => {
         break;
 
       case "Edit":
+        if (sqtCustomer) {
+          this.display("address_grid");
+        }
         await getPrefixData(organizationId);
         await showStatusHTML(status);
         await displayDeliveryMethod();
@@ -235,11 +234,17 @@ const displayCurrency = async () => {
         break;
 
       case "Clone":
+        if (sqtCustomer) {
+          this.display("address_grid");
+        }
         this.display(["draft_status"]);
         await setPrefix(organizationId);
         break;
 
       case "View":
+        if (sqtCustomer) {
+          this.display("address_grid");
+        }
         this.hide([
           "link_billing_address",
           "link_shipping_address",

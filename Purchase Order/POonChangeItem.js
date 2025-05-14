@@ -1,4 +1,3 @@
-console.log("JN", arguments[0]);
 const rowIndex = arguments[0].rowIndex;
 
 const {
@@ -9,13 +8,12 @@ const {
   mat_purchase_tax_id,
 } = arguments[0].fieldModel.item;
 
-this.setData({ [`table_po.${rowIndex}.item_desc`]: material_desc });
-
-this.setData({ [`table_po.${rowIndex}.quantity_uom`]: based_uom });
-
-this.setData({ [`table_po.${rowIndex}.unit_price`]: purchase_unit_price });
-
-this.setData({ [`table_po.${rowIndex}.tax_preference`]: mat_purchase_tax_id });
+this.setData({
+  [`table_po.${rowIndex}.item_desc`]: material_desc,
+  [`table_po.${rowIndex}.quantity_uom`]: based_uom,
+  [`table_po.${rowIndex}.unit_price`]: purchase_unit_price,
+  [`table_po.${rowIndex}.tax_preference`]: mat_purchase_tax_id,
+});
 
 const altUoms = table_uom_conversion.map((data) => data.alt_uom_id);
 altUoms.push(based_uom);
@@ -43,17 +41,7 @@ updateUomOption();
 const taxPercent = arguments[0]?.fieldModel?.item?.purchase_tax_percent || null;
 
 if (taxPercent) {
-  db.collection("tax_rate_percent")
-    .where({ id: taxPercent })
-    .get()
-    .then((resTAX) => {
-      console.log("taxPercent", resTAX);
-
-      this.setData({
-        [`table_po.${rowIndex}.tax_rate_percent`]:
-          resTAX.data[0].tax_rate_percent,
-      });
-
-      console.log("tax", resTAX.data[0].tax_rate_percent);
-    });
+  setTimeout(() => {
+    this.setData({ [`table_po.${rowIndex}.tax_rate_percent`]: taxPercent });
+  }, 1000);
 }

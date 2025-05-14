@@ -9,6 +9,7 @@ const organization_id = organizationId;
 this.setData({ plant_id: plant_id, organization_id: organization_id });
 const data = this.getValues();
 const salesOrderId = data.so_id;
+console.log("data", data);
 console.log("salesorderid", salesOrderId);
 
 const savedTableGd = data.table_gd || [];
@@ -22,7 +23,8 @@ const isSOUnchanged =
   salesOrderId === newSoId &&
   savedTableGd.length > 0;
 
-if (salesOrderId) {
+if (salesOrderId && !Array.isArray(salesOrderId)) {
+  console.log("Triggering address_grid", salesOrderId);
   this.display("address_grid");
   const resetFormFields = () => {
     this.setData({

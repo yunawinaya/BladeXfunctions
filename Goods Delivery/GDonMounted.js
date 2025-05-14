@@ -136,12 +136,13 @@ const disableTableRows = () => {
     this.setData({ page_status: pageStatus });
 
     const salesOrderId = this.getValue("so_id");
-    if (salesOrderId) {
-      await this.setData({ so_id: undefined });
-      await this.setData({ so_id: salesOrderId });
-    }
+    console.log("salesOrderId JN", salesOrderId);
 
     if (pageStatus !== "Add") {
+      console.log("salesOrderId JN 2", salesOrderId);
+      if (salesOrderId) {
+        await this.display(["address_grid"]);
+      }
       // Handle Edit/View/Clone modes
       const goodsDeliveryId = data.id;
       const resGD = await db
