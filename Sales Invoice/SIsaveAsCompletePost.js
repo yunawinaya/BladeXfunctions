@@ -1,38 +1,49 @@
+// Store reference to this for consistent context
+const self = this;
+
 const closeDialog = () => {
-  if (this.parentGenerateForm) {
-    this.parentGenerateForm.$refs.SuPageDialogRef.hide();
-    this.parentGenerateForm.refresh();
-    this.hideLoading();
+  if (self.parentGenerateForm) {
+    self.parentGenerateForm.$refs.SuPageDialogRef.hide();
+    self.parentGenerateForm.refresh();
+    self.hideLoading();
   }
 };
 
 const updateSalesOrderStatus = async (salesInvoiceId) => {
-  const currentSIQuery = await db
-    .collection("sales_invoice")
-    .where({ id: salesInvoiceId })
-    .get();
+  try {
+    const currentSIQuery = await db
+      .collection("sales_invoice")
+      .where({ id: salesInvoiceId })
+      .get();
 
-  const currentSI = currentSIQuery.data[0];
+    if (!currentSIQuery.data || currentSIQuery.data.length === 0) {
+      console.error("Sales invoice not found:", salesInvoiceId);
+      return;
+    }
 
-  const completedQuery = db
-    .collection("sales_invoice")
-    .where({ si_status: "Completed", so_id: currentSI.so_id });
+    const currentSI = currentSIQuery.data[0];
 
-  const fullyPostedQuery = db
-    .collection("sales_invoice")
-    .where({ si_status: "Fully Posted", so_id: currentSI.so_id });
+    const [resComp, resPost, resSO] = await Promise.all([
+      db
+        .collection("sales_invoice")
+        .where({ si_status: "Completed", so_id: currentSI.so_id })
+        .get(),
+      db
+        .collection("sales_invoice")
+        .where({ si_status: "Fully Posted", so_id: currentSI.so_id })
+        .get(),
+      db.collection("sales_order").where({ id: currentSI.so_id }).get(),
+    ]);
 
-  Promise.all([
-    completedQuery.get(),
-    fullyPostedQuery.get(),
-    db.collection("sales_order").where({ id: currentSI.so_id }).get(),
-  ]).then(([resComp, resPost, resSO]) => {
-    const allSIs = [...resComp.data, ...resPost.data] || [];
+    const allSIs = [...(resComp.data || []), ...(resPost.data || [])] || [];
     const postSIs = resPost.data || [];
+
+    if (!resSO.data || resSO.data.length === 0) {
+      console.error("Sales order not found for SO ID:", currentSI.so_id);
+      return;
+    }
+
     const soData = resSO.data[0];
-
-    if (!soData) return;
-
     const soItems = soData.table_so || [];
 
     // Create a map to sum received quantities for each item
@@ -45,7 +56,7 @@ const updateSalesOrderStatus = async (salesInvoiceId) => {
       postedQtyMap[item.item_name] = 0;
     });
 
-    // Sum received quantities from all PIs
+    // Sum received quantities from all SIs
     allSIs.forEach((si) => {
       (si.table_si || []).forEach((siItem) => {
         if (invoicedQtyMap.hasOwnProperty(siItem.material_id)) {
@@ -71,6 +82,7 @@ const updateSalesOrderStatus = async (salesInvoiceId) => {
       const orderedQty = item.so_quantity || 0;
       const invoicedQty = invoicedQtyMap[item.item_name] || 0;
       const postedQty = postedQtyMap[item.item_name] || 0;
+
       if (invoicedQty < orderedQty) {
         allItemsComplete = false;
         if (invoicedQty > 0) {
@@ -119,18 +131,29 @@ const updateSalesOrderStatus = async (salesInvoiceId) => {
       );
     }
 
-    // Update GRs
-    currentSI.goods_delivery_number.forEach((gd) => {
-      updates.push(
+    // Update GDs - Only if they exist
+    if (
+      currentSI.goods_delivery_number &&
+      Array.isArray(currentSI.goods_delivery_number)
+    ) {
+      const gdUpdates = currentSI.goods_delivery_number.map((gd) =>
         db
           .collection("goods_delivery")
           .doc(gd)
           .update({ si_status: "Fully Invoiced" })
       );
-    });
+      updates.push(...gdUpdates);
+    }
 
-    return Promise.all(updates);
-  });
+    if (updates.length > 0) {
+      return Promise.all(updates);
+    }
+
+    return Promise.resolve(); // Return resolved promise if no updates needed
+  } catch (error) {
+    console.error("Error in updateSalesOrderStatus:", error);
+    return Promise.reject(error);
+  }
 };
 
 const validateForm = (data, requiredFields) => {
@@ -185,19 +208,26 @@ const validateField = (value, field) => {
 };
 
 const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Sales Invoices",
-      is_deleted: 0,
-      organization_id: organizationId,
-      is_active: 1,
-    })
-    .get();
+  try {
+    const prefixEntry = await db
+      .collection("prefix_configuration")
+      .where({
+        document_types: "Sales Invoices",
+        is_deleted: 0,
+        organization_id: organizationId,
+        is_active: 1,
+      })
+      .get();
 
-  const prefixData = await prefixEntry.data[0];
+    if (!prefixEntry.data || prefixEntry.data.length === 0) {
+      throw new Error("No prefix configuration found for organization");
+    }
 
-  return prefixData;
+    return prefixEntry.data[0];
+  } catch (error) {
+    console.error("Error fetching prefix data:", error);
+    throw error;
+  }
 };
 
 const updatePrefix = async (organizationId, runningNumber) => {
@@ -211,7 +241,9 @@ const updatePrefix = async (organizationId, runningNumber) => {
       })
       .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
   } catch (error) {
-    this.$message.error(error);
+    console.error("Error updating prefix:", error);
+    self.$message.error("Failed to update prefix: " + error.message);
+    throw error;
   }
 };
 
@@ -237,7 +269,7 @@ const checkUniqueness = async (generatedPrefix) => {
     .collection("sales_invoice")
     .where({ sales_invoice_no: generatedPrefix })
     .get();
-  return existingDoc.data[0] ? false : true;
+  return !existingDoc.data || existingDoc.data.length === 0;
 };
 
 const findUniquePrefix = async (prefixData) => {
@@ -250,7 +282,7 @@ const findUniquePrefix = async (prefixData) => {
 
   while (!isUnique && attempts < maxAttempts) {
     attempts++;
-    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
+    prefixToShow = generatePrefix(runningNumber, now, prefixData);
     isUnique = await checkUniqueness(prefixToShow);
     if (!isUnique) {
       runningNumber++;
@@ -258,7 +290,7 @@ const findUniquePrefix = async (prefixData) => {
   }
 
   if (!isUnique) {
-    this.$message.error(
+    throw new Error(
       "Could not generate a unique Sales Invoices number after maximum attempts"
     );
   }
@@ -269,109 +301,165 @@ const findUniquePrefix = async (prefixData) => {
 const addEntry = async (organizationId, entry) => {
   try {
     const prefixData = await getPrefixData(organizationId);
-    if (prefixData.length !== 0) {
-      await updatePrefix(organizationId, prefixData.running_number);
-      await db
-        .collection("sales_invoice")
-        .add(entry)
-        .then(() => {
-          this.runWorkflow(
-            "1917950696199892993",
-            { sales_invoice_no: entry.sales_invoice_no },
-            async (res) => {
-              console.log("成功结果：", res);
-            },
-            (err) => {
-              alert();
-              console.error("失败结果：", err);
-              closeDialog();
-            }
-          );
-        });
-      await this.runWorkflow(
-        "1902567975299432449",
-        { key: "value" },
-        (res) => {
-          console.log("成功结果：", res);
-          const siList = res.data.result;
 
-          siList.forEach(async (si) => {
-            if (si.status === "SUCCESS") {
-              await updateSalesOrderStatus(si.id);
-              this.$message.success("Add successfully");
-              closeDialog();
-            }
-          });
+    if (!prefixData || !prefixData.id) {
+      throw new Error("Invalid prefix configuration");
+    }
+
+    const { prefixToShow, runningNumber } = await findUniquePrefix(prefixData);
+
+    // Set the generated prefix
+    entry.sales_invoice_no = prefixToShow;
+
+    // Transaction-like approach to ensure data consistency
+    await updatePrefix(organizationId, runningNumber);
+
+    const addResult = await db.collection("sales_invoice").add(entry);
+
+    // Run workflow for the newly added invoice
+    await new Promise((resolve, reject) => {
+      self.runWorkflow(
+        "1917950696199892993",
+        { sales_invoice_no: entry.sales_invoice_no },
+        (res) => {
+          console.log("Workflow 1 completed successfully:", res);
+          resolve(res);
         },
         (err) => {
-          console.error("失败结果：", err);
+          console.error("Workflow 1 failed:", err);
+          self.$message.error(
+            "Workflow execution failed: " + (err.message || "Unknown error")
+          );
+          reject(err);
         }
       );
-    }
+    });
+
+    // Run second workflow
+    await new Promise((resolve, reject) => {
+      self.runWorkflow(
+        "1902567975299432449",
+        { key: "value" },
+        async (res) => {
+          console.log("Workflow 2 completed successfully:", res);
+
+          const siList = res.data.result || [];
+
+          // Process all successful SIs in parallel
+          try {
+            await Promise.all(
+              siList
+                .filter((si) => si.status === "SUCCESS")
+                .map((si) => updateSalesOrderStatus(si.id))
+            );
+
+            self.$message.success("Add successfully");
+            closeDialog();
+            resolve(res);
+          } catch (updateError) {
+            console.error("Error updating sales order status:", updateError);
+            self.$message.error(
+              "Add successful but failed to update related records"
+            );
+            closeDialog();
+            resolve(res); // Still resolve since the add was successful
+          }
+        },
+        (err) => {
+          console.error("Workflow 2 failed:", err);
+          self.$message.error(
+            "Workflow execution failed: " + (err.message || "Unknown error")
+          );
+          reject(err);
+        }
+      );
+    });
   } catch (error) {
-    this.$message.error(error);
+    console.error("Error in addEntry:", error);
+    self.$message.error(error.message || "Failed to add Sales Invoice");
+    self.hideLoading();
+    throw error;
   }
 };
 
 const updateEntry = async (organizationId, entry, salesInvoiceId) => {
   try {
-    const prefixData = await getPrefixData(organizationId);
+    // For updates, we should use the existing sales_invoice_no
+    // No need to generate a new one unless specifically requested
 
-    if (prefixData.length !== 0) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData
-      );
+    await db.collection("sales_invoice").doc(salesInvoiceId).update(entry);
 
-      await updatePrefix(organizationId, runningNumber);
-
-      entry.sales_invoice_no = prefixToShow;
-      await db
-        .collection("sales_invoice")
-        .doc(salesInvoiceId)
-        .update(entry)
-        .then(() => {
-          this.runWorkflow(
-            "1917950696199892993",
-            { sales_invoice_no: entry.sales_invoice_no },
-            async (res) => {
-              console.log("成功结果：", res);
-            },
-            (err) => {
-              alert();
-              console.error("失败结果：", err);
-              closeDialog();
-            }
-          );
-        });
-      await this.runWorkflow(
-        "1902567975299432449",
-        { key: "value" },
+    // Run first workflow
+    await new Promise((resolve, reject) => {
+      self.runWorkflow(
+        "1917950696199892993",
+        { sales_invoice_no: entry.sales_invoice_no },
         (res) => {
-          console.log("成功结果：", res);
-          const siList = res.data.result;
-
-          siList.forEach(async (si) => {
-            if (si.status === "SUCCESS") {
-              await updateSalesOrderStatus(si.id);
-              this.$message.success("Update successfully");
-              closeDialog();
-            }
-          });
+          console.log("Workflow 1 completed successfully:", res);
+          resolve(res);
         },
         (err) => {
-          console.error("失败结果：", err);
+          console.error("Workflow 1 failed:", err);
+          self.$message.error(
+            "Workflow execution failed: " + (err.message || "Unknown error")
+          );
+          reject(err);
         }
       );
-    }
+    });
+
+    // Run second workflow
+    await new Promise((resolve, reject) => {
+      self.runWorkflow(
+        "1902567975299432449",
+        { key: "value" },
+        async (res) => {
+          console.log("Workflow 2 completed successfully:", res);
+
+          const siList = res.data.result || [];
+
+          // Process all successful SIs in parallel
+          try {
+            await Promise.all(
+              siList
+                .filter((si) => si.status === "SUCCESS")
+                .map((si) => updateSalesOrderStatus(si.id))
+            );
+
+            self.$message.success("Update successfully");
+            closeDialog();
+            resolve(res);
+          } catch (updateError) {
+            console.error("Error updating sales order status:", updateError);
+            self.$message.error(
+              "Update successful but failed to update related records"
+            );
+            closeDialog();
+            resolve(res); // Still resolve since the update was successful
+          }
+        },
+        (err) => {
+          console.error("Workflow 2 failed:", err);
+          self.$message.error(
+            "Workflow execution failed: " + (err.message || "Unknown error")
+          );
+          reject(err);
+        }
+      );
+    });
   } catch (error) {
-    this.$message.error(error);
+    console.error("Error in updateEntry:", error);
+    self.$message.error(error.message || "Failed to update Sales Invoice");
+    self.hideLoading();
+    throw error;
   }
 };
 
+// Main execution
 (async () => {
   try {
-    const data = this.getValues();
-    this.showLoading();
+    const data = self.getValues();
+    self.showLoading();
 
     const requiredFields = [
       { name: "so_id", label: "SO Number" },
@@ -388,14 +476,18 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
       },
     ];
 
-    const missingFields = await validateForm(data, requiredFields);
+    const missingFields = validateForm(data, requiredFields);
 
     if (missingFields.length === 0) {
-      const page_status = this.getValue("page_status");
+      const page_status = self.getValue("page_status");
 
-      let organizationId = this.getVarGlobal("deptParentId");
-      if (organizationId === "0") {
-        organizationId = this.getVarSystem("deptIds").split(",")[0];
+      let organizationId = self.getVarGlobal("deptParentId");
+      if (!organizationId || organizationId === "0") {
+        const deptIds = self.getVarSystem("deptIds");
+        if (!deptIds) {
+          throw new Error("No valid department ID found");
+        }
+        organizationId = deptIds.split(",")[0];
       }
 
       const {
@@ -493,15 +585,21 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
       if (page_status === "Add") {
         await addEntry(organizationId, entry);
       } else if (page_status === "Edit") {
-        const salesInvoiceId = this.getValue("id");
+        const salesInvoiceId = self.getValue("id");
+        if (!salesInvoiceId) {
+          throw new Error("Sales Invoice ID is required for editing");
+        }
         await updateEntry(organizationId, entry, salesInvoiceId);
+      } else {
+        throw new Error("Unknown page status: " + page_status);
       }
     } else {
-      this.hideLoading();
-      this.$message.error(`Missing fields: ${missingFields.join(", ")}`);
+      self.hideLoading();
+      self.$message.error(`Missing fields: ${missingFields.join(", ")}`);
     }
   } catch (error) {
-    this.hideLoading();
-    this.$message.error(error);
+    console.error("Main execution error:", error);
+    self.hideLoading();
+    self.$message.error(error.message || "An unexpected error occurred");
   }
 })();
