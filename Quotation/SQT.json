@@ -563,45 +563,30 @@
                   "list": [
                     {
                       "name": "Customer Name",
-                      "type": "select",
-                      "mainIcon": "下拉单选",
-                      "typeIcon": "下拉单选",
-                      "icon": "icon-select",
+                      "el": "su-fm-table-select",
+                      "mainIcon": "数据源",
+                      "typeIcon": "数据源",
                       "group": "Select",
-                      "groupSort": 2,
+                      "groupSort": 4,
+                      "generate": "part",
                       "enableScopes": ["Component", "Table", "Page"],
-                      "el": "fm-select",
                       "options": {
-                        "defaultValue": "",
-                        "multiple": false,
+                        "defaultValue": [],
+                        "customClass": "",
+                        "labelWidth": 160,
+                        "isLabelWidth": true,
+                        "hidden": false,
                         "disabled": false,
-                        "clearable": false,
-                        "placeholder": "",
+                        "dataBind": true,
                         "required": true,
-                        "requiredMessage": "",
-                        "validatorCheck": false,
                         "validator": "",
-                        "width": "",
-                        "options": [
-                          {
-                            "value": "Option 1",
-                            "label": "Option 1"
-                          },
-                          {
-                            "value": "Option 2",
-                            "label": "Option 2"
-                          },
-                          {
-                            "value": "Option 3",
-                            "label": "Option 3"
-                          }
-                        ],
-                        "remote": true,
-                        "remoteType": "innerdatasource",
-                        "remoteOption": "option_kqgbphol",
-                        "filterable": true,
+                        "hideLabel": false,
+                        "pageSourceId": "1922487708819070977",
+                        "customProps": {},
                         "pagingEnabled": true,
-                        "remoteOptions": [],
+                        "multiple": false,
+                        "placeholder": "",
+                        "lazyLoad": true,
                         "props": {
                           "value": "id",
                           "label": "customer_com_name",
@@ -610,28 +595,14 @@
                           "image": "",
                           "icon": ""
                         },
-                        "remoteFunc": "func_kqgbphol",
-                        "customClass": "",
-                        "labelWidth": 160,
-                        "isLabelWidth": true,
-                        "hidden": false,
-                        "dataBind": true,
-                        "customProps": {},
-                        "tip": "",
-                        "tableColumn": false,
-                        "subform": false,
-                        "paging_enabled": 1,
-                        "paging_way": "Pagination",
-                        "page_size": 10,
-                        "more_fields": [],
                         "datasource": {
                           "source": "Customer:Table:1902779099617804290",
                           "rules": {
                             "collectionId": "1902779099617804290",
                             "list": [
                               {
-                                "id": 1746160335297,
-                                "parentId": 1746160335298,
+                                "id": 1747195765862,
+                                "parentId": 1747195765863,
                                 "isTop": true,
                                 "type": "branch",
                                 "operator": "all",
@@ -641,8 +612,8 @@
                                 "level": 1,
                                 "children": [
                                   {
-                                    "id": 1746093060982,
-                                    "parentId": 1746160335297,
+                                    "id": 1747195593493,
+                                    "parentId": 1747195765862,
                                     "isTop": false,
                                     "prop": "customer_status",
                                     "operator": "equal",
@@ -656,16 +627,16 @@
                                     "valueTypeLabel": "值"
                                   },
                                   {
-                                    "id": 1746160335300,
+                                    "id": 1747195765865,
                                     "isTop": false,
-                                    "parentId": 1746160335297,
+                                    "parentId": 1747195765862,
                                     "type": "branch",
                                     "operator": "any",
                                     "level": 2,
                                     "children": [
                                       {
-                                        "id": 1746160335299,
-                                        "parentId": 1746160335300,
+                                        "id": 1747195765864,
+                                        "parentId": 1747195765865,
                                         "isTop": false,
                                         "prop": "organization_id",
                                         "operator": "equal",
@@ -679,8 +650,8 @@
                                         "valueTypeLabel": "字段"
                                       },
                                       {
-                                        "id": 1746160335301,
-                                        "parentId": 1746160335300,
+                                        "id": 1747195765866,
+                                        "parentId": 1747195765865,
                                         "isTop": false,
                                         "prop": "organization_id",
                                         "operator": "equal",
@@ -691,15 +662,90 @@
                                         "propLabel": "Organization",
                                         "valueLabel": "",
                                         "operatorLabel": "等于",
-                                        "valueTypeLabel": "字段"
+                                        "valueTypeLabel": "值"
                                       }
                                     ]
                                   }
                                 ]
                               }
                             ]
-                          }
+                          },
+                          "paging_enabled": 0,
+                          "paging_way": "Pagination",
+                          "page_size": 10,
+                          "more_fields": [],
+                          "datasource": {
+                            "source": null,
+                            "rules": {
+                              "collectionId": "",
+                              "list": [
+                                {
+                                  "id": 1723795236686,
+                                  "parentId": 1723795236685,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            }
+                          },
+                          "url_params": {
+                            "list": [
+                              {
+                                "prop": "",
+                                "propLabel": "",
+                                "operator": "",
+                                "operatorLabel": "",
+                                "valueType": "value",
+                                "valueTypeLabel": "",
+                                "value": null,
+                                "valueLabel": ""
+                              }
+                            ]
+                          },
+                          "body_params": {
+                            "list": [
+                              {
+                                "prop": "",
+                                "propLabel": "",
+                                "operator": "",
+                                "operatorLabel": "",
+                                "valueType": "value",
+                                "valueTypeLabel": "",
+                                "value": null,
+                                "valueLabel": ""
+                              }
+                            ]
+                          },
+                          "request_params": {
+                            "list": [
+                              {
+                                "prop": "",
+                                "propLabel": "",
+                                "operator": "",
+                                "operatorLabel": "",
+                                "valueType": "value",
+                                "valueTypeLabel": "",
+                                "value": null,
+                                "valueLabel": ""
+                              }
+                            ]
+                          },
+                          "remote": false,
+                          "remoteType": "datasource"
                         },
+                        "remoteFunc": "func_v3pg6u5v",
+                        "remoteOption": "option_v3pg6u5v",
+                        "tableColumn": false,
+                        "subform": false,
+                        "paging_enabled": 1,
+                        "paging_way": "Pagination",
+                        "page_size": 10,
+                        "more_fields": [],
                         "url_params": {
                           "list": [
                             {
@@ -741,15 +787,28 @@
                               "valueLabel": ""
                             }
                           ]
-                        }
+                        },
+                        "columns": [
+                          {
+                            "title": "Customer Name",
+                            "name": "customer_com_name"
+                          },
+                          {
+                            "title": "Customer Code",
+                            "name": "customer_id"
+                          }
+                        ],
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "labelBold": false,
+                        "pageId": "1922487708852625412"
                       },
                       "events": {
-                        "onChange": "kf63jtko",
-                        "onFocus": "",
-                        "onBlur": ""
+                        "onChange": "kf63jtko"
                       },
+                      "type": "custom",
                       "novalid": {},
-                      "key": "kqgbphol",
+                      "key": "v3pg6u5v",
                       "model": "sqt_customer_id",
                       "rules": [
                         {
@@ -5112,30 +5171,25 @@
               {
                 "value": "%",
                 "label": "%",
-                "image": [],
-                "icon": ""
+                "image": []
               },
               {
                 "value": "Amount",
                 "label": "Amount",
-                "image": [],
-                "icon": ""
+                "image": []
               }
             ],
             "remote": false,
             "remoteType": "datasource",
-            "remoteOption": "option_cq82f4ne",
+            "remoteOption": "option_0xjb75r8",
             "filterable": true,
+            "pagingEnabled": true,
             "remoteOptions": [],
             "props": {
-              "value": "id",
-              "label": "uom_name",
-              "cascade": "",
-              "children": "",
-              "image": "",
-              "icon": ""
+              "value": "value",
+              "label": "label"
             },
-            "remoteFunc": "func_cq82f4ne",
+            "remoteFunc": "func_0xjb75r8",
             "customClass": "",
             "labelWidth": 100,
             "isLabelWidth": false,
@@ -5145,6 +5199,10 @@
             "tip": "",
             "tableColumn": true,
             "subform": false,
+            "paging_enabled": 0,
+            "paging_way": "Pagination",
+            "page_size": 10,
+            "more_fields": [],
             "datasource": {
               "source": "static",
               "rules": {
@@ -5154,16 +5212,12 @@
                     "id": 1723795236686,
                     "parentId": 1723795236685,
                     "isTop": true,
-                    "prop": "uom_type",
-                    "operator": "equal",
-                    "valueType": "value",
-                    "value": "Discount",
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
                     "type": "leaf",
-                    "level": 1,
-                    "propLabel": "UOM Type",
-                    "valueLabel": "",
-                    "operatorLabel": "等于",
-                    "valueTypeLabel": "值"
+                    "level": 1
                   }
                 ]
               }
@@ -5209,11 +5263,7 @@
                   "valueLabel": ""
                 }
               ]
-            },
-            "paging_enabled": 0,
-            "paging_way": "Pagination",
-            "page_size": 10,
-            "more_fields": []
+            }
           },
           "events": {
             "onChange": "md9wc9pm",
@@ -5221,7 +5271,7 @@
             "onBlur": ""
           },
           "novalid": {},
-          "key": "cq82f4ne",
+          "key": "0xjb75r8",
           "model": "sqt_discount_uom_id",
           "rules": []
         },
@@ -8467,7 +8517,7 @@
       {
         "key": "k093yz5r",
         "name": "onChange_Item",
-        "func": "const rowIndex = arguments[0].rowIndex;\n\nconst {\n  material_desc,\n  based_uom,\n  sales_unit_price,\n  table_uom_conversion,\n  mat_sales_tax_id,\n} = arguments[0].fieldModel.item;\n\nthis.setData({ [`table_sqt.${rowIndex}.sqt_desc`]: material_desc });\n\nthis.setData({ [`table_sqt.${rowIndex}.sqt_order_uom_id`]: based_uom });\n\nthis.setData({ [`table_sqt.${rowIndex}.unit_price`]: sales_unit_price });\n\nconsole.log(\"mat_sales_tax_id JN\", mat_sales_tax_id);\nif (mat_sales_tax_id) {\n  this.setData({\n    [`table_sqt.${rowIndex}.sqt_taxes_rate_id`]: mat_sales_tax_id,\n  });\n}\n\nconst altUoms = table_uom_conversion.map((data) => data.alt_uom_id);\naltUoms.push(based_uom);\n\nconst uomOptions = [];\n\nconst processData = async () => {\n  for (let i = 0; i < altUoms.length; i++) {\n    const res = await db\n      .collection(\"unit_of_measurement\")\n      .where({ id: altUoms[i] })\n      .get();\n    uomOptions.push(res.data[0]);\n  }\n};\n\nconst updateUomOption = async () => {\n  await processData();\n\n  this.setOptionData([`table_sqt.${rowIndex}.sqt_order_uom_id`], uomOptions);\n};\n\nupdateUomOption();\n\nconst taxPercent = arguments[0]?.fieldModel?.item?.sales_tax_percent || null;\n\nif (taxPercent) {\n  db.collection(\"tax_rate_percent\")\n    .where({ id: taxPercent })\n    .get()\n    .then((resTAX) => {\n      console.log(\"taxPercent\", resTAX);\n\n      this.setData({\n        [`table_sqt.${rowIndex}.sqt_tax_rate_percent`]:\n          resTAX.data[0].tax_rate_percent,\n      });\n    });\n}\n",
+        "func": "const rowIndex = arguments[0].rowIndex;\n\nconst {\n  material_desc,\n  based_uom,\n  sales_unit_price,\n  table_uom_conversion,\n  mat_sales_tax_id,\n} = arguments[0].fieldModel.item;\n\nthis.setData({ [`table_sqt.${rowIndex}.sqt_desc`]: material_desc });\n\nthis.setData({ [`table_sqt.${rowIndex}.sqt_order_uom_id`]: based_uom });\n\nthis.setData({ [`table_sqt.${rowIndex}.unit_price`]: sales_unit_price });\n\nconsole.log(\"mat_sales_tax_id JN\", mat_sales_tax_id);\nif (mat_sales_tax_id) {\n  this.setData({\n    [`table_sqt.${rowIndex}.sqt_taxes_rate_id`]: mat_sales_tax_id,\n  });\n}\n\nconst altUoms = table_uom_conversion.map((data) => data.alt_uom_id);\naltUoms.push(based_uom);\n\nconst uomOptions = [];\n\nconst processData = async () => {\n  for (let i = 0; i < altUoms.length; i++) {\n    const res = await db\n      .collection(\"unit_of_measurement\")\n      .where({ id: altUoms[i] })\n      .get();\n    uomOptions.push(res.data[0]);\n  }\n};\n\nconst updateUomOption = async () => {\n  await processData();\n\n  this.setOptionData([`table_sqt.${rowIndex}.sqt_order_uom_id`], uomOptions);\n};\n\nupdateUomOption();\n\nconst taxPercent = arguments[0]?.fieldModel?.item?.sales_tax_percent || null;\n\nif (taxPercent) {\n  this.setData({\n    [`table_sqt.${rowIndex}.sqt_tax_rate_percent`]: taxPercent,\n  });\n}\n",
         "type": "js"
       },
       {
@@ -8542,6 +8592,18 @@
       {
         "key": "ouunfj06",
         "name": "onChange_ouunfj06",
+        "func": "",
+        "type": "rule"
+      },
+      {
+        "key": "wiawdabg",
+        "name": "onChange_wiawdabg",
+        "func": "",
+        "type": "rule"
+      },
+      {
+        "key": "nsxw934n",
+        "name": "onChange_nsxw934n",
         "func": "",
         "type": "rule"
       }
