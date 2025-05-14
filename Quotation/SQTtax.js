@@ -8,10 +8,7 @@ const taxRatePercent = await db
     if (taxRatePercent.data.length > 0) {
       const taxRateOptions = [];
       for (let i = 0; i < taxRatePercent.data.length; i++) {
-        taxRateOptions.push({
-          value: taxRatePercent.data[i].tax_rate_percent,
-          label: taxRatePercent.data[i].tax_rate_percent,
-        });
+        taxRateOptions.push(taxRatePercent.data[i]);
       }
 
       console.log("taxRateOptions", taxRateOptions);
