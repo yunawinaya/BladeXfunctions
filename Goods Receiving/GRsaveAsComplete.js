@@ -33,7 +33,7 @@ const addInventory = (data, plantId, organizationId) => {
         !item.item_id ||
         !item.received_qty ||
         isNaN(parseFloat(item.received_qty)) ||
-        parseFloat(item.received_qty) <= 0
+        parseFloat(item.received_qty) < 0
       ) {
         console.error(`Invalid item data for index ${itemIndex}:`, item);
         resolve();
@@ -699,9 +699,7 @@ const addInventory = (data, plantId, organizationId) => {
 // Enhanced PO status update with proper error handling
 const updatePurchaseOrderStatus = async (purchaseOrderId) => {
   try {
-    // Store original PO status for potential rollback
-    let poDoc = null;
-
+    // Fetch purchase order and related goods receiving documents in parallel
     const [resGR, resPO] = await Promise.all([
       db
         .collection("goods_receiving")
@@ -710,39 +708,57 @@ const updatePurchaseOrderStatus = async (purchaseOrderId) => {
       db.collection("purchase_order").where({ id: purchaseOrderId }).get(),
     ]);
 
+    // Validate purchase order exists
+    if (!resPO.data || !resPO.data.length) {
+      console.warn(`Purchase order ${purchaseOrderId} not found`);
+      return;
+    }
+
+    const poDoc = resPO.data[0];
+    const originalPOStatus = poDoc.po_status;
+    const poItems = poDoc.table_po || [];
+
+    // Validate PO has items
+    if (!poItems.length) {
+      console.warn(`No items found in purchase order ${purchaseOrderId}`);
+      return;
+    }
+
     const allGRs = resGR.data || [];
 
-    if (!resPO.data || !resPO.data.length) {
-      console.log(`Purchase order ${purchaseOrderId} not found`);
-      return;
-    }
-
-    poDoc = resPO.data[0];
-    const originalPOStatus = poDoc.po_status;
-
-    const poItems = poDoc.table_po || [];
-    if (!poItems.length) {
-      console.log(`No items found in purchase order ${purchaseOrderId}`);
-      return;
-    }
-
-    // Create a map to sum received quantities for each item
+    // Initialize tracking objects
     const receivedQtyMap = {};
+    let totalOrderedQty = 0;
+    let totalReceivedQty = 0;
 
-    // Initialize with zeros
+    // Create a copy of the PO items to update later
+    const updatedPoItems = JSON.parse(JSON.stringify(poItems));
+
+    // Initialize with zeros and calculate total ordered quantity
     poItems.forEach((item) => {
-      receivedQtyMap[item.item_id] = 0;
+      const itemId = item.item_id;
+      const orderedQty = parseFloat(item.quantity || 0);
+
+      receivedQtyMap[itemId] = 0;
+      totalOrderedQty += orderedQty;
     });
 
     // Sum received quantities from all GRs
     allGRs.forEach((gr) => {
       (gr.table_gr || []).forEach((grItem) => {
-        if (receivedQtyMap.hasOwnProperty(grItem.item_id)) {
-          receivedQtyMap[grItem.item_id] += parseFloat(
-            grItem.received_qty || 0
-          );
+        const itemId = grItem.item_id;
+        if (receivedQtyMap.hasOwnProperty(itemId)) {
+          const qty = parseFloat(grItem.received_qty || 0);
+          receivedQtyMap[itemId] += qty;
+          totalReceivedQty += qty;
         }
       });
+    });
+
+    // Update received quantities in PO items
+    updatedPoItems.forEach((item) => {
+      const itemId = item.item_id;
+      item.received_qty = receivedQtyMap[itemId] || 0;
     });
 
     // Check item completion status
@@ -751,11 +767,13 @@ const updatePurchaseOrderStatus = async (purchaseOrderId) => {
 
     poItems.forEach((item) => {
       const orderedQty = parseFloat(item.quantity || 0);
-      const receivedQty = parseFloat(receivedQtyMap[item.item_id] || 0);
+      const receivedQty = receivedQtyMap[item.item_id] || 0;
 
       if (receivedQty < orderedQty) {
         allItemsComplete = false;
-        anyItemProcessing = true;
+        if (receivedQty > 0) {
+          anyItemProcessing = true;
+        }
       }
     });
 
@@ -771,20 +789,39 @@ const updatePurchaseOrderStatus = async (purchaseOrderId) => {
       newGRStatus = "Partially Received";
     }
 
-    // Update PO status if changed
-    if (newPOStatus !== poDoc.po_status || newGRStatus !== poDoc.gr_status) {
-      await db.collection("purchase_order").doc(poDoc.id).update({
-        po_status: newPOStatus,
-        gr_status: newGRStatus,
-      });
+    // Format the pending/ordered quantity
+    const pendingOrderedQty = `${totalReceivedQty} / ${totalOrderedQty}`;
 
+    // Prepare a single update operation with all changes
+    const updateData = {
+      table_po: updatedPoItems,
+      pending_ordered_qty: pendingOrderedQty,
+    };
+
+    // Only include status changes if needed
+    if (newPOStatus !== poDoc.po_status) {
+      updateData.po_status = newPOStatus;
+    }
+
+    if (newGRStatus !== poDoc.gr_status) {
+      updateData.gr_status = newGRStatus;
+    }
+
+    // Execute a single database update
+    await db.collection("purchase_order").doc(poDoc.id).update(updateData);
+
+    // Log the status change if it occurred
+    if (newPOStatus !== originalPOStatus) {
       console.log(
         `Updated PO ${purchaseOrderId} status from ${originalPOStatus} to ${newPOStatus}`
       );
     }
   } catch (error) {
     console.error(`Error updating purchase order status:`, error);
-    // Status update errors shouldn't stop the process, just log them
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 };
 

@@ -1041,7 +1041,7 @@
                 "placeholder": "",
                 "customClass": "",
                 "disabled": true,
-                "labelWidth": 120,
+                "labelWidth": 100,
                 "isLabelWidth": false,
                 "hidden": false,
                 "dataBind": true,
@@ -1051,14 +1051,13 @@
                 "showWordLimit": false,
                 "customProps": {},
                 "tip": "",
-                "remoteFunc": "func_rqtsz46u",
-                "remoteOption": "option_rqtsz46u",
+                "remoteFunc": "func_zowopncq",
+                "remoteOption": "option_zowopncq",
                 "tableColumn": false,
                 "subform": false,
-                "labelWrap": false,
-                "dynamicValueFx": "{{global:nickname}}",
                 "dynamicValueType": "fx",
-                "isDynamicValue": true
+                "isDynamicValue": true,
+                "dynamicValueFx": "{{global:nickname}}"
               },
               "events": {
                 "onChange": "",
@@ -1066,7 +1065,7 @@
                 "onBlur": ""
               },
               "novalid": {},
-              "key": "rqtsz46u",
+              "key": "zowopncq",
               "model": "issued_by",
               "rules": []
             },
@@ -1235,7 +1234,9 @@
                       "valueLabel": ""
                     }
                   ]
-                }
+                },
+                "dynamicValueType": "fx",
+                "isDynamicValue": false
               },
               "events": {
                 "onChange": "fgivan7v",
@@ -6287,8 +6288,8 @@
                 }
               },
               "events": {
-                "onChange": "ygqhd3jr",
-                "onFocus": "",
+                "onChange": "",
+                "onFocus": "ygqhd3jr",
                 "onBlur": ""
               },
               "novalid": {},
@@ -8330,7 +8331,7 @@
       {
         "key": "ygqhd3jr",
         "name": "onClick_selectCategory",
-        "func": "(async () => {\n  const allData = this.getValues();\n  const movementType = allData.movement_type;\n  const rowIndex = arguments[0]?.rowIndex;\n  const movementTypeCategories = {\n    \"Inter Operation Facility Transfer\": [\n      \"Unrestricted\",\n      \"Quality Inspection\",\n      \"Blocked\",\n    ],\n    \"Inter Operation Facility Transfer (Receiving)\": [\n      \"Unrestricted\",\n      \"Quality Inspection\",\n      \"Blocked\",\n    ],\n    \"Location Transfer\": [\n      \"Unrestricted\",\n      \"Quality Inspection\",\n      \"Blocked\",\n      \"Reserved\",\n    ],\n    \"Miscellaneous Issue\": [\"Unrestricted\"],\n    \"Miscellaneous Receipt\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n    \"Disposal/Scrap\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n    \"Inventory Category Transfer Posting\": [\n      \"Unrestricted\",\n      \"Quality Inspection\",\n      \"Blocked\",\n    ],\n  };\n\n  const categoryObjectResponse = await db\n    .collection(\"inventory_category\")\n    .get();\n  const allowedCategories = movementTypeCategories[movementType] || [\n    \"Unrestricted\",\n  ];\n  const filteredCategories = categoryObjectResponse.data.filter((category) =>\n    allowedCategories.includes(category.inventory_category_name)\n  );\n\n  await this.setOptionData(\n    [`sm_item_balance.table_item_balance.${rowIndex}.category`],\n    filteredCategories\n  );\n})();\n",
+        "func": "(async () => {\n  const allData = this.getValues();\n  const movementType = allData.movement_type;\n  const rowIndex = arguments[0]?.rowIndex;\n  const movementTypeCategories = {\n    \"Inter Operation Facility Transfer\": [\n      \"Unrestricted\",\n      \"Quality Inspection\",\n      \"Blocked\",\n    ],\n    \"Inter Operation Facility Transfer (Receiving)\": [\n      \"Unrestricted\",\n      \"Quality Inspection\",\n      \"Blocked\",\n    ],\n    \"Location Transfer\": [\n      \"Unrestricted\",\n      \"Quality Inspection\",\n      \"Blocked\",\n      \"Reserved\",\n    ],\n    \"Miscellaneous Issue\": [\"Unrestricted\"],\n    \"Miscellaneous Receipt\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n    \"Disposal/Scrap\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n    \"Inventory Category Transfer Posting\": [\n      \"Unrestricted\",\n      \"Quality Inspection\",\n      \"Blocked\",\n    ],\n  };\n\n  console.log(\"movementType\", movementType);\n\n  const categoryObjectResponse = await db\n    .collection(\"inventory_category\")\n    .get();\n  const allowedCategories = movementTypeCategories[movementType] || [\n    \"Unrestricted\",\n  ];\n  const filteredCategories = categoryObjectResponse.data.filter((category) =>\n    allowedCategories.includes(category.inventory_category_name)\n  );\n\n  console.log(\"filteredCategories\", filteredCategories);\n\n  await this.setOptionData(\n    [`sm_item_balance.table_item_balance.${rowIndex}.category`],\n    filteredCategories\n  );\n})();\n",
         "type": "js"
       },
       {
@@ -8423,6 +8424,12 @@
       {
         "key": "mtwvoslq",
         "name": "onChange_mtwvoslq",
+        "func": "",
+        "type": "rule"
+      },
+      {
+        "key": "g8bubh0a",
+        "name": "onFocus_g8bubh0a",
         "func": "",
         "type": "rule"
       }

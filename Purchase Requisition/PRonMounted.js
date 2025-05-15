@@ -91,17 +91,63 @@ const showStatusHTML = async (status) => {
   }
 };
 
+const displayCurrency = async () => {
+  const currencyCode = this.getValue("currency_code");
+
+  if (currencyCode !== "----" && currencyCode !== "MYR") {
+    this.display([
+      "exchange_rate",
+      "exchange_rate_myr",
+      "exchange_rate_currency",
+      "myr_total_amount",
+      "total_amount_myr",
+    ]);
+  }
+
+  this.setData({
+    total_gross_currency: currencyCode,
+    total_discount_currency: currencyCode,
+    total_tax_currency: currencyCode,
+    total_amount_currency: currencyCode,
+    exchange_rate_currency: currencyCode,
+  });
+};
+
+const displaySupplierType = async () => {
+  const supplierType = this.getValue("supplier_type");
+
+  if (supplierType === "Existing Supplier") {
+    this.display("supplier_grid");
+    this.hide("pr_new_supplier_name");
+  } else if (supplierType === "New Supplier") {
+    this.hide("supplier_grid");
+    this.display("pr_new_supplier_name");
+  }
+};
+
+const displayPlantAddress = async () => {
+  const plant = this.getValue("plant_id");
+
+  if (plant) {
+    this.display("grid_preq_address");
+  }
+};
+
 (async () => {
   try {
     const status = await this.getValue("preq_status");
 
-    let pageStatus = "";
-
-    if (this.isAdd) pageStatus = "Add";
-    else if (this.isEdit) pageStatus = "Edit";
-    else if (this.isView) pageStatus = "View";
-    else if (this.isCopy) pageStatus = "Clone";
-    else throw new Error();
+    const pageStatus = this.isAdd
+      ? "Add"
+      : this.isEdit
+      ? "Edit"
+      : this.isView
+      ? "View"
+      : this.isCopy
+      ? "Clone"
+      : (() => {
+          this.$message.error("Invalid page status");
+        })();
 
     let organizationId = this.getVarGlobal("deptParentId");
     if (organizationId === "0") {
@@ -127,6 +173,9 @@ const showStatusHTML = async (status) => {
       case "Edit":
         await getPrefixData(organizationId);
         await showStatusHTML(status);
+        await displayCurrency();
+        await displaySupplierType();
+        await displayPlantAddress();
 
         break;
 
@@ -144,6 +193,9 @@ const showStatusHTML = async (status) => {
           "button_save_as_issue",
         ]);
         await showStatusHTML(status);
+        await displayCurrency();
+        await displaySupplierType();
+        await displayPlantAddress();
 
         break;
     }
