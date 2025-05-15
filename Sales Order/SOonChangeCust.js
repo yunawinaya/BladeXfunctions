@@ -1,5 +1,5 @@
 (async () => {
-  this.showLoading();
+  //this.showLoading();
 
   const customerCurrencyId =
     arguments[0].fieldModel?.item?.customer_currency_id;
@@ -14,7 +14,50 @@
       .collection("currency")
       .where({ id: customerCurrencyId })
       .get();
-    this.setData({ so_currency: resCurrency.data[0].currency_code });
+
+    const currencyEntry = resCurrency.data[0];
+    const currencyCode = currencyEntry.currency_code;
+    this.setData({ so_currency: currencyCode });
+
+    if (!currencyCode) {
+      this.hide([
+        "exchange_rate",
+        "exchange_rate_myr",
+        "exchange_rate_currency",
+        "myr_total_amount",
+        "total_amount_myr",
+      ]);
+      return;
+    } else {
+      this.setData({
+        total_gross_currency: currencyCode,
+        total_discount_currency: currencyCode,
+        total_tax_currency: currencyCode,
+        total_amount_currency: currencyCode,
+        exchange_rate_currency: currencyCode,
+      });
+
+      if (currencyCode !== "----" && currencyCode !== "MYR") {
+        this.setData({ exchange_rate: currencyEntry.currency_buying_rate });
+
+        this.display([
+          "exchange_rate",
+          "exchange_rate_myr",
+          "exchange_rate_currency",
+          "myr_total_amount",
+          "total_amount_myr",
+        ]);
+      } else {
+        this.setData({ exchange_rate: 1 });
+        this.hide([
+          "exchange_rate",
+          "exchange_rate_myr",
+          "exchange_rate_currency",
+          "myr_total_amount",
+          "total_amount_myr",
+        ]);
+      }
+    }
   }
 
   // Set payment term
@@ -24,18 +67,22 @@
     });
   }
 
-  const data = this.getValues();
   const customerId = this.getValue("customer_name");
+  const customerChangeId = this.getValue("customer_change_id");
   console.log("customer id", customerId);
 
   // Address handling
-  if (customerId) {
+  if (customerId && (!customerChangeId || customerChangeId !== customerId)) {
+    console.log("passing JN");
+    this.setData({ customer_change_id: customerId });
     this.display("address_grid");
 
     const resetFormFields = () => {
       this.setData({
         cust_billing_name: "",
         cust_billing_cp: "",
+        cust_billing_address: "",
+        cust_shipping_address: "",
         billing_address_line_1: "",
         billing_address_line_2: "",
         billing_address_line_3: "",
@@ -75,35 +122,40 @@
 
     resetFormFields();
 
-    const [resShipping, resCustomer] = await Promise.all([
-      db
-        .collection("address_purpose")
-        .where({ purpose_name: "Shipping" })
-        .get(),
-      db.collection("Customer").where({ id: customerId }).get(),
-    ]);
-
-    if (resCustomer.data.length === 0 || resShipping.data.length === 0) return;
+    const resCustomer = await db
+      .collection("Customer")
+      .where({ id: customerId })
+      .get();
+    if (resCustomer.data.length === 0) return;
 
     const customerData = resCustomer.data[0];
-    const shippingAddrId = resShipping.data[0].id;
-    const addresses = customerData.address_list.filter(
+    const addresses = customerData.address_list?.filter(
       (address) => address.switch_save_as_default
     );
 
     for (const address of addresses) {
-      const [resCountry, resState] = await Promise.all([
+      const [resCountry, resState, resShipping] = await Promise.all([
         db
           .collection("country")
           .where({ id: address.address_country_id })
           .get(),
         db.collection("state").where({ id: address.adddress_state }).get(),
+        db
+          .collection("address_purpose")
+          .where({ purpose_name: "Shipping" })
+          .get(),
       ]);
 
-      if (resCountry.data.length === 0 || resState.data.length === 0) continue;
+      if (
+        resCountry.data.length === 0 ||
+        resState.data.length === 0 ||
+        resShipping.data.length === 0
+      )
+        continue;
 
       const countryName = resCountry.data[0].country_name;
       const stateName = resState.data[0].state_name;
+      const shippingAddrId = resShipping.data[0].id;
 
       const addressComponents = [
         address.address_line_1,
@@ -114,12 +166,14 @@
         address.address_postal_code,
         stateName,
         countryName,
-      ].filter((component) => component);
+      ];
 
-      const formattedAddress = addressComponents.join(",\n");
+      const formattedAddress = addressComponents
+        .filter(Boolean)
+        .join(",\n")
+        .replace(/([^,])\n/g, "$1,\n");
       const isShipping = address.address_purpose_id === shippingAddrId;
       const addressType = isShipping ? "shipping" : "billing";
-
       setDialogAddressFields(
         addressType,
         address,
@@ -133,11 +187,11 @@
         this.setData({
           cust_billing_address: formattedAddress,
           cust_billing_name: address.address_name,
-          cust_billing_cp: address.address_phone,
+          cust_cp: address.address_phone,
         });
       }
     }
-    this.hideLoading();
+    //this.hideLoading();
 
     /*this.showLoading()
     this.runWorkflow('1902566784276480001', {

@@ -1,9 +1,14 @@
-const page_status = this.getParamsVariables("page_status");
-const self = this;
-
 // For quantities - 3 decimal places
 const roundQty = (value) => {
   return parseFloat(parseFloat(value || 0).toFixed(3));
+};
+
+const closeDialog = () => {
+  if (this.parentGenerateForm) {
+    this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+    this.parentGenerateForm.refresh();
+    this.hideLoading();
+  }
 };
 
 // For prices - 4 decimal places
@@ -27,6 +32,7 @@ const updateInventory = async (data, plantId, organizationId) => {
 
         const poData = poResponse.data[0];
 
+        const exchangeRate = poData.exchange_rate;
         let poQuantity = 0;
         let totalAmount = 0;
 
@@ -39,7 +45,9 @@ const updateInventory = async (data, plantId, organizationId) => {
         }
 
         const pricePerUnit = roundPrice(totalAmount / poQuantity);
-        const costPrice = roundPrice(pricePerUnit / conversion);
+        const costPrice = roundPrice(
+          (pricePerUnit / conversion) * exchangeRate
+        );
         console.log("costPrice", costPrice);
 
         return costPrice;
@@ -493,17 +501,252 @@ const updateInventory = async (data, plantId, organizationId) => {
   }
 };
 
-const closeDialog = () => {
-  if (self.parentGenerateForm) {
-    self.parentGenerateForm.$refs.SuPageDialogRef.hide();
-    self.parentGenerateForm.refresh();
-    this.hideLoading();
+const validateForm = (data, requiredFields) => {
+  const missingFields = [];
+
+  requiredFields.forEach((field) => {
+    const value = data[field.name];
+
+    // Handle non-array fields (unchanged)
+    if (!field.isArray) {
+      if (validateField(value, field)) {
+        missingFields.push(field.label);
+      }
+      return;
+    }
+
+    // Handle array fields
+    if (!Array.isArray(value)) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    if (value.length === 0) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    // Check each item in the array
+    if (field.arrayType === "object" && field.arrayFields) {
+      value.forEach((item, index) => {
+        field.arrayFields.forEach((subField) => {
+          const subValue = item[subField.name];
+          if (validateField(subValue, subField)) {
+            missingFields.push(
+              `${subField.label} (in ${field.label} #${index + 1})`
+            );
+          }
+        });
+      });
+    }
+  });
+
+  return missingFields;
+};
+
+const validateField = (value, field) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return !value;
+};
+
+const getPrefixData = async (organizationId) => {
+  const prefixEntry = await db
+    .collection("prefix_configuration")
+    .where({
+      document_types: "Sales Return Receiving",
+      is_deleted: 0,
+      organization_id: organizationId,
+      is_active: 1,
+    })
+    .get();
+
+  const prefixData = await prefixEntry.data[0];
+
+  return prefixData;
+};
+
+const updatePrefix = async (organizationId, runningNumber) => {
+  try {
+    await db
+      .collection("prefix_configuration")
+      .where({
+        document_types: "Sales Return Receiving",
+        is_deleted: 0,
+        organization_id: organizationId,
+      })
+      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
+  } catch (error) {
+    this.$message.error(error);
   }
 };
 
-this.getData()
-  .then(async (data) => {
-    try {
+const generatePrefix = (runNumber, now, prefixData) => {
+  let generated = prefixData.current_prefix_config;
+  generated = generated.replace("prefix", prefixData.prefix_value);
+  generated = generated.replace("suffix", prefixData.suffix_value);
+  generated = generated.replace(
+    "month",
+    String(now.getMonth() + 1).padStart(2, "0")
+  );
+  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
+  generated = generated.replace("year", now.getFullYear());
+  generated = generated.replace(
+    "running_number",
+    String(runNumber).padStart(prefixData.padding_zeroes, "0")
+  );
+  return generated;
+};
+
+const checkUniqueness = async (generatedPrefix) => {
+  const existingDoc = await db
+    .collection("sales_return_receiving")
+    .where({ srr_no: generatedPrefix })
+    .get();
+  return existingDoc.data[0] ? false : true;
+};
+
+const findUniquePrefix = async (prefixData) => {
+  const now = new Date();
+  let prefixToShow;
+  let runningNumber = prefixData.running_number;
+  let isUnique = false;
+  let maxAttempts = 10;
+  let attempts = 0;
+
+  while (!isUnique && attempts < maxAttempts) {
+    attempts++;
+    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
+    isUnique = await checkUniqueness(prefixToShow);
+    if (!isUnique) {
+      runningNumber++;
+    }
+  }
+
+  if (!isUnique) {
+    this.$message.error(
+      "Could not generate a unique Sales Return Receiving number after maximum attempts"
+    );
+  }
+
+  return { prefixToShow, runningNumber };
+};
+
+const updateSalesReturn = async (entry) => {
+  entry.sales_return_id.forEach(async (salesReturnId) => {
+    await db.collection("sales_return").doc(salesReturnId).update({
+      sr_status: "Completed",
+    });
+  });
+};
+
+const addEntry = async (organizationId, entry) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+    if (prefixData.length !== 0) {
+      await updatePrefix(organizationId, prefixData.running_number);
+      await db
+        .collection("sales_return_receiving")
+        .add(entry)
+        .then(() => {
+          this.runWorkflow(
+            "1918241501326159874",
+            { srr_no: entry.srr_no },
+            async (res) => {
+              console.log("成功结果：", res);
+            },
+            (err) => {
+              alert();
+              console.error("失败结果：", err);
+              closeDialog();
+            }
+          );
+        });
+      await updateInventory(entry, entry.plantId, organizationId);
+      await updateSalesReturn(entry);
+      this.$message.success("Add successfully");
+      closeDialog();
+    }
+  } catch (error) {
+    this.hideLoading();
+    this.$message.error(error);
+  }
+};
+
+const updateEntry = async (organizationId, entry, salesReturnReceivingId) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+
+    if (prefixData.length !== 0) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      entry.srr_no = prefixToShow;
+      await db
+        .collection("sales_return_receiving")
+        .doc(salesReturnReceivingId)
+        .update(entry)
+        .then(() => {
+          this.runWorkflow(
+            "1918241501326159874",
+            { srr_no: entry.srr_no },
+            async (res) => {
+              console.log("成功结果：", res);
+            },
+            (err) => {
+              alert();
+              console.error("失败结果：", err);
+              closeDialog();
+            }
+          );
+        });
+      await updateInventory(entry, entry.plantId, organizationId);
+      await updateSalesReturn(entry);
+      this.$message.success("Update successfully");
+      await closeDialog();
+    }
+  } catch (error) {
+    this.hideLoading();
+    this.$message.error(error);
+  }
+};
+
+(async () => {
+  try {
+    const data = this.getValues();
+    this.showLoading();
+
+    const requiredFields = [
+      { name: "so_id", label: "SO Number" },
+      { name: "sales_return_id", label: "Sales Return Number" },
+      { name: "srr_no", label: "SRR Number" },
+      {
+        name: "table_srr",
+        label: "SRR Items",
+        isArray: true,
+        arrayType: "object",
+        arrayFields: [
+          { name: "location_id", label: "Target Location" },
+          { name: "inventory_category", label: "Inventory Category" },
+        ],
+      },
+    ];
+
+    const missingFields = await validateForm(data, requiredFields);
+
+    if (missingFields.length === 0) {
+      const page_status = this.getValue("page_status");
+
+      let organizationId = this.getVarGlobal("deptParentId");
+      if (organizationId === "0") {
+        organizationId = this.getVarSystem("deptIds").split(",")[0];
+      }
+
       const {
         so_id,
         sales_return_id,
@@ -520,7 +763,7 @@ this.getData()
         remarks,
       } = data;
 
-      const srr = {
+      const entry = {
         srr_status: "Completed",
         so_id,
         sales_return_id,
@@ -538,197 +781,19 @@ this.getData()
       };
 
       if (page_status === "Add") {
-        this.showLoading();
-        await db
-          .collection("sales_return_receiving")
-          .add(srr)
-          .then(() => {
-            let organizationId = this.getVarGlobal("deptParentId");
-            if (organizationId === "0") {
-              organizationId = this.getVarSystem("deptIds").split(",")[0];
-            }
-
-            return db
-              .collection("prefix_configuration")
-              .where({
-                document_types: "Sales Return Receiving",
-                is_deleted: 0,
-                organization_id: organizationId,
-                is_active: 1,
-              })
-              .get()
-              .then((prefixEntry) => {
-                if (prefixEntry.data.length === 0) return;
-                else {
-                  const data = prefixEntry.data[0];
-                  return db
-                    .collection("prefix_configuration")
-                    .where({
-                      document_types: "Sales Return Receiving",
-                      is_deleted: 0,
-                      organization_id: organizationId,
-                    })
-                    .update({
-                      running_number: parseInt(data.running_number) + 1,
-                      has_record: 1,
-                    });
-                }
-              });
-          })
-          .then(async () => {
-            const result = await db
-              .collection("sales_order")
-              .doc(srr.so_id)
-              .get();
-
-            const plantId = result.data[0].plant_name;
-            const organizationId = result.data[0].organization_id;
-            await updateInventory(srr, plantId, organizationId);
-            srr.sales_return_id.forEach(async (salesReturnId) => {
-              await db.collection("sales_return").doc(salesReturnId).update({
-                sr_status: "Completed",
-              });
-            });
-          })
-          .then(() => {
-            closeDialog();
-          })
-          .catch((error) => {
-            this.$message.error(error);
-          });
+        await addEntry(organizationId, entry);
+        closeDialog();
       } else if (page_status === "Edit") {
-        this.showLoading();
-        const salesReturnReceivingId = this.getParamsVariables(
-          "sales_return_receiving_no"
-        );
-
-        let organizationId = this.getVarGlobal("deptParentId");
-        if (organizationId === "0") {
-          organizationId = this.getVarSystem("deptIds").split(",")[0];
-        }
-
-        const prefixEntry = db
-          .collection("prefix_configuration")
-          .where({
-            document_types: "Sales Return Receiving",
-            is_deleted: 0,
-            organization_id: organizationId,
-            is_active: 1,
-          })
-          .get()
-          .then(async (prefixEntry) => {
-            if (prefixEntry.data.length > 0) {
-              const prefixData = prefixEntry.data[0];
-              const now = new Date();
-              let prefixToShow;
-              let runningNumber = prefixData.running_number;
-              let isUnique = false;
-              let maxAttempts = 10;
-              let attempts = 0;
-
-              const generatePrefix = (runNumber) => {
-                let generated = prefixData.current_prefix_config;
-                generated = generated.replace(
-                  "prefix",
-                  prefixData.prefix_value
-                );
-                generated = generated.replace(
-                  "suffix",
-                  prefixData.suffix_value
-                );
-                generated = generated.replace(
-                  "month",
-                  String(now.getMonth() + 1).padStart(2, "0")
-                );
-                generated = generated.replace(
-                  "day",
-                  String(now.getDate()).padStart(2, "0")
-                );
-                generated = generated.replace("year", now.getFullYear());
-                generated = generated.replace(
-                  "running_number",
-                  String(runNumber).padStart(prefixData.padding_zeroes, "0")
-                );
-                return generated;
-              };
-
-              const checkUniqueness = async (generatedPrefix) => {
-                const existingDoc = await db
-                  .collection("sales_return_receiving")
-                  .where({ srr_no: generatedPrefix })
-                  .get();
-                return existingDoc.data[0] ? false : true;
-              };
-
-              const findUniquePrefix = async () => {
-                while (!isUnique && attempts < maxAttempts) {
-                  attempts++;
-                  prefixToShow = generatePrefix(runningNumber);
-                  isUnique = await checkUniqueness(prefixToShow);
-                  if (!isUnique) {
-                    runningNumber++;
-                  }
-                }
-
-                if (!isUnique) {
-                  throw new Error(
-                    "Could not generate a unique Sales Return Receiving number after maximum attempts"
-                  );
-                } else {
-                  srr.srr_no = prefixToShow;
-                  db.collection("sales_return_receiving")
-                    .doc(salesReturnReceivingId)
-                    .update(srr);
-                  db.collection("prefix_configuration")
-                    .where({
-                      document_types: "Sales Return Receiving",
-                      is_deleted: 0,
-                      organization_id: organizationId,
-                    })
-                    .update({
-                      running_number: parseInt(runningNumber) + 1,
-                      has_record: 1,
-                    });
-                }
-              };
-
-              await findUniquePrefix();
-            } else {
-              db.collection("sales_return_receiving")
-                .doc(salesReturnReceivingId)
-                .update(srr);
-            }
-          })
-          .then(async () => {
-            await db
-              .collection("sales_return_receiving")
-              .doc(salesReturnReceivingId)
-              .update(srr);
-
-            const result = await db
-              .collection("sales_order")
-              .doc(srr.so_id)
-              .get();
-
-            const plantId = result.data[0].plant_name;
-            await updateInventory(srr, plantId, organizationId);
-            srr.sales_return_id.forEach(async (salesReturnId) => {
-              await db.collection("sales_return").doc(salesReturnId).update({
-                sr_status: "Completed",
-              });
-            });
-          })
-          .then(() => {
-            closeDialog();
-          })
-          .catch((error) => {
-            this.$message.error(error);
-          });
+        const salesReturnReceivingId = this.getValue("id");
+        await updateEntry(organizationId, entry, salesReturnReceivingId);
+        closeDialog();
       }
-    } catch (error) {
-      this.$message.error(error);
+    } else {
+      this.hideLoading();
+      this.$message.error(`Missing fields: ${missingFields.join(", ")}`);
     }
-  })
-  .catch((error) => {
+  } catch (error) {
+    this.hideLoading();
     this.$message.error(error);
-  });
+  }
+})();

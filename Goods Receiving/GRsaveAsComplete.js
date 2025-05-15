@@ -55,6 +55,7 @@ const addInventory = (data, plantId, organizationId) => {
 
             const poData = poResponse.data[0];
 
+            const exchangeRate = poData.exchange_rate;
             let poQuantity = 0;
             let totalAmount = 0;
 
@@ -67,7 +68,9 @@ const addInventory = (data, plantId, organizationId) => {
             }
 
             const pricePerUnit = roundPrice(totalAmount / poQuantity);
-            const costPrice = roundPrice(pricePerUnit / conversion);
+            const costPrice = roundPrice(
+              (pricePerUnit / conversion) * exchangeRate
+            );
             console.log("costPrice", costPrice);
 
             return costPrice;
