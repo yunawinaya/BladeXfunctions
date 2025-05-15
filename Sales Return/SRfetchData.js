@@ -3,7 +3,137 @@ console.log("Form data:", data);
 
 // Get GD numbers from arguments
 const gdNumbers = arguments[0].value;
-console.log("GD Numbers:", gdNumbers);
+(async () => {
+  try {
+    const data = this.getValues();
+    console.log("Form data:", data);
+
+    // Get GD numbers from arguments
+    const gdNumbers = arguments[0].value;
+    console.log("GD Numbers:", gdNumbers);
+
+    // Display GD numbers
+    try {
+      const gdDisplayResults = await gdNumbers.map(async (gdId) => {
+        const doc = await db.collection("goods_delivery").doc(gdId).get();
+        return doc ? doc.data[0].delivery_no : null;
+      });
+      const displayText = gdDisplayResults.filter(Boolean).join(", ");
+      console.log("gd", gdDisplayResults);
+      this.setData({ gd_no_display: displayText });
+    } catch (error) {
+      console.error("Error fetching GD display data:", error);
+    }
+
+    // Check if gdNumbers is empty or invalid before proceeding
+    if (!gdNumbers || (Array.isArray(gdNumbers) && gdNumbers.length === 0)) {
+      this.setData({ table_sr: [] });
+      console.log("GD numbers is empty, skipping processing");
+      return;
+    }
+
+    // Additional validation check to make sure gdNumbers is an array
+    if (!Array.isArray(gdNumbers)) {
+      console.error("GD numbers is not an array:", gdNumbers);
+      this.setData({ table_sr: [] });
+      return;
+    }
+
+    // Process each GD number
+    const allSrItemsArrays = [];
+
+    for (const gdNumber of gdNumbers) {
+      try {
+        const result = await db
+          .collection("goods_delivery")
+          .where({ id: gdNumber })
+          .get();
+        console.log(`Raw GD result for ${gdNumber}:`, result);
+
+        // Handle GD result
+        let gdData = null;
+
+        if (Array.isArray(result) && result.length > 0) {
+          gdData = result[0];
+        } else if (typeof result === "object" && result !== null) {
+          if (result.data) {
+            gdData =
+              Array.isArray(result.data) && result.data.length > 0
+                ? result.data[0]
+                : result.data;
+          } else if (
+            result.docs &&
+            Array.isArray(result.docs) &&
+            result.docs.length > 0
+          ) {
+            gdData = result.docs[0].data
+              ? result.docs[0].data()
+              : result.docs[0];
+          } else {
+            gdData = result;
+          }
+        }
+
+        console.log(`Extracted GD data for ${gdNumber}:`, gdData);
+
+        // Transform each GD item into a table_sr item
+        const srItems = [];
+
+        if (gdData && Array.isArray(gdData.table_gd)) {
+          for (const gdItem of gdData.table_gd) {
+            console.log(`Processing GD item from ${gdNumber}:`, gdItem);
+
+            if (gdItem.material_id) {
+              srItems.push({
+                gd_number: gdData.delivery_no,
+                material_id: gdItem.material_id,
+                material_desc: gdItem.gd_material_desc,
+                quantity_uom: gdItem.gd_order_uom_id,
+                good_delivery_qty: gdItem.gd_qty,
+                so_quantity: gdItem.gd_order_quantity,
+                unit_price: gdItem.unit_price,
+                total_price: gdItem.total_price,
+                fifo_sequence: gdItem.fifo_sequence,
+              });
+            }
+          }
+        }
+
+        allSrItemsArrays.push(srItems);
+      } catch (error) {
+        console.error(`Error retrieving data for GD ${gdNumber}:`, error);
+        allSrItemsArrays.push([]);
+      }
+    }
+
+    // Flatten the array of arrays into a single array of all items
+    const allSrItems = allSrItemsArrays.flat();
+    console.log("All SR items (keeping separate GD entries):", allSrItems);
+
+    // Set the table data directly - no consolidation
+    this.setData({
+      table_sr: allSrItems,
+    });
+  } catch (error) {
+    console.error("Error in main processing:", error);
+    this.setData({ table_sr: [] });
+  }
+})();
+console.log("GD Numbers:", arguments[0]);
+
+Promise.all(
+  gdNumbers.map((gdId) =>
+    db
+      .collection("goods_delivery")
+      .doc(gdId) // Direct document reference
+      .get()
+      .then((doc) => (doc ? doc.data[0].delivery_no : null))
+  )
+).then((results) => {
+  const displayText = results.filter(Boolean).join(", ");
+  console.log("gd", results);
+  this.setData({ gd_no_display: displayText });
+});
 
 // Check if gdNumbers is empty or invalid before proceeding
 if (!gdNumbers || (Array.isArray(gdNumbers) && gdNumbers.length === 0)) {
