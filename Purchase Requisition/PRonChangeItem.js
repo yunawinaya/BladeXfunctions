@@ -1,5 +1,4 @@
 const rowIndex = arguments[0].rowIndex;
-
 const {
   material_desc,
   based_uom,
@@ -8,26 +7,25 @@ const {
   table_uom_conversion,
   mat_purchase_tax_id,
 } = arguments[0].fieldModel.item;
+const altUoms = table_uom_conversion.map((data) => data.alt_uom_id);
+const uomOptions = [];
+const taxPercent = arguments[0]?.fieldModel?.item?.purchase_tax_percent || null;
 
 this.setData({
-  [`table_po.${rowIndex}.item_desc`]: material_desc,
-  [`table_po.${rowIndex}.unit_price`]: purchase_unit_price,
-  [`table_po.${rowIndex}.tax_preference`]: mat_purchase_tax_id,
+  [`table_pr.${rowIndex}.pr_line_material_desc`]: material_desc,
+  [`table_pr.${rowIndex}.pr_line_unit_price`]: purchase_unit_price,
+  [`table_pr.${rowIndex}.pr_line_tax_rate_id`]: mat_purchase_tax_id,
 });
 
 if (purchase_default_uom) {
   this.setData({
-    [`table_po.${rowIndex}.quantity_uom`]: purchase_default_uom,
+    [`table_pr.${rowIndex}.pr_line_uom_id`]: purchase_default_uom,
   });
 } else {
   this.setData({
-    [`table_po.${rowIndex}.quantity_uom`]: based_uom,
+    [`table_pr.${rowIndex}.pr_line_uom_id`]: based_uom,
   });
 }
-
-const altUoms = table_uom_conversion.map((data) => data.alt_uom_id);
-altUoms.push(based_uom);
-const uomOptions = [];
 
 const processData = async () => {
   for (let i = 0; i < altUoms.length; i++) {
@@ -42,15 +40,15 @@ const processData = async () => {
 const updateUomOption = async () => {
   await processData();
 
-  this.setOptionData([`table_po.${rowIndex}.quantity_uom`], uomOptions);
+  this.setOptionData([`table_pr.${rowIndex}.pr_line_uom_id`], uomOptions);
 };
 
 updateUomOption();
 
-const taxPercent = arguments[0]?.fieldModel?.item?.purchase_tax_percent || null;
-
 if (taxPercent) {
   setTimeout(() => {
-    this.setData({ [`table_po.${rowIndex}.tax_rate_percent`]: taxPercent });
+    this.setData({
+      [`table_pr.${rowIndex}.pr_line_taxes_percent`]: taxPercent,
+    });
   }, 1000);
 }

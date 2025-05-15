@@ -3,6 +3,7 @@ const rowIndex = arguments[0].rowIndex;
 const {
   material_desc,
   based_uom,
+  sales_default_uom,
   sales_unit_price,
   table_uom_conversion,
   mat_sales_tax_id,
@@ -10,7 +11,13 @@ const {
 
 this.setData({ [`table_sqt.${rowIndex}.sqt_desc`]: material_desc });
 
-this.setData({ [`table_sqt.${rowIndex}.sqt_order_uom_id`]: based_uom });
+if (sales_default_uom) {
+  this.setData({
+    [`table_sqt.${rowIndex}.sqt_order_uom_id`]: sales_default_uom,
+  });
+} else {
+  this.setData({ [`table_sqt.${rowIndex}.sqt_order_uom_id`]: based_uom });
+}
 
 this.setData({ [`table_sqt.${rowIndex}.unit_price`]: sales_unit_price });
 

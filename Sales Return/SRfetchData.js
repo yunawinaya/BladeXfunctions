@@ -1,8 +1,3 @@
-const data = this.getValues();
-console.log("Form data:", data);
-
-// Get GD numbers from arguments
-const gdNumbers = arguments[0].value;
 (async () => {
   try {
     const data = this.getValues();
@@ -12,22 +7,9 @@ const gdNumbers = arguments[0].value;
     const gdNumbers = arguments[0].value;
     console.log("GD Numbers:", gdNumbers);
 
-    // Display GD numbers
-    try {
-      const gdDisplayResults = await gdNumbers.map(async (gdId) => {
-        const doc = await db.collection("goods_delivery").doc(gdId).get();
-        return doc ? doc.data[0].delivery_no : null;
-      });
-      const displayText = gdDisplayResults.filter(Boolean).join(", ");
-      console.log("gd", gdDisplayResults);
-      this.setData({ gd_no_display: displayText });
-    } catch (error) {
-      console.error("Error fetching GD display data:", error);
-    }
-
     // Check if gdNumbers is empty or invalid before proceeding
     if (!gdNumbers || (Array.isArray(gdNumbers) && gdNumbers.length === 0)) {
-      this.setData({ table_sr: [] });
+      this.setData({ table_sr: [], gd_no_display: "" });
       console.log("GD numbers is empty, skipping processing");
       return;
     }
@@ -35,199 +17,96 @@ const gdNumbers = arguments[0].value;
     // Additional validation check to make sure gdNumbers is an array
     if (!Array.isArray(gdNumbers)) {
       console.error("GD numbers is not an array:", gdNumbers);
-      this.setData({ table_sr: [] });
+      this.setData({ table_sr: [], gd_no_display: [] });
       return;
     }
 
-    // Process each GD number
-    const allSrItemsArrays = [];
+    // Display GD Numbers - fetch delivery numbers
+    try {
+      const gdDocsPromises = gdNumbers.map((gdId) =>
+        db.collection("goods_delivery").doc(gdId).get()
+      );
 
+      const gdDocs = await Promise.all(gdDocsPromises);
+      const gdDisplayResults = gdDocs
+        .map((doc) =>
+          doc && doc.data && doc.data.length > 0
+            ? doc.data[0].delivery_no
+            : null
+        )
+        .filter(Boolean);
+
+      const displayText = gdDisplayResults.join(", ");
+      console.log("GD display numbers:", gdDisplayResults);
+      this.setData({ gd_no_display: displayText });
+    } catch (error) {
+      console.error("Error fetching GD display data:", error);
+      this.setData({ gd_no_display: "" });
+    }
+
+    // Process each GD sequentially to preserve exact order
+    let finalSrItems = [];
+
+    // Process each GD one by one to maintain exact order A B A B
     for (const gdNumber of gdNumbers) {
       try {
         const result = await db
           .collection("goods_delivery")
           .where({ id: gdNumber })
           .get();
-        console.log(`Raw GD result for ${gdNumber}:`, result);
 
-        // Handle GD result
+        // Extract GD data safely
         let gdData = null;
-
-        if (Array.isArray(result) && result.length > 0) {
-          gdData = result[0];
-        } else if (typeof result === "object" && result !== null) {
-          if (result.data) {
-            gdData =
-              Array.isArray(result.data) && result.data.length > 0
-                ? result.data[0]
-                : result.data;
-          } else if (
-            result.docs &&
-            Array.isArray(result.docs) &&
-            result.docs.length > 0
-          ) {
-            gdData = result.docs[0].data
-              ? result.docs[0].data()
-              : result.docs[0];
-          } else {
-            gdData = result;
-          }
+        if (result && result.data && result.data.length > 0) {
+          gdData = result.data[0];
+        } else {
+          console.warn(`No data found for GD ${gdNumber}`);
+          continue; // Skip to next GD
         }
 
-        console.log(`Extracted GD data for ${gdNumber}:`, gdData);
+        console.log(`Processing GD ${gdNumber}: ${gdData.delivery_no}`);
 
-        // Transform each GD item into a table_sr item
-        const srItems = [];
-
+        // Process each item in this GD
         if (gdData && Array.isArray(gdData.table_gd)) {
-          for (const gdItem of gdData.table_gd) {
-            console.log(`Processing GD item from ${gdNumber}:`, gdItem);
+          const gdItems = gdData.table_gd
+            .map((gdItem) => {
+              if (!gdItem.material_id) return null;
 
-            if (gdItem.material_id) {
-              srItems.push({
+              return {
                 gd_number: gdData.delivery_no,
+                gd_id: gdNumber, // Store original ID
                 material_id: gdItem.material_id,
                 material_desc: gdItem.gd_material_desc,
                 quantity_uom: gdItem.gd_order_uom_id,
-                good_delivery_qty: gdItem.gd_qty,
-                so_quantity: gdItem.gd_order_quantity,
-                unit_price: gdItem.unit_price,
-                total_price: gdItem.total_price,
-                fifo_sequence: gdItem.fifo_sequence,
-              });
-            }
-          }
-        }
+                good_delivery_qty: gdItem.gd_qty || 0,
+                so_quantity: gdItem.gd_order_quantity || 0,
+                unit_price: gdItem.unit_price || 0,
+                total_price: gdItem.total_price || 0,
+                fifo_sequence: gdItem.fifo_sequence || "",
+              };
+            })
+            .filter(Boolean); // Remove null items
 
-        allSrItemsArrays.push(srItems);
+          // Add all items from this GD to the final array
+          finalSrItems = [...finalSrItems, ...gdItems];
+        }
       } catch (error) {
-        console.error(`Error retrieving data for GD ${gdNumber}:`, error);
-        allSrItemsArrays.push([]);
+        console.error(`Error processing GD ${gdNumber}:`, error);
       }
     }
 
-    // Flatten the array of arrays into a single array of all items
-    const allSrItems = allSrItemsArrays.flat();
-    console.log("All SR items (keeping separate GD entries):", allSrItems);
+    console.log("Final SR items (preserving GD order):", finalSrItems);
 
-    // Set the table data directly - no consolidation
+    // Set the table data - items are now ordered exactly as their source GDs
     this.setData({
-      table_sr: allSrItems,
+      table_sr: finalSrItems,
     });
+
+    console.log(
+      `Successfully processed ${finalSrItems.length} items from ${gdNumbers.length} GDs`
+    );
   } catch (error) {
     console.error("Error in main processing:", error);
-    this.setData({ table_sr: [] });
+    this.setData({ table_sr: [], gd_no_display: "" });
   }
 })();
-console.log("GD Numbers:", arguments[0]);
-
-Promise.all(
-  gdNumbers.map((gdId) =>
-    db
-      .collection("goods_delivery")
-      .doc(gdId) // Direct document reference
-      .get()
-      .then((doc) => (doc ? doc.data[0].delivery_no : null))
-  )
-).then((results) => {
-  const displayText = results.filter(Boolean).join(", ");
-  console.log("gd", results);
-  this.setData({ gd_no_display: displayText });
-});
-
-// Check if gdNumbers is empty or invalid before proceeding
-if (!gdNumbers || (Array.isArray(gdNumbers) && gdNumbers.length === 0)) {
-  this.setData({ table_sr: [] });
-  console.log("GD numbers is empty, skipping processing");
-  return;
-}
-
-// Additional validation check to make sure gdNumbers is an array
-if (!Array.isArray(gdNumbers)) {
-  console.error("GD numbers is not an array:", gdNumbers);
-  this.setData({ table_sr: [] });
-  return;
-}
-
-// Fetch GD data
-const promises = gdNumbers.map((gdNumber) => {
-  return db
-    .collection("goods_delivery")
-    .where({
-      id: gdNumber,
-    })
-    .get()
-    .then((result) => {
-      console.log(`Raw GD result for ${gdNumber}:`, result);
-
-      // Handle GD result
-      let gdData = null;
-
-      if (Array.isArray(result) && result.length > 0) {
-        gdData = result[0];
-      } else if (typeof result === "object" && result !== null) {
-        if (result.data) {
-          gdData =
-            Array.isArray(result.data) && result.data.length > 0
-              ? result.data[0]
-              : result.data;
-        } else if (
-          result.docs &&
-          Array.isArray(result.docs) &&
-          result.docs.length > 0
-        ) {
-          gdData = result.docs[0].data ? result.docs[0].data() : result.docs[0];
-        } else {
-          gdData = result;
-        }
-      }
-
-      console.log(`Extracted GD data for ${gdNumber}:`, gdData);
-
-      // Transform each GD item into a table_sr item, preserving GD identity
-      const srItems = [];
-
-      if (gdData && Array.isArray(gdData.table_gd)) {
-        gdData.table_gd.forEach((gdItem) => {
-          console.log(`Processing GD item from ${gdNumber}:`, gdItem);
-
-          if (gdItem.material_id) {
-            srItems.push({
-              gd_number: gdData.delivery_no,
-              material_id: gdItem.material_id,
-              material_desc: gdItem.gd_material_desc,
-              quantity_uom: gdItem.gd_order_uom_id,
-              good_delivery_qty: gdItem.gd_qty,
-              so_quantity: gdItem.gd_order_quantity,
-              unit_price: gdItem.unit_price,
-              total_price: gdItem.total_price,
-              fifo_sequence: gdItem.fifo_sequence,
-            });
-          }
-        });
-      }
-
-      return srItems;
-    })
-    .catch((error) => {
-      console.error(`Error retrieving data for GD ${gdNumber}:`, error);
-      return [];
-    });
-});
-
-Promise.all(promises)
-  .then((allSrItemsArrays) => {
-    // Flatten the array of arrays into a single array of all items
-    const allSrItems = allSrItemsArrays.flat();
-
-    console.log("All SR items (keeping separate GD entries):", allSrItems);
-
-    // Set the table data directly - no consolidation
-    this.setData({
-      table_sr: allSrItems,
-    });
-  })
-  .catch((error) => {
-    console.error("Error processing GD numbers:", error);
-    this.setData({ table_sr: [] });
-  });
