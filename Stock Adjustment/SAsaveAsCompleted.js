@@ -46,7 +46,11 @@ const logTableState = async (collectionName, queryConditions, logMessage) => {
 };
 
 // Function to get latest FIFO cost price with available quantity check
-const getLatestFIFOCostPrice = async (materialId, batchId) => {
+const getLatestFIFOCostPrice = async (
+  materialId,
+  batchId,
+  deductionQty = null
+) => {
   try {
     const query = batchId
       ? db
@@ -65,24 +69,97 @@ const getLatestFIFOCostPrice = async (materialId, batchId) => {
         (a, b) => a.fifo_sequence - b.fifo_sequence
       );
 
-      // First look for records with available quantity
+      // If no deduction quantity is provided, just return the cost price of the first record with available quantity
+      if (!deductionQty) {
+        // First look for records with available quantity
+        for (const record of sortedRecords) {
+          const availableQty = roundQty(record.fifo_available_quantity || 0);
+          if (availableQty > 0) {
+            console.log(
+              `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
+            );
+            return roundPrice(record.fifo_cost_price || 0);
+          }
+        }
+
+        // If no records with available quantity, use the most recent record
+        console.warn(
+          `No FIFO records with available quantity found for ${materialId}, using most recent cost price`
+        );
+        return roundPrice(
+          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+        );
+      }
+
+      // If deduction quantity is provided, calculate weighted average cost price across multiple FIFO records
+      let remainingQtyToDeduct = roundQty(deductionQty);
+      let totalCost = 0;
+      let totalDeductedQty = 0;
+
+      // Log the calculation process
+      console.log(
+        `Calculating weighted average FIFO cost for ${materialId}, deduction quantity: ${remainingQtyToDeduct}`
+      );
+
+      // Process each FIFO record in sequence until we've accounted for all deduction quantity
       for (const record of sortedRecords) {
-        const availableQty = parseFloat(record.fifo_available_quantity || 0);
-        if (availableQty > 0) {
+        if (remainingQtyToDeduct <= 0) {
+          break;
+        }
+
+        const availableQty = roundQty(record.fifo_available_quantity || 0);
+        if (availableQty <= 0) {
+          continue; // Skip records with no available quantity
+        }
+
+        const costPrice = roundPrice(record.fifo_cost_price || 0);
+        const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
+
+        const costContribution = roundPrice(qtyToDeduct * costPrice);
+        totalCost = roundPrice(totalCost + costContribution);
+        totalDeductedQty = roundQty(totalDeductedQty + qtyToDeduct);
+
+        console.log(
+          `FIFO record ${record.fifo_sequence}: Deducting ${qtyToDeduct} units at ${costPrice} per unit = ${costContribution}`
+        );
+
+        remainingQtyToDeduct = roundQty(remainingQtyToDeduct - qtyToDeduct);
+      }
+
+      // If we couldn't satisfy the full deduction from available records, issue a warning
+      if (remainingQtyToDeduct > 0) {
+        console.warn(
+          `Warning: Not enough FIFO quantity available. Remaining to deduct: ${remainingQtyToDeduct}`
+        );
+
+        // For the remaining quantity, use the last record's cost price
+        if (sortedRecords.length > 0) {
+          const lastRecord = sortedRecords[sortedRecords.length - 1];
+          const lastCostPrice = roundPrice(lastRecord.fifo_cost_price || 0);
+
           console.log(
-            `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
+            `Using last FIFO record's cost price (${lastCostPrice}) for remaining ${remainingQtyToDeduct} units`
           );
-          return Number(parseFloat(record.fifo_cost_price || 0).toFixed(4));
+
+          const additionalCost = roundPrice(
+            remainingQtyToDeduct * lastCostPrice
+          );
+          totalCost = roundPrice(totalCost + additionalCost);
+          totalDeductedQty = roundQty(totalDeductedQty + remainingQtyToDeduct);
         }
       }
 
-      // If no records with available quantity, use the most recent record
-      console.warn(
-        `No FIFO records with available quantity found for ${materialId}, using most recent cost price`
-      );
-      return parseFloat(
-        sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
-      );
+      // Calculate the weighted average cost price
+      if (totalDeductedQty > 0) {
+        const weightedAvgCost = roundPrice(totalCost / totalDeductedQty);
+        console.log(
+          `Weighted Average FIFO Cost: ${totalCost} / ${totalDeductedQty} = ${weightedAvgCost}`
+        );
+        return weightedAvgCost;
+      }
+
+      // Fallback to first record with cost if no quantity could be deducted
+      return roundPrice(sortedRecords[0].fifo_cost_price || 0);
     }
 
     console.warn(`No FIFO records found for material ${materialId}`);
@@ -496,6 +573,7 @@ const updateInventory = (allData) => {
             `Before adding inventory movement for adjustment ${allData.adjustment_no}, material ${item.material_id}`
           );
 
+          let initialUnitPrice = roundPrice(item.unit_price || 0);
           let unitPrice = roundPrice(item.unit_price || 0);
           let totalPrice = roundPrice(item.unit_price * balance.sa_quantity);
 
@@ -505,7 +583,8 @@ const updateInventory = (allData) => {
             // Get unit price from latest FIFO sequence
             const fifoCostPrice = await getLatestFIFOCostPrice(
               item.material_id,
-              item.item_batch_no
+              item.item_batch_no,
+              balance.sa_quantity
             );
             unitPrice = roundPrice(fifoCostPrice);
             totalPrice = roundPrice(fifoCostPrice * balance.sa_quantity);
@@ -531,7 +610,7 @@ const updateInventory = (allData) => {
             trx_no: allData.adjustment_no,
             parent_trx_no: null,
             movement: movementType,
-            unit_price: unitPrice,
+            unit_price: movementType === "IN" ? initialUnitPrice : unitPrice,
             total_price: totalPrice,
             quantity: roundQty(balance.sa_quantity),
             item_id: item.material_id,
@@ -931,6 +1010,7 @@ if (page_status === "Add") {
           adjustment_remarks,
           reference_documents,
           subform_dus1f9ob,
+          balance_index,
         } = allData;
 
         const sa = {
@@ -946,6 +1026,7 @@ if (page_status === "Add") {
           reference_documents,
           subform_dus1f9ob,
           table_index: tableIndex,
+          balance_index,
         };
 
         const prefixEntry = db

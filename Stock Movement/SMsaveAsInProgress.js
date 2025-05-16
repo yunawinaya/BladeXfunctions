@@ -700,7 +700,7 @@ class StockAdjuster {
       batch_number_id: isBatchManaged ? batchId : null,
       costing_method_id: materialData.material_costing_method,
       created_at: new Date(),
-      plant_id: stockMovementReceivingPlantId,
+      plant_id: stockMovementIssuingPlantId,
       organization_id: organizationId,
     };
 
@@ -832,7 +832,7 @@ class StockAdjuster {
       const receivingIOFT = {
         stock_movement_status: "Created",
         stock_movement_no: newPrefix,
-        movement_type: allData.movement_type,
+        movement_type: "Inter Operation Facility Transfer (Receiving)",
         issuing_operation_faci: receivingPlantId,
         movement_id: stockMovementId,
         stock_movement: allData.stock_movement.map((item) => {

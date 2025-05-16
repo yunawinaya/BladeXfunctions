@@ -41,6 +41,13 @@ const addInventory = (data, plantId, organizationId) => {
       }
 
       const calculateCostPrice = (itemData, conversion) => {
+        if (!conversion || conversion <= 0 || !isFinite(conversion)) {
+          console.warn(
+            `Invalid conversion factor (${conversion}) for item ${itemData.item_id}, using 1.0`
+          );
+          conversion = 1.0;
+        }
+
         const relevantPoId =
           itemData.line_po_id ||
           itemData.po_id ||
