@@ -478,7 +478,7 @@ const processBalanceTable = async (
           const inventoryMovementData = {
             transaction_type: "GDL",
             trx_no: data.delivery_no,
-            parent_trx_no: data.so_no,
+            parent_trx_no: item.line_so_no,
             movement: "OUT",
             unit_price: unitPrice,
             total_price: totalPrice,
@@ -817,6 +817,7 @@ const validateForm = (data, requiredFields) => {
       organization_id,
       gd_ref_doc,
       customer_name,
+      customer_change_id,
       gd_contact_name,
       contact_number,
       email_address,
@@ -871,6 +872,7 @@ const validateForm = (data, requiredFields) => {
       organization_id,
       gd_ref_doc,
       customer_name,
+      customer_change_id,
       gd_contact_name,
       contact_number,
       email_address,
@@ -928,24 +930,24 @@ const validateForm = (data, requiredFields) => {
 
       // Add new document
       console.log("GD", gd);
-      const addResult = await db
-        .collection("goods_delivery")
-        .add(gd)
-        .then(() => {
-          this.runWorkflow(
-            "1918140858502557698",
-            { delivery_no: gd.delivery_no },
-            async (res) => {
-              console.log("成功结果：", res);
-            },
-            (err) => {
-              alert();
-              console.error("失败结果：", err);
-              closeDialog();
-            }
-          );
-        });
-      console.log("Added GD document:", addResult);
+      // const addResult = await db
+      //   .collection("goods_delivery")
+      //   .add(gd)
+      //   .then(() => {
+      //     this.runWorkflow(
+      //       "1918140858502557698",
+      //       { delivery_no: gd.delivery_no },
+      //       async (res) => {
+      //         console.log("成功结果：", res);
+      //       },
+      //       (err) => {
+      //         alert();
+      //         console.error("失败结果：", err);
+      //         closeDialog();
+      //       }
+      //     );
+      //   });
+      // console.log("Added GD document:", addResult);
 
       // Update prefix
       await updatePrefix(organizationId);
@@ -960,7 +962,9 @@ const validateForm = (data, requiredFields) => {
       );
 
       // Update related SO status
-      await updateSalesOrderStatus(gd.so_id);
+      for (const so_id of gd.so_id) {
+        await updateSalesOrderStatus(so_id);
+      }
 
       closeDialog();
     } else if (page_status === "Edit") {
@@ -1128,7 +1132,9 @@ const validateForm = (data, requiredFields) => {
       );
 
       // Update related SO status
-      await updateSalesOrderStatus(gd.so_id);
+      for (const so_id of gd.so_id) {
+        await updateSalesOrderStatus(so_id);
+      }
 
       closeDialog();
     }

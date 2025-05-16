@@ -92,7 +92,10 @@ const closeDialog = () => {
       under_receive_tolerance: data.under_receive_tolerance,
       over_delivery_tolerance: data.over_delivery_tolerance,
       under_delivery_tolerance: data.under_delivery_tolerance,
-      posted_status: 0,
+      posted_status: "Pending Post",
+      barcode_number: data.barcode_number,
+      purchase_default_uom: data.purchase_default_uom,
+      sales_default_uom: data.sales_default_uom,
     };
 
     // Clean up undefined/null values
@@ -140,14 +143,15 @@ const closeDialog = () => {
           { key: "value" },
           (res) => {
             console.log("成功结果：", res);
+            this.$message.success("Save item successfully.");
+            closeDialog();
           },
           (err) => {
             console.error("失败结果：", err);
+            this.$message.error(err);
+            this.hideLoading();
           }
         );
-
-        // Close dialog after successful operation
-        closeDialog();
       } catch (error) {
         console.error("Error adding item:", error);
         this.hideLoading();
@@ -170,9 +174,13 @@ const closeDialog = () => {
           { key: "value" },
           (res) => {
             console.log("成功结果：", res);
+            this.$message.success("Save item successfully.");
+            closeDialog();
           },
           (err) => {
             console.error("失败结果：", err);
+            this.$message.error(err);
+            this.hideLoading();
           }
         );
 

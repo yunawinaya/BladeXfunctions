@@ -199,6 +199,7 @@ const updateDraftEntry = async (goodsDeliveryId, entry) => {
       delivery_no: data.delivery_no,
       gd_ref_doc: data.gd_ref_doc,
       customer_name: data.customer_name,
+      customer_change_id: data.customer_change_id,
       gd_contact_name: data.gd_contact_name,
       contact_number: data.contact_number,
       email_address: data.email_address,
