@@ -19,6 +19,7 @@ const triggerMovement = () => {
         [`sa_item_balance.table_item_balance.${i}.movement_type`]: "Out",
       });
       this.hide(`subform_dus1f9ob.${subFormIndex}.unit_price`);
+      this.disabled(`subform_dus1f9ob.${subFormIndex}.unit_price`, true);
     }
   }
 };

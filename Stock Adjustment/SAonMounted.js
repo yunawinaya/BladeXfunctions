@@ -196,6 +196,10 @@ const checkPrefixConfiguration = async (organizationId) => {
             true
           );
 
+          if (adjustment_type === "Write Off") {
+            this.hide("subform_dus1f9ob.unit_price");
+          }
+
           // Hide add button for subform
           setTimeout(() => {
             const addButton = document.querySelector(
