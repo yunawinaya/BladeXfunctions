@@ -1,15 +1,5 @@
-let organizationId = this.getVarGlobal("deptParentId");
-if (organizationId === "0") {
-  organizationId = this.getVarSystem("deptIds").split(",")[0];
-}
-
-const organization_id = organizationId;
-
-this.setData({ organization_id: organization_id });
 const data = this.getValues();
 const salesOrderId = data.so_id;
-console.log("data", data);
-console.log("salesorderid", salesOrderId);
 
 const savedTableGd = data.table_gd || [];
 
