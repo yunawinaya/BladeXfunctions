@@ -705,7 +705,7 @@ const updateSalesOrderStatus = async (salesOrderId) => {
   try {
     console.log(`Updating sales order status for SO: ${salesOrderId}`);
 
-    const [resSO, resPO] = await Promise.all([
+    const [resSO, resGD] = await Promise.all([
       db.collection("sales_order").where({ id: salesOrderId }).get(),
       db
         .collection("goods_delivery")
@@ -719,7 +719,7 @@ const updateSalesOrderStatus = async (salesOrderId) => {
     }
 
     const soDoc = resSO.data[0];
-    const allGDs = resPO.data || [];
+    const allGDs = resGD.data || [];
 
     const soItems = soDoc.table_so || [];
     if (!soItems.length) {
@@ -729,19 +729,37 @@ const updateSalesOrderStatus = async (salesOrderId) => {
 
     // Create a map to sum delivered quantities for each item
     const deliveredQtyMap = {};
+    let totalOrderedQty = 0;
+    let totalDeliveredQty = 0;
 
-    // Initialize with zeros
+    // Initialize with zeros and calculate total ordered quantity
     soItems.forEach((item) => {
-      deliveredQtyMap[item.item_name] = 0;
+      const itemId = item.item_name;
+      const orderedQty = parseFloat(item.so_quantity || 0);
+
+      deliveredQtyMap[itemId] = 0;
+      totalOrderedQty += orderedQty;
     });
 
     // Sum delivered quantities from all GDs
     allGDs.forEach((gd) => {
       (gd.table_gd || []).forEach((gdItem) => {
-        if (deliveredQtyMap.hasOwnProperty(gdItem.material_id)) {
-          deliveredQtyMap[gdItem.material_id] += parseFloat(gdItem.gd_qty || 0);
+        const itemId = gdItem.material_id;
+        if (deliveredQtyMap.hasOwnProperty(itemId)) {
+          const qty = parseFloat(gdItem.gd_qty || 0);
+          deliveredQtyMap[itemId] += qty;
+          totalDeliveredQty += qty;
         }
       });
+    });
+
+    // Create a copy of the SO items to update later
+    const updatedSoItems = JSON.parse(JSON.stringify(soItems));
+
+    // Update delivered quantities in SO items
+    updatedSoItems.forEach((item) => {
+      const itemId = item.item_name;
+      item.delivered_qty = deliveredQtyMap[itemId] || 0;
     });
 
     // Check item completion status
@@ -750,11 +768,13 @@ const updateSalesOrderStatus = async (salesOrderId) => {
 
     soItems.forEach((item) => {
       const orderedQty = parseFloat(item.so_quantity || 0);
-      const deliveredQty = parseFloat(deliveredQtyMap[item.item_name] || 0);
+      const deliveredQty = deliveredQtyMap[item.item_name] || 0;
 
       if (deliveredQty < orderedQty) {
         allItemsComplete = false;
-        anyItemProcessing = true;
+        if (deliveredQty > 0) {
+          anyItemProcessing = true;
+        }
       }
     });
 
@@ -770,18 +790,33 @@ const updateSalesOrderStatus = async (salesOrderId) => {
       newGDStatus = "Partially Delivered";
     }
 
-    // Update SO status if changed
-    if (newSOStatus !== soDoc.so_status || newGDStatus !== soDoc.gd_status) {
-      await db.collection("sales_order").doc(soDoc.id).update({
-        so_status: newSOStatus,
-        gd_status: newGDStatus,
-      });
+    // Format the delivered/ordered quantity
+    const deliveredOrderedQty = `${totalDeliveredQty} / ${totalOrderedQty}`;
 
+    // Prepare a single update operation with all changes
+    const updateData = {
+      table_so: updatedSoItems,
+      delivered_ordered_qty: deliveredOrderedQty,
+    };
+
+    // Only include status changes if needed
+    if (newSOStatus !== soDoc.so_status) {
+      updateData.so_status = newSOStatus;
+    }
+
+    if (newGDStatus !== soDoc.gd_status) {
+      updateData.gd_status = newGDStatus;
+    }
+
+    // Execute a single database update
+    await db.collection("sales_order").doc(soDoc.id).update(updateData);
+
+    const originalSOStatus = soDoc.so_status;
+    // Log the status change if it occurred
+    if (newSOStatus !== originalSOStatus) {
       console.log(
-        `Updated SO ${salesOrderId} status to ${newSOStatus}, delivery status to ${newGDStatus}`
+        `Updated SO ${salesOrderId} status from ${originalSOStatus} to ${newSOStatus}`
       );
-    } else {
-      console.log(`SO ${salesOrderId} status unchanged: ${newSOStatus}`);
     }
   } catch (error) {
     console.error(`Error updating sales order status:`, error);

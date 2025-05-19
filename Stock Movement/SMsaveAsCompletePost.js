@@ -535,10 +535,12 @@ class StockAdjuster {
       materialData.item_batch_management == "1"
         ? "item_batch_balance"
         : "item_balance";
+
     let qtyChangeValue =
       movementType === "Miscellaneous Receipt"
         ? subformData.quantity_converted || subformData.received_quantity || 0
         : balance.quantity_converted || balance.sm_quantity || 0;
+
     const locationId = balance.location_id || subformData.location_id;
     const effectiveUom =
       balance.effective_uom ||
@@ -559,34 +561,59 @@ class StockAdjuster {
       throw new Error(`Effective UOM is undefined for item ${materialData.id}`);
     }
 
-    // Derive the category field without modifying balance.category
     const categoryKey =
       movementType === "Location Transfer"
         ? "Unrestricted"
         : movementType === "Miscellaneous Receipt"
         ? subformData.category || "Unrestricted"
         : balance.category || "Unrestricted";
+
     const categoryField = this.categoryMap[categoryKey];
 
-    // if (!categoryField && movementType != 'Inventory Category Transfer Posting') {
-    // throw new Error(`Invalid category: ${categoryKey}`);
-    // }
+    let batchId = null;
+
+    if (
+      movementType === "Miscellaneous Receipt" &&
+      materialData.item_batch_management == "1"
+    ) {
+      console.log("Processing batch for Miscellaneous Receipt");
+      batchId = await this.createBatch(
+        materialData,
+        qtyChangeValue,
+        allData,
+        subformData,
+        organizationId
+      );
+      console.log("Obtained batchId:", batchId);
+    } else if (materialData.item_batch_management == "1" && balance.batch_id) {
+      batchId = balance.batch_id;
+    }
 
     const queryConditions = {
       material_id: materialData.id,
       location_id: locationId,
     };
 
-    if (materialData.item_batch_management == "1" && balance.batch_id) {
-      queryConditions.batch_id = balance.batch_id;
+    if (materialData.item_batch_management == "1" && batchId) {
+      queryConditions.batch_id = batchId;
+      console.log(`Including batch_id ${batchId} in query conditions`);
     }
 
+    console.log(
+      "Querying for existing balance with conditions:",
+      queryConditions
+    );
     const balanceResponse = await this.db
       .collection(collectionName)
       .where(queryConditions)
       .get();
 
-    let balanceData = balanceResponse.data[0];
+    let balanceData =
+      balanceResponse.data && balanceResponse.data.length > 0
+        ? balanceResponse.data[0]
+        : null;
+
+    console.log("Found existing balance:", balanceData ? "Yes" : "No");
 
     let updateData = balanceData
       ? { ...balanceData }
@@ -598,8 +625,7 @@ class StockAdjuster {
           qualityinsp_qty: 0,
           block_qty: 0,
           reserved_qty: 0,
-          batch_id:
-            materialData.item_batch_management == "1" ? balance.batch_id : null,
+          batch_id: batchId,
           plant_id: allData.issuing_operation_faci,
           create_user: allData.user_id || "system",
           issue_date: allData.issue_date,
@@ -637,17 +663,6 @@ class StockAdjuster {
           (updateData.balance_quantity || 0) + qtyChangeValue;
         updateData[categoryField] =
           (updateData[categoryField] || 0) + qtyChangeValue;
-        if (materialData.item_batch_management == "1") {
-          const batchId = await this.createBatch(
-            materialData,
-            qtyChangeValue,
-            allData,
-            subformData,
-            organizationId
-          );
-          console.log("batchId", batchId);
-          updateData.batch_id = batchId;
-        }
         break;
 
       case "Inventory Category Transfer Posting":
@@ -670,8 +685,10 @@ class StockAdjuster {
     updateData.update_user = allData.user_id || "system";
 
     if (!balanceData) {
+      console.log("Creating new balance record");
       await this.db.collection(collectionName).add(updateData);
     } else {
+      console.log("Updating existing balance record");
       const updateFields = {
         balance_quantity: updateData.balance_quantity,
         unrestricted_qty: updateData.unrestricted_qty,
@@ -682,9 +699,11 @@ class StockAdjuster {
         update_user: updateData.update_user,
         plant_id: updateData.plant_id,
       };
+
       if (materialData.item_batch_management == "1") {
         updateFields.batch_id = updateData.batch_id;
       }
+
       await this.db
         .collection(collectionName)
         .doc(balanceData.id)
@@ -718,7 +737,7 @@ class StockAdjuster {
         collectionName,
         subformData.location_id,
         qtyChangeValue,
-        balance,
+        { ...balance, batch_id: batchId },
         allData,
         subformData,
         movementType,
