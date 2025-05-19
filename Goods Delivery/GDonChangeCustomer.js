@@ -1,27 +1,10 @@
 (async () => {
   try {
     const customerId = arguments[0]?.value;
-    const customerChangeId = this.getValue("customer_change_id");
-
-    const customerContactData = arguments[0]?.fieldModel?.item.contact_list[0];
 
     // Handle customer ID change
-    if (
-      customerId &&
-      (!customerChangeId || customerChangeId !== customerId) &&
-      !Array.isArray(customerId)
-    ) {
+    if (customerId && !Array.isArray(customerId)) {
       console.log("Customer changed to:", customerId);
-
-      // Update tracking field and reset SO selection
-      await this.setData({ customer_change_id: customerId });
-      await this.setData({ so_id: undefined });
-      await this.disabled(["so_id"], false);
-      await this.setData({
-        gd_contact_name: customerContactData.person_name,
-        contact_number: customerContactData.mobile_number,
-        email_address: customerContactData.person_email,
-      });
 
       // Display address section
       this.display("address_grid");
@@ -85,6 +68,14 @@
       }
 
       const customerData = resCustomer.data[0];
+
+      if (customerData.contact_list && customerData.contact_list.length > 0) {
+        await this.setData({
+          gd_contact_name: customerData.contact_list[0].person_name,
+          contact_number: customerData.contact_list[0].mobile_number,
+          email_address: customerData.contact_list[0].person_email,
+        });
+      }
 
       // Get all default addresses
       const addresses =
@@ -169,6 +160,21 @@
         } catch (addressError) {
           console.error("Error processing address:", addressError);
         }
+      }
+
+      const customerCurrencyId = customerData.customer_currency_id;
+
+      console.log("customerCurrencyId", customerCurrencyId);
+
+      if (customerCurrencyId) {
+        const resCurrency = await db
+          .collection("currency")
+          .where({ id: customerCurrencyId })
+          .get();
+
+        const currencyEntry = resCurrency.data[0];
+        const currencyCode = currencyEntry.currency_code;
+        this.setData({ currency_code: currencyCode });
       }
     }
   } catch (error) {

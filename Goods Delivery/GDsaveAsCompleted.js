@@ -885,6 +885,7 @@ const validateForm = (data, requiredFields) => {
     console.log("Organization ID:", organizationId);
 
     const {
+      fake_so_id,
       so_id,
       so_no,
       gd_billing_name,
@@ -896,7 +897,6 @@ const validateForm = (data, requiredFields) => {
       organization_id,
       gd_ref_doc,
       customer_name,
-      customer_change_id,
       gd_contact_name,
       contact_number,
       email_address,
@@ -940,6 +940,7 @@ const validateForm = (data, requiredFields) => {
     // Prepare goods delivery object
     const gd = {
       gd_status: "Completed",
+      fake_so_id,
       so_id,
       so_no,
       gd_billing_name,
@@ -951,7 +952,6 @@ const validateForm = (data, requiredFields) => {
       organization_id,
       gd_ref_doc,
       customer_name,
-      customer_change_id,
       gd_contact_name,
       contact_number,
       email_address,

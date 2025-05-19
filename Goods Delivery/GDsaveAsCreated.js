@@ -583,6 +583,7 @@ const validateForm = (data, requiredFields) => {
     // Prepare goods delivery object
     const gd = {
       gd_status: "Created",
+      fake_so_id: data.fake_so_id,
       so_id: data.so_id,
       so_no: data.so_no,
       gd_billing_name: data.gd_billing_name,
@@ -594,7 +595,6 @@ const validateForm = (data, requiredFields) => {
       organization_id: organizationId,
       gd_ref_doc: data.gd_ref_doc,
       customer_name: data.customer_name,
-      customer_change_id: data.customer_change_id,
       gd_contact_name: data.gd_contact_name,
       contact_number: data.contact_number,
       email_address: data.email_address,
