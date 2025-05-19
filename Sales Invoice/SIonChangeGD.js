@@ -1,6 +1,6 @@
 const data = this.getValues();
-const salesOrderId = data.so_id;
-console.log("Sales Order ID:", salesOrderId);
+const salesOrderIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];
+console.log("Sales Order IDs:", salesOrderIds);
 
 // Helper function to extract data from different response formats
 function extractData(result) {
@@ -99,18 +99,30 @@ Promise.all(
 // Main processing
 const processSalesInvoice = async () => {
   try {
-    // Fetch Sales Order data
-    const soResult = await db
-      .collection("sales_order")
-      .where({
-        id: salesOrderId,
-      })
-      .get();
+    // Fetch Sales Order data for all sales order IDs
+    const soPromises = salesOrderIds.map(async (soId) => {
+      try {
+        const soResult = await db
+          .collection("sales_order")
+          .where({
+            id: soId,
+          })
+          .get();
 
-    const SOData = extractData(soResult);
-    console.log("Extracted Sales Order data:", SOData);
+        const soData = extractData(soResult);
+        console.log(`Extracted Sales Order data for ${soId}:`, soData);
+        return soData;
+      } catch (error) {
+        console.error(`Error retrieving data for SO ${soId}:`, error);
+        return null;
+      }
+    });
 
-    if (!SOData) {
+    const allSOData = (await Promise.all(soPromises)).filter(Boolean);
+    console.log("All SO data:", allSOData);
+
+    // Additional check to ensure we have SO data to process
+    if (allSOData.length === 0) {
       console.error("No valid Sales Order data found");
       return;
     }
@@ -149,97 +161,85 @@ const processSalesInvoice = async () => {
       return;
     }
 
-    // Process data and create item map
-    const itemMap = {};
-
-    // Process SO data first
-    const soItems = SOData.table_so || SOData.items || [];
-    if (Array.isArray(soItems)) {
-      soItems.forEach((soItem) => {
-        console.log("Processing SO item:", soItem);
-        const itemId = soItem.item_name;
-        if (itemId) {
-          itemMap[itemId] = {
-            item_id: itemId,
-            item_desc: soItem.so_desc || "",
-            item_uom: soItem.so_item_uom,
-            ordered_qty: soItem.so_quantity,
-            unit_price: soItem.so_item_price,
-            amount: soItem.so_amount,
-            discount: soItem.so_discount,
-            discount_uom: soItem.so_discount_uom,
-            tax_rate: soItem.so_tax_percentage,
-            tax_preference: soItem.so_tax_preference,
-            tax_inclusive: soItem.so_tax_inclusive,
-            delivery_qty: 0,
-          };
-          console.log(`Added SO item ${itemId} to map:`, itemMap[itemId]);
+    // Create a map of material IDs from all SOs to validate GD items
+    const validItems = new Set();
+    allSOData.forEach((soData) => {
+      const soItems = soData.table_so || [];
+      soItems.forEach((item) => {
+        if (item.item_name) {
+          validItems.add(item.item_name);
         }
       });
-    }
-
-    // Then process GD data to update received quantities
-    allGDData.forEach((gdRecord) => {
-      console.log("Processing GD record, table_gd:", gdRecord.table_gd);
-
-      if (gdRecord && Array.isArray(gdRecord.table_gd)) {
-        gdRecord.table_gd.forEach((item) => {
-          console.log("Processing GD item:", item);
-          const itemId = item.material_id;
-
-          if (!itemId) {
-            return;
-          }
-
-          if (!itemMap[itemId]) {
-            // If item wasn't in SO data, initialize with default values
-            itemMap[itemId] = {
-              item_id: itemId,
-              item_desc: item.material_desc || "",
-              item_uom: item.gd_uom_id || "",
-              ordered_qty: 0,
-              unit_price: 0,
-              amount: 0,
-              discount: 0,
-              discount_uom: "%",
-              tax_rate: 0,
-              tax_preference: "",
-              tax_inclusive: 0,
-              delivery_qty: 0,
-            };
-            console.log(
-              `Created new item ${itemId} from GD data:`,
-              itemMap[itemId]
-            );
-          }
-
-          const deliveryQty = parseFloat(item.gd_qty) || 0;
-          itemMap[itemId].delivery_qty += deliveryQty;
-          console.log(
-            `Updated delivery qty for ${itemId} to ${itemMap[itemId].delivery_qty}`
-          );
-        });
-      }
     });
 
-    const consolidatedItems = Object.values(itemMap);
-    console.log("Consolidated items:", consolidatedItems);
+    // Validate that GD items match SO items
+    let allGDItemsValid = true;
+    allGDData.forEach((gdData) => {
+      const gdItems = gdData.table_gd || [];
+      gdItems.forEach((item) => {
+        if (item.material_id && !validItems.has(item.material_id)) {
+          console.warn(`GD item ${item.material_id} is not in any Sales Order`);
+          allGDItemsValid = false;
+        }
+      });
+    });
 
-    const newTableSI = consolidatedItems.map((item) => ({
-      material_id: item.item_id,
-      material_desc: item.item_desc,
-      so_order_quantity: item.ordered_qty,
-      so_order_uom_id: item.item_uom,
-      good_delivery_quantity: item.delivery_qty,
-      unit_price: item.unit_price,
-      si_discount: item.discount,
-      si_discount_uom_id: item.discount_uom,
-      si_tax_rate_id: item.tax_preference,
-      tax_rate_percent: item.tax_rate,
-      si_tax_inclusive: item.tax_inclusive,
-      invoice_qty: item.delivery_qty,
-      invoice_qty_uom_id: item.item_uom,
-    }));
+    if (!allGDItemsValid) {
+      console.warn(
+        "Some GD items do not match any SO items. Proceeding with caution."
+      );
+      // You can decide whether to stop processing here or continue
+      // For now, we'll continue but you might want to add logic to stop if needed
+    }
+
+    // Process data and create table entries, keeping SO structure
+    const newTableSI = [];
+
+    // Create delivery quantity map from all GDs
+    const deliveryQtyMap = {};
+    allGDData.forEach((gdData) => {
+      const gdItems = gdData.table_gd || [];
+      gdItems.forEach((item) => {
+        if (item.material_id) {
+          if (!deliveryQtyMap[item.material_id]) {
+            deliveryQtyMap[item.material_id] = 0;
+          }
+          deliveryQtyMap[item.material_id] += parseFloat(item.gd_qty) || 0;
+        }
+      });
+    });
+
+    // Process each SO and maintain its structure
+    allSOData.forEach((soData) => {
+      const soItems = soData.table_so || [];
+
+      soItems.forEach((soItem) => {
+        const itemId = soItem.item_name;
+        if (!itemId) return;
+
+        // Get delivery quantity from our map
+        const deliveryQty = deliveryQtyMap[itemId] || 0;
+
+        // Create entry for this SO item
+        newTableSI.push({
+          line_so_id: soData.id || "",
+          line_so_no: soData.so_no || "",
+          material_id: itemId,
+          material_desc: soItem.so_desc || "",
+          so_order_quantity: parseFloat(soItem.so_quantity) || 0,
+          so_order_uom_id: soItem.so_item_uom,
+          good_delivery_quantity: deliveryQty,
+          unit_price: soItem.so_item_price,
+          si_discount: soItem.so_discount,
+          si_discount_uom_id: soItem.so_discount_uom,
+          si_tax_rate_id: soItem.so_tax_preference,
+          tax_rate_percent: soItem.so_tax_percentage,
+          si_tax_inclusive: soItem.so_tax_inclusive,
+          invoice_qty: deliveryQty,
+          invoice_qty_uom_id: soItem.so_item_uom,
+        });
+      });
+    });
 
     console.log("Final table_si data:", newTableSI);
     await this.setData({
