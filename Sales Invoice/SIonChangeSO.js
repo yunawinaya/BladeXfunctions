@@ -238,20 +238,5 @@ const calculateTotals = () => {
   }
 };
 
-// Update sales orders when invoice is created (optional)
-const updateSalesOrders = async () => {
-  try {
-    for (const soId of salesOrderIds) {
-      await db.collection("sales_order").doc(soId).update({
-        invoice_status: "Invoiced",
-        update_time: new Date().toISOString(),
-      });
-      console.log(`Updated invoice status for SO ${soId}`);
-    }
-  } catch (error) {
-    console.error("Error updating sales order invoice status:", error);
-  }
-};
-
 // Start the main process
 processSalesInvoice();
