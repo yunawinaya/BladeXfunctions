@@ -1105,6 +1105,7 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
       }
 
       const {
+        fake_purchase_order_id,
         purchase_order_id,
         plant_id,
         currency_code,
@@ -1115,7 +1116,6 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         gr_billing_address,
         gr_shipping_address,
         supplier_name,
-        supplier_change_id,
         supplier_contact_person,
         supplier_contact_number,
         supplier_email,
@@ -1143,6 +1143,7 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
 
       const entry = {
         gr_status: "Completed",
+        fake_purchase_order_id,
         purchase_order_id,
         plant_id,
         currency_code,
@@ -1153,7 +1154,6 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         gr_billing_address,
         gr_shipping_address,
         supplier_name,
-        supplier_change_id,
         supplier_contact_person,
         supplier_contact_number,
         supplier_email,

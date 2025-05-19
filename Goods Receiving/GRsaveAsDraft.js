@@ -109,6 +109,7 @@ const generateDraftPrefix = async (organizationId) => {
       }
 
       const {
+        fake_purchase_order_id,
         purchase_order_id,
         purchase_order_number,
         gr_billing_name,
@@ -116,7 +117,6 @@ const generateDraftPrefix = async (organizationId) => {
         gr_billing_address,
         gr_shipping_address,
         supplier_name,
-        supplier_change_id,
         supplier_contact_person,
         supplier_contact_number,
         supplier_email,
@@ -147,6 +147,7 @@ const generateDraftPrefix = async (organizationId) => {
 
       const entry = {
         gr_status: "Draft",
+        fake_purchase_order_id,
         purchase_order_id,
         purchase_order_number,
         gr_billing_name,
@@ -154,7 +155,6 @@ const generateDraftPrefix = async (organizationId) => {
         gr_billing_address,
         gr_shipping_address,
         supplier_name,
-        supplier_change_id,
         supplier_contact_person,
         supplier_contact_number,
         supplier_email,

@@ -1,12 +1,6 @@
 console.log("arguments", arguments[0]);
 const page_status = this.getValue("page_status");
 
-this.setData({
-  currency_code: arguments[0].fieldModel[0].item.po_currency,
-});
-
-this.disabled("plant_id", false);
-
 // Check if data is ready and contains purchase_order_id
 const checkAndProcessData = () => {
   console.log("checkAndProcessData");
@@ -239,7 +233,6 @@ const processGoodsReceiving = async (purchaseOrderIds, goodsReceivingId) => {
                 item_costing_method: itemData.material_costing_method,
                 item_batch_no: batch_number,
                 inv_category: "Unrestricted",
-                po_id: purchaseOrderId, // Add PO ID for reference
                 po_line_item:
                   sourceItem.line_item || sourceItem.po_line_item || null,
               };
@@ -279,7 +272,6 @@ const processGoodsReceiving = async (purchaseOrderIds, goodsReceivingId) => {
         item_costing_method: item.item_costing_method,
         item_batch_no: item.item_batch_no,
         inv_category: "Unrestricted",
-        po_id: item.po_id, // Include PO reference
         po_line_item: item.po_line_item,
       }));
 
@@ -305,5 +297,8 @@ const processGoodsReceiving = async (purchaseOrderIds, goodsReceivingId) => {
   }
 };
 
-// Start the process with a check for data readiness
-checkAndProcessData();
+const fake_purchase_order_id = this.getValue("fake_purchase_order_id");
+
+if (fake_purchase_order_id && !Array.isArray(fake_purchase_order_id)) {
+  checkAndProcessData();
+}

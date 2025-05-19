@@ -480,6 +480,56 @@
       "rules": []
     },
     {
+      "name": "Return Status",
+      "type": "input",
+      "mainIcon": "单行文本",
+      "typeIcon": "多行文本",
+      "icon": "icon-input",
+      "group": "Text",
+      "groupSort": 1,
+      "enableScopes": ["Component", "Table", "Page"],
+      "el": "fm-input",
+      "options": {
+        "width": "",
+        "defaultValue": "",
+        "required": false,
+        "requiredMessage": "",
+        "dataType": "",
+        "dataTypeCheck": false,
+        "dataTypeMessage": "",
+        "pattern": "",
+        "patternCheck": false,
+        "patternMessage": "",
+        "validatorCheck": false,
+        "validator": "",
+        "placeholder": "",
+        "customClass": "",
+        "disabled": false,
+        "labelWidth": 100,
+        "isLabelWidth": false,
+        "hidden": true,
+        "dataBind": true,
+        "showPassword": false,
+        "clearable": false,
+        "maxlength": "",
+        "showWordLimit": false,
+        "customProps": {},
+        "tip": "",
+        "remoteFunc": "func_3w3wjtjj",
+        "remoteOption": "option_3w3wjtjj",
+        "tableColumn": false,
+        "subform": false
+      },
+      "events": {
+        "onChange": "",
+        "onFocus": "",
+        "onBlur": ""
+      },
+      "key": "3w3wjtjj",
+      "model": "return_status",
+      "rules": []
+    },
+    {
       "name": "栅格布局",
       "type": "grid",
       "mainIcon": "栅格布局",
@@ -505,263 +555,6 @@
           },
           "list": [
             {
-              "name": "栅格布局",
-              "type": "grid",
-              "mainIcon": "栅格布局",
-              "typeIcon": "栅格布局",
-              "icon": "icon-RectangleCopy",
-              "group": "Layout",
-              "groupSort": 0,
-              "enableScopes": ["Component", "Table", "Page"],
-              "columns": [
-                {
-                  "type": "col",
-                  "options": {
-                    "span": 12,
-                    "offset": 0,
-                    "push": 0,
-                    "pull": 0,
-                    "xs": 24,
-                    "sm": 12,
-                    "md": 21,
-                    "lg": 12,
-                    "xl": 12,
-                    "customClass": ""
-                  },
-                  "list": [
-                    {
-                      "name": "Supplier",
-                      "type": "select",
-                      "mainIcon": "下拉单选",
-                      "typeIcon": "下拉单选",
-                      "icon": "icon-select",
-                      "group": "Select",
-                      "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
-                      "el": "fm-select",
-                      "options": {
-                        "defaultValue": "",
-                        "multiple": false,
-                        "disabled": false,
-                        "clearable": false,
-                        "placeholder": "",
-                        "required": true,
-                        "requiredMessage": "",
-                        "validatorCheck": false,
-                        "validator": "",
-                        "width": "",
-                        "options": [
-                          {
-                            "value": "Option 1",
-                            "label": "Option 1"
-                          },
-                          {
-                            "value": "Option 2",
-                            "label": "Option 2"
-                          },
-                          {
-                            "value": "Option 3",
-                            "label": "Option 3"
-                          }
-                        ],
-                        "remote": true,
-                        "remoteType": "innerdatasource",
-                        "remoteOption": "option_9ptk25qt",
-                        "filterable": false,
-                        "pagingEnabled": true,
-                        "remoteOptions": [],
-                        "props": {
-                          "value": "id",
-                          "label": "supplier_com_name",
-                          "cascade": "",
-                          "children": "",
-                          "image": "",
-                          "icon": ""
-                        },
-                        "remoteFunc": "func_9ptk25qt",
-                        "customClass": "",
-                        "labelWidth": 100,
-                        "isLabelWidth": false,
-                        "hidden": false,
-                        "dataBind": true,
-                        "customProps": {},
-                        "tip": "",
-                        "tableColumn": false,
-                        "subform": false,
-                        "paging_enabled": 1,
-                        "paging_way": "Pagination",
-                        "page_size": 10,
-                        "more_fields": [],
-                        "datasource": {
-                          "source": "Supplier:Table:1901541078662762497",
-                          "rules": {
-                            "collectionId": "1901541078662762497",
-                            "list": [
-                              {
-                                "id": 1723795236686,
-                                "parentId": 1723795236685,
-                                "isTop": true,
-                                "prop": "",
-                                "operator": "",
-                                "valueType": "",
-                                "value": "",
-                                "type": "leaf",
-                                "level": 1
-                              }
-                            ]
-                          }
-                        },
-                        "url_params": {
-                          "list": [
-                            {
-                              "prop": "",
-                              "propLabel": "",
-                              "operator": "",
-                              "operatorLabel": "",
-                              "valueType": "value",
-                              "valueTypeLabel": "",
-                              "value": null,
-                              "valueLabel": ""
-                            }
-                          ]
-                        },
-                        "body_params": {
-                          "list": [
-                            {
-                              "prop": "",
-                              "propLabel": "",
-                              "operator": "",
-                              "operatorLabel": "",
-                              "valueType": "value",
-                              "valueTypeLabel": "",
-                              "value": null,
-                              "valueLabel": ""
-                            }
-                          ]
-                        },
-                        "request_params": {
-                          "list": [
-                            {
-                              "prop": "",
-                              "propLabel": "",
-                              "operator": "",
-                              "operatorLabel": "",
-                              "valueType": "value",
-                              "valueTypeLabel": "",
-                              "value": null,
-                              "valueLabel": ""
-                            }
-                          ]
-                        }
-                      },
-                      "events": {
-                        "onChange": "j8wra669",
-                        "onFocus": "",
-                        "onBlur": ""
-                      },
-                      "novalid": {},
-                      "key": "9ptk25qt",
-                      "model": "supplier_name",
-                      "rules": [
-                        {
-                          "required": true,
-                          "message": ""
-                        }
-                      ]
-                    }
-                  ],
-                  "key": "qy8vo7rn"
-                },
-                {
-                  "type": "col",
-                  "options": {
-                    "span": 12,
-                    "offset": 0,
-                    "push": 0,
-                    "pull": 0,
-                    "xs": 24,
-                    "sm": 12,
-                    "md": 3,
-                    "lg": 12,
-                    "xl": 12,
-                    "customClass": ""
-                  },
-                  "list": [
-                    {
-                      "name": "Currency Code",
-                      "type": "input",
-                      "mainIcon": "单行文本",
-                      "typeIcon": "多行文本",
-                      "icon": "icon-input",
-                      "group": "Text",
-                      "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
-                      "el": "fm-input",
-                      "options": {
-                        "width": "",
-                        "defaultValue": "",
-                        "required": false,
-                        "requiredMessage": "",
-                        "dataType": "",
-                        "dataTypeCheck": false,
-                        "dataTypeMessage": "",
-                        "pattern": "",
-                        "patternCheck": false,
-                        "patternMessage": "",
-                        "validatorCheck": false,
-                        "validator": "",
-                        "placeholder": "",
-                        "customClass": "",
-                        "disabled": true,
-                        "labelWidth": 100,
-                        "isLabelWidth": false,
-                        "hidden": false,
-                        "dataBind": true,
-                        "showPassword": false,
-                        "clearable": false,
-                        "maxlength": "",
-                        "showWordLimit": false,
-                        "customProps": {},
-                        "tip": "",
-                        "remoteFunc": "func_e6eqh8h4",
-                        "remoteOption": "option_e6eqh8h4",
-                        "tableColumn": false,
-                        "subform": false,
-                        "hideLabel": true
-                      },
-                      "events": {
-                        "onChange": "",
-                        "onFocus": "",
-                        "onBlur": ""
-                      },
-                      "novalid": {},
-                      "key": "e6eqh8h4",
-                      "model": "currency_code",
-                      "rules": []
-                    }
-                  ],
-                  "key": "khws748p"
-                }
-              ],
-              "options": {
-                "gutter": 4,
-                "justify": "start",
-                "align": "top",
-                "customClass": "",
-                "hidden": false,
-                "flex": true,
-                "responsive": true,
-                "remoteFunc": "func_ictoozgi",
-                "remoteOption": "option_ictoozgi",
-                "tableColumn": false,
-                "subform": false
-              },
-              "novalid": {},
-              "key": "ictoozgi",
-              "model": "grid_ictoozgi",
-              "rules": []
-            },
-            {
               "name": "PO Number",
               "el": "su-fm-table-select",
               "mainIcon": "数据源",
@@ -771,17 +564,17 @@
               "generate": "part",
               "enableScopes": ["Component", "Table", "Page"],
               "options": {
-                "defaultValue": [],
+                "defaultValue": "",
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
                 "hidden": false,
-                "disabled": true,
+                "disabled": false,
                 "dataBind": true,
                 "required": true,
                 "validator": "",
                 "hideLabel": false,
-                "pageSourceId": "1922109730902089729",
+                "pageSourceId": "1923315035704745986",
                 "customProps": {},
                 "pagingEnabled": true,
                 "multiple": false,
@@ -982,7 +775,317 @@
                 "remoteOption": "option_7qiud9pk",
                 "tableColumn": false,
                 "subform": false,
-                "paging_enabled": 0,
+                "paging_enabled": 1,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": null,
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": null,
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": null,
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "columns": [
+                  {
+                    "title": "PO Number",
+                    "name": "purchase_order_no"
+                  },
+                  {
+                    "title": "Supplier Name",
+                    "name": "po_supplier_id"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "pageId": "1923315035738300417"
+              },
+              "events": {
+                "onChange": "drpaq3gc"
+              },
+              "type": "custom",
+              "novalid": {},
+              "key": "sbn5lowo",
+              "model": "fake_purchase_order_id",
+              "rules": [
+                {
+                  "required": true,
+                  "message": ""
+                }
+              ]
+            },
+            {
+              "name": "PO Number",
+              "el": "su-fm-table-select",
+              "mainIcon": "数据源",
+              "typeIcon": "数据源",
+              "group": "Select",
+              "groupSort": 4,
+              "generate": "part",
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": [],
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": true,
+                "disabled": false,
+                "dataBind": true,
+                "required": true,
+                "validator": "",
+                "hideLabel": false,
+                "pageSourceId": "1922109730902089729",
+                "customProps": {},
+                "pagingEnabled": true,
+                "multiple": true,
+                "placeholder": "",
+                "lazyLoad": true,
+                "props": {
+                  "value": "id",
+                  "label": "purchase_order_no",
+                  "cascade": "",
+                  "children": "",
+                  "image": "",
+                  "icon": ""
+                },
+                "datasource": {
+                  "source": "Purchase Order:Table:1902776039445217282",
+                  "rules": {
+                    "collectionId": "1902776039445217282",
+                    "list": [
+                      {
+                        "id": 1747197370800,
+                        "parentId": 1747197370801,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1747197370804,
+                            "isTop": false,
+                            "parentId": 1747197370800,
+                            "type": "branch",
+                            "operator": "any",
+                            "level": 2,
+                            "children": [
+                              {
+                                "id": 1747197399269,
+                                "parentId": 1747197370804,
+                                "isTop": false,
+                                "prop": "gr_status",
+                                "operator": "notEqual",
+                                "valueType": "value",
+                                "value": "Fully Received",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "GR Status",
+                                "valueLabel": "",
+                                "operatorLabel": "不等于",
+                                "valueTypeLabel": "值"
+                              },
+                              {
+                                "id": 1747197370805,
+                                "parentId": 1747197370804,
+                                "isTop": false,
+                                "prop": "gr_status",
+                                "operator": "isNull",
+                                "valueType": "value",
+                                "value": null,
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "GR Status",
+                                "valueLabel": "",
+                                "operatorLabel": "没有值",
+                                "valueTypeLabel": "值"
+                              }
+                            ]
+                          },
+                          {
+                            "id": 1747197370806,
+                            "isTop": false,
+                            "parentId": 1747197370800,
+                            "type": "branch",
+                            "operator": "all",
+                            "level": 2,
+                            "children": [
+                              {
+                                "id": 1747197370802,
+                                "parentId": 1747197370806,
+                                "isTop": false,
+                                "prop": "po_status",
+                                "operator": "notEqual",
+                                "valueType": "value",
+                                "value": "Draft",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "PO Status",
+                                "valueLabel": "",
+                                "operatorLabel": "不等于",
+                                "valueTypeLabel": "值"
+                              },
+                              {
+                                "id": 1747197370807,
+                                "parentId": 1747197370806,
+                                "isTop": false,
+                                "prop": "po_status",
+                                "operator": "notEqual",
+                                "valueType": "value",
+                                "value": "Cancelled",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "PO Status",
+                                "valueLabel": "",
+                                "operatorLabel": "不等于",
+                                "valueTypeLabel": "值"
+                              }
+                            ]
+                          },
+                          {
+                            "id": 1747197370803,
+                            "parentId": 1747197370800,
+                            "isTop": false,
+                            "prop": "po_plant",
+                            "operator": "isNotNull",
+                            "valueType": "value",
+                            "value": null,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant",
+                            "valueLabel": "",
+                            "operatorLabel": "有值",
+                            "valueTypeLabel": "值"
+                          },
+                          {
+                            "id": 1747396981436,
+                            "parentId": 1747197370800,
+                            "isTop": false,
+                            "prop": "po_supplier_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{value:supplier_name}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Supplier Name",
+                            "valueLabel": "",
+                            "operatorLabel": "等于",
+                            "valueTypeLabel": "字段"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "paging_enabled": 0,
+                  "paging_way": "Pagination",
+                  "page_size": 10,
+                  "more_fields": [],
+                  "datasource": {
+                    "source": null,
+                    "rules": {
+                      "collectionId": "",
+                      "list": [
+                        {
+                          "id": 1723795236686,
+                          "parentId": 1723795236685,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    }
+                  },
+                  "url_params": {
+                    "list": [
+                      {
+                        "prop": "",
+                        "propLabel": "",
+                        "operator": "",
+                        "operatorLabel": "",
+                        "valueType": "value",
+                        "valueTypeLabel": "",
+                        "value": null,
+                        "valueLabel": ""
+                      }
+                    ]
+                  },
+                  "body_params": {
+                    "list": [
+                      {
+                        "prop": "",
+                        "propLabel": "",
+                        "operator": "",
+                        "operatorLabel": "",
+                        "valueType": "value",
+                        "valueTypeLabel": "",
+                        "value": null,
+                        "valueLabel": ""
+                      }
+                    ]
+                  },
+                  "request_params": {
+                    "list": [
+                      {
+                        "prop": "",
+                        "propLabel": "",
+                        "operator": "",
+                        "operatorLabel": "",
+                        "valueType": "value",
+                        "valueTypeLabel": "",
+                        "value": null,
+                        "valueLabel": ""
+                      }
+                    ]
+                  },
+                  "remote": true,
+                  "remoteType": "datasource"
+                },
+                "remoteFunc": "func_7qiud9pk",
+                "remoteOption": "option_7qiud9pk",
+                "tableColumn": false,
+                "subform": false,
+                "paging_enabled": 1,
                 "paging_way": "Pagination",
                 "page_size": 10,
                 "more_fields": [],
@@ -1057,46 +1160,31 @@
               ]
             },
             {
-              "name": "PO Test",
-              "type": "select",
-              "mainIcon": "下拉单选",
-              "typeIcon": "下拉单选",
-              "icon": "icon-select",
+              "name": "Testing PO",
+              "el": "su-fm-table-select",
+              "mainIcon": "数据源",
+              "typeIcon": "数据源",
               "group": "Select",
-              "groupSort": 2,
+              "groupSort": 4,
+              "generate": "part",
               "enableScopes": ["Component", "Table", "Page"],
-              "el": "fm-select",
               "options": {
-                "defaultValue": "",
-                "multiple": false,
+                "defaultValue": [],
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
                 "disabled": false,
-                "clearable": true,
-                "placeholder": "",
+                "dataBind": true,
                 "required": false,
-                "requiredMessage": "",
-                "validatorCheck": false,
                 "validator": "",
-                "width": "",
-                "options": [
-                  {
-                    "value": "Option 1",
-                    "label": "Option 1"
-                  },
-                  {
-                    "value": "Option 2",
-                    "label": "Option 2"
-                  },
-                  {
-                    "value": "Option 3",
-                    "label": "Option 3"
-                  }
-                ],
-                "remote": true,
-                "remoteType": "innerdatasource",
-                "remoteOption": "option_m07n4yv5",
-                "filterable": true,
+                "hideLabel": false,
+                "pageSourceId": "1922109730902089729",
+                "customProps": {},
                 "pagingEnabled": true,
-                "remoteOptions": [],
+                "multiple": true,
+                "placeholder": "",
+                "lazyLoad": true,
                 "props": {
                   "value": "id",
                   "label": "purchase_order_no",
@@ -1105,28 +1193,14 @@
                   "image": "",
                   "icon": ""
                 },
-                "remoteFunc": "func_m07n4yv5",
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": false,
-                "dataBind": true,
-                "customProps": {},
-                "tip": "",
-                "tableColumn": false,
-                "subform": false,
-                "paging_enabled": 0,
-                "paging_way": "Pagination",
-                "page_size": 10,
-                "more_fields": [],
                 "datasource": {
                   "source": "Purchase Order:Table:1902776039445217282",
                   "rules": {
                     "collectionId": "1902776039445217282",
                     "list": [
                       {
-                        "id": 1723795236686,
-                        "parentId": 1723795236685,
+                        "id": 1747399271872,
+                        "parentId": 1747399271871,
                         "isTop": true,
                         "prop": "",
                         "operator": "",
@@ -1134,6 +1208,615 @@
                         "value": "",
                         "type": "leaf",
                         "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remoteFunc": "func_k0kufxk5",
+                "remoteOption": "option_k0kufxk5",
+                "tableColumn": false,
+                "subform": false,
+                "paging_enabled": 1,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": null,
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": null,
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": null,
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "columns": [
+                  {
+                    "title": "PO Number",
+                    "name": "purchase_order_no",
+                    "search_type": "SubstringMatch"
+                  }
+                ],
+                "remote": false,
+                "remoteType": "datasource",
+                "pageId": "1922109730956615681"
+              },
+              "events": {
+                "onChange": ""
+              },
+              "type": "custom",
+              "novalid": {},
+              "key": "k0kufxk5",
+              "model": "testing_po",
+              "rules": []
+            },
+            {
+              "name": "栅格布局",
+              "type": "grid",
+              "mainIcon": "栅格布局",
+              "typeIcon": "栅格布局",
+              "icon": "icon-RectangleCopy",
+              "group": "Layout",
+              "groupSort": 0,
+              "enableScopes": ["Component", "Table", "Page"],
+              "columns": [
+                {
+                  "type": "col",
+                  "options": {
+                    "span": 12,
+                    "offset": 0,
+                    "push": 0,
+                    "pull": 0,
+                    "xs": 24,
+                    "sm": 12,
+                    "md": 21,
+                    "lg": 12,
+                    "xl": 12,
+                    "customClass": ""
+                  },
+                  "list": [
+                    {
+                      "name": "Supplier",
+                      "el": "su-fm-table-select",
+                      "mainIcon": "数据源",
+                      "typeIcon": "数据源",
+                      "group": "Select",
+                      "groupSort": 4,
+                      "generate": "part",
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "options": {
+                        "defaultValue": [],
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "disabled": true,
+                        "dataBind": true,
+                        "required": false,
+                        "validator": "",
+                        "hideLabel": false,
+                        "pageSourceId": "1919662972758073345",
+                        "customProps": {},
+                        "pagingEnabled": true,
+                        "multiple": false,
+                        "placeholder": "",
+                        "lazyLoad": true,
+                        "props": {
+                          "value": "id",
+                          "label": "supplier_com_name",
+                          "cascade": "",
+                          "children": "",
+                          "image": "",
+                          "icon": ""
+                        },
+                        "datasource": {
+                          "source": "Supplier:Table:1901541078662762497",
+                          "rules": {
+                            "collectionId": "1901541078662762497",
+                            "list": [
+                              {
+                                "id": 1747291967397,
+                                "parentId": 1747291967398,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1747291866260,
+                                    "parentId": 1747291967397,
+                                    "isTop": false,
+                                    "prop": "supplier_status",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Active",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Supplier Status",
+                                    "valueLabel": "",
+                                    "operatorLabel": "等于",
+                                    "valueTypeLabel": "值"
+                                  },
+                                  {
+                                    "id": 1747291967400,
+                                    "isTop": false,
+                                    "parentId": 1747291967397,
+                                    "type": "branch",
+                                    "operator": "any",
+                                    "level": 2,
+                                    "children": [
+                                      {
+                                        "id": 1747291967399,
+                                        "parentId": 1747291967400,
+                                        "isTop": false,
+                                        "prop": "organization_id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{system:deptIds}}",
+                                        "type": "leaf",
+                                        "level": 3,
+                                        "propLabel": "Organization",
+                                        "valueLabel": "",
+                                        "operatorLabel": "等于",
+                                        "valueTypeLabel": "字段"
+                                      },
+                                      {
+                                        "id": 1747291967401,
+                                        "parentId": 1747291967400,
+                                        "isTop": false,
+                                        "prop": "organization_id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{global:deptParentId}}",
+                                        "type": "leaf",
+                                        "level": 3,
+                                        "propLabel": "Organization",
+                                        "valueLabel": "",
+                                        "operatorLabel": "等于",
+                                        "valueTypeLabel": "值"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          "paging_enabled": 0,
+                          "paging_way": "Pagination",
+                          "page_size": 10,
+                          "more_fields": [],
+                          "datasource": {
+                            "source": null,
+                            "rules": {
+                              "collectionId": "",
+                              "list": [
+                                {
+                                  "id": 1723795236686,
+                                  "parentId": 1723795236685,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            }
+                          },
+                          "url_params": {
+                            "list": [
+                              {
+                                "prop": "",
+                                "propLabel": "",
+                                "operator": "",
+                                "operatorLabel": "",
+                                "valueType": "value",
+                                "valueTypeLabel": "",
+                                "value": null,
+                                "valueLabel": ""
+                              }
+                            ]
+                          },
+                          "body_params": {
+                            "list": [
+                              {
+                                "prop": "",
+                                "propLabel": "",
+                                "operator": "",
+                                "operatorLabel": "",
+                                "valueType": "value",
+                                "valueTypeLabel": "",
+                                "value": null,
+                                "valueLabel": ""
+                              }
+                            ]
+                          },
+                          "request_params": {
+                            "list": [
+                              {
+                                "prop": "",
+                                "propLabel": "",
+                                "operator": "",
+                                "operatorLabel": "",
+                                "valueType": "value",
+                                "valueTypeLabel": "",
+                                "value": null,
+                                "valueLabel": ""
+                              }
+                            ]
+                          },
+                          "remote": false,
+                          "remoteType": "datasource"
+                        },
+                        "remoteFunc": "func_ivwr4rhl",
+                        "remoteOption": "option_ivwr4rhl",
+                        "tableColumn": false,
+                        "subform": false,
+                        "columns": [
+                          {
+                            "title": "Supplier Name",
+                            "name": "supplier_com_name"
+                          },
+                          {
+                            "title": "Supplier Code",
+                            "name": "supplier_code"
+                          }
+                        ],
+                        "paging_enabled": 1,
+                        "paging_way": "Pagination",
+                        "page_size": 10,
+                        "more_fields": [],
+                        "url_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": null,
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": null,
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "request_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": null,
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "pageId": "1919662973257195521"
+                      },
+                      "events": {
+                        "onChange": ""
+                      },
+                      "type": "custom",
+                      "novalid": {},
+                      "key": "ivwr4rhl",
+                      "model": "supplier_name",
+                      "rules": []
+                    }
+                  ],
+                  "key": "qy8vo7rn",
+                  "rules": []
+                },
+                {
+                  "type": "col",
+                  "options": {
+                    "span": 12,
+                    "offset": 0,
+                    "push": 0,
+                    "pull": 0,
+                    "xs": 24,
+                    "sm": 12,
+                    "md": 3,
+                    "lg": 12,
+                    "xl": 12,
+                    "customClass": ""
+                  },
+                  "list": [
+                    {
+                      "name": "Currency Code",
+                      "type": "input",
+                      "mainIcon": "单行文本",
+                      "typeIcon": "多行文本",
+                      "icon": "icon-input",
+                      "group": "Text",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-input",
+                      "options": {
+                        "width": "",
+                        "defaultValue": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "dataType": "",
+                        "dataTypeCheck": false,
+                        "dataTypeMessage": "",
+                        "pattern": "",
+                        "patternCheck": false,
+                        "patternMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "placeholder": "",
+                        "customClass": "",
+                        "disabled": true,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "showPassword": false,
+                        "clearable": false,
+                        "maxlength": "",
+                        "showWordLimit": false,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_e6eqh8h4",
+                        "remoteOption": "option_e6eqh8h4",
+                        "tableColumn": false,
+                        "subform": false,
+                        "hideLabel": true
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "e6eqh8h4",
+                      "model": "currency_code",
+                      "rules": []
+                    }
+                  ],
+                  "key": "khws748p"
+                }
+              ],
+              "options": {
+                "gutter": 4,
+                "justify": "start",
+                "align": "top",
+                "customClass": "",
+                "hidden": false,
+                "flex": true,
+                "responsive": true,
+                "remoteFunc": "func_ictoozgi",
+                "remoteOption": "option_ictoozgi",
+                "tableColumn": false,
+                "subform": false
+              },
+              "novalid": {},
+              "key": "ictoozgi",
+              "model": "grid_ictoozgi",
+              "rules": []
+            },
+            {
+              "name": "Purchase Order Number",
+              "type": "input",
+              "mainIcon": "单行文本",
+              "typeIcon": "多行文本",
+              "icon": "icon-input",
+              "group": "Text",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-input",
+              "options": {
+                "width": "",
+                "defaultValue": "",
+                "required": false,
+                "requiredMessage": "",
+                "dataType": "",
+                "dataTypeCheck": false,
+                "dataTypeMessage": "",
+                "pattern": "",
+                "patternCheck": false,
+                "patternMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "placeholder": "",
+                "customClass": "",
+                "disabled": true,
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": true,
+                "dataBind": true,
+                "showPassword": false,
+                "clearable": false,
+                "maxlength": "",
+                "showWordLimit": false,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_mahixxij",
+                "remoteOption": "option_mahixxij",
+                "tableColumn": false,
+                "subform": false
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "mahixxij",
+              "model": "purchase_order_number",
+              "rules": []
+            },
+            {
+              "name": "Plant",
+              "type": "treeselect",
+              "mainIcon": "下拉树状单选",
+              "typeIcon": "下拉树状单选",
+              "icon": "icon-shuxuanzeqi",
+              "group": "Select",
+              "groupSort": 4,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": "",
+                "width": "",
+                "placeholder": "",
+                "disabled": true,
+                "clearable": false,
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1",
+                    "children": [
+                      {
+                        "value": "Option 1 - children",
+                        "label": "Option 1 - children"
+                      }
+                    ]
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2",
+                    "children": [
+                      {
+                        "value": "Option 2 - children",
+                        "label": "Option 2 - children"
+                      }
+                    ]
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_tqv32qgk",
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "dept_name",
+                  "children": "children",
+                  "cascade": "",
+                  "image": "",
+                  "icon": ""
+                },
+                "remoteFunc": "func_tqv32qgk",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "required": true,
+                "validatorCheck": false,
+                "validator": "",
+                "multiple": false,
+                "filterable": true,
+                "checkStrictly": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "source": "组织机构(勿删勿改):Table:1789995126399348747",
+                  "rules": {
+                    "collectionId": "1789995126399348747",
+                    "list": [
+                      {
+                        "id": 1743597825556,
+                        "parentId": 1743597825557,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "any",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1743597825556,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "formula",
+                            "value": "{{system:deptIds}}.split(',')",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "等于任意一个",
+                            "valueTypeLabel": "值"
+                          },
+                          {
+                            "id": 1743597825558,
+                            "parentId": 1743597825556,
+                            "isTop": false,
+                            "prop": "parent_id",
+                            "operator": "numberEqualAny",
+                            "valueType": "formula",
+                            "value": "{{system:deptIds}}.split(',')",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "父主键",
+                            "valueLabel": "",
+                            "operatorLabel": "等于任一",
+                            "valueTypeLabel": "值"
+                          }
+                        ]
                       }
                     ]
                   }
@@ -1179,68 +1862,26 @@
                       "valueLabel": ""
                     }
                   ]
+                },
+                "paging_enabled": 0,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": []
+              },
+              "events": {
+                "onChange": "zug6defe",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "tqv32qgk",
+              "model": "plant_id",
+              "rules": [
+                {
+                  "required": true,
+                  "message": ""
                 }
-              },
-              "events": {
-                "onChange": "",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "novalid": {},
-              "key": "m07n4yv5",
-              "model": "po_test",
-              "rules": []
-            },
-            {
-              "name": "Purchase Order Number",
-              "type": "input",
-              "mainIcon": "单行文本",
-              "typeIcon": "多行文本",
-              "icon": "icon-input",
-              "group": "Text",
-              "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
-              "el": "fm-input",
-              "options": {
-                "width": "",
-                "defaultValue": "",
-                "required": false,
-                "requiredMessage": "",
-                "dataType": "",
-                "dataTypeCheck": false,
-                "dataTypeMessage": "",
-                "pattern": "",
-                "patternCheck": false,
-                "patternMessage": "",
-                "validatorCheck": false,
-                "validator": "",
-                "placeholder": "",
-                "customClass": "",
-                "disabled": false,
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": true,
-                "dataBind": true,
-                "showPassword": false,
-                "clearable": false,
-                "maxlength": "",
-                "showWordLimit": false,
-                "customProps": {},
-                "tip": "",
-                "remoteFunc": "func_mahixxij",
-                "remoteOption": "option_mahixxij",
-                "tableColumn": false,
-                "subform": false
-              },
-              "events": {
-                "onChange": "",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "novalid": {},
-              "key": "mahixxij",
-              "model": "purchase_order_number",
-              "rules": []
+              ]
             },
             {
               "name": "栅格布局",
@@ -1735,183 +2376,6 @@
               "rules": []
             },
             {
-              "name": "Plant",
-              "type": "treeselect",
-              "mainIcon": "下拉树状单选",
-              "typeIcon": "下拉树状单选",
-              "icon": "icon-shuxuanzeqi",
-              "group": "Select",
-              "groupSort": 4,
-              "enableScopes": ["Component", "Table", "Page"],
-              "options": {
-                "defaultValue": "",
-                "width": "",
-                "placeholder": "",
-                "disabled": false,
-                "clearable": false,
-                "options": [
-                  {
-                    "value": "Option 1",
-                    "label": "Option 1",
-                    "children": [
-                      {
-                        "value": "Option 1 - children",
-                        "label": "Option 1 - children"
-                      }
-                    ]
-                  },
-                  {
-                    "value": "Option 2",
-                    "label": "Option 2",
-                    "children": [
-                      {
-                        "value": "Option 2 - children",
-                        "label": "Option 2 - children"
-                      }
-                    ]
-                  },
-                  {
-                    "value": "Option 3",
-                    "label": "Option 3"
-                  }
-                ],
-                "remote": true,
-                "remoteType": "innerdatasource",
-                "remoteOption": "option_tqv32qgk",
-                "remoteOptions": [],
-                "props": {
-                  "value": "id",
-                  "label": "dept_name",
-                  "children": "children",
-                  "cascade": "",
-                  "image": "",
-                  "icon": ""
-                },
-                "remoteFunc": "func_tqv32qgk",
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": true,
-                "dataBind": true,
-                "required": false,
-                "validatorCheck": false,
-                "validator": "",
-                "multiple": false,
-                "filterable": true,
-                "checkStrictly": true,
-                "customProps": {},
-                "tip": "",
-                "tableColumn": false,
-                "subform": false,
-                "datasource": {
-                  "source": "组织机构(勿删勿改):Table:1789995126399348747",
-                  "rules": {
-                    "collectionId": "1789995126399348747",
-                    "list": [
-                      {
-                        "id": 1743597825556,
-                        "parentId": 1743597825557,
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "any",
-                        "prop": "",
-                        "valueType": "",
-                        "value": "",
-                        "level": 1,
-                        "children": [
-                          {
-                            "id": 1723795236686,
-                            "parentId": 1743597825556,
-                            "isTop": false,
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "formula",
-                            "value": "{{system:deptIds}}.split(',')",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "主键ID",
-                            "valueLabel": "",
-                            "operatorLabel": "等于任意一个",
-                            "valueTypeLabel": "值"
-                          },
-                          {
-                            "id": 1743597825558,
-                            "parentId": 1743597825556,
-                            "isTop": false,
-                            "prop": "parent_id",
-                            "operator": "numberEqualAny",
-                            "valueType": "formula",
-                            "value": "{{system:deptIds}}.split(',')",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "父主键",
-                            "valueLabel": "",
-                            "operatorLabel": "等于任一",
-                            "valueTypeLabel": "值"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "url_params": {
-                  "list": [
-                    {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "value": null,
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "body_params": {
-                  "list": [
-                    {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "value": null,
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "request_params": {
-                  "list": [
-                    {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "value": null,
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "paging_enabled": 0,
-                "paging_way": "Pagination",
-                "page_size": 10,
-                "more_fields": []
-              },
-              "events": {
-                "onChange": "",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "novalid": {},
-              "key": "tqv32qgk",
-              "model": "plant_id",
-              "rules": []
-            },
-            {
               "name": "Organization",
               "type": "input",
               "mainIcon": "单行文本",
@@ -2394,6 +2858,57 @@
       },
       "tableColumns": [
         {
+          "name": "PO Number",
+          "type": "input",
+          "mainIcon": "单行文本",
+          "typeIcon": "多行文本",
+          "icon": "icon-input",
+          "group": "Text",
+          "groupSort": 1,
+          "enableScopes": ["Component", "Table", "Page"],
+          "el": "fm-input",
+          "options": {
+            "width": "",
+            "defaultValue": "",
+            "required": false,
+            "requiredMessage": "",
+            "dataType": "",
+            "dataTypeCheck": false,
+            "dataTypeMessage": "",
+            "pattern": "",
+            "patternCheck": false,
+            "patternMessage": "",
+            "validatorCheck": false,
+            "validator": "",
+            "placeholder": "",
+            "customClass": "",
+            "disabled": true,
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": false,
+            "dataBind": true,
+            "showPassword": false,
+            "clearable": false,
+            "maxlength": "",
+            "showWordLimit": false,
+            "customProps": {},
+            "tip": "",
+            "remoteFunc": "func_buo2261t",
+            "remoteOption": "option_buo2261t",
+            "tableColumn": true,
+            "subform": false
+          },
+          "events": {
+            "onChange": "",
+            "onFocus": "",
+            "onBlur": ""
+          },
+          "novalid": {},
+          "key": "buo2261t",
+          "model": "line_po_no",
+          "rules": []
+        },
+        {
           "name": "Item Name",
           "type": "select",
           "mainIcon": "下拉单选",
@@ -2622,7 +3137,7 @@
             "onBlur": ""
           },
           "novalid": {},
-          "key": "buo2261t",
+          "key": "55xg6m76",
           "model": "ordered_qty",
           "rules": []
         },
@@ -2928,7 +3443,7 @@
             "tip": "",
             "tableColumn": true,
             "subform": false,
-            "paging_enabled": 1,
+            "paging_enabled": 0,
             "paging_way": "Pagination",
             "page_size": 10,
             "more_fields": [],
@@ -3289,6 +3804,57 @@
           ]
         },
         {
+          "name": "PO ID",
+          "type": "input",
+          "mainIcon": "单行文本",
+          "typeIcon": "多行文本",
+          "icon": "icon-input",
+          "group": "Text",
+          "groupSort": 1,
+          "enableScopes": ["Component", "Table", "Page"],
+          "el": "fm-input",
+          "options": {
+            "width": "",
+            "defaultValue": "",
+            "required": false,
+            "requiredMessage": "",
+            "dataType": "",
+            "dataTypeCheck": false,
+            "dataTypeMessage": "",
+            "pattern": "",
+            "patternCheck": false,
+            "patternMessage": "",
+            "validatorCheck": false,
+            "validator": "",
+            "placeholder": "",
+            "customClass": "",
+            "disabled": true,
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": true,
+            "dataBind": true,
+            "showPassword": false,
+            "clearable": false,
+            "maxlength": "",
+            "showWordLimit": false,
+            "customProps": {},
+            "tip": "",
+            "remoteFunc": "func_buo2261t",
+            "remoteOption": "option_buo2261t",
+            "tableColumn": true,
+            "subform": false
+          },
+          "events": {
+            "onChange": "",
+            "onFocus": "",
+            "onBlur": ""
+          },
+          "novalid": {},
+          "key": "aqefadi5",
+          "model": "line_po_id",
+          "rules": []
+        },
+        {
           "name": "Unit Price",
           "type": "number",
           "icon": "icon-number",
@@ -3545,6 +4111,58 @@
           "novalid": {},
           "key": "2f7t6dzd",
           "model": "item_costing_method",
+          "rules": []
+        },
+        {
+          "name": "Return Quantity",
+          "type": "number",
+          "icon": "icon-number",
+          "mainIcon": "数字",
+          "typeIcon": "数字",
+          "group": "Number",
+          "groupSort": 2,
+          "enableScopes": ["Component", "Table", "Page"],
+          "el": "fm-number",
+          "options": {
+            "width": "",
+            "required": false,
+            "requiredMessage": "",
+            "validatorCheck": false,
+            "validator": "",
+            "defaultValue": 0,
+            "min": 0,
+            "step": 1,
+            "disabled": false,
+            "controls": false,
+            "controlsPosition": "",
+            "customClass": "",
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": true,
+            "dataBind": true,
+            "precision": 0,
+            "customProps": {
+              "progressColor": "",
+              "dividingNumber": "",
+              "showNumber": "",
+              "viewMode": "",
+              "format": "rmb",
+              "cacheProp": true
+            },
+            "tip": "",
+            "remoteFunc": "func_k32j6oqa",
+            "remoteOption": "option_k32j6oqa",
+            "tableColumn": true,
+            "subform": false
+          },
+          "events": {
+            "onChange": "",
+            "onFocus": "",
+            "onBlur": ""
+          },
+          "novalid": {},
+          "key": "wubjj96n",
+          "model": "return_quantity",
           "rules": []
         }
       ],
@@ -3822,7 +4440,11 @@
               "valueLabel": ""
             }
           ]
-        }
+        },
+        "paging_enabled": 0,
+        "paging_way": "Pagination",
+        "page_size": 10,
+        "more_fields": []
       },
       "list": [
         {
@@ -4919,7 +5541,7 @@
       {
         "key": "4tlscp1c",
         "name": "GRLineItem",
-        "func": "const plant = arguments[0]?.fieldModel?.item?.po_plant;\nconst organization = arguments[0]?.fieldModel?.item?.organization_id;\nconst page_status = this.getValue(\"page_status\");\n\nthis.setData({\n  plant_id: plant,\n  organization_id: organization,\n  currency_code: arguments[0].fieldModel.item.po_currency,\n});\n\n// Check if data is ready and contains purchase_order_id\nconst checkAndProcessData = () => {\n  const data = this.getValues();\n\n  // If no data or purchase_order_id yet, try again after a short delay\n  if (!data || !data.purchase_order_id) {\n    setTimeout(checkAndProcessData, 500);\n    return;\n  }\n\n  // Once we have the purchase_order_id, proceed with processing\n  const purchaseOrderId = data.purchase_order_id;\n\n  const goodsReceivingId = this.getValue(\"id\");\n\n  // Now call the main processing function\n  processGoodsReceiving(purchaseOrderId, goodsReceivingId);\n};\n\n// Main function to check PO change and load data\nconst processGoodsReceiving = async (purchaseOrderId, goodsReceivingId) => {\n  try {\n    let hasPOChanged = true;\n    let existingGRData = null;\n    let binLocation = \"\";\n    if (plant) {\n      const resBinLocation = await db\n        .collection(\"bin_location\")\n        .where({\n          plant_id: plant,\n          is_default: true,\n        })\n        .get();\n\n      binLocation = resBinLocation.data[0].id;\n    } else {\n      binLocation = \"\";\n    }\n\n    // Check if this is an existing GR and if PO has changed\n    if (goodsReceivingId) {\n      try {\n        const result = await db\n          .collection(\"goods_receiving\")\n          .where({ id: goodsReceivingId })\n          .get();\n\n        if (result.data && result.data.length > 0) {\n          existingGRData = result.data[0];\n          hasPOChanged = existingGRData.purchase_order_id !== purchaseOrderId;\n          console.log(`PO changed: ${hasPOChanged ? \"Yes\" : \"No\"}`);\n\n          // If we're in Edit mode and have existing data, we'll use it for addresses\n          if (!hasPOChanged) {\n            console.log(\"Using existing GR data for addresses\");\n          }\n        } else {\n          console.warn(\n            \"Goods Receiving record not found with ID:\",\n            goodsReceivingId\n          );\n        }\n      } catch (error) {\n        console.error(\"Error checking existing goods receiving:\", error);\n        // Continue as if PO has changed for safety\n        hasPOChanged = true;\n      }\n    }\n\n    // Only proceed if this is a new record or PO has changed\n    if (hasPOChanged) {\n      await this.setData({ table_gr: [] });\n      // Get all existing goods receiving data for this purchase order\n      const grResult = await db\n        .collection(\"goods_receiving\")\n        .where({\n          purchase_order_id: purchaseOrderId,\n          gr_status: \"Completed\",\n        })\n        .get();\n\n      const GRData = grResult.data || [];\n\n      // Get source items from the purchase order\n      const sourceItems = arguments[0]?.fieldModel?.item?.table_po;\n      if (!Array.isArray(sourceItems) || sourceItems.length === 0) {\n        console.warn(\"No source items found in purchase order\");\n        return;\n      }\n\n      // Calculate accumulated received quantities for each item\n      const accumulatedQty = {};\n\n      // First initialize quantities for all items\n      sourceItems.forEach((item, index) => {\n        if (item && item.item_id) {\n            const elementId = item.item_id + ' ' + index;\n            accumulatedQty[elementId] = 0;\n        }\n      });\n\n      // Then accumulate from all GRs\n      GRData.forEach((grRecord) => {\n        if (Array.isArray(grRecord.table_gr)) {\n          grRecord.table_gr.forEach((grItem, index) => {\n            const itemId = grItem.item_id + ' ' + index;\n            if (itemId && accumulatedQty.hasOwnProperty(itemId)) {\n              const qty = parseFloat(grItem.received_qty || 0);\n              if (!isNaN(qty)) {\n                accumulatedQty[itemId] += qty;\n              }\n            }\n          });\n        }\n      });\n\n      console.log(\"Accumulated quantities:\", accumulatedQty);\n\n      // Process all items concurrently\n      const itemPromises = sourceItems.map(async (sourceItem, rowIndex) => {\n        const itemId = sourceItem.item_id + ' ' + rowIndex || \"\";\n        if (!itemId) return null;\n\n        try {\n          const orderedQty = parseFloat(sourceItem.quantity || 0);\n          const receivedSoFar = accumulatedQty[itemId] || 0;\n          const remainingQty = Math.max(0, orderedQty - receivedSoFar);\n\n          // Check item properties\n          const res = await db.collection(\"Item\").where({ id: sourceItem.item_id }).get();\n\n          const itemData = res.data && res.data[0];\n\n          if (\n            itemData &&\n            itemData.stock_control !== 0 &&\n            (itemData.show_receiving !== 0 || !itemData.show_receiving)\n          ) {\n            // Generate a stable key to avoid unnecessary UI refreshes\n            const stableKey = `${itemId}-${Date.now()\n              .toString(36)\n              .substr(0, 4)}`;\n\n            const batchManagementEnabled =\n              itemData.item_batch_management === 1 ||\n              itemData.item_batch_management === true ||\n              itemData.item_batch_management === \"1\";\n\n            let batch_number = \"\";\n\n            if (batchManagementEnabled) {\n              batch_number = \"\";\n            } else {\n              batch_number = \"-\";\n            }\n\n            return {\n              item_id: sourceItem.item_id,\n              item_desc: sourceItem.item_desc || \"\",\n              ordered_qty: orderedQty,\n              to_received_qty: remainingQty,\n              received_qty: 0,\n              item_uom: sourceItem.quantity_uom || \"\",\n              unit_price: sourceItem.unit_price || 0,\n              total_price: sourceItem.po_amount || 0,\n              location_id: binLocation,\n              fm_key: stableKey,\n              item_costing_method: itemData.material_costing_method,\n              item_batch_no: batch_number,\n              inv_category: \"Unrestricted\",\n            };\n          }\n\n          return null;\n        } catch (error) {\n          console.error(`Error processing item ${itemId}:`, error);\n          return null;\n        }\n      });\n\n      // Wait for all item processing to complete\n      const processedItems = await Promise.all(itemPromises);\n      const filteredItems = processedItems.filter((item) => item !== null);\n\n      // Build the final table\n      const newTableGr = filteredItems.map((item) => ({\n        item_id: item.item_id,\n        item_desc: item.item_desc,\n        ordered_qty: item.ordered_qty,\n        to_received_qty: item.to_received_qty,\n        received_qty: item.received_qty,\n        item_uom: item.item_uom,\n        unit_price: item.unit_price,\n        total_price: item.total_price,\n        location_id: binLocation,\n        fm_key: item.fm_key,\n        item_costing_method: item.item_costing_method,\n        item_batch_no: item.item_batch_no,\n        inv_category: \"Unrestricted\",\n      }));\n\n      console.log(\"Final table_gr data:\", newTableGr);\n\n      // Update the table once with all processed items\n      await this.setData({\n        table_gr: newTableGr,\n      });\n\n      setTimeout(() => {\n        const table_gr = this.getValue(\"table_gr\");\n        table_gr.forEach((gr, index) => {\n          const path = `table_gr.${index}.item_batch_no`;\n          this.disabled(path, gr.item_batch_no !== \"\");\n        });\n      }, 100);\n    } else {\n      console.log(\"Skipping table_gr update as PO hasn't changed\");\n    }\n    await processAddressInformation(purchaseOrderId);\n  } catch (error) {\n    console.error(\"Error in goods receiving process:\", error);\n  }\n};\n\nconst formatAddress = (address, state, country) => {\n  const addressComponents = [\n    address.address_line_1,\n    address.address_line_2,\n    address.address_line_3,\n    address.address_line_4,\n    address.address_city,\n    address.address_postal_code,\n    state.state_name,\n    country.country_name,\n  ];\n\n  return addressComponents\n    .filter(Boolean)\n    .join(\",\\n\")\n    .replace(/([^,])\\n/g, \"$1,\\n\");\n};\n\n// Extract address processing to a separate function\nconst processAddressInformation = async (purchaseOrderId) => {\n  try {\n    this.display(\"address_grid\");\n\n    // Reset address fields\n    this.setData({\n      gr_billing_name: \"\",\n      gr_billing_cp: \"\",\n      gr_billing_address: \"\",\n      gr_shipping_address: \"\",\n      billing_address_line_1: \"\",\n      billing_address_line_2: \"\",\n      billing_address_line_3: \"\",\n      billing_address_line_4: \"\",\n      billing_address_city: \"\",\n      billing_address_state: \"\",\n      billing_postal_code: \"\",\n      billing_address_country: \"\",\n      shipping_address_line_1: \"\",\n      shipping_address_line_2: \"\",\n      shipping_address_line_3: \"\",\n      shipping_address_line_4: \"\",\n      shipping_address_city: \"\",\n      shipping_address_state: \"\",\n      shipping_postal_code: \"\",\n      shipping_address_country: \"\",\n    });\n\n    // If not found, try from arguments\n    supplierIdFromPO = arguments[0]?.fieldModel?.item?.po_supplier_id;\n\n    console.log(\"Using supplier ID for address:\", supplierIdFromPO);\n\n    // Get shipping purpose and supplier data concurrently\n    const [resShipping, resSupplier] = await Promise.all([\n      db\n        .collection(\"address_purpose\")\n        .where({ purpose_name: \"Shipping\" })\n        .get(),\n      db.collection(\"supplier_head\").where({ id: supplierIdFromPO }).get(),\n    ]);\n\n    if (\n      !resSupplier.data ||\n      !resSupplier.data.length ||\n      !resShipping.data ||\n      !resShipping.data.length\n    ) {\n      console.warn(\"Missing supplier or shipping purpose data\");\n      return;\n    }\n\n    const supplierData = resSupplier.data[0];\n    const shippingAddrId = resShipping.data[0].id;\n\n    // Check contact list exists\n    if (!supplierData.contact_list || !supplierData.contact_list.length) {\n      console.warn(\"Supplier has no contact information\");\n    } else {\n      this.setData({\n        supplier_contact_person: `${\n          supplierData.contact_list[0].person_name || \"\"\n        } ${supplierData.contact_list[0].person_last_name || \"\"}`.trim(),\n        supplier_contact_number:\n          supplierData.contact_list[0].phone_number || \"\",\n        supplier_email: supplierData.contact_list[0].person_email || \"\",\n      });\n    }\n\n    // Set supplier details\n    this.setData({\n      purchase_order_number: arguments[0]?.fieldModel?.item?.purchase_order_no,\n      supplier_name: supplierData.id,\n    });\n\n    // Process addresses\n    const addresses =\n      supplierData.address_list?.filter(\n        (address) => address.switch_save_as_default\n      ) || [];\n\n    // If no addresses found, log a warning\n    if (!addresses.length) {\n      console.warn(\"No default addresses found for supplier\");\n      return;\n    }\n\n    console.log(`Found ${addresses.length} addresses for supplier`);\n\n    addresses.forEach((address) => {\n      Promise.all([\n        db\n          .collection(\"country\")\n          .where({ id: address.address_country_id })\n          .get(),\n        db.collection(\"state\").where({ id: address.adddress_state }).get(),\n      ]).then(([resCountry, resState]) => {\n        const isShipping = address.address_purpose_id === shippingAddrId;\n        const addressType = isShipping ? \"shipping\" : \"billing\";\n        const country = resCountry.data[0];\n        const state = resState.data[0];\n        // Set address fields\n        this.setData({\n          [`${addressType}_address_line_1`]: address.address_line_1,\n          [`${addressType}_address_line_2`]: address.address_line_2,\n          [`${addressType}_address_line_3`]: address.address_line_3,\n          [`${addressType}_address_line_4`]: address.address_line_4,\n          [`${addressType}_address_city`]: address.address_city,\n          [`${addressType}_address_state`]: state.id,\n          [`${addressType}_postal_code`]: address.address_postal_code,\n          [`${addressType}_address_country`]: country.id,\n          [`gr_${addressType}_address`]: formatAddress(address, state, country),\n        });\n\n        // Set billing-specific fields\n        if (addressType === \"billing\") {\n          this.setData({\n            gr_billing_name: address.address_name || \"\",\n            gr_billing_cp: address.address_phone || \"\",\n          });\n        }\n      });\n    });\n  } catch (error) {\n    this.$message.error(\"Error processing address information:\", error);\n  }\n};\n\n// Start the process with a check for data readiness\ncheckAndProcessData();\n",
+        "func": "console.log(\"arguments\", arguments[0]);\nconst page_status = this.getValue(\"page_status\");\n\n// Check if data is ready and contains purchase_order_id\nconst checkAndProcessData = () => {\n  console.log(\"checkAndProcessData\");\n  const data = this.getValues();\n\n  // If no data or purchase_order_id yet, try again after a short delay\n  if (!data || !data.purchase_order_id) {\n    setTimeout(checkAndProcessData, 500);\n    return;\n  }\n\n  // Once we have the purchase_order_id, proceed with processing\n  const purchaseOrderIds = Array.isArray(data.purchase_order_id)\n    ? data.purchase_order_id\n    : [data.purchase_order_id];\n\n  const goodsReceivingId = this.getValue(\"id\");\n\n  // Now call the main processing function\n  processGoodsReceiving(purchaseOrderIds, goodsReceivingId);\n};\n\n// Main function to check PO change and load data\nconst processGoodsReceiving = async (purchaseOrderIds, goodsReceivingId) => {\n  try {\n    console.log(\"Processing Purchase Order IDs:\", purchaseOrderIds);\n\n    let hasPOChanged = true;\n    let existingGRData = null;\n\n    // Check if this is an existing GR and if PO has changed\n    if (goodsReceivingId) {\n      try {\n        const result = await db\n          .collection(\"goods_receiving\")\n          .where({ id: goodsReceivingId })\n          .get();\n\n        if (result.data && result.data.length > 0) {\n          existingGRData = result.data[0];\n\n          // Check if PO list has changed\n          const existingPOIds = Array.isArray(existingGRData.purchase_order_id)\n            ? existingGRData.purchase_order_id\n            : [existingGRData.purchase_order_id];\n\n          // Check if arrays have same length and same elements (order doesn't matter)\n          hasPOChanged =\n            existingPOIds.length !== purchaseOrderIds.length ||\n            !existingPOIds.every((id) => purchaseOrderIds.includes(id));\n\n          console.log(`PO changed: ${hasPOChanged ? \"Yes\" : \"No\"}`);\n\n          // If we're in Edit mode and have existing data, we'll use existing data\n          if (!hasPOChanged) {\n            console.log(\"Using existing GR data\");\n          }\n        } else {\n          console.warn(\n            \"Goods Receiving record not found with ID:\",\n            goodsReceivingId\n          );\n        }\n      } catch (error) {\n        console.error(\"Error checking existing goods receiving:\", error);\n        // Continue as if PO has changed for safety\n        hasPOChanged = true;\n      }\n    }\n\n    // Fetch all PO numbers for the multiple POs\n    const poNumbersPromises = purchaseOrderIds.map(async (poId) => {\n      try {\n        const poResult = await db\n          .collection(\"purchase_order\")\n          .where({ id: poId })\n          .get();\n\n        if (poResult.data && poResult.data.length > 0) {\n          return poResult.data[0].purchase_order_no;\n        }\n        return null;\n      } catch (error) {\n        console.error(`Error fetching PO number for ${poId}:`, error);\n        return null;\n      }\n    });\n\n    const poNumbers = await Promise.all(poNumbersPromises);\n    const validPoNumbers = poNumbers.filter(Boolean);\n\n    // Set the combined PO numbers in purchase_order_number field\n    if (validPoNumbers.length > 0) {\n      this.setData({\n        purchase_order_number: validPoNumbers.join(\", \"),\n      });\n    }\n\n    // Only proceed if this is a new record or PO has changed\n    if (hasPOChanged) {\n      await this.setData({ table_gr: [] });\n\n      // Build the final table items array\n      let allGrItems = [];\n\n      // Process each PO ID sequentially to ensure proper data handling\n      for (const purchaseOrderId of purchaseOrderIds) {\n        console.log(`Processing PO ID: ${purchaseOrderId}`);\n\n        // Get all existing goods receiving data for this purchase order\n        const grResult = await db\n          .collection(\"goods_receiving\")\n          .where({\n            purchase_order_id: purchaseOrderId,\n            gr_status: \"Completed\",\n          })\n          .get();\n\n        const GRData = grResult.data || [];\n\n        // Get source items from the purchase order\n        let sourceItems = [];\n        let purchaseOrderNo = \"\";\n        // Fetch PO data to get line items\n        try {\n          const poResult = await db\n            .collection(\"purchase_order\")\n            .where({ id: purchaseOrderId })\n            .get();\n\n          if (poResult.data && poResult.data.length > 0) {\n            sourceItems = poResult.data[0].table_po || [];\n            purchaseOrderNo = poResult.data[0].purchase_order_no;\n          } else {\n            console.warn(`Purchase order with ID ${purchaseOrderId} not found`);\n            continue; // Skip to next PO\n          }\n        } catch (error) {\n          console.error(`Error fetching PO ${purchaseOrderId}:`, error);\n          continue; // Skip to next PO\n        }\n\n        if (!Array.isArray(sourceItems) || sourceItems.length === 0) {\n          console.warn(\n            `No source items found in purchase order ${purchaseOrderId}`\n          );\n          continue; // Skip to next PO\n        }\n\n        // Calculate accumulated received quantities for each item\n        const accumulatedQty = {};\n\n        // First initialize quantities for all items\n        sourceItems.forEach((item) => {\n          if (item && item.item_id) {\n            accumulatedQty[item.item_id] = 0;\n          }\n        });\n\n        // Then accumulate from all GRs\n        GRData.forEach((grRecord) => {\n          if (Array.isArray(grRecord.table_gr)) {\n            grRecord.table_gr.forEach((grItem) => {\n              const itemId = grItem.item_id;\n              if (itemId && accumulatedQty.hasOwnProperty(itemId)) {\n                const qty = parseFloat(grItem.received_qty || 0);\n                if (!isNaN(qty)) {\n                  accumulatedQty[itemId] += qty;\n                }\n              }\n            });\n          }\n        });\n\n        console.log(\n          `Accumulated quantities for PO ${purchaseOrderId}:`,\n          accumulatedQty\n        );\n\n        // Process all items for this PO concurrently\n        const itemPromises = sourceItems.map(async (sourceItem) => {\n          const itemId = sourceItem.item_id || \"\";\n          if (!itemId) return null;\n\n          try {\n            const orderedQty = parseFloat(sourceItem.quantity || 0);\n            const receivedSoFar = accumulatedQty[itemId] || 0;\n            const remainingQty = Math.max(0, orderedQty - receivedSoFar);\n\n            // Check item properties\n            const res = await db.collection(\"Item\").where({ id: itemId }).get();\n\n            const itemData = res.data && res.data[0];\n\n            if (\n              itemData &&\n              itemData.stock_control !== 0 &&\n              (itemData.show_receiving !== 0 || !itemData.show_receiving)\n            ) {\n              // Generate a stable key to avoid unnecessary UI refreshes\n              const stableKey = `${purchaseOrderId}-${itemId}-${Date.now()\n                .toString(36)\n                .substr(0, 4)}`;\n\n              const batchManagementEnabled =\n                itemData.item_batch_management === 1 ||\n                itemData.item_batch_management === true ||\n                itemData.item_batch_management === \"1\";\n\n              let batch_number = \"\";\n\n              if (batchManagementEnabled) {\n                batch_number = \"\";\n              } else {\n                batch_number = \"-\";\n              }\n\n              return {\n                line_po_no: purchaseOrderNo,\n                line_po_id: purchaseOrderId,\n                item_id: itemId,\n                item_desc: sourceItem.item_desc || \"\",\n                ordered_qty: orderedQty,\n                to_received_qty: remainingQty,\n                received_qty: 0,\n                item_uom: sourceItem.quantity_uom || \"\",\n                unit_price: sourceItem.unit_price || 0,\n                total_price: sourceItem.po_amount || 0,\n                fm_key: stableKey,\n                item_costing_method: itemData.material_costing_method,\n                item_batch_no: batch_number,\n                inv_category: \"Unrestricted\",\n                po_line_item:\n                  sourceItem.line_item || sourceItem.po_line_item || null,\n              };\n            }\n\n            return null;\n          } catch (error) {\n            console.error(\n              `Error processing item ${itemId} from PO ${purchaseOrderId}:`,\n              error\n            );\n            return null;\n          }\n        });\n\n        // Wait for all item processing to complete for this PO\n        const processedItems = await Promise.all(itemPromises);\n        const filteredItems = processedItems.filter((item) => item !== null);\n\n        // Add processed items from this PO to the all items array\n        allGrItems = [...allGrItems, ...filteredItems];\n      }\n\n      // Build the final table\n      const newTableGr = allGrItems.map((item) => ({\n        line_po_no: item.line_po_no,\n        line_po_id: item.line_po_id,\n        item_id: item.item_id,\n        item_desc: item.item_desc,\n        ordered_qty: item.ordered_qty,\n        to_received_qty: item.to_received_qty,\n        received_qty: item.received_qty,\n        item_uom: item.item_uom,\n        unit_price: item.unit_price,\n        total_price: item.total_price,\n        fm_key: item.fm_key,\n        item_costing_method: item.item_costing_method,\n        item_batch_no: item.item_batch_no,\n        inv_category: \"Unrestricted\",\n        po_line_item: item.po_line_item,\n      }));\n\n      console.log(\"Final table_gr data:\", newTableGr);\n\n      // Update the table once with all processed items\n      await this.setData({\n        table_gr: newTableGr,\n      });\n\n      setTimeout(() => {\n        const table_gr = this.getValue(\"table_gr\");\n        table_gr.forEach((gr, index) => {\n          const path = `table_gr.${index}.item_batch_no`;\n          this.disabled(path, gr.item_batch_no !== \"\");\n        });\n      }, 100);\n    } else {\n      console.log(\"Skipping table_gr update as PO hasn't changed\");\n    }\n  } catch (error) {\n    console.error(\"Error in goods receiving process:\", error);\n  }\n};\n\nconst fake_purchase_order_id = this.getValue(\"fake_purchase_order_id\");\n\nif (fake_purchase_order_id && !Array.isArray(fake_purchase_order_id)) {\n  checkAndProcessData();\n}\n",
         "type": "js"
       },
       {
@@ -4950,19 +5572,31 @@
       {
         "key": "plc4vfy4",
         "name": "onClick_save_as_draft",
-        "func": "const closeDialog = () => {\n    if (this.parentGenerateForm) {\n        this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n        this.parentGenerateForm.refresh();\n        this.hideLoading();\n    }\n};\n\nconst validateForm = (data, requiredFields) => {\n    const missingFields = [];\n\n    requiredFields.forEach(field => {\n        const value = data[field.name];\n\n        // Handle non-array fields (unchanged)\n        if (!field.isArray) {\n            if (validateField(value, field)) {\n                missingFields.push(field.label);\n            }\n            return;\n        }\n\n        // Handle array fields\n        if (!Array.isArray(value)) {\n            missingFields.push(`${field.label}`);\n            return;\n        }\n\n        if (value.length === 0) {\n            missingFields.push(`${field.label}`);\n            return;\n        }\n\n        // Check each item in the array\n        if (field.arrayType === 'object' && field.arrayFields) {\n            value.forEach((item, index) => {\n                field.arrayFields.forEach(subField => {\n                    const subValue = item[subField.name];\n                    if (validateField(subValue, subField)) {\n                        missingFields.push(\n                            `${subField.label} (in ${field.label} #${index + 1})`\n                        );\n                    }\n                });\n            });\n        }\n    });\n\n    return missingFields;\n};\n\n\nconst validateField = (value, field) => {\n    if (value === undefined || value === null) return true;\n    if (typeof value === 'string') return value.trim() === '';\n    if (Array.isArray(value)) return value.length === 0;\n    if (typeof value === 'object') return Object.keys(value).length === 0;\n    return !value;\n};\n\nconst getPrefixData = async (organizationId) => {\n    const prefixEntry = await db.collection(\"prefix_configuration\")\n    .where({ document_types: \"Goods Receiving\", is_deleted: 0, organization_id: organizationId, is_active: 1 })\n    .get()\n\n    const prefixData = await prefixEntry.data[0];\n\n    return prefixData;\n}\n\nconst generateDraftPrefix = async (organizationId) => {\n    try {\n        const prefixData = await getPrefixData(organizationId);\n        const currDraftNum = parseInt(prefixData.draft_number) + 1;\n        const newPrefix = \"DRAFT-GR-\" + currDraftNum;\n\n        db.collection(\"prefix_configuration\")\n        .where({ document_types: \"Goods Receiving\", organization_id: organizationId })\n        .update({ draft_number: currDraftNum });\n\n        return newPrefix;\n    } catch (error) {\n        throw new Error(error);\n    }\n}\n\n(async () => {\n    try{\n\n        this.showLoading();\n        const data = this.getValues();\n        const requiredFields = [\n            { name: 'purchase_order_id', label: 'PO Number' },\n        ];\n    \n        const missingFields = await validateForm(data, requiredFields);\n    \n    \n        if(missingFields.length === 0) {\n            const page_status = this.getValue('page_status');\n    \n            let organizationId = this.getVarGlobal('deptParentId');\n            if(organizationId === '0'){\n                organizationId = this.getVarSystem('deptIds').split(',')[0];\n            }\n    \n            const {\n                purchase_order_id, purchase_order_number, gr_billing_name, gr_billing_cp, gr_billing_address, gr_shipping_address,\n                supplier_name, supplier_contact_person, supplier_contact_number, supplier_email, currency_code,\n                gr_no, gr_received_by, gr_date, table_gr, billing_address_line_1, billing_address_line_2,\n                billing_address_line_3, billing_address_line_4, shipping_address_line_1, shipping_address_line_2,\n                shipping_address_line_3, shipping_address_line_4, billing_address_city, shipping_address_city,\n                billing_postal_code, shipping_postal_code, billing_address_state, shipping_address_state, \n                billing_address_country, shipping_address_country, plant_id, organization_id\n            } = data;\n            \n            const entry = {\n                gr_status: 'Draft', purchase_order_id, purchase_order_number, gr_billing_name, gr_billing_cp, gr_billing_address, gr_shipping_address,\n                supplier_name, supplier_contact_person, supplier_contact_number, supplier_email, currency_code,\n                gr_no, gr_received_by, gr_date, table_gr, billing_address_line_1, billing_address_line_2,\n                billing_address_line_3, billing_address_line_4, shipping_address_line_1, shipping_address_line_2,\n                shipping_address_line_3, shipping_address_line_4, billing_address_city, shipping_address_city,\n                billing_postal_code, shipping_postal_code, billing_address_state, shipping_address_state, \n                billing_address_country, shipping_address_country, plant_id, organization_id\n            }\n          \n          if(page_status === 'Add'){\n            const newPrefix = await generateDraftPrefix(organizationId);\n            entry.gr_no = newPrefix;\n            await db.collection(\"goods_receiving\").add(entry);\n            this.$message.success('Add successfully')\n            closeDialog();\n          \n          } else if(page_status === 'Edit'){\n            await db.collection(\"goods_receiving\").doc(goodsReceivingId).update(entry);\n            this.$message.success('Update successfully')\n            closeDialog();\n          }\n        }\n        else {\n          this.hideLoading();\n          this.$message.error(`Missing fields: ${missingFields.join(', ')}`);\n        }\n    } catch (error) {\n        this.$message.error(error);\n    }\n})();\n\n\n\n\n\n",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst validateForm = (data, requiredFields) => {\n  const missingFields = [];\n\n  requiredFields.forEach((field) => {\n    const value = data[field.name];\n\n    // Handle non-array fields (unchanged)\n    if (!field.isArray) {\n      if (validateField(value, field)) {\n        missingFields.push(field.label);\n      }\n      return;\n    }\n\n    // Handle array fields\n    if (!Array.isArray(value)) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    if (value.length === 0) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    // Check each item in the array\n    if (field.arrayType === \"object\" && field.arrayFields) {\n      value.forEach((item, index) => {\n        field.arrayFields.forEach((subField) => {\n          const subValue = item[subField.name];\n          if (validateField(subValue, subField)) {\n            missingFields.push(\n              `${subField.label} (in ${field.label} #${index + 1})`\n            );\n          }\n        });\n      });\n    }\n  });\n\n  return missingFields;\n};\n\nconst validateField = (value, field) => {\n  if (value === undefined || value === null) return true;\n  if (typeof value === \"string\") return value.trim() === \"\";\n  if (Array.isArray(value)) return value.length === 0;\n  if (typeof value === \"object\") return Object.keys(value).length === 0;\n  return !value;\n};\n\nconst getPrefixData = async (organizationId) => {\n  const prefixEntry = await db\n    .collection(\"prefix_configuration\")\n    .where({\n      document_types: \"Goods Receiving\",\n      is_deleted: 0,\n      organization_id: organizationId,\n      is_active: 1,\n    })\n    .get();\n\n  const prefixData = await prefixEntry.data[0];\n\n  return prefixData;\n};\n\nconst generateDraftPrefix = async (organizationId) => {\n  try {\n    const prefixData = await getPrefixData(organizationId);\n    const currDraftNum = parseInt(prefixData.draft_number) + 1;\n    const newPrefix = \"DRAFT-GR-\" + currDraftNum;\n\n    db.collection(\"prefix_configuration\")\n      .where({\n        document_types: \"Goods Receiving\",\n        organization_id: organizationId,\n      })\n      .update({ draft_number: currDraftNum });\n\n    return newPrefix;\n  } catch (error) {\n    throw new Error(error);\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading();\n    const data = this.getValues();\n    const requiredFields = [{ name: \"purchase_order_id\", label: \"PO Number\" }];\n\n    const missingFields = await validateForm(data, requiredFields);\n\n    if (missingFields.length === 0) {\n      const page_status = this.getValue(\"page_status\");\n\n      let organizationId = this.getVarGlobal(\"deptParentId\");\n      if (organizationId === \"0\") {\n        organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n      }\n\n      const {\n        fake_purchase_order_id,\n        purchase_order_id,\n        purchase_order_number,\n        gr_billing_name,\n        gr_billing_cp,\n        gr_billing_address,\n        gr_shipping_address,\n        supplier_name,\n        supplier_contact_person,\n        supplier_contact_number,\n        supplier_email,\n        currency_code,\n        gr_no,\n        gr_received_by,\n        gr_date,\n        table_gr,\n        billing_address_line_1,\n        billing_address_line_2,\n        billing_address_line_3,\n        billing_address_line_4,\n        shipping_address_line_1,\n        shipping_address_line_2,\n        shipping_address_line_3,\n        shipping_address_line_4,\n        billing_address_city,\n        shipping_address_city,\n        billing_postal_code,\n        shipping_postal_code,\n        billing_address_state,\n        shipping_address_state,\n        billing_address_country,\n        shipping_address_country,\n        plant_id,\n        organization_id,\n      } = data;\n\n      const entry = {\n        gr_status: \"Draft\",\n        fake_purchase_order_id,\n        purchase_order_id,\n        purchase_order_number,\n        gr_billing_name,\n        gr_billing_cp,\n        gr_billing_address,\n        gr_shipping_address,\n        supplier_name,\n        supplier_contact_person,\n        supplier_contact_number,\n        supplier_email,\n        currency_code,\n        gr_no,\n        gr_received_by,\n        gr_date,\n        table_gr,\n        billing_address_line_1,\n        billing_address_line_2,\n        billing_address_line_3,\n        billing_address_line_4,\n        shipping_address_line_1,\n        shipping_address_line_2,\n        shipping_address_line_3,\n        shipping_address_line_4,\n        billing_address_city,\n        shipping_address_city,\n        billing_postal_code,\n        shipping_postal_code,\n        billing_address_state,\n        shipping_address_state,\n        billing_address_country,\n        shipping_address_country,\n        plant_id,\n        organization_id,\n      };\n\n      if (page_status === \"Add\") {\n        const newPrefix = await generateDraftPrefix(organizationId);\n        entry.gr_no = newPrefix;\n        await db.collection(\"goods_receiving\").add(entry);\n        this.$message.success(\"Add successfully\");\n        closeDialog();\n      } else if (page_status === \"Edit\") {\n        await db\n          .collection(\"goods_receiving\")\n          .doc(goodsReceivingId)\n          .update(entry);\n        this.$message.success(\"Update successfully\");\n        closeDialog();\n      }\n    } else {\n      this.hideLoading();\n      this.$message.error(`Missing fields: ${missingFields.join(\", \")}`);\n    }\n  } catch (error) {\n    this.$message.error(error);\n  }\n})();\n",
         "type": "js"
       },
       {
         "key": "qdf0q1le",
         "name": "onClick_save_as_completed",
-        "func": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst addInventory = (data, plantId, organizationId) => {\n  const items = data.table_gr;\n\n  if (!Array.isArray(items) || items.length === 0) {\n    console.log(\"No items to process\");\n    return Promise.resolve();\n  }\n\n  const processedItemPromises = items.map((item, itemIndex) => {\n    return new Promise(async (resolve) => {\n      console.log(`Processing item ${itemIndex + 1}/${items.length}`);\n\n      // Input validation\n      if (\n        !item.item_id ||\n        !item.received_qty ||\n        isNaN(parseFloat(item.received_qty)) ||\n        parseFloat(item.received_qty) <= 0\n      ) {\n        console.error(`Invalid item data for index ${itemIndex}:`, item);\n        resolve();\n        return;\n      }\n\n      const calculateCostPrice = (itemData, conversion) => {\n        return db\n          .collection(\"purchase_order\")\n          .where({ id: data.purchase_order_id })\n          .get()\n          .then((poResponse) => {\n            if (!poResponse.data || !poResponse.data.length) {\n              console.log(\n                `No purchase order found for ${data.purchase_order_id}`\n              );\n              return roundPrice(itemData.unit_price);\n            }\n\n            const poData = poResponse.data[0];\n\n            const exchangeRate = poData.exchange_rate;\n            let poQuantity = 0;\n            let totalAmount = 0;\n\n            for (const poItem of poData.table_po) {\n              if (poItem.item_id === itemData.item_id) {\n                poQuantity = roundQty(parseFloat(poItem.quantity) || 0);\n                totalAmount = roundPrice(parseFloat(poItem.po_amount) || 0);\n                break;\n              }\n            }\n\n            const pricePerUnit = roundPrice(totalAmount / poQuantity);\n            const costPrice = roundPrice(\n              (pricePerUnit / conversion) * exchangeRate\n            );\n            console.log(\"costPrice\", costPrice);\n\n            return costPrice;\n          })\n          .catch((error) => {\n            console.error(`Error calculating cost price: ${error.message}`);\n            return roundPrice(itemData.unit_price);\n          });\n      };\n\n      // Function to process FIFO for batch\n      const processFifoForBatch = (itemData, baseQty, batchId) => {\n        return db\n          .collection(\"fifo_costing_history\")\n          .where({ material_id: itemData.item_id, batch_id: batchId })\n          .get()\n          .then((fifoResponse) => {\n            // Get the highest existing sequence number and add 1\n            let sequenceNumber = 1;\n            if (\n              fifoResponse.data &&\n              Array.isArray(fifoResponse.data) &&\n              fifoResponse.data.length > 0\n            ) {\n              const existingSequences = fifoResponse.data.map((doc) =>\n                parseInt(doc.fifo_sequence || 0)\n              );\n              sequenceNumber = Math.max(...existingSequences, 0) + 1;\n            }\n\n            return calculateCostPrice(\n              itemData,\n              roundQty(baseQty / parseFloat(itemData.received_qty))\n            ).then((costPrice) => {\n              const fifoData = {\n                fifo_cost_price: roundPrice(costPrice),\n                fifo_initial_quantity: roundQty(baseQty),\n                fifo_available_quantity: roundQty(baseQty),\n                material_id: itemData.item_id,\n                batch_id: batchId,\n                fifo_sequence: sequenceNumber,\n                plant_id: plantId,\n                organization_id: organizationId,\n              };\n\n              return db\n                .collection(\"fifo_costing_history\")\n                .add(fifoData)\n                .then(() => {\n                  console.log(\n                    `Successfully processed FIFO for item ${itemData.item_id} with batch ${batchId}`\n                  );\n                  return Promise.resolve();\n                });\n            });\n          });\n      };\n\n      // Function to process FIFO for non-batch\n      const processFifoForNonBatch = (itemData, baseQty) => {\n        return db\n          .collection(\"fifo_costing_history\")\n          .where({ material_id: itemData.item_id })\n          .get()\n          .then((fifoResponse) => {\n            // Get the highest existing sequence number and add 1\n            let sequenceNumber = 1;\n            if (\n              fifoResponse.data &&\n              Array.isArray(fifoResponse.data) &&\n              fifoResponse.data.length > 0\n            ) {\n              const existingSequences = fifoResponse.data.map((doc) =>\n                parseInt(doc.fifo_sequence || 0)\n              );\n              sequenceNumber = Math.max(...existingSequences, 0) + 1;\n            }\n\n            return calculateCostPrice(\n              itemData,\n              roundQty(baseQty / parseFloat(itemData.received_qty))\n            ).then((costPrice) => {\n              const fifoData = {\n                fifo_cost_price: roundPrice(costPrice),\n                fifo_initial_quantity: roundQty(baseQty),\n                fifo_available_quantity: roundQty(baseQty),\n                material_id: itemData.item_id,\n                fifo_sequence: sequenceNumber,\n                plant_id: plantId,\n                organization_id: organizationId,\n              };\n\n              return db\n                .collection(\"fifo_costing_history\")\n                .add(fifoData)\n                .then(() => {\n                  console.log(\n                    `Successfully processed FIFO for item ${itemData.item_id}`\n                  );\n                  return Promise.resolve();\n                });\n            });\n          });\n      };\n\n      const processWeightedAverageForBatch = (item, baseQty, batchId) => {\n        return calculateCostPrice(\n          item,\n          roundQty(baseQty / parseFloat(item.received_qty))\n        ).then((costPrice) => {\n          return db\n            .collection(\"wa_costing_method\")\n            .add({\n              material_id: item.item_id,\n              batch_id: batchId,\n              plant_id: plantId,\n              organization_id: organizationId,\n              wa_quantity: roundQty(baseQty),\n              wa_cost_price: roundPrice(costPrice),\n              created_at: new Date(),\n            })\n            .then(() => {\n              console.log(\n                `Successfully processed Weighted Average for item ${item.item_id} with batch ${batchId}`\n              );\n              return Promise.resolve();\n            })\n            .catch((error) => {\n              console.error(\n                `Error processing Weighted Average for item ${item.item_id} with batch ${batchId}:`,\n                error\n              );\n              return Promise.reject(error);\n            });\n        });\n      };\n\n      const processWeightedAverageForNonBatch = (item, baseQty) => {\n        return db\n          .collection(\"wa_costing_method\")\n          .where({ material_id: item.item_id })\n          .get()\n          .then((waResponse) => {\n            const waData = waResponse.data;\n            console.log(\"waData\", waData);\n            if (waData && waData.length) {\n              waData.sort((a, b) => {\n                if (a.created_at && b.created_at) {\n                  return new Date(b.created_at) - new Date(a.created_at);\n                }\n                return 0;\n              });\n              const latestWa = waData[0];\n              console.log(\"latestWa\", latestWa);\n              const waCostPrice = roundPrice(latestWa.wa_cost_price);\n              const waQuantity = roundQty(latestWa.wa_quantity);\n              const newWaQuantity = roundQty(waQuantity + baseQty);\n              return calculateCostPrice(\n                item,\n                roundQty(baseQty / parseFloat(item.received_qty))\n              ).then((costPrice) => {\n                const calculatedWaCostPrice = roundPrice(\n                  (waCostPrice * waQuantity + costPrice * baseQty) /\n                    newWaQuantity\n                );\n                const newWaCostPrice = roundPrice(calculatedWaCostPrice);\n                console.log(\"newWaCostPrice\", newWaCostPrice);\n\n                return db\n                  .collection(\"wa_costing_method\")\n                  .doc(latestWa.id)\n                  .update({\n                    wa_quantity: newWaQuantity,\n                    wa_cost_price: newWaCostPrice,\n                    plant_id: plantId,\n                    organization_id: organizationId,\n                    updated_at: new Date(),\n                  })\n                  .then(() => {\n                    console.log(\n                      `Successfully processed Weighted Average for item ${item.item_id}`\n                    );\n                    return Promise.resolve();\n                  })\n                  .catch((error) => {\n                    console.error(\n                      `Error processing Weighted Average for item ${item.item_id}:`,\n                      error\n                    );\n                  });\n              });\n            } else {\n              return calculateCostPrice(\n                item,\n                roundQty(baseQty / parseFloat(item.received_qty))\n              ).then((costPrice) => {\n                return db\n                  .collection(\"wa_costing_method\")\n                  .add({\n                    material_id: item.item_id,\n                    wa_quantity: roundQty(baseQty),\n                    wa_cost_price: roundPrice(costPrice),\n                    plant_id: plantId,\n                    organization_id: organizationId,\n                    created_at: new Date(),\n                  })\n                  .then(() => {\n                    console.log(\n                      `Successfully processed Weighted Average for item ${item.item_id}`\n                    );\n                    return Promise.resolve();\n                  })\n                  .catch((error) => {\n                    console.error(\n                      `Error processing Weighted Average for item ${item.item_id}:`,\n                      error\n                    );\n                  });\n              });\n            }\n          })\n          .catch((error) => {\n            console.error(\n              `Error processing Weighted Average for item ${item.item_id}:`,\n              error\n            );\n            return Promise.reject(error);\n          });\n      };\n\n      // Function to get Fixed Cost price\n      const getFixedCostPrice = async (materialId) => {\n        const query = db.collection(\"Item\").where({ id: materialId });\n        const response = await query.get();\n        const result = response.data;\n        return roundPrice(parseFloat(result[0].purchase_unit_price || 0));\n      };\n\n      try {\n        // First check if this item should be processed based on stock_control\n        const itemRes = await db\n          .collection(\"Item\")\n          .where({ id: item.item_id })\n          .get();\n\n        if (!itemRes.data || !itemRes.data.length) {\n          console.error(`Item not found: ${item.item_id}`);\n          resolve();\n          return;\n        }\n\n        const itemData = itemRes.data[0];\n        if (itemData.stock_control === 0) {\n          console.log(\n            `Skipping inventory update for item ${item.item_id} (stock_control=0)`\n          );\n          resolve();\n          return;\n        }\n\n        // UOM Conversion\n        let altQty = roundQty(parseFloat(item.received_qty));\n        let baseQty = altQty;\n        let altUOM = item.item_uom;\n        let baseUOM = itemData.based_uom;\n\n        if (\n          Array.isArray(itemData.table_uom_conversion) &&\n          itemData.table_uom_conversion.length > 0\n        ) {\n          console.log(`Checking UOM conversions for item ${item.item_id}`);\n\n          const uomConversion = itemData.table_uom_conversion.find(\n            (conv) => conv.alt_uom_id === altUOM\n          );\n\n          if (uomConversion) {\n            console.log(\n              `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`\n            );\n\n            baseQty = roundQty(altQty * uomConversion.base_qty);\n\n            console.log(\n              `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`\n            );\n          } else {\n            console.log(`No conversion found for UOM ${altUOM}, using as-is`);\n          }\n        } else {\n          console.log(\n            `No UOM conversion table for item ${item.item_id}, using received quantity as-is`\n          );\n        }\n\n        let unitPrice = roundPrice(item.unit_price);\n        let totalPrice = roundPrice(item.unit_price * baseQty);\n\n        const costingMethod = itemData.material_costing_method;\n\n        if (\n          costingMethod === \"First In First Out\" ||\n          costingMethod === \"Weighted Average\"\n        ) {\n          const fifoCostPrice = await calculateCostPrice(\n            item,\n            roundQty(baseQty / parseFloat(item.received_qty))\n          );\n          unitPrice = roundPrice(fifoCostPrice);\n          totalPrice = roundPrice(fifoCostPrice * baseQty);\n        } else if (costingMethod === \"Fixed Cost\") {\n          const fixedCostPrice = await getFixedCostPrice(item.item_id);\n          unitPrice = roundPrice(fixedCostPrice);\n          totalPrice = roundPrice(fixedCostPrice * baseQty);\n        }\n\n        // Create inventory_movement record\n        const inventoryMovementData = {\n          transaction_type: \"GRN\",\n          trx_no: data.gr_no,\n          parent_trx_no: data.purchase_order_number,\n          movement: \"IN\",\n          unit_price: roundPrice(unitPrice),\n          total_price: roundPrice(totalPrice),\n          quantity: roundQty(altQty),\n          item_id: item.item_id,\n          inventory_category: item.inv_category,\n          uom_id: altUOM,\n          base_qty: roundQty(baseQty),\n          base_uom_id: baseUOM,\n          bin_location_id: item.location_id,\n          batch_number_id: item.item_batch_no,\n          costing_method_id: item.item_costing_method,\n          plant_id: plantId,\n          organization_id: organizationId,\n        };\n\n        await db.collection(\"inventory_movement\").add(inventoryMovementData);\n\n        // Update purchase order\n        const poResponse = await db\n          .collection(\"on_order_purchase_order\")\n          .where({\n            purchase_order_number: data.purchase_order_number,\n            material_id: item.item_id,\n          })\n          .get();\n\n        if (\n          poResponse.data &&\n          Array.isArray(poResponse.data) &&\n          poResponse.data.length > 0\n        ) {\n          const doc = poResponse.data[0];\n          if (doc && doc.id) {\n            const existingReceived = roundQty(\n              parseFloat(doc.received_qty || 0)\n            );\n            const openQuantity = roundQty(parseFloat(doc.open_qty || 0));\n            const newReceived = roundQty(\n              existingReceived + parseFloat(baseQty || 0)\n            );\n            let newOpenQuantity = roundQty(\n              openQuantity - parseFloat(baseQty || 0)\n            );\n\n            if (newOpenQuantity < 0) {\n              newOpenQuantity = 0;\n            }\n\n            await db.collection(\"on_order_purchase_order\").doc(doc.id).update({\n              received_qty: newReceived,\n              open_qty: newOpenQuantity,\n            });\n          }\n        }\n\n        // Setup inventory category quantities\n        const itemBalanceParams = {\n          material_id: item.item_id,\n          location_id: item.location_id,\n        };\n\n        let block_qty = 0,\n          reserved_qty = 0,\n          unrestricted_qty = 0,\n          qualityinsp_qty = 0,\n          intransit_qty = 0;\n\n        const receivedQty = roundQty(parseFloat(baseQty || 0));\n\n        if (item.inv_category === \"Blocked\") {\n          block_qty = receivedQty;\n        } else if (item.inv_category === \"Reserved\") {\n          reserved_qty = receivedQty;\n        } else if (item.inv_category === \"Unrestricted\") {\n          unrestricted_qty = receivedQty;\n        } else if (item.inv_category === \"Quality Inspection\") {\n          qualityinsp_qty = receivedQty;\n        } else if (item.inv_category === \"In Transit\") {\n          intransit_qty = receivedQty;\n        } else {\n          unrestricted_qty = receivedQty;\n        }\n\n        if (item.item_batch_no !== \"-\") {\n          // Batch item processing\n          return db\n            .collection(\"batch\")\n            .add({\n              batch_number: item.item_batch_no,\n              material_id: item.item_id,\n              initial_quantity: baseQty,\n              goods_receiving_no: data.gr_no,\n              goods_receiving_id: data.id || \"\",\n              plant_id: plantId,\n              organization_id: organizationId,\n            })\n            .then(() => {\n              return new Promise((resolve) => setTimeout(resolve, 300));\n            })\n            .then(() => {\n              return db\n                .collection(\"batch\")\n                .where({\n                  batch_number: item.item_batch_no,\n                  material_id: item.item_id,\n                  goods_receiving_no: data.gr_no,\n                })\n                .get();\n            })\n            .then((response) => {\n              const batchResult = response.data;\n              if (\n                !batchResult ||\n                !Array.isArray(batchResult) ||\n                !batchResult.length\n              ) {\n                this.$message.error(\"Batch not found after creation\");\n              }\n\n              const batchId = batchResult[0].id;\n\n              // Create new balance record\n              balance_quantity =\n                block_qty +\n                reserved_qty +\n                unrestricted_qty +\n                qualityinsp_qty +\n                intransit_qty;\n\n              const newBalanceData = {\n                material_id: item.item_id,\n                location_id: item.location_id,\n                batch_id: batchId,\n                block_qty: block_qty,\n                reserved_qty: reserved_qty,\n                unrestricted_qty: unrestricted_qty,\n                qualityinsp_qty: qualityinsp_qty,\n                intransit_qty: intransit_qty,\n                balance_quantity: balance_quantity,\n                plant_id: plantId,\n                organization_id: organizationId,\n              };\n\n              return db\n                .collection(\"item_batch_balance\")\n                .add(newBalanceData)\n                .then(() => {\n                  console.log(\"Successfully added item_batch_balance record\");\n                  return { batchId };\n                })\n                .catch((error) => {\n                  console.error(\n                    `Error creating item_batch_balance: ${error.message}`\n                  );\n                  resolve();\n                });\n            })\n            .then(({ batchId }) => {\n              if (costingMethod === \"First In First Out\") {\n                return processFifoForBatch(item, baseQty, batchId);\n              } else if (costingMethod === \"Weighted Average\") {\n                return processWeightedAverageForBatch(item, baseQty, batchId);\n              } else {\n                return Promise.resolve();\n              }\n            })\n            .then(() => {\n              console.log(\n                `Successfully completed processing for batch item ${item.item_id}`\n              );\n              resolve();\n            })\n            .catch((error) => {\n              console.error(\n                `Error in batch processing chain: ${error.message}`\n              );\n              resolve();\n            });\n        } else {\n          // Non-batch item processing with async/await\n          try {\n            const balanceResponse = await db\n              .collection(\"item_balance\")\n              .where(itemBalanceParams)\n              .get();\n\n            const hasExistingBalance =\n              balanceResponse.data &&\n              Array.isArray(balanceResponse.data) &&\n              balanceResponse.data.length > 0;\n            const existingDoc = hasExistingBalance\n              ? balanceResponse.data[0]\n              : null;\n\n            let balance_quantity;\n\n            if (existingDoc && existingDoc.id) {\n              // Update existing balance\n              const updatedBlockQty = roundQty(\n                parseFloat(existingDoc.block_qty || 0) + block_qty\n              );\n              const updatedReservedQty = roundQty(\n                parseFloat(existingDoc.reserved_qty || 0) + reserved_qty\n              );\n              const updatedUnrestrictedQty = roundQty(\n                parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty\n              );\n              const updatedQualityInspQty = roundQty(\n                parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty\n              );\n              const updatedIntransitQty = roundQty(\n                parseFloat(existingDoc.intransit_qty || 0) + intransit_qty\n              );\n              balance_quantity =\n                updatedBlockQty +\n                updatedReservedQty +\n                updatedUnrestrictedQty +\n                updatedQualityInspQty +\n                updatedIntransitQty;\n\n              await db\n                .collection(\"item_balance\")\n                .doc(existingDoc.id)\n                .update({\n                  block_qty: updatedBlockQty,\n                  reserved_qty: updatedReservedQty,\n                  unrestricted_qty: updatedUnrestrictedQty,\n                  qualityinsp_qty: updatedQualityInspQty,\n                  intransit_qty: updatedIntransitQty,\n                  balance_quantity: balance_quantity,\n                })\n                .catch((error) => {\n                  console.error(\n                    `Error updating item_balance: ${error.message}`\n                  );\n                  resolve();\n                });\n            } else {\n              // Create new balance record\n              balance_quantity =\n                block_qty +\n                reserved_qty +\n                unrestricted_qty +\n                qualityinsp_qty +\n                intransit_qty;\n\n              const newBalanceData = {\n                material_id: item.item_id,\n                location_id: item.location_id,\n                block_qty: block_qty,\n                reserved_qty: reserved_qty,\n                unrestricted_qty: unrestricted_qty,\n                qualityinsp_qty: qualityinsp_qty,\n                intransit_qty: intransit_qty,\n                balance_quantity: balance_quantity,\n                plant_id: plantId,\n                organization_id: organizationId,\n              };\n\n              await db\n                .collection(\"item_balance\")\n                .add(newBalanceData)\n                .catch((error) => {\n                  console.error(\n                    `Error creating item_balance: ${error.message}`\n                  );\n                  resolve();\n                });\n            }\n\n            const costingMethod = itemData.material_costing_method;\n\n            if (costingMethod === \"First In First Out\") {\n              await processFifoForNonBatch(item, baseQty);\n            } else if (costingMethod === \"Weighted Average\") {\n              await processWeightedAverageForNonBatch(item, baseQty);\n            } else {\n              return Promise.resolve();\n            }\n\n            console.log(\n              `Successfully processed non-batch item ${item.item_id}`\n            );\n            resolve();\n          } catch (nonBatchError) {\n            console.error(\n              `Error processing non-batch item: ${nonBatchError.message}`\n            );\n            resolve();\n          }\n        }\n      } catch (error) {\n        console.error(`Error processing item ${item.item_id}:`, error);\n        console.log(`Error encountered for item ${item.item_id}`);\n        resolve();\n      }\n    });\n  });\n\n  // Return a promise that resolves when all items are processed\n  return Promise.all(processedItemPromises);\n};\n\n// Enhanced PO status update with proper error handling\nconst updatePurchaseOrderStatus = async (purchaseOrderId) => {\n  try {\n    // Store original PO status for potential rollback\n    let poDoc = null;\n\n    const [resGR, resPO] = await Promise.all([\n      db\n        .collection(\"goods_receiving\")\n        .where({ purchase_order_id: purchaseOrderId })\n        .get(),\n      db.collection(\"purchase_order\").where({ id: purchaseOrderId }).get(),\n    ]);\n\n    const allGRs = resGR.data || [];\n\n    if (!resPO.data || !resPO.data.length) {\n      console.log(`Purchase order ${purchaseOrderId} not found`);\n      return;\n    }\n\n    poDoc = resPO.data[0];\n    const originalPOStatus = poDoc.po_status;\n\n    const poItems = poDoc.table_po || [];\n    if (!poItems.length) {\n      console.log(`No items found in purchase order ${purchaseOrderId}`);\n      return;\n    }\n\n    // Create a map to sum received quantities for each item\n    const receivedQtyMap = {};\n\n    // Initialize with zeros\n    poItems.forEach((item) => {\n      receivedQtyMap[item.item_id] = 0;\n    });\n\n    // Sum received quantities from all GRs\n    allGRs.forEach((gr) => {\n      (gr.table_gr || []).forEach((grItem) => {\n        if (receivedQtyMap.hasOwnProperty(grItem.item_id)) {\n          receivedQtyMap[grItem.item_id] += parseFloat(\n            grItem.received_qty || 0\n          );\n        }\n      });\n    });\n\n    // Check item completion status\n    let allItemsComplete = true;\n    let anyItemProcessing = false;\n\n    poItems.forEach((item) => {\n      const orderedQty = parseFloat(item.quantity || 0);\n      const receivedQty = parseFloat(receivedQtyMap[item.item_id] || 0);\n\n      if (receivedQty < orderedQty) {\n        allItemsComplete = false;\n        anyItemProcessing = true;\n      }\n    });\n\n    // Determine new status\n    let newPOStatus = poDoc.po_status;\n    let newGRStatus = poDoc.gr_status;\n\n    if (allItemsComplete) {\n      newPOStatus = \"Completed\";\n      newGRStatus = \"Fully Received\";\n    } else if (anyItemProcessing) {\n      newPOStatus = \"Processing\";\n      newGRStatus = \"Partially Received\";\n    }\n\n    // Update PO status if changed\n    if (newPOStatus !== poDoc.po_status || newGRStatus !== poDoc.gr_status) {\n      await db.collection(\"purchase_order\").doc(poDoc.id).update({\n        po_status: newPOStatus,\n        gr_status: newGRStatus,\n      });\n\n      console.log(\n        `Updated PO ${purchaseOrderId} status from ${originalPOStatus} to ${newPOStatus}`\n      );\n    }\n  } catch (error) {\n    console.error(`Error updating purchase order status:`, error);\n    // Status update errors shouldn't stop the process, just log them\n  }\n};\n\nconst validateForm = (data, requiredFields) => {\n  const missingFields = [];\n\n  requiredFields.forEach((field) => {\n    const value = data[field.name];\n\n    // Handle non-array fields (unchanged)\n    if (!field.isArray) {\n      if (validateField(value, field)) {\n        missingFields.push(field.label);\n      }\n      return;\n    }\n\n    // Handle array fields\n    if (!Array.isArray(value)) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    if (value.length === 0) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    // Check each item in the array\n    if (field.arrayType === \"object\" && field.arrayFields) {\n      value.forEach((item, index) => {\n        field.arrayFields.forEach((subField) => {\n          const subValue = item[subField.name];\n          if (validateField(subValue, subField)) {\n            missingFields.push(\n              `${subField.label} (in ${field.label} #${index + 1})`\n            );\n          }\n        });\n      });\n    }\n  });\n\n  return missingFields;\n};\n\nconst validateField = (value, field) => {\n  if (value === undefined || value === null) return true;\n  if (typeof value === \"string\") return value.trim() === \"\";\n  if (Array.isArray(value)) return value.length === 0;\n  if (typeof value === \"object\") return Object.keys(value).length === 0;\n  return !value;\n};\n\nconst getPrefixData = async (organizationId) => {\n  const prefixEntry = await db\n    .collection(\"prefix_configuration\")\n    .where({\n      document_types: \"Goods Receiving\",\n      is_deleted: 0,\n      organization_id: organizationId,\n      is_active: 1,\n    })\n    .get();\n\n  const prefixData = await prefixEntry.data[0];\n\n  return prefixData;\n};\n\nconst updatePrefix = async (organizationId, runningNumber) => {\n  try {\n    await db\n      .collection(\"prefix_configuration\")\n      .where({\n        document_types: \"Goods Receiving\",\n        is_deleted: 0,\n        organization_id: organizationId,\n      })\n      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });\n  } catch (error) {\n    this.$message.error(error);\n  }\n};\n\nconst generatePrefix = (runNumber, now, prefixData) => {\n  let generated = prefixData.current_prefix_config;\n  generated = generated.replace(\"prefix\", prefixData.prefix_value);\n  generated = generated.replace(\"suffix\", prefixData.suffix_value);\n  generated = generated.replace(\n    \"month\",\n    String(now.getMonth() + 1).padStart(2, \"0\")\n  );\n  generated = generated.replace(\"day\", String(now.getDate()).padStart(2, \"0\"));\n  generated = generated.replace(\"year\", now.getFullYear());\n  generated = generated.replace(\n    \"running_number\",\n    String(runNumber).padStart(prefixData.padding_zeroes, \"0\")\n  );\n  return generated;\n};\n\nconst checkUniqueness = async (generatedPrefix) => {\n  const existingDoc = await db\n    .collection(\"goods_receiving\")\n    .where({ gr_no: generatedPrefix })\n    .get();\n  return existingDoc.data[0] ? false : true;\n};\n\nconst findUniquePrefix = async (prefixData) => {\n  const now = new Date();\n  let prefixToShow;\n  let runningNumber = prefixData.running_number;\n  let isUnique = false;\n  let maxAttempts = 10;\n  let attempts = 0;\n\n  while (!isUnique && attempts < maxAttempts) {\n    attempts++;\n    prefixToShow = await generatePrefix(runningNumber, now, prefixData);\n    isUnique = await checkUniqueness(prefixToShow);\n    if (!isUnique) {\n      runningNumber++;\n    }\n  }\n\n  if (!isUnique) {\n    this.$message.error(\n      \"Could not generate a unique Goods Receiving number after maximum attempts\"\n    );\n  }\n\n  return { prefixToShow, runningNumber };\n};\n\nconst addEntry = async (organizationId, entry) => {\n  try {\n    const prefixData = await getPrefixData(organizationId);\n    if (prefixData.length !== 0) {\n      await updatePrefix(organizationId, prefixData.running_number);\n      await db\n        .collection(\"goods_receiving\")\n        .add(entry)\n        .then(() => {\n          this.runWorkflow(\n            \"1917412667253141505\",\n            { gr_no: entry.gr_no },\n            async (res) => {\n              console.log(\"成功结果：\", res);\n            },\n            (err) => {\n              alert();\n              console.error(\"失败结果：\", err);\n              closeDialog();\n            }\n          );\n        });\n      await addInventory(entry, entry.plant_id, organizationId);\n      await updatePurchaseOrderStatus(entry.purchase_order_id);\n      this.$message.success(\"Add successfully\");\n      closeDialog();\n    }\n  } catch (error) {\n    this.$message.error(error);\n  }\n};\n\nconst updateEntry = async (organizationId, entry, goodsReceivingId) => {\n  try {\n    const prefixData = await getPrefixData(organizationId);\n\n    if (prefixData.length !== 0) {\n      const { prefixToShow, runningNumber } = await findUniquePrefix(\n        prefixData\n      );\n\n      await updatePrefix(organizationId, runningNumber);\n\n      entry.gr_no = prefixToShow;\n      await db\n        .collection(\"goods_receiving\")\n        .doc(goodsReceivingId)\n        .update(entry)\n        .then(() => {\n          this.runWorkflow(\n            \"1917412667253141505\",\n            { gr_no: entry.gr_no },\n            async (res) => {\n              console.log(\"成功结果：\", res);\n            },\n            (err) => {\n              alert();\n              console.error(\"失败结果：\", err);\n              closeDialog();\n            }\n          );\n        });\n      await addInventory(entry, entry.plant_id, organizationId);\n      await updatePurchaseOrderStatus(entry.purchase_order_id);\n      this.$message.success(\"Update successfully\");\n      await closeDialog();\n    }\n  } catch (error) {\n    this.$message.error(error);\n  }\n};\n\n(async () => {\n  try {\n    const data = this.getValues();\n    this.showLoading();\n\n    const requiredFields = [\n      { name: \"purchase_order_id\", label: \"PO Number\" },\n      { name: \"gr_no\", label: \"GR Number\" },\n      { name: \"gr_date\", label: \"GR Date\" },\n      {\n        name: \"table_gr\",\n        label: \"GR Items\",\n        isArray: true,\n        arrayType: \"object\",\n        arrayFields: [\n          { name: \"location_id\", label: \"Target Location\" },\n          { name: \"item_batch_no\", label: \"Batch Number\" },\n          { name: \"inv_category\", label: \"Inventory Category\" },\n        ],\n      },\n    ];\n\n    const missingFields = await validateForm(data, requiredFields);\n\n    if (missingFields.length === 0) {\n      const page_status = this.getValue(\"page_status\");\n\n      let organizationId = this.getVarGlobal(\"deptParentId\");\n      if (organizationId === \"0\") {\n        organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n      }\n\n      const {\n        purchase_order_id,\n        plant_id,\n        currency_code,\n        organization_id,\n        purchase_order_number,\n        gr_billing_name,\n        gr_billing_cp,\n        gr_billing_address,\n        gr_shipping_address,\n        supplier_name,\n        supplier_contact_person,\n        supplier_contact_number,\n        supplier_email,\n        gr_no,\n        gr_received_by,\n        gr_date,\n        table_gr,\n        billing_address_line_1,\n        billing_address_line_2,\n        billing_address_line_3,\n        billing_address_line_4,\n        shipping_address_line_1,\n        shipping_address_line_2,\n        shipping_address_line_3,\n        shipping_address_line_4,\n        billing_address_city,\n        shipping_address_city,\n        billing_postal_code,\n        shipping_postal_code,\n        billing_address_state,\n        shipping_address_state,\n        billing_address_country,\n        shipping_address_country,\n      } = data;\n\n      const entry = {\n        gr_status: \"Completed\",\n        purchase_order_id,\n        plant_id,\n        currency_code,\n        organization_id,\n        purchase_order_number,\n        gr_billing_name,\n        gr_billing_cp,\n        gr_billing_address,\n        gr_shipping_address,\n        supplier_name,\n        supplier_contact_person,\n        supplier_contact_number,\n        supplier_email,\n        gr_no,\n        gr_received_by,\n        gr_date,\n        table_gr,\n        billing_address_line_1,\n        billing_address_line_2,\n        billing_address_line_3,\n        billing_address_line_4,\n        shipping_address_line_1,\n        shipping_address_line_2,\n        shipping_address_line_3,\n        shipping_address_line_4,\n        billing_address_city,\n        shipping_address_city,\n        billing_postal_code,\n        shipping_postal_code,\n        billing_address_state,\n        shipping_address_state,\n        billing_address_country,\n        shipping_address_country,\n      };\n\n      if (page_status === \"Add\") {\n        await addEntry(organizationId, entry);\n        closeDialog();\n      } else if (page_status === \"Edit\") {\n        const goodsReceivingId = this.getValue(\"id\");\n        await updateEntry(organizationId, entry, goodsReceivingId);\n        closeDialog();\n      }\n    } else {\n      this.hideLoading();\n      this.$message.error(`Missing fields: ${missingFields.join(\", \")}`);\n    }\n  } catch (error) {\n    this.hideLoading();\n    this.$message.error(error);\n  }\n})();\n",
+        "func": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst addInventory = (data, plantId, organizationId) => {\n  const items = data.table_gr;\n\n  if (!Array.isArray(items) || items.length === 0) {\n    console.log(\"No items to process\");\n    return Promise.resolve();\n  }\n\n  const processedItemPromises = items.map((item, itemIndex) => {\n    return new Promise(async (resolve) => {\n      console.log(`Processing item ${itemIndex + 1}/${items.length}`);\n\n      // Input validation\n      if (\n        !item.item_id ||\n        !item.received_qty ||\n        isNaN(parseFloat(item.received_qty)) ||\n        parseFloat(item.received_qty) < 0\n      ) {\n        console.error(`Invalid item data for index ${itemIndex}:`, item);\n        resolve();\n        return;\n      }\n\n      const calculateCostPrice = (itemData, conversion) => {\n        if (!conversion || conversion <= 0 || !isFinite(conversion)) {\n          console.warn(\n            `Invalid conversion factor (${conversion}) for item ${itemData.item_id}, using 1.0`\n          );\n          conversion = 1.0;\n        }\n\n        const relevantPoId =\n          itemData.line_po_id ||\n          itemData.po_id ||\n          (Array.isArray(data.purchase_order_id)\n            ? data.purchase_order_id[0]\n            : data.purchase_order_id);\n\n        if (!relevantPoId) {\n          console.error(\"No relevant PO ID found for cost calculation\");\n          return roundPrice(itemData.unit_price);\n        }\n\n        return db\n          .collection(\"purchase_order\")\n          .where({ id: relevantPoId })\n          .get()\n          .then((poResponse) => {\n            if (!poResponse.data || !poResponse.data.length) {\n              console.log(`No purchase order found for ${relevantPoId}`);\n              return roundPrice(itemData.unit_price);\n            }\n\n            const poData = poResponse.data[0];\n\n            const exchangeRate = poData.exchange_rate;\n            let poQuantity = 0;\n            let totalAmount = 0;\n\n            for (const poItem of poData.table_po) {\n              if (poItem.item_id === itemData.item_id) {\n                poQuantity = roundQty(parseFloat(poItem.quantity) || 0);\n                totalAmount = roundPrice(parseFloat(poItem.po_amount) || 0);\n                break;\n              }\n            }\n\n            const pricePerUnit = roundPrice(totalAmount / poQuantity);\n            const costPrice = roundPrice(\n              (pricePerUnit / conversion) * exchangeRate\n            );\n            console.log(\"costPrice\", costPrice);\n\n            return costPrice;\n          })\n          .catch((error) => {\n            console.error(`Error calculating cost price: ${error.message}`);\n            return roundPrice(itemData.unit_price);\n          });\n      };\n\n      // Function to process FIFO for batch\n      const processFifoForBatch = (itemData, baseQty, batchId) => {\n        return db\n          .collection(\"fifo_costing_history\")\n          .where({ material_id: itemData.item_id, batch_id: batchId })\n          .get()\n          .then((fifoResponse) => {\n            // Get the highest existing sequence number and add 1\n            let sequenceNumber = 1;\n            if (\n              fifoResponse.data &&\n              Array.isArray(fifoResponse.data) &&\n              fifoResponse.data.length > 0\n            ) {\n              const existingSequences = fifoResponse.data.map((doc) =>\n                parseInt(doc.fifo_sequence || 0)\n              );\n              sequenceNumber = Math.max(...existingSequences, 0) + 1;\n            }\n\n            return calculateCostPrice(\n              itemData,\n              roundQty(baseQty / parseFloat(itemData.received_qty))\n            ).then((costPrice) => {\n              const fifoData = {\n                fifo_cost_price: roundPrice(costPrice),\n                fifo_initial_quantity: roundQty(baseQty),\n                fifo_available_quantity: roundQty(baseQty),\n                material_id: itemData.item_id,\n                batch_id: batchId,\n                fifo_sequence: sequenceNumber,\n                plant_id: plantId,\n                organization_id: organizationId,\n              };\n\n              return db\n                .collection(\"fifo_costing_history\")\n                .add(fifoData)\n                .then(() => {\n                  console.log(\n                    `Successfully processed FIFO for item ${itemData.item_id} with batch ${batchId}`\n                  );\n                  return Promise.resolve();\n                });\n            });\n          });\n      };\n\n      // Function to process FIFO for non-batch\n      const processFifoForNonBatch = (itemData, baseQty) => {\n        return db\n          .collection(\"fifo_costing_history\")\n          .where({ material_id: itemData.item_id })\n          .get()\n          .then((fifoResponse) => {\n            // Get the highest existing sequence number and add 1\n            let sequenceNumber = 1;\n            if (\n              fifoResponse.data &&\n              Array.isArray(fifoResponse.data) &&\n              fifoResponse.data.length > 0\n            ) {\n              const existingSequences = fifoResponse.data.map((doc) =>\n                parseInt(doc.fifo_sequence || 0)\n              );\n              sequenceNumber = Math.max(...existingSequences, 0) + 1;\n            }\n\n            return calculateCostPrice(\n              itemData,\n              roundQty(baseQty / parseFloat(itemData.received_qty))\n            ).then((costPrice) => {\n              const fifoData = {\n                fifo_cost_price: roundPrice(costPrice),\n                fifo_initial_quantity: roundQty(baseQty),\n                fifo_available_quantity: roundQty(baseQty),\n                material_id: itemData.item_id,\n                fifo_sequence: sequenceNumber,\n                plant_id: plantId,\n                organization_id: organizationId,\n              };\n\n              return db\n                .collection(\"fifo_costing_history\")\n                .add(fifoData)\n                .then(() => {\n                  console.log(\n                    `Successfully processed FIFO for item ${itemData.item_id}`\n                  );\n                  return Promise.resolve();\n                });\n            });\n          });\n      };\n\n      const processWeightedAverageForBatch = (item, baseQty, batchId) => {\n        return calculateCostPrice(\n          item,\n          roundQty(baseQty / parseFloat(item.received_qty))\n        ).then((costPrice) => {\n          return db\n            .collection(\"wa_costing_method\")\n            .add({\n              material_id: item.item_id,\n              batch_id: batchId,\n              plant_id: plantId,\n              organization_id: organizationId,\n              wa_quantity: roundQty(baseQty),\n              wa_cost_price: roundPrice(costPrice),\n              created_at: new Date(),\n            })\n            .then(() => {\n              console.log(\n                `Successfully processed Weighted Average for item ${item.item_id} with batch ${batchId}`\n              );\n              return Promise.resolve();\n            })\n            .catch((error) => {\n              console.error(\n                `Error processing Weighted Average for item ${item.item_id} with batch ${batchId}:`,\n                error\n              );\n              return Promise.reject(error);\n            });\n        });\n      };\n\n      const processWeightedAverageForNonBatch = (item, baseQty) => {\n        return db\n          .collection(\"wa_costing_method\")\n          .where({ material_id: item.item_id })\n          .get()\n          .then((waResponse) => {\n            const waData = waResponse.data;\n            console.log(\"waData\", waData);\n            if (waData && waData.length) {\n              waData.sort((a, b) => {\n                if (a.created_at && b.created_at) {\n                  return new Date(b.created_at) - new Date(a.created_at);\n                }\n                return 0;\n              });\n              const latestWa = waData[0];\n              console.log(\"latestWa\", latestWa);\n              const waCostPrice = roundPrice(latestWa.wa_cost_price);\n              const waQuantity = roundQty(latestWa.wa_quantity);\n              const newWaQuantity = roundQty(waQuantity + baseQty);\n              return calculateCostPrice(\n                item,\n                roundQty(baseQty / parseFloat(item.received_qty))\n              ).then((costPrice) => {\n                const calculatedWaCostPrice = roundPrice(\n                  (waCostPrice * waQuantity + costPrice * baseQty) /\n                    newWaQuantity\n                );\n                const newWaCostPrice = roundPrice(calculatedWaCostPrice);\n                console.log(\"newWaCostPrice\", newWaCostPrice);\n\n                return db\n                  .collection(\"wa_costing_method\")\n                  .doc(latestWa.id)\n                  .update({\n                    wa_quantity: newWaQuantity,\n                    wa_cost_price: newWaCostPrice,\n                    plant_id: plantId,\n                    organization_id: organizationId,\n                    updated_at: new Date(),\n                  })\n                  .then(() => {\n                    console.log(\n                      `Successfully processed Weighted Average for item ${item.item_id}`\n                    );\n                    return Promise.resolve();\n                  })\n                  .catch((error) => {\n                    console.error(\n                      `Error processing Weighted Average for item ${item.item_id}:`,\n                      error\n                    );\n                  });\n              });\n            } else {\n              return calculateCostPrice(\n                item,\n                roundQty(baseQty / parseFloat(item.received_qty))\n              ).then((costPrice) => {\n                return db\n                  .collection(\"wa_costing_method\")\n                  .add({\n                    material_id: item.item_id,\n                    wa_quantity: roundQty(baseQty),\n                    wa_cost_price: roundPrice(costPrice),\n                    plant_id: plantId,\n                    organization_id: organizationId,\n                    created_at: new Date(),\n                  })\n                  .then(() => {\n                    console.log(\n                      `Successfully processed Weighted Average for item ${item.item_id}`\n                    );\n                    return Promise.resolve();\n                  })\n                  .catch((error) => {\n                    console.error(\n                      `Error processing Weighted Average for item ${item.item_id}:`,\n                      error\n                    );\n                  });\n              });\n            }\n          })\n          .catch((error) => {\n            console.error(\n              `Error processing Weighted Average for item ${item.item_id}:`,\n              error\n            );\n            return Promise.reject(error);\n          });\n      };\n\n      // Function to get Fixed Cost price\n      const getFixedCostPrice = async (materialId) => {\n        const query = db.collection(\"Item\").where({ id: materialId });\n        const response = await query.get();\n        const result = response.data;\n        return roundPrice(parseFloat(result[0].purchase_unit_price || 0));\n      };\n\n      try {\n        // First check if this item should be processed based on stock_control\n        const itemRes = await db\n          .collection(\"Item\")\n          .where({ id: item.item_id })\n          .get();\n\n        if (!itemRes.data || !itemRes.data.length) {\n          console.error(`Item not found: ${item.item_id}`);\n          resolve();\n          return;\n        }\n\n        const itemData = itemRes.data[0];\n        if (itemData.stock_control === 0) {\n          console.log(\n            `Skipping inventory update for item ${item.item_id} (stock_control=0)`\n          );\n          resolve();\n          return;\n        }\n\n        // UOM Conversion\n        let altQty = roundQty(parseFloat(item.received_qty));\n        let baseQty = altQty;\n        let altUOM = item.item_uom;\n        let baseUOM = itemData.based_uom;\n\n        if (\n          Array.isArray(itemData.table_uom_conversion) &&\n          itemData.table_uom_conversion.length > 0\n        ) {\n          console.log(`Checking UOM conversions for item ${item.item_id}`);\n\n          const uomConversion = itemData.table_uom_conversion.find(\n            (conv) => conv.alt_uom_id === altUOM\n          );\n\n          if (uomConversion) {\n            console.log(\n              `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`\n            );\n\n            baseQty = roundQty(altQty * uomConversion.base_qty);\n\n            console.log(\n              `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`\n            );\n          } else {\n            console.log(`No conversion found for UOM ${altUOM}, using as-is`);\n          }\n        } else {\n          console.log(\n            `No UOM conversion table for item ${item.item_id}, using received quantity as-is`\n          );\n        }\n\n        let unitPrice = roundPrice(item.unit_price);\n        let totalPrice = roundPrice(item.unit_price * baseQty);\n\n        const costingMethod = itemData.material_costing_method;\n\n        if (\n          costingMethod === \"First In First Out\" ||\n          costingMethod === \"Weighted Average\"\n        ) {\n          const fifoCostPrice = await calculateCostPrice(\n            item,\n            roundQty(baseQty / parseFloat(item.received_qty))\n          );\n          unitPrice = roundPrice(fifoCostPrice);\n          totalPrice = roundPrice(fifoCostPrice * baseQty);\n        } else if (costingMethod === \"Fixed Cost\") {\n          const fixedCostPrice = await getFixedCostPrice(item.item_id);\n          unitPrice = roundPrice(fixedCostPrice);\n          totalPrice = roundPrice(fixedCostPrice * baseQty);\n        }\n\n        // Create inventory_movement record\n        const inventoryMovementData = {\n          transaction_type: \"GRN\",\n          trx_no: data.gr_no,\n          parent_trx_no: item.line_po_no,\n          movement: \"IN\",\n          unit_price: roundPrice(unitPrice),\n          total_price: roundPrice(totalPrice),\n          quantity: roundQty(altQty),\n          item_id: item.item_id,\n          inventory_category: item.inv_category,\n          uom_id: altUOM,\n          base_qty: roundQty(baseQty),\n          base_uom_id: baseUOM,\n          bin_location_id: item.location_id,\n          batch_number_id: item.item_batch_no,\n          costing_method_id: item.item_costing_method,\n          plant_id: plantId,\n          organization_id: organizationId,\n        };\n\n        await db.collection(\"inventory_movement\").add(inventoryMovementData);\n\n        // Update purchase order\n        const poResponse = await db\n          .collection(\"on_order_purchase_order\")\n          .where({\n            purchase_order_number: data.purchase_order_number,\n            material_id: item.item_id,\n          })\n          .get();\n\n        if (\n          poResponse.data &&\n          Array.isArray(poResponse.data) &&\n          poResponse.data.length > 0\n        ) {\n          const doc = poResponse.data[0];\n          if (doc && doc.id) {\n            const existingReceived = roundQty(\n              parseFloat(doc.received_qty || 0)\n            );\n            const openQuantity = roundQty(parseFloat(doc.open_qty || 0));\n            const newReceived = roundQty(\n              existingReceived + parseFloat(baseQty || 0)\n            );\n            let newOpenQuantity = roundQty(\n              openQuantity - parseFloat(baseQty || 0)\n            );\n\n            if (newOpenQuantity < 0) {\n              newOpenQuantity = 0;\n            }\n\n            await db.collection(\"on_order_purchase_order\").doc(doc.id).update({\n              received_qty: newReceived,\n              open_qty: newOpenQuantity,\n            });\n          }\n        }\n\n        // Setup inventory category quantities\n        const itemBalanceParams = {\n          material_id: item.item_id,\n          location_id: item.location_id,\n        };\n\n        let block_qty = 0,\n          reserved_qty = 0,\n          unrestricted_qty = 0,\n          qualityinsp_qty = 0,\n          intransit_qty = 0;\n\n        const receivedQty = roundQty(parseFloat(baseQty || 0));\n\n        if (item.inv_category === \"Blocked\") {\n          block_qty = receivedQty;\n        } else if (item.inv_category === \"Reserved\") {\n          reserved_qty = receivedQty;\n        } else if (item.inv_category === \"Unrestricted\") {\n          unrestricted_qty = receivedQty;\n        } else if (item.inv_category === \"Quality Inspection\") {\n          qualityinsp_qty = receivedQty;\n        } else if (item.inv_category === \"In Transit\") {\n          intransit_qty = receivedQty;\n        } else {\n          unrestricted_qty = receivedQty;\n        }\n\n        if (item.item_batch_no !== \"-\") {\n          // Batch item processing\n          return db\n            .collection(\"batch\")\n            .add({\n              batch_number: item.item_batch_no,\n              material_id: item.item_id,\n              initial_quantity: baseQty,\n              goods_receiving_no: data.gr_no,\n              goods_receiving_id: data.id || \"\",\n              plant_id: plantId,\n              organization_id: organizationId,\n            })\n            .then(() => {\n              return new Promise((resolve) => setTimeout(resolve, 300));\n            })\n            .then(() => {\n              return db\n                .collection(\"batch\")\n                .where({\n                  batch_number: item.item_batch_no,\n                  material_id: item.item_id,\n                  goods_receiving_no: data.gr_no,\n                })\n                .get();\n            })\n            .then((response) => {\n              const batchResult = response.data;\n              if (\n                !batchResult ||\n                !Array.isArray(batchResult) ||\n                !batchResult.length\n              ) {\n                this.$message.error(\"Batch not found after creation\");\n              }\n\n              const batchId = batchResult[0].id;\n\n              // Create new balance record\n              balance_quantity =\n                block_qty +\n                reserved_qty +\n                unrestricted_qty +\n                qualityinsp_qty +\n                intransit_qty;\n\n              const newBalanceData = {\n                material_id: item.item_id,\n                location_id: item.location_id,\n                batch_id: batchId,\n                block_qty: block_qty,\n                reserved_qty: reserved_qty,\n                unrestricted_qty: unrestricted_qty,\n                qualityinsp_qty: qualityinsp_qty,\n                intransit_qty: intransit_qty,\n                balance_quantity: balance_quantity,\n                plant_id: plantId,\n                organization_id: organizationId,\n              };\n\n              return db\n                .collection(\"item_batch_balance\")\n                .add(newBalanceData)\n                .then(() => {\n                  console.log(\"Successfully added item_batch_balance record\");\n                  return { batchId };\n                })\n                .catch((error) => {\n                  console.error(\n                    `Error creating item_batch_balance: ${error.message}`\n                  );\n                  resolve();\n                });\n            })\n            .then(({ batchId }) => {\n              if (costingMethod === \"First In First Out\") {\n                return processFifoForBatch(item, baseQty, batchId);\n              } else if (costingMethod === \"Weighted Average\") {\n                return processWeightedAverageForBatch(item, baseQty, batchId);\n              } else {\n                return Promise.resolve();\n              }\n            })\n            .then(() => {\n              console.log(\n                `Successfully completed processing for batch item ${item.item_id}`\n              );\n              resolve();\n            })\n            .catch((error) => {\n              console.error(\n                `Error in batch processing chain: ${error.message}`\n              );\n              resolve();\n            });\n        } else {\n          // Non-batch item processing with async/await\n          try {\n            const balanceResponse = await db\n              .collection(\"item_balance\")\n              .where(itemBalanceParams)\n              .get();\n\n            const hasExistingBalance =\n              balanceResponse.data &&\n              Array.isArray(balanceResponse.data) &&\n              balanceResponse.data.length > 0;\n            const existingDoc = hasExistingBalance\n              ? balanceResponse.data[0]\n              : null;\n\n            let balance_quantity;\n\n            if (existingDoc && existingDoc.id) {\n              // Update existing balance\n              const updatedBlockQty = roundQty(\n                parseFloat(existingDoc.block_qty || 0) + block_qty\n              );\n              const updatedReservedQty = roundQty(\n                parseFloat(existingDoc.reserved_qty || 0) + reserved_qty\n              );\n              const updatedUnrestrictedQty = roundQty(\n                parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty\n              );\n              const updatedQualityInspQty = roundQty(\n                parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty\n              );\n              const updatedIntransitQty = roundQty(\n                parseFloat(existingDoc.intransit_qty || 0) + intransit_qty\n              );\n              balance_quantity =\n                updatedBlockQty +\n                updatedReservedQty +\n                updatedUnrestrictedQty +\n                updatedQualityInspQty +\n                updatedIntransitQty;\n\n              await db\n                .collection(\"item_balance\")\n                .doc(existingDoc.id)\n                .update({\n                  block_qty: updatedBlockQty,\n                  reserved_qty: updatedReservedQty,\n                  unrestricted_qty: updatedUnrestrictedQty,\n                  qualityinsp_qty: updatedQualityInspQty,\n                  intransit_qty: updatedIntransitQty,\n                  balance_quantity: balance_quantity,\n                })\n                .catch((error) => {\n                  console.error(\n                    `Error updating item_balance: ${error.message}`\n                  );\n                  resolve();\n                });\n            } else {\n              // Create new balance record\n              balance_quantity =\n                block_qty +\n                reserved_qty +\n                unrestricted_qty +\n                qualityinsp_qty +\n                intransit_qty;\n\n              const newBalanceData = {\n                material_id: item.item_id,\n                location_id: item.location_id,\n                block_qty: block_qty,\n                reserved_qty: reserved_qty,\n                unrestricted_qty: unrestricted_qty,\n                qualityinsp_qty: qualityinsp_qty,\n                intransit_qty: intransit_qty,\n                balance_quantity: balance_quantity,\n                plant_id: plantId,\n                organization_id: organizationId,\n              };\n\n              await db\n                .collection(\"item_balance\")\n                .add(newBalanceData)\n                .catch((error) => {\n                  console.error(\n                    `Error creating item_balance: ${error.message}`\n                  );\n                  resolve();\n                });\n            }\n\n            const costingMethod = itemData.material_costing_method;\n\n            if (costingMethod === \"First In First Out\") {\n              await processFifoForNonBatch(item, baseQty);\n            } else if (costingMethod === \"Weighted Average\") {\n              await processWeightedAverageForNonBatch(item, baseQty);\n            } else {\n              return Promise.resolve();\n            }\n\n            console.log(\n              `Successfully processed non-batch item ${item.item_id}`\n            );\n            resolve();\n          } catch (nonBatchError) {\n            console.error(\n              `Error processing non-batch item: ${nonBatchError.message}`\n            );\n            resolve();\n          }\n        }\n      } catch (error) {\n        console.error(`Error processing item ${item.item_id}:`, error);\n        console.log(`Error encountered for item ${item.item_id}`);\n        resolve();\n      }\n    });\n  });\n\n  // Return a promise that resolves when all items are processed\n  return Promise.all(processedItemPromises);\n};\n\n// Enhanced PO status update with proper error handling\nconst updatePurchaseOrderStatus = async (purchaseOrderIds) => {\n  const poIds = Array.isArray(purchaseOrderIds)\n    ? purchaseOrderIds\n    : [purchaseOrderIds];\n  try {\n    // Fetch purchase order and related goods receiving documents in parallel\n    const updatePromises = poIds.map(async (purchaseOrderId) => {\n      try {\n        // Fetch purchase order and related goods receiving documents in parallel\n        const [resGR, resPO] = await Promise.all([\n          db\n            .collection(\"goods_receiving\")\n            .where({ purchase_order_id: purchaseOrderId })\n            .get(),\n          db.collection(\"purchase_order\").where({ id: purchaseOrderId }).get(),\n        ]);\n\n        // Validate purchase order exists\n        if (!resPO.data || !resPO.data.length) {\n          console.warn(`Purchase order ${purchaseOrderId} not found`);\n          return;\n        }\n\n        const poDoc = resPO.data[0];\n        const originalPOStatus = poDoc.po_status;\n        const poItems = poDoc.table_po || [];\n\n        // Validate PO has items\n        if (!poItems.length) {\n          console.warn(`No items found in purchase order ${purchaseOrderId}`);\n          return;\n        }\n\n        const allGRs = resGR.data || [];\n\n        // Initialize tracking objects\n        const receivedQtyMap = {};\n        let totalOrderedQty = 0;\n        let totalReceivedQty = 0;\n\n        // Create a copy of the PO items to update later\n        const updatedPoItems = JSON.parse(JSON.stringify(poItems));\n\n        // Initialize with zeros and calculate total ordered quantity\n        poItems.forEach((item) => {\n          const itemId = item.item_id;\n          const orderedQty = parseFloat(item.quantity || 0);\n\n          receivedQtyMap[itemId] = 0;\n          totalOrderedQty += orderedQty;\n        });\n\n        // Sum received quantities from all GRs\n        allGRs.forEach((gr) => {\n          (gr.table_gr || []).forEach((grItem) => {\n            const itemId = grItem.item_id;\n            if (receivedQtyMap.hasOwnProperty(itemId)) {\n              const qty = parseFloat(grItem.received_qty || 0);\n              receivedQtyMap[itemId] += qty;\n              totalReceivedQty += qty;\n            }\n          });\n        });\n\n        // Update received quantities in PO items\n        updatedPoItems.forEach((item) => {\n          const itemId = item.item_id;\n          item.received_qty = receivedQtyMap[itemId] || 0;\n        });\n\n        // Check item completion status\n        let allItemsComplete = true;\n        let anyItemProcessing = false;\n\n        poItems.forEach((item) => {\n          const orderedQty = parseFloat(item.quantity || 0);\n          const receivedQty = receivedQtyMap[item.item_id] || 0;\n\n          if (receivedQty < orderedQty) {\n            allItemsComplete = false;\n            if (receivedQty > 0) {\n              anyItemProcessing = true;\n            }\n          }\n        });\n\n        // Determine new status\n        let newPOStatus = poDoc.po_status;\n        let newGRStatus = poDoc.gr_status;\n\n        if (allItemsComplete) {\n          newPOStatus = \"Completed\";\n          newGRStatus = \"Fully Received\";\n        } else if (anyItemProcessing) {\n          newPOStatus = \"Processing\";\n          newGRStatus = \"Partially Received\";\n        }\n\n        // Format the pending/ordered quantity\n        const pendingOrderedQty = `${totalReceivedQty} / ${totalOrderedQty}`;\n\n        // Prepare a single update operation with all changes\n        const updateData = {\n          table_po: updatedPoItems,\n          pending_ordered_qty: pendingOrderedQty,\n        };\n\n        // Only include status changes if needed\n        if (newPOStatus !== poDoc.po_status) {\n          updateData.po_status = newPOStatus;\n        }\n\n        if (newGRStatus !== poDoc.gr_status) {\n          updateData.gr_status = newGRStatus;\n        }\n\n        // Execute a single database update\n        await db.collection(\"purchase_order\").doc(poDoc.id).update(updateData);\n\n        // Log the status change if it occurred\n        if (newPOStatus !== originalPOStatus) {\n          console.log(\n            `Updated PO ${purchaseOrderId} status from ${originalPOStatus} to ${newPOStatus}`\n          );\n        }\n      } catch (error) {\n        console.error(\n          `Error updating purchase order ${purchaseOrderId} status:`,\n          error\n        );\n      }\n    });\n\n    await Promise.all(updatePromises);\n    return { success: true };\n  } catch (error) {\n    console.error(`Error in update purchase order status process:`, error);\n    return {\n      success: false,\n      error: error.message,\n    };\n  }\n};\n\nconst validateForm = (data, requiredFields) => {\n  const missingFields = [];\n\n  requiredFields.forEach((field) => {\n    const value = data[field.name];\n\n    // Handle non-array fields (unchanged)\n    if (!field.isArray) {\n      if (validateField(value, field)) {\n        missingFields.push(field.label);\n      }\n      return;\n    }\n\n    // Handle array fields\n    if (!Array.isArray(value)) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    if (value.length === 0) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    // Check each item in the array\n    if (field.arrayType === \"object\" && field.arrayFields) {\n      value.forEach((item, index) => {\n        field.arrayFields.forEach((subField) => {\n          const subValue = item[subField.name];\n          if (validateField(subValue, subField)) {\n            missingFields.push(\n              `${subField.label} (in ${field.label} #${index + 1})`\n            );\n          }\n        });\n      });\n    }\n  });\n\n  return missingFields;\n};\n\nconst validateField = (value, field) => {\n  if (value === undefined || value === null) return true;\n  if (typeof value === \"string\") return value.trim() === \"\";\n  if (Array.isArray(value)) return value.length === 0;\n  if (typeof value === \"object\") return Object.keys(value).length === 0;\n  return !value;\n};\n\nconst getPrefixData = async (organizationId) => {\n  const prefixEntry = await db\n    .collection(\"prefix_configuration\")\n    .where({\n      document_types: \"Goods Receiving\",\n      is_deleted: 0,\n      organization_id: organizationId,\n      is_active: 1,\n    })\n    .get();\n\n  const prefixData = await prefixEntry.data[0];\n\n  return prefixData;\n};\n\nconst updatePrefix = async (organizationId, runningNumber) => {\n  try {\n    await db\n      .collection(\"prefix_configuration\")\n      .where({\n        document_types: \"Goods Receiving\",\n        is_deleted: 0,\n        organization_id: organizationId,\n      })\n      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });\n  } catch (error) {\n    this.$message.error(error);\n  }\n};\n\nconst generatePrefix = (runNumber, now, prefixData) => {\n  let generated = prefixData.current_prefix_config;\n  generated = generated.replace(\"prefix\", prefixData.prefix_value);\n  generated = generated.replace(\"suffix\", prefixData.suffix_value);\n  generated = generated.replace(\n    \"month\",\n    String(now.getMonth() + 1).padStart(2, \"0\")\n  );\n  generated = generated.replace(\"day\", String(now.getDate()).padStart(2, \"0\"));\n  generated = generated.replace(\"year\", now.getFullYear());\n  generated = generated.replace(\n    \"running_number\",\n    String(runNumber).padStart(prefixData.padding_zeroes, \"0\")\n  );\n  return generated;\n};\n\nconst checkUniqueness = async (generatedPrefix) => {\n  const existingDoc = await db\n    .collection(\"goods_receiving\")\n    .where({ gr_no: generatedPrefix })\n    .get();\n  return existingDoc.data[0] ? false : true;\n};\n\nconst findUniquePrefix = async (prefixData) => {\n  const now = new Date();\n  let prefixToShow;\n  let runningNumber = prefixData.running_number;\n  let isUnique = false;\n  let maxAttempts = 10;\n  let attempts = 0;\n\n  while (!isUnique && attempts < maxAttempts) {\n    attempts++;\n    prefixToShow = await generatePrefix(runningNumber, now, prefixData);\n    isUnique = await checkUniqueness(prefixToShow);\n    if (!isUnique) {\n      runningNumber++;\n    }\n  }\n\n  if (!isUnique) {\n    this.$message.error(\n      \"Could not generate a unique Goods Receiving number after maximum attempts\"\n    );\n  }\n\n  return { prefixToShow, runningNumber };\n};\n\nconst addEntry = async (organizationId, entry) => {\n  try {\n    const prefixData = await getPrefixData(organizationId);\n    if (prefixData.length !== 0) {\n      await updatePrefix(organizationId, prefixData.running_number);\n      await db\n        .collection(\"goods_receiving\")\n        .add(entry)\n        .then(() => {\n          this.runWorkflow(\n            \"1917412667253141505\",\n            { gr_no: entry.gr_no },\n            async (res) => {\n              console.log(\"成功结果：\", res);\n            },\n            (err) => {\n              this.$message.error(\"Workflow execution failed\");\n              console.error(\"失败结果：\", err);\n              closeDialog();\n            }\n          );\n        });\n      await addInventory(entry, entry.plant_id, organizationId);\n\n      const purchaseOrderIds = Array.isArray(entry.purchase_order_id)\n        ? entry.purchase_order_id\n        : [entry.purchase_order_id];\n\n      await updatePurchaseOrderStatus(purchaseOrderIds);\n      this.$message.success(\"Add successfully\");\n      closeDialog();\n    }\n  } catch (error) {\n    this.$message.error(error);\n  }\n};\n\nconst updateEntry = async (organizationId, entry, goodsReceivingId) => {\n  try {\n    const prefixData = await getPrefixData(organizationId);\n\n    if (prefixData.length !== 0) {\n      const { prefixToShow, runningNumber } = await findUniquePrefix(\n        prefixData\n      );\n\n      await updatePrefix(organizationId, runningNumber);\n\n      entry.gr_no = prefixToShow;\n      await db\n        .collection(\"goods_receiving\")\n        .doc(goodsReceivingId)\n        .update(entry)\n        .then(() => {\n          this.runWorkflow(\n            \"1917412667253141505\",\n            { gr_no: entry.gr_no },\n            async (res) => {\n              console.log(\"成功结果：\", res);\n            },\n            (err) => {\n              alert();\n              console.error(\"失败结果：\", err);\n              closeDialog();\n            }\n          );\n        });\n      await addInventory(entry, entry.plant_id, organizationId);\n      const purchaseOrderIds = Array.isArray(entry.purchase_order_id)\n        ? entry.purchase_order_id\n        : [entry.purchase_order_id];\n\n      await updatePurchaseOrderStatus(purchaseOrderIds);\n      this.$message.success(\"Update successfully\");\n      await closeDialog();\n    }\n  } catch (error) {\n    this.$message.error(error);\n  }\n};\n\n(async () => {\n  try {\n    const data = this.getValues();\n    this.showLoading();\n\n    const requiredFields = [\n      { name: \"purchase_order_id\", label: \"PO Number\" },\n      { name: \"gr_no\", label: \"GR Number\" },\n      { name: \"gr_date\", label: \"GR Date\" },\n      {\n        name: \"table_gr\",\n        label: \"GR Items\",\n        isArray: true,\n        arrayType: \"object\",\n        arrayFields: [\n          { name: \"location_id\", label: \"Target Location\" },\n          { name: \"item_batch_no\", label: \"Batch Number\" },\n          { name: \"inv_category\", label: \"Inventory Category\" },\n        ],\n      },\n    ];\n\n    const missingFields = await validateForm(data, requiredFields);\n\n    if (missingFields.length === 0) {\n      const page_status = this.getValue(\"page_status\");\n\n      let organizationId = this.getVarGlobal(\"deptParentId\");\n      if (organizationId === \"0\") {\n        organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n      }\n\n      const {\n        fake_purchase_order_id,\n        purchase_order_id,\n        plant_id,\n        currency_code,\n        organization_id,\n        purchase_order_number,\n        gr_billing_name,\n        gr_billing_cp,\n        gr_billing_address,\n        gr_shipping_address,\n        supplier_name,\n        supplier_contact_person,\n        supplier_contact_number,\n        supplier_email,\n        gr_no,\n        gr_received_by,\n        gr_date,\n        table_gr,\n        billing_address_line_1,\n        billing_address_line_2,\n        billing_address_line_3,\n        billing_address_line_4,\n        shipping_address_line_1,\n        shipping_address_line_2,\n        shipping_address_line_3,\n        shipping_address_line_4,\n        billing_address_city,\n        shipping_address_city,\n        billing_postal_code,\n        shipping_postal_code,\n        billing_address_state,\n        shipping_address_state,\n        billing_address_country,\n        shipping_address_country,\n      } = data;\n\n      const entry = {\n        gr_status: \"Completed\",\n        fake_purchase_order_id,\n        purchase_order_id,\n        plant_id,\n        currency_code,\n        organization_id,\n        purchase_order_number,\n        gr_billing_name,\n        gr_billing_cp,\n        gr_billing_address,\n        gr_shipping_address,\n        supplier_name,\n        supplier_contact_person,\n        supplier_contact_number,\n        supplier_email,\n        gr_no,\n        gr_received_by,\n        gr_date,\n        table_gr,\n        billing_address_line_1,\n        billing_address_line_2,\n        billing_address_line_3,\n        billing_address_line_4,\n        shipping_address_line_1,\n        shipping_address_line_2,\n        shipping_address_line_3,\n        shipping_address_line_4,\n        billing_address_city,\n        shipping_address_city,\n        billing_postal_code,\n        shipping_postal_code,\n        billing_address_state,\n        shipping_address_state,\n        billing_address_country,\n        shipping_address_country,\n      };\n\n      if (page_status === \"Add\") {\n        await addEntry(organizationId, entry);\n        closeDialog();\n      } else if (page_status === \"Edit\") {\n        const goodsReceivingId = this.getValue(\"id\");\n        await updateEntry(organizationId, entry, goodsReceivingId);\n        closeDialog();\n      }\n    } else {\n      this.hideLoading();\n      this.$message.error(`Missing fields: ${missingFields.join(\", \")}`);\n    }\n  } catch (error) {\n    this.hideLoading();\n    this.$message.error(error);\n  }\n})();\n",
         "type": "js"
       },
       {
         "key": "j8wra669",
         "name": "onChange_Supplier",
-        "func": "(async () => {\n  const supplierId = arguments[0]?.value;\n\n  console.log(\"supplierId\", supplierId);\n\n  if (supplierId) {\n    const POdata = await db\n      .collection(\"purchase_order\")\n      .where({ po_supplier_id: supplierId })\n      .get()\n      .then((res) => {\n        return res.data;\n      })\n      .catch((err) => {\n        console.log(\"err\", err);\n      });\n\n    console.log(\"POdata\", POdata);\n\n    if (POdata.length > 0) {\n      await this.disabled([\"purchase_order_id\"], false);\n      await this.setOptionData([\"purchase_order_id\"], POdata);\n      await this.setOptionData([\"po_test\"], POdata);\n    } else {\n      await this.disabled([\"purchase_order_id\"], true);\n    }\n  }\n})();\n",
+        "func": "(async () => {\n  const supplierId = arguments[0]?.value;\n  const supplierChangeId = this.getValue(\"supplier_change_id\");\n\n  const supplierContactData = arguments[0]?.fieldModel?.item.contact_list[0];\n\n  if (\n    supplierId &&\n    (!supplierChangeId || supplierChangeId !== supplierId) &&\n    !Array.isArray(supplierId)\n  ) {\n    await this.setData({ supplier_change_id: supplierId });\n    await this.setData({\n      supplier_contact_person: supplierContactData.person_name,\n      supplier_contact_number: supplierContactData.mobile_number,\n      supplier_email: supplierContactData.person_email,\n    });\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "zug6defe",
+        "name": "onChange_plant",
+        "func": "(async () => {\n  const plant = arguments[0]?.value;\n  const table_gr = this.getValue(\"table_gr\");\n  const po_numbers = this.getValue(\"purchase_order_id\");\n\n  let organizationId = this.getVarGlobal(\"deptParentId\");\n  if (organizationId === \"0\") {\n    organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  }\n\n  await this.setData({\n    organization_id: organizationId,\n  });\n\n  // First, set the bin location for items\n  if (plant && po_numbers && po_numbers.length > 0) {\n    const resBinLocation = await db\n      .collection(\"bin_location\")\n      .where({\n        plant_id: plant,\n        is_default: true,\n      })\n      .get();\n\n    let binLocation;\n\n    if (resBinLocation.data && resBinLocation.data.length > 0) {\n      binLocation = resBinLocation.data[0].id;\n    } else {\n      console.warn(\"No default bin location found for plant:\", plant);\n    }\n\n    if (table_gr && table_gr.length > 0) {\n      for (let i = 0; i < table_gr.length; i++) {\n        this.setData({\n          [`table_gr.${i}.location_id`]: binLocation,\n        });\n      }\n    }\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "drpaq3gc",
+        "name": "FakeGRLineItem",
+        "func": "console.log(\"arguments\", arguments[0]);\nconst page_status = this.getValue(\"page_status\");\n\n// Check if data is ready and contains purchase_order_id\nconst checkAndProcessData = async () => {\n  console.log(\"checkAndProcessData for Fake PO\");\n  const data = this.getValues();\n\n  const purchaseOrderId = this.getValue(\"fake_purchase_order_id\");\n\n  if (!data || !purchaseOrderId) {\n    setTimeout(checkAndProcessData, 500);\n    return;\n  }\n\n  console.log(\"purchaseOrderId JN\", purchaseOrderId);\n\n  if (purchaseOrderId && !Array.isArray(purchaseOrderId)) {\n    const supplierData = await db\n      .collection(\"supplier_head\")\n      .where({ id: arguments[0].fieldModel.item.po_supplier_id })\n      .get();\n\n    const supplierContactData = supplierData.data[0].contact_list[0];\n\n    if (supplierContactData) {\n      const supplier_contact_person = supplierContactData.person_name;\n      const supplier_contact_number = supplierContactData.mobile_number;\n      const supplier_email = supplierContactData.person_email;\n\n      await this.setData({\n        supplier_contact_person: supplier_contact_person,\n        supplier_contact_number: supplier_contact_number,\n        supplier_email: supplier_email,\n      });\n    }\n\n    const poArray = [purchaseOrderId];\n\n    await this.setData({\n      currency_code: arguments[0].fieldModel.item.po_currency,\n      supplier_id: arguments[0].fieldModel.item.po_supplier_id,\n      purchase_order_id: poArray,\n    });\n\n    await this.display(\"purchase_order_id\");\n    await this.hide(\"fake_purchase_order_id\");\n    await this.disabled(\"plant_id\", false);\n\n    await processAddressInformation();\n  }\n};\n\nconst formatAddress = (address, state, country) => {\n  const addressComponents = [\n    address.address_line_1,\n    address.address_line_2,\n    address.address_line_3,\n    address.address_line_4,\n    address.address_city,\n    address.address_postal_code,\n    state.state_name,\n    country.country_name,\n  ];\n\n  return addressComponents\n    .filter(Boolean)\n    .join(\",\\n\")\n    .replace(/([^,])\\n/g, \"$1,\\n\");\n};\n\n// Extract address processing to a separate function\nconst processAddressInformation = async () => {\n  try {\n    this.display(\"address_grid\");\n\n    // Reset address fields\n    this.setData({\n      gr_billing_name: \"\",\n      gr_billing_cp: \"\",\n      gr_billing_address: \"\",\n      gr_shipping_address: \"\",\n      billing_address_line_1: \"\",\n      billing_address_line_2: \"\",\n      billing_address_line_3: \"\",\n      billing_address_line_4: \"\",\n      billing_address_city: \"\",\n      billing_address_state: \"\",\n      billing_postal_code: \"\",\n      billing_address_country: \"\",\n      shipping_address_line_1: \"\",\n      shipping_address_line_2: \"\",\n      shipping_address_line_3: \"\",\n      shipping_address_line_4: \"\",\n      shipping_address_city: \"\",\n      shipping_address_state: \"\",\n      shipping_postal_code: \"\",\n      shipping_address_country: \"\",\n    });\n\n    // If not found, try from arguments\n    supplierIdFromPO = arguments[0]?.fieldModel?.item?.po_supplier_id;\n\n    console.log(\"Using supplier ID for address:\", supplierIdFromPO);\n\n    // Get shipping purpose and supplier data concurrently\n    const [resShipping, resSupplier] = await Promise.all([\n      db\n        .collection(\"address_purpose\")\n        .where({ purpose_name: \"Shipping\" })\n        .get(),\n      db.collection(\"supplier_head\").where({ id: supplierIdFromPO }).get(),\n    ]);\n\n    if (\n      !resSupplier.data ||\n      !resSupplier.data.length ||\n      !resShipping.data ||\n      !resShipping.data.length\n    ) {\n      console.warn(\"Missing supplier or shipping purpose data\");\n      return;\n    }\n\n    const supplierData = resSupplier.data[0];\n    const shippingAddrId = resShipping.data[0].id;\n\n    // Check contact list exists\n    if (!supplierData.contact_list || !supplierData.contact_list.length) {\n      console.warn(\"Supplier has no contact information\");\n    } else {\n      this.setData({\n        supplier_contact_person: `${\n          supplierData.contact_list[0].person_name || \"\"\n        } ${supplierData.contact_list[0].person_last_name || \"\"}`.trim(),\n        supplier_contact_number:\n          supplierData.contact_list[0].phone_number || \"\",\n        supplier_email: supplierData.contact_list[0].person_email || \"\",\n      });\n    }\n\n    // Set supplier details\n    this.setData({\n      purchase_order_number: arguments[0]?.fieldModel?.item?.purchase_order_no,\n      supplier_name: supplierData.id,\n    });\n\n    // Process addresses\n    const addresses =\n      supplierData.address_list?.filter(\n        (address) => address.switch_save_as_default\n      ) || [];\n\n    // If no addresses found, log a warning\n    if (!addresses.length) {\n      console.warn(\"No default addresses found for supplier\");\n      return;\n    }\n\n    console.log(`Found ${addresses.length} addresses for supplier`);\n\n    addresses.forEach((address) => {\n      Promise.all([\n        db\n          .collection(\"country\")\n          .where({ id: address.address_country_id })\n          .get(),\n        db.collection(\"state\").where({ id: address.adddress_state }).get(),\n      ]).then(([resCountry, resState]) => {\n        const isShipping = address.address_purpose_id === shippingAddrId;\n        const addressType = isShipping ? \"shipping\" : \"billing\";\n        const country = resCountry.data[0];\n        const state = resState.data[0];\n        // Set address fields\n        this.setData({\n          [`${addressType}_address_line_1`]: address.address_line_1,\n          [`${addressType}_address_line_2`]: address.address_line_2,\n          [`${addressType}_address_line_3`]: address.address_line_3,\n          [`${addressType}_address_line_4`]: address.address_line_4,\n          [`${addressType}_address_city`]: address.address_city,\n          [`${addressType}_address_state`]: state.id,\n          [`${addressType}_postal_code`]: address.address_postal_code,\n          [`${addressType}_address_country`]: country.id,\n          [`gr_${addressType}_address`]: formatAddress(address, state, country),\n        });\n\n        // Set billing-specific fields\n        if (addressType === \"billing\") {\n          this.setData({\n            gr_billing_name: address.address_name || \"\",\n            gr_billing_cp: address.address_phone || \"\",\n          });\n        }\n      });\n    });\n  } catch (error) {\n    this.$message.error(\"Error processing address information:\", error);\n  }\n};\n\n// Start the process with a check for data readiness\ncheckAndProcessData();\n",
         "type": "js"
       }
     ],
