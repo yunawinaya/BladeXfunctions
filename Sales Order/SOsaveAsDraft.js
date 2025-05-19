@@ -180,6 +180,7 @@ const updateDraftEntry = async (organizationId, entry, salesOrderId) => {
       so_currency: data.so_currency,
       plant_name: data.plant_name,
       organization_id: organizationId,
+      delivered_ordered_qty: data.delivered_ordered_qty,
       cust_billing_name: data.cust_billing_name,
       cust_cp: data.cust_cp,
       cust_billing_address: data.cust_billing_address,

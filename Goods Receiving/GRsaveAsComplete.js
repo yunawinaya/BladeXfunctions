@@ -502,7 +502,7 @@ const addInventory = (data, plantId, organizationId) => {
               material_id: item.item_id,
               initial_quantity: baseQty,
               goods_receiving_no: data.gr_no,
-              goods_receiving_id: data.id || "",
+              purchase_order_no: item.line_po_no,
               plant_id: plantId,
               organization_id: organizationId,
             })
@@ -516,6 +516,7 @@ const addInventory = (data, plantId, organizationId) => {
                   batch_number: item.item_batch_no,
                   material_id: item.item_id,
                   goods_receiving_no: data.gr_no,
+                  purchase_order_no: item.line_po_no,
                 })
                 .get();
             })

@@ -145,15 +145,55 @@ const findUniquePrefix = async (prefixData) => {
 };
 
 const validateForm = (data, requiredFields) => {
-  console.log("Validating form");
-  const missingFields = requiredFields.filter((field) => {
+  const missingFields = [];
+
+  requiredFields.forEach((field) => {
     const value = data[field.name];
-    if (Array.isArray(value)) return value.length === 0;
-    if (typeof value === "string") return value.trim() === "";
-    return !value;
+
+    // Handle non-array fields (unchanged)
+    if (!field.isArray) {
+      if (validateField(value, field)) {
+        missingFields.push(field.label);
+      }
+      return;
+    }
+
+    // Handle array fields
+    if (!Array.isArray(value)) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    if (value.length === 0) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    // Check each item in the array
+    if (field.arrayType === "object" && field.arrayFields) {
+      value.forEach((item, index) => {
+        field.arrayFields.forEach((subField) => {
+          const subValue = item[subField.name];
+          if (validateField(subValue, subField)) {
+            missingFields.push(
+              `${subField.label} (in ${field.label} #${index + 1})`
+            );
+          }
+        });
+      });
+    }
   });
-  console.log("Missing fields:", missingFields);
+
   return missingFields;
+};
+
+const validateField = (value, field) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "number") return value <= 0;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return !value;
 };
 
 // Check credit & overdue limit before doing any process
@@ -394,7 +434,23 @@ const addEntry = async (organizationId, entry) => {
 
       // First add the entry
       console.log("Adding entry to sales_order collection");
-      const addResult = await db.collection("sales_order").add(entry);
+      const addResult = await db
+        .collection("sales_order")
+        .add(entry)
+        .then(() => {
+          this.runWorkflow(
+            "1917416028010524674",
+            { so_no: entry.so_no },
+            async (res) => {
+              console.log("成功结果：", res);
+            },
+            (err) => {
+              alert();
+              console.error("失败结果：", err);
+              closeDialog();
+            }
+          );
+        });
       console.log("Add result:", addResult);
 
       // Then update the prefix
@@ -406,7 +462,23 @@ const addEntry = async (organizationId, entry) => {
     } else {
       // If no prefix is found, just add with current so_no
       console.log("No prefix data found, adding with current so_no");
-      const addResult = await db.collection("sales_order").add(entry);
+      const addResult = await db
+        .collection("sales_order")
+        .add(entry)
+        .then(() => {
+          this.runWorkflow(
+            "1917416028010524674",
+            { so_no: entry.so_no },
+            async (res) => {
+              console.log("成功结果：", res);
+            },
+            (err) => {
+              alert();
+              console.error("失败结果：", err);
+              closeDialog();
+            }
+          );
+        });
       console.log("Add result:", addResult);
       return true;
     }
@@ -438,7 +510,21 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
         const updateResult = await db
           .collection("sales_order")
           .doc(salesOrderId)
-          .update(entry);
+          .update(entry)
+          .then(() => {
+            this.runWorkflow(
+              "1917416028010524674",
+              { so_no: entry.so_no },
+              async (res) => {
+                console.log("成功结果：", res);
+              },
+              (err) => {
+                alert();
+                console.error("失败结果：", err);
+                closeDialog();
+              }
+            );
+          });
         console.log("Update result:", updateResult);
 
         // Then update the prefix
@@ -452,7 +538,21 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
         const updateResult = await db
           .collection("sales_order")
           .doc(salesOrderId)
-          .update(entry);
+          .update(entry)
+          .then(() => {
+            this.runWorkflow(
+              "1917416028010524674",
+              { so_no: entry.so_no },
+              async (res) => {
+                console.log("成功结果：", res);
+              },
+              (err) => {
+                alert();
+                console.error("失败结果：", err);
+                closeDialog();
+              }
+            );
+          });
         console.log("Update result:", updateResult);
       }
     } else {
@@ -461,7 +561,21 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
       const updateResult = await db
         .collection("sales_order")
         .doc(salesOrderId)
-        .update(entry);
+        .update(entry)
+        .then(() => {
+          this.runWorkflow(
+            "1917416028010524674",
+            { so_no: entry.so_no },
+            async (res) => {
+              console.log("成功结果：", res);
+            },
+            (err) => {
+              alert();
+              console.error("失败结果：", err);
+              closeDialog();
+            }
+          );
+        });
       console.log("Update result:", updateResult);
     }
 
@@ -475,25 +589,29 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
 
 // Main execution wrapped in an async IIFE
 (async () => {
-  console.log("Starting Issued function");
   try {
     this.showLoading();
-    console.log("Loading shown");
 
     const data = this.getValues();
-    console.log("Form data:", data);
 
     // Get page status and sales order ID
     const page_status = data.page_status;
     const sales_order_id = data.id;
-    console.log("Page status:", page_status, "Sales order ID:", sales_order_id);
 
     // Define required fields
     const requiredFields = [
+      { name: "so_no", label: "SO Number" },
       { name: "customer_name", label: "Customer" },
       { name: "plant_name", label: "Plant" },
       { name: "so_date", label: "Sales Order Date" },
       { name: "so_payment_term", label: "Payment Term" },
+      {
+        name: "table_so",
+        label: "SO Items",
+        isArray: true,
+        arrayType: "object",
+        arrayFields: [],
+      },
     ];
 
     // Validate form
@@ -540,6 +658,7 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
       so_currency: data.so_currency,
       plant_name: data.plant_name,
       organization_id: organizationId,
+      delivered_ordered_qty: data.delivered_ordered_qty,
       cust_billing_name: data.cust_billing_name,
       cust_cp: data.cust_cp,
       cust_billing_address: data.cust_billing_address,

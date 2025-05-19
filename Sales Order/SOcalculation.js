@@ -1,157 +1,132 @@
 const data = this.getValues();
-console.log("Data", data);
 const items = data.table_so;
+const exchangeRate = data.exchange_rate;
 let totalGross = 0;
 let totalDiscount = 0;
 let totalTax = 0;
 let totalAmount = 0;
+let totalQuantity = 0;
 
 if (Array.isArray(items)) {
   items.forEach((item, index) => {
     // Ensure values are numeric
     const quantity = Number(item.so_quantity) || 0;
-    const unitPrice = Number(item.so_item_price) || 0;
-
-    // Calculate gross for this specific item
+    const unitPrice = parseFloat(item.so_item_price) || 0;
     const grossValue = quantity * unitPrice;
 
-    // Set gross value
-    this.setData({
-      [`table_so.${index}.so_gross`]: grossValue,
-    });
-    this.setData({
-      [`table_so.${index}.so_amount`]: grossValue,
-    });
-    item.so_gross = grossValue;
+    if (quantity > 0) {
+      // sums quantity of all items
+      totalQuantity += quantity;
+      this.setData({
+        delivered_ordered_qty: `0 / ${totalQuantity}`,
+      });
+    }
 
-    // Update running total for gross immediately
     totalGross += grossValue;
 
-    // Update the total gross field immediately
     this.setData({
+      [`table_so.${index}.so_gross`]: grossValue,
+      [`table_so.${index}.so_amount`]: grossValue,
       so_total_gross: totalGross,
     });
 
     // Get discount, discountUOM, and tax info for this row
-    let discount = Number(this.getValue(`table_so.${index}.so_discount`)) || 0;
-    const discountUOM = this.getValue(`table_so.${index}.so_discount_uom`);
-    const taxRate =
-      Number(this.getValue(`table_so.${index}.so_tax_percentage`)) || 0;
-    let taxInclusive = this.getValue(`table_so.${index}.so_tax_inclusive`);
+    let discount = parseFloat(item.so_discount) || 0;
+    const discountUOM = item.so_discount_uom;
+    let discountAmount = 0.0;
+    const taxRate = Number(item.so_tax_percentage) || 0;
+    const taxInclusive = item.so_tax_inclusive;
 
-    // Convert taxInclusive to a boolean or number value
-    taxInclusive =
-      (taxInclusive && taxInclusive.length > 0) || taxInclusive === 1;
-
-    // Use database to get UOM information
-    db.collection("unit_of_measurement")
-      .where({ id: discountUOM })
-      .get()
-      .then((response) => {
-        const uomData = response.data[0];
-        if (!uomData) {
-          console.error("UOM not found for ID:", discountUOM);
-          return;
+    if (discountUOM) {
+      // Calculate discount amount using UOM from database
+      if (discount !== 0) {
+        if (discountUOM === "Amount") {
+          discountAmount = discount;
+        } else if (discountUOM === "%") {
+          discountAmount = (grossValue * discount) / 100;
         }
 
-        // Calculate discount amount using UOM from database
-        let discountAmount = 0;
-        if (discount) {
-          if (uomData.uom_name === "Amount") {
-            discountAmount = discount;
-          } else if (uomData.uom_name === "%") {
-            discountAmount = (grossValue * discount) / 100;
-          }
-          if (discountAmount > grossValue) {
-            console.log(
-              `Resetting discount and discount_amount for index ${index} as discount > gross`
-            );
-            discount = 0;
-            discountAmount = 0;
+        if (discountAmount > grossValue) {
+          discount = 0;
+          discountAmount = 0;
 
-            this.setData({
-              [`table_so.${index}.so_discount`]: 0,
-              [`table_so.${index}.so_discount_amount`]: 0,
-            });
-          } else {
-            this.setData({
-              [`table_so.${index}.so_discount_amount`]: discountAmount,
-            });
-          }
-
-          item.so_discount = discount;
-          item.so_discount_amount = discountAmount;
-        }
-
-        // Calculate amount after discount
-        const amountAfterDiscount = grossValue - discountAmount;
-
-        // Calculate tax amount based on taxInclusive flag
-        let taxAmount = 0;
-        let finalAmount = amountAfterDiscount;
-
-        if (taxRate) {
-          const taxRateDecimal = taxRate / 100;
-          this.display("so_total_tax");
-
-          if (taxInclusive) {
-            // Tax inclusive calculation
-            taxAmount =
-              amountAfterDiscount - amountAfterDiscount / (1 + taxRateDecimal);
-            finalAmount = amountAfterDiscount;
-          } else {
-            // Tax exclusive calculation
-            taxAmount = amountAfterDiscount * taxRateDecimal;
-            finalAmount = amountAfterDiscount + taxAmount;
-          }
-
-          // Set tax amount
           this.setData({
-            [`table_so.${index}.so_tax_amount`]: taxAmount,
+            [`table_so.${index}.so_discount`]: 0,
+            [`table_so.${index}.so_discount_amount`]: 0,
           });
-          item.so_tax_amount = taxAmount;
         } else {
-          this.hide("so_total_tax");
           this.setData({
-            [`table_so.${index}.so_tax_amount`]: 0,
+            [`table_so.${index}.so_discount_amount`]: parseFloat(
+              discountAmount.toFixed(2)
+            ),
           });
-          item.so_tax_amount = 0;
         }
-
-        // Set final amount
-        this.setData({
-          [`table_so.${index}.so_amount`]: finalAmount,
-        });
-        item.so_amount = finalAmount;
-
-        // Subtract previous values before adding new ones
-        totalDiscount += discountAmount;
-        totalTax += taxAmount;
-        totalAmount += finalAmount;
-
-        // Set the total fields
-        this.setData({
-          so_total_discount: totalDiscount,
-          so_total_tax: totalTax,
-          so_total: totalAmount,
-        });
+      }
+    } else {
+      this.setData({
+        [`table_so.${index}.so_discount_amount`]: 0,
       });
-  });
+    }
+    // Calculate amount after discount
+    const amountAfterDiscount = grossValue - discountAmount;
 
-  this.setData({
-    so_total: totalGross,
-  });
+    // Calculate tax amount based on taxInclusive flag
+    let taxAmount = 0;
+    let finalAmount = amountAfterDiscount;
 
-  console.log("Updated items with calculations:", items);
-  console.log("Totals calculated:", {
-    totalGross,
-    totalDiscount,
-    totalTax,
-    totalAmount,
-  });
+    if (taxRate) {
+      const taxRateDecimal = taxRate / 100;
 
-  const updatedData = this.getValues();
-  console.log("Form data after update:", updatedData);
+      if (taxInclusive === 1) {
+        // Tax inclusive calculation
+        taxAmount =
+          amountAfterDiscount - amountAfterDiscount / (1 + taxRateDecimal);
+        finalAmount = amountAfterDiscount;
+      } else {
+        // Tax exclusive calculation
+        taxAmount = amountAfterDiscount * taxRateDecimal;
+        finalAmount = amountAfterDiscount + taxAmount;
+      }
+
+      // Set tax amount
+      this.setData({
+        [`table_so.${index}.so_tax_amount`]: parseFloat(taxAmount.toFixed(2)),
+      });
+    } else {
+      this.setData({
+        [`table_so.${index}.so_tax_amount`]: 0,
+      });
+    }
+
+    // Set final amount
+    this.setData({
+      [`table_so.${index}.so_amount`]: parseFloat(finalAmount.toFixed(2)),
+    });
+
+    // Subtract previous values before adding new ones
+    totalDiscount += discountAmount;
+    totalTax += taxAmount;
+    totalAmount += finalAmount;
+
+    if (totalTax > 0) {
+      this.display(["so_total_tax", "total_tax_currency"]);
+    }
+
+    // Set the total fields
+    this.setData({
+      so_total_discount: parseFloat(totalDiscount.toFixed(2)),
+      so_total_tax: parseFloat(totalTax.toFixed(2)),
+      so_total: parseFloat(totalAmount.toFixed(2)),
+    });
+
+    if (!exchangeRate) {
+      return;
+    } else {
+      this.setData({
+        myr_total_amount: exchangeRate * parseFloat(totalAmount.toFixed(2)),
+      });
+    }
+  }); // This closing bracket was missing for the forEach callback
 
   return items;
 } else {
