@@ -284,7 +284,7 @@
         "remoteOptions": [],
         "props": {
           "value": "dict_key",
-          "label": "dict_key",
+          "label": "dict_value",
           "cascade": "",
           "children": "children",
           "image": "",
