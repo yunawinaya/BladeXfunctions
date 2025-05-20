@@ -455,9 +455,12 @@ const addInventory = async (data, plantId, organizationId) => {
       !item.item_id ||
       !item.received_qty ||
       isNaN(parseFloat(item.received_qty)) ||
-      parseFloat(item.received_qty) < 0
+      parseFloat(item.received_qty) <= 0
     ) {
       console.error(`Invalid item data for index ${itemIndex}:`, item);
+      console.log(
+        `Skipping item with zero or invalid received quantity: ${item.item_id}`
+      );
       continue;
     }
 

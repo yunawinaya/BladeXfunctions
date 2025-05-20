@@ -193,7 +193,7 @@ const processGoodsReceiving = async (purchaseOrderIds, goodsReceivingId) => {
             // Check item properties
             const res = await db.collection("Item").where({ id: itemId }).get();
 
-            const itemData = res.data && res.data[0];
+            const itemData = res.data[0];
 
             if (
               itemData &&
@@ -205,10 +205,16 @@ const processGoodsReceiving = async (purchaseOrderIds, goodsReceivingId) => {
                 .toString(36)
                 .substr(0, 4)}`;
 
+              console.log("Item data:", itemData);
+
               const batchManagementEnabled =
                 itemData.item_batch_management === 1 ||
                 itemData.item_batch_management === true ||
                 itemData.item_batch_management === "1";
+
+              console.log(
+                `Batch management enabled: ${batchManagementEnabled}`
+              );
 
               let batch_number = "";
 
