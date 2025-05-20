@@ -610,7 +610,7 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
         label: "SO Items",
         isArray: true,
         arrayType: "object",
-        arrayFields: [],
+        arrayFields: [{ name: "item_name", label: "Item" }],
       },
     ];
 
@@ -658,7 +658,8 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
       so_currency: data.so_currency,
       plant_name: data.plant_name,
       organization_id: organizationId,
-      delivered_ordered_qty: data.delivered_ordered_qty,
+      partially_delivered: data.partially_delivered,
+      fully_delivered: data.fully_delivered,
       cust_billing_name: data.cust_billing_name,
       cust_cp: data.cust_cp,
       cust_billing_address: data.cust_billing_address,
@@ -717,6 +718,7 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
       exchange_rate: data.exchange_rate,
       myr_total_amount: data.myr_total_amount,
       sqt_no: data.sqt_no,
+      delivery_method_text: data.delivery_method_text || "",
     };
 
     // Clean up undefined/null values

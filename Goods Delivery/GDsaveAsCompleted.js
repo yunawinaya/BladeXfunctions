@@ -430,10 +430,11 @@ const processBalanceTable = async (
 
   if (!Array.isArray(items) || items.length === 0) {
     console.log("No items to process");
-    return;
+    return Promise.resolve();
   }
 
-  const processedItemPromises = items.map(async (item, itemIndex) => {
+  for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+    const item = items[itemIndex];
     const updatedDocs = [];
     try {
       console.log(`Processing item ${itemIndex + 1}/${items.length}`);
@@ -695,9 +696,9 @@ const processBalanceTable = async (
         }
       }
     }
-  });
+  }
 
-  await Promise.all(processedItemPromises);
+  return Promise.resolve();
 };
 
 // Enhanced goods delivery status update
@@ -729,16 +730,14 @@ const updateSalesOrderStatus = async (salesOrderId) => {
 
     // Create a map to sum delivered quantities for each item
     const deliveredQtyMap = {};
-    let totalOrderedQty = 0;
-    let totalDeliveredQty = 0;
+    let totalItems = soItems.length;
+    let partiallyDeliveredItems = 0;
+    let fullyDeliveredItems = 0;
 
-    // Initialize with zeros and calculate total ordered quantity
+    // Initialize with zeros
     soItems.forEach((item) => {
       const itemId = item.item_name;
-      const orderedQty = parseFloat(item.so_quantity || 0);
-
       deliveredQtyMap[itemId] = 0;
-      totalOrderedQty += orderedQty;
     });
 
     // Sum delivered quantities from all GDs
@@ -748,7 +747,6 @@ const updateSalesOrderStatus = async (salesOrderId) => {
         if (deliveredQtyMap.hasOwnProperty(itemId)) {
           const qty = parseFloat(gdItem.gd_qty || 0);
           deliveredQtyMap[itemId] += qty;
-          totalDeliveredQty += qty;
         }
       });
     });
@@ -756,27 +754,29 @@ const updateSalesOrderStatus = async (salesOrderId) => {
     // Create a copy of the SO items to update later
     const updatedSoItems = JSON.parse(JSON.stringify(soItems));
 
-    // Update delivered quantities in SO items
+    // Update delivered quantities in SO items and count partial/full deliveries
     updatedSoItems.forEach((item) => {
       const itemId = item.item_name;
-      item.delivered_qty = deliveredQtyMap[itemId] || 0;
+      const orderedQty = parseFloat(item.so_quantity || 0);
+      const deliveredQty = deliveredQtyMap[itemId] || 0;
+
+      item.delivered_qty = deliveredQty;
+
+      // Add ratio for tracking purposes
+      item.delivery_ratio = orderedQty > 0 ? deliveredQty / orderedQty : 0;
+
+      // Determine if item is partially or fully delivered
+      if (deliveredQty >= orderedQty) {
+        fullyDeliveredItems++;
+      } else if (deliveredQty > 0) {
+        partiallyDeliveredItems++;
+      }
     });
 
     // Check item completion status
-    let allItemsComplete = true;
-    let anyItemProcessing = false;
-
-    soItems.forEach((item) => {
-      const orderedQty = parseFloat(item.so_quantity || 0);
-      const deliveredQty = deliveredQtyMap[item.item_name] || 0;
-
-      if (deliveredQty < orderedQty) {
-        allItemsComplete = false;
-        if (deliveredQty > 0) {
-          anyItemProcessing = true;
-        }
-      }
-    });
+    let allItemsComplete = fullyDeliveredItems === totalItems;
+    let anyItemProcessing =
+      partiallyDeliveredItems > 0 || fullyDeliveredItems > 0;
 
     // Determine new status
     let newSOStatus = soDoc.so_status;
@@ -790,13 +790,21 @@ const updateSalesOrderStatus = async (salesOrderId) => {
       newGDStatus = "Partially Delivered";
     }
 
-    // Format the delivered/ordered quantity
-    const deliveredOrderedQty = `${totalDeliveredQty} / ${totalOrderedQty}`;
+    // Create ratio strings for partially and fully delivered items
+    const partiallyDeliveredRatio = `${partiallyDeliveredItems} / ${totalItems}`;
+    const fullyDeliveredRatio = `${fullyDeliveredItems} / ${totalItems}`;
+
+    console.log(`SO ${salesOrderId} status:
+      Total items: ${totalItems}
+      Partially delivered items: ${partiallyDeliveredItems} (${partiallyDeliveredRatio})
+      Fully delivered items: ${fullyDeliveredItems} (${fullyDeliveredRatio})
+    `);
 
     // Prepare a single update operation with all changes
     const updateData = {
       table_so: updatedSoItems,
-      delivered_ordered_qty: deliveredOrderedQty,
+      partially_delivered: partiallyDeliveredRatio,
+      fully_delivered: fullyDeliveredRatio,
     };
 
     // Only include status changes if needed
@@ -818,8 +826,24 @@ const updateSalesOrderStatus = async (salesOrderId) => {
         `Updated SO ${salesOrderId} status from ${originalSOStatus} to ${newSOStatus}`
       );
     }
+
+    return {
+      soId: salesOrderId,
+      totalItems,
+      partiallyDeliveredItems,
+      fullyDeliveredItems,
+      success: true,
+    };
   } catch (error) {
-    console.error(`Error updating sales order status:`, error);
+    console.error(
+      `Error updating sales order status for ${salesOrderId}:`,
+      error
+    );
+    return {
+      soId: salesOrderId,
+      success: false,
+      error: error.message,
+    };
   }
 };
 

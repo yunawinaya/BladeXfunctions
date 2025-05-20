@@ -5,7 +5,7 @@ let totalGross = 0;
 let totalDiscount = 0;
 let totalTax = 0;
 let totalAmount = 0;
-let totalQuantity = 0;
+let totalItems = items.length;
 
 if (Array.isArray(items)) {
   items.forEach((item, index) => {
@@ -14,11 +14,12 @@ if (Array.isArray(items)) {
     const unitPrice = parseFloat(item.so_item_price) || 0;
     const grossValue = quantity * unitPrice;
 
-    if (quantity > 0) {
-      // sums quantity of all items
-      totalQuantity += quantity;
+    if (totalItems > 0) {
       this.setData({
-        delivered_ordered_qty: `0 / ${totalQuantity}`,
+        partially_delivered: `0 / ${totalItems}`,
+      });
+      this.setData({
+        fully_delivered: `0 / ${totalItems}`,
       });
     }
 
@@ -32,10 +33,17 @@ if (Array.isArray(items)) {
 
     // Get discount, discountUOM, and tax info for this row
     let discount = parseFloat(item.so_discount) || 0;
-    const discountUOM = item.so_discount_uom;
+    let discountUOM = item.so_discount_uom;
     let discountAmount = 0.0;
     const taxRate = Number(item.so_tax_percentage) || 0;
     const taxInclusive = item.so_tax_inclusive;
+
+    if (discount > 0) {
+      if (!discountUOM) {
+        discountUOM = "Amount";
+        this.setData({ [`table_so.${index}.so_discount_uom`]: "Amount" });
+      }
+    }
 
     if (discountUOM) {
       // Calculate discount amount using UOM from database
@@ -61,6 +69,8 @@ if (Array.isArray(items)) {
             ),
           });
         }
+      } else {
+        this.setData({ [`table_so.${index}.so_discount_uom`]: "" });
       }
     } else {
       this.setData({

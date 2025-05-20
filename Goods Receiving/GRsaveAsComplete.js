@@ -798,7 +798,7 @@ const addInventory = async (data, plantId, organizationId) => {
   return Promise.resolve();
 };
 
-// Enhanced PO status update with proper error handling
+// Enhanced PO status update with partially_received and fully_received tracking
 const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
   const poIds = Array.isArray(purchaseOrderIds)
     ? purchaseOrderIds
@@ -836,19 +836,17 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
 
         // Initialize tracking objects
         const receivedQtyMap = {};
-        let totalOrderedQty = 0;
-        let totalReceivedQty = 0;
+        let totalItems = poItems.length;
+        let partiallyReceivedItems = 0;
+        let fullyReceivedItems = 0;
 
         // Create a copy of the PO items to update later
         const updatedPoItems = JSON.parse(JSON.stringify(poItems));
 
-        // Initialize with zeros and calculate total ordered quantity
+        // Initialize with zeros
         poItems.forEach((item) => {
           const itemId = item.item_id;
-          const orderedQty = parseFloat(item.quantity || 0);
-
           receivedQtyMap[itemId] = 0;
-          totalOrderedQty += orderedQty;
         });
 
         // Sum received quantities from all GRs
@@ -858,32 +856,30 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
             if (receivedQtyMap.hasOwnProperty(itemId)) {
               const qty = parseFloat(grItem.received_qty || 0);
               receivedQtyMap[itemId] += qty;
-              totalReceivedQty += qty;
             }
           });
         });
 
-        // Update received quantities in PO items
+        // Update received quantities in PO items and count partial/full receipts
         updatedPoItems.forEach((item) => {
           const itemId = item.item_id;
-          item.received_qty = receivedQtyMap[itemId] || 0;
+          const orderedQty = parseFloat(item.quantity || 0);
+          const receivedQty = receivedQtyMap[itemId] || 0;
+
+          item.received_qty = receivedQty;
+
+          // Determine if item is partially or fully received
+          if (receivedQty >= orderedQty) {
+            fullyReceivedItems++;
+          } else if (receivedQty > 0) {
+            partiallyReceivedItems++;
+          }
         });
 
         // Check item completion status
-        let allItemsComplete = true;
-        let anyItemProcessing = false;
-
-        poItems.forEach((item) => {
-          const orderedQty = parseFloat(item.quantity || 0);
-          const receivedQty = receivedQtyMap[item.item_id] || 0;
-
-          if (receivedQty < orderedQty) {
-            allItemsComplete = false;
-            if (receivedQty > 0) {
-              anyItemProcessing = true;
-            }
-          }
-        });
+        let allItemsComplete = fullyReceivedItems === totalItems;
+        let anyItemProcessing =
+          partiallyReceivedItems > 0 || fullyReceivedItems > 0;
 
         // Determine new status
         let newPOStatus = poDoc.po_status;
@@ -897,13 +893,21 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
           newGRStatus = "Partially Received";
         }
 
-        // Format the pending/ordered quantity
-        const pendingOrderedQty = `${totalReceivedQty} / ${totalOrderedQty}`;
+        // Create tracking ratios for partially and fully received items
+        const partiallyReceivedRatio = `${partiallyReceivedItems} / ${totalItems}`;
+        const fullyReceivedRatio = `${fullyReceivedItems} / ${totalItems}`;
+
+        console.log(`PO ${purchaseOrderId} status:
+          Total items: ${totalItems}
+          Partially received items: ${partiallyReceivedItems} (${partiallyReceivedRatio})
+          Fully received items: ${fullyReceivedItems} (${fullyReceivedRatio})
+        `);
 
         // Prepare a single update operation with all changes
         const updateData = {
           table_po: updatedPoItems,
-          pending_ordered_qty: pendingOrderedQty,
+          partially_received: partiallyReceivedRatio,
+          fully_received: fullyReceivedRatio,
         };
 
         // Only include status changes if needed
@@ -924,16 +928,46 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
             `Updated PO ${purchaseOrderId} status from ${originalPOStatus} to ${newPOStatus}`
           );
         }
+
+        return {
+          poId: purchaseOrderId,
+          totalItems,
+          partiallyReceivedItems,
+          fullyReceivedItems,
+          success: true,
+        };
       } catch (error) {
         console.error(
           `Error updating purchase order ${purchaseOrderId} status:`,
           error
         );
+        return {
+          poId: purchaseOrderId,
+          success: false,
+          error: error.message,
+        };
       }
     });
 
-    await Promise.all(updatePromises);
-    return { success: true };
+    const results = await Promise.all(updatePromises);
+
+    // Aggregate results for better reporting
+    const successCount = results.filter((r) => r && r.success).length;
+    const failCount = results.filter((r) => r && !r.success).length;
+
+    console.log(`PO Status Update Summary: 
+      Total POs: ${poIds.length}
+      Successfully updated: ${successCount}
+      Failed updates: ${failCount}
+    `);
+
+    return {
+      success: successCount > 0,
+      totalProcessed: poIds.length,
+      successCount,
+      failCount,
+      results,
+    };
   } catch (error) {
     console.error(`Error in update purchase order status process:`, error);
     return {
