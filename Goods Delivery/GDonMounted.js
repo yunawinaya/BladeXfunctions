@@ -143,6 +143,9 @@ const disableTableRows = () => {
       if (salesOrderId) {
         await this.display(["address_grid"]);
       }
+
+      this.hide(["fake_so_id"]);
+
       // Handle Edit/View/Clone modes
       const goodsDeliveryId = data.id;
       const resGD = await db

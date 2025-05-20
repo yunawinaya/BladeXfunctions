@@ -208,6 +208,7 @@ const updateDraftEntry = async (goodsDeliveryId, entry) => {
       delivery_date: data.delivery_date,
       driver_name: data.driver_name,
       driver_contact_no: data.driver_contact_no,
+      ic_no: data.ic_no,
       validity_of_collection: data.validity_of_collection,
       vehicle_no: data.vehicle_no,
       pickup_date: data.pickup_date,
