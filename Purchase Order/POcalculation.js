@@ -5,7 +5,7 @@ let totalGross = 0;
 let totalDiscount = 0;
 let totalTax = 0;
 let totalAmount = 0;
-let totalQuantity = 0;
+let totalItems = items.length;
 
 if (Array.isArray(items)) {
   items.forEach((item, index) => {
@@ -13,11 +13,12 @@ if (Array.isArray(items)) {
     const unitPrice = parseFloat(item.unit_price) || 0;
     const grossValue = quantity * unitPrice;
 
-    if (quantity > 0) {
-      // sums quantity of all items
-      totalQuantity += quantity;
+    if (totalItems > 0) {
       this.setData({
-        pending_ordered_qty: `0 / ${totalQuantity}`,
+        partially_received: `0 / ${totalItems}`,
+      });
+      this.setData({
+        fully_received: `0 / ${totalItems}`,
       });
     }
 
@@ -30,10 +31,17 @@ if (Array.isArray(items)) {
     });
 
     let discount = parseFloat(item.discount) || 0;
-    const discountUOM = item.discount_uom;
+    let discountUOM = item.discount_uom;
     let discountAmount = 0.0;
     const taxRate = Number(item.tax_rate_percent) || 0;
     const taxInclusive = item.tax_inclusive;
+
+    if (discount > 0) {
+      if (!discountUOM) {
+        discountUOM = "Amount";
+        this.setData({ [`table_po.${index}.discount_uom`]: "Amount" });
+      }
+    }
 
     if (discountUOM) {
       if (discount !== 0) {
@@ -58,6 +66,8 @@ if (Array.isArray(items)) {
             ),
           });
         }
+      } else {
+        this.setData({ [`table_po.${index}.discount_uom`]: "" });
       }
     } else {
       this.setData({
@@ -114,9 +124,8 @@ if (Array.isArray(items)) {
     if (!exchangeRate) {
       return;
     } else {
-      this.setData({
-        myr_total_amount: exchangeRate * parseFloat(totalAmount.toFixed(2)),
-      });
+      const myrTotalAmount = exchangeRate * totalAmount;
+      this.setData({ myr_total_amount: parseFloat(myrTotalAmount.toFixed(2)) });
     }
   });
 } else {
