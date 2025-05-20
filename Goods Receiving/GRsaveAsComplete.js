@@ -16,111 +16,7 @@ const closeDialog = () => {
   }
 };
 
-const updateOnOrderPurchaseOrder = async (
-  item,
-  baseQty,
-  purchaseOrderNumbers,
-  data
-) => {
-  try {
-    const poNumbers = Array.isArray(purchaseOrderNumbers)
-      ? purchaseOrderNumbers
-      : typeof purchaseOrderNumbers === "string"
-      ? purchaseOrderNumbers.split(",").map((num) => num.trim())
-      : [];
-
-    if (poNumbers.length === 0) {
-      console.warn(`No purchase order numbers found for item ${item.item_id}`);
-      return;
-    }
-
-    console.log(
-      `Updating on_order_purchase_order for item ${item.item_id} with PO numbers:`,
-      poNumbers
-    );
-
-    let itemPoNumber = item.line_po_no;
-
-    if (!itemPoNumber && item.line_po_id) {
-      const poId = item.line_po_id;
-      const poIdArray = Array.isArray(data.purchase_order_id)
-        ? data.purchase_order_id
-        : [data.purchase_order_id];
-
-      if (poIdArray.includes(poId) && poIdArray.length === poNumbers.length) {
-        // Find the index of the PO ID and use the same index in poNumbers
-        const index = poIdArray.indexOf(poId);
-        if (index !== -1 && index < poNumbers.length) {
-          itemPoNumber = poNumbers[index];
-        }
-      }
-    }
-
-    if (!itemPoNumber) {
-      console.log(
-        `No specific PO number found for item ${item.item_id}, will check all PO numbers`
-      );
-    }
-
-    const poNumbersToCheck = itemPoNumber ? [itemPoNumber] : poNumbers;
-
-    for (const poNumber of poNumbersToCheck) {
-      const poResponse = await db
-        .collection("on_order_purchase_order")
-        .where({
-          purchase_order_number: poNumber,
-          material_id: item.item_id,
-        })
-        .get();
-
-      if (
-        poResponse.data &&
-        Array.isArray(poResponse.data) &&
-        poResponse.data.length > 0
-      ) {
-        const doc = poResponse.data[0];
-        if (doc && doc.id) {
-          const existingReceived = roundQty(parseFloat(doc.received_qty || 0));
-          const openQuantity = roundQty(parseFloat(doc.open_qty || 0));
-          const newReceived = roundQty(
-            existingReceived + parseFloat(baseQty || 0)
-          );
-          let newOpenQuantity = roundQty(
-            openQuantity - parseFloat(baseQty || 0)
-          );
-
-          if (newOpenQuantity < 0) {
-            newOpenQuantity = 0;
-          }
-
-          await db.collection("on_order_purchase_order").doc(doc.id).update({
-            received_qty: newReceived,
-            open_qty: newOpenQuantity,
-          });
-
-          console.log(
-            `Updated on_order_purchase_order for PO ${poNumber}, item ${item.item_id}: received=${newReceived}, open=${newOpenQuantity}`
-          );
-
-          return;
-        }
-      }
-    }
-
-    console.warn(
-      `No matching on_order_purchase_order record found for item ${
-        item.item_id
-      } in POs: ${poNumbersToCheck.join(", ")}`
-    );
-  } catch (error) {
-    console.error(
-      `Error updating on_order_purchase_order for item ${item.item_id}:`,
-      error
-    );
-  }
-};
-
-const addInventory = (data, plantId, organizationId) => {
+const addInventory = async (data, plantId, organizationId) => {
   const items = data.table_gr;
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -135,677 +31,768 @@ const addInventory = (data, plantId, organizationId) => {
       ? data.purchase_order_number
       : [data.purchase_order_number];
 
-  const processedItemPromises = items.map((item, itemIndex) => {
-    return new Promise(async (resolve) => {
-      console.log(`Processing item ${itemIndex + 1}/${items.length}`);
+  // Calculate cost price based on PO data
+  const calculateCostPrice = (itemData, conversion) => {
+    if (!conversion || conversion <= 0 || !isFinite(conversion)) {
+      console.warn(
+        `Invalid conversion factor (${conversion}) for item ${itemData.item_id}, using 1.0`
+      );
+      conversion = 1.0;
+    }
 
-      // Input validation
-      if (
-        !item.item_id ||
-        !item.received_qty ||
-        isNaN(parseFloat(item.received_qty)) ||
-        parseFloat(item.received_qty) < 0
-      ) {
-        console.error(`Invalid item data for index ${itemIndex}:`, item);
-        resolve();
-        return;
-      }
+    const relevantPoId =
+      itemData.line_po_id ||
+      itemData.po_id ||
+      (Array.isArray(data.purchase_order_id)
+        ? data.purchase_order_id[0]
+        : data.purchase_order_id);
 
-      const calculateCostPrice = (itemData, conversion) => {
-        if (!conversion || conversion <= 0 || !isFinite(conversion)) {
-          console.warn(
-            `Invalid conversion factor (${conversion}) for item ${itemData.item_id}, using 1.0`
-          );
-          conversion = 1.0;
-        }
+    if (!relevantPoId) {
+      console.error("No relevant PO ID found for cost calculation");
+      return Promise.resolve(roundPrice(itemData.unit_price));
+    }
 
-        const relevantPoId =
-          itemData.line_po_id ||
-          itemData.po_id ||
-          (Array.isArray(data.purchase_order_id)
-            ? data.purchase_order_id[0]
-            : data.purchase_order_id);
-
-        if (!relevantPoId) {
-          console.error("No relevant PO ID found for cost calculation");
+    return db
+      .collection("purchase_order")
+      .where({ id: relevantPoId })
+      .get()
+      .then((poResponse) => {
+        if (!poResponse.data || !poResponse.data.length) {
+          console.log(`No purchase order found for ${relevantPoId}`);
           return roundPrice(itemData.unit_price);
         }
 
-        return db
-          .collection("purchase_order")
-          .where({ id: relevantPoId })
-          .get()
-          .then((poResponse) => {
-            if (!poResponse.data || !poResponse.data.length) {
-              console.log(`No purchase order found for ${relevantPoId}`);
-              return roundPrice(itemData.unit_price);
-            }
+        const poData = poResponse.data[0];
 
-            const poData = poResponse.data[0];
+        const exchangeRate = poData.exchange_rate;
+        let poQuantity = 0;
+        let totalAmount = 0;
 
-            const exchangeRate = poData.exchange_rate;
-            let poQuantity = 0;
-            let totalAmount = 0;
+        for (const poItem of poData.table_po) {
+          if (poItem.item_id === itemData.item_id) {
+            poQuantity = roundQty(parseFloat(poItem.quantity) || 0);
+            totalAmount = roundPrice(parseFloat(poItem.po_amount) || 0);
+            break;
+          }
+        }
 
-            for (const poItem of poData.table_po) {
-              if (poItem.item_id === itemData.item_id) {
-                poQuantity = roundQty(parseFloat(poItem.quantity) || 0);
-                totalAmount = roundPrice(parseFloat(poItem.po_amount) || 0);
-                break;
-              }
-            }
+        const pricePerUnit = roundPrice(totalAmount / poQuantity);
+        const costPrice = roundPrice(
+          (pricePerUnit / conversion) * exchangeRate
+        );
+        console.log("costPrice", costPrice);
 
-            const pricePerUnit = roundPrice(totalAmount / poQuantity);
-            const costPrice = roundPrice(
-              (pricePerUnit / conversion) * exchangeRate
-            );
-            console.log("costPrice", costPrice);
+        return costPrice;
+      })
+      .catch((error) => {
+        console.error(`Error calculating cost price: ${error.message}`);
+        return roundPrice(itemData.unit_price);
+      });
+  };
 
-            return costPrice;
-          })
-          .catch((error) => {
-            console.error(`Error calculating cost price: ${error.message}`);
-            return roundPrice(itemData.unit_price);
-          });
+  // Function to get Fixed Cost price
+  const getFixedCostPrice = async (materialId) => {
+    try {
+      const query = db.collection("Item").where({ id: materialId });
+      const response = await query.get();
+      const result = response.data;
+      if (!result || !result.length) {
+        console.warn(`Item not found for fixed cost price: ${materialId}`);
+        return 0;
+      }
+      return roundPrice(parseFloat(result[0].purchase_unit_price || 0));
+    } catch (error) {
+      console.error(`Error getting fixed cost price: ${error.message}`);
+      return 0;
+    }
+  };
+
+  // Function to process FIFO for batch
+  const processFifoForBatch = async (itemData, baseQty, batchId) => {
+    try {
+      // Query existing FIFO records for this batch
+      const fifoResponse = await db
+        .collection("fifo_costing_history")
+        .where({
+          material_id: itemData.item_id,
+          batch_id: batchId,
+          plant_id: plantId,
+        })
+        .get();
+
+      // Determine next sequence number
+      let sequenceNumber = 1;
+      if (
+        fifoResponse.data &&
+        Array.isArray(fifoResponse.data) &&
+        fifoResponse.data.length > 0
+      ) {
+        const existingSequences = fifoResponse.data.map((doc) =>
+          parseInt(doc.fifo_sequence || 0, 10)
+        );
+        sequenceNumber = Math.max(...existingSequences, 0) + 1;
+        console.log(
+          `FIFO for batch item ${itemData.item_id}: Found ${
+            fifoResponse.data.length
+          } records, max sequence: ${Math.max(
+            ...existingSequences,
+            0
+          )}, using new sequence: ${sequenceNumber}`
+        );
+      }
+
+      // Calculate cost price
+      const costPrice = await calculateCostPrice(
+        itemData,
+        roundQty(baseQty / parseFloat(itemData.received_qty))
+      );
+
+      // Create FIFO record
+      const fifoData = {
+        fifo_cost_price: roundPrice(costPrice),
+        fifo_initial_quantity: roundQty(baseQty),
+        fifo_available_quantity: roundQty(baseQty),
+        material_id: itemData.item_id,
+        batch_id: batchId,
+        fifo_sequence: sequenceNumber,
+        plant_id: plantId,
+        organization_id: organizationId,
       };
 
-      // Function to process FIFO for batch
-      const processFifoForBatch = (itemData, baseQty, batchId) => {
-        return db
-          .collection("fifo_costing_history")
-          .where({
-            material_id: itemData.item_id,
-            batch_id: batchId,
-            plant_id: plantId,
-          })
-          .get()
-          .then((fifoResponse) => {
-            // Get the highest existing sequence number and add 1
-            let sequenceNumber = 1;
-            if (
-              fifoResponse.data &&
-              Array.isArray(fifoResponse.data) &&
-              fifoResponse.data.length > 0
-            ) {
-              const existingSequences = fifoResponse.data.map((doc) =>
-                parseInt(doc.fifo_sequence || 0)
-              );
-              sequenceNumber = Math.max(...existingSequences, 0) + 1;
-            }
+      await db.collection("fifo_costing_history").add(fifoData);
+      console.log(
+        `Successfully processed FIFO for batch item ${itemData.item_id} with sequence ${sequenceNumber}`
+      );
+    } catch (error) {
+      console.error(`Error processing FIFO for batch: ${error.message}`);
+      throw error;
+    }
+  };
 
-            return calculateCostPrice(
-              itemData,
-              roundQty(baseQty / parseFloat(itemData.received_qty))
-            ).then((costPrice) => {
-              const fifoData = {
-                fifo_cost_price: roundPrice(costPrice),
-                fifo_initial_quantity: roundQty(baseQty),
-                fifo_available_quantity: roundQty(baseQty),
-                material_id: itemData.item_id,
-                batch_id: batchId,
-                fifo_sequence: sequenceNumber,
-                plant_id: plantId,
-                organization_id: organizationId,
-              };
+  // Function to process FIFO for non-batch
+  const processFifoForNonBatch = async (itemData, baseQty) => {
+    try {
+      // Query all existing FIFO records for this material and plant
+      const fifoResponse = await db
+        .collection("fifo_costing_history")
+        .where({
+          material_id: itemData.item_id,
+          plant_id: plantId,
+        })
+        .get();
 
-              return db
-                .collection("fifo_costing_history")
-                .add(fifoData)
-                .then(() => {
-                  console.log(
-                    `Successfully processed FIFO for item ${itemData.item_id} with batch ${batchId}`
-                  );
-                  return Promise.resolve();
-                });
-            });
-          });
+      // Determine the next sequence number
+      let sequenceNumber = 1;
+      if (
+        fifoResponse.data &&
+        Array.isArray(fifoResponse.data) &&
+        fifoResponse.data.length > 0
+      ) {
+        // Parse all sequence numbers as integers and find the maximum
+        const existingSequences = fifoResponse.data.map((doc) =>
+          parseInt(doc.fifo_sequence || 0, 10)
+        );
+        sequenceNumber = Math.max(...existingSequences, 0) + 1;
+        console.log(
+          `FIFO for ${itemData.item_id}: Found ${
+            fifoResponse.data.length
+          } records, max sequence: ${Math.max(
+            ...existingSequences,
+            0
+          )}, using new sequence: ${sequenceNumber}`
+        );
+      } else {
+        console.log(
+          `FIFO for ${itemData.item_id}: No existing records, using sequence: 1`
+        );
+      }
+
+      // Calculate the cost price
+      const costPrice = await calculateCostPrice(
+        itemData,
+        roundQty(baseQty / parseFloat(itemData.received_qty))
+      );
+
+      // Prepare the FIFO data
+      const fifoData = {
+        fifo_cost_price: roundPrice(costPrice),
+        fifo_initial_quantity: roundQty(baseQty),
+        fifo_available_quantity: roundQty(baseQty),
+        material_id: itemData.item_id,
+        fifo_sequence: sequenceNumber,
+        plant_id: plantId,
+        organization_id: organizationId,
       };
 
-      // Function to process FIFO for non-batch
-      const processFifoForNonBatch = (itemData, baseQty) => {
-        return db
-          .collection("fifo_costing_history")
-          .where({ material_id: itemData.item_id, plant_id: plantId })
-          .get()
-          .then((fifoResponse) => {
-            // Get the highest existing sequence number and add 1
-            let sequenceNumber = 1;
-            if (
-              fifoResponse.data &&
-              Array.isArray(fifoResponse.data) &&
-              fifoResponse.data.length > 0
-            ) {
-              const existingSequences = fifoResponse.data.map((doc) =>
-                parseInt(doc.fifo_sequence || 0, 10)
-              );
-              sequenceNumber = Math.max(...existingSequences, 0) + 1;
-              console.log(
-                `Found max sequence: ${Math.max(
-                  ...existingSequences,
-                  0
-                )}, using new sequence: ${sequenceNumber}`
-              );
-            }
+      // Add the FIFO record
+      await db.collection("fifo_costing_history").add(fifoData);
+      console.log(
+        `Successfully processed FIFO for item ${itemData.item_id} with sequence ${sequenceNumber}`
+      );
+    } catch (error) {
+      console.error(
+        `Error processing FIFO for item ${itemData.item_id}:`,
+        error
+      );
+      throw error;
+    }
+  };
 
-            return calculateCostPrice(
-              itemData,
-              roundQty(baseQty / parseFloat(itemData.received_qty))
-            ).then((costPrice) => {
-              const fifoData = {
-                fifo_cost_price: roundPrice(costPrice),
-                fifo_initial_quantity: roundQty(baseQty),
-                fifo_available_quantity: roundQty(baseQty),
-                material_id: itemData.item_id,
-                fifo_sequence: sequenceNumber,
-                plant_id: plantId,
-                organization_id: organizationId,
-              };
+  // Function to process Weighted Average for batch
+  const processWeightedAverageForBatch = async (item, baseQty, batchId) => {
+    try {
+      const costPrice = await calculateCostPrice(
+        item,
+        roundQty(baseQty / parseFloat(item.received_qty))
+      );
 
-              return db
-                .collection("fifo_costing_history")
-                .add(fifoData)
-                .then(() => {
-                  console.log(
-                    `Successfully processed FIFO for item ${itemData.item_id} with sequence ${sequenceNumber}`
-                  );
-                  return Promise.resolve();
-                });
-            });
-          });
-      };
+      await db.collection("wa_costing_method").add({
+        material_id: item.item_id,
+        batch_id: batchId,
+        plant_id: plantId,
+        organization_id: organizationId,
+        wa_quantity: roundQty(baseQty),
+        wa_cost_price: roundPrice(costPrice),
+        created_at: new Date(),
+      });
 
-      const processWeightedAverageForBatch = (item, baseQty, batchId) => {
-        return calculateCostPrice(
+      console.log(
+        `Successfully processed Weighted Average for batch item ${item.item_id}`
+      );
+    } catch (error) {
+      console.error(
+        `Error processing Weighted Average for batch item ${item.item_id}:`,
+        error
+      );
+      throw error;
+    }
+  };
+
+  // Function to process Weighted Average for non-batch
+  const processWeightedAverageForNonBatch = async (item, baseQty) => {
+    try {
+      // Query existing weighted average records
+      const waResponse = await db
+        .collection("wa_costing_method")
+        .where({
+          material_id: item.item_id,
+          plant_id: plantId,
+        })
+        .get();
+
+      const waData = waResponse.data;
+
+      if (waData && waData.length) {
+        // Sort records by date, newest first
+        waData.sort((a, b) => {
+          if (a.created_at && b.created_at) {
+            return new Date(b.created_at) - new Date(a.created_at);
+          }
+          return 0;
+        });
+
+        const latestWa = waData[0];
+        const waCostPrice = roundPrice(latestWa.wa_cost_price);
+        const waQuantity = roundQty(latestWa.wa_quantity);
+        const newWaQuantity = roundQty(waQuantity + baseQty);
+
+        // Calculate cost price and new weighted average
+        const costPrice = await calculateCostPrice(
           item,
           roundQty(baseQty / parseFloat(item.received_qty))
-        ).then((costPrice) => {
-          return db
-            .collection("wa_costing_method")
-            .add({
-              material_id: item.item_id,
-              batch_id: batchId,
-              plant_id: plantId,
-              organization_id: organizationId,
-              wa_quantity: roundQty(baseQty),
-              wa_cost_price: roundPrice(costPrice),
-              created_at: new Date(),
-            })
-            .then(() => {
-              console.log(
-                `Successfully processed Weighted Average for item ${item.item_id} with batch ${batchId}`
-              );
-              return Promise.resolve();
-            })
-            .catch((error) => {
-              console.error(
-                `Error processing Weighted Average for item ${item.item_id} with batch ${batchId}:`,
-                error
-              );
-              return Promise.reject(error);
-            });
-        });
-      };
-
-      const processWeightedAverageForNonBatch = (item, baseQty) => {
-        return db
-          .collection("wa_costing_method")
-          .where({
-            material_id: item.item_id,
-            plant_id: plantId,
-          })
-          .get()
-          .then((waResponse) => {
-            const waData = waResponse.data;
-            console.log("waData", waData);
-            if (waData && waData.length) {
-              waData.sort((a, b) => {
-                if (a.created_at && b.created_at) {
-                  return new Date(b.created_at) - new Date(a.created_at);
-                }
-                return 0;
-              });
-              const latestWa = waData[0];
-              console.log("latestWa", latestWa);
-              const waCostPrice = roundPrice(latestWa.wa_cost_price);
-              const waQuantity = roundQty(latestWa.wa_quantity);
-              const newWaQuantity = roundQty(waQuantity + baseQty);
-              return calculateCostPrice(
-                item,
-                roundQty(baseQty / parseFloat(item.received_qty))
-              ).then((costPrice) => {
-                const calculatedWaCostPrice = roundPrice(
-                  (waCostPrice * waQuantity + costPrice * baseQty) /
-                    newWaQuantity
-                );
-                const newWaCostPrice = roundPrice(calculatedWaCostPrice);
-                console.log("newWaCostPrice", newWaCostPrice);
-
-                return db
-                  .collection("wa_costing_method")
-                  .doc(latestWa.id)
-                  .update({
-                    wa_quantity: newWaQuantity,
-                    wa_cost_price: newWaCostPrice,
-                    plant_id: plantId,
-                    organization_id: organizationId,
-                    updated_at: new Date(),
-                  })
-                  .then(() => {
-                    console.log(
-                      `Successfully processed Weighted Average for item ${item.item_id}`
-                    );
-                    return Promise.resolve();
-                  })
-                  .catch((error) => {
-                    console.error(
-                      `Error processing Weighted Average for item ${item.item_id}:`,
-                      error
-                    );
-                  });
-              });
-            } else {
-              return calculateCostPrice(
-                item,
-                roundQty(baseQty / parseFloat(item.received_qty))
-              ).then((costPrice) => {
-                return db
-                  .collection("wa_costing_method")
-                  .add({
-                    material_id: item.item_id,
-                    wa_quantity: roundQty(baseQty),
-                    wa_cost_price: roundPrice(costPrice),
-                    plant_id: plantId,
-                    organization_id: organizationId,
-                    created_at: new Date(),
-                  })
-                  .then(() => {
-                    console.log(
-                      `Successfully processed Weighted Average for item ${item.item_id}`
-                    );
-                    return Promise.resolve();
-                  })
-                  .catch((error) => {
-                    console.error(
-                      `Error processing Weighted Average for item ${item.item_id}:`,
-                      error
-                    );
-                  });
-              });
-            }
-          })
-          .catch((error) => {
-            console.error(
-              `Error processing Weighted Average for item ${item.item_id}:`,
-              error
-            );
-            return Promise.reject(error);
-          });
-      };
-
-      // Function to get Fixed Cost price
-      const getFixedCostPrice = async (materialId) => {
-        const query = db.collection("Item").where({ id: materialId });
-        const response = await query.get();
-        const result = response.data;
-        return roundPrice(parseFloat(result[0].purchase_unit_price || 0));
-      };
-
-      try {
-        // First check if this item should be processed based on stock_control
-        const itemRes = await db
-          .collection("Item")
-          .where({ id: item.item_id })
-          .get();
-
-        if (!itemRes.data || !itemRes.data.length) {
-          console.error(`Item not found: ${item.item_id}`);
-          resolve();
-          return;
-        }
-
-        const itemData = itemRes.data[0];
-        if (itemData.stock_control === 0) {
-          console.log(
-            `Skipping inventory update for item ${item.item_id} (stock_control=0)`
-          );
-          resolve();
-          return;
-        }
-
-        // UOM Conversion
-        let altQty = roundQty(parseFloat(item.received_qty));
-        let baseQty = altQty;
-        let altUOM = item.item_uom;
-        let baseUOM = itemData.based_uom;
-
-        if (
-          Array.isArray(itemData.table_uom_conversion) &&
-          itemData.table_uom_conversion.length > 0
-        ) {
-          console.log(`Checking UOM conversions for item ${item.item_id}`);
-
-          const uomConversion = itemData.table_uom_conversion.find(
-            (conv) => conv.alt_uom_id === altUOM
-          );
-
-          if (uomConversion) {
-            console.log(
-              `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
-            );
-
-            baseQty = roundQty(altQty * uomConversion.base_qty);
-
-            console.log(
-              `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
-            );
-          } else {
-            console.log(`No conversion found for UOM ${altUOM}, using as-is`);
-          }
-        } else {
-          console.log(
-            `No UOM conversion table for item ${item.item_id}, using received quantity as-is`
-          );
-        }
-
-        let unitPrice = roundPrice(item.unit_price);
-        let totalPrice = roundPrice(item.unit_price * baseQty);
-
-        const costingMethod = itemData.material_costing_method;
-
-        if (
-          costingMethod === "First In First Out" ||
-          costingMethod === "Weighted Average"
-        ) {
-          const fifoCostPrice = await calculateCostPrice(
-            item,
-            roundQty(baseQty / parseFloat(item.received_qty))
-          );
-          unitPrice = roundPrice(fifoCostPrice);
-          totalPrice = roundPrice(fifoCostPrice * baseQty);
-        } else if (costingMethod === "Fixed Cost") {
-          const fixedCostPrice = await getFixedCostPrice(item.item_id);
-          unitPrice = roundPrice(fixedCostPrice);
-          totalPrice = roundPrice(fixedCostPrice * baseQty);
-        }
-
-        // Create inventory_movement record
-        const inventoryMovementData = {
-          transaction_type: "GRN",
-          trx_no: data.gr_no,
-          parent_trx_no: item.line_po_no,
-          movement: "IN",
-          unit_price: roundPrice(unitPrice),
-          total_price: roundPrice(totalPrice),
-          quantity: roundQty(altQty),
-          item_id: item.item_id,
-          inventory_category: item.inv_category,
-          uom_id: altUOM,
-          base_qty: roundQty(baseQty),
-          base_uom_id: baseUOM,
-          bin_location_id: item.location_id,
-          batch_number_id: item.item_batch_no,
-          costing_method_id: item.item_costing_method,
-          plant_id: plantId,
-          organization_id: organizationId,
-        };
-
-        await db.collection("inventory_movement").add(inventoryMovementData);
-
-        await updateOnOrderPurchaseOrder(
-          item,
-          baseQty,
-          purchaseOrderNumbers,
-          data
         );
 
-        // Setup inventory category quantities
-        const itemBalanceParams = {
-          material_id: item.item_id,
-          location_id: item.location_id,
+        const calculatedWaCostPrice = roundPrice(
+          (waCostPrice * waQuantity + costPrice * baseQty) / newWaQuantity
+        );
+
+        const newWaCostPrice = roundPrice(calculatedWaCostPrice);
+
+        // Update existing record
+        await db.collection("wa_costing_method").doc(latestWa.id).update({
+          wa_quantity: newWaQuantity,
+          wa_cost_price: newWaCostPrice,
           plant_id: plantId,
-        };
+          organization_id: organizationId,
+          updated_at: new Date(),
+        });
 
-        let block_qty = 0,
-          reserved_qty = 0,
-          unrestricted_qty = 0,
-          qualityinsp_qty = 0,
-          intransit_qty = 0;
+        console.log(
+          `Updated Weighted Average for item ${item.item_id}: quantity=${newWaQuantity}, price=${newWaCostPrice}`
+        );
+      } else {
+        // Create new weighted average record
+        const costPrice = await calculateCostPrice(
+          item,
+          roundQty(baseQty / parseFloat(item.received_qty))
+        );
 
-        const receivedQty = roundQty(parseFloat(baseQty || 0));
+        await db.collection("wa_costing_method").add({
+          material_id: item.item_id,
+          wa_quantity: roundQty(baseQty),
+          wa_cost_price: roundPrice(costPrice),
+          plant_id: plantId,
+          organization_id: organizationId,
+          created_at: new Date(),
+        });
 
-        if (item.inv_category === "Blocked") {
-          block_qty = receivedQty;
-        } else if (item.inv_category === "Reserved") {
-          reserved_qty = receivedQty;
-        } else if (item.inv_category === "Unrestricted") {
-          unrestricted_qty = receivedQty;
-        } else if (item.inv_category === "Quality Inspection") {
-          qualityinsp_qty = receivedQty;
-        } else if (item.inv_category === "In Transit") {
-          intransit_qty = receivedQty;
-        } else {
-          unrestricted_qty = receivedQty;
-        }
+        console.log(
+          `Created new Weighted Average for item ${item.item_id}: quantity=${baseQty}, price=${costPrice}`
+        );
+      }
+    } catch (error) {
+      console.error(
+        `Error processing Weighted Average for item ${item.item_id}:`,
+        error
+      );
+      throw error;
+    }
+  };
 
-        if (item.item_batch_no !== "-") {
-          // Batch item processing
-          return db
-            .collection("batch")
-            .add({
-              batch_number: item.item_batch_no,
-              material_id: item.item_id,
-              initial_quantity: baseQty,
-              goods_receiving_no: data.gr_no,
-              purchase_order_no: item.line_po_no,
-              plant_id: plantId,
-              organization_id: organizationId,
-            })
-            .then(() => {
-              return new Promise((resolve) => setTimeout(resolve, 300));
-            })
-            .then(() => {
-              return db
-                .collection("batch")
-                .where({
-                  batch_number: item.item_batch_no,
-                  material_id: item.item_id,
-                  goods_receiving_no: data.gr_no,
-                  purchase_order_no: item.line_po_no,
-                })
-                .get();
-            })
-            .then((response) => {
-              const batchResult = response.data;
-              if (
-                !batchResult ||
-                !Array.isArray(batchResult) ||
-                !batchResult.length
-              ) {
-                this.$message.error("Batch not found after creation");
-              }
+  // Function to update PO with received quantities
+  const updateOnOrderPurchaseOrder = async (
+    item,
+    baseQty,
+    purchaseOrderNumbers,
+    data
+  ) => {
+    try {
+      const poNumbers = Array.isArray(purchaseOrderNumbers)
+        ? purchaseOrderNumbers
+        : typeof purchaseOrderNumbers === "string"
+        ? purchaseOrderNumbers.split(",").map((num) => num.trim())
+        : [];
 
-              const batchId = batchResult[0].id;
+      if (poNumbers.length === 0) {
+        console.warn(
+          `No purchase order numbers found for item ${item.item_id}`
+        );
+        return;
+      }
 
-              // Create new balance record
-              balance_quantity =
-                block_qty +
-                reserved_qty +
-                unrestricted_qty +
-                qualityinsp_qty +
-                intransit_qty;
+      let itemPoNumber = item.line_po_no;
 
-              const newBalanceData = {
-                material_id: item.item_id,
-                location_id: item.location_id,
-                batch_id: batchId,
-                block_qty: block_qty,
-                reserved_qty: reserved_qty,
-                unrestricted_qty: unrestricted_qty,
-                qualityinsp_qty: qualityinsp_qty,
-                intransit_qty: intransit_qty,
-                balance_quantity: balance_quantity,
-                plant_id: plantId,
-                organization_id: organizationId,
-              };
+      if (!itemPoNumber && item.line_po_id) {
+        const poId = item.line_po_id;
+        const poIdArray = Array.isArray(data.purchase_order_id)
+          ? data.purchase_order_id
+          : [data.purchase_order_id];
 
-              return db
-                .collection("item_batch_balance")
-                .add(newBalanceData)
-                .then(() => {
-                  console.log("Successfully added item_batch_balance record");
-                  return { batchId };
-                })
-                .catch((error) => {
-                  console.error(
-                    `Error creating item_batch_balance: ${error.message}`
-                  );
-                  resolve();
-                });
-            })
-            .then(({ batchId }) => {
-              if (costingMethod === "First In First Out") {
-                return processFifoForBatch(item, baseQty, batchId);
-              } else if (costingMethod === "Weighted Average") {
-                return processWeightedAverageForBatch(item, baseQty, batchId);
-              } else {
-                return Promise.resolve();
-              }
-            })
-            .then(() => {
-              console.log(
-                `Successfully completed processing for batch item ${item.item_id}`
-              );
-              resolve();
-            })
-            .catch((error) => {
-              console.error(
-                `Error in batch processing chain: ${error.message}`
-              );
-              resolve();
-            });
-        } else {
-          // Non-batch item processing with async/await
-          try {
-            const balanceResponse = await db
-              .collection("item_balance")
-              .where(itemBalanceParams)
-              .get();
-
-            const hasExistingBalance =
-              balanceResponse.data &&
-              Array.isArray(balanceResponse.data) &&
-              balanceResponse.data.length > 0;
-            const existingDoc = hasExistingBalance
-              ? balanceResponse.data[0]
-              : null;
-
-            let balance_quantity;
-
-            if (existingDoc && existingDoc.id) {
-              // Update existing balance
-              const updatedBlockQty = roundQty(
-                parseFloat(existingDoc.block_qty || 0) + block_qty
-              );
-              const updatedReservedQty = roundQty(
-                parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
-              );
-              const updatedUnrestrictedQty = roundQty(
-                parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
-              );
-              const updatedQualityInspQty = roundQty(
-                parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
-              );
-              const updatedIntransitQty = roundQty(
-                parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
-              );
-              balance_quantity =
-                updatedBlockQty +
-                updatedReservedQty +
-                updatedUnrestrictedQty +
-                updatedQualityInspQty +
-                updatedIntransitQty;
-
-              await db
-                .collection("item_balance")
-                .doc(existingDoc.id)
-                .update({
-                  block_qty: updatedBlockQty,
-                  reserved_qty: updatedReservedQty,
-                  unrestricted_qty: updatedUnrestrictedQty,
-                  qualityinsp_qty: updatedQualityInspQty,
-                  intransit_qty: updatedIntransitQty,
-                  balance_quantity: balance_quantity,
-                })
-                .catch((error) => {
-                  console.error(
-                    `Error updating item_balance: ${error.message}`
-                  );
-                  resolve();
-                });
-            } else {
-              // Create new balance record
-              balance_quantity =
-                block_qty +
-                reserved_qty +
-                unrestricted_qty +
-                qualityinsp_qty +
-                intransit_qty;
-
-              const newBalanceData = {
-                material_id: item.item_id,
-                location_id: item.location_id,
-                block_qty: block_qty,
-                reserved_qty: reserved_qty,
-                unrestricted_qty: unrestricted_qty,
-                qualityinsp_qty: qualityinsp_qty,
-                intransit_qty: intransit_qty,
-                balance_quantity: balance_quantity,
-                plant_id: plantId,
-                organization_id: organizationId,
-              };
-
-              await db
-                .collection("item_balance")
-                .add(newBalanceData)
-                .catch((error) => {
-                  console.error(
-                    `Error creating item_balance: ${error.message}`
-                  );
-                  resolve();
-                });
-            }
-
-            const costingMethod = itemData.material_costing_method;
-
-            if (costingMethod === "First In First Out") {
-              await processFifoForNonBatch(item, baseQty);
-            } else if (costingMethod === "Weighted Average") {
-              await processWeightedAverageForNonBatch(item, baseQty);
-            } else {
-              return Promise.resolve();
-            }
-
-            console.log(
-              `Successfully processed non-batch item ${item.item_id}`
-            );
-            resolve();
-          } catch (nonBatchError) {
-            console.error(
-              `Error processing non-batch item: ${nonBatchError.message}`
-            );
-            resolve();
+        if (poIdArray.includes(poId) && poIdArray.length === poNumbers.length) {
+          const index = poIdArray.indexOf(poId);
+          if (index !== -1 && index < poNumbers.length) {
+            itemPoNumber = poNumbers[index];
           }
         }
-      } catch (error) {
-        console.error(`Error processing item ${item.item_id}:`, error);
-        console.log(`Error encountered for item ${item.item_id}`);
-        resolve();
       }
-    });
-  });
 
-  // Return a promise that resolves when all items are processed
-  return Promise.all(processedItemPromises);
+      const poNumbersToCheck = itemPoNumber ? [itemPoNumber] : poNumbers;
+
+      for (const poNumber of poNumbersToCheck) {
+        const poResponse = await db
+          .collection("on_order_purchase_order")
+          .where({
+            purchase_order_number: poNumber,
+            material_id: item.item_id,
+          })
+          .get();
+
+        if (
+          poResponse.data &&
+          Array.isArray(poResponse.data) &&
+          poResponse.data.length > 0
+        ) {
+          const doc = poResponse.data[0];
+          if (doc && doc.id) {
+            const existingReceived = roundQty(
+              parseFloat(doc.received_qty || 0)
+            );
+            const openQuantity = roundQty(parseFloat(doc.open_qty || 0));
+            const newReceived = roundQty(
+              existingReceived + parseFloat(baseQty || 0)
+            );
+            let newOpenQuantity = roundQty(
+              openQuantity - parseFloat(baseQty || 0)
+            );
+
+            if (newOpenQuantity < 0) {
+              newOpenQuantity = 0;
+            }
+
+            await db.collection("on_order_purchase_order").doc(doc.id).update({
+              received_qty: newReceived,
+              open_qty: newOpenQuantity,
+            });
+
+            console.log(
+              `Updated on_order_purchase_order for PO ${poNumber}, item ${item.item_id}: received=${newReceived}, open=${newOpenQuantity}`
+            );
+            return;
+          }
+        }
+      }
+
+      console.warn(
+        `No matching on_order_purchase_order record found for item ${
+          item.item_id
+        } in POs: ${poNumbersToCheck.join(", ")}`
+      );
+    } catch (error) {
+      console.error(
+        `Error updating on_order_purchase_order for item ${item.item_id}:`,
+        error
+      );
+    }
+  };
+
+  // Process items sequentially instead of in parallel
+  for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+    const item = items[itemIndex];
+    console.log(`Processing item ${itemIndex + 1}/${items.length}`);
+
+    // Input validation
+    if (
+      !item.item_id ||
+      !item.received_qty ||
+      isNaN(parseFloat(item.received_qty)) ||
+      parseFloat(item.received_qty) < 0
+    ) {
+      console.error(`Invalid item data for index ${itemIndex}:`, item);
+      continue;
+    }
+
+    try {
+      // First check if this item should be processed based on stock_control
+      const itemRes = await db
+        .collection("Item")
+        .where({ id: item.item_id })
+        .get();
+
+      if (!itemRes.data || !itemRes.data.length) {
+        console.error(`Item not found: ${item.item_id}`);
+        continue;
+      }
+
+      const itemData = itemRes.data[0];
+      if (itemData.stock_control === 0) {
+        console.log(
+          `Skipping inventory update for item ${item.item_id} (stock_control=0)`
+        );
+        continue;
+      }
+
+      // UOM Conversion
+      let altQty = roundQty(parseFloat(item.received_qty));
+      let baseQty = altQty;
+      let altUOM = item.item_uom;
+      let baseUOM = itemData.based_uom;
+
+      if (
+        Array.isArray(itemData.table_uom_conversion) &&
+        itemData.table_uom_conversion.length > 0
+      ) {
+        console.log(`Checking UOM conversions for item ${item.item_id}`);
+
+        const uomConversion = itemData.table_uom_conversion.find(
+          (conv) => conv.alt_uom_id === altUOM
+        );
+
+        if (uomConversion) {
+          console.log(
+            `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
+          );
+
+          baseQty = roundQty(altQty * uomConversion.base_qty);
+
+          console.log(`Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`);
+        } else {
+          console.log(`No conversion found for UOM ${altUOM}, using as-is`);
+        }
+      } else {
+        console.log(
+          `No UOM conversion table for item ${item.item_id}, using received quantity as-is`
+        );
+      }
+
+      let unitPrice = roundPrice(item.unit_price);
+      let totalPrice = roundPrice(item.unit_price * baseQty);
+
+      const costingMethod = itemData.material_costing_method;
+
+      if (
+        costingMethod === "First In First Out" ||
+        costingMethod === "Weighted Average"
+      ) {
+        const fifoCostPrice = await calculateCostPrice(
+          item,
+          roundQty(baseQty / parseFloat(item.received_qty))
+        );
+        unitPrice = roundPrice(fifoCostPrice);
+        totalPrice = roundPrice(fifoCostPrice * baseQty);
+      } else if (costingMethod === "Fixed Cost") {
+        const fixedCostPrice = await getFixedCostPrice(item.item_id);
+        unitPrice = roundPrice(fixedCostPrice);
+        totalPrice = roundPrice(fixedCostPrice * baseQty);
+      }
+
+      // Create inventory_movement record
+      const inventoryMovementData = {
+        transaction_type: "GRN",
+        trx_no: data.gr_no,
+        parent_trx_no: item.line_po_no,
+        movement: "IN",
+        unit_price: roundPrice(unitPrice),
+        total_price: roundPrice(totalPrice),
+        quantity: roundQty(altQty),
+        item_id: item.item_id,
+        inventory_category: item.inv_category,
+        uom_id: altUOM,
+        base_qty: roundQty(baseQty),
+        base_uom_id: baseUOM,
+        bin_location_id: item.location_id,
+        batch_number_id: item.item_batch_no,
+        costing_method_id: item.item_costing_method,
+        plant_id: plantId,
+        organization_id: organizationId,
+      };
+
+      await db.collection("inventory_movement").add(inventoryMovementData);
+
+      await updateOnOrderPurchaseOrder(
+        item,
+        baseQty,
+        purchaseOrderNumbers,
+        data
+      );
+
+      // Setup inventory category quantities
+      const itemBalanceParams = {
+        material_id: item.item_id,
+        location_id: item.location_id,
+        plant_id: plantId,
+      };
+
+      let block_qty = 0,
+        reserved_qty = 0,
+        unrestricted_qty = 0,
+        qualityinsp_qty = 0,
+        intransit_qty = 0;
+
+      const receivedQty = roundQty(parseFloat(baseQty || 0));
+
+      if (item.inv_category === "Blocked") {
+        block_qty = receivedQty;
+      } else if (item.inv_category === "Reserved") {
+        reserved_qty = receivedQty;
+      } else if (item.inv_category === "Unrestricted") {
+        unrestricted_qty = receivedQty;
+      } else if (item.inv_category === "Quality Inspection") {
+        qualityinsp_qty = receivedQty;
+      } else if (item.inv_category === "In Transit") {
+        intransit_qty = receivedQty;
+      } else {
+        unrestricted_qty = receivedQty;
+      }
+
+      if (item.item_batch_no !== "-") {
+        // Batch item processing
+        try {
+          const batchData = {
+            batch_number: item.item_batch_no,
+            material_id: item.item_id,
+            initial_quantity: baseQty,
+            goods_receiving_no: data.gr_no,
+            purchase_order_no: item.line_po_no,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+
+          await db.collection("batch").add(batchData);
+
+          // Wait to ensure the batch is created before querying
+          await new Promise((resolve) => setTimeout(resolve, 300));
+
+          const response = await db
+            .collection("batch")
+            .where({
+              batch_number: item.item_batch_no,
+              material_id: item.item_id,
+              goods_receiving_no: data.gr_no,
+              purchase_order_no: item.line_po_no,
+            })
+            .get();
+
+          const batchResult = response.data;
+          if (
+            !batchResult ||
+            !Array.isArray(batchResult) ||
+            !batchResult.length
+          ) {
+            console.error("Batch not found after creation");
+            continue;
+          }
+
+          const batchId = batchResult[0].id;
+
+          // Create new balance record
+          balance_quantity =
+            block_qty +
+            reserved_qty +
+            unrestricted_qty +
+            qualityinsp_qty +
+            intransit_qty;
+
+          const newBalanceData = {
+            material_id: item.item_id,
+            location_id: item.location_id,
+            batch_id: batchId,
+            block_qty: block_qty,
+            reserved_qty: reserved_qty,
+            unrestricted_qty: unrestricted_qty,
+            qualityinsp_qty: qualityinsp_qty,
+            intransit_qty: intransit_qty,
+            balance_quantity: balance_quantity,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+
+          await db.collection("item_batch_balance").add(newBalanceData);
+          console.log("Successfully added item_batch_balance record");
+
+          if (costingMethod === "First In First Out") {
+            await processFifoForBatch(item, baseQty, batchId);
+          } else if (costingMethod === "Weighted Average") {
+            await processWeightedAverageForBatch(item, baseQty, batchId);
+          }
+
+          console.log(
+            `Successfully completed processing for batch item ${item.item_id}`
+          );
+        } catch (error) {
+          console.error(`Error in batch processing: ${error.message}`);
+          continue;
+        }
+      } else {
+        // Non-batch item processing with async/await
+        try {
+          // Get current item balance records
+          const balanceResponse = await db
+            .collection("item_balance")
+            .where(itemBalanceParams)
+            .get();
+
+          const hasExistingBalance =
+            balanceResponse.data &&
+            Array.isArray(balanceResponse.data) &&
+            balanceResponse.data.length > 0;
+
+          console.log(
+            `Item ${item.item_id}: Found existing balance: ${hasExistingBalance}`
+          );
+
+          const existingDoc = hasExistingBalance
+            ? balanceResponse.data[0]
+            : null;
+
+          let balance_quantity;
+
+          if (existingDoc && existingDoc.id) {
+            // Update existing balance
+            console.log(
+              `Updating existing balance for item ${item.item_id} at location ${item.location_id}`
+            );
+
+            const updatedBlockQty = roundQty(
+              parseFloat(existingDoc.block_qty || 0) + block_qty
+            );
+            const updatedReservedQty = roundQty(
+              parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
+            );
+            const updatedUnrestrictedQty = roundQty(
+              parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
+            );
+            const updatedQualityInspQty = roundQty(
+              parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
+            );
+            const updatedIntransitQty = roundQty(
+              parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
+            );
+
+            balance_quantity =
+              updatedBlockQty +
+              updatedReservedQty +
+              updatedUnrestrictedQty +
+              updatedQualityInspQty +
+              updatedIntransitQty;
+
+            await db.collection("item_balance").doc(existingDoc.id).update({
+              block_qty: updatedBlockQty,
+              reserved_qty: updatedReservedQty,
+              unrestricted_qty: updatedUnrestrictedQty,
+              qualityinsp_qty: updatedQualityInspQty,
+              intransit_qty: updatedIntransitQty,
+              balance_quantity: balance_quantity,
+            });
+
+            console.log(
+              `Updated balance for item ${item.item_id}: ${balance_quantity}`
+            );
+          } else {
+            // Create new balance record
+            console.log(
+              `Creating new balance for item ${item.item_id} at location ${item.location_id}`
+            );
+
+            balance_quantity =
+              block_qty +
+              reserved_qty +
+              unrestricted_qty +
+              qualityinsp_qty +
+              intransit_qty;
+
+            const newBalanceData = {
+              material_id: item.item_id,
+              location_id: item.location_id,
+              block_qty: block_qty,
+              reserved_qty: reserved_qty,
+              unrestricted_qty: unrestricted_qty,
+              qualityinsp_qty: qualityinsp_qty,
+              intransit_qty: intransit_qty,
+              balance_quantity: balance_quantity,
+              plant_id: plantId,
+              organization_id: organizationId,
+            };
+
+            await db.collection("item_balance").add(newBalanceData);
+            console.log(
+              `Created new balance for item ${item.item_id}: ${balance_quantity}`
+            );
+          }
+
+          // Process costing method
+          if (costingMethod === "First In First Out") {
+            await processFifoForNonBatch(item, baseQty);
+          } else if (costingMethod === "Weighted Average") {
+            await processWeightedAverageForNonBatch(item, baseQty);
+          }
+
+          console.log(`Successfully processed non-batch item ${item.item_id}`);
+        } catch (nonBatchError) {
+          console.error(
+            `Error processing non-batch item: ${nonBatchError.message}`
+          );
+          continue;
+        }
+      }
+    } catch (error) {
+      console.error(`Error processing item ${item.item_id}:`, error);
+      console.log(
+        `Error encountered for item ${item.item_id}, continuing with next item`
+      );
+    }
+  }
+
+  return Promise.resolve();
 };
 
 // Enhanced PO status update with proper error handling
