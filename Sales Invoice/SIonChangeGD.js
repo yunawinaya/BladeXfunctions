@@ -119,13 +119,6 @@ const processSalesInvoice = async () => {
     });
 
     const allSOData = (await Promise.all(soPromises)).filter(Boolean);
-    console.log("All SO data:", allSOData);
-
-    // Additional check to ensure we have SO data to process
-    if (allSOData.length === 0) {
-      console.error("No valid Sales Order data found");
-      return;
-    }
 
     // Additional validation check to make sure gdNumbers is an array
     if (!Array.isArray(gdNumbers)) {
@@ -153,13 +146,6 @@ const processSalesInvoice = async () => {
     });
 
     const allGDData = (await Promise.all(gdPromises)).filter(Boolean);
-    console.log("All GD data:", allGDData);
-
-    // Additional check to ensure we have GD data to process
-    if (allGDData.length === 0) {
-      console.log("No valid GD data found, skipping further processing");
-      return;
-    }
 
     // Create a map of material IDs from all SOs to validate GD items
     const validItems = new Set();

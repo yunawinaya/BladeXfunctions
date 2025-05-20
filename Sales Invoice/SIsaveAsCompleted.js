@@ -6,80 +6,136 @@ const closeDialog = () => {
   }
 };
 
-const updateSalesOrderStatus = (salesOrderId, goodsDeliveryNo) => {
-  const completedQuery = db
-    .collection("sales_invoice")
-    .where({ si_status: "Completed", so_id: salesOrderId });
+// Updated to handle array of sales order IDs
+const updateSalesOrderStatus = (salesOrderIds, goodsDeliveryNo) => {
+  // Ensure salesOrderIds is an array
+  const soIds = Array.isArray(salesOrderIds) ? salesOrderIds : [salesOrderIds];
 
-  const fullyPostedQuery = db
-    .collection("sales_invoice")
-    .where({ si_status: "Fully Posted", so_id: salesOrderId });
+  // Process each sales order
+  soIds.forEach((salesOrderId) => {
+    if (!salesOrderId) {
+      console.warn("Null or undefined sales order ID found");
+      return;
+    }
 
-  Promise.all([
-    completedQuery.get(),
-    fullyPostedQuery.get(),
-    db.collection("sales_order").where({ id: salesOrderId }).get(),
-  ]).then(([resComp, resPost, resSO]) => {
-    const allSIs = [...resComp.data, ...resPost.data] || [];
-    const soData = resSO.data[0];
-    if (!soData) return;
+    const completedQuery = db
+      .collection("sales_invoice")
+      .where({ si_status: "Completed", so_id: salesOrderId });
 
-    const soItems = soData.table_so || [];
+    const fullyPostedQuery = db
+      .collection("sales_invoice")
+      .where({ si_status: "Fully Posted", so_id: salesOrderId });
 
-    // Create a map to sum received quantities for each item
-    const invoicedQtyMap = {};
+    Promise.all([
+      completedQuery.get(),
+      fullyPostedQuery.get(),
+      db.collection("sales_order").where({ id: salesOrderId }).get(),
+    ])
+      .then(([resComp, resPost, resSO]) => {
+        // Handle potentially undefined or empty data
+        const compData = resComp?.data || [];
+        const postData = resPost?.data || [];
+        const allSIs = [...compData, ...postData];
 
-    // Initialize with zeros
-    soItems.forEach((item) => {
-      invoicedQtyMap[item.item_name] = 0;
-    });
-
-    // Sum received quantities from all PIs
-    allSIs.forEach((si) => {
-      (si.table_si || []).forEach((siItem) => {
-        if (invoicedQtyMap.hasOwnProperty(siItem.material_id)) {
-          invoicedQtyMap[siItem.material_id] += siItem.invoice_qty || 0;
+        const soData = resSO?.data ? resSO.data[0] : null;
+        if (!soData) {
+          console.warn(`Sales order ${salesOrderId} not found`);
+          return;
         }
+
+        const soItems = soData.table_so || [];
+
+        // Create a map to sum invoiced quantities for each item
+        const invoicedQtyMap = {};
+
+        // Initialize with zeros
+        soItems.forEach((item) => {
+          if (item && item.item_name) {
+            invoicedQtyMap[item.item_name] = 0;
+          }
+        });
+
+        // Sum invoiced quantities from all SIs
+        allSIs.forEach((si) => {
+          if (!si || !si.table_si) return;
+
+          si.table_si.forEach((siItem) => {
+            if (
+              siItem &&
+              siItem.material_id &&
+              invoicedQtyMap.hasOwnProperty(siItem.material_id)
+            ) {
+              const invoiceQty = parseFloat(siItem.invoice_qty) || 0;
+              invoicedQtyMap[siItem.material_id] += invoiceQty;
+            }
+          });
+        });
+
+        // Check item completion status
+        let allItemsComplete = true;
+        let anyItemProcessing = false;
+
+        soItems.forEach((item) => {
+          if (!item || !item.item_name) return;
+
+          const orderedQty = parseFloat(item.so_quantity) || 0;
+          const invoicedQty = parseFloat(invoicedQtyMap[item.item_name]) || 0;
+
+          if (invoicedQty < orderedQty) {
+            allItemsComplete = false;
+            if (invoicedQty > 0) {
+              anyItemProcessing = true;
+            }
+          }
+        });
+
+        // Determine new status
+        let newSIStatus = soData.si_status;
+
+        if (allItemsComplete) {
+          newSIStatus = "Fully Invoiced";
+        } else if (anyItemProcessing) {
+          newSIStatus = "Partially Invoiced";
+        }
+
+        // Update SO status if changed
+        if (newSIStatus !== soData.si_status) {
+          console.log(`Updating SO ${salesOrderId} status to ${newSIStatus}`);
+          db.collection("sales_order")
+            .doc(soData.id)
+            .update({
+              si_status: newSIStatus,
+            })
+            .catch((error) => {
+              console.error(
+                `Error updating sales order ${salesOrderId}:`,
+                error
+              );
+            });
+        }
+      })
+      .catch((error) => {
+        console.error(`Error processing sales order ${salesOrderId}:`, error);
       });
-    });
-
-    // Check if all items are fully received
-    let allItemsComplete = false;
-    let anyItemProcessing = false;
-
-    soItems.forEach((item) => {
-      const orderedQty = item.so_quantity || 0;
-      const invoicedQty = invoicedQtyMap[item.item_name] || 0;
-
-      if (invoicedQty < orderedQty) {
-        anyItemProcessing = true;
-      } else {
-        allItemsComplete = true;
-      }
-    });
-
-    // Determine new status
-    let newSIStatus = soData.si_status;
-
-    if (allItemsComplete) {
-      newSIStatus = "Fully Invoiced";
-    } else if (anyItemProcessing) {
-      newSIStatus = "Partially Invoiced";
-    }
-
-    // Update PO status if changed
-    if (newSIStatus !== soData.si_status) {
-      db.collection("sales_order").doc(soData.id).update({
-        si_status: newSIStatus,
-      });
-    }
-
-    goodsDeliveryNo.forEach((gd) => {
-      db.collection("goods_delivery").doc(gd).update({
-        si_status: "Fully Invoiced",
-      });
-    });
   });
+
+  // Update all goods delivery documents
+  if (Array.isArray(goodsDeliveryNo) && goodsDeliveryNo.length > 0) {
+    goodsDeliveryNo.forEach((gd) => {
+      if (!gd) return;
+
+      db.collection("goods_delivery")
+        .doc(gd)
+        .update({
+          si_status: "Fully Invoiced",
+        })
+        .catch((error) => {
+          console.error(`Error updating goods delivery ${gd}:`, error);
+        });
+    });
+  } else {
+    console.warn("No goods delivery numbers provided");
+  }
 };
 
 const validateForm = (data, requiredFields) => {
@@ -134,19 +190,27 @@ const validateField = (value, field) => {
 };
 
 const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Sales Invoices",
-      is_deleted: 0,
-      organization_id: organizationId,
-      is_active: 1,
-    })
-    .get();
+  try {
+    const prefixEntry = await db
+      .collection("prefix_configuration")
+      .where({
+        document_types: "Sales Invoices",
+        is_deleted: 0,
+        organization_id: organizationId,
+        is_active: 1,
+      })
+      .get();
 
-  const prefixData = await prefixEntry.data[0];
+    if (!prefixEntry?.data || prefixEntry.data.length === 0) {
+      console.error("No prefix configuration found for Sales Invoices");
+      return null;
+    }
 
-  return prefixData;
+    return prefixEntry.data[0];
+  } catch (error) {
+    console.error("Error getting prefix data:", error);
+    throw error;
+  }
 };
 
 const updatePrefix = async (organizationId, runningNumber) => {
@@ -160,7 +224,8 @@ const updatePrefix = async (organizationId, runningNumber) => {
       })
       .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
   } catch (error) {
-    this.$message.error(error);
+    console.error("Error updating prefix:", error);
+    throw error;
   }
 };
 
@@ -182,11 +247,17 @@ const generatePrefix = (runNumber, now, prefixData) => {
 };
 
 const checkUniqueness = async (generatedPrefix) => {
-  const existingDoc = await db
-    .collection("sales_invoice")
-    .where({ sales_invoice_no: generatedPrefix })
-    .get();
-  return existingDoc.data[0] ? false : true;
+  try {
+    const existingDoc = await db
+      .collection("sales_invoice")
+      .where({ sales_invoice_no: generatedPrefix })
+      .get();
+
+    return !existingDoc?.data || existingDoc.data.length === 0;
+  } catch (error) {
+    console.error("Error checking uniqueness:", error);
+    throw error;
+  }
 };
 
 const findUniquePrefix = async (prefixData) => {
@@ -199,7 +270,7 @@ const findUniquePrefix = async (prefixData) => {
 
   while (!isUnique && attempts < maxAttempts) {
     attempts++;
-    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
+    prefixToShow = generatePrefix(runningNumber, now, prefixData);
     isUnique = await checkUniqueness(prefixToShow);
     if (!isUnique) {
       runningNumber++;
@@ -207,7 +278,7 @@ const findUniquePrefix = async (prefixData) => {
   }
 
   if (!isUnique) {
-    this.$message.error(
+    throw new Error(
       "Could not generate a unique Sales Invoices number after maximum attempts"
     );
   }
@@ -218,31 +289,39 @@ const findUniquePrefix = async (prefixData) => {
 const addEntry = async (organizationId, entry) => {
   try {
     const prefixData = await getPrefixData(organizationId);
-    if (prefixData.length !== 0) {
-      await updatePrefix(organizationId, prefixData.running_number);
-      await db
-        .collection("sales_invoice")
-        .add(entry)
-        .then(() => {
-          this.runWorkflow(
-            "1917950696199892993",
-            { sales_invoice_no: entry.sales_invoice_no },
-            async (res) => {
-              console.log("成功结果：", res);
-            },
-            (err) => {
-              alert();
-              console.error("失败结果：", err);
-              closeDialog();
-            }
-          );
-        });
-      await updateSalesOrderStatus(entry.so_id, entry.goods_delivery_number);
-      this.$message.success("Add successfully");
-      closeDialog();
+
+    if (!prefixData) {
+      throw new Error("Prefix configuration not found");
     }
+
+    await updatePrefix(organizationId, prefixData.running_number);
+
+    const result = await db.collection("sales_invoice").add(entry);
+
+    try {
+      await this.runWorkflow(
+        "1917950696199892993",
+        { sales_invoice_no: entry.sales_invoice_no },
+        async (res) => {
+          console.log("Workflow success:", res);
+        },
+        (err) => {
+          console.error("Workflow error:", err);
+          closeDialog();
+        }
+      );
+    } catch (workflowError) {
+      console.error("Error running workflow:", workflowError);
+    }
+
+    // Handle multiple SO IDs and GD numbers
+    await updateSalesOrderStatus(entry.so_id, entry.goods_delivery_number);
+
+    this.$message.success("Add successfully");
+    closeDialog();
   } catch (error) {
-    this.$message.error(error);
+    console.error("Error adding entry:", error);
+    throw error;
   }
 };
 
@@ -250,41 +329,46 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
   try {
     const prefixData = await getPrefixData(organizationId);
 
-    if (prefixData.length !== 0) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData
-      );
-
-      await updatePrefix(organizationId, runningNumber);
-
-      entry.sales_invoice_no = prefixToShow;
-      await db
-        .collection("sales_invoice")
-        .doc(salesInvoiceId)
-        .update(entry)
-        .then(() => {
-          this.runWorkflow(
-            "1917950696199892993",
-            { sales_invoice_no: entry.sales_invoice_no },
-            async (res) => {
-              console.log("成功结果：", res);
-            },
-            (err) => {
-              alert();
-              console.error("失败结果：", err);
-              closeDialog();
-            }
-          );
-        });
-      await updateSalesOrderStatus(entry.so_id, entry.goods_delivery_number);
-      this.$message.success("Update successfully");
-      await closeDialog();
+    if (!prefixData) {
+      throw new Error("Prefix configuration not found");
     }
+
+    const { prefixToShow, runningNumber } = await findUniquePrefix(prefixData);
+
+    await updatePrefix(organizationId, runningNumber);
+
+    entry.sales_invoice_no = prefixToShow;
+
+    await db.collection("sales_invoice").doc(salesInvoiceId).update(entry);
+
+    try {
+      await this.runWorkflow(
+        "1917950696199892993",
+        { sales_invoice_no: entry.sales_invoice_no },
+        async (res) => {
+          console.log("Workflow success:", res);
+        },
+        (err) => {
+          console.error("Workflow error:", err);
+          closeDialog();
+        }
+      );
+    } catch (workflowError) {
+      console.error("Error running workflow:", workflowError);
+    }
+
+    // Handle multiple SO IDs and GD numbers
+    await updateSalesOrderStatus(entry.so_id, entry.goods_delivery_number);
+
+    this.$message.success("Update successfully");
+    closeDialog();
   } catch (error) {
-    this.$message.error(error);
+    console.error("Error updating entry:", error);
+    throw error;
   }
 };
 
+// Main execution
 (async () => {
   try {
     const data = this.getValues();
@@ -305,7 +389,7 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
       },
     ];
 
-    const missingFields = await validateForm(data, requiredFields);
+    const missingFields = validateForm(data, requiredFields);
 
     if (missingFields.length === 0) {
       const page_status = this.getValue("page_status");
@@ -316,6 +400,7 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
       }
 
       const {
+        fake_so_id,
         so_id,
         customer_id,
         si_address_name,
@@ -360,14 +445,21 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         myr_total_amount,
       } = data;
 
+      // Ensure SO IDs and GD numbers are properly handled as arrays
+      const soIdArray = Array.isArray(so_id) ? so_id : [so_id];
+      const gdArray = Array.isArray(goods_delivery_number)
+        ? goods_delivery_number
+        : [goods_delivery_number];
+
       const entry = {
         si_status: "Completed",
         posted_status: "Unposted",
-        so_id,
+        fake_so_id,
+        so_id: soIdArray,
         customer_id,
         si_address_name,
         si_address_contact,
-        goods_delivery_number,
+        goods_delivery_number: gdArray,
         sales_invoice_no,
         sales_invoice_date,
         sales_person_id,
@@ -419,6 +511,6 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
     }
   } catch (error) {
     this.hideLoading();
-    this.$message.error(error);
+    this.$message.error(error.message || error);
   }
 })();

@@ -93,13 +93,6 @@ const processSalesInvoice = async () => {
     });
 
     const allSOData = (await Promise.all(soPromises)).filter(Boolean);
-    console.log("All SO data:", allSOData);
-
-    // Additional check to ensure we have SO data to process
-    if (allSOData.length === 0) {
-      console.error("No valid Sales Order data found");
-      return;
-    }
 
     // Process data and create table entries, keeping SO structure
     const newTableSI = [];
@@ -142,7 +135,7 @@ const processSalesInvoice = async () => {
     });
 
     // Calculate totals after setting table_si
-    await calculateTotals();
+    calculateTotals();
   } catch (error) {
     console.error("Error in processSalesInvoice:", error);
   }

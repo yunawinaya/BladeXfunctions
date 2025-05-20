@@ -9,6 +9,7 @@ const closeDialog = () => {
   }
 };
 
+// Updated to handle multiple SOs
 const updateSalesOrderStatus = async (salesInvoiceId) => {
   try {
     const currentSIQuery = await db
@@ -22,126 +23,172 @@ const updateSalesOrderStatus = async (salesInvoiceId) => {
     }
 
     const currentSI = currentSIQuery.data[0];
+    const soIds = Array.isArray(currentSI.so_id)
+      ? currentSI.so_id
+      : [currentSI.so_id];
 
-    const [resComp, resPost, resSO] = await Promise.all([
-      db
-        .collection("sales_invoice")
-        .where({ si_status: "Completed", so_id: currentSI.so_id })
-        .get(),
-      db
-        .collection("sales_invoice")
-        .where({ si_status: "Fully Posted", so_id: currentSI.so_id })
-        .get(),
-      db.collection("sales_order").where({ id: currentSI.so_id }).get(),
-    ]);
-
-    const allSIs = [...(resComp.data || []), ...(resPost.data || [])] || [];
-    const postSIs = resPost.data || [];
-
-    if (!resSO.data || resSO.data.length === 0) {
-      console.error("Sales order not found for SO ID:", currentSI.so_id);
+    if (!soIds.length) {
+      console.warn("No sales order IDs found for invoice:", salesInvoiceId);
       return;
     }
 
-    const soData = resSO.data[0];
-    const soItems = soData.table_so || [];
+    // Process each sales order
+    const soUpdates = [];
 
-    // Create a map to sum received quantities for each item
-    const invoicedQtyMap = {};
-    const postedQtyMap = {};
-
-    // Initialize with zeros
-    soItems.forEach((item) => {
-      invoicedQtyMap[item.item_name] = 0;
-      postedQtyMap[item.item_name] = 0;
-    });
-
-    // Sum received quantities from all SIs
-    allSIs.forEach((si) => {
-      (si.table_si || []).forEach((siItem) => {
-        if (invoicedQtyMap.hasOwnProperty(siItem.material_id)) {
-          invoicedQtyMap[siItem.material_id] += siItem.invoice_qty || 0;
-        }
-      });
-    });
-
-    postSIs.forEach((si) => {
-      (si.table_si || []).forEach((siItem) => {
-        if (postedQtyMap.hasOwnProperty(siItem.material_id)) {
-          postedQtyMap[siItem.material_id] += siItem.invoice_qty || 0;
-        }
-      });
-    });
-
-    let allItemsComplete = true;
-    let allItemsPosted = true;
-    let anyItemProcessing = false;
-    let anyItemPartiallyPosted = false;
-
-    soItems.forEach((item) => {
-      const orderedQty = item.so_quantity || 0;
-      const invoicedQty = invoicedQtyMap[item.item_name] || 0;
-      const postedQty = postedQtyMap[item.item_name] || 0;
-
-      if (invoicedQty < orderedQty) {
-        allItemsComplete = false;
-        if (invoicedQty > 0) {
-          anyItemProcessing = true;
-        }
+    for (const soId of soIds) {
+      if (!soId) {
+        console.warn(
+          "Null or undefined SO ID found in invoice:",
+          salesInvoiceId
+        );
+        continue;
       }
 
-      if (postedQty < orderedQty) {
-        allItemsPosted = false;
-        if (postedQty > 0) {
-          anyItemPartiallyPosted = true;
+      try {
+        const [resComp, resPost, resSO] = await Promise.all([
+          db
+            .collection("sales_invoice")
+            .where({ si_status: "Completed", so_id: soId })
+            .get(),
+          db
+            .collection("sales_invoice")
+            .where({ si_status: "Fully Posted", so_id: soId })
+            .get(),
+          db.collection("sales_order").where({ id: soId }).get(),
+        ]);
+
+        const allSIs = [...(resComp.data || []), ...(resPost.data || [])] || [];
+        const postSIs = resPost.data || [];
+
+        if (!resSO.data || resSO.data.length === 0) {
+          console.error("Sales order not found for SO ID:", soId);
+          continue;
         }
+
+        const soData = resSO.data[0];
+        const soItems = soData.table_so || [];
+
+        // Create a map to sum received quantities for each item
+        const invoicedQtyMap = {};
+        const postedQtyMap = {};
+
+        // Initialize with zeros
+        soItems.forEach((item) => {
+          if (item && item.item_name) {
+            invoicedQtyMap[item.item_name] = 0;
+            postedQtyMap[item.item_name] = 0;
+          }
+        });
+
+        // Sum received quantities from all SIs
+        allSIs.forEach((si) => {
+          if (!si || !si.table_si) return;
+
+          si.table_si.forEach((siItem) => {
+            if (
+              siItem &&
+              siItem.material_id &&
+              invoicedQtyMap.hasOwnProperty(siItem.material_id)
+            ) {
+              const invoiceQty = parseFloat(siItem.invoice_qty) || 0;
+              invoicedQtyMap[siItem.material_id] += invoiceQty;
+            }
+          });
+        });
+
+        postSIs.forEach((si) => {
+          if (!si || !si.table_si) return;
+
+          si.table_si.forEach((siItem) => {
+            if (
+              siItem &&
+              siItem.material_id &&
+              postedQtyMap.hasOwnProperty(siItem.material_id)
+            ) {
+              const invoiceQty = parseFloat(siItem.invoice_qty) || 0;
+              postedQtyMap[siItem.material_id] += invoiceQty;
+            }
+          });
+        });
+
+        let allItemsComplete = true;
+        let allItemsPosted = true;
+        let anyItemProcessing = false;
+        let anyItemPartiallyPosted = false;
+
+        soItems.forEach((item) => {
+          if (!item || !item.item_name) return;
+
+          const orderedQty = parseFloat(item.so_quantity) || 0;
+          const invoicedQty = parseFloat(invoicedQtyMap[item.item_name]) || 0;
+          const postedQty = parseFloat(postedQtyMap[item.item_name]) || 0;
+
+          if (invoicedQty < orderedQty) {
+            allItemsComplete = false;
+            if (invoicedQty > 0) {
+              anyItemProcessing = true;
+            }
+          }
+
+          if (postedQty < orderedQty) {
+            allItemsPosted = false;
+            if (postedQty > 0) {
+              anyItemPartiallyPosted = true;
+            }
+          }
+        });
+
+        const newSIStatus = allItemsComplete
+          ? "Fully Invoiced"
+          : anyItemProcessing
+          ? "Partially Invoiced"
+          : soData.si_status;
+
+        const newSIPostedStatus = allItemsPosted
+          ? "Fully Posted"
+          : anyItemPartiallyPosted
+          ? "Partially Posted"
+          : soData.si_posted_status;
+
+        // Prepare updates for this SO
+        if (newSIStatus !== soData.si_status) {
+          soUpdates.push(
+            db
+              .collection("sales_order")
+              .doc(soId)
+              .update({ si_status: newSIStatus })
+          );
+        }
+
+        if (newSIPostedStatus !== soData.si_posted_status) {
+          soUpdates.push(
+            db
+              .collection("sales_order")
+              .doc(soId)
+              .update({ si_posted_status: newSIPostedStatus })
+          );
+        }
+      } catch (soError) {
+        console.error(`Error processing sales order ${soId}:`, soError);
+        // Continue with next SO instead of failing the entire operation
       }
-    });
-
-    const newSIStatus = allItemsComplete
-      ? "Fully Invoiced"
-      : anyItemProcessing
-      ? "Partially Invoiced"
-      : soData.si_status;
-
-    const newSIPostedStatus = allItemsPosted
-      ? "Fully Posted"
-      : anyItemPartiallyPosted
-      ? "Partially Posted"
-      : soData.si_posted_status;
-
-    // Prepare updates
-    const updates = [];
-
-    if (newSIStatus !== soData.si_status) {
-      updates.push(
-        db
-          .collection("sales_order")
-          .doc(currentSI.so_id)
-          .update({ si_status: newSIStatus })
-      );
     }
 
-    if (newSIPostedStatus !== soData.si_posted_status) {
-      updates.push(
-        db
-          .collection("sales_order")
-          .doc(currentSI.so_id)
-          .update({ si_posted_status: newSIPostedStatus })
-      );
-    }
+    const updates = [...soUpdates];
 
     // Update GDs - Only if they exist
     if (
       currentSI.goods_delivery_number &&
       Array.isArray(currentSI.goods_delivery_number)
     ) {
-      const gdUpdates = currentSI.goods_delivery_number.map((gd) =>
-        db
-          .collection("goods_delivery")
-          .doc(gd)
-          .update({ si_status: "Fully Invoiced" })
-      );
+      const gdUpdates = currentSI.goods_delivery_number
+        .filter((gd) => gd) // Filter out null/undefined values
+        .map((gd) =>
+          db
+            .collection("goods_delivery")
+            .doc(gd)
+            .update({ si_status: "Fully Invoiced" })
+        );
       updates.push(...gdUpdates);
     }
 
@@ -490,12 +537,17 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         organizationId = deptIds.split(",")[0];
       }
 
+      // Ensure so_id and goods_delivery_number are arrays
+      const so_id = Array.isArray(data.so_id) ? data.so_id : [data.so_id];
+      const goods_delivery_number = Array.isArray(data.goods_delivery_number)
+        ? data.goods_delivery_number
+        : [data.goods_delivery_number];
+
       const {
-        so_id,
+        fake_so_id,
         customer_id,
         si_address_name,
         si_address_contact,
-        goods_delivery_number,
         sales_invoice_no,
         sales_invoice_date,
         sales_person_id,
@@ -538,6 +590,7 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
       const entry = {
         si_status: "Completed",
         posted_status: "Pending Post",
+        fake_so_id,
         so_id,
         customer_id,
         si_address_name,

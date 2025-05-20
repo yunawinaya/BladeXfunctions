@@ -69,6 +69,7 @@ const generateDraftPrefix = async (organizationId) => {
       }
 
       const {
+        fake_so_id,
         so_id,
         customer_id,
         si_address_name,
@@ -116,6 +117,7 @@ const generateDraftPrefix = async (organizationId) => {
       const entry = {
         si_status: "Draft",
         posted_status: "Unposted",
+        fake_so_id,
         so_id,
         customer_id,
         si_address_name,
