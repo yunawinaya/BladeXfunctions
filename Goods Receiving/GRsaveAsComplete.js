@@ -16,6 +16,110 @@ const closeDialog = () => {
   }
 };
 
+const updateOnOrderPurchaseOrder = async (
+  item,
+  baseQty,
+  purchaseOrderNumbers,
+  data
+) => {
+  try {
+    const poNumbers = Array.isArray(purchaseOrderNumbers)
+      ? purchaseOrderNumbers
+      : typeof purchaseOrderNumbers === "string"
+      ? purchaseOrderNumbers.split(",").map((num) => num.trim())
+      : [];
+
+    if (poNumbers.length === 0) {
+      console.warn(`No purchase order numbers found for item ${item.item_id}`);
+      return;
+    }
+
+    console.log(
+      `Updating on_order_purchase_order for item ${item.item_id} with PO numbers:`,
+      poNumbers
+    );
+
+    let itemPoNumber = item.line_po_no;
+
+    if (!itemPoNumber && item.line_po_id) {
+      const poId = item.line_po_id;
+      const poIdArray = Array.isArray(data.purchase_order_id)
+        ? data.purchase_order_id
+        : [data.purchase_order_id];
+
+      if (poIdArray.includes(poId) && poIdArray.length === poNumbers.length) {
+        // Find the index of the PO ID and use the same index in poNumbers
+        const index = poIdArray.indexOf(poId);
+        if (index !== -1 && index < poNumbers.length) {
+          itemPoNumber = poNumbers[index];
+        }
+      }
+    }
+
+    if (!itemPoNumber) {
+      console.log(
+        `No specific PO number found for item ${item.item_id}, will check all PO numbers`
+      );
+    }
+
+    const poNumbersToCheck = itemPoNumber ? [itemPoNumber] : poNumbers;
+
+    for (const poNumber of poNumbersToCheck) {
+      const poResponse = await db
+        .collection("on_order_purchase_order")
+        .where({
+          purchase_order_number: poNumber,
+          material_id: item.item_id,
+        })
+        .get();
+
+      if (
+        poResponse.data &&
+        Array.isArray(poResponse.data) &&
+        poResponse.data.length > 0
+      ) {
+        const doc = poResponse.data[0];
+        if (doc && doc.id) {
+          const existingReceived = roundQty(parseFloat(doc.received_qty || 0));
+          const openQuantity = roundQty(parseFloat(doc.open_qty || 0));
+          const newReceived = roundQty(
+            existingReceived + parseFloat(baseQty || 0)
+          );
+          let newOpenQuantity = roundQty(
+            openQuantity - parseFloat(baseQty || 0)
+          );
+
+          if (newOpenQuantity < 0) {
+            newOpenQuantity = 0;
+          }
+
+          await db.collection("on_order_purchase_order").doc(doc.id).update({
+            received_qty: newReceived,
+            open_qty: newOpenQuantity,
+          });
+
+          console.log(
+            `Updated on_order_purchase_order for PO ${poNumber}, item ${item.item_id}: received=${newReceived}, open=${newOpenQuantity}`
+          );
+
+          return;
+        }
+      }
+    }
+
+    console.warn(
+      `No matching on_order_purchase_order record found for item ${
+        item.item_id
+      } in POs: ${poNumbersToCheck.join(", ")}`
+    );
+  } catch (error) {
+    console.error(
+      `Error updating on_order_purchase_order for item ${item.item_id}:`,
+      error
+    );
+  }
+};
+
 const addInventory = (data, plantId, organizationId) => {
   const items = data.table_gr;
 
@@ -23,6 +127,13 @@ const addInventory = (data, plantId, organizationId) => {
     console.log("No items to process");
     return Promise.resolve();
   }
+
+  const purchaseOrderNumbers =
+    typeof data.purchase_order_number === "string"
+      ? data.purchase_order_number.split(",").map((num) => num.trim())
+      : Array.isArray(data.purchase_order_number)
+      ? data.purchase_order_number
+      : [data.purchase_order_number];
 
   const processedItemPromises = items.map((item, itemIndex) => {
     return new Promise(async (resolve) => {
@@ -102,7 +213,11 @@ const addInventory = (data, plantId, organizationId) => {
       const processFifoForBatch = (itemData, baseQty, batchId) => {
         return db
           .collection("fifo_costing_history")
-          .where({ material_id: itemData.item_id, batch_id: batchId })
+          .where({
+            material_id: itemData.item_id,
+            batch_id: batchId,
+            plant_id: plantId,
+          })
           .get()
           .then((fifoResponse) => {
             // Get the highest existing sequence number and add 1
@@ -150,7 +265,7 @@ const addInventory = (data, plantId, organizationId) => {
       const processFifoForNonBatch = (itemData, baseQty) => {
         return db
           .collection("fifo_costing_history")
-          .where({ material_id: itemData.item_id })
+          .where({ material_id: itemData.item_id, plant_id: plantId })
           .get()
           .then((fifoResponse) => {
             // Get the highest existing sequence number and add 1
@@ -161,9 +276,15 @@ const addInventory = (data, plantId, organizationId) => {
               fifoResponse.data.length > 0
             ) {
               const existingSequences = fifoResponse.data.map((doc) =>
-                parseInt(doc.fifo_sequence || 0)
+                parseInt(doc.fifo_sequence || 0, 10)
               );
               sequenceNumber = Math.max(...existingSequences, 0) + 1;
+              console.log(
+                `Found max sequence: ${Math.max(
+                  ...existingSequences,
+                  0
+                )}, using new sequence: ${sequenceNumber}`
+              );
             }
 
             return calculateCostPrice(
@@ -185,7 +306,7 @@ const addInventory = (data, plantId, organizationId) => {
                 .add(fifoData)
                 .then(() => {
                   console.log(
-                    `Successfully processed FIFO for item ${itemData.item_id}`
+                    `Successfully processed FIFO for item ${itemData.item_id} with sequence ${sequenceNumber}`
                   );
                   return Promise.resolve();
                 });
@@ -228,7 +349,10 @@ const addInventory = (data, plantId, organizationId) => {
       const processWeightedAverageForNonBatch = (item, baseQty) => {
         return db
           .collection("wa_costing_method")
-          .where({ material_id: item.item_id })
+          .where({
+            material_id: item.item_id,
+            plant_id: plantId,
+          })
           .get()
           .then((waResponse) => {
             const waData = waResponse.data;
@@ -427,48 +551,18 @@ const addInventory = (data, plantId, organizationId) => {
 
         await db.collection("inventory_movement").add(inventoryMovementData);
 
-        // Update purchase order
-        const poResponse = await db
-          .collection("on_order_purchase_order")
-          .where({
-            purchase_order_number: data.purchase_order_number,
-            material_id: item.item_id,
-          })
-          .get();
-
-        if (
-          poResponse.data &&
-          Array.isArray(poResponse.data) &&
-          poResponse.data.length > 0
-        ) {
-          const doc = poResponse.data[0];
-          if (doc && doc.id) {
-            const existingReceived = roundQty(
-              parseFloat(doc.received_qty || 0)
-            );
-            const openQuantity = roundQty(parseFloat(doc.open_qty || 0));
-            const newReceived = roundQty(
-              existingReceived + parseFloat(baseQty || 0)
-            );
-            let newOpenQuantity = roundQty(
-              openQuantity - parseFloat(baseQty || 0)
-            );
-
-            if (newOpenQuantity < 0) {
-              newOpenQuantity = 0;
-            }
-
-            await db.collection("on_order_purchase_order").doc(doc.id).update({
-              received_qty: newReceived,
-              open_qty: newOpenQuantity,
-            });
-          }
-        }
+        await updateOnOrderPurchaseOrder(
+          item,
+          baseQty,
+          purchaseOrderNumbers,
+          data
+        );
 
         // Setup inventory category quantities
         const itemBalanceParams = {
           material_id: item.item_id,
           location_id: item.location_id,
+          plant_id: plantId,
         };
 
         let block_qty = 0,
