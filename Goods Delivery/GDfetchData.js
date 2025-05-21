@@ -213,12 +213,16 @@ const fetchSourceItems = async (soIds) => {
           const itemId = sourceItem.item_name || "";
           if (!itemId) return;
 
+          const itemName = sourceItem.item_id || "";
+          if (!itemId) return;
+
           const orderedQty = parseFloat(sourceItem.so_quantity || 0);
           const altUOM = sourceItem.so_item_uom || "";
 
           // Create one line item for each source item
           allItems.push({
             itemId,
+            itemName,
             orderedQty,
             altUOM,
             sourceItem,
@@ -230,6 +234,7 @@ const fetchSourceItems = async (soIds) => {
         // Create new table_gd structure with each item preserving its SO origin
         const newTableGd = allItems.map((item) => ({
           material_id: item.itemId,
+          material_name: item.itemName,
           gd_material_desc: item.sourceItem.so_desc || "",
           gd_order_quantity: item.orderedQty,
           gd_delivered_qty: deliveredQty[item.itemId] || 0,
@@ -256,6 +261,7 @@ const fetchSourceItems = async (soIds) => {
         // Create insufficient items table structure
         const newTableInsufficient = allItems.map((item) => ({
           material_id: item.itemId,
+          material_name: item.itemName,
           order_quantity: item.orderedQty,
           available_qty: "",
           shortfall_qty: "",
@@ -276,6 +282,7 @@ const fetchSourceItems = async (soIds) => {
           // Process each item
           allItems.forEach((item, index) => {
             const itemId = item.itemId;
+            const itemName = item.itemName;
             const orderedQty = item.orderedQty;
             const altUOM = item.altUOM;
             const deliveredSoFar = deliveredQty[itemId] || 0;
@@ -300,6 +307,7 @@ const fetchSourceItems = async (soIds) => {
                 ) {
                   this.setData({
                     [`table_gd.${index}.material_id`]: itemId,
+                    [`table_gd.${index}.material_name`]: itemName,
                     [`table_gd.${index}.gd_material_desc`]:
                       item.sourceItem.so_desc || "",
                     [`table_gd.${index}.gd_order_quantity`]: orderedQty,

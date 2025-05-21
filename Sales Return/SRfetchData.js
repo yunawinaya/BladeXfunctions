@@ -73,9 +73,12 @@
               if (!gdItem.material_id) return null;
 
               return {
+                line_so_no: gdItem.line_so_no,
+                line_so_id: gdItem.line_so_id,
                 gd_number: gdData.delivery_no,
                 gd_id: gdNumber, // Store original ID
                 material_id: gdItem.material_id,
+                material_name: gdItem.material_name,
                 material_desc: gdItem.gd_material_desc,
                 quantity_uom: gdItem.gd_order_uom_id,
                 good_delivery_qty: gdItem.gd_qty || 0,
