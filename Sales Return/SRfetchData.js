@@ -44,6 +44,34 @@
       this.setData({ gd_no_display: "" });
     }
 
+    // Fetch existing sales returns for these GDs to calculate remaining return quantities
+    let existingSalesReturns = [];
+    try {
+      // Create a query to fetch all sales returns for these GD numbers
+      const salesReturnPromises = gdNumbers.map((gdId) =>
+        db.collection("sales_return").where({ sr_return_gd_id: gdId }).get()
+      );
+
+      const salesReturnResults = await Promise.all(salesReturnPromises);
+
+      // Flatten and process all sales return results
+      salesReturnResults.forEach((result) => {
+        if (result && result.data && result.data.length > 0) {
+          result.data.forEach((sr) => {
+            if (sr.table_sr && Array.isArray(sr.table_sr)) {
+              existingSalesReturns = [...existingSalesReturns, ...sr.table_sr];
+            }
+          });
+        }
+      });
+
+      console.log("Existing Sales Returns:", existingSalesReturns);
+    } catch (error) {
+      console.error("Error fetching existing sales returns:", error);
+      // Continue processing even if we can't fetch existing returns
+      existingSalesReturns = [];
+    }
+
     // Process each GD sequentially to preserve exact order
     let finalSrItems = [];
 
@@ -72,23 +100,46 @@
             .map((gdItem) => {
               if (!gdItem.material_id) return null;
 
+              // Calculate total already returned quantity for this item
+              const alreadyReturnedQty = existingSalesReturns
+                .filter(
+                  (sr) =>
+                    sr.gd_id === gdNumber &&
+                    sr.material_id === gdItem.material_id
+                )
+                .reduce(
+                  (total, item) =>
+                    total + (Number(item.expected_return_qty) || 0),
+                  0
+                );
+
+              // Calculate to_returned_qty as the remaining quantity that can be returned
+              const goodDeliveryQty = Number(gdItem.gd_qty) || 0;
+              const toReturnQty = Math.max(
+                0,
+                goodDeliveryQty - alreadyReturnedQty
+              );
+
               return {
                 line_so_no: gdItem.line_so_no,
                 line_so_id: gdItem.line_so_id,
                 gd_number: gdData.delivery_no,
-                gd_id: gdNumber, // Store original ID
+                gd_id: gdNumber,
                 material_id: gdItem.material_id,
                 material_name: gdItem.material_name,
                 material_desc: gdItem.gd_material_desc,
                 quantity_uom: gdItem.gd_order_uom_id,
-                good_delivery_qty: gdItem.gd_qty || 0,
+                good_delivery_qty: goodDeliveryQty,
+                to_returned_qty: toReturnQty,
+                expected_return_qty: 0,
                 so_quantity: gdItem.gd_order_quantity || 0,
                 unit_price: gdItem.unit_price || 0,
                 total_price: gdItem.total_price || 0,
                 fifo_sequence: gdItem.fifo_sequence || "",
+                return_remark: "",
               };
             })
-            .filter(Boolean); // Remove null items
+            .filter(Boolean);
 
           // Add all items from this GD to the final array
           finalSrItems = [...finalSrItems, ...gdItems];
