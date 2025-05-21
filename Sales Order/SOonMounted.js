@@ -5,13 +5,6 @@ this.hide([
   "shipping_service",
   "third_party_transporter",
 ]);
-this.hide([
-  "exchange_rate",
-  "exchange_rate_myr",
-  "exchange_rate_currency",
-  "myr_total_amount",
-  "total_amount_myr",
-]);
 
 const generatePrefix = (runNumber, now, prefixData) => {
   let generated = prefixData.current_prefix_config;
@@ -109,10 +102,70 @@ const showStatusHTML = async (status) => {
   }
 };
 
+const displayCurrency = async () => {
+  const currencyCode = this.getValue("so_currency");
+
+  if (currencyCode !== "----" && currencyCode !== "MYR") {
+    this.display([
+      "exchange_rate",
+      "exchange_rate_myr",
+      "exchange_rate_currency",
+      "myr_total_amount",
+      "total_amount_myr",
+    ]);
+  }
+
+  this.setData({
+    total_gross_currency: currencyCode,
+    total_discount_currency: currencyCode,
+    total_tax_currency: currencyCode,
+    total_amount_currency: currencyCode,
+    exchange_rate_currency: currencyCode,
+  });
+};
+
+const displayDeliveryMethod = async () => {
+  const deliveryMethodName = this.getValue("so_delivery_method");
+  console.log("deliveryMethodName", deliveryMethodName);
+  if (Object.keys(deliveryMethodName).length > 0) {
+    this.setData({ delivery_method_text: deliveryMethodName });
+
+    const visibilityMap = {
+      "Self Pickup": "self_pickup",
+      "Courier Service": "courier_service",
+      "Company Truck": "company_truck",
+      "Shipping Service": "shipping_service",
+      "3rd Party Transporter": "third_party_transporter",
+    };
+
+    const selectedField = visibilityMap[deliveryMethodName] || null;
+    const fields = [
+      "self_pickup",
+      "courier_service",
+      "company_truck",
+      "shipping_service",
+      "third_party_transporter",
+    ];
+
+    if (!selectedField) {
+      this.hide(fields);
+    }
+    fields.forEach((field) => {
+      field === selectedField ? this.display(field) : this.hide(field);
+    });
+  } else {
+    this.setData({ delivery_method_text: "" });
+  }
+};
+
 (async () => {
   try {
     const status = await this.getValue("so_status");
+    const soCustomer = this.getValue("customer_name");
 
+    if (soCustomer && !Array.isArray(soCustomer)) {
+      this.display("address_grid");
+    }
     let pageStatus = "";
 
     if (this.isAdd) pageStatus = "Add";
@@ -146,24 +199,26 @@ const showStatusHTML = async (status) => {
       case "Add":
         this.display(["draft_status"]);
         await setPrefix(organizationId);
+        this.setData({ so_date: new Date().toISOString().split("T")[0] });
         break;
 
       case "Edit":
         await getPrefixData(organizationId);
         await showStatusHTML(status);
+        await displayCurrency();
+        await displayDeliveryMethod();
         if (this.getValue("sqt_no")) {
           this.display("sqt_no");
         }
-        this.display("address_grid");
         break;
 
       case "Clone":
         this.display(["draft_status"]);
+        this.setData({ so_date: new Date().toISOString().split("T")[0] });
         await setPrefix(organizationId);
         if (this.getValue("sqt_no")) {
           this.display("sqt_no");
         }
-        this.display("address_grid");
         break;
 
       case "View":
@@ -175,79 +230,12 @@ const showStatusHTML = async (status) => {
           "customer_name",
         ]);
         this.display(["customer_name"]);
+        await displayCurrency();
         await showStatusHTML(status);
+        await displayDeliveryMethod();
         if (this.getValue("sqt_no")) {
           this.display("sqt_no");
         }
-        this.display("address_grid");
-
-        // Disable all form fields in View mode
-        this.disabled(
-          [
-            "so_status",
-            "sqt_no",
-            "so_no",
-            "so_date",
-            "customer_name",
-            "so_currency",
-            "plant_name",
-            "organization_id",
-            "cust_billing_name",
-            "cust_cp",
-            "cust_billing_address",
-            "cust_shipping_address",
-            "so_payment_term",
-            "so_delivery_method",
-            "so_shipping_date",
-            "so_ref_doc",
-            "cp_driver_name",
-            "cp_driver_contact_no",
-            "cp_vehicle_number",
-            "cp_pickup_date",
-            "cs_courier_company",
-            "cs_shipping_date",
-            "est_arrival_date",
-            "ct_driver_name",
-            "ct_driver_contact_no",
-            "ct_delivery_cost",
-            "ct_vehicle_number",
-            "ct_est_delivery_date",
-            "ss_shipping_company",
-            "ss_shipping_date",
-            "ss_freight_charges",
-            "ss_shipping_method",
-            "ss_est_arrival_date",
-            "ss_tracking_number",
-            "table_so",
-            "so_sales_person",
-            "so_total_gross",
-            "so_total_discount",
-            "so_total_tax",
-            "so_total",
-            "so_remarks",
-            "so_tnc",
-            "so_payment_details",
-            "billing_address_line_1",
-            "billing_address_line_2",
-            "billing_address_line_3",
-            "billing_address_line_4",
-            "billing_address_city",
-            "billing_address_state",
-            "billing_address_country",
-            "billing_postal_code",
-            "shipping_address_line_1",
-            "shipping_address_line_2",
-            "shipping_address_line_3",
-            "shipping_address_line_4",
-            "shipping_address_city",
-            "shipping_address_state",
-            "shipping_address_country",
-            "shipping_postal_code",
-            "exchange_rate",
-            "myr_total_amount",
-          ],
-          true
-        );
 
         const totalTax = this.getValue("so_total_tax");
         if (totalTax) {

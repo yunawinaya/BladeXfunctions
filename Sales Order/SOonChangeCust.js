@@ -1,10 +1,30 @@
 (async () => {
   //this.showLoading();
 
-  const customerCurrencyId =
-    arguments[0].fieldModel?.item?.customer_currency_id;
-  const customerPaymentTermId =
-    arguments[0].fieldModel?.item?.customer_payment_term_id;
+  console.log("arguments", arguments[0]);
+
+  const customerId = this.getValue("customer_name");
+  const customerChangeId = this.getValue("customer_change_id");
+  console.log("customerId", customerId);
+  console.log("customerChangeId", customerChangeId);
+
+  let customerData;
+  let customerCurrencyId;
+  let customerPaymentTermId;
+
+  if (customerId && !Array.isArray(customerId)) {
+    customerData = await db
+      .collection("Customer")
+      .where({ id: customerId })
+      .get()
+      .then((res) => {
+        return res.data[0];
+      });
+
+    customerCurrencyId = customerData.customer_currency_id;
+    customerPaymentTermId = customerData.customer_payment_term_id;
+  }
+
   console.log("customerCurrencyId", customerCurrencyId);
   console.log("customerPaymentTermId", customerPaymentTermId);
 
@@ -67,12 +87,12 @@
     });
   }
 
-  const customerId = this.getValue("customer_name");
-  const customerChangeId = this.getValue("customer_change_id");
-  console.log("customer id", customerId);
-
   // Address handling
-  if (customerId && (!customerChangeId || customerChangeId !== customerId)) {
+  if (
+    customerId &&
+    (!customerChangeId || customerChangeId !== customerId) &&
+    !Array.isArray(customerId)
+  ) {
     console.log("passing JN");
     this.setData({ customer_change_id: customerId });
     this.display("address_grid");

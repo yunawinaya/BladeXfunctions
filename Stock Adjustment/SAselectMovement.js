@@ -11,7 +11,9 @@ const triggerMovement = () => {
         [`sa_item_balance.table_item_balance.${i}.movement_type`]: "In",
       });
       this.display(`subform_dus1f9ob.${subFormIndex}.unit_price`);
-      this.disabled(`subform_dus1f9ob.${subFormIndex}.unit_price`, false);
+      setTimeout(() => {
+        this.disabled(`subform_dus1f9ob.${subFormIndex}.unit_price`, false);
+      }, 100);
     }
   } else if (selectedMovement === "Out") {
     for (let i = 0; i < tableItemBalance.length; i++) {
@@ -19,7 +21,9 @@ const triggerMovement = () => {
         [`sa_item_balance.table_item_balance.${i}.movement_type`]: "Out",
       });
       this.hide(`subform_dus1f9ob.${subFormIndex}.unit_price`);
-      this.disabled(`subform_dus1f9ob.${subFormIndex}.unit_price`, true);
+      setTimeout(() => {
+        this.disabled(`subform_dus1f9ob.${subFormIndex}.unit_price`, true);
+      }, 100);
     }
   }
 };

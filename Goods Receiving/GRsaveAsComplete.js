@@ -798,7 +798,7 @@ const addInventory = async (data, plantId, organizationId) => {
   return Promise.resolve();
 };
 
-// Enhanced PO status update with partially_received and fully_received tracking
+// Enhanced PO status update with correctly counting partially_received and fully_received
 const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
   const poIds = Array.isArray(purchaseOrderIds)
     ? purchaseOrderIds
@@ -860,7 +860,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
           });
         });
 
-        // Update received quantities in PO items and count partial/full receipts
+        // Update received quantities in PO items and count items
         updatedPoItems.forEach((item) => {
           const itemId = item.item_id;
           const orderedQty = parseFloat(item.quantity || 0);
@@ -868,18 +868,20 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
 
           item.received_qty = receivedQty;
 
-          // Determine if item is partially or fully received
-          if (receivedQty >= orderedQty) {
-            fullyReceivedItems++;
-          } else if (receivedQty > 0) {
+          // Count items with ANY received quantity as "partially received"
+          if (receivedQty > 0) {
             partiallyReceivedItems++;
+
+            // Count fully received items separately
+            if (receivedQty >= orderedQty) {
+              fullyReceivedItems++;
+            }
           }
         });
 
         // Check item completion status
         let allItemsComplete = fullyReceivedItems === totalItems;
-        let anyItemProcessing =
-          partiallyReceivedItems > 0 || fullyReceivedItems > 0;
+        let anyItemProcessing = partiallyReceivedItems > 0;
 
         // Determine new status
         let newPOStatus = poDoc.po_status;
@@ -893,13 +895,13 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
           newGRStatus = "Partially Received";
         }
 
-        // Create tracking ratios for partially and fully received items
+        // Create tracking ratios
         const partiallyReceivedRatio = `${partiallyReceivedItems} / ${totalItems}`;
         const fullyReceivedRatio = `${fullyReceivedItems} / ${totalItems}`;
 
         console.log(`PO ${purchaseOrderId} status:
           Total items: ${totalItems}
-          Partially received items: ${partiallyReceivedItems} (${partiallyReceivedRatio})
+          Partially received items (including fully received): ${partiallyReceivedItems} (${partiallyReceivedRatio})
           Fully received items: ${fullyReceivedItems} (${fullyReceivedRatio})
         `);
 

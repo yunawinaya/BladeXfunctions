@@ -754,7 +754,7 @@ const updateSalesOrderStatus = async (salesOrderId) => {
     // Create a copy of the SO items to update later
     const updatedSoItems = JSON.parse(JSON.stringify(soItems));
 
-    // Update delivered quantities in SO items and count partial/full deliveries
+    // Update delivered quantities in SO items and count items with ANY delivery
     updatedSoItems.forEach((item) => {
       const itemId = item.item_name;
       const orderedQty = parseFloat(item.so_quantity || 0);
@@ -765,18 +765,20 @@ const updateSalesOrderStatus = async (salesOrderId) => {
       // Add ratio for tracking purposes
       item.delivery_ratio = orderedQty > 0 ? deliveredQty / orderedQty : 0;
 
-      // Determine if item is partially or fully delivered
-      if (deliveredQty >= orderedQty) {
-        fullyDeliveredItems++;
-      } else if (deliveredQty > 0) {
+      // Count items with ANY delivered quantity as "partially delivered"
+      if (deliveredQty > 0) {
         partiallyDeliveredItems++;
+
+        // Count fully delivered items separately
+        if (deliveredQty >= orderedQty) {
+          fullyDeliveredItems++;
+        }
       }
     });
 
     // Check item completion status
     let allItemsComplete = fullyDeliveredItems === totalItems;
-    let anyItemProcessing =
-      partiallyDeliveredItems > 0 || fullyDeliveredItems > 0;
+    let anyItemProcessing = partiallyDeliveredItems > 0;
 
     // Determine new status
     let newSOStatus = soDoc.so_status;
@@ -790,13 +792,13 @@ const updateSalesOrderStatus = async (salesOrderId) => {
       newGDStatus = "Partially Delivered";
     }
 
-    // Create ratio strings for partially and fully delivered items
+    // Create tracking ratios
     const partiallyDeliveredRatio = `${partiallyDeliveredItems} / ${totalItems}`;
     const fullyDeliveredRatio = `${fullyDeliveredItems} / ${totalItems}`;
 
     console.log(`SO ${salesOrderId} status:
       Total items: ${totalItems}
-      Partially delivered items: ${partiallyDeliveredItems} (${partiallyDeliveredRatio})
+      Partially delivered items (including fully delivered): ${partiallyDeliveredItems} (${partiallyDeliveredRatio})
       Fully delivered items: ${fullyDeliveredItems} (${fullyDeliveredRatio})
     `);
 

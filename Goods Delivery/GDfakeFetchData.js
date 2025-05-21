@@ -1,16 +1,25 @@
 (async () => {
-  const fake_so_id = arguments[0]?.fieldModel?.value;
+  const fake_so_id = arguments[0]?.value;
 
   let organizationId = this.getVarGlobal("deptParentId");
   if (organizationId === "0") {
     organizationId = this.getVarSystem("deptIds").split(",")[0];
   }
 
-  if (fake_so_id) {
+  if (fake_so_id && !Array.isArray(fake_so_id)) {
+    const resSO = await db
+      .collection("sales_order")
+      .where({ id: fake_so_id })
+      .get();
+
+    const soData = resSO.data[0];
+
+    console.log("soData", soData);
+
     await this.setData({
       so_id: [fake_so_id],
-      customer_name: arguments[0]?.fieldModel?.item?.customer_name,
-      plant_id: arguments[0]?.fieldModel?.item?.plant_name,
+      customer_name: soData.customer_name,
+      plant_id: soData.plant_name,
       organization_id: organizationId,
     });
 
