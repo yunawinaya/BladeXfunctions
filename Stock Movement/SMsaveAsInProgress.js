@@ -773,11 +773,16 @@ class StockAdjuster {
       };
 
       const checkUniqueness = async (generatedPrefix) => {
-        const existingDoc = await db
-          .collection("stock_movement")
-          .where({ stock_movement_no: generatedPrefix })
-          .get();
-        return existingDoc.data[0] ? false : true;
+        try {
+          const existingDoc = await this.db
+            .collection("stock_movement")
+            .where({ stock_movement_no: generatedPrefix })
+            .get();
+          return !existingDoc.data || !existingDoc.data.length;
+        } catch (error) {
+          console.error("Error checking uniqueness:", error);
+          return false; // Assume not unique on error to be safe
+        }
       };
 
       const findUniquePrefix = async () => {
@@ -796,7 +801,8 @@ class StockAdjuster {
           );
         } else {
           newPrefix = prefixToShow;
-          db.collection("prefix_configuration")
+          await db
+            .collection("prefix_configuration")
             .where({
               document_types: "Stock Movement",
               is_deleted: 0,
@@ -812,8 +818,11 @@ class StockAdjuster {
 
       await findUniquePrefix();
 
+      // Fetch and store material data for all items
       const materialsMap = {};
+      const unitPricesMap = {};
 
+      // Process each stock movement item to get material data and calculate unit prices
       for (const item of allData.stock_movement) {
         const materialResponse = await this.db
           .collection("Item")
@@ -824,7 +833,30 @@ class StockAdjuster {
           throw new Error(`Material with ID ${item.item_selection} not found`);
         }
 
-        materialsMap[item.item_selection] = materialResponse.data[0];
+        const material = materialResponse.data[0];
+        materialsMap[item.item_selection] = material;
+
+        // Find related balances for this item
+        const relatedBalances = allData.balance_index.filter(
+          (balance) => balance.material_id === item.item_selection
+        );
+
+        // Get first balance to use the batch_id if available
+        const firstBalance =
+          relatedBalances.length > 0 ? relatedBalances[0] : null;
+        const batchId = firstBalance ? firstBalance.batch_id : null;
+
+        // Calculate unit price based on costing method
+        let unitPrice = 0;
+        if (material.material_costing_method === "First In First Out") {
+          unitPrice = await this.getLatestFIFOCostPrice(material, batchId);
+        } else if (material.material_costing_method === "Weighted Average") {
+          unitPrice = await this.getWeightedAverageCostPrice(material, batchId);
+        } else if (material.material_costing_method === "Fixed Cost") {
+          unitPrice = await this.getFixedCostPrice(material.id);
+        }
+
+        unitPricesMap[item.item_selection] = this.roundPrice(unitPrice || 0);
       }
 
       console.log("All Data", allData);
@@ -847,7 +879,7 @@ class StockAdjuster {
             item_selection: item.item_selection,
             total_quantity: item.total_quantity,
             received_quantity_uom: material.based_uom,
-            unit_price: material.purchase_unit_price,
+            unit_price: unitPricesMap[item.item_selection] || 0,
           };
         }),
         issue_date: allData.issue_date,

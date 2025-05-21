@@ -78,6 +78,7 @@ const fetchItemData = async () => {
 
     await this.setData({
       [`stock_movement.${rowIndex}.received_quantity_uom`]: based_uom,
+      [`stock_movement.${rowIndex}.quantity_uom`]: based_uom,
       [`stock_movement.${rowIndex}.unit_price`]: purchase_unit_price,
     });
 

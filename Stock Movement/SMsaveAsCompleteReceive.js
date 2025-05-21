@@ -253,6 +253,8 @@ class ReceivingIOFTProcessor {
     };
     const errors = [];
 
+    console.log("processedItems JN", processedItems);
+
     // Process each item
     for (const { item, materialData, balances } of processedItems) {
       const quantityToReceive = Number(item.total_quantity);

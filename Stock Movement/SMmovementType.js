@@ -13,6 +13,7 @@ const displayAllFields = () => {
     "stock_movement.to_recv_qty",
     "stock_movement.received_quantity",
     "stock_movement.received_quantity_uom",
+    "stock_movement.quantity_uom",
     "stock_movement.unit_price",
     "stock_movement.amount",
     "stock_movement.location_id",
@@ -204,6 +205,7 @@ const init = async () => {
         "receiving_operation_faci",
         "stock_movement.transfer_stock",
         "stock_movement.total_quantity",
+        "stock_movement.quantity_uom",
         "is_production_order",
         "stock_movement.to_recv_qty",
         "stock_movement.transfer_stock",
@@ -253,6 +255,7 @@ const init = async () => {
       this.hide([
         "stock_movement.transfer_stock",
         "stock_movement.amount",
+        "stock_movement.quantity_uom",
         "is_production_order",
         "delivery_method",
         "receiving_operation_faci",
@@ -284,6 +287,7 @@ const init = async () => {
       this.hide([
         "delivery_method",
         "receiving_operation_faci",
+        "stock_movement.quantity_uom",
         "stock_movement.transfer_stock",
         "stock_movement.total_quantity",
         "stock_movement.to_recv_qty",
@@ -328,11 +332,7 @@ const init = async () => {
       case "Inter Operation Facility Transfer (Receiving)":
         hideAllButtons();
         console.log("helllo");
-        this.display([
-          "button_save_as_draft",
-          "button_complete_receive",
-          "comp_post_button",
-        ]);
+        this.display(["button_save_as_draft", "button_complete_receive"]);
         break;
       case "Inter Operation Facility Transfer":
         hideAllButtons();
