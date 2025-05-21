@@ -5,6 +5,19 @@ console.log("Form data:", data);
 const salesReturnIDs = arguments[0].value;
 console.log("Sales Return IDs:", salesReturnIDs);
 
+Promise.all(
+  salesReturnIDs.map((srId) =>
+    db
+      .collection("sales_return")
+      .doc(srId) // Direct document reference
+      .get()
+      .then((doc) => (doc ? doc.data[0].sales_return_no : null))
+  )
+).then((results) => {
+  const displayText = results.filter(Boolean).join(", ");
+  console.log("sr", results);
+  this.setData({ sr_no_display: displayText });
+});
 // Check if gdNumbers is empty or invalid before proceeding
 if (
   !salesReturnIDs ||
@@ -66,7 +79,60 @@ const promises = salesReturnIDs.map((salesReturnID) => {
       const srrItems = [];
 
       if (salesReturnData && Array.isArray(salesReturnData.table_sr)) {
-        salesReturnData.table_sr.forEach((salesReturnItem) => {
+        salesReturnData.table_sr.forEach((salesReturnItem, index) => {
+          let costingMethod = "";
+          let targetLocation = "";
+          if (
+            data.table_srr &&
+            Array.isArray(data.table_srr) &&
+            data.table_srr.length === 0
+          ) {
+            db.collection("Item")
+              .where({ id: salesReturnItem.material_id })
+              .get()
+              .then((result) => {
+                const itemData = result.data[0];
+                costingMethod = itemData.material_costing_method;
+
+                const plantId = this.getValue("plant_id");
+                console.log("plant", plantId);
+                db.collection("bin_location")
+                  .where({
+                    plant_id: plantId,
+                    is_default: 1,
+                  })
+                  .get()
+                  .then((resBinLocation) => {
+                    if (resBinLocation.data.length > 0) {
+                      targetLocation = resBinLocation.data[0].id;
+                      this.setData({
+                        [`table_srr.${index}.location_id`]: targetLocation,
+                      });
+                    }
+                  });
+
+                const batchManagement = itemData.item_batch_management;
+
+                if (batchManagement === 1) {
+                  this.disabled(`table_srr.${index}.batch_id`, false);
+                } else {
+                  this.disabled(`table_srr.${index}.batch_id`, true);
+                }
+
+                db.collection("batch")
+                  .where({ material_id: salesReturnItem.material_id })
+                  .get()
+                  .then((re) => {
+                    if (re.data.length > 0) {
+                      this.setOptionData(
+                        `table_srr.${index}.batch_id`,
+                        re.data
+                      );
+                    }
+                  });
+              });
+          }
+
           console.log(
             `Processing Sales Return item from ${salesReturnID}:`,
             salesReturnItem
@@ -78,11 +144,13 @@ const promises = salesReturnIDs.map((salesReturnID) => {
               material_id: salesReturnItem.material_id,
               so_quantity: salesReturnItem.so_quantity,
               expected_return_qty: salesReturnItem.expected_return_qty,
+              return_quantity: salesReturnItem.expected_return_qty,
               quantity_uom: salesReturnItem.quantity_uom,
               return_reason: salesReturnItem.return_reason,
               unit_price: salesReturnItem.unit_price,
               total_price: salesReturnItem.total_price,
               fifo_sequence: salesReturnItem.fifo_sequence,
+              costing_method: costingMethod,
             });
           }
         });

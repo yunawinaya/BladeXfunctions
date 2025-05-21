@@ -105,6 +105,162 @@ const findUniquePrefix = async (prefixData) => {
   return { prefixToShow, runningNumber };
 };
 
+// Check if GD and SO items have any remaining quantity to return
+const checkRemainingReturnQuantity = async (gdId, soId) => {
+  try {
+    // Get all current sales returns for this GD
+    const salesReturnsResult = await db
+      .collection("sales_return")
+      .where({ sr_return_gd_id: gdId })
+      .get();
+
+    // Get the original GD to compare quantities
+    const gdResult = await db
+      .collection("goods_delivery")
+      .where({ id: gdId })
+      .get();
+
+    if (!gdResult.data || gdResult.data.length === 0) {
+      throw new Error(`Goods Delivery not found: ${gdId}`);
+    }
+
+    const goodsDelivery = gdResult.data[0];
+
+    // If GD has no items, mark as no remaining quantity
+    if (
+      !goodsDelivery.table_gd ||
+      !Array.isArray(goodsDelivery.table_gd) ||
+      goodsDelivery.table_gd.length === 0
+    ) {
+      return { hasRemainingQuantity: false, fullyReturned: true };
+    }
+
+    // Calculate total quantities delivered and returned per material
+    const deliveredQuantities = {};
+    const returnedQuantities = {};
+
+    // Map all delivered quantities
+    goodsDelivery.table_gd.forEach((item) => {
+      if (item.material_id) {
+        deliveredQuantities[item.material_id] =
+          (deliveredQuantities[item.material_id] || 0) +
+          Number(item.gd_qty || 0);
+      }
+    });
+
+    // Map all returned quantities from all sales returns
+    if (salesReturnsResult.data && salesReturnsResult.data.length > 0) {
+      salesReturnsResult.data.forEach((sr) => {
+        if (sr.table_sr && Array.isArray(sr.table_sr)) {
+          sr.table_sr.forEach((item) => {
+            if (item.material_id) {
+              returnedQuantities[item.material_id] =
+                (returnedQuantities[item.material_id] || 0) +
+                Number(item.expected_return_qty || 0);
+            }
+          });
+        }
+      });
+    }
+
+    // Check if there are any materials with remaining quantity to return
+    let hasRemainingQuantity = false;
+    let fullyReturned = true;
+
+    for (const materialId in deliveredQuantities) {
+      const delivered = deliveredQuantities[materialId];
+      const returned = returnedQuantities[materialId] || 0;
+
+      if (returned < delivered) {
+        hasRemainingQuantity = true;
+        fullyReturned = false;
+        break;
+      }
+    }
+
+    return { hasRemainingQuantity, fullyReturned };
+  } catch (error) {
+    console.error("Error checking remaining return quantity:", error);
+    // Default to allowing returns if there's an error
+    return { hasRemainingQuantity: true, fullyReturned: false };
+  }
+};
+
+// Update GD and SO status based on return status
+const updateSOandGDReturnStatus = async (gdId, soId) => {
+  try {
+    if (gdId) {
+      // Check GD return status
+      const { fullyReturned, hasRemainingQuantity } =
+        await checkRemainingReturnQuantity(gdId, soId);
+
+      // Update GD status
+      const sr_status = fullyReturned ? "Fully Returned" : "Partially Returned";
+      const has_sr = 1;
+
+      await db.collection("goods_delivery").doc(gdId).update({
+        sr_status,
+        has_sr,
+      });
+
+      // If SO ID is provided, update SO status too
+      if (soId) {
+        // For SO, we need to check if all associated GDs are fully returned
+        const gdResults = await db
+          .collection("goods_delivery")
+          .where({ so_id: soId })
+          .get();
+
+        let allGDsFullyReturned = true;
+        let anyGDReturned = false;
+
+        if (gdResults.data && gdResults.data.length > 0) {
+          for (const gd of gdResults.data) {
+            // Skip the current GD as we already know its status
+            if (gd.id === gdId) {
+              anyGDReturned = true;
+              if (!fullyReturned) {
+                allGDsFullyReturned = false;
+              }
+              continue;
+            }
+
+            // Check other GDs
+            if (gd.sr_status === "Fully Returned") {
+              anyGDReturned = true;
+            } else if (gd.sr_status === "Partially Returned") {
+              anyGDReturned = true;
+              allGDsFullyReturned = false;
+            } else {
+              // No returns for this GD
+              allGDsFullyReturned = false;
+            }
+          }
+        }
+
+        // Update SO status
+        const so_sr_status = allGDsFullyReturned
+          ? "Fully Returned"
+          : anyGDReturned
+          ? "Partially Returned"
+          : null;
+
+        if (so_sr_status) {
+          await db.collection("sales_order").doc(soId).update({
+            sr_status: so_sr_status,
+            has_sr: 1,
+          });
+        }
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error updating return status:", error);
+    throw new Error(`Failed to update return status: ${error.message}`);
+  }
+};
+
 const updateEntry = async (organizationId, entry, salesReturnId) => {
   try {
     const prefixData = await getPrefixData(organizationId);
@@ -123,11 +279,13 @@ const updateEntry = async (organizationId, entry, salesReturnId) => {
       // Run workflow after successful update
       await runWorkflowSafely(entry.sales_return_no);
 
-      // Update sales order status
-      await db
-        .collection("sales_order")
-        .doc(entry.sr_return_so_id)
-        .update({ has_sr: true });
+      // Update GD and SO return status
+      const gdId = entry.sr_return_gd_id;
+      const soId = entry.sr_return_so_id;
+
+      if (gdId) {
+        await updateSOandGDReturnStatus(gdId, soId);
+      }
 
       return true;
     } else {
@@ -159,12 +317,12 @@ const addEntry = async (organizationId, entry) => {
       // Run workflow after successful addition
       await runWorkflowSafely(entry.sales_return_no);
 
-      // Update sales order status
-      if (entry.sr_return_so_id) {
-        await db
-          .collection("sales_order")
-          .doc(entry.sr_return_so_id)
-          .update({ has_sr: true });
+      // Update GD and SO return status
+      const gdId = entry.sr_return_gd_id;
+      const soId = entry.sr_return_so_id;
+
+      if (gdId) {
+        await updateSOandGDReturnStatus(gdId, soId);
       }
 
       return addResult;
@@ -217,28 +375,60 @@ const updateSOandGDStatus = async (sr_return_so_id, sr_return_gd_id) => {
       ? sr_return_gd_id
       : [sr_return_gd_id].filter(Boolean);
 
-    const promises = [];
-
-    for (const soId of soIds) {
-      if (soId) {
-        promises.push(
-          db.collection("sales_order").doc(soId).update({ has_sr: 1 })
-        );
-      }
-    }
-
+    // For each GD, update its return status
     for (const gdId of gdIds) {
       if (gdId) {
-        promises.push(
-          db.collection("goods_delivery").doc(gdId).update({ has_sr: 1 })
-        );
+        await updateSOandGDReturnStatus(gdId, soIds[0]);
       }
     }
 
-    await Promise.all(promises);
     return true;
   } catch (error) {
     throw new Error(`Failed to update SO and GD status: ${error.message}`);
+  }
+};
+
+// Validate if the selected GD and SO can be used for returns
+const validateGDandSOForReturns = async (gdId, soId) => {
+  try {
+    if (!gdId) return { valid: false, message: "No Goods Delivery selected" };
+
+    // Check if GD exists and its current return status
+    const gdResult = await db
+      .collection("goods_delivery")
+      .where({ id: gdId })
+      .get();
+
+    if (!gdResult.data || gdResult.data.length === 0) {
+      return { valid: false, message: `Goods Delivery not found: ${gdId}` };
+    }
+
+    const gd = gdResult.data[0];
+
+    if (gd.sr_status === "Fully Returned") {
+      return {
+        valid: false,
+        message: `Goods Delivery ${gd.delivery_no} has already been fully returned`,
+      };
+    }
+
+    // Check if there's any remaining quantity to return
+    const { hasRemainingQuantity } = await checkRemainingReturnQuantity(
+      gdId,
+      soId
+    );
+
+    if (!hasRemainingQuantity) {
+      return {
+        valid: false,
+        message: `All items in Goods Delivery ${gd.delivery_no} have already been fully returned`,
+      };
+    }
+
+    return { valid: true };
+  } catch (error) {
+    console.error("Error validating GD and SO for returns:", error);
+    return { valid: false, message: `Validation error: ${error.message}` };
   }
 };
 
@@ -319,6 +509,19 @@ const updateSOandGDStatus = async (sr_return_so_id, sr_return_gd_id) => {
         shipping_postal_code,
       } = data;
 
+      // Validate if GD can be returned before proceeding
+      if (page_status === "Add") {
+        const validation = await validateGDandSOForReturns(
+          sr_return_gd_id,
+          sr_return_so_id
+        );
+        if (!validation.valid) {
+          this.hideLoading();
+          this.$message.error(validation.message);
+          return;
+        }
+      }
+
       const entry = {
         sr_status: "Issued",
         fake_sr_return_so_id,
@@ -378,9 +581,6 @@ const updateSOandGDStatus = async (sr_return_so_id, sr_return_gd_id) => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-
-      // Update related SO and GD statuses
-      await updateSOandGDStatus(sr_return_so_id, sr_return_gd_id);
 
       if (page_status === "Add") {
         await addEntry(organizationId, entry);
