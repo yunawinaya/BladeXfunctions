@@ -63,29 +63,172 @@ const addInventory = async (data, plantId, organizationId) => {
         }
 
         const poData = poResponse.data[0];
+        const exchangeRate = poData.exchange_rate || 1;
 
-        const exchangeRate = poData.exchange_rate;
-        let poQuantity = 0;
-        let totalAmount = 0;
+        // Find matching items in the PO that have the same material ID
+        const matchingPoItems = poData.table_po.filter(
+          (poItem) => poItem.item_id === itemData.item_id
+        );
 
-        for (const poItem of poData.table_po) {
-          if (poItem.item_id === itemData.item_id) {
-            poQuantity = roundQty(parseFloat(poItem.quantity) || 0);
-            totalAmount = roundPrice(parseFloat(poItem.po_amount) || 0);
-            break;
+        // Find the specific PO item that corresponds to this GR item
+        let targetPoItem = null;
+
+        // If we have a line_po_id, use it for precise matching
+        if (itemData.line_po_id && matchingPoItems.length > 0) {
+          // Try to match by line_po_id if it's available on the PO items
+          const lineIdMatch = matchingPoItems.find(
+            (poItem) =>
+              poItem.id === itemData.line_po_id ||
+              poItem.line_id === itemData.line_po_id
+          );
+
+          if (lineIdMatch) {
+            targetPoItem = lineIdMatch;
+            console.log(
+              `Found exact match by line_po_id: ${itemData.line_po_id} for item ${itemData.item_id}`
+            );
           }
         }
 
-        const pricePerUnit = roundPrice(totalAmount / poQuantity);
+        // If we couldn't match by line_po_id, try matching by line_po_no if available
+        if (
+          !targetPoItem &&
+          itemData.line_po_no &&
+          matchingPoItems.length > 0
+        ) {
+          const lineNoMatch = matchingPoItems.find(
+            (poItem) =>
+              poItem.po_no === itemData.line_po_no ||
+              poItem.line_po_no === itemData.line_po_no
+          );
+
+          if (lineNoMatch) {
+            targetPoItem = lineNoMatch;
+            console.log(
+              `Found exact match by line_po_no: ${itemData.line_po_no} for item ${itemData.item_id}`
+            );
+          }
+        }
+
+        // If we couldn't match by direct identifiers, fall back to position-based matching
+        if (!targetPoItem) {
+          if (matchingPoItems.length === 1) {
+            // Only one matching item, use it
+            targetPoItem = matchingPoItems[0];
+          } else if (matchingPoItems.length > 1) {
+            // Enhanced position-based matching for multiple items
+
+            // Find the position of this item in the GR table
+            const itemPosition = data.table_gr.findIndex(
+              (grItem) =>
+                grItem === itemData ||
+                (grItem.item_id === itemData.item_id &&
+                  grItem.line_po_id === itemData.line_po_id)
+            );
+
+            // Look for uniquely identifying properties in the GR item that might match the PO
+            // For example, if there's a unique property like "po_line_number" or "item_description"
+            const uniqueIdentifiers = [
+              "line_number",
+              "po_line_number",
+              "item_description",
+              "item_specification",
+              "line_reference",
+            ];
+
+            for (const identifier of uniqueIdentifiers) {
+              if (
+                itemData[identifier] &&
+                matchingPoItems.some(
+                  (poItem) => poItem[identifier] === itemData[identifier]
+                )
+              ) {
+                targetPoItem = matchingPoItems.find(
+                  (poItem) => poItem[identifier] === itemData[identifier]
+                );
+                console.log(
+                  `Matched by ${identifier}: ${itemData[identifier]} for item ${itemData.item_id}`
+                );
+                break;
+              }
+            }
+
+            // If still no match, try to match by identical price/amount
+            if (!targetPoItem && itemData.unit_price) {
+              const priceMatch = matchingPoItems.find(
+                (poItem) =>
+                  Math.abs(
+                    parseFloat(poItem.unit_price || 0) -
+                      parseFloat(itemData.unit_price || 0)
+                  ) < 0.0001
+              );
+
+              if (priceMatch) {
+                targetPoItem = priceMatch;
+                console.log(
+                  `Matched by unit price: ${itemData.unit_price} for item ${itemData.item_id}`
+                );
+              }
+            }
+
+            // Fall back to position-based matching as a last resort
+            if (!targetPoItem) {
+              // Count how many items with this material ID come before this one in the GR
+              const itemsBeforeCount = data.table_gr
+                .slice(0, itemPosition)
+                .filter((grItem) => grItem.item_id === itemData.item_id).length;
+
+              // Use this count to find the corresponding PO item
+              if (itemsBeforeCount < matchingPoItems.length) {
+                targetPoItem = matchingPoItems[itemsBeforeCount];
+                console.log(
+                  `Position-based match: Item #${
+                    itemsBeforeCount + 1
+                  } of type ${itemData.item_id}`
+                );
+              } else {
+                // Fallback to the first matching item
+                targetPoItem = matchingPoItems[0];
+                console.warn(
+                  `Couldn't find exact PO item match for ${itemData.item_id} at position ${itemPosition}, using first match`
+                );
+              }
+            }
+          }
+        }
+
+        if (!targetPoItem) {
+          console.warn(
+            `No matching PO item found for ${itemData.item_id}, using default pricing`
+          );
+          return roundPrice(itemData.unit_price);
+        }
+
+        // Extract price and quantity from the matched PO item
+        const poQuantity = roundQty(parseFloat(targetPoItem.quantity) || 0);
+        const totalAmount = roundPrice(parseFloat(targetPoItem.po_amount) || 0);
+
+        // Calculate unit price and apply the conversion factor
+        const pricePerUnit =
+          poQuantity > 0 ? roundPrice(totalAmount / poQuantity) : 0;
         const costPrice = roundPrice(
           (pricePerUnit / conversion) * exchangeRate
         );
-        console.log("costPrice", costPrice);
+
+        console.log(
+          `Cost price for ${
+            itemData.item_id
+          }: ${costPrice} (from PO item amount: ${totalAmount}, qty: ${poQuantity}, poItem: ${JSON.stringify(
+            targetPoItem.id || "unknown"
+          )})`
+        );
 
         return costPrice;
       })
       .catch((error) => {
-        console.error(`Error calculating cost price: ${error.message}`);
+        console.error(
+          `Error calculating cost price for ${itemData.item_id}: ${error.message}`
+        );
         return roundPrice(itemData.unit_price);
       });
   };
@@ -411,36 +554,37 @@ const addInventory = async (data, plantId, organizationId) => {
             `Found ${OnOrderPOData.length} records for item ${item.item_id} in PO ${poNumber}`
           );
 
-          // Count matching items in the GR to determine how to distribute quantities
-          const matchingGrItems = data.table_gr.filter(
-            (grItem) => grItem.item_id === item.item_id
+          // Find the position of this item in the GR table
+          const itemPosition = data.table_gr.findIndex(
+            (grItem) => grItem === item
           );
 
-          // Determine how many identical GR items we have and which one this is
-          const totalMatchingItems = matchingGrItems.length;
-          const currentItemIndex = matchingGrItems.findIndex(
-            (grItem) =>
-              grItem === item ||
-              (grItem.item_id === item.item_id &&
-                grItem.line_po_id === item.line_po_id &&
-                grItem === item)
-          );
+          // Count how many items with this material ID come before this one in the GR
+          let itemIndexInGroup = 0;
 
-          // Find matching records in the on_order_purchase_order collection
-          // Calculate which on_order_purchase_order record corresponds to this GR item
-          let targetRecordIndex = 0;
-
-          // If we can identify which record this item corresponds to,
-          // update only that record
-          if (
-            currentItemIndex !== -1 &&
-            currentItemIndex < OnOrderPOData.length
-          ) {
-            targetRecordIndex = currentItemIndex;
+          if (itemPosition > 0) {
+            itemIndexInGroup = data.table_gr
+              .slice(0, itemPosition)
+              .filter((grItem) => grItem.item_id === item.item_id).length;
           }
+
+          // Use this index to find the matching on_order_purchase_order record
+          // Make sure we don't go out of bounds
+          const targetRecordIndex = Math.min(
+            itemIndexInGroup,
+            OnOrderPOData.length - 1
+          );
 
           // Only update the record corresponding to this item
           const targetRecord = OnOrderPOData[targetRecordIndex];
+
+          console.log(
+            `Updating ${
+              item.item_id
+            } record at index ${targetRecordIndex} (item is #${
+              itemIndexInGroup + 1
+            } of its type in GR)`
+          );
 
           if (targetRecord && targetRecord.id) {
             const existingReceived = roundQty(
