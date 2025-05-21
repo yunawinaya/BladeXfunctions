@@ -748,9 +748,12 @@ const updateEntry = async (organizationId, entry, salesReturnReceivingId) => {
       }
 
       const {
+        fake_so_id,
         so_id,
+        so_no_display,
         sales_return_id,
         sr_no_display,
+        customer_id,
         contact_person,
         srr_no,
         plant_id,
@@ -766,9 +769,12 @@ const updateEntry = async (organizationId, entry, salesReturnReceivingId) => {
       const entry = {
         srr_status: "Completed",
         so_id,
+        so_no_display,
+        fake_so_id,
+        customer_id,
+        contact_person,
         sales_return_id,
         sr_no_display,
-        contact_person,
         srr_no,
         plant_id,
         organization_id,
