@@ -634,19 +634,229 @@ const findUniquePrefix = async (prefixData) => {
   return { prefixToShow, runningNumber };
 };
 
-const updateSalesReturn = async (entry) => {
-  entry.sales_return_id.forEach(async (salesReturnId) => {
-    await db.collection("sales_return").doc(salesReturnId).update({
-      sr_status: "Completed",
+// NEW FUNCTION: Check receipt completion status for each Sales Return
+const checkSalesReturnReceivingStatus = async (salesReturnId) => {
+  try {
+    // Get the Sales Return
+    const srResult = await db
+      .collection("sales_return")
+      .where({ id: salesReturnId })
+      .get();
+
+    if (!srResult.data || srResult.data.length === 0) {
+      console.warn(`Sales Return not found: ${salesReturnId}`);
+      return { fullyReceived: false };
+    }
+
+    const salesReturn = srResult.data[0];
+
+    // Get all SRRs for this Sales Return
+    const srrResults = await db
+      .collection("sales_return_receiving")
+      .where({ sales_return_id: salesReturnId })
+      .get();
+
+    // If there are no SRRs, nothing is received
+    if (!srrResults.data || srrResults.data.length === 0) {
+      return { fullyReceived: false };
+    }
+
+    // Calculate total expected and received quantities per material
+    const expectedQuantities = {};
+    const receivedQuantities = {};
+
+    // Get expected quantities from SR
+    if (salesReturn.table_sr && Array.isArray(salesReturn.table_sr)) {
+      salesReturn.table_sr.forEach((item) => {
+        if (item.material_id) {
+          expectedQuantities[item.material_id] =
+            (expectedQuantities[item.material_id] || 0) +
+            Number(item.expected_return_qty || 0);
+        }
+      });
+    }
+
+    // Get received quantities from all SRRs
+    srrResults.data.forEach((srr) => {
+      if (srr.table_srr && Array.isArray(srr.table_srr)) {
+        srr.table_srr.forEach((item) => {
+          if (item.material_id) {
+            receivedQuantities[item.material_id] =
+              (receivedQuantities[item.material_id] || 0) +
+              Number(item.return_quantity || 0);
+          }
+        });
+      }
     });
-  });
+
+    // Check if all materials are fully received
+    let fullyReceived = true;
+    let partiallyReceived = false;
+
+    for (const materialId in expectedQuantities) {
+      const expected = expectedQuantities[materialId];
+      const received = receivedQuantities[materialId] || 0;
+
+      if (received > 0) {
+        partiallyReceived = true;
+      }
+
+      if (received < expected) {
+        fullyReceived = false;
+      }
+    }
+
+    return {
+      fullyReceived,
+      partiallyReceived,
+      status: fullyReceived
+        ? "Fully Received"
+        : partiallyReceived
+        ? "Partially Received"
+        : "Issued",
+    };
+  } catch (error) {
+    console.error(`Error checking SRR status for SR ${salesReturnId}:`, error);
+    return { fullyReceived: false, partiallyReceived: false, status: "Issued" };
+  }
+};
+
+// NEW FUNCTION: Check the status for a Sales Order based on its Sales Returns
+const checkSalesOrderReceivingStatus = async (soId) => {
+  try {
+    // Get all Sales Returns for this SO
+    const srResults = await db
+      .collection("sales_return")
+      .where({ sr_return_so_id: soId })
+      .get();
+
+    if (!srResults.data || srResults.data.length === 0) {
+      return { status: null };
+    }
+
+    let allSRsFullyReceived = true;
+    let anySRPartiallyReceived = false;
+
+    // Check the status of each Sales Return
+    for (const sr of srResults.data) {
+      const { fullyReceived, partiallyReceived } =
+        await checkSalesReturnReceivingStatus(sr.id);
+
+      if (partiallyReceived) {
+        anySRPartiallyReceived = true;
+      }
+
+      if (!fullyReceived) {
+        allSRsFullyReceived = false;
+      }
+    }
+
+    const status = allSRsFullyReceived
+      ? "Fully Received"
+      : anySRPartiallyReceived
+      ? "Partially Received"
+      : null;
+
+    return { status };
+  } catch (error) {
+    console.error(`Error checking SRR status for SO ${soId}:`, error);
+    return { status: null };
+  }
+};
+
+// NEW FUNCTION: Update the status of Sales Returns and Sales Orders
+const updateSalesReturnAndOrderStatus = async (data) => {
+  try {
+    // Get unique Sales Return IDs
+    const salesReturnIds = Array.isArray(data.sales_return_id)
+      ? data.sales_return_id
+      : [data.sales_return_id];
+
+    // Get unique SO IDs
+    const soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];
+
+    const updatePromises = [];
+
+    // Update each Sales Return status
+    for (const srId of salesReturnIds) {
+      if (!srId) continue;
+
+      const { status } = await checkSalesReturnReceivingStatus(srId);
+
+      if (status) {
+        updatePromises.push(
+          db
+            .collection("sales_return")
+            .doc(srId)
+            .update({
+              srr_status: status,
+              sr_status: status === "Fully Received" ? "Completed" : "Issued",
+            })
+        );
+      }
+    }
+
+    // Update each Sales Order status
+    for (const soId of soIds) {
+      if (!soId) continue;
+
+      const { status } = await checkSalesOrderReceivingStatus(soId);
+
+      if (status) {
+        updatePromises.push(
+          db.collection("sales_order").doc(soId).update({
+            srr_status: status,
+          })
+        );
+      }
+    }
+
+    await Promise.all(updatePromises);
+    return true;
+  } catch (error) {
+    console.error("Error updating SR and SO status:", error);
+    throw error;
+  }
+};
+
+const updateSalesReturn = async (entry) => {
+  try {
+    const salesReturnIds = Array.isArray(entry.sales_return_id)
+      ? entry.sales_return_id
+      : [entry.sales_return_id];
+
+    // Update each Sales Return with Completed status
+    for (const salesReturnId of salesReturnIds) {
+      if (salesReturnId) {
+        await db.collection("sales_return").doc(salesReturnId).update({
+          sr_status: "Completed",
+        });
+      }
+    }
+
+    // Update the srr_status for Sales Returns and Sales Orders
+    await updateSalesReturnAndOrderStatus(entry);
+
+    return true;
+  } catch (error) {
+    console.error("Error updating Sales Return status:", error);
+    throw error;
+  }
 };
 
 const addEntry = async (organizationId, entry) => {
   try {
     const prefixData = await getPrefixData(organizationId);
     if (prefixData.length !== 0) {
-      await updatePrefix(organizationId, prefixData.running_number);
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      // Set the SRR number
+      entry.srr_no = prefixToShow;
+
       await db
         .collection("sales_return_receiving")
         .add(entry)
@@ -664,8 +874,10 @@ const addEntry = async (organizationId, entry) => {
             }
           );
         });
-      await updateInventory(entry, entry.plantId, organizationId);
+
+      await updateInventory(entry, entry.plant_id, organizationId);
       await updateSalesReturn(entry);
+
       this.$message.success("Add successfully");
       closeDialog();
     }
@@ -705,14 +917,143 @@ const updateEntry = async (organizationId, entry, salesReturnReceivingId) => {
             }
           );
         });
-      await updateInventory(entry, entry.plantId, organizationId);
+      await updateInventory(entry, entry.plant_id, organizationId);
       await updateSalesReturn(entry);
+
       this.$message.success("Update successfully");
       await closeDialog();
     }
   } catch (error) {
     this.hideLoading();
     this.$message.error(error);
+  }
+};
+
+// Helper function to calculate total received quantities for validation
+const calculateReceivedQuantities = async (
+  salesReturnIds,
+  excludeSrrId = null
+) => {
+  try {
+    // Get all SRRs for these Sales Returns
+    const srrResponse = await db.collection("sales_return_receiving").get();
+
+    let allReceivingItems = [];
+
+    if (srrResponse.data && srrResponse.data.length > 0) {
+      // Filter to only include SRRs related to our Sales Returns and exclude current SRR if updating
+      const relevantSrrs = srrResponse.data.filter((srr) => {
+        const srrSalesReturns = Array.isArray(srr.sales_return_id)
+          ? srr.sales_return_id
+          : [srr.sales_return_id];
+
+        const isRelevant = srrSalesReturns.some((id) =>
+          salesReturnIds.includes(id)
+        );
+        const isNotCurrent = excludeSrrId ? srr.id !== excludeSrrId : true;
+
+        return isRelevant && isNotCurrent;
+      });
+
+      // Extract all table_srr items from the relevant SRRs
+      relevantSrrs.forEach((srr) => {
+        if (srr.table_srr && Array.isArray(srr.table_srr)) {
+          allReceivingItems = [...allReceivingItems, ...srr.table_srr];
+        }
+      });
+    }
+
+    // Calculate total received quantities per SR and material
+    const receivedByMaterial = {};
+
+    allReceivingItems.forEach((item) => {
+      if (item.material_id && item.sr_number) {
+        const key = `${item.sr_number}_${item.material_id}`;
+        receivedByMaterial[key] =
+          (receivedByMaterial[key] || 0) + Number(item.return_quantity || 0);
+      }
+    });
+
+    return receivedByMaterial;
+  } catch (error) {
+    console.error("Error calculating received quantities:", error);
+    return {};
+  }
+};
+
+// Validate that quantities don't exceed expected amounts
+const validateReceivingQuantities = async (entry, isUpdate = false) => {
+  try {
+    const salesReturnIds = Array.isArray(entry.sales_return_id)
+      ? entry.sales_return_id
+      : [entry.sales_return_id];
+
+    // Get all Sales Returns
+    const srPromises = salesReturnIds.map((srId) =>
+      db.collection("sales_return").where({ id: srId }).get()
+    );
+
+    const srResults = await Promise.all(srPromises);
+
+    // Build a map of expected quantities by material and SR
+    const expectedQuantities = {};
+    const srNumbers = {};
+
+    srResults.forEach((result) => {
+      if (result.data && result.data.length > 0) {
+        const sr = result.data[0];
+        srNumbers[sr.id] = sr.sales_return_no;
+
+        if (sr.table_sr && Array.isArray(sr.table_sr)) {
+          sr.table_sr.forEach((item) => {
+            if (item.material_id) {
+              const key = `${sr.sales_return_no}_${item.material_id}`;
+              expectedQuantities[key] = Number(item.expected_return_qty || 0);
+            }
+          });
+        }
+      }
+    });
+
+    // Get already received quantities from other SRRs
+    const receivedQuantities = await calculateReceivedQuantities(
+      salesReturnIds,
+      isUpdate ? entry.id : null
+    );
+
+    // Validate quantities in the current entry
+    const currentItems = entry.table_srr || [];
+    const errors = [];
+
+    for (const item of currentItems) {
+      if (item.material_id && item.sr_number) {
+        const key = `${item.sr_number}_${item.material_id}`;
+        const expected = expectedQuantities[key] || 0;
+        const alreadyReceived = receivedQuantities[key] || 0;
+        const currentQuantity = Number(item.return_quantity || 0);
+
+        if (alreadyReceived + currentQuantity > expected) {
+          errors.push(
+            `The total received quantity (${
+              alreadyReceived + currentQuantity
+            }) for material ${item.material_name} in SR ${
+              item.sr_number
+            } exceeds the expected return quantity (${expected})`
+          );
+        }
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  } catch (error) {
+    console.error("Error validating receiving quantities:", error);
+    return {
+      valid: false,
+      errors: [`Error validating quantities: ${error.message}`],
+    };
   }
 };
 
@@ -784,13 +1125,28 @@ const updateEntry = async (organizationId, entry, salesReturnReceivingId) => {
         table_srr,
         input_y0dr1vke,
         remarks,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
+
+      // Validate quantities
+      const validation = await validateReceivingQuantities(
+        entry,
+        page_status === "Edit"
+      );
+
+      if (!validation.valid) {
+        this.hideLoading();
+        this.$message.error(validation.errors.join("\n"));
+        return;
+      }
 
       if (page_status === "Add") {
         await addEntry(organizationId, entry);
         closeDialog();
       } else if (page_status === "Edit") {
         const salesReturnReceivingId = this.getValue("id");
+        entry.updated_at = new Date().toISOString();
         await updateEntry(organizationId, entry, salesReturnReceivingId);
         closeDialog();
       }
@@ -800,6 +1156,11 @@ const updateEntry = async (organizationId, entry, salesReturnReceivingId) => {
     }
   } catch (error) {
     this.hideLoading();
-    this.$message.error(error);
+    this.$message.error(
+      typeof error === "string"
+        ? error
+        : error.message || "An unexpected error occurred"
+    );
+    console.error("Error processing Sales Return Receiving:", error);
   }
 })();

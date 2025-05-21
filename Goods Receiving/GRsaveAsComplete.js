@@ -388,7 +388,13 @@ const addInventory = async (data, plantId, organizationId) => {
 
       const poNumbersToCheck = itemPoNumber ? [itemPoNumber] : poNumbers;
 
+      // Variable to track if we updated any records
+      let updatedAnyRecords = false;
+
       for (const poNumber of poNumbersToCheck) {
+        console.log(`Checking ${poNumber} for item ${item.item_id}`);
+
+        // Query for matching records
         const poResponse = await db
           .collection("on_order_purchase_order")
           .where({
@@ -397,12 +403,91 @@ const addInventory = async (data, plantId, organizationId) => {
           })
           .get();
 
-        if (
-          poResponse.data &&
-          Array.isArray(poResponse.data) &&
-          poResponse.data.length > 0
-        ) {
-          const doc = poResponse.data[0];
+        const OnOrderPOData = poResponse.data;
+
+        // Check if we have multiple matching records
+        if (OnOrderPOData && OnOrderPOData.length > 1) {
+          console.log(
+            `Found ${OnOrderPOData.length} records for item ${item.item_id} in PO ${poNumber}`
+          );
+
+          // Count matching items in the GR to determine how to distribute quantities
+          const matchingGrItems = data.table_gr.filter(
+            (grItem) => grItem.item_id === item.item_id
+          );
+
+          // Determine how many identical GR items we have and which one this is
+          const totalMatchingItems = matchingGrItems.length;
+          const currentItemIndex = matchingGrItems.findIndex(
+            (grItem) =>
+              grItem === item ||
+              (grItem.item_id === item.item_id &&
+                grItem.line_po_id === item.line_po_id &&
+                grItem === item)
+          );
+
+          // Find matching records in the on_order_purchase_order collection
+          // Calculate which on_order_purchase_order record corresponds to this GR item
+          let targetRecordIndex = 0;
+
+          // If we can identify which record this item corresponds to,
+          // update only that record
+          if (
+            currentItemIndex !== -1 &&
+            currentItemIndex < OnOrderPOData.length
+          ) {
+            targetRecordIndex = currentItemIndex;
+          }
+
+          // Only update the record corresponding to this item
+          const targetRecord = OnOrderPOData[targetRecordIndex];
+
+          if (targetRecord && targetRecord.id) {
+            const existingReceived = roundQty(
+              parseFloat(targetRecord.received_qty || 0)
+            );
+            const openQuantity = roundQty(
+              parseFloat(targetRecord.open_qty || 0)
+            );
+            const newReceived = roundQty(
+              existingReceived + parseFloat(baseQty || 0)
+            );
+            let newOpenQuantity = roundQty(
+              openQuantity - parseFloat(baseQty || 0)
+            );
+
+            if (newOpenQuantity < 0) {
+              newOpenQuantity = 0;
+            }
+
+            try {
+              await db
+                .collection("on_order_purchase_order")
+                .doc(targetRecord.id)
+                .update({
+                  received_qty: newReceived,
+                  open_qty: newOpenQuantity,
+                });
+
+              console.log(
+                `Updated on_order_purchase_order record ${
+                  targetRecordIndex + 1
+                }/${OnOrderPOData.length} for PO ${poNumber}, item ${
+                  item.item_id
+                }: received=${newReceived}, open=${newOpenQuantity}`
+              );
+
+              updatedAnyRecords = true;
+            } catch (updateError) {
+              console.error(
+                `Error updating on_order_purchase_order record for item ${item.item_id}:`,
+                updateError
+              );
+            }
+          }
+        } else if (OnOrderPOData && OnOrderPOData.length === 1) {
+          // Single record case - simpler update
+          const doc = OnOrderPOData[0];
           if (doc && doc.id) {
             const existingReceived = roundQty(
               parseFloat(doc.received_qty || 0)
@@ -419,24 +504,41 @@ const addInventory = async (data, plantId, organizationId) => {
               newOpenQuantity = 0;
             }
 
-            await db.collection("on_order_purchase_order").doc(doc.id).update({
-              received_qty: newReceived,
-              open_qty: newOpenQuantity,
-            });
+            try {
+              await db
+                .collection("on_order_purchase_order")
+                .doc(doc.id)
+                .update({
+                  received_qty: newReceived,
+                  open_qty: newOpenQuantity,
+                });
 
-            console.log(
-              `Updated on_order_purchase_order for PO ${poNumber}, item ${item.item_id}: received=${newReceived}, open=${newOpenQuantity}`
-            );
-            return;
+              console.log(
+                `Updated on_order_purchase_order for PO ${poNumber}, item ${item.item_id}: received=${newReceived}, open=${newOpenQuantity}`
+              );
+
+              updatedAnyRecords = true;
+            } catch (updateError) {
+              console.error(
+                `Error updating on_order_purchase_order for item ${item.item_id}:`,
+                updateError
+              );
+            }
           }
+        } else {
+          console.warn(
+            `No on_order_purchase_order records found for PO ${poNumber}, item ${item.item_id}`
+          );
         }
       }
 
-      console.warn(
-        `No matching on_order_purchase_order record found for item ${
-          item.item_id
-        } in POs: ${poNumbersToCheck.join(", ")}`
-      );
+      if (!updatedAnyRecords) {
+        console.warn(
+          `No matching on_order_purchase_order record found for item ${
+            item.item_id
+          } in POs: ${poNumbersToCheck.join(", ")}`
+        );
+      }
     } catch (error) {
       console.error(
         `Error updating on_order_purchase_order for item ${item.item_id}:`,
