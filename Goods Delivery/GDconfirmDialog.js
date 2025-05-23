@@ -15,8 +15,12 @@ if (!allValid) {
   return;
 }
 
-// Continue with the original logic if validation passed
-const textareaContent = JSON.stringify(temporaryData);
+// Filter out items where gd_quantity is less than or equal to 0
+const filteredData = temporaryData.filter((item) => item.gd_quantity > 0);
+console.log("Filtered data (excluding gd_quantity <= 0):", filteredData);
+
+// Continue with the original logic using filteredData instead of temporaryData
+const textareaContent = JSON.stringify(filteredData);
 
 this.setData({
   [`table_gd.${rowIndex}.temp_qty_data`]: textareaContent,
@@ -26,11 +30,11 @@ this.setData({
   [`gd_item_balance.table_item_balance`]: [],
 });
 
-console.log("Input data:", temporaryData);
+console.log("Input data (filtered):", filteredData);
 console.log("Row index:", rowIndex);
 
-// Sum up all gd_quantity values
-const totalGdQuantity = temporaryData.reduce(
+// Sum up all gd_quantity values from filtered data
+const totalGdQuantity = filteredData.reduce(
   (sum, item) => sum + (item.gd_quantity || 0),
   0
 );
