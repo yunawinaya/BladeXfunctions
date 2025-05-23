@@ -140,11 +140,12 @@ const disableTableRows = () => {
 
     if (pageStatus !== "Add") {
       console.log("salesOrderId JN 2", salesOrderId);
-      if (salesOrderId) {
+      if (salesOrderId.length > 0) {
         await this.display(["address_grid"]);
       }
 
       this.hide(["fake_so_id"]);
+      this.display(["so_id"]);
 
       // Handle Edit/View/Clone modes
       const goodsDeliveryId = data.id;
@@ -157,110 +158,7 @@ const disableTableRows = () => {
         const goodsDelivery = resGD.data[0];
 
         // Extract all fields
-        const {
-          gd_status,
-          so_id,
-          so_no,
-          gd_billing_name,
-          gd_billing_cp,
-          delivery_no,
-          gd_ref_doc,
-          plant_id,
-          organization_id,
-          customer_name,
-          gd_contact_name,
-          contact_number,
-          email_address,
-          document_description,
-          gd_delivery_method,
-          delivery_date,
-          driver_name,
-          driver_contact_no,
-          validity_of_collection,
-          vehicle_no,
-          pickup_date,
-          courier_company,
-          shipping_date,
-          freight_charges,
-          tracking_number,
-          est_arrival_date,
-          driver_cost,
-          est_delivery_date,
-          shipping_company,
-          shipping_method,
-          table_gd,
-          order_remark,
-          billing_address_line_1,
-          billing_address_line_2,
-          billing_address_line_3,
-          billing_address_line_4,
-          billing_address_city,
-          billing_address_state,
-          billing_address_country,
-          billing_postal_code,
-          shipping_address_line_1,
-          shipping_address_line_2,
-          shipping_address_line_3,
-          shipping_address_line_4,
-          shipping_address_city,
-          shipping_address_state,
-          shipping_address_country,
-          shipping_postal_code,
-        } = goodsDelivery;
-
-        // Set data to form
-        const gd = {
-          gd_status,
-          so_id,
-          so_no,
-          gd_billing_name,
-          gd_billing_cp,
-          delivery_no,
-          gd_ref_doc,
-          plant_id,
-          organization_id,
-          customer_name,
-          gd_contact_name,
-          contact_number,
-          email_address,
-          document_description,
-          gd_delivery_method,
-          delivery_date,
-          driver_name,
-          driver_contact_no,
-          validity_of_collection,
-          vehicle_no,
-          pickup_date,
-          courier_company,
-          shipping_date,
-          freight_charges,
-          tracking_number,
-          est_arrival_date,
-          driver_cost,
-          est_delivery_date,
-          shipping_company,
-          shipping_method,
-          table_gd,
-          order_remark,
-          billing_address_line_1,
-          billing_address_line_2,
-          billing_address_line_3,
-          billing_address_line_4,
-          billing_address_city,
-          billing_address_state,
-          billing_address_country,
-          billing_postal_code,
-          shipping_address_line_1,
-          shipping_address_line_2,
-          shipping_address_line_3,
-          shipping_address_line_4,
-          shipping_address_city,
-          shipping_address_state,
-          shipping_address_country,
-          shipping_postal_code,
-        };
-
-        await this.setData(gd);
+        const { gd_status } = goodsDelivery;
 
         // Show status
         showStatusHTML(gd_status);

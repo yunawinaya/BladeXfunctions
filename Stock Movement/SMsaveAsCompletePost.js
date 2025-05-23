@@ -1116,10 +1116,11 @@ class StockAdjuster {
             ? this.db.collection("fifo_costing_history").where({
                 material_id: materialData.id,
                 batch_id: balanceData.batch_id,
+                plant_id: plantId,
               })
             : this.db
                 .collection("fifo_costing_history")
-                .where({ material_id: materialData.id });
+                .where({ material_id: materialData.id, plant_id: plantId });
 
         const fifoResponse = await fifoQuery.get();
         if (!fifoResponse || !fifoResponse.data) {
@@ -1226,16 +1227,20 @@ class StockAdjuster {
   }
 
   // Function to get latest FIFO cost price with available quantity check
-  async getLatestFIFOCostPrice(materialData, batchId) {
+  async getLatestFIFOCostPrice(materialData, batchId, plantId) {
     try {
       const query =
         materialData.item_batch_management == "1" && batchId
           ? this.db
               .collection("fifo_costing_history")
-              .where({ material_id: materialData.id, batch_id: batchId })
+              .where({
+                material_id: materialData.id,
+                batch_id: batchId,
+                plant_id: plantId,
+              })
           : this.db
               .collection("fifo_costing_history")
-              .where({ material_id: materialData.id });
+              .where({ material_id: materialData.id, plant_id: plantId });
 
       const response = await query.get();
       const result = response.data;
@@ -1280,16 +1285,20 @@ class StockAdjuster {
   }
 
   // Function to get Weighted Average cost price
-  async getWeightedAverageCostPrice(materialData, batchId) {
+  async getWeightedAverageCostPrice(materialData, batchId, plantId) {
     try {
       const query =
         materialData.item_batch_management == "1" && batchId
           ? this.db
               .collection("wa_costing_method")
-              .where({ material_id: materialData.id, batch_id: batchId })
+              .where({
+                material_id: materialData.id,
+                batch_id: batchId,
+                plant_id: plantId,
+              })
           : this.db
               .collection("wa_costing_method")
-              .where({ material_id: materialData.id });
+              .where({ material_id: materialData.id, plant_id: plantId });
 
       const response = await query.get();
       const waData = response.data;
@@ -1375,14 +1384,16 @@ class StockAdjuster {
       // Get unit price from latest FIFO sequence
       const fifoCostPrice = await this.getLatestFIFOCostPrice(
         materialData,
-        balance.batch_id
+        balance.batch_id,
+        allData.issuing_operation_faci
       );
       unitPrice = this.roundPrice(fifoCostPrice);
     } else if (materialData.material_costing_method === "Weighted Average") {
       // Get unit price from WA cost price
       const waCostPrice = await this.getWeightedAverageCostPrice(
         materialData,
-        balance.batch_id
+        balance.batch_id,
+        allData.issuing_operation_faci
       );
       unitPrice = this.roundPrice(waCostPrice);
     } else if (materialData.material_costing_method === "Fixed Cost") {
@@ -1669,10 +1680,14 @@ class StockAdjuster {
                     ? this.db.collection("fifo_costing_history").where({
                         material_id: materialData.id,
                         batch_id: balance.batch_id,
+                        plant_id: allData.issuing_operation_faci,
                       })
                     : this.db
                         .collection("fifo_costing_history")
-                        .where({ material_id: materialData.id });
+                        .where({
+                          material_id: materialData.id,
+                          plant_id: allData.issuing_operation_faci,
+                        });
 
                 const fifoResponse = await fifoQuery.get();
                 if (!fifoResponse.data || fifoResponse.data.length === 0) {
