@@ -880,6 +880,8 @@ class StockAdjuster {
             total_quantity: item.total_quantity,
             received_quantity_uom: material.based_uom,
             unit_price: unitPricesMap[item.item_selection] || 0,
+            location_id: firstBalance.location_id || null,
+            category: firstBalance.category || "Unrestricted",
           };
         }),
         issue_date: allData.issue_date,

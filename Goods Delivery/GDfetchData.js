@@ -1,5 +1,6 @@
 const data = this.getValues();
 const salesOrderId = data.so_id;
+const plantId = data.plant_id;
 
 const savedTableGd = data.table_gd || [];
 
@@ -8,6 +9,10 @@ const salesOrderIds = Array.isArray(salesOrderId)
   ? salesOrderId
   : [salesOrderId];
 
+if (salesOrderIds.length > 1) {
+  this.setData({ gd_delivery_method: "" });
+}
+
 // Function to convert base quantity to alternative quantity
 const convertBaseToAlt = (baseQty, itemData, altUOM) => {
   if (
@@ -15,7 +20,6 @@ const convertBaseToAlt = (baseQty, itemData, altUOM) => {
     itemData.table_uom_conversion.length === 0 ||
     !altUOM
   ) {
-    // No conversion needed or possible
     return baseQty;
   }
 
@@ -30,6 +34,69 @@ const convertBaseToAlt = (baseQty, itemData, altUOM) => {
   return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
 };
 
+// Helper function to populate addresses from SO data
+const populateAddressesFromSO = (soData) => {
+  console.log("Populating addresses from SO:", soData);
+
+  // Display address section
+  this.display("address_grid");
+
+  // Extract address data from SO
+  const {
+    cust_billing_name,
+    cust_cp,
+    cust_billing_address,
+    cust_shipping_address,
+    billing_address_line_1,
+    billing_address_line_2,
+    billing_address_line_3,
+    billing_address_line_4,
+    billing_address_city,
+    billing_address_state,
+    billing_address_country,
+    billing_postal_code,
+    shipping_address_line_1,
+    shipping_address_line_2,
+    shipping_address_line_3,
+    shipping_address_line_4,
+    shipping_address_city,
+    shipping_address_state,
+    shipping_address_country,
+    shipping_postal_code,
+  } = soData;
+
+  // Set address fields from SO data
+  this.setData({
+    // Main address fields (formatted addresses)
+    gd_billing_name: cust_billing_name || "",
+    gd_billing_cp: cust_cp || "",
+    gd_billing_address: cust_billing_address || "",
+    gd_shipping_address: cust_shipping_address || "",
+
+    // Detailed billing address fields
+    billing_address_line_1: billing_address_line_1 || "",
+    billing_address_line_2: billing_address_line_2 || "",
+    billing_address_line_3: billing_address_line_3 || "",
+    billing_address_line_4: billing_address_line_4 || "",
+    billing_address_city: billing_address_city || "",
+    billing_address_state: billing_address_state || "",
+    billing_address_country: billing_address_country || "",
+    billing_postal_code: billing_postal_code || "",
+
+    // Detailed shipping address fields
+    shipping_address_line_1: shipping_address_line_1 || "",
+    shipping_address_line_2: shipping_address_line_2 || "",
+    shipping_address_line_3: shipping_address_line_3 || "",
+    shipping_address_line_4: shipping_address_line_4 || "",
+    shipping_address_city: shipping_address_city || "",
+    shipping_address_state: shipping_address_state || "",
+    shipping_address_country: shipping_address_country || "",
+    shipping_postal_code: shipping_postal_code || "",
+  });
+
+  console.log("Addresses populated from SO successfully");
+};
+
 // Helper function to fetch all GD records for multiple SO IDs
 const fetchGoodsDeliveries = async (soIds) => {
   const promises = soIds.map((soId) =>
@@ -41,15 +108,12 @@ const fetchGoodsDeliveries = async (soIds) => {
 
   try {
     const results = await Promise.all(promises);
-
-    // Combine all results
     let allGDData = [];
     results.forEach((response) => {
       if (response.data && response.data.length > 0) {
         allGDData = [...allGDData, ...response.data];
       }
     });
-
     return allGDData;
   } catch (error) {
     console.error("Error fetching goods deliveries:", error);
@@ -70,32 +134,143 @@ const fetchSourceItems = async (soIds) => {
           response.data.length > 0 &&
           response.data[0].table_so
         ) {
+          console.log("response.data[0]:", response.data[0]);
+
           // Add the SO ID to each item for reference
-          return response.data[0].table_so.map((item) => ({
-            ...item,
-            original_so_id: soId,
-            so_no: response.data[0].so_no,
-          }));
+          return {
+            soData: response.data[0],
+            items: response.data[0].table_so.map((item) => ({
+              ...item,
+              original_so_id: soId,
+              so_no: response.data[0].so_no,
+            })),
+          };
         }
-        return [];
+        return { soData: null, items: [] };
       })
   );
 
   try {
-    const itemArrays = await Promise.all(promises);
+    const results = await Promise.all(promises);
 
-    // Flatten the array of arrays
-    return itemArrays.flat();
+    // POPULATE ADDRESSES FROM THE LATEST SELECTED SO (last in array)
+    const latestSOResult = results[results.length - 1];
+    if (latestSOResult.soData) {
+      console.log(
+        "Using latest selected SO for addresses:",
+        latestSOResult.soData.so_no
+      );
+      populateAddressesFromSO(latestSOResult.soData);
+    }
+
+    // Flatten all items from all SOs
+    const allItems = results.flatMap((result) => result.items);
+    return allItems;
   } catch (error) {
     console.error("Error fetching source items:", error);
     return [];
   }
 };
 
-// Main processing logic - modified to handle multiple SO IDs
+// Alternative approach: Handle address population for multiple SOs
+const handleMultipleSOMAddresses = async (soIds) => {
+  if (soIds.length >= 1) {
+    // Use the LATEST selected SO (last in array) for addresses
+    const latestSOId = soIds[soIds.length - 1];
+
+    try {
+      const response = await db
+        .collection("sales_order")
+        .where({ id: latestSOId })
+        .get();
+      if (response.data && response.data.length > 0) {
+        console.log(
+          `Using latest selected SO (${response.data[0].so_no}) for addresses`
+        );
+        populateAddressesFromSO(response.data[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching latest SO for address:", error);
+    }
+  }
+};
+
+// Enhanced function to check inventory using form's plantId
+const checkInventoryForItem = async (item, itemData, index, deliveredSoFar) => {
+  const itemId = item.itemId;
+  const itemName = item.itemName;
+  const orderedQty = item.orderedQty;
+  const altUOM = item.altUOM;
+
+  console.log(`Checking inventory for item ${itemId} in plant ${plantId}`);
+
+  const baseUOM = itemData.based_uom || "";
+
+  try {
+    let totalUnrestrictedQtyBase = 0;
+
+    if (itemData.item_batch_management === 1 && itemData.stock_control !== 0) {
+      // Batch managed items
+      const response = await db
+        .collection("item_batch_balance")
+        .where({ material_id: itemId, plant_id: plantId })
+        .get();
+
+      const itemBatchBalanceData = response.data || [];
+      totalUnrestrictedQtyBase = itemBatchBalanceData.reduce(
+        (sum, balance) => sum + (balance.unrestricted_qty || 0),
+        0
+      );
+    } else if (
+      itemData.item_batch_management === 0 &&
+      itemData.stock_control !== 0
+    ) {
+      // Non-batch managed items
+      const response = await db
+        .collection("item_balance")
+        .where({ material_id: itemId, plant_id: plantId })
+        .get();
+
+      const itemBalanceData = response.data || [];
+      totalUnrestrictedQtyBase = itemBalanceData.reduce(
+        (sum, balance) => sum + (balance.unrestricted_qty || 0),
+        0
+      );
+    }
+
+    // Convert to alt UOM if needed
+    let totalUnrestrictedQty = totalUnrestrictedQtyBase;
+    if (altUOM !== baseUOM) {
+      totalUnrestrictedQty = convertBaseToAlt(
+        totalUnrestrictedQtyBase,
+        itemData,
+        altUOM
+      );
+    }
+
+    const undeliveredQty = orderedQty - deliveredSoFar;
+    const shortfallQty = undeliveredQty - totalUnrestrictedQty;
+
+    // Update insufficient dialog data
+    this.setData({
+      [`dialog_insufficient.table_insufficient.${index}.undelivered_qty`]:
+        undeliveredQty,
+      [`dialog_insufficient.table_insufficient.${index}.available_qty`]:
+        totalUnrestrictedQty,
+      [`dialog_insufficient.table_insufficient.${index}.shortfall_qty`]:
+        shortfallQty,
+    });
+
+    return shortfallQty > 0;
+  } catch (error) {
+    console.error(`Error checking inventory for item ${itemId}:`, error);
+    return false;
+  }
+};
+
+// Main processing logic - modified to handle addresses from SO
 (async () => {
   try {
-    // Handle fieldModel as array
     const fieldModelItem = Array.isArray(arguments[0]?.fieldModel)
       ? arguments[0]?.fieldModel[0]?.item
       : arguments[0]?.fieldModel?.item;
@@ -113,6 +288,11 @@ const fetchSourceItems = async (soIds) => {
         JSON.stringify(Array.isArray(newSoId) ? newSoId : [newSoId]) &&
       savedTableGd.length > 0;
 
+    // Handle address population early in the process
+    if (!isSOUnchanged) {
+      await handleMultipleSOMAddresses(salesOrderIds);
+    }
+
     // Fetch goods deliveries for all SO IDs
     const GDData = await fetchGoodsDeliveries(salesOrderIds);
     console.log("GDData extracted for all SOs:", GDData);
@@ -123,7 +303,6 @@ const fetchSourceItems = async (soIds) => {
 
       // Set SO numbers in so_no field
       if (salesOrderIds.length > 1) {
-        // Multiple SOs - fetch and join numbers
         Promise.all(
           salesOrderIds.map((soId) =>
             db
@@ -148,7 +327,6 @@ const fetchSourceItems = async (soIds) => {
             console.error("Error fetching SO numbers:", error);
           });
       } else {
-        // Single SO - fetch and set number
         db.collection("sales_order")
           .where({ id: salesOrderIds[0] })
           .get()
@@ -165,7 +343,7 @@ const fetchSourceItems = async (soIds) => {
       }
     }
 
-    // Fetch source items from all SO IDs
+    // Fetch source items from all SO IDs (addresses will be populated here)
     const sourceItems = await fetchSourceItems(salesOrderIds);
     console.log("sourceItems from all SOs:", sourceItems);
 
@@ -183,8 +361,6 @@ const fetchSourceItems = async (soIds) => {
           const itemId = gdItem.material_id;
           if (itemId) {
             const currentQty = parseFloat(gdItem.gd_delivered_qty || 0);
-
-            // Track delivered quantities by item ID
             if (!deliveredQty[itemId]) {
               deliveredQty[itemId] = 0;
             }
@@ -195,7 +371,7 @@ const fetchSourceItems = async (soIds) => {
     });
 
     if (!isSOUnchanged) {
-      // Reset table data - this first setData is necessary to clear existing data
+      // Reset table data
       this.setData({
         table_gd: [],
         gd_item_balance: {
@@ -203,10 +379,8 @@ const fetchSourceItems = async (soIds) => {
         },
       });
 
-      // Create a better delay to ensure the clearing is complete
       setTimeout(() => {
-        // DO NOT group items from different SOs - keep them separate with their source SO
-        // Each line in table_gd should represent exactly one line from a SO
+        // Create items array
         const allItems = [];
 
         sourceItems.forEach((sourceItem) => {
@@ -214,12 +388,11 @@ const fetchSourceItems = async (soIds) => {
           if (!itemId) return;
 
           const itemName = sourceItem.item_id || "";
-          if (!itemId) return;
+          if (!itemName) return;
 
           const orderedQty = parseFloat(sourceItem.so_quantity || 0);
           const altUOM = sourceItem.so_item_uom || "";
 
-          // Create one line item for each source item
           allItems.push({
             itemId,
             itemName,
@@ -231,7 +404,7 @@ const fetchSourceItems = async (soIds) => {
           });
         });
 
-        // Create new table_gd structure with each item preserving its SO origin
+        // Create new table_gd structure
         const newTableGd = allItems.map((item) => ({
           material_id: item.itemId,
           material_name: item.itemName,
@@ -243,16 +416,13 @@ const fetchSourceItems = async (soIds) => {
           gd_order_uom_id: item.altUOM,
           unit_price: item.sourceItem.so_item_price || 0,
           total_price: item.sourceItem.so_amount || 0,
-          line_so_no: item.so_no, // Store just the line's own SO number
-          line_so_id: item.original_so_id, // Store just the line's own SO ID
+          line_so_no: item.so_no,
+          line_so_id: item.original_so_id,
           fm_key:
             Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
         }));
 
-        console.log(
-          "New table_gd structure (keeping items separate by SO):",
-          newTableGd
-        );
+        console.log("New table_gd structure:", newTableGd);
 
         this.setData({
           table_gd: newTableGd,
@@ -262,6 +432,7 @@ const fetchSourceItems = async (soIds) => {
         const newTableInsufficient = allItems.map((item) => ({
           material_id: item.itemId,
           material_name: item.itemName,
+          material_uom: item.altUOM,
           order_quantity: item.orderedQty,
           available_qty: "",
           shortfall_qty: "",
@@ -278,9 +449,12 @@ const fetchSourceItems = async (soIds) => {
         });
 
         // Use a longer delay to ensure the arrays are created
-        setTimeout(() => {
-          // Process each item
-          allItems.forEach((item, index) => {
+        setTimeout(async () => {
+          // Process each item with enhanced inventory checking
+          const insufficientItems = [];
+
+          for (let index = 0; index < allItems.length; index++) {
+            const item = allItems[index];
             const itemId = item.itemId;
             const itemName = item.itemName;
             const orderedQty = item.orderedQty;
@@ -289,156 +463,83 @@ const fetchSourceItems = async (soIds) => {
 
             console.log(`Processing item ${index}:`, item);
 
-            // Update each field with correct values
-            db.collection("Item")
-              .where({ id: itemId })
-              .get()
-              .then((res) => {
-                if (!res.data || !res.data.length) {
-                  console.error(`Item not found: ${itemId}`);
-                  return;
-                }
+            try {
+              // Fetch item data
+              const res = await db
+                .collection("Item")
+                .where({ id: itemId })
+                .get();
 
-                const itemData = res.data[0];
-                if (
-                  itemData &&
-                  itemData.stock_control !== 0 &&
-                  (itemData.show_delivery !== 0 || !itemData.show_delivery)
-                ) {
-                  this.setData({
-                    [`table_gd.${index}.material_id`]: itemId,
-                    [`table_gd.${index}.material_name`]: itemName,
-                    [`table_gd.${index}.gd_material_desc`]:
-                      item.sourceItem.so_desc || "",
-                    [`table_gd.${index}.gd_order_quantity`]: orderedQty,
-                    [`table_gd.${index}.gd_delivered_qty`]: deliveredSoFar,
-                    [`table_gd.${index}.gd_initial_delivered_qty`]:
-                      deliveredSoFar,
-                    [`table_gd.${index}.gd_order_uom_id`]: altUOM,
-                    [`table_gd.${index}.good_delivery_uom_id`]: altUOM,
-                    [`table_gd.${index}.base_uom_id`]: itemData.based_uom || "",
-                    [`table_gd.${index}.unit_price`]:
-                      item.sourceItem.so_item_price || 0,
-                    [`table_gd.${index}.total_price`]:
-                      item.sourceItem.so_amount || 0,
-                    [`table_gd.${index}.item_costing_method`]:
-                      itemData.material_costing_method,
-                    [`dialog_insufficient.table_insufficient.${index}.material_id`]:
-                      itemId,
-                    [`dialog_insufficient.table_insufficient.${index}.order_quantity`]:
-                      orderedQty,
+              if (!res.data || !res.data.length) {
+                console.error(`Item not found: ${itemId}`);
+                continue;
+              }
+
+              const itemData = res.data[0];
+
+              if (
+                itemData &&
+                itemData.stock_control !== 0 &&
+                (itemData.show_delivery !== 0 || !itemData.show_delivery)
+              ) {
+                // Set basic item data
+                this.setData({
+                  [`table_gd.${index}.material_id`]: itemId,
+                  [`table_gd.${index}.material_name`]: itemName,
+                  [`table_gd.${index}.gd_material_desc`]:
+                    item.sourceItem.so_desc || "",
+                  [`table_gd.${index}.gd_order_quantity`]: orderedQty,
+                  [`table_gd.${index}.gd_delivered_qty`]: deliveredSoFar,
+                  [`table_gd.${index}.gd_initial_delivered_qty`]:
+                    deliveredSoFar,
+                  [`table_gd.${index}.gd_order_uom_id`]: altUOM,
+                  [`table_gd.${index}.good_delivery_uom_id`]: altUOM,
+                  [`table_gd.${index}.base_uom_id`]: itemData.based_uom || "",
+                  [`table_gd.${index}.unit_price`]:
+                    item.sourceItem.so_item_price || 0,
+                  [`table_gd.${index}.total_price`]:
+                    item.sourceItem.so_amount || 0,
+                  [`table_gd.${index}.item_costing_method`]:
+                    itemData.material_costing_method,
+                  [`dialog_insufficient.table_insufficient.${index}.material_id`]:
+                    itemId,
+                  [`dialog_insufficient.table_insufficient.${index}.order_quantity`]:
+                    orderedQty,
+                });
+
+                // Check inventory
+                const hasShortfall = await checkInventoryForItem(
+                  item,
+                  itemData,
+                  index,
+                  deliveredSoFar
+                );
+
+                if (hasShortfall) {
+                  insufficientItems.push({
+                    itemId,
+                    itemName,
+                    soNo: item.so_no,
                   });
-
-                  const baseUOM = itemData.based_uom || "";
-
-                  // Check inventory based on batch management flag
-                  if (
-                    itemData.item_batch_management === 1 &&
-                    itemData.stock_control !== 0
-                  ) {
-                    // Batch managed items
-                    db.collection("item_batch_balance")
-                      .where({ material_id: itemId })
-                      .get()
-                      .then((response) => {
-                        const itemBatchBalanceData = response.data || [];
-
-                        // Sum unrestricted quantities in base UOM
-                        let totalUnrestrictedQtyBase =
-                          itemBatchBalanceData.reduce(
-                            (sum, balance) =>
-                              sum + (balance.unrestricted_qty || 0),
-                            0
-                          );
-
-                        // Convert to alt UOM if needed
-                        let totalUnrestrictedQty = totalUnrestrictedQtyBase;
-                        if (altUOM !== baseUOM) {
-                          totalUnrestrictedQty = convertBaseToAlt(
-                            totalUnrestrictedQtyBase,
-                            itemData,
-                            altUOM
-                          );
-                        }
-
-                        const shortfallQty = orderedQty - totalUnrestrictedQty;
-
-                        this.setData({
-                          [`dialog_insufficient.table_insufficient.${index}.available_qty`]:
-                            totalUnrestrictedQty,
-                          [`dialog_insufficient.table_insufficient.${index}.shortfall_qty`]:
-                            shortfallQty,
-                        });
-
-                        if (shortfallQty > 0) {
-                          this.openDialog("dialog_insufficient");
-                        }
-                      })
-                      .catch((error) => {
-                        console.error(
-                          "Error fetching item_batch_balance:",
-                          error
-                        );
-                      });
-                  } else if (
-                    itemData.item_batch_management === 0 &&
-                    itemData.stock_control !== 0
-                  ) {
-                    // Non-batch managed items
-                    db.collection("item_balance")
-                      .where({ material_id: itemId })
-                      .get()
-                      .then((response) => {
-                        const itemBalanceData = response.data || [];
-
-                        // Sum unrestricted quantities in base UOM
-                        let totalUnrestrictedQtyBase = itemBalanceData.reduce(
-                          (sum, balance) =>
-                            sum + (balance.unrestricted_qty || 0),
-                          0
-                        );
-
-                        // Convert to alt UOM if needed
-                        let totalUnrestrictedQty = totalUnrestrictedQtyBase;
-                        if (altUOM !== baseUOM) {
-                          totalUnrestrictedQty = convertBaseToAlt(
-                            totalUnrestrictedQtyBase,
-                            itemData,
-                            altUOM
-                          );
-                        }
-
-                        const undeliveredQty = orderedQty - deliveredSoFar;
-                        const shortfallQty =
-                          undeliveredQty - totalUnrestrictedQty;
-
-                        this.setData({
-                          [`dialog_insufficient.table_insufficient.${index}.undelivered_qty`]:
-                            undeliveredQty,
-                          [`dialog_insufficient.table_insufficient.${index}.available_qty`]:
-                            totalUnrestrictedQty,
-                          [`dialog_insufficient.table_insufficient.${index}.shortfall_qty`]:
-                            shortfallQty,
-                        });
-
-                        if (shortfallQty > 0) {
-                          this.openDialog("dialog_insufficient");
-                        }
-                      })
-                      .catch((error) => {
-                        console.error("Error fetching item_balance:", error);
-                      });
-                  }
-                } else {
-                  console.log(
-                    `Skipping item ${itemId} due to stock_control or show_delivery settings`
-                  );
                 }
-              })
-              .catch((error) => {
-                console.error(`Error fetching item ${itemId}:`, error);
-              });
-          });
+              } else {
+                console.log(
+                  `Skipping item ${itemId} due to stock_control or show_delivery settings`
+                );
+              }
+            } catch (error) {
+              console.error(`Error processing item ${itemId}:`, error);
+            }
+          }
+
+          // Show insufficient dialog if there are any shortfalls
+          if (insufficientItems.length > 0) {
+            console.log(
+              "Items with insufficient inventory:",
+              insufficientItems
+            );
+            this.openDialog("dialog_insufficient");
+          }
 
           console.log("Finished populating table_gd items");
         }, 200);

@@ -46,15 +46,19 @@ const preventDuplicateProcessing = () => {
 };
 
 // Update FIFO inventory
-const updateFIFOInventory = (materialId, deliveryQty, batchId) => {
+const updateFIFOInventory = (materialId, deliveryQty, batchId, plantId) => {
   return new Promise((resolve, reject) => {
     const query = batchId
       ? db
           .collection("fifo_costing_history")
-          .where({ material_id: materialId, batch_id: batchId })
+          .where({
+            material_id: materialId,
+            batch_id: batchId,
+            plant_id: plantId,
+          })
       : db
           .collection("fifo_costing_history")
-          .where({ material_id: materialId });
+          .where({ material_id: materialId, plant_id: plantId });
 
     query
       .get()
@@ -133,7 +137,7 @@ const updateFIFOInventory = (materialId, deliveryQty, batchId) => {
   });
 };
 
-const updateWeightedAverage = (item, batchId, baseWAQty) => {
+const updateWeightedAverage = (item, batchId, baseWAQty, plantId) => {
   // Input validation
   if (
     !item ||
@@ -149,10 +153,14 @@ const updateWeightedAverage = (item, batchId, baseWAQty) => {
   const query = batchId
     ? db
         .collection("wa_costing_method")
-        .where({ material_id: item.material_id, batch_id: batchId })
+        .where({
+          material_id: item.material_id,
+          batch_id: batchId,
+          plant_id: plantId,
+        })
     : db
         .collection("wa_costing_method")
-        .where({ material_id: item.material_id });
+        .where({ material_id: item.material_id, plant_id: plantId });
 
   return query
     .get()
@@ -243,16 +251,22 @@ const updateWeightedAverage = (item, batchId, baseWAQty) => {
 const getLatestFIFOCostPrice = async (
   materialId,
   batchId,
-  deductionQty = null
+  deductionQty = null,
+  previouslyConsumedQty = 0,
+  plantId
 ) => {
   try {
     const query = batchId
       ? db
           .collection("fifo_costing_history")
-          .where({ material_id: materialId, batch_id: batchId })
+          .where({
+            material_id: materialId,
+            batch_id: batchId,
+            plant_id: plantId,
+          })
       : db
           .collection("fifo_costing_history")
-          .where({ material_id: materialId });
+          .where({ material_id: materialId, plant_id: plantId });
 
     const response = await query.get();
     const result = response.data;
@@ -263,11 +277,56 @@ const getLatestFIFOCostPrice = async (
         (a, b) => a.fifo_sequence - b.fifo_sequence
       );
 
+      // Process previously consumed quantities to simulate their effect on available quantities
+      if (previouslyConsumedQty > 0) {
+        let qtyToSkip = previouslyConsumedQty;
+
+        console.log(
+          `Adjusting for ${previouslyConsumedQty} units already consumed in this transaction`
+        );
+
+        // Simulate the effect of previous consumption on available quantities
+        for (let i = 0; i < sortedRecords.length && qtyToSkip > 0; i++) {
+          const record = sortedRecords[i];
+          const availableQty = roundQty(record.fifo_available_quantity || 0);
+
+          if (availableQty <= 0) continue;
+
+          // If this record has enough quantity, just reduce it
+          if (availableQty >= qtyToSkip) {
+            record._adjustedAvailableQty = roundQty(availableQty - qtyToSkip);
+            console.log(
+              `FIFO record ${record.fifo_sequence}: Adjusted available from ${availableQty} to ${record._adjustedAvailableQty} (consumed ${qtyToSkip})`
+            );
+            qtyToSkip = 0;
+          } else {
+            // Otherwise, consume all of this record and continue to next
+            record._adjustedAvailableQty = 0;
+            console.log(
+              `FIFO record ${record.fifo_sequence}: Fully consumed ${availableQty} units, no remainder`
+            );
+            qtyToSkip = roundQty(qtyToSkip - availableQty);
+          }
+        }
+
+        if (qtyToSkip > 0) {
+          console.warn(
+            `Warning: Could not account for all previously consumed quantity. Remaining: ${qtyToSkip}`
+          );
+        }
+      }
+
       // If no deduction quantity is provided, just return the cost price of the first record with available quantity
       if (!deductionQty) {
         // First look for records with available quantity
         for (const record of sortedRecords) {
-          const availableQty = roundQty(record.fifo_available_quantity || 0);
+          // Use adjusted quantity if available, otherwise use original
+          const availableQty = roundQty(
+            record._adjustedAvailableQty !== undefined
+              ? record._adjustedAvailableQty
+              : record.fifo_available_quantity || 0
+          );
+
           if (availableQty > 0) {
             console.log(
               `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
@@ -301,7 +360,13 @@ const getLatestFIFOCostPrice = async (
           break;
         }
 
-        const availableQty = roundQty(record.fifo_available_quantity || 0);
+        // Use adjusted quantity if available, otherwise use original
+        const availableQty = roundQty(
+          record._adjustedAvailableQty !== undefined
+            ? record._adjustedAvailableQty
+            : record.fifo_available_quantity || 0
+        );
+
         if (availableQty <= 0) {
           continue; // Skip records with no available quantity
         }
@@ -365,13 +430,19 @@ const getLatestFIFOCostPrice = async (
 };
 
 // Function to get Weighted Average cost price
-const getWeightedAverageCostPrice = async (materialId, batchId) => {
+const getWeightedAverageCostPrice = async (materialId, batchId, plantId) => {
   try {
     const query = batchId
       ? db
           .collection("wa_costing_method")
-          .where({ material_id: materialId, batch_id: batchId })
-      : db.collection("wa_costing_method").where({ material_id: materialId });
+          .where({
+            material_id: materialId,
+            batch_id: batchId,
+            plant_id: plantId,
+          })
+      : db
+          .collection("wa_costing_method")
+          .where({ material_id: materialId, plant_id: plantId });
 
     const response = await query.get();
     const waData = response.data;
@@ -432,6 +503,9 @@ const processBalanceTable = async (
     console.log("No items to process");
     return Promise.resolve();
   }
+
+  // Create a map to track consumed FIFO quantities during this transaction
+  const consumedFIFOQty = new Map();
 
   for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
     const item = items[itemIndex];
@@ -528,19 +602,38 @@ const processBalanceTable = async (
           let totalPrice = roundPrice(unitPrice * altQty);
 
           if (costingMethod === "First In First Out") {
-            // Get unit price from latest FIFO sequence
+            // Define a key for tracking consumed FIFO quantities
+            const materialBatchKey = temp.batch_id
+              ? `${item.material_id}-${temp.batch_id}`
+              : item.material_id;
+
+            // Get previously consumed quantity (default to 0 if none)
+            const previouslyConsumedQty =
+              consumedFIFOQty.get(materialBatchKey) || 0;
+
+            // Get unit price from latest FIFO sequence with awareness of consumed quantities
             const fifoCostPrice = await getLatestFIFOCostPrice(
               item.material_id,
               temp.batch_id,
-              baseQty
+              baseQty,
+              previouslyConsumedQty,
+              plantId
             );
+
+            // Update the consumed quantity for this material/batch
+            consumedFIFOQty.set(
+              materialBatchKey,
+              previouslyConsumedQty + baseQty
+            );
+
             unitPrice = roundPrice(fifoCostPrice);
             totalPrice = roundPrice(fifoCostPrice * baseQty);
           } else if (costingMethod === "Weighted Average") {
             // Get unit price from WA cost price
             const waCostPrice = await getWeightedAverageCostPrice(
               item.material_id,
-              temp.batch_id
+              temp.batch_id,
+              plantId
             );
             unitPrice = roundPrice(waCostPrice);
             totalPrice = roundPrice(waCostPrice * baseQty);
@@ -673,9 +766,19 @@ const processBalanceTable = async (
           }
 
           if (costingMethod === "First In First Out") {
-            await updateFIFOInventory(item.material_id, baseQty, temp.batch_id);
+            await updateFIFOInventory(
+              item.material_id,
+              baseQty,
+              temp.batch_id,
+              plantId
+            );
           } else if (costingMethod === "Weighted Average") {
-            await updateWeightedAverage(item, temp.batch_id, baseWAQty);
+            await updateWeightedAverage(
+              item,
+              temp.batch_id,
+              baseWAQty,
+              plantId
+            );
           } else {
             return Promise.resolve();
           }
