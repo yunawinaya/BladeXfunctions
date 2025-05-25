@@ -393,7 +393,8 @@ class StockAdjuster {
             `Processing balance for ${item.item_selection} at location ${balance.location_id}`
           );
 
-          await this.updateQuantities(
+          // Capture the weighted average cost from updateQuantities
+          const weightedAvgCost = await this.updateQuantities(
             materialData,
             movementType,
             balance,
@@ -401,6 +402,14 @@ class StockAdjuster {
             item,
             organizationId
           );
+
+          // Store the cost in the balance object for FIFO
+          if (
+            weightedAvgCost !== null &&
+            materialData.material_costing_method === "First In First Out"
+          ) {
+            balance.calculated_fifo_cost = weightedAvgCost;
+          }
 
           const movementResult = await this.recordInventoryMovement(
             materialData,
@@ -522,11 +531,13 @@ class StockAdjuster {
       subformData.effective_uom ||
       materialData.based_uom;
 
+    let weightedAverageCost = null;
+
     console.log(
       `updateQuantities: item ${materialData.id}, movement ${movementType}, effectiveUom: ${effectiveUom}, qtyChangeValue: ${qtyChangeValue}`
     );
 
-    if (qtyChangeValue === 0) return;
+    if (qtyChangeValue === 0) return null;
 
     if (!locationId && movementType !== "Miscellaneous Receipt") {
       throw new Error("Location ID is required");
@@ -538,7 +549,7 @@ class StockAdjuster {
 
     const categoryKey =
       movementType === "Location Transfer"
-        ? "Unrestricted"
+        ? balance.category || "Unrestricted"
         : movementType === "Miscellaneous Receipt"
         ? subformData.category || "Unrestricted"
         : balance.category || "Unrestricted";
@@ -696,7 +707,7 @@ class StockAdjuster {
         movementType === "Miscellaneous Receipt"
           ? qtyChangeValue
           : -qtyChangeValue;
-      await this.updateCostingMethod(
+      weightedAverageCost = await this.updateCostingMethod(
         materialData,
         qtyChange,
         allData.issuing_operation_faci,
@@ -719,6 +730,8 @@ class StockAdjuster {
         organizationId
       );
     }
+
+    return weightedAverageCost;
   }
 
   async updateReceivingLocation(
@@ -795,7 +808,7 @@ class StockAdjuster {
 
     const categoryField =
       movementType === "Location Transfer"
-        ? this.categoryMap["Unrestricted"]
+        ? this.categoryMap[balance.category || "Unrestricted"]
         : movementType === "Miscellaneous Receipt"
         ? this.categoryMap[subformData.category || "Unrestricted"]
         : this.categoryMap[balance.category || "Unrestricted"];
@@ -929,7 +942,7 @@ class StockAdjuster {
 
       if (qtyChangeValue === 0) {
         console.log("No quantity change, skipping costing update");
-        return;
+        return null;
       }
 
       if (
@@ -940,7 +953,6 @@ class StockAdjuster {
         throw new Error(`Unsupported costing method: ${costingMethod}`);
       }
 
-      // Determine unit price: balance > subformData > materialData
       const unitPrice =
         balanceData.unit_price && balanceData.unit_price !== 0
           ? balanceData.unit_price
@@ -952,6 +964,8 @@ class StockAdjuster {
         console.warn("Unit price is zero, proceeding with costing update");
       }
 
+      let weightedAverageCost = null;
+
       if (costingMethod === "Weighted Average") {
         const waQuery =
           materialData.item_batch_management == "1" && balanceData.batch_id
@@ -960,9 +974,10 @@ class StockAdjuster {
                 batch_id: balanceData.batch_id,
                 plant_id: plantId,
               })
-            : this.db
-                .collection("wa_costing_method")
-                .where({ material_id: materialData.id, plant_id: plantId });
+            : this.db.collection("wa_costing_method").where({
+                material_id: materialData.id,
+                plant_id: plantId,
+              });
 
         const waResponse = await waQuery.get();
         if (!waResponse || !waResponse.data) {
@@ -974,7 +989,6 @@ class StockAdjuster {
         let newWaQuantity, newWaCostPrice;
 
         if (waData.length === 0 && qtyChangeValue > 0) {
-          // Create new WA record for first receipt
           newWaQuantity = this.roundQty(qtyChangeValue);
           newWaCostPrice = this.roundPrice(unitPrice);
 
@@ -991,7 +1005,6 @@ class StockAdjuster {
             created_at: new Date().toISOString(),
           });
         } else if (waData.length > 0) {
-          // Debug logging
           console.log("WA Data found:", {
             count: waData.length,
             firstItem: waData[0],
@@ -1032,7 +1045,6 @@ class StockAdjuster {
           const currentCostPrice = this.roundPrice(latestWa.wa_cost_price || 0);
 
           if (qtyChangeValue > 0) {
-            // Receipt
             newWaQuantity = this.roundQty(currentQty + qtyChangeValue);
             const currentTotalCost = this.roundPrice(
               currentCostPrice * currentQty
@@ -1045,7 +1057,6 @@ class StockAdjuster {
                   )
                 : 0;
           } else {
-            // Delivery
             const deliveredQuantity = Math.abs(qtyChangeValue);
             newWaQuantity = this.roundQty(currentQty - deliveredQuantity);
 
@@ -1055,18 +1066,6 @@ class StockAdjuster {
               );
             }
 
-            // const currentTotalCost = this.roundPrice(
-            //   currentCostPrice * currentQty
-            // );
-            // const deliveryTotalCost = this.roundPrice(
-            //   currentCostPrice * deliveredQuantity
-            // );
-            // newWaCostPrice =
-            //   newWaQuantity > 0
-            //     ? this.roundPrice(
-            //         (currentTotalCost - deliveryTotalCost) / newWaQuantity
-            //       )
-            //     : 0;
             newWaCostPrice = currentCostPrice;
           }
 
@@ -1093,9 +1092,10 @@ class StockAdjuster {
                 batch_id: balanceData.batch_id,
                 plant_id: plantId,
               })
-            : this.db
-                .collection("fifo_costing_history")
-                .where({ material_id: materialData.id, plant_id: plantId });
+            : this.db.collection("fifo_costing_history").where({
+                material_id: materialData.id,
+                plant_id: plantId,
+              });
 
         const fifoResponse = await fifoQuery.get();
         if (!fifoResponse || !fifoResponse.data) {
@@ -1107,7 +1107,6 @@ class StockAdjuster {
           : [];
 
         if (qtyChangeValue > 0) {
-          // Receipt - Create a new FIFO layer
           const latestSequence =
             fifoData.length > 0
               ? Math.max(...fifoData.map((record) => record.fifo_sequence || 0))
@@ -1128,15 +1127,13 @@ class StockAdjuster {
             created_at: new Date().toISOString(),
           });
         } else if (qtyChangeValue < 0) {
-          // Delivery - Reduce quantities from oldest FIFO layers first
           let remainingDeduction = Math.abs(qtyChangeValue);
+          const fifoDeductions = []; // Track deductions for weighted average
 
-          // Sort by sequence (oldest first per FIFO principle)
           const sortedFifoData = fifoData.sort(
             (a, b) => (a.fifo_sequence || 0) - (b.fifo_sequence || 0)
           );
 
-          // Verify we have enough total quantity
           const totalAvailable = this.roundQty(
             sortedFifoData.reduce(
               (sum, record) => sum + (record.fifo_available_quantity || 0),
@@ -1150,7 +1147,6 @@ class StockAdjuster {
             );
           }
 
-          // Deduct from each layer starting with the oldest (lowest sequence)
           for (const record of sortedFifoData) {
             if (remainingDeduction <= 0) break;
 
@@ -1161,6 +1157,12 @@ class StockAdjuster {
 
             const deduction = Math.min(available, remainingDeduction);
             const newAvailable = this.roundQty(available - deduction);
+
+            // Store the deduction details for weighted average calculation
+            fifoDeductions.push({
+              quantity: deduction,
+              costPrice: this.roundPrice(record.fifo_cost_price || 0),
+            });
 
             await this.db
               .collection("fifo_costing_history")
@@ -1178,11 +1180,29 @@ class StockAdjuster {
               `Insufficient FIFO quantity: remaining ${remainingDeduction} after processing all layers`
             );
           }
+
+          // Calculate weighted average cost for FIFO
+          if (fifoDeductions.length > 0) {
+            const totalCost = fifoDeductions.reduce(
+              (sum, d) => sum + d.quantity * d.costPrice,
+              0
+            );
+            const totalQty = fifoDeductions.reduce(
+              (sum, d) => sum + d.quantity,
+              0
+            );
+            weightedAverageCost = this.roundPrice(totalCost / totalQty);
+            console.log(
+              `FIFO weighted average cost calculated: ${weightedAverageCost}`
+            );
+          }
         }
       } else if (costingMethod === "Fixed Cost") {
         console.log("Fixed Cost method - no costing records to update");
-        return;
+        return null;
       }
+
+      return weightedAverageCost;
     } catch (error) {
       console.error("Detailed error in updateCostingMethod:", {
         message: error.message || "Unknown error",
@@ -1352,15 +1372,25 @@ class StockAdjuster {
     console.log("unitPrice JN", unitPrice);
 
     if (materialData.material_costing_method === "First In First Out") {
-      // Get unit price from latest FIFO sequence
-      const fifoCostPrice = await this.getLatestFIFOCostPrice(
-        materialData,
-        balance.batch_id,
-        allData.issuing_operation_faci
-      );
-      unitPrice = this.roundPrice(fifoCostPrice);
+      // Check for calculated FIFO cost first
+      if (
+        balance.calculated_fifo_cost !== undefined &&
+        balance.calculated_fifo_cost !== null
+      ) {
+        unitPrice = balance.calculated_fifo_cost;
+        console.log(
+          `Using calculated FIFO weighted average cost: ${unitPrice}`
+        );
+      } else {
+        // Fallback to existing logic for non-deduction movements
+        const fifoCostPrice = await this.getLatestFIFOCostPrice(
+          materialData,
+          balance.batch_id,
+          allData.issuing_operation_faci
+        );
+        unitPrice = this.roundPrice(fifoCostPrice);
+      }
     } else if (materialData.material_costing_method === "Weighted Average") {
-      // Get unit price from WA cost price
       const waCostPrice = await this.getWeightedAverageCostPrice(
         materialData,
         balance.batch_id,
@@ -1368,7 +1398,6 @@ class StockAdjuster {
       );
       unitPrice = this.roundPrice(waCostPrice);
     } else if (materialData.material_costing_method === "Fixed Cost") {
-      // Get unit price from Fixed Cost
       const fixedCostPrice = await this.getFixedCostPrice(materialData.id);
       unitPrice = this.roundPrice(fixedCostPrice);
     } else {
@@ -1433,14 +1462,14 @@ class StockAdjuster {
           movement: "OUT",
           parent_trx_no: productionOrderNo,
           bin_location_id: balance.location_id,
-          inventory_category: "Unrestricted",
+          inventory_category: balance.category || "Unrestricted",
         };
         const inMovement = {
           ...baseMovementData,
           movement: "IN",
           bin_location_id: subformData.location_id,
           parent_trx_no: productionOrderNo,
-          inventory_category: "Unrestricted",
+          inventory_category: balance.category || "Unrestricted",
         };
         const [outResult, inResult] = await Promise.all([
           this.db.collection("inventory_movement").add(outMovement),
@@ -1455,9 +1484,7 @@ class StockAdjuster {
           movement: "OUT",
           bin_location_id: balance.location_id,
         };
-
         console.log("outData JN", outData);
-
         return await this.db.collection("inventory_movement").add(outData);
 
       case "Miscellaneous Receipt":
@@ -1574,7 +1601,6 @@ class StockAdjuster {
             "Miscellaneous Issue",
             "Disposal/Scrap",
             "Location Transfer",
-            "Inventory Category Transfer Posting",
           ].includes(movementType)
         ) {
           for (const balance of balancesToProcess) {
@@ -1597,7 +1623,7 @@ class StockAdjuster {
 
             const categoryField =
               movementType === "Location Transfer"
-                ? this.categoryMap["Unrestricted"]
+                ? this.categoryMap[balance.category || "Unrestricted"]
                 : this.categoryMap[
                     balance.category || subformData.category || "Unrestricted"
                   ];

@@ -801,7 +801,7 @@ class StockAdjuster {
           );
         } else {
           newPrefix = prefixToShow;
-          await db
+          await this.db
             .collection("prefix_configuration")
             .where({
               document_types: "Stock Movement",
@@ -818,9 +818,10 @@ class StockAdjuster {
 
       await findUniquePrefix();
 
-      // Fetch and store material data for all items
+      // Store material data, unit prices, and balance info for all items
       const materialsMap = {};
       const unitPricesMap = {};
+      const balanceInfoMap = {};
 
       // Process each stock movement item to get material data and calculate unit prices
       for (const item of allData.stock_movement) {
@@ -841,17 +842,29 @@ class StockAdjuster {
           (balance) => balance.material_id === item.item_selection
         );
 
-        // Get first balance to use the batch_id if available
+        // Get first balance to use for this specific item
         const firstBalance =
           relatedBalances.length > 0 ? relatedBalances[0] : null;
-        const batchId = firstBalance ? firstBalance.batch_id : null;
+
+        // Store balance info for this specific item
+        balanceInfoMap[item.item_selection] = {
+          location_id: firstBalance?.location_id || null,
+          category: firstBalance?.category || "Unrestricted",
+          batch_id: firstBalance?.batch_id || null,
+        };
 
         // Calculate unit price based on costing method
         let unitPrice = 0;
         if (material.material_costing_method === "First In First Out") {
-          unitPrice = await this.getLatestFIFOCostPrice(material, batchId);
+          unitPrice = await this.getLatestFIFOCostPrice(
+            material,
+            balanceInfoMap[item.item_selection].batch_id
+          );
         } else if (material.material_costing_method === "Weighted Average") {
-          unitPrice = await this.getWeightedAverageCostPrice(material, batchId);
+          unitPrice = await this.getWeightedAverageCostPrice(
+            material,
+            balanceInfoMap[item.item_selection].batch_id
+          );
         } else if (material.material_costing_method === "Fixed Cost") {
           unitPrice = await this.getFixedCostPrice(material.id);
         }
@@ -860,6 +873,7 @@ class StockAdjuster {
       }
 
       console.log("All Data", allData);
+      console.log("Balance Info Map:", balanceInfoMap);
 
       const receivingIOFT = {
         stock_movement_status: "Created",
@@ -875,13 +889,16 @@ class StockAdjuster {
             );
           }
 
+          // Use item-specific balance info
+          const balanceInfo = balanceInfoMap[item.item_selection];
+
           return {
             item_selection: item.item_selection,
             total_quantity: item.total_quantity,
             received_quantity_uom: material.based_uom,
             unit_price: unitPricesMap[item.item_selection] || 0,
-            location_id: firstBalance.location_id || null,
-            category: firstBalance.category || "Unrestricted",
+            location_id: balanceInfo.location_id,
+            category: balanceInfo.category,
           };
         }),
         issue_date: allData.issue_date,

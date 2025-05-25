@@ -91,7 +91,6 @@ const getLatestFIFOCostPrice = async (
         );
       }
 
-      // If deduction quantity is provided, calculate weighted average cost price across multiple FIFO records
       let remainingQtyToDeduct = roundQty(deductionQty);
       let totalCost = 0;
       let totalDeductedQty = 0;
@@ -101,7 +100,6 @@ const getLatestFIFOCostPrice = async (
         `Calculating weighted average FIFO cost for ${materialId}, deduction quantity: ${remainingQtyToDeduct}`
       );
 
-      // Process each FIFO record in sequence until we've accounted for all deduction quantity
       for (const record of sortedRecords) {
         if (remainingQtyToDeduct <= 0) {
           break;
@@ -109,7 +107,7 @@ const getLatestFIFOCostPrice = async (
 
         const availableQty = roundQty(record.fifo_available_quantity || 0);
         if (availableQty <= 0) {
-          continue; // Skip records with no available quantity
+          continue;
         }
 
         const costPrice = roundPrice(record.fifo_cost_price || 0);
@@ -120,40 +118,17 @@ const getLatestFIFOCostPrice = async (
         totalDeductedQty = roundQty(totalDeductedQty + qtyToDeduct);
 
         console.log(
-          `FIFO record ${record.fifo_sequence}: Deducting ${qtyToDeduct} units at ${costPrice} per unit = ${costContribution}`
+          `FIFO record sequence ${record.fifo_sequence}: Deducting ${qtyToDeduct} units at ${costPrice} per unit = ${costContribution}`
         );
 
         remainingQtyToDeduct = roundQty(remainingQtyToDeduct - qtyToDeduct);
-      }
-
-      // If we couldn't satisfy the full deduction from available records, issue a warning
-      if (remainingQtyToDeduct > 0) {
-        console.warn(
-          `Warning: Not enough FIFO quantity available. Remaining to deduct: ${remainingQtyToDeduct}`
-        );
-
-        // For the remaining quantity, use the last record's cost price
-        if (sortedRecords.length > 0) {
-          const lastRecord = sortedRecords[sortedRecords.length - 1];
-          const lastCostPrice = roundPrice(lastRecord.fifo_cost_price || 0);
-
-          console.log(
-            `Using last FIFO record's cost price (${lastCostPrice}) for remaining ${remainingQtyToDeduct} units`
-          );
-
-          const additionalCost = roundPrice(
-            remainingQtyToDeduct * lastCostPrice
-          );
-          totalCost = roundPrice(totalCost + additionalCost);
-          totalDeductedQty = roundQty(totalDeductedQty + remainingQtyToDeduct);
-        }
       }
 
       // Calculate the weighted average cost price
       if (totalDeductedQty > 0) {
         const weightedAvgCost = roundPrice(totalCost / totalDeductedQty);
         console.log(
-          `Weighted Average FIFO Cost: ${totalCost} / ${totalDeductedQty} = ${weightedAvgCost}`
+          `✅ FIFO Weighted Average Cost: ${totalCost} / ${totalDeductedQty} = ${weightedAvgCost}`
         );
         return weightedAvgCost;
       }
@@ -580,11 +555,10 @@ const updateInventory = (allData) => {
           const costingMethod = materialData.material_costing_method;
 
           if (costingMethod === "First In First Out") {
-            // Get unit price from latest FIFO sequence
             const fifoCostPrice = await getLatestFIFOCostPrice(
               item.material_id,
               item.item_batch_no,
-              balance.sa_quantity
+              movementType === "OUT" ? balance.sa_quantity : null
             );
             unitPrice = roundPrice(fifoCostPrice);
             totalPrice = roundPrice(fifoCostPrice * balance.sa_quantity);
@@ -654,16 +628,15 @@ const updateInventory = (allData) => {
           return updateQuantities(-item.total_quantity, balanceUnitPrice)
             .then(() => {
               if (item.balance_index && Array.isArray(item.balance_index)) {
-                return Promise.all(
-                  item.balance_index
-                    .filter((balance) => balance.sa_quantity > 0)
-                    .map((balance) =>
-                      Promise.all([
-                        updateBalance(balance),
-                        recordInventoryMovement(balance),
-                      ])
-                    )
-                );
+                return item.balance_index
+                  .filter((balance) => balance.sa_quantity > 0)
+                  .reduce((promise, balance) => {
+                    return promise.then(() => {
+                      return updateBalance(balance).then(() => {
+                        return recordInventoryMovement(balance);
+                      });
+                    });
+                  }, Promise.resolve());
               }
               return null;
             })
@@ -702,16 +675,15 @@ const updateInventory = (allData) => {
           return updateQuantities(netQuantityChange, balanceUnitPrice)
             .then(() => {
               if (item.balance_index && Array.isArray(item.balance_index)) {
-                return Promise.all(
-                  item.balance_index
-                    .filter((balance) => balance.sa_quantity > 0)
-                    .map((balance) =>
-                      Promise.all([
-                        updateBalance(balance),
-                        recordInventoryMovement(balance),
-                      ])
-                    )
-                );
+                return item.balance_index
+                  .filter((balance) => balance.sa_quantity > 0)
+                  .reduce((promise, balance) => {
+                    return promise.then(() => {
+                      return updateBalance(balance).then(() => {
+                        return recordInventoryMovement(balance);
+                      });
+                    });
+                  }, Promise.resolve());
               }
               return null;
             })

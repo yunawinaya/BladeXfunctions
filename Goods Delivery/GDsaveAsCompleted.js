@@ -49,13 +49,11 @@ const preventDuplicateProcessing = () => {
 const updateFIFOInventory = (materialId, deliveryQty, batchId, plantId) => {
   return new Promise((resolve, reject) => {
     const query = batchId
-      ? db
-          .collection("fifo_costing_history")
-          .where({
-            material_id: materialId,
-            batch_id: batchId,
-            plant_id: plantId,
-          })
+      ? db.collection("fifo_costing_history").where({
+          material_id: materialId,
+          batch_id: batchId,
+          plant_id: plantId,
+        })
       : db
           .collection("fifo_costing_history")
           .where({ material_id: materialId, plant_id: plantId });
@@ -151,13 +149,11 @@ const updateWeightedAverage = (item, batchId, baseWAQty, plantId) => {
 
   const deliveredQty = parseFloat(baseWAQty);
   const query = batchId
-    ? db
-        .collection("wa_costing_method")
-        .where({
-          material_id: item.material_id,
-          batch_id: batchId,
-          plant_id: plantId,
-        })
+    ? db.collection("wa_costing_method").where({
+        material_id: item.material_id,
+        batch_id: batchId,
+        plant_id: plantId,
+      })
     : db
         .collection("wa_costing_method")
         .where({ material_id: item.material_id, plant_id: plantId });
@@ -257,13 +253,11 @@ const getLatestFIFOCostPrice = async (
 ) => {
   try {
     const query = batchId
-      ? db
-          .collection("fifo_costing_history")
-          .where({
-            material_id: materialId,
-            batch_id: batchId,
-            plant_id: plantId,
-          })
+      ? db.collection("fifo_costing_history").where({
+          material_id: materialId,
+          batch_id: batchId,
+          plant_id: plantId,
+        })
       : db
           .collection("fifo_costing_history")
           .where({ material_id: materialId, plant_id: plantId });
@@ -433,13 +427,11 @@ const getLatestFIFOCostPrice = async (
 const getWeightedAverageCostPrice = async (materialId, batchId, plantId) => {
   try {
     const query = batchId
-      ? db
-          .collection("wa_costing_method")
-          .where({
-            material_id: materialId,
-            batch_id: batchId,
-            plant_id: plantId,
-          })
+      ? db.collection("wa_costing_method").where({
+          material_id: materialId,
+          batch_id: batchId,
+          plant_id: plantId,
+        })
       : db
           .collection("wa_costing_method")
           .where({ material_id: materialId, plant_id: plantId });
@@ -806,209 +798,460 @@ const processBalanceTable = async (
 
 // Enhanced goods delivery status update
 const updateSalesOrderStatus = async (salesOrderId) => {
+  const soIds = Array.isArray(salesOrderId) ? salesOrderId : [salesOrderId];
+
+  // Arrays to collect data for the return format
+  let soDataArray = [];
+
   try {
-    console.log(`Updating sales order status for SO: ${salesOrderId}`);
+    const updatePromises = soIds.map(async (salesOrderId) => {
+      const [resSO, resGD] = await Promise.all([
+        db.collection("sales_order").where({ id: salesOrderId }).get(),
+        db.collection("goods_delivery").where({ so_id: salesOrderId }).get(),
+      ]);
 
-    const [resSO, resGD] = await Promise.all([
-      db.collection("sales_order").where({ id: salesOrderId }).get(),
-      db
-        .collection("goods_delivery")
-        .where({ so_id: salesOrderId, gd_status: "Completed" })
-        .get(),
-    ]);
+      if (!resSO.data || !resSO.data.length) {
+        console.log(`Sales order ${salesOrderId} not found`);
+        return;
+      }
 
-    if (!resSO.data || !resSO.data.length) {
-      console.log(`Sales order ${salesOrderId} not found`);
-      return;
-    }
+      const soDoc = resSO.data[0];
+      const allGDs = resGD.data || [];
 
-    const soDoc = resSO.data[0];
-    const allGDs = resGD.data || [];
+      const soItems = soDoc.table_so || [];
+      if (!soItems.length) {
+        console.log(`No items found in sales order ${salesOrderId}`);
+        return;
+      }
 
-    const soItems = soDoc.table_so || [];
-    if (!soItems.length) {
-      console.log(`No items found in sales order ${salesOrderId}`);
-      return;
-    }
+      // Create a map to sum delivered quantities for each item
+      const deliveredQtyMap = {};
+      let totalItems = soItems.length;
+      let partiallyDeliveredItems = 0;
+      let fullyDeliveredItems = 0;
 
-    // Create a map to sum delivered quantities for each item
-    const deliveredQtyMap = {};
-    let totalItems = soItems.length;
-    let partiallyDeliveredItems = 0;
-    let fullyDeliveredItems = 0;
+      // Initialize with zeros
+      soItems.forEach((item) => {
+        const itemId = item.item_name;
+        deliveredQtyMap[itemId] = 0;
+      });
 
-    // Initialize with zeros
-    soItems.forEach((item) => {
-      const itemId = item.item_name;
-      deliveredQtyMap[itemId] = 0;
-    });
+      // Sum delivered quantities from all GDs
+      allGDs.forEach((gd) => {
+        (gd.table_gd || []).forEach((gdItem) => {
+          const itemId = gdItem.material_id;
+          if (deliveredQtyMap.hasOwnProperty(itemId)) {
+            const qty = parseFloat(gdItem.gd_qty || 0);
+            deliveredQtyMap[itemId] += qty;
+          }
+        });
+      });
 
-    // Sum delivered quantities from all GDs
-    allGDs.forEach((gd) => {
-      (gd.table_gd || []).forEach((gdItem) => {
-        const itemId = gdItem.material_id;
-        if (deliveredQtyMap.hasOwnProperty(itemId)) {
-          const qty = parseFloat(gdItem.gd_qty || 0);
-          deliveredQtyMap[itemId] += qty;
+      // Create a copy of the SO items to update later
+      const updatedSoItems = JSON.parse(JSON.stringify(soItems));
+
+      // Update delivered quantities in SO items and count items with ANY delivery
+      updatedSoItems.forEach((item) => {
+        const itemId = item.item_name;
+        const orderedQty = parseFloat(item.so_quantity || 0);
+        const deliveredQty = deliveredQtyMap[itemId] || 0;
+
+        item.delivered_qty = deliveredQty;
+
+        // Add ratio for tracking purposes
+        item.delivery_ratio = orderedQty > 0 ? deliveredQty / orderedQty : 0;
+
+        // Count items with ANY delivered quantity as "partially delivered"
+        if (deliveredQty > 0) {
+          partiallyDeliveredItems++;
+
+          // Count fully delivered items separately
+          if (deliveredQty >= orderedQty) {
+            fullyDeliveredItems++;
+          }
         }
       });
+
+      // Check item completion status
+      let allItemsComplete = fullyDeliveredItems === totalItems;
+      let anyItemProcessing = partiallyDeliveredItems > 0;
+
+      // Determine new status
+      let newSOStatus = soDoc.so_status;
+      let newGDStatus = soDoc.gd_status;
+
+      if (allItemsComplete) {
+        newSOStatus = "Completed";
+        newGDStatus = "Fully Delivered";
+      } else if (anyItemProcessing) {
+        newSOStatus = "Processing";
+        newGDStatus = "Partially Delivered";
+      }
+
+      // Create tracking ratios
+      const partiallyDeliveredRatio = `${partiallyDeliveredItems} / ${totalItems}`;
+      const fullyDeliveredRatio = `${fullyDeliveredItems} / ${totalItems}`;
+
+      console.log(`SO ${salesOrderId} status:
+        Total items: ${totalItems}
+        Partially delivered items (including fully delivered): ${partiallyDeliveredItems} (${partiallyDeliveredRatio})
+        Fully delivered items: ${fullyDeliveredItems} (${fullyDeliveredRatio})
+      `);
+
+      // Prepare a single update operation with all changes
+      const updateData = {
+        table_so: updatedSoItems,
+        partially_delivered: partiallyDeliveredRatio,
+        fully_delivered: fullyDeliveredRatio,
+      };
+
+      // Only include status changes if needed
+      if (newSOStatus !== soDoc.so_status) {
+        updateData.so_status = newSOStatus;
+      }
+
+      if (newGDStatus !== soDoc.gd_status) {
+        updateData.gd_status = newGDStatus;
+      }
+
+      // Execute a single database update
+      await db.collection("sales_order").doc(soDoc.id).update(updateData);
+
+      const originalSOStatus = soDoc.so_status;
+      // Log the status change if it occurred
+      if (newSOStatus !== originalSOStatus) {
+        console.log(
+          `Updated SO ${salesOrderId} status from ${originalSOStatus} to ${newSOStatus}`
+        );
+      }
+      return {
+        soId: salesOrderId,
+        newSOStatus,
+        totalItems,
+        partiallyDeliveredItems,
+        fullyDeliveredItems,
+        success: true,
+      };
     });
 
-    // Create a copy of the SO items to update later
-    const updatedSoItems = JSON.parse(JSON.stringify(soItems));
+    const results = await Promise.all(updatePromises);
 
-    // Update delivered quantities in SO items and count items with ANY delivery
-    updatedSoItems.forEach((item) => {
-      const itemId = item.item_name;
-      const orderedQty = parseFloat(item.so_quantity || 0);
-      const deliveredQty = deliveredQtyMap[itemId] || 0;
-
-      item.delivered_qty = deliveredQty;
-
-      // Add ratio for tracking purposes
-      item.delivery_ratio = orderedQty > 0 ? deliveredQty / orderedQty : 0;
-
-      // Count items with ANY delivered quantity as "partially delivered"
-      if (deliveredQty > 0) {
-        partiallyDeliveredItems++;
-
-        // Count fully delivered items separately
-        if (deliveredQty >= orderedQty) {
-          fullyDeliveredItems++;
-        }
+    results.forEach((result) => {
+      if (result && result.success) {
+        // Add PO data
+        soDataArray.push({
+          so_id: result.soId,
+          status: result.newPOStatus,
+        });
       }
     });
 
-    // Check item completion status
-    let allItemsComplete = fullyDeliveredItems === totalItems;
-    let anyItemProcessing = partiallyDeliveredItems > 0;
+    // Aggregate results for logging
+    const successCount = results.filter((r) => r && r.success).length;
+    const failCount = results.filter((r) => r && !r.success).length;
 
-    // Determine new status
-    let newSOStatus = soDoc.so_status;
-    let newGDStatus = soDoc.gd_status;
-
-    if (allItemsComplete) {
-      newSOStatus = "Completed";
-      newGDStatus = "Fully Delivered";
-    } else if (anyItemProcessing) {
-      newSOStatus = "Processing";
-      newGDStatus = "Partially Delivered";
-    }
-
-    // Create tracking ratios
-    const partiallyDeliveredRatio = `${partiallyDeliveredItems} / ${totalItems}`;
-    const fullyDeliveredRatio = `${fullyDeliveredItems} / ${totalItems}`;
-
-    console.log(`SO ${salesOrderId} status:
-      Total items: ${totalItems}
-      Partially delivered items (including fully delivered): ${partiallyDeliveredItems} (${partiallyDeliveredRatio})
-      Fully delivered items: ${fullyDeliveredItems} (${fullyDeliveredRatio})
+    console.log(`SO Status Update Summary: 
+      Total SOs: ${soIds.length}
+      Successfully updated: ${successCount}
+      Failed updates: ${failCount}
     `);
 
-    // Prepare a single update operation with all changes
-    const updateData = {
-      table_so: updatedSoItems,
-      partially_delivered: partiallyDeliveredRatio,
-      fully_delivered: fullyDeliveredRatio,
-    };
-
-    // Only include status changes if needed
-    if (newSOStatus !== soDoc.so_status) {
-      updateData.so_status = newSOStatus;
-    }
-
-    if (newGDStatus !== soDoc.gd_status) {
-      updateData.gd_status = newGDStatus;
-    }
-
-    // Execute a single database update
-    await db.collection("sales_order").doc(soDoc.id).update(updateData);
-
-    const originalSOStatus = soDoc.so_status;
-    // Log the status change if it occurred
-    if (newSOStatus !== originalSOStatus) {
-      console.log(
-        `Updated SO ${salesOrderId} status from ${originalSOStatus} to ${newSOStatus}`
-      );
-    }
-
+    // Return in the requested format
     return {
-      soId: salesOrderId,
-      totalItems,
-      partiallyDeliveredItems,
-      fullyDeliveredItems,
-      success: true,
+      so_data_array: soDataArray,
     };
   } catch (error) {
-    console.error(
-      `Error updating sales order status for ${salesOrderId}:`,
-      error
-    );
+    console.error(`Error in update sales order status process:`, error);
     return {
-      soId: salesOrderId,
-      success: false,
-      error: error.message,
+      so_data_array: [],
     };
   }
 };
 
-const updatePrefix = async (organizationId) => {
+const getPrefixData = async (organizationId) => {
+  console.log("Getting prefix data for organization:", organizationId);
   try {
     const prefixEntry = await db
       .collection("prefix_configuration")
-      .where({ document_types: "Goods Delivery", is_deleted: 0 })
+      .where({
+        document_types: "Goods Delivery",
+        is_deleted: 0,
+        organization_id: organizationId,
+        is_active: 1,
+      })
       .get();
+
+    console.log("Prefix data result:", prefixEntry);
 
     if (!prefixEntry.data || prefixEntry.data.length === 0) {
       console.log("No prefix configuration found");
-      return;
+      return null;
     }
 
-    const data = prefixEntry.data[0];
+    return prefixEntry.data[0];
+  } catch (error) {
+    console.error("Error getting prefix data:", error);
+    throw error;
+  }
+};
+
+const updatePrefix = async (organizationId, runningNumber) => {
+  console.log(
+    "Updating prefix for organization:",
+    organizationId,
+    "with running number:",
+    runningNumber
+  );
+  try {
     await db
       .collection("prefix_configuration")
-      .where({ document_types: "Goods Delivery", is_deleted: 0 })
+      .where({
+        document_types: "Goods Delivery",
+        is_deleted: 0,
+        organization_id: organizationId,
+      })
       .update({
-        running_number: parseInt(data.running_number) + 1,
+        running_number: parseInt(runningNumber) + 1,
+        has_record: 1,
       });
-
-    console.log("Updated prefix running number");
+    console.log("Prefix update successful");
   } catch (error) {
     console.error("Error updating prefix:", error);
     throw error;
   }
 };
 
+const generatePrefix = (runNumber, now, prefixData) => {
+  console.log("Generating prefix with running number:", runNumber);
+  try {
+    let generated = prefixData.current_prefix_config;
+    generated = generated.replace("prefix", prefixData.prefix_value);
+    generated = generated.replace("suffix", prefixData.suffix_value);
+    generated = generated.replace(
+      "month",
+      String(now.getMonth() + 1).padStart(2, "0")
+    );
+    generated = generated.replace(
+      "day",
+      String(now.getDate()).padStart(2, "0")
+    );
+    generated = generated.replace("year", now.getFullYear());
+    generated = generated.replace(
+      "running_number",
+      String(runNumber).padStart(prefixData.padding_zeroes, "0")
+    );
+    console.log("Generated prefix:", generated);
+    return generated;
+  } catch (error) {
+    console.error("Error generating prefix:", error);
+    throw error;
+  }
+};
+
+const checkUniqueness = async (generatedPrefix) => {
+  console.log("Checking uniqueness for prefix:", generatedPrefix);
+  try {
+    const existingDoc = await db
+      .collection("goods_delivery")
+      .where({ delivery_no: generatedPrefix })
+      .get();
+
+    const isUnique = !existingDoc.data || existingDoc.data.length === 0;
+    console.log("Is unique:", isUnique);
+    return isUnique;
+  } catch (error) {
+    console.error("Error checking uniqueness:", error);
+    throw error;
+  }
+};
+
+const findUniquePrefix = async (prefixData) => {
+  console.log("Finding unique prefix");
+  try {
+    const now = new Date();
+    let prefixToShow;
+    let runningNumber = prefixData.running_number || 1;
+    let isUnique = false;
+    let maxAttempts = 10;
+    let attempts = 0;
+
+    while (!isUnique && attempts < maxAttempts) {
+      attempts++;
+      console.log(`Attempt ${attempts} to find unique prefix`);
+      prefixToShow = generatePrefix(runningNumber, now, prefixData);
+      isUnique = await checkUniqueness(prefixToShow);
+      if (!isUnique) {
+        console.log("Prefix not unique, incrementing running number");
+        runningNumber++;
+      }
+    }
+
+    if (!isUnique) {
+      console.error("Could not find unique prefix after maximum attempts");
+      throw new Error(
+        "Could not generate a unique Goods Delivery number after maximum attempts"
+      );
+    }
+
+    console.log(
+      "Found unique prefix:",
+      prefixToShow,
+      "with running number:",
+      runningNumber
+    );
+    return { prefixToShow, runningNumber };
+  } catch (error) {
+    console.error("Error finding unique prefix:", error);
+    throw error;
+  }
+};
+
 const validateForm = (data, requiredFields) => {
-  console.log("Validating form");
-  const missingFields = requiredFields.filter((field) => {
+  const missingFields = [];
+
+  requiredFields.forEach((field) => {
     const value = data[field.name];
-    if (Array.isArray(value)) return value.length === 0;
-    if (typeof value === "string") return value.trim() === "";
-    return !value;
+
+    // Handle non-array fields (unchanged)
+    if (!field.isArray) {
+      if (validateField(value, field)) {
+        missingFields.push(field.label);
+      }
+      return;
+    }
+
+    // Handle array fields
+    if (!Array.isArray(value)) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    if (value.length === 0) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    // Check each item in the array
+    if (field.arrayType === "object" && field.arrayFields && value.length > 0) {
+      value.forEach((item, index) => {
+        field.arrayFields.forEach((subField) => {
+          const subValue = item[subField.name];
+          if (validateField(subValue, subField)) {
+            missingFields.push(
+              `${subField.label} (in ${field.label} #${index + 1})`
+            );
+          }
+        });
+      });
+    }
   });
-  console.log("Missing fields:", missingFields);
+
   return missingFields;
+};
+
+const validateField = (value, field) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "number") return value <= 0;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return !value;
+};
+
+const addEntry = async (organizationId, gd, gdStatus) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+
+    if (prefixData.length !== 0) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      gd.delivery_no = prefixToShow;
+    }
+    await db.collection("goods_delivery").add(gd);
+
+    await processBalanceTable(gd, false, gd.plant_id, organizationId, gdStatus);
+
+    const { so_data_array } = await updateSalesOrderStatus(gd.so_id);
+
+    await this.runWorkflow(
+      "1918140858502557698",
+      { delivery_no: gd.delivery_no, so_data: so_data_array },
+      async (res) => {
+        console.log("成功结果：", res);
+      },
+      (err) => {
+        alert();
+        console.error("失败结果：", err);
+        closeDialog();
+      }
+    );
+
+    this.$message.success("Add successfully");
+    await closeDialog();
+  } catch (error) {
+    this.$message.error(error);
+  }
+};
+
+const updateEntry = async (organizationId, gd, gdStatus, goodsDeliveryId) => {
+  try {
+    if (gdStatus === "Draft") {
+      const prefixData = await getPrefixData(organizationId);
+
+      if (prefixData.length !== 0) {
+        const { prefixToShow, runningNumber } = await findUniquePrefix(
+          prefixData
+        );
+
+        await updatePrefix(organizationId, runningNumber);
+
+        gd.delivery_no = prefixToShow;
+      }
+    }
+    await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+
+    await processBalanceTable(gd, true, gd.plant_id, organizationId, gdStatus);
+
+    const { so_data_array } = await updateSalesOrderStatus(gd.so_id);
+
+    await this.runWorkflow(
+      "1918140858502557698",
+      { delivery_no: gd.delivery_no, so_data: so_data_array },
+      async (res) => {
+        console.log("成功结果：", res);
+      },
+      (err) => {
+        alert();
+        console.error("失败结果：", err);
+        closeDialog();
+      }
+    );
+
+    this.$message.success("Update successfully");
+    await closeDialog();
+  } catch (error) {
+    this.$message.error(error);
+  }
 };
 
 // Main execution wrapped in an async IIFE
 (async () => {
-  console.log("Starting Goods Delivery Completed function");
-
   // Prevent duplicate processing
   if (!preventDuplicateProcessing()) {
     return;
   }
 
   try {
+    this.showLoading();
     const data = await this.getValues();
-    console.log("Form data:", data);
 
     // Get page status
     const page_status = data.page_status;
     const gdStatus = data.gd_status;
-
-    console.log("Page status:", page_status, "GD status:", gdStatus);
 
     // Define required fields
     const requiredFields = [
@@ -1016,375 +1259,163 @@ const validateForm = (data, requiredFields) => {
       { name: "plant_id", label: "Plant" },
       { name: "so_id", label: "Sales Order" },
       { name: "delivery_date", label: "Delivery Date" },
+      {
+        name: "table_gd",
+        label: "Item Information",
+        isArray: true,
+        arrayType: "object",
+        arrayFields: [
+          { name: "quantity", label: "Quantity" },
+          { name: "unit_price", label: "Unit Price" },
+        ],
+      },
     ];
 
     // Validate form
     const missingFields = validateForm(data, requiredFields);
 
-    if (missingFields.length > 0) {
-      window.isProcessing = false;
-      this.hideLoading();
-      const missingFieldNames = missingFields.map((f) => f.label).join(", ");
-      this.$message.error(
-        `Please fill in all required fields: ${missingFieldNames}`
-      );
-      console.log("Validation failed, missing fields:", missingFieldNames);
-      return;
-    }
-
-    console.log("Validation passed");
-
-    // If this is an edit, store previous temporary quantities
-    if (page_status === "Edit" && Array.isArray(data.table_gd)) {
-      data.table_gd.forEach((item) => {
-        item.prev_temp_qty_data = item.temp_qty_data;
-      });
-    }
-
-    // Get organization ID
-    let organizationId = this.getVarGlobal("deptParentId");
-    if (organizationId === "0") {
-      organizationId = this.getVarSystem("deptIds").split(",")[0];
-    }
-    console.log("Organization ID:", organizationId);
-
-    const {
-      fake_so_id,
-      so_id,
-      so_no,
-      gd_billing_name,
-      gd_billing_cp,
-      gd_billing_address,
-      gd_shipping_address,
-      delivery_no,
-      plant_id,
-      organization_id,
-      gd_ref_doc,
-      customer_name,
-      gd_contact_name,
-      contact_number,
-      email_address,
-      document_description,
-      gd_delivery_method,
-      delivery_date,
-      driver_name,
-      driver_contact_no,
-      ic_no,
-      validity_of_collection,
-      vehicle_no,
-      pickup_date,
-      courier_company,
-      shipping_date,
-      freight_charges,
-      tracking_number,
-      est_arrival_date,
-      driver_cost,
-      est_delivery_date,
-      shipping_company,
-      shipping_method,
-      table_gd,
-      order_remark,
-      billing_address_line_1,
-      billing_address_line_2,
-      billing_address_line_3,
-      billing_address_line_4,
-      billing_address_city,
-      billing_address_state,
-      billing_address_country,
-      billing_postal_code,
-      shipping_address_line_1,
-      shipping_address_line_2,
-      shipping_address_line_3,
-      shipping_address_line_4,
-      shipping_address_city,
-      shipping_address_state,
-      shipping_address_country,
-      shipping_postal_code,
-    } = data;
-
-    // Prepare goods delivery object
-    const gd = {
-      gd_status: "Completed",
-      fake_so_id,
-      so_id,
-      so_no,
-      gd_billing_name,
-      gd_billing_cp,
-      gd_billing_address,
-      gd_shipping_address,
-      delivery_no,
-      plant_id,
-      organization_id,
-      gd_ref_doc,
-      customer_name,
-      gd_contact_name,
-      contact_number,
-      email_address,
-      document_description,
-      gd_delivery_method,
-      delivery_date,
-      driver_name,
-      driver_contact_no,
-      ic_no,
-      validity_of_collection,
-      vehicle_no,
-      pickup_date,
-      courier_company,
-      shipping_date,
-      freight_charges,
-      tracking_number,
-      est_arrival_date,
-      driver_cost,
-      est_delivery_date,
-      shipping_company,
-      shipping_method,
-      table_gd,
-      order_remark,
-      billing_address_line_1,
-      billing_address_line_2,
-      billing_address_line_3,
-      billing_address_line_4,
-      billing_address_city,
-      billing_address_state,
-      billing_address_country,
-      billing_postal_code,
-      shipping_address_line_1,
-      shipping_address_line_2,
-      shipping_address_line_3,
-      shipping_address_line_4,
-      shipping_address_city,
-      shipping_address_state,
-      shipping_address_country,
-      shipping_postal_code,
-    };
-
-    // Clean up undefined/null values
-    Object.keys(gd).forEach((key) => {
-      if (gd[key] === undefined || gd[key] === null) {
-        delete gd[key];
-      }
-    });
-
-    console.log("Entry prepared with keys:", Object.keys(gd));
-
-    this.showLoading();
-
-    // Perform action based on page status
-    if (page_status === "Add") {
-      console.log("Adding new GD entry (Add)");
-
-      // Add new document
-      console.log("GD", gd);
-      const addResult = await db
-        .collection("goods_delivery")
-        .add(gd)
-        .then(() => {
-          this.runWorkflow(
-            "1918140858502557698",
-            { delivery_no: gd.delivery_no },
-            async (res) => {
-              console.log("成功结果：", res);
-            },
-            (err) => {
-              alert();
-              console.error("失败结果：", err);
-              closeDialog();
-            }
-          );
+    if (missingFields.length === 0) {
+      // If this is an edit, store previous temporary quantities
+      if (page_status === "Edit" && Array.isArray(data.table_gd)) {
+        data.table_gd.forEach((item) => {
+          item.prev_temp_qty_data = item.temp_qty_data;
         });
-      console.log("Added GD document:", addResult);
-
-      // Update prefix
-      await updatePrefix(organizationId);
-
-      // Process inventory updates
-      await processBalanceTable(
-        gd,
-        false,
-        gd.plant_id,
-        organizationId,
-        gdStatus
-      );
-
-      // Update related SO status
-      for (const so_id of gd.so_id) {
-        await updateSalesOrderStatus(so_id);
       }
 
-      closeDialog();
-    } else if (page_status === "Edit") {
-      console.log("Updating existing GD entry (Edit)");
+      // Get organization ID
+      let organizationId = this.getVarGlobal("deptParentId");
+      if (organizationId === "0") {
+        organizationId = this.getVarSystem("deptIds").split(",")[0];
+      }
 
-      // Get the GD document ID
-      const goodsDeliveryId = data.id;
-      console.log("Goods Delivery ID:", goodsDeliveryId);
+      const {
+        fake_so_id,
+        so_id,
+        so_no,
+        gd_billing_name,
+        gd_billing_cp,
+        gd_billing_address,
+        gd_shipping_address,
+        delivery_no,
+        plant_id,
+        organization_id,
+        gd_ref_doc,
+        customer_name,
+        gd_contact_name,
+        contact_number,
+        email_address,
+        document_description,
+        gd_delivery_method,
+        delivery_date,
+        driver_name,
+        driver_contact_no,
+        ic_no,
+        validity_of_collection,
+        vehicle_no,
+        pickup_date,
+        courier_company,
+        shipping_date,
+        freight_charges,
+        tracking_number,
+        est_arrival_date,
+        driver_cost,
+        est_delivery_date,
+        shipping_company,
+        shipping_method,
+        table_gd,
+        order_remark,
+        billing_address_line_1,
+        billing_address_line_2,
+        billing_address_line_3,
+        billing_address_line_4,
+        billing_address_city,
+        billing_address_state,
+        billing_address_country,
+        billing_postal_code,
+        shipping_address_line_1,
+        shipping_address_line_2,
+        shipping_address_line_3,
+        shipping_address_line_4,
+        shipping_address_city,
+        shipping_address_state,
+        shipping_address_country,
+        shipping_postal_code,
+      } = data;
 
-      if (gdStatus === "Draft") {
-        // For draft -> completed, generate a new number if needed
-        const prefixEntry = await db
-          .collection("prefix_configuration")
-          .where({
-            document_types: "Goods Delivery",
-            is_deleted: 0,
-            organization_id: organizationId,
-            is_active: 1,
-          })
-          .get();
+      // Prepare goods delivery object
+      const gd = {
+        gd_status: "Completed",
+        fake_so_id,
+        so_id,
+        so_no,
+        gd_billing_name,
+        gd_billing_cp,
+        gd_billing_address,
+        gd_shipping_address,
+        delivery_no,
+        plant_id,
+        organization_id,
+        gd_ref_doc,
+        customer_name,
+        gd_contact_name,
+        contact_number,
+        email_address,
+        document_description,
+        gd_delivery_method,
+        delivery_date,
+        driver_name,
+        driver_contact_no,
+        ic_no,
+        validity_of_collection,
+        vehicle_no,
+        pickup_date,
+        courier_company,
+        shipping_date,
+        freight_charges,
+        tracking_number,
+        est_arrival_date,
+        driver_cost,
+        est_delivery_date,
+        shipping_company,
+        shipping_method,
+        table_gd,
+        order_remark,
+        billing_address_line_1,
+        billing_address_line_2,
+        billing_address_line_3,
+        billing_address_line_4,
+        billing_address_city,
+        billing_address_state,
+        billing_address_country,
+        billing_postal_code,
+        shipping_address_line_1,
+        shipping_address_line_2,
+        shipping_address_line_3,
+        shipping_address_line_4,
+        shipping_address_city,
+        shipping_address_state,
+        shipping_address_country,
+        shipping_postal_code,
+      };
 
-        if (prefixEntry.data && prefixEntry.data.length > 0) {
-          const prefixData = prefixEntry.data[0];
-          const now = new Date();
-
-          const generatePrefix = (runNumber) => {
-            let generated = prefixData.current_prefix_config;
-            generated = generated.replace("prefix", prefixData.prefix_value);
-            generated = generated.replace("suffix", prefixData.suffix_value);
-            generated = generated.replace(
-              "month",
-              String(now.getMonth() + 1).padStart(2, "0")
-            );
-            generated = generated.replace(
-              "day",
-              String(now.getDate()).padStart(2, "0")
-            );
-            generated = generated.replace("year", now.getFullYear());
-            generated = generated.replace(
-              "running_number",
-              String(runNumber).padStart(prefixData.padding_zeroes, "0")
-            );
-            return generated;
-          };
-
-          const checkUniqueness = async (generatedPrefix) => {
-            const existingDoc = await db
-              .collection("goods_delivery")
-              .where({ delivery_no: generatedPrefix })
-              .get();
-            return !existingDoc.data || existingDoc.data.length === 0;
-          };
-
-          const findUniquePrefix = async () => {
-            let prefixToShow;
-            let runningNumber = prefixData.running_number;
-            let isUnique = false;
-            let maxAttempts = 10;
-            let attempts = 0;
-
-            while (!isUnique && attempts < maxAttempts) {
-              attempts++;
-              prefixToShow = generatePrefix(runningNumber);
-              isUnique = await checkUniqueness(prefixToShow);
-              if (!isUnique) {
-                runningNumber++;
-              }
-            }
-
-            if (!isUnique) {
-              throw new Error(
-                "Could not generate a unique Goods Delivery number after maximum attempts"
-              );
-            }
-
-            return { prefixToShow, runningNumber };
-          };
-
-          // Generate new prefix
-          const { prefixToShow, runningNumber } = await findUniquePrefix();
-          gd.delivery_no = prefixToShow;
-
-          // Update document with new prefix
-          await db
-            .collection("goods_delivery")
-            .doc(goodsDeliveryId)
-            .update(gd)
-            .then(() => {
-              this.runWorkflow(
-                "1918140858502557698",
-                { delivery_no: gd.delivery_no },
-                async (res) => {
-                  console.log("成功结果：", res);
-                },
-                (err) => {
-                  alert();
-                  console.error("失败结果：", err);
-                  closeDialog();
-                }
-              );
-            });
-
-          // Update prefix configuration
-          await db
-            .collection("prefix_configuration")
-            .where({
-              document_types: "Goods Delivery",
-              is_deleted: 0,
-              organization_id: organizationId,
-            })
-            .update({
-              running_number: parseInt(runningNumber) + 1,
-              has_record: 1,
-            });
-        } else {
-          // Just update without changing number
-          await db
-            .collection("goods_delivery")
-            .doc(goodsDeliveryId)
-            .update(gd)
-            .then(() => {
-              this.runWorkflow(
-                "1918140858502557698",
-                { delivery_no: gd.delivery_no },
-                async (res) => {
-                  console.log("成功结果：", res);
-                },
-                (err) => {
-                  alert();
-                  console.error("失败结果：", err);
-                  closeDialog();
-                }
-              );
-            });
+      // Clean up undefined/null values
+      Object.keys(gd).forEach((key) => {
+        if (gd[key] === undefined || gd[key] === null) {
+          delete gd[key];
         }
-      } else {
-        // Normal update (not changing from draft)
-        await db
-          .collection("goods_delivery")
-          .doc(goodsDeliveryId)
-          .update(gd)
-          .then(() => {
-            this.runWorkflow(
-              "1918140858502557698",
-              { delivery_no: gd.delivery_no },
-              async (res) => {
-                console.log("成功结果：", res);
-              },
-              (err) => {
-                alert();
-                console.error("失败结果：", err);
-                closeDialog();
-              }
-            );
-          });
+      });
+
+      // Perform action based on page status
+      if (page_status === "Add") {
+        await addEntry(organizationId, gd, gdStatus);
+      } else if (page_status === "Edit") {
+        const goodsDeliveryId = data.id;
+        await updateEntry(organizationId, gd, gdStatus, goodsDeliveryId);
       }
-
-      // Process inventory updates
-      await processBalanceTable(
-        gd,
-        true,
-        gd.plant_id,
-        organizationId,
-        gdStatus
-      );
-
-      // Update related SO status
-      for (const so_id of gd.so_id) {
-        await updateSalesOrderStatus(so_id);
-      }
-
-      closeDialog();
+    } else {
+      this.hideLoading();
+      this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
     }
-
-    console.log("Completed GD operation successfully");
   } catch (error) {
     console.error("Error in goods delivery process:", error);
     this.$message.error(

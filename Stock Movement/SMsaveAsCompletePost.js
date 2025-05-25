@@ -383,146 +383,6 @@ class StockAdjuster {
     }
   }
 
-  async processItem(item, movementType, allData, organizationId) {
-    try {
-      const materialResponse = await this.db
-        .collection("Item")
-        .where({ id: item.item_selection })
-        .get();
-      const materialData = materialResponse.data[0];
-
-      if (!materialData) {
-        throw new Error(`Material not found for item ${item.item_selection}`);
-      }
-
-      const balancesToProcess =
-        allData.balance_index?.filter(
-          (balance) => balance.sm_quantity && balance.sm_quantity > 0
-        ) || [];
-
-      if (
-        movementType === "Miscellaneous Receipt" &&
-        (!item.received_quantity || item.received_quantity <= 0)
-      ) {
-        return {
-          itemId: item.item_selection,
-          status: "skipped",
-          reason: "No received quantity provided",
-        };
-      }
-
-      const updates = [];
-      for (const balance of balancesToProcess) {
-        try {
-          console.log(
-            `Processing balance for ${item.item_selection} at location ${balance.location_id}`
-          );
-
-          await this.updateQuantities(
-            materialData,
-            movementType,
-            balance,
-            allData,
-            item,
-            organizationId
-          );
-
-          const movementResult = await this.recordInventoryMovement(
-            materialData,
-            movementType,
-            balance,
-            allData,
-            item,
-            organizationId
-          );
-
-          updates.push({
-            balance: balance.location_id,
-            status: "success",
-            result: movementResult,
-          });
-        } catch (balanceError) {
-          console.error(
-            `Error processing balance for ${item.item_selection} at ${balance.location_id}:`,
-            balanceError
-          );
-
-          updates.push({
-            balance: balance.location_id,
-            status: "error",
-            error: balanceError.message,
-          });
-
-          return {
-            itemId: item.item_selection,
-            status: "error",
-            error: balanceError.message,
-          };
-        }
-      }
-
-      if (
-        movementType === "Miscellaneous Receipt" &&
-        item.received_quantity > 0
-      ) {
-        try {
-          await this.updateQuantities(
-            materialData,
-            movementType,
-            {},
-            allData,
-            item,
-            organizationId
-          );
-          await this.recordInventoryMovement(
-            materialData,
-            movementType,
-            { sm_quantity: item.received_quantity },
-            allData,
-            item,
-            organizationId
-          );
-
-          updates.push({
-            type: "receipt",
-            status: "success",
-          });
-        } catch (receiptError) {
-          console.error(
-            `Error processing receipt for ${item.item_selection}:`,
-            receiptError
-          );
-
-          updates.push({
-            type: "receipt",
-            status: "error",
-            error: receiptError.message,
-          });
-          return {
-            itemId: item.item_selection,
-            status: "error",
-            error: receiptError.message,
-          };
-        }
-      }
-
-      return {
-        itemId: item.item_selection,
-        status: updates.some((u) => u.status === "error")
-          ? "partial"
-          : "success",
-        details: updates,
-      };
-    } catch (error) {
-      console.error(`Error in processItem for ${item.item_selection}:`, error);
-      return {
-        itemId: item.item_selection,
-        status: "failed",
-        error: error.message,
-      };
-    }
-  }
-
   async updateQuantities(
     materialData,
     movementType,
@@ -547,11 +407,13 @@ class StockAdjuster {
       subformData.effective_uom ||
       materialData.based_uom;
 
+    let weightedAverageCost = null;
+
     console.log(
       `updateQuantities: item ${materialData.id}, movement ${movementType}, effectiveUom: ${effectiveUom}, qtyChangeValue: ${qtyChangeValue}`
     );
 
-    if (qtyChangeValue === 0) return;
+    if (qtyChangeValue === 0) return null;
 
     if (!locationId && movementType !== "Miscellaneous Receipt") {
       throw new Error("Location ID is required");
@@ -563,7 +425,7 @@ class StockAdjuster {
 
     const categoryKey =
       movementType === "Location Transfer"
-        ? "Unrestricted"
+        ? balance.category || "Unrestricted"
         : movementType === "Miscellaneous Receipt"
         ? subformData.category || "Unrestricted"
         : balance.category || "Unrestricted";
@@ -721,7 +583,7 @@ class StockAdjuster {
         movementType === "Miscellaneous Receipt"
           ? qtyChangeValue
           : -qtyChangeValue;
-      await this.updateCostingMethod(
+      weightedAverageCost = await this.updateCostingMethod(
         materialData,
         qtyChange,
         allData.issuing_operation_faci,
@@ -744,6 +606,8 @@ class StockAdjuster {
         organizationId
       );
     }
+
+    return weightedAverageCost;
   }
 
   async updateReceivingLocation(
@@ -820,7 +684,7 @@ class StockAdjuster {
 
     const categoryField =
       movementType === "Location Transfer"
-        ? this.categoryMap["Unrestricted"]
+        ? this.categoryMap[balance.category || "Unrestricted"]
         : movementType === "Miscellaneous Receipt"
         ? this.categoryMap[subformData.category || "Unrestricted"]
         : this.categoryMap[balance.category || "Unrestricted"];
@@ -954,7 +818,7 @@ class StockAdjuster {
 
       if (qtyChangeValue === 0) {
         console.log("No quantity change, skipping costing update");
-        return;
+        return null;
       }
 
       if (
@@ -965,7 +829,6 @@ class StockAdjuster {
         throw new Error(`Unsupported costing method: ${costingMethod}`);
       }
 
-      // Determine unit price: balance > subformData > materialData
       const unitPrice =
         balanceData.unit_price && balanceData.unit_price !== 0
           ? balanceData.unit_price
@@ -977,6 +840,8 @@ class StockAdjuster {
         console.warn("Unit price is zero, proceeding with costing update");
       }
 
+      let weightedAverageCost = null;
+
       if (costingMethod === "Weighted Average") {
         const waQuery =
           materialData.item_batch_management == "1" && balanceData.batch_id
@@ -985,9 +850,10 @@ class StockAdjuster {
                 batch_id: balanceData.batch_id,
                 plant_id: plantId,
               })
-            : this.db
-                .collection("wa_costing_method")
-                .where({ material_id: materialData.id, plant_id: plantId });
+            : this.db.collection("wa_costing_method").where({
+                material_id: materialData.id,
+                plant_id: plantId,
+              });
 
         const waResponse = await waQuery.get();
         if (!waResponse || !waResponse.data) {
@@ -999,7 +865,6 @@ class StockAdjuster {
         let newWaQuantity, newWaCostPrice;
 
         if (waData.length === 0 && qtyChangeValue > 0) {
-          // Create new WA record for first receipt
           newWaQuantity = this.roundQty(qtyChangeValue);
           newWaCostPrice = this.roundPrice(unitPrice);
 
@@ -1016,7 +881,6 @@ class StockAdjuster {
             created_at: new Date().toISOString(),
           });
         } else if (waData.length > 0) {
-          // Debug logging
           console.log("WA Data found:", {
             count: waData.length,
             firstItem: waData[0],
@@ -1057,7 +921,6 @@ class StockAdjuster {
           const currentCostPrice = this.roundPrice(latestWa.wa_cost_price || 0);
 
           if (qtyChangeValue > 0) {
-            // Receipt
             newWaQuantity = this.roundQty(currentQty + qtyChangeValue);
             const currentTotalCost = this.roundPrice(
               currentCostPrice * currentQty
@@ -1070,7 +933,6 @@ class StockAdjuster {
                   )
                 : 0;
           } else {
-            // Delivery
             const deliveredQuantity = Math.abs(qtyChangeValue);
             newWaQuantity = this.roundQty(currentQty - deliveredQuantity);
 
@@ -1080,18 +942,6 @@ class StockAdjuster {
               );
             }
 
-            // const currentTotalCost = this.roundPrice(
-            //   currentCostPrice * currentQty
-            // );
-            // const deliveryTotalCost = this.roundPrice(
-            //   currentCostPrice * deliveredQuantity
-            // );
-            // newWaCostPrice =
-            //   newWaQuantity > 0
-            //     ? this.roundPrice(
-            //         (currentTotalCost - deliveryTotalCost) / newWaQuantity
-            //       )
-            //     : 0;
             newWaCostPrice = currentCostPrice;
           }
 
@@ -1118,9 +968,10 @@ class StockAdjuster {
                 batch_id: balanceData.batch_id,
                 plant_id: plantId,
               })
-            : this.db
-                .collection("fifo_costing_history")
-                .where({ material_id: materialData.id, plant_id: plantId });
+            : this.db.collection("fifo_costing_history").where({
+                material_id: materialData.id,
+                plant_id: plantId,
+              });
 
         const fifoResponse = await fifoQuery.get();
         if (!fifoResponse || !fifoResponse.data) {
@@ -1132,7 +983,6 @@ class StockAdjuster {
           : [];
 
         if (qtyChangeValue > 0) {
-          // Receipt - Create a new FIFO layer
           const latestSequence =
             fifoData.length > 0
               ? Math.max(...fifoData.map((record) => record.fifo_sequence || 0))
@@ -1153,15 +1003,13 @@ class StockAdjuster {
             created_at: new Date().toISOString(),
           });
         } else if (qtyChangeValue < 0) {
-          // Delivery - Reduce quantities from oldest FIFO layers first
           let remainingDeduction = Math.abs(qtyChangeValue);
+          const fifoDeductions = []; // Track deductions for weighted average
 
-          // Sort by sequence (oldest first per FIFO principle)
           const sortedFifoData = fifoData.sort(
             (a, b) => (a.fifo_sequence || 0) - (b.fifo_sequence || 0)
           );
 
-          // Verify we have enough total quantity
           const totalAvailable = this.roundQty(
             sortedFifoData.reduce(
               (sum, record) => sum + (record.fifo_available_quantity || 0),
@@ -1175,7 +1023,6 @@ class StockAdjuster {
             );
           }
 
-          // Deduct from each layer starting with the oldest (lowest sequence)
           for (const record of sortedFifoData) {
             if (remainingDeduction <= 0) break;
 
@@ -1186,6 +1033,12 @@ class StockAdjuster {
 
             const deduction = Math.min(available, remainingDeduction);
             const newAvailable = this.roundQty(available - deduction);
+
+            // Store the deduction details for weighted average calculation
+            fifoDeductions.push({
+              quantity: deduction,
+              costPrice: this.roundPrice(record.fifo_cost_price || 0),
+            });
 
             await this.db
               .collection("fifo_costing_history")
@@ -1203,11 +1056,29 @@ class StockAdjuster {
               `Insufficient FIFO quantity: remaining ${remainingDeduction} after processing all layers`
             );
           }
+
+          // Calculate weighted average cost for FIFO
+          if (fifoDeductions.length > 0) {
+            const totalCost = fifoDeductions.reduce(
+              (sum, d) => sum + d.quantity * d.costPrice,
+              0
+            );
+            const totalQty = fifoDeductions.reduce(
+              (sum, d) => sum + d.quantity,
+              0
+            );
+            weightedAverageCost = this.roundPrice(totalCost / totalQty);
+            console.log(
+              `FIFO weighted average cost calculated: ${weightedAverageCost}`
+            );
+          }
         }
       } else if (costingMethod === "Fixed Cost") {
         console.log("Fixed Cost method - no costing records to update");
-        return;
+        return null;
       }
+
+      return weightedAverageCost;
     } catch (error) {
       console.error("Detailed error in updateCostingMethod:", {
         message: error.message || "Unknown error",
@@ -1231,13 +1102,11 @@ class StockAdjuster {
     try {
       const query =
         materialData.item_batch_management == "1" && batchId
-          ? this.db
-              .collection("fifo_costing_history")
-              .where({
-                material_id: materialData.id,
-                batch_id: batchId,
-                plant_id: plantId,
-              })
+          ? this.db.collection("fifo_costing_history").where({
+              material_id: materialData.id,
+              batch_id: batchId,
+              plant_id: plantId,
+            })
           : this.db
               .collection("fifo_costing_history")
               .where({ material_id: materialData.id, plant_id: plantId });
@@ -1289,13 +1158,11 @@ class StockAdjuster {
     try {
       const query =
         materialData.item_batch_management == "1" && batchId
-          ? this.db
-              .collection("wa_costing_method")
-              .where({
-                material_id: materialData.id,
-                batch_id: batchId,
-                plant_id: plantId,
-              })
+          ? this.db.collection("wa_costing_method").where({
+              material_id: materialData.id,
+              batch_id: batchId,
+              plant_id: plantId,
+            })
           : this.db
               .collection("wa_costing_method")
               .where({ material_id: materialData.id, plant_id: plantId });
@@ -1381,15 +1248,25 @@ class StockAdjuster {
     console.log("unitPrice JN", unitPrice);
 
     if (materialData.material_costing_method === "First In First Out") {
-      // Get unit price from latest FIFO sequence
-      const fifoCostPrice = await this.getLatestFIFOCostPrice(
-        materialData,
-        balance.batch_id,
-        allData.issuing_operation_faci
-      );
-      unitPrice = this.roundPrice(fifoCostPrice);
+      // Check for calculated FIFO cost first
+      if (
+        balance.calculated_fifo_cost !== undefined &&
+        balance.calculated_fifo_cost !== null
+      ) {
+        unitPrice = balance.calculated_fifo_cost;
+        console.log(
+          `Using calculated FIFO weighted average cost: ${unitPrice}`
+        );
+      } else {
+        // Fallback to existing logic for non-deduction movements
+        const fifoCostPrice = await this.getLatestFIFOCostPrice(
+          materialData,
+          balance.batch_id,
+          allData.issuing_operation_faci
+        );
+        unitPrice = this.roundPrice(fifoCostPrice);
+      }
     } else if (materialData.material_costing_method === "Weighted Average") {
-      // Get unit price from WA cost price
       const waCostPrice = await this.getWeightedAverageCostPrice(
         materialData,
         balance.batch_id,
@@ -1397,7 +1274,6 @@ class StockAdjuster {
       );
       unitPrice = this.roundPrice(waCostPrice);
     } else if (materialData.material_costing_method === "Fixed Cost") {
-      // Get unit price from Fixed Cost
       const fixedCostPrice = await this.getFixedCostPrice(materialData.id);
       unitPrice = this.roundPrice(fixedCostPrice);
     } else {
@@ -1420,6 +1296,8 @@ class StockAdjuster {
     const formattedConvertedQty = this.roundQty(convertedQty);
     const formattedOriginalQty = this.roundQty(originalQty);
 
+    console.log("formattedUnitPrice JN", formattedUnitPrice);
+
     const baseMovementData = {
       transaction_type: "SM",
       trx_no: allData.stock_movement_no,
@@ -1438,6 +1316,8 @@ class StockAdjuster {
       created_at: new Date(),
       organization_id: organizationId,
     };
+
+    console.log("baseMovementData JN", baseMovementData);
 
     switch (movementType) {
       case "Location Transfer":
@@ -1458,14 +1338,14 @@ class StockAdjuster {
           movement: "OUT",
           parent_trx_no: productionOrderNo,
           bin_location_id: balance.location_id,
-          inventory_category: "Unrestricted",
+          inventory_category: balance.category || "Unrestricted",
         };
         const inMovement = {
           ...baseMovementData,
           movement: "IN",
           bin_location_id: subformData.location_id,
           parent_trx_no: productionOrderNo,
-          inventory_category: "Unrestricted",
+          inventory_category: balance.category || "Unrestricted",
         };
         const [outResult, inResult] = await Promise.all([
           this.db.collection("inventory_movement").add(outMovement),
@@ -1480,6 +1360,7 @@ class StockAdjuster {
           movement: "OUT",
           bin_location_id: balance.location_id,
         };
+        console.log("outData JN", outData);
         return await this.db.collection("inventory_movement").add(outData);
 
       case "Miscellaneous Receipt":
@@ -1596,7 +1477,6 @@ class StockAdjuster {
             "Miscellaneous Issue",
             "Disposal/Scrap",
             "Location Transfer",
-            "Inventory Category Transfer Posting",
           ].includes(movementType)
         ) {
           for (const balance of balancesToProcess) {
@@ -1619,7 +1499,7 @@ class StockAdjuster {
 
             const categoryField =
               movementType === "Location Transfer"
-                ? this.categoryMap["Unrestricted"]
+                ? this.categoryMap[balance.category || "Unrestricted"]
                 : this.categoryMap[
                     balance.category || subformData.category || "Unrestricted"
                   ];
@@ -1682,12 +1562,10 @@ class StockAdjuster {
                         batch_id: balance.batch_id,
                         plant_id: allData.issuing_operation_faci,
                       })
-                    : this.db
-                        .collection("fifo_costing_history")
-                        .where({
-                          material_id: materialData.id,
-                          plant_id: allData.issuing_operation_faci,
-                        });
+                    : this.db.collection("fifo_costing_history").where({
+                        material_id: materialData.id,
+                        plant_id: allData.issuing_operation_faci,
+                      });
 
                 const fifoResponse = await fifoQuery.get();
                 if (!fifoResponse.data || fifoResponse.data.length === 0) {
@@ -1738,17 +1616,24 @@ class StockAdjuster {
 // Modified processFormData to use preCheckQuantitiesAndCosting
 async function processFormData(db, formData, context, organizationId) {
   const adjuster = new StockAdjuster(db);
+  let results;
 
-  // Properly bind all necessary context functions
   if (context) {
-    adjuster.getVarGlobal = context.getVarGlobal.bind(context);
-    adjuster.getVarSystem = context.getVarSystem.bind(context);
-    adjuster.runWorkflow = context.runWorkflow.bind(context);
+    adjuster.getParamsVariables = context.getParamsVariables.bind(context);
+    //adjuster.getParamsVariables = this.getParamsVariables('page_status');
     adjuster.parentGenerateForm = context.parentGenerateForm;
   }
 
+  const closeDialog = () => {
+    if (context.parentGenerateForm) {
+      context.parentGenerateForm.$refs.SuPageDialogRef.hide();
+      context.parentGenerateForm.refresh();
+      context.hideLoading();
+    }
+  };
+
   try {
-    console.log("🔍 Running pre-validation checks");
+    console.log("🔍 About to run validation checks");
     const isValid = await adjuster.preCheckQuantitiesAndCosting(
       formData,
       context
@@ -1756,24 +1641,20 @@ async function processFormData(db, formData, context, organizationId) {
     console.log("✅ Validation result:", isValid);
 
     if (isValid) {
-      console.log("📝 Processing stock adjustment");
-      const results = await adjuster.processStockAdjustment(
-        formData,
-        organizationId
-      );
+      console.log("📝 Starting stock adjustment processing");
+      results = await adjuster.processStockAdjustment(formData, organizationId);
       console.log("✓ Stock adjustment completed");
-      return results;
     }
+    return results;
   } catch (error) {
-    console.error("❌ Error in processFormData:", error);
+    console.error("❌ Error in processFormData:", error.message);
     throw error;
   } finally {
-    // Don't close dialog here - we'll handle it in the main handler
-    console.log("⚙️ ProcessFormData completed (finally block)");
+    closeDialog();
   }
 }
 
-// Example usage remains the same
+// Add this at the bottom of your Save as Completed button handler
 const self = this;
 const allData = self.getValues();
 let organizationId = this.getVarGlobal("deptParentId");
@@ -1782,39 +1663,36 @@ if (organizationId === "0") {
   organizationId = this.getVarSystem("deptIds").split(",")[0];
 }
 
-console.log("Starting Save as Completed process");
-self.showLoading();
+console.log("this.getVarGlobal", this.getVarGlobal("deptParentId"));
+this.showLoading();
 
-// Improved handler with proper error management
+// Improved error handling and debugging
+console.log("Starting processFormData with data:", JSON.stringify(allData));
+
 processFormData(db, allData, self, organizationId)
   .then((results) => {
-    console.log("ProcessFormData completed successfully", results);
+    console.log(
+      "ProcessFormData completed successfully with results:",
+      results
+    );
     if (allData.page_status === "Add") {
-      self.$message.success("New stock movement created successfully");
+      console.log("New stock movement created:", results);
+      self.hideLoading();
+      self.$message.success("Stock movement created successfully");
+      self.parentGenerateForm.$refs.SuPageDialogRef.hide();
+      self.parentGenerateForm.refresh();
     } else if (allData.page_status === "Edit") {
+      console.log("Stock movement updated:", results);
+      self.hideLoading();
       self.$message.success("Stock movement updated successfully");
-    }
-
-    // Explicit UI cleanup after successful completion
-    self.hideLoading();
-    if (
-      self.parentGenerateForm &&
-      self.parentGenerateForm.$refs.SuPageDialogRef
-    ) {
       self.parentGenerateForm.$refs.SuPageDialogRef.hide();
       self.parentGenerateForm.refresh();
     }
   })
   .catch((error) => {
-    console.error("Error in Save as Completed:", error);
+    console.error("Error in processFormData:", error);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
     self.hideLoading();
     self.$message.error(error.message || "An unknown error occurred");
-
-    // Still try to clean up UI on error
-    if (
-      self.parentGenerateForm &&
-      self.parentGenerateForm.$refs.SuPageDialogRef
-    ) {
-      self.parentGenerateForm.$refs.SuPageDialogRef.hide();
-    }
   });
