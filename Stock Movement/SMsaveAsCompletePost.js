@@ -244,11 +244,25 @@ class StockAdjuster {
       await this.updateProductionOrder(allData, subformData, balanceIndex);
     }
 
-    const updates = await Promise.all(
-      subformData.map((item) =>
-        this.processItem(item, movementType, allData, organizationId)
-      )
-    );
+    const updates = [];
+    for (const item of subformData) {
+      try {
+        const result = await this.processItem(
+          item,
+          movementType,
+          allData,
+          organizationId
+        );
+        updates.push(result);
+      } catch (error) {
+        console.error(`Error processing item ${item.item_selection}:`, error);
+        updates.push({
+          itemId: item.item_selection,
+          status: "failed",
+          error: error.message,
+        });
+      }
+    }
 
     return updates;
   }
@@ -1098,7 +1112,12 @@ class StockAdjuster {
   }
 
   // Function to get latest FIFO cost price with available quantity check
-  async getLatestFIFOCostPrice(materialData, batchId, plantId) {
+  async getLatestFIFOCostPrice(
+    materialData,
+    batchId,
+    plantId,
+    deductionQty = null
+  ) {
     try {
       const query =
         materialData.item_batch_management == "1" && batchId
@@ -1113,6 +1132,32 @@ class StockAdjuster {
 
       const response = await query.get();
       const result = response.data;
+
+      if (deductionQty && deductionQty > 0) {
+        let remainingQtyToDeduct = this.roundQty(deductionQty);
+        let totalCost = 0;
+        let totalDeductedQty = 0;
+
+        for (const record of sortedRecords) {
+          if (remainingQtyToDeduct <= 0) break;
+
+          const availableQty = this.roundQty(
+            record.fifo_available_quantity || 0
+          );
+          if (availableQty <= 0) continue;
+
+          const costPrice = this.roundPrice(record.fifo_cost_price || 0);
+          const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
+
+          totalCost += qtyToDeduct * costPrice;
+          totalDeductedQty += qtyToDeduct;
+          remainingQtyToDeduct -= qtyToDeduct;
+        }
+
+        return totalDeductedQty > 0
+          ? this.roundPrice(totalCost / totalDeductedQty)
+          : 0;
+      }
 
       if (result && Array.isArray(result) && result.length > 0) {
         // Sort by FIFO sequence (lowest/oldest first, as per FIFO principle)
@@ -1258,11 +1303,21 @@ class StockAdjuster {
           `Using calculated FIFO weighted average cost: ${unitPrice}`
         );
       } else {
+        const isDeductionMovement = [
+          "Miscellaneous Issue",
+          "Disposal/Scrap",
+          "Location Transfer",
+        ].includes(movementType);
+        const deductionQty = isDeductionMovement
+          ? balance.quantity_converted || balance.sm_quantity
+          : null;
+
         // Fallback to existing logic for non-deduction movements
         const fifoCostPrice = await this.getLatestFIFOCostPrice(
           materialData,
           balance.batch_id,
-          allData.issuing_operation_faci
+          allData.issuing_operation_faci,
+          deductionQty
         );
         unitPrice = this.roundPrice(fifoCostPrice);
       }
