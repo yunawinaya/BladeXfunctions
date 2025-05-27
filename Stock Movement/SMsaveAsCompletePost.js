@@ -306,6 +306,7 @@ class StockAdjuster {
         balance_index: allData.balance_index,
         organization_id: organizationId,
         posted_status: "Pending Post",
+        reference_documents: allData.reference_documents,
       };
 
       const page_status = allData.page_status;
@@ -313,14 +314,8 @@ class StockAdjuster {
 
       let result;
 
-      if (page_status === "Add") {
-        result = await this.db.collection("stock_movement").add({
-          stock_movement_status: "Completed",
-          ...stockMovementData,
-        });
-        console.log("Stock Movement Added:", result);
-
-        await this.db
+      const getPrefixData = async (organizationId, movementType) => {
+        const prefixEntry = await db
           .collection("prefix_configuration")
           .where({
             document_types: "Stock Movement",
@@ -329,49 +324,164 @@ class StockAdjuster {
             is_active: 1,
             movement_type: movementType,
           })
-          .get()
-          .then((prefixEntry) => {
-            if (prefixEntry.data.length > 0) {
-              const data = prefixEntry.data[0];
-              return this.db
-                .collection("prefix_configuration")
-                .where({
-                  document_types: "Stock Movement",
-                  is_deleted: 0,
-                  organization_id: organizationId,
-                  movement_type: movementType,
-                })
-                .update({
-                  running_number: parseInt(data.running_number) + 1,
-                  has_record: 1,
-                });
-            }
-          });
+          .get();
+
+        const prefixData = await prefixEntry.data[0];
+
+        return prefixData;
+      };
+
+      const updatePrefix = async (
+        organizationId,
+        runningNumber,
+        movementType
+      ) => {
+        try {
+          await db
+            .collection("prefix_configuration")
+            .where({
+              document_types: "Stock Movement",
+              is_deleted: 0,
+              organization_id: organizationId,
+              movement_type: movementType,
+            })
+            .update({
+              running_number: parseInt(runningNumber) + 1,
+              has_record: 1,
+            });
+        } catch (error) {
+          this.$message.error(error);
+        }
+      };
+
+      const generatePrefix = (runNumber, now, prefixData) => {
+        let generated = prefixData.current_prefix_config;
+        generated = generated.replace("prefix", prefixData.prefix_value);
+        generated = generated.replace("suffix", prefixData.suffix_value);
+        generated = generated.replace(
+          "month",
+          String(now.getMonth() + 1).padStart(2, "0")
+        );
+        generated = generated.replace(
+          "day",
+          String(now.getDate()).padStart(2, "0")
+        );
+        generated = generated.replace("year", now.getFullYear());
+        generated = generated.replace(
+          "running_number",
+          String(runNumber).padStart(prefixData.padding_zeroes, "0")
+        );
+        return generated;
+      };
+
+      const checkUniqueness = async (generatedPrefix) => {
+        const existingDoc = await db
+          .collection("stock_movement")
+          .where({ stock_movement_no: generatedPrefix })
+          .get();
+        return existingDoc.data[0] ? false : true;
+      };
+
+      const findUniquePrefix = async (prefixData) => {
+        const now = new Date();
+        let prefixToShow;
+        let runningNumber = prefixData.running_number;
+        let isUnique = false;
+        let maxAttempts = 10;
+        let attempts = 0;
+
+        while (!isUnique && attempts < maxAttempts) {
+          attempts++;
+          prefixToShow = await generatePrefix(runningNumber, now, prefixData);
+          isUnique = await checkUniqueness(prefixToShow);
+          if (!isUnique) {
+            runningNumber++;
+          }
+        }
+
+        if (!isUnique) {
+          this.$message.error(
+            "Could not generate a unique Stock Movement number after maximum attempts"
+          );
+        }
+
+        return { prefixToShow, runningNumber };
+      };
+
+      if (page_status === "Add") {
+        const prefixData = await getPrefixData(organizationId, movementType);
+
+        if (prefixData.length !== 0) {
+          const { prefixToShow, runningNumber } = await findUniquePrefix(
+            prefixData
+          );
+
+          await updatePrefix(organizationId, runningNumber);
+
+          stockMovementData.stock_movement_no = prefixToShow;
+        }
+
+        result = await this.db.collection("stock_movement").add({
+          stock_movement_status: "Completed",
+          ...stockMovementData,
+        });
+
+        // return new Promise((resolve, reject) => {
+        //     this.runWorkflow(
+        //       "1921755711809626113",
+        //       { stock_movement_no: stockMovementData.stock_movement_no },
+        //       (res) => {
+        //         console.log("Workflow success:", res);
+        //         resolve(result); // Resolve with original DB result
+        //       },
+        //       (err) => {
+        //         console.error("Workflow error:", err);
+        //         // Still resolve with the DB result, as the SM is created/updated successfully
+        //         // Just log the workflow error, don't reject the whole operation
+        //         resolve(result);
+        //       }
+        //     );
+        //   });
       } else if (page_status === "Edit") {
         if (!stockMovementNo) {
           throw new Error("Stock movement number is required for editing");
         }
-        const existingRecord = await this.db
-          .collection("stock_movement")
-          .where({ id: stockMovementNo })
-          .get();
 
-        if (existingRecord.data.length === 0) {
-          throw new Error(
-            `Stock movement ${stockMovementNo} not found for editing`
+        const prefixData = await getPrefixData(organizationId, movementType);
+
+        if (prefixData.length !== 0) {
+          const { prefixToShow, runningNumber } = await findUniquePrefix(
+            prefixData
           );
-        }
 
-        const recordId = existingRecord.data[0].id;
+          await updatePrefix(organizationId, runningNumber);
+
+          stockMovementData.stock_movement_no = prefixToShow;
+        }
         result = await this.db
           .collection("stock_movement")
-          .doc(recordId)
+          .doc(stockMovementNo)
           .update({
             stock_movement_status: "Completed",
             ...stockMovementData,
-            update_time: new Date().toISOString(),
           });
-        console.log("Stock Movement Updated:", result);
+
+        // return new Promise((resolve, reject) => {
+        //   this.runWorkflow(
+        //     "1921755711809626113",
+        //     { stock_movement_no: stockMovementData.stock_movement_no },
+        //     (res) => {
+        //       console.log("Workflow success:", res);
+        //       resolve(result); // Resolve with original DB result
+        //     },
+        //     (err) => {
+        //       console.error("Workflow error:", err);
+        //       // Still resolve with the DB result, as the SM is created/updated successfully
+        //       // Just log the workflow error, don't reject the whole operation
+        //       resolve(result);
+        //     }
+        //   );
+        // });
       }
 
       // Fix for workflow call: Convert callback-style to Promise
