@@ -43,10 +43,13 @@ const generatePrefix = (runNumber, prefixData, now) => {
   return generated;
 };
 
-const checkUniqueness = async (generatedPrefix) => {
+const checkUniqueness = async (generatedPrefix, organizationId) => {
   const existingDoc = await db
     .collection("stock_movement")
-    .where({ stock_movement_no: generatedPrefix })
+    .where({
+      stock_movement_no: generatedPrefix,
+      organization_id: organizationId,
+    })
     .get();
   return existingDoc.data[0] ? false : true;
 };
@@ -58,12 +61,13 @@ const findUniquePrefix = async (
   maxAttempts,
   attempts,
   prefixData,
-  now
+  now,
+  organizationId
 ) => {
   while (!isUnique && attempts < maxAttempts) {
     attempts++;
     prefixToShow = generatePrefix(runningNumber, prefixData, now);
-    isUnique = await checkUniqueness(prefixToShow);
+    isUnique = await checkUniqueness(prefixToShow, organizationId);
     if (!isUnique) {
       runningNumber++;
     }
@@ -114,7 +118,8 @@ const initPrefix = async (movementType) => {
     maxAttempts,
     attempts,
     prefixData,
-    now
+    now,
+    organizationId
   );
   await this.setData({ stock_movement_no: uniquePrefix });
 };

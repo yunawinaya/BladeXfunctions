@@ -422,22 +422,22 @@ class StockAdjuster {
         ...stockMovementData,
       });
 
-      // return new Promise((resolve, reject) => {
-      //   this.runWorkflow(
-      //     "1921755711809626113",
-      //     { stock_movement_no: stockMovementData.stock_movement_no },
-      //     (res) => {
-      //       console.log("Workflow success:", res);
-      //       resolve(result); // Resolve with original DB result
-      //     },
-      //     (err) => {
-      //       console.error("Workflow error:", err);
-      //       // Still resolve with the DB result, as the SM is created/updated successfully
-      //       // Just log the workflow error, don't reject the whole operation
-      //       resolve(result);
-      //     }
-      //   );
-      // });
+      return new Promise((resolve, reject) => {
+        this.runWorkflow(
+          "1921755711809626113",
+          { stock_movement_no: stockMovementData.stock_movement_no },
+          (res) => {
+            console.log("Workflow success:", res);
+            resolve(result); // Resolve with original DB result
+          },
+          (err) => {
+            console.error("Workflow error:", err);
+            // Still resolve with the DB result, as the SM is created/updated successfully
+            // Just log the workflow error, don't reject the whole operation
+            resolve(result);
+          }
+        );
+      });
     } else if (page_status === "Edit") {
       if (!stockMovementNo) {
         throw new Error("Stock movement number is required for editing");
@@ -463,22 +463,22 @@ class StockAdjuster {
           ...stockMovementData,
         });
 
-      // return new Promise((resolve, reject) => {
-      //   this.runWorkflow(
-      //     "1921755711809626113",
-      //     { stock_movement_no: stockMovementData.stock_movement_no },
-      //     (res) => {
-      //       console.log("Workflow success:", res);
-      //       resolve(result); // Resolve with original DB result
-      //     },
-      //     (err) => {
-      //       console.error("Workflow error:", err);
-      //       // Still resolve with the DB result, as the SM is created/updated successfully
-      //       // Just log the workflow error, don't reject the whole operation
-      //       resolve(result);
-      //     }
-      //   );
-      // });
+      return new Promise((resolve, reject) => {
+        this.runWorkflow(
+          "1921755711809626113",
+          { stock_movement_no: stockMovementData.stock_movement_no },
+          (res) => {
+            console.log("Workflow success:", res);
+            resolve(result); // Resolve with original DB result
+          },
+          (err) => {
+            console.error("Workflow error:", err);
+            // Still resolve with the DB result, as the SM is created/updated successfully
+            // Just log the workflow error, don't reject the whole operation
+            resolve(result);
+          }
+        );
+      });
       console.log("Stock Movement Updated:", result);
     }
   }

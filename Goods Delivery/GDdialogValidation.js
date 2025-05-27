@@ -2,6 +2,7 @@ const data = this.getValues();
 const fieldParts = rule.field.split(".");
 const index = fieldParts[2];
 const rowIndex = data.gd_item_balance.row_index;
+const gdStatus = data.gd_status;
 
 const materialId = data.table_gd[rowIndex].material_id;
 const gd_order_quantity = parseFloat(
@@ -23,6 +24,8 @@ const gd_delivered_qty = initialDeliveredQty + currentDialogTotal;
 const parsedValue = parseFloat(value);
 const unrestricted_field =
   data.gd_item_balance.table_item_balance[index].unrestricted_qty;
+const reserved_field =
+  data.gd_item_balance.table_item_balance[index].reserved_qty;
 
 if (!window.validationState) {
   window.validationState = {};
@@ -35,7 +38,11 @@ if (Object.keys(window.validationState).length === 0) {
   }
 }
 
-if (unrestricted_field < parsedValue) {
+if (gdStatus === "Created" && reserved_field < parsedValue) {
+  window.validationState[index] = false;
+  callback("Reserved quantity is not enough");
+  return;
+} else if (gdStatus !== "Created" && unrestricted_field < parsedValue) {
   window.validationState[index] = false;
   callback("Unrestricted quantity is not enough");
   return;

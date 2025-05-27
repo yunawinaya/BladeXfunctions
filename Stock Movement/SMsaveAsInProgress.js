@@ -875,12 +875,23 @@ class StockAdjuster {
       console.log("All Data", allData);
       console.log("Balance Info Map:", balanceInfoMap);
 
+      const movementTypeReceiving =
+        "Inter Operation Facility Transfer (Receiving)";
+
+      const resType = await db
+        .collection("blade_dict")
+        .where({ dict_key: movementTypeReceiving })
+        .get();
+      const movementTypeId = resType.data[0].id;
+
       const receivingIOFT = {
         stock_movement_status: "Created",
         stock_movement_no: newPrefix,
-        movement_type: "Inter Operation Facility Transfer (Receiving)",
+        movement_type: movementTypeReceiving,
+        movement_type_id: movementTypeId,
         issuing_operation_faci: receivingPlantId,
         movement_id: stockMovementId,
+        reference_documents: allData.reference_documents,
         stock_movement: allData.stock_movement.map((item) => {
           const material = materialsMap[item.item_selection];
           if (!material) {
@@ -902,7 +913,7 @@ class StockAdjuster {
           };
         }),
         issue_date: allData.issue_date,
-        issued_by: allData.issued_by || allData.user_id || "System",
+        issued_by: allData.issued_by,
         remarks: allData.remarks,
         organization_id: organizationId,
         posted_status: "Unposted",
