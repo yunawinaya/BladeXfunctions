@@ -36,11 +36,11 @@ class StockAdjuster {
       return; // Skip if not a production order or no production order ID
     }
 
-    const tableMatConfirmation = subformData.map((item) => ({
-      material_id: item.item_selection,
-      material_required_qty: item.total_quantity || item.received_quantity || 0,
-      bin_location_id: item.location_id,
-    }));
+    // const tableMatConfirmation = subformData.map((item) => ({
+    //   material_id: item.item_selection,
+    //   material_required_qty: item.total_quantity || item.received_quantity || 0,
+    //   bin_location_id: item.location_id,
+    // }));
     console.log("Table Mat Confirmation", balanceIndex);
     try {
       const productionOrderResponse = await this.db
@@ -61,7 +61,6 @@ class StockAdjuster {
         .collection("production_order")
         .doc(productionOrderId)
         .update({
-          table_mat_confirmation: tableMatConfirmation,
           balance_index: balanceIndex || [],
           production_order_status: "In Progress",
           update_time: new Date().toISOString(),
@@ -444,22 +443,22 @@ class StockAdjuster {
         ...stockMovementData,
       });
 
-      return new Promise((resolve, reject) => {
-        this.runWorkflow(
-          "1921755711809626113",
-          { stock_movement_no: stockMovementData.stock_movement_no },
-          (res) => {
-            console.log("Workflow success:", res);
-            resolve(result); // Resolve with original DB result
-          },
-          (err) => {
-            console.error("Workflow error:", err);
-            // Still resolve with the DB result, as the SM is created/updated successfully
-            // Just log the workflow error, don't reject the whole operation
-            resolve(result);
-          }
-        );
-      });
+      // return new Promise((resolve, reject) => {
+      //       this.runWorkflow(
+      //         "1921755711809626113",
+      //         { stock_movement_no: stockMovementData.stock_movement_no },
+      //         (res) => {
+      //           console.log("Workflow success:", res);
+      //           resolve(result); // Resolve with original DB result
+      //         },
+      //         (err) => {
+      //           console.error("Workflow error:", err);
+      //           // Still resolve with the DB result, as the SM is created/updated successfully
+      //           // Just log the workflow error, don't reject the whole operation
+      //           resolve(result);
+      //         }
+      //       );
+      //     });
     } else if (page_status === "Edit") {
       if (!stockMovementNo) {
         throw new Error("Stock movement number is required for editing");
@@ -486,22 +485,22 @@ class StockAdjuster {
           ...stockMovementData,
         });
 
-      return new Promise((resolve, reject) => {
-        this.runWorkflow(
-          "1921755711809626113",
-          { stock_movement_no: stockMovementData.stock_movement_no },
-          (res) => {
-            console.log("Workflow success:", res);
-            resolve(result); // Resolve with original DB result
-          },
-          (err) => {
-            console.error("Workflow error:", err);
-            // Still resolve with the DB result, as the SM is created/updated successfully
-            // Just log the workflow error, don't reject the whole operation
-            resolve(result);
-          }
-        );
-      });
+      // return new Promise((resolve, reject) => {
+      //     this.runWorkflow(
+      //       "1921755711809626113",
+      //       { stock_movement_no: stockMovementData.stock_movement_no },
+      //       (res) => {
+      //         console.log("Workflow success:", res);
+      //         resolve(result); // Resolve with original DB result
+      //       },
+      //       (err) => {
+      //         console.error("Workflow error:", err);
+      //         // Still resolve with the DB result, as the SM is created/updated successfully
+      //         // Just log the workflow error, don't reject the whole operation
+      //         resolve(result);
+      //       }
+      //     );
+      //   });
       console.log("Stock Movement Updated:", result);
     }
   }

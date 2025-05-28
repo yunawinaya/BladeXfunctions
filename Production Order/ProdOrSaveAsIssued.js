@@ -199,8 +199,14 @@ const createEntry = (data) => ({
   target_bin_location: data.target_bin_location,
   table_mat_confirmation: data.table_bom
     ? data.table_bom.map((item) => ({
-        ...item,
+        material_id: item.material_id,
+        material_name: item.material_name,
+        material_category: item.material_category,
+        material_uom: item.material_uom,
+        item_process_id: item.item_process_id,
+        bin_location_id: item.bin_location_id,
         material_required_qty: item.material_quantity,
+        item_remarks: item.item_remarks,
       }))
     : [],
   batch_id: data.batch_id,

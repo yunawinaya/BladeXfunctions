@@ -93,6 +93,15 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
         .where({ id: stockMovementId })
         .get();
 
+      console.log("data JN", data);
+      if (data.is_production_order === 1) {
+        this.display(["production_order_id"]);
+        this.disabled(
+          ["stock_movement.item_selection", "stock_movement.location_id"],
+          true
+        );
+      }
+
       const nickName = await this.getVarGlobal("nickname");
       this.setData({ issued_by: nickName });
       if (resSM.data && resSM.data.length > 0) {

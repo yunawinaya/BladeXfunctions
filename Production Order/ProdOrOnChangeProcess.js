@@ -81,6 +81,7 @@
         material_quantity: item.quantity,
         material_uom: item.base_uom,
         item_process_id: item.item_process_id || null,
+        bin_location_id: item.bin_location || null,
       }));
 
       // Map process data to process route format

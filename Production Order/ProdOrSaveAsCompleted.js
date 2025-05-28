@@ -1,3 +1,15 @@
+// Centralized organization ID handling
+const getOrganizationId = () => {
+  const orgId = this.getVarGlobal("deptParentId");
+  return orgId === "0" ? this.getVarSystem("deptIds").split(",")[0] : orgId;
+};
+
+// Movement type constants
+const MOVEMENT_TYPES = {
+  PRODUCTION_RECEIPT: "Production Receipt",
+  GOODS_ISSUE: "Good Issue",
+};
+
 const createStockMovement = async (
   stockMovementData,
   organizationId,
@@ -15,6 +27,15 @@ const createStockMovement = async (
       );
     }
     console.log(`Creating stock movement for ${movementTypeCode} items`);
+
+    // Validate movement type exists
+    const movementTypeQuery = await db
+      .collection("blade_dict")
+      .where({ dict_key: movementTypeCode })
+      .get();
+    if (!movementTypeQuery.data || movementTypeQuery.data.length === 0) {
+      throw new Error(`No stock movement type found for ${movementTypeCode}`);
+    }
 
     const balanceIndexData = await Promise.all(
       stockMovementData.balance_index.map(async (item) => {
@@ -94,7 +115,7 @@ const createStockMovement = async (
         received_quantity_uom: allData.planned_qty_uom || "",
         total_quantity:
           item.yield_qty || item.quantity || item.material_actual_qty,
-        location_id: item.target_bin_location || item.bin_location,
+        location_id: item.target_bin_location || item.bin_location_id,
         category: item.category || null,
       };
     });
@@ -104,7 +125,7 @@ const createStockMovement = async (
       stock_movement_no: "",
       movement_reason: movementReasonName,
       stock_movement_status: "Completed",
-      issued_by: stockMovementData.issued_by || "",
+      issued_by: stockMovementData.issued_by || currentUser,
       issue_date: stockMovementData.created_at || new Date(),
       tenant_id: stockMovementData.tenant_id || "000000",
       issuing_operation_faci: stockMovementData.plant_id || "000000",
@@ -117,15 +138,6 @@ const createStockMovement = async (
       create_time: new Date(),
       update_time: new Date(),
     };
-
-    const movementTypeQuery = await db
-      .collection("blade_dict")
-      .where({ dict_key: movementTypeCode })
-      .get();
-    if (!movementTypeQuery.data || movementTypeQuery.data.length === 0) {
-      throw new Error(`No stock movement type found for ${movementTypeCode}`);
-    }
-    // stockMovement.movement_type = movementTypeQuery.data[0].id;
 
     const movementReasonQuery = await db
       .collection("stock_movement_reason")
@@ -220,6 +232,8 @@ const page_status = this.getValue("page_status");
 const self = this;
 const productionOrderId = this.getValue("id");
 const allData = self.getValues();
+const organizationId = getOrganizationId();
+const currentUser = self.getVarGlobal("nickname") || "";
 
 const closeDialog = () => {
   try {
@@ -232,10 +246,7 @@ const closeDialog = () => {
     console.error("Error closing dialog:", error);
   }
 };
-let organizationId = this.getVarGlobal("deptParentId");
-if (organizationId === "0") {
-  organizationId = this.getVarSystem("deptIds").split(",")[0];
-}
+
 const createEntry = (data) => ({
   production_order_no: data.production_order_no,
   production_order_status: "Completed",
@@ -252,12 +263,12 @@ const createEntry = (data) => ({
   process_route_no: data.process_route_no,
   process_route_name: data.process_route_name,
   table_process_route: data.table_process_route,
-  create_user: data.create_user,
+  create_user: data.create_user || currentUser,
   organization_id: organizationId,
   category: data.category,
   create_dept: data.create_dept,
   create_time: data.create_time || new Date(),
-  update_user: data.update_user,
+  update_user: data.update_user || currentUser,
   update_time: data.update_time || new Date(),
   is_deleted: data.is_deleted || 0,
   tenant_id: data.tenant_id,
@@ -272,32 +283,66 @@ const createEntry = (data) => ({
 });
 
 const validateData = (data) => {
-  if (
-    !data.production_order_name ||
-    !data.plant_id ||
-    !data.material_id ||
-    !data.target_bin_location ||
-    !data.category ||
-    !data.yield_qty ||
-    !data.planned_qty_uom
-  ) {
-    throw new Error(
-      "Required fields missing: production_order_name, plant_id, material_id, target_bin_location, category, yield_qty, or planned_qty_uom"
-    );
+  const errors = [];
+
+  // Required field validation
+  const requiredFields = {
+    production_order_name: "Production order name",
+    plant_id: "Plant",
+    material_id: "Material",
+    target_bin_location: "Target bin location",
+    category: "Category",
+    yield_qty: "Yield quantity",
+    planned_qty_uom: "Planned quantity UOM",
+  };
+
+  for (const [field, label] of Object.entries(requiredFields)) {
+    if (!data[field]) {
+      errors.push(`${label} is required`);
+    }
   }
+
+  // Validate quantities are not negative
+  if (data.yield_qty !== undefined && data.yield_qty < 0) {
+    errors.push("Yield quantity cannot be negative");
+  }
+
+  if (data.yield_qty !== undefined && data.yield_qty === 0) {
+    errors.push("Yield quantity must be greater than zero");
+  }
+
+  // Validate table_mat_confirmation
   if (
     !Array.isArray(data.table_mat_confirmation) ||
     data.table_mat_confirmation.length === 0
   ) {
-    throw new Error("table_mat_confirmation must be a non-empty array");
+    errors.push("At least one material confirmation entry is required");
+  } else {
+    data.table_mat_confirmation.forEach((mat, index) => {
+      if (!mat.material_id) {
+        errors.push(
+          `Material ID is missing in confirmation entry ${index + 1}`
+        );
+      }
+      if (!mat.material_actual_qty) {
+        errors.push(
+          `Material quantity is missing in confirmation entry ${index + 1}`
+        );
+      }
+      if (mat.material_actual_qty < 0) {
+        errors.push(
+          `Material quantity cannot be negative in confirmation entry ${
+            index + 1
+          }`
+        );
+      }
+    });
   }
-  for (const mat of data.table_mat_confirmation) {
-    if (!mat.material_id || !mat.material_actual_qty) {
-      throw new Error(
-        "Each table_mat_confirmation entry must have material_id and material_actual_qty"
-      );
-    }
+
+  if (errors.length > 0) {
+    throw new Error("Validation failed: " + errors.join(", "));
   }
+
   console.log("Data validation passed for:", data.production_order_name);
   return true;
 };
@@ -308,6 +353,9 @@ const preCheckMaterialQuantities = async (data) => {
       "Starting pre-check for material quantities in table_mat_confirmation, count:",
       data.table_mat_confirmation.length
     );
+
+    const insufficientMaterials = [];
+
     for (const mat of data.table_mat_confirmation) {
       console.log(
         "Checking material_id:",
@@ -328,7 +376,41 @@ const preCheckMaterialQuantities = async (data) => {
       const matBatchManagement = matItem.item_batch_management;
       const matCollectionName =
         matBatchManagement === 1 ? "item_batch_balance" : "item_balance";
+
+      // Check total available quantity
+      const balanceQuery = await db
+        .collection(matCollectionName)
+        .where({
+          material_id: mat.material_id,
+          plant_id: data.plant_id,
+          location_id: mat.bin_location_id,
+        })
+        .get();
+
+      let totalAvailable = 0;
+      if (balanceQuery.data && balanceQuery.data.length > 0) {
+        balanceQuery.data.forEach((balance) => {
+          totalAvailable += balance.unrestricted_qty || 0;
+        });
+      }
+
+      if (totalAvailable < mat.material_actual_qty) {
+        insufficientMaterials.push({
+          material_id: mat.material_id,
+          required: mat.material_actual_qty,
+          available: totalAvailable,
+        });
+      }
     }
+
+    if (insufficientMaterials.length > 0) {
+      const errorMessages = insufficientMaterials.map(
+        (m) =>
+          `Material ${m.material_id}: required ${m.required}, available ${m.available}`
+      );
+      throw new Error("Insufficient stock: " + errorMessages.join("; "));
+    }
+
     console.log("Pre-check for material quantities passed");
   } catch (error) {
     console.error("Pre-check for material quantities failed:", error);
@@ -389,6 +471,7 @@ const calculateCostingAndUpdateTables = async (
       await db.collection("wa_costing_method").doc(waRecord.id).update({
         wa_quantity: newWaQuantity,
         update_time: new Date().toISOString(),
+        update_user: currentUser,
       });
 
       unitPrice = waRecord.wa_cost_price || 0;
@@ -434,6 +517,7 @@ const calculateCostingAndUpdateTables = async (
             .update({
               fifo_available_quantity: newAvailableQty,
               update_time: new Date().toISOString(),
+              update_user: currentUser,
             });
 
           totalCost += qtyToDeduct * (fifoRecord.fifo_cost_price || 0);
@@ -480,7 +564,7 @@ const calculateCostingAndUpdateTables = async (
       costing_method_id: materialData.material_costing_method,
       created_at: new Date().toISOString(),
       plant_id: allData.plant_id,
-      organization_id: allData.organization_id || "default_org",
+      organization_id: organizationId,
       update_time: new Date().toISOString(),
       is_deleted: 0,
     };
@@ -504,10 +588,6 @@ const calculateCostingAndUpdateTables = async (
 
 const updateOutputCosting = async (data, unitPrice, db) => {
   try {
-    let organizationId = this.getVarGlobal("deptParentId");
-    if (organizationId === "0") {
-      organizationId = this.getVarSystem("deptIds").split(",")[0];
-    }
     const roundedUnitPrice = Math.round(unitPrice * 10000) / 10000;
     const itemQuery = await db
       .collection("item")
@@ -671,6 +751,16 @@ const updateOutputCosting = async (data, unitPrice, db) => {
   }
 };
 
+// Helper function to create proper balance_index structure
+const createBalanceIndexForStockMovement = (materials) => {
+  return materials.map((mat) => ({
+    material_id: mat.material_id,
+    material_actual_qty: mat.material_actual_qty,
+    bin_location_id: mat.bin_location_id,
+    batch_id: mat.batch_id || null,
+  }));
+};
+
 const handleInventoryBalanceAndMovement = async (
   data,
   productionOrderNo,
@@ -679,10 +769,7 @@ const handleInventoryBalanceAndMovement = async (
 ) => {
   try {
     let totalInputCost = 0;
-    let organizationId = this.getVarGlobal("deptParentId");
-    if (organizationId === "0") {
-      organizationId = this.getVarSystem("deptIds").split(",")[0];
-    }
+
     // Process consumed items (table_mat_confirmation)
     for (const mat of data.table_mat_confirmation) {
       console.log(
@@ -946,7 +1033,7 @@ const handleInventoryBalanceAndMovement = async (
         transaction_no: productionOrderNo,
         organization_id: organizationId,
         created_at: new Date(),
-        create_user: data.create_user || "system",
+        create_user: data.create_user || currentUser,
       };
       const batchResult = await db.collection("batch").add(batchData);
       producedBatchId = batchResult.id;
@@ -1064,188 +1151,107 @@ const handleInventoryBalanceAndMovement = async (
   }
 };
 
-if (page_status === "Add" || page_status === undefined) {
-  try {
-    console.log("Starting Add operation for production order");
-    validateData(allData);
-    await preCheckMaterialQuantities(allData);
-    let organizationId = this.getVarGlobal("deptParentId");
-    if (organizationId === "0") {
-      organizationId = this.getVarSystem("deptIds").split(",")[0];
-    }
-    const prefixQuery = await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Production Order",
-        is_deleted: 0,
-        organization_id: allData.organization_id,
-      })
-      .get();
+// Check if stock movements already exist for this production order
+const checkExistingStockMovements = async (productionOrderId, db) => {
+  const existingMovements = await db
+    .collection("stock_movement")
+    .where({
+      production_order_id: productionOrderId,
+      is_deleted: 0,
+    })
+    .get();
 
-    let currDraftNum;
-    let prefixConfigId;
+  if (existingMovements.data && existingMovements.data.length > 0) {
+    const movements = existingMovements.data.reduce((acc, mov) => {
+      if (mov.movement_type === MOVEMENT_TYPES.PRODUCTION_RECEIPT) {
+        acc.pr = mov;
+      } else if (mov.movement_type === MOVEMENT_TYPES.GOODS_ISSUE) {
+        acc.gi = mov;
+      }
+      return acc;
+    }, {});
 
-    if (!prefixQuery.data || prefixQuery.data.length === 0) {
-      currDraftNum = 1;
-      const newPrefixConfig = {
-        document_types: "Production Order",
-        is_deleted: 0,
-        organization_id: organizationId,
-        draft_number: 1,
-        prefix_value: "PO",
-        suffix_value: "",
-        padding_zeroes: 4,
-        current_prefix_config: "prefix-running_number",
-      };
-      const newConfigResult = await db
-        .collection("prefix_configuration")
-        .add(newPrefixConfig);
-      prefixConfigId = newConfigResult.id;
-    } else {
-      prefixConfigId = prefixQuery.data[0].id;
-      currDraftNum = parseInt(prefixQuery.data[0].draft_number || 0) + 1;
-    }
+    return movements;
+  }
 
-    const newPrefix =
-      allData.production_order_no ||
-      `PO${String(currDraftNum).padStart(4, "0")}`;
-    const entry = createEntry(allData);
-    entry.production_order_no = newPrefix;
+  return null;
+};
 
-    const prodOrderResult = await db.collection("production_order").add(entry);
+// Main execution - Always in Edit mode
+try {
+  console.log(
+    "Starting Edit operation for production order ID:",
+    productionOrderId
+  );
 
-    if (prefixConfigId) {
-      await db
-        .collection("prefix_configuration")
-        .doc(prefixConfigId)
-        .update({ draft_number: currDraftNum });
-    }
+  if (!productionOrderId) {
+    throw new Error("Production order ID is required for edit operation");
+  }
 
-    const stockMovementData = {
-      id: prodOrderResult.id,
-      created_at: new Date(),
-      tenant_id: allData.tenant_id,
-      plant_id: allData.plant_id,
-      balance_index: allData.table_mat_confirmation,
-      organization_id: organizationId,
-    };
+  validateData(allData);
+  await preCheckMaterialQuantities(allData);
 
-    let prStockMovementNo = null;
-    const prStockMovementResult = await createStockMovement(
+  const entry = createEntry(allData);
+
+  await db.collection("production_order").doc(productionOrderId).update(entry);
+
+  const properBalanceIndex = createBalanceIndexForStockMovement(
+    allData.table_mat_confirmation
+  );
+
+  const stockMovementData = {
+    id: productionOrderId,
+    created_at: new Date(),
+    tenant_id: allData.tenant_id,
+    plant_id: allData.plant_id,
+    balance_index: properBalanceIndex,
+    organization_id: organizationId,
+    issued_by: currentUser,
+  };
+
+  let prStockMovementNo = null;
+  const prStockMovementResult = await createStockMovement(
+    stockMovementData,
+    organizationId,
+    db,
+    self,
+    {
+      material_id: allData.material_id,
+      yield_qty: allData.yield_qty,
+      target_bin_location: allData.target_bin_location,
+      category: allData.category,
+    },
+    MOVEMENT_TYPES.PRODUCTION_RECEIPT,
+    "Production Order - Production Receipt"
+  );
+  prStockMovementNo = prStockMovementResult.stock_movement_no;
+
+  let giStockMovementNo = null;
+  if (
+    allData.table_mat_confirmation &&
+    allData.table_mat_confirmation.length > 0
+  ) {
+    const giStockMovementResult = await createStockMovement(
       stockMovementData,
       organizationId,
       db,
       self,
-      {
-        material_id: allData.material_id,
-        yield_qty: allData.yield_qty,
-        target_bin_location: allData.target_bin_location,
-        category: allData.category,
-      },
-      "PR",
-      ""
+      allData.table_mat_confirmation,
+      MOVEMENT_TYPES.GOODS_ISSUE,
+      "Production Order - Good Issue"
     );
-    prStockMovementNo = prStockMovementResult.stock_movement_no;
-
-    let giStockMovementNo = null;
-    if (
-      allData.table_mat_confirmation &&
-      allData.table_mat_confirmation.length > 0
-    ) {
-      const giStockMovementResult = await createStockMovement(
-        stockMovementData,
-        organizationId,
-        db,
-        self,
-        allData.table_mat_confirmation,
-        "GI",
-        ""
-      );
-      giStockMovementNo = giStockMovementResult.stock_movement_no;
-    }
-
-    await handleInventoryBalanceAndMovement(
-      allData,
-      newPrefix,
-      prStockMovementNo,
-      giStockMovementNo
-    );
-    closeDialog();
-  } catch (error) {
-    console.error("Add operation failed:", error);
-    throw error;
+    giStockMovementNo = giStockMovementResult.stock_movement_no;
   }
-} else if (page_status === "Edit") {
-  try {
-    console.log(
-      "Starting Edit operation for production order ID:",
-      productionOrderId
-    );
-    validateData(allData);
-    await preCheckMaterialQuantities(allData);
 
-    const entry = createEntry(allData);
-    let organizationId = this.getVarGlobal("deptParentId");
-    if (organizationId === "0") {
-      organizationId = this.getVarSystem("deptIds").split(",")[0];
-    }
-    await db
-      .collection("production_order")
-      .doc(productionOrderId)
-      .update(entry);
+  await handleInventoryBalanceAndMovement(
+    allData,
+    entry.production_order_no,
+    prStockMovementNo,
+    giStockMovementNo
+  );
 
-    const stockMovementData = {
-      id: productionOrderId,
-      created_at: new Date(),
-      tenant_id: allData.tenant_id,
-      plant_id: allData.plant_id,
-      balance_index: allData.balance_index,
-      organization_id: organizationId,
-    };
-
-    let prStockMovementNo = null;
-    const prStockMovementResult = await createStockMovement(
-      stockMovementData,
-      organizationId,
-      db,
-      self,
-      {
-        material_id: allData.material_id,
-        yield_qty: allData.yield_qty,
-        target_bin_location: allData.target_bin_location,
-        category: allData.category,
-      },
-      "Production Receipt",
-      "Production Order - Production Receipt"
-    );
-    prStockMovementNo = prStockMovementResult.stock_movement_no;
-
-    let giStockMovementNo = null;
-    if (
-      allData.table_mat_confirmation &&
-      allData.table_mat_confirmation.length > 0
-    ) {
-      const giStockMovementResult = await createStockMovement(
-        stockMovementData,
-        organizationId,
-        db,
-        self,
-        allData.table_mat_confirmation,
-        "Good Issue",
-        "Production Order - Good Issue"
-      );
-      giStockMovementNo = giStockMovementResult.stock_movement_no;
-    }
-
-    await handleInventoryBalanceAndMovement(
-      allData,
-      entry.production_order_no,
-      prStockMovementNo,
-      giStockMovementNo
-    );
-    closeDialog();
-  } catch (error) {
-    console.error("Edit operation failed:", error);
-    throw error;
-  }
+  closeDialog();
+} catch (error) {
+  console.error("Edit operation failed:", error);
+  throw error;
 }

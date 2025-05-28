@@ -145,6 +145,16 @@ const getPrefixConfiguration = async () => {
     if (pageStatus !== "Add") {
       // Handle Edit/View/Clone modes
       try {
+        this.display(["card_process"]);
+        this.display(["card_details"]);
+        if (this.getValue("process_source") === "Custom Process") {
+          this.display(["grid_9gn5igyx"]);
+          this.hide(["process_route_no"]);
+          this.hide(["process_route_name"]);
+        }
+        this.display(["table_process_route"]);
+        this.display(["card_bom"]);
+
         const productionOrderId = this.getValue("id");
 
         const productionOrderResponse = await db
@@ -257,7 +267,7 @@ const getPrefixConfiguration = async () => {
                 "material_id",
                 "priority",
                 "planned_qty",
-                // 'planned_qty_uom',
+                "planned_qty_uom",
                 "lead_time",
                 "table_sales_order",
                 "process_source",
