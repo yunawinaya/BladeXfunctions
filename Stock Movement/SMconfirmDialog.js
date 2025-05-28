@@ -4,6 +4,20 @@
   const rowIndex = allData.sm_item_balance.row_index;
   const movementType = allData.movement_type;
 
+  let isValid = true;
+
+  const allValid = temporaryData.every((item, idx) => {
+    const isValid =
+      window.validationState && window.validationState[idx] !== false;
+    console.log(`Row ${idx} validation: ${isValid}`);
+    return isValid;
+  });
+
+  if (!allValid) {
+    console.log("Validation failed, canceling confirm");
+    return;
+  }
+
   // Get UOM information - you'll need to adjust this field name based on your data structure
   const materialUOMid = allData.stock_movement[rowIndex].quantity_uom;
   const gdUOM = await db
@@ -13,8 +27,6 @@
     .then((res) => {
       return res.data[0]?.uom_name || "PCS";
     });
-
-  let isValid = true;
 
   const totalSmQuantity = temporaryData
     .filter((item) => (item.sm_quantity || 0) > 0)
