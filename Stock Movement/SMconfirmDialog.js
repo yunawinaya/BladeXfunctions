@@ -2,6 +2,7 @@
   const allData = this.getValues();
   const temporaryData = allData.sm_item_balance.table_item_balance;
   const rowIndex = allData.sm_item_balance.row_index;
+  const movementType = allData.movement_type;
 
   // Get UOM information - you'll need to adjust this field name based on your data structure
   const materialUOMid = allData.stock_movement[rowIndex].quantity_uom;
@@ -196,9 +197,16 @@
             locationMap[item.location_id] || item.location_id;
           const qty = item.sm_quantity || 0;
 
-          // Use category or category_from, whichever is available
-          const category = item.category ?? item.category_from;
-          const categoryAbbr = categoryMap[category] || category || "UNR";
+          const category = item.category;
+          let categoryAbbr = categoryMap[category] || category || "UNR";
+
+          if (movementType === "Inventory Category Transfer Posting") {
+            const category_from =
+              categoryMap[item.category_from] || item.category_from;
+            const category_to =
+              categoryMap[item.category_to] || item.category_to;
+            categoryAbbr = `${category_from} -> ${category_to}`;
+          }
 
           let itemDetail = `${
             index + 1

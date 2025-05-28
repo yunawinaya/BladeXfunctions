@@ -24,8 +24,10 @@ const main = async () => {
 
     if (newValue) {
       await self.setData({ planned_qty: 1 });
+      this.display(["card_process"]);
     } else {
       await self.setData({ planned_qty: 0 });
+      this.hide(["card_process"]);
     }
 
     const fetchUoms = async () => {

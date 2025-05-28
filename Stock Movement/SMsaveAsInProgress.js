@@ -848,7 +848,6 @@ class StockAdjuster {
 
         // Store balance info for this specific item
         balanceInfoMap[item.item_selection] = {
-          location_id: firstBalance?.location_id || null,
           category: firstBalance?.category || "Unrestricted",
           batch_id: firstBalance?.batch_id || null,
         };
@@ -884,6 +883,23 @@ class StockAdjuster {
         .get();
       const movementTypeId = resType.data[0].id;
 
+      const resBinLocation = await db
+        .collection("bin_location")
+        .where({
+          plant_id: receivingPlantId,
+        })
+        .get();
+
+      let binLocationId;
+      if (resBinLocation.data && resBinLocation.data.length > 0) {
+        binLocationId = resBinLocation.data[0].id;
+      } else {
+        console.warn(
+          "No default bin location found for plant:",
+          receivingPlantId
+        );
+      }
+
       const receivingIOFT = {
         stock_movement_status: "Created",
         stock_movement_no: newPrefix,
@@ -908,7 +924,7 @@ class StockAdjuster {
             total_quantity: item.total_quantity,
             received_quantity_uom: material.based_uom,
             unit_price: unitPricesMap[item.item_selection] || 0,
-            location_id: balanceInfo.location_id,
+            location_id: binLocationId,
             category: balanceInfo.category,
           };
         }),

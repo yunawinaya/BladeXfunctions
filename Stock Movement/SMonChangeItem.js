@@ -1,8 +1,6 @@
 const allData = this.getValues();
 const movementType = allData.movement_type;
 const page_status = allData.page_status;
-const plant = allData.issuing_operation_faci;
-const stock_movement = allData.stock_movement;
 
 const rowIndex = arguments[0].rowIndex;
 
@@ -79,6 +77,7 @@ const fetchItemData = async () => {
     );
 
     await this.setData({
+      [`stock_movement.${rowIndex}.stock_summary`]: "",
       [`stock_movement.${rowIndex}.received_quantity_uom`]: based_uom,
       [`stock_movement.${rowIndex}.quantity_uom`]: based_uom,
       [`stock_movement.${rowIndex}.unit_price`]: purchase_unit_price,
@@ -99,35 +98,6 @@ const fetchItemData = async () => {
       }
 
       console.log("UomOptions", uomOptions);
-
-      if (plant && stock_movement && stock_movement.length > 0) {
-        const resBinLocation = await db
-          .collection("bin_location")
-          .where({
-            plant_id: plant,
-            is_default: true,
-          })
-          .get();
-
-        let binLocation;
-
-        if (resBinLocation.data && resBinLocation.data.length > 0) {
-          binLocation = resBinLocation.data[0].id;
-        } else {
-          console.warn("No default bin location found for plant:", plant);
-        }
-
-        if (stock_movement && stock_movement.length > 0) {
-          for (let i = 0; i < stock_movement.length; i++) {
-            this.setData({
-              [`stock_movement.${i}.location_id`]: binLocation,
-            });
-            this.setData({
-              [`stock_movement.${i}.category`]: "Unrestricted",
-            });
-          }
-        }
-      }
     };
 
     const updateUomOption = async () => {
