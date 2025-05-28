@@ -1044,11 +1044,14 @@ const addInventory = async (data, plantId, organizationId) => {
   return Promise.resolve();
 };
 
-// Enhanced PO status update with correctly counting partially_received and fully_received
 const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
   const poIds = Array.isArray(purchaseOrderIds)
     ? purchaseOrderIds
     : [purchaseOrderIds];
+
+  // Arrays to collect data for the return format
+  let poDataArray = [];
+
   try {
     // Fetch purchase order and related goods receiving documents in parallel
     const updatePromises = poIds.map(async (purchaseOrderId) => {
@@ -1065,7 +1068,11 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
         // Validate purchase order exists
         if (!resPO.data || !resPO.data.length) {
           console.warn(`Purchase order ${purchaseOrderId} not found`);
-          return;
+          return {
+            poId: purchaseOrderId,
+            success: false,
+            error: "Purchase order not found",
+          };
         }
 
         const poDoc = resPO.data[0];
@@ -1075,10 +1082,17 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
         // Validate PO has items
         if (!poItems.length) {
           console.warn(`No items found in purchase order ${purchaseOrderId}`);
-          return;
+          return {
+            poId: purchaseOrderId,
+            success: false,
+            error: "No items found in purchase order",
+          };
         }
 
         const allGRs = resGR.data || [];
+
+        // Collect goods receiving IDs for this PO
+        const grIds = allGRs.map((gr) => gr.id || gr.gr_id).filter((id) => id);
 
         // Initialize tracking objects
         const receivedQtyMap = {};
@@ -1179,6 +1193,8 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
 
         return {
           poId: purchaseOrderId,
+          newPOStatus,
+          grIds,
           totalItems,
           partiallyReceivedItems,
           fullyReceivedItems,
@@ -1199,7 +1215,18 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
 
     const results = await Promise.all(updatePromises);
 
-    // Aggregate results for better reporting
+    // Process results to build the desired return format
+    results.forEach((result) => {
+      if (result && result.success) {
+        // Add PO data
+        poDataArray.push({
+          po_id: result.poId,
+          status: result.newPOStatus,
+        });
+      }
+    });
+
+    // Aggregate results for logging
     const successCount = results.filter((r) => r && r.success).length;
     const failCount = results.filter((r) => r && !r.success).length;
 
@@ -1209,18 +1236,14 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
       Failed updates: ${failCount}
     `);
 
+    // Return in the requested format
     return {
-      success: successCount > 0,
-      totalProcessed: poIds.length,
-      successCount,
-      failCount,
-      results,
+      po_data_array: poDataArray,
     };
   } catch (error) {
     console.error(`Error in update purchase order status process:`, error);
     return {
-      success: false,
-      error: error.message,
+      po_data_array: [],
     };
   }
 };
@@ -1361,35 +1384,41 @@ const findUniquePrefix = async (prefixData) => {
 const addEntry = async (organizationId, entry) => {
   try {
     const prefixData = await getPrefixData(organizationId);
+
     if (prefixData.length !== 0) {
-      await updatePrefix(organizationId, prefixData.running_number);
-      await db
-        .collection("goods_receiving")
-        .add(entry)
-        .then(() => {
-          this.runWorkflow(
-            "1917412667253141505",
-            { gr_no: entry.gr_no },
-            async (res) => {
-              console.log("成功结果：", res);
-            },
-            (err) => {
-              this.$message.error("Workflow execution failed");
-              console.error("失败结果：", err);
-              closeDialog();
-            }
-          );
-        });
-      await addInventory(entry, entry.plant_id, organizationId);
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData
+      );
 
-      const purchaseOrderIds = Array.isArray(entry.purchase_order_id)
-        ? entry.purchase_order_id
-        : [entry.purchase_order_id];
+      await updatePrefix(organizationId, runningNumber);
 
-      await updatePurchaseOrderStatus(purchaseOrderIds);
-      this.$message.success("Add successfully");
-      closeDialog();
+      entry.gr_no = prefixToShow;
     }
+
+    await db.collection("goods_receiving").add(entry);
+
+    await addInventory(entry, entry.plant_id, organizationId);
+
+    const purchaseOrderIds = Array.isArray(entry.purchase_order_id)
+      ? entry.purchase_order_id
+      : [entry.purchase_order_id];
+
+    const { po_data_array } = await updatePurchaseOrderStatus(purchaseOrderIds);
+
+    await this.runWorkflow(
+      "1917412667253141505",
+      { gr_no: entry.gr_no, po_data: po_data_array },
+      async (res) => {
+        console.log("成功结果：", res);
+      },
+      (err) => {
+        this.$message.error("Workflow execution failed");
+        console.error("失败结果：", err);
+        closeDialog();
+      }
+    );
+    this.$message.success("Add successfully");
+    await closeDialog();
   } catch (error) {
     this.$message.error(error);
   }
@@ -1407,33 +1436,28 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
       await updatePrefix(organizationId, runningNumber);
 
       entry.gr_no = prefixToShow;
-      await db
-        .collection("goods_receiving")
-        .doc(goodsReceivingId)
-        .update(entry)
-        .then(() => {
-          this.runWorkflow(
-            "1917412667253141505",
-            { gr_no: entry.gr_no },
-            async (res) => {
-              console.log("成功结果：", res);
-            },
-            (err) => {
-              alert();
-              console.error("失败结果：", err);
-              closeDialog();
-            }
-          );
-        });
-      await addInventory(entry, entry.plant_id, organizationId);
-      const purchaseOrderIds = Array.isArray(entry.purchase_order_id)
-        ? entry.purchase_order_id
-        : [entry.purchase_order_id];
-
-      await updatePurchaseOrderStatus(purchaseOrderIds);
-      this.$message.success("Update successfully");
-      await closeDialog();
     }
+    await db.collection("goods_receiving").doc(goodsReceivingId).update(entry);
+    await addInventory(entry, entry.plant_id, organizationId);
+    const purchaseOrderIds = Array.isArray(entry.purchase_order_id)
+      ? entry.purchase_order_id
+      : [entry.purchase_order_id];
+
+    const { po_data_array } = await updatePurchaseOrderStatus(purchaseOrderIds);
+    await this.runWorkflow(
+      "1917412667253141505",
+      { gr_no: entry.gr_no, po_data: po_data_array },
+      async (res) => {
+        console.log("成功结果：", res);
+      },
+      (err) => {
+        alert();
+        console.error("失败结果：", err);
+        closeDialog();
+      }
+    );
+    this.$message.success("Update successfully");
+    await closeDialog();
   } catch (error) {
     this.$message.error(error);
   }
@@ -1548,11 +1572,9 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
 
       if (page_status === "Add") {
         await addEntry(organizationId, entry);
-        closeDialog();
       } else if (page_status === "Edit") {
         const goodsReceivingId = this.getValue("id");
         await updateEntry(organizationId, entry, goodsReceivingId);
-        closeDialog();
       }
     } else {
       this.hideLoading();

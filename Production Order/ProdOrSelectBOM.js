@@ -12,6 +12,7 @@ const main = async () => {
       material_name: item.sub_material_name,
       material_category: item.sub_material_category,
       material_quantity: item.sub_material_qty,
+      material_uom: item.sub_material_qty_uom,
     }));
     this.setData({
       table_bom: mappedBomData,
