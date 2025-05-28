@@ -16,13 +16,15 @@ const createStockMovement = async (
       quantity_uom: item.material_uom,
     }));
 
+    const issued_by = await this.getVarGlobal("nickname");
+
     // Initialize stock movement data
     const stockMovement = {
       movement_type: "Location Transfer",
       stock_movement_no: "",
       movement_reason: "Bin Location Transfer",
       stock_movement_status: "Draft",
-      issued_by: stockMovementData.issued_by || "",
+      issued_by: issued_by || "",
       issue_date: stockMovementData.created_at || new Date(),
       tenant_id: stockMovementData.tenant_id || "000000",
       issuing_operation_faci: stockMovementData.plant_id || "000000",
