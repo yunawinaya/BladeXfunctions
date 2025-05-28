@@ -79,6 +79,7 @@
         material_name: item.bom_material_name,
         material_category: item.bom_material_category,
         material_quantity: item.quantity,
+        material_uom: item.base_uom,
         item_process_id: item.item_process_id || null,
       }));
 

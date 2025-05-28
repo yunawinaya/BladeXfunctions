@@ -1100,8 +1100,8 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
         let partiallyReceivedItems = 0;
         let fullyReceivedItems = 0;
 
-        // Create a copy of the PO items to update later
-        const updatedPoItems = JSON.parse(JSON.stringify(poItems));
+        // FIX: Create a proper deep copy of the PO items to preserve all fields
+        const updatedPoItems = poItems.map((item) => ({ ...item }));
 
         // Initialize with zeros
         poItems.forEach((item) => {
@@ -1121,7 +1121,12 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
         });
 
         // Update received quantities in PO items and count items
-        updatedPoItems.forEach((item) => {
+        updatedPoItems.forEach((item, index) => {
+          // FIX: Ensure item_id is preserved
+          if (!item.item_id && poItems[index].item_id) {
+            item.item_id = poItems[index].item_id;
+          }
+
           const itemId = item.item_id;
           const orderedQty = parseFloat(item.quantity || 0);
           const receivedQty = receivedQtyMap[itemId] || 0;
@@ -1143,16 +1148,27 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
         let allItemsComplete = fullyReceivedItems === totalItems;
         let anyItemProcessing = partiallyReceivedItems > 0;
 
-        // Determine new status
+        // FIX: Preserve the original status if it's already "Completed"
         let newPOStatus = poDoc.po_status;
         let newGRStatus = poDoc.gr_status;
 
-        if (allItemsComplete) {
+        // Only update status if not already completed
+        if (poDoc.po_status !== "Completed") {
+          if (allItemsComplete) {
+            newPOStatus = "Completed";
+            newGRStatus = "Fully Received";
+          } else if (anyItemProcessing) {
+            newPOStatus = "Processing";
+            newGRStatus = "Partially Received";
+          }
+        } else {
+          // If already completed, maintain completed status
           newPOStatus = "Completed";
-          newGRStatus = "Fully Received";
-        } else if (anyItemProcessing) {
-          newPOStatus = "Processing";
-          newGRStatus = "Partially Received";
+          if (allItemsComplete) {
+            newGRStatus = "Fully Received";
+          } else if (anyItemProcessing) {
+            newGRStatus = "Partially Received";
+          }
         }
 
         // Create tracking ratios
@@ -1160,10 +1176,27 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
         const fullyReceivedRatio = `${fullyReceivedItems} / ${totalItems}`;
 
         console.log(`PO ${purchaseOrderId} status:
+          Original status: ${originalPOStatus}
           Total items: ${totalItems}
           Partially received items (including fully received): ${partiallyReceivedItems} (${partiallyReceivedRatio})
           Fully received items: ${fullyReceivedItems} (${fullyReceivedRatio})
+          New PO Status: ${newPOStatus}
+          New GR Status: ${newGRStatus}
         `);
+
+        // FIX: Validate that all items have their item_id before updating
+        const hasAllItemIds = updatedPoItems.every((item) => item.item_id);
+        if (!hasAllItemIds) {
+          console.error(
+            `Missing item_id in updated PO items for PO ${purchaseOrderId}`
+          );
+          // Restore item_ids from original if missing
+          updatedPoItems.forEach((item, index) => {
+            if (!item.item_id && poItems[index] && poItems[index].item_id) {
+              item.item_id = poItems[index].item_id;
+            }
+          });
+        }
 
         // Prepare a single update operation with all changes
         const updateData = {

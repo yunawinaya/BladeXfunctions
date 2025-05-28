@@ -13,6 +13,7 @@ const createStockMovement = async (
       item_selection: item.material_id,
       requested_qty: item.material_quantity,
       location_id: item.bin_location_id,
+      quantity_uom: item.material_uom,
     }));
 
     // Initialize stock movement data

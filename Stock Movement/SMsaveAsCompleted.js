@@ -274,6 +274,19 @@ class StockAdjuster {
     organizationId
   ) {
     const table_item_balance = allData.sm_item_balance?.table_item_balance;
+
+    let postedStatus = "";
+
+    if (
+      movementType === "Miscellaneous Issue" ||
+      movementType === "Miscellaneous Receipt" ||
+      movementType === "Disposal/Scrap"
+    ) {
+      postedStatus = "Unposted";
+    } else {
+      postedStatus = "";
+    }
+
     const stockMovementData = {
       stock_movement_no: allData.stock_movement_no,
       movement_type: allData.movement_type,
@@ -304,7 +317,7 @@ class StockAdjuster {
       tracking_no: allData.tracking_no,
       balance_index: allData.balance_index,
       organization_id: organizationId,
-      posted_status: "Unposted",
+      posted_status: postedStatus,
       reference_documents: allData.reference_documents,
     };
 
@@ -371,15 +384,18 @@ class StockAdjuster {
       return generated;
     };
 
-    const checkUniqueness = async (generatedPrefix) => {
+    const checkUniqueness = async (generatedPrefix, organizationId) => {
       const existingDoc = await db
         .collection("stock_movement")
-        .where({ stock_movement_no: generatedPrefix })
+        .where({
+          stock_movement_no: generatedPrefix,
+          organization_id: organizationId,
+        })
         .get();
       return existingDoc.data[0] ? false : true;
     };
 
-    const findUniquePrefix = async (prefixData) => {
+    const findUniquePrefix = async (prefixData, organizationId) => {
       const now = new Date();
       let prefixToShow;
       let runningNumber = prefixData.running_number;
@@ -390,7 +406,7 @@ class StockAdjuster {
       while (!isUnique && attempts < maxAttempts) {
         attempts++;
         prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-        isUnique = await checkUniqueness(prefixToShow);
+        isUnique = await checkUniqueness(prefixToShow, organizationId);
         if (!isUnique) {
           runningNumber++;
         }
@@ -410,10 +426,11 @@ class StockAdjuster {
 
       if (prefixData.length !== 0) {
         const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData
+          prefixData,
+          organizationId
         );
 
-        await updatePrefix(organizationId, runningNumber);
+        await updatePrefix(organizationId, runningNumber, movementType);
 
         stockMovementData.stock_movement_no = prefixToShow;
       }
@@ -422,22 +439,22 @@ class StockAdjuster {
         ...stockMovementData,
       });
 
-      return new Promise((resolve, reject) => {
-        this.runWorkflow(
-          "1921755711809626113",
-          { stock_movement_no: stockMovementData.stock_movement_no },
-          (res) => {
-            console.log("Workflow success:", res);
-            resolve(result); // Resolve with original DB result
-          },
-          (err) => {
-            console.error("Workflow error:", err);
-            // Still resolve with the DB result, as the SM is created/updated successfully
-            // Just log the workflow error, don't reject the whole operation
-            resolve(result);
-          }
-        );
-      });
+      // return new Promise((resolve, reject) => {
+      //       this.runWorkflow(
+      //         "1921755711809626113",
+      //         { stock_movement_no: stockMovementData.stock_movement_no },
+      //         (res) => {
+      //           console.log("Workflow success:", res);
+      //           resolve(result); // Resolve with original DB result
+      //         },
+      //         (err) => {
+      //           console.error("Workflow error:", err);
+      //           // Still resolve with the DB result, as the SM is created/updated successfully
+      //           // Just log the workflow error, don't reject the whole operation
+      //           resolve(result);
+      //         }
+      //       );
+      //     });
     } else if (page_status === "Edit") {
       if (!stockMovementNo) {
         throw new Error("Stock movement number is required for editing");
@@ -447,10 +464,11 @@ class StockAdjuster {
 
       if (prefixData.length !== 0) {
         const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData
+          prefixData,
+          organizationId
         );
 
-        await updatePrefix(organizationId, runningNumber);
+        await updatePrefix(organizationId, runningNumber, movementType);
 
         stockMovementData.stock_movement_no = prefixToShow;
       }
@@ -463,22 +481,22 @@ class StockAdjuster {
           ...stockMovementData,
         });
 
-      return new Promise((resolve, reject) => {
-        this.runWorkflow(
-          "1921755711809626113",
-          { stock_movement_no: stockMovementData.stock_movement_no },
-          (res) => {
-            console.log("Workflow success:", res);
-            resolve(result); // Resolve with original DB result
-          },
-          (err) => {
-            console.error("Workflow error:", err);
-            // Still resolve with the DB result, as the SM is created/updated successfully
-            // Just log the workflow error, don't reject the whole operation
-            resolve(result);
-          }
-        );
-      });
+      // return new Promise((resolve, reject) => {
+      //     this.runWorkflow(
+      //       "1921755711809626113",
+      //       { stock_movement_no: stockMovementData.stock_movement_no },
+      //       (res) => {
+      //         console.log("Workflow success:", res);
+      //         resolve(result); // Resolve with original DB result
+      //       },
+      //       (err) => {
+      //         console.error("Workflow error:", err);
+      //         // Still resolve with the DB result, as the SM is created/updated successfully
+      //         // Just log the workflow error, don't reject the whole operation
+      //         resolve(result);
+      //       }
+      //     );
+      //   });
       console.log("Stock Movement Updated:", result);
     }
   }
@@ -1368,6 +1386,15 @@ class StockAdjuster {
       const response = await query.get();
       const result = response.data;
 
+      if (!result || !Array.isArray(result) || result.length === 0) {
+        console.warn(`No FIFO records found for material ${materialData.id}`);
+        return 0;
+      }
+
+      const sortedRecords = result.sort(
+        (a, b) => a.fifo_sequence - b.fifo_sequence
+      );
+
       if (deductionQty && deductionQty > 0) {
         let remainingQtyToDeduct = this.roundQty(deductionQty);
         let totalCost = 0;
@@ -1394,36 +1421,24 @@ class StockAdjuster {
           : 0;
       }
 
-      if (result && Array.isArray(result) && result.length > 0) {
-        // Sort by FIFO sequence (lowest/oldest first, as per FIFO principle)
-        const sortedRecords = result.sort(
-          (a, b) => a.fifo_sequence - b.fifo_sequence
-        );
-
-        // First look for records with available quantity
-        for (const record of sortedRecords) {
-          const availableQty = this.roundQty(
-            record.fifo_available_quantity || 0
+      // First look for records with available quantity
+      for (const record of sortedRecords) {
+        const availableQty = this.roundQty(record.fifo_available_quantity || 0);
+        if (availableQty > 0) {
+          console.log(
+            `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
           );
-          if (availableQty > 0) {
-            console.log(
-              `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
-            );
-            return this.roundPrice(record.fifo_cost_price || 0);
-          }
+          return this.roundPrice(record.fifo_cost_price || 0);
         }
-
-        // If no records with available quantity, use the most recent record
-        console.warn(
-          `No FIFO records with available quantity found for ${materialData.id}, using most recent cost price`
-        );
-        return this.roundPrice(
-          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
-        );
       }
 
-      console.warn(`No FIFO records found for material ${materialData.id}`);
-      return 0;
+      // If no records with available quantity, use the most recent record
+      console.warn(
+        `No FIFO records with available quantity found for ${materialData.id}, using most recent cost price`
+      );
+      return this.roundPrice(
+        sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+      );
     } catch (error) {
       console.error(
         `Error retrieving FIFO cost price for ${materialData.id}:`,
