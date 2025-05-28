@@ -51,6 +51,7 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
   try {
     const data = this.getValues();
     let pageStatus = "";
+    const status = await this.getValue("stock_movement_status");
 
     // Determine page status
     if (this.isAdd) pageStatus = "Add";
@@ -59,14 +60,14 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
     else if (this.isCopy) pageStatus = "Clone";
     else throw new Error("Invalid page state");
 
-    // Set page status in data
-    this.setData({ page_status: pageStatus });
-
     // Get organization ID
     let organizationId = this.getVarGlobal("deptParentId");
     if (organizationId === "0") {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
+
+    // Set page status in data
+    this.setData({ page_status: pageStatus, organization_id: organizationId });
 
     // Get movement type
     let movementType = data.movement_type || "";
@@ -92,6 +93,8 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
         .where({ id: stockMovementId })
         .get();
 
+      const nickName = await this.getVarGlobal("nickname");
+      this.setData({ issued_by: nickName });
       if (resSM.data && resSM.data.length > 0) {
         const stockMovement = resSM.data[0];
         const {
@@ -191,6 +194,74 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
             "stock_movement.transfer_stock",
             "stock_movement.view_stock",
           ]);
+
+          if (status === "Completed" || status === "Fully Posted") {
+            this.disabled(
+              [
+                "issue_date",
+                "stock_movement_no",
+                "movement_type",
+                "movement_reason",
+                "issued_by",
+                "issuing_operation_faci",
+                "remarks",
+                "delivery_method",
+                "reference_documents",
+                "receiving_operation_faci",
+                "movement_id",
+                "is_production_order",
+                "production_order_id",
+                "driver_name",
+                "driver_contact_no",
+                "vehicle_no",
+                "pickup_date",
+                "courier_company",
+                "shipping_date",
+                "freight_charges",
+                "tracking_number",
+                "est_arrival_date",
+                "est_delivery_date",
+                "shipping_company",
+                "date_qn0dl3t6",
+                "input_77h4nsq8",
+                "shipping_method",
+                "tracking_no",
+                "stock_movement.item_selection",
+                "stock_movement.total_quantity",
+                "stock_movement.category",
+                "stock_movement.received_quantity",
+                "stock_movement.received_quantity_uom",
+                "stock_movement.unit_price",
+                "stock_movement.amount",
+                "stock_movement.location_id",
+                "stock_movement.batch_id",
+              ],
+              true
+            );
+
+            // Hide edit button
+            setTimeout(() => {
+              const editButton = document.querySelector(
+                ".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--small.is-link"
+              );
+              if (editButton) {
+                editButton.style.display = "none";
+              }
+            }, 500);
+
+            this.hide([
+              "stock_movement.transfer_stock",
+              "stock_movement.edit_stock",
+            ]);
+
+            if (
+              movementType === "Miscellaneous Issue" ||
+              movementType === "Miscellaneous Receipt" ||
+              movementType === "Disposal/Scrap"
+            ) {
+              this.display("button_post");
+            }
+          }
         } else {
           // View mode or other
           // Keep original values
@@ -259,14 +330,18 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
             this.hide([
               "stock_movement.transfer_stock",
               "stock_movement.edit_stock",
-              "link_billing_address",
-              "link_shipping_address",
+              "stock_movement.view_stock",
             ]);
           }
         }
       }
     } else {
-      // Add mode
+      const nickName = await this.getVarGlobal("nickname");
+
+      this.setData({
+        issued_by: nickName,
+        issue_date: new Date().toISOString().split("T")[0],
+      });
       this.disabled(["stock_movement"], true);
       this.display(["draft_status", "button_save_as_draft"]);
       this.hide([

@@ -213,9 +213,9 @@ const init = async () => {
         "stock_movement.quantity_uom",
         "is_production_order",
         "stock_movement.to_recv_qty",
-        "stock_movement.transfer_stock",
         "stock_movement.view_stock",
         "stock_movement.edit_stock",
+        "stock_movement.stock_summary",
       ]);
       break;
 
@@ -266,8 +266,8 @@ const init = async () => {
         "receiving_operation_faci",
         "stock_movement.batch_id",
         "stock_movement.view_stock",
-        "stock_movement.transfer_stock",
         "stock_movement.edit_stock",
+        "stock_movement.stock_summary",
       ]);
       break;
 
@@ -296,16 +296,19 @@ const init = async () => {
         "stock_movement.transfer_stock",
         "stock_movement.total_quantity",
         "stock_movement.to_recv_qty",
-        "stock_movement.transfer_stock",
         "stock_movement.view_stock",
         "stock_movement.edit_stock",
+        "stock_movement.stock_summary",
       ]);
       break;
   }
   switch (page_status) {
     case "View":
-      this.hide(["stock_movement.transfer_stock", "stock_movement.edit_stock"]);
-      this.disabled(["stock_movement.view_stock"], false);
+      this.hide([
+        "stock_movement.transfer_stock",
+        "stock_movement.edit_stock",
+        "stock_movement.view_stock",
+      ]);
       break;
     case "Edit":
       this.hide(["stock_movement.transfer_stock", "stock_movement.view_stock"]);

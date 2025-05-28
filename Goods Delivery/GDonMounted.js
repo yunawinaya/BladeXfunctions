@@ -203,7 +203,12 @@ const disableTableRows = () => {
 const displayDeliveryMethod = async () => {
   const deliveryMethodName = this.getValue("gd_delivery_method");
   console.log("deliveryMethodName", deliveryMethodName);
-  if (Object.keys(deliveryMethodName).length > 0) {
+
+  if (
+    deliveryMethodName &&
+    typeof deliveryMethodName === "string" &&
+    deliveryMethodName.trim() !== ""
+  ) {
     this.setData({ delivery_method_text: deliveryMethodName });
 
     const visibilityMap = {
@@ -225,12 +230,22 @@ const displayDeliveryMethod = async () => {
 
     if (!selectedField) {
       this.hide(fields);
+    } else {
+      fields.forEach((field) => {
+        field === selectedField ? this.display(field) : this.hide(field);
+      });
     }
-    fields.forEach((field) => {
-      field === selectedField ? this.display(field) : this.hide(field);
-    });
   } else {
     this.setData({ delivery_method_text: "" });
+
+    const fields = [
+      "self_pickup",
+      "courier_service",
+      "company_truck",
+      "shipping_service",
+      "third_party_transporter",
+    ];
+    this.hide(fields);
   }
 };
 
