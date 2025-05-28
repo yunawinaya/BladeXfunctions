@@ -1,6 +1,8 @@
 const allData = this.getValues();
 const movementType = allData.movement_type;
 const page_status = allData.page_status;
+const plant = allData.issuing_operation_faci;
+const stock_movement = allData.stock_movement;
 
 const rowIndex = arguments[0].rowIndex;
 
@@ -57,6 +59,35 @@ const fetchItemData = async () => {
       this.hide("stock_movement.batch_id");
     }
 
+    if (plant && stock_movement && stock_movement.length > 0) {
+      const resBinLocation = await db
+        .collection("bin_location")
+        .where({
+          plant_id: plant,
+          is_default: true,
+        })
+        .get();
+
+      let binLocation;
+
+      if (resBinLocation.data && resBinLocation.data.length > 0) {
+        binLocation = resBinLocation.data[0].id;
+      } else {
+        console.warn("No default bin location found for plant:", plant);
+      }
+
+      if (stock_movement && stock_movement.length > 0) {
+        for (let i = 0; i < stock_movement.length; i++) {
+          this.setData({
+            [`stock_movement.${i}.location_id`]: binLocation,
+          });
+          this.setData({
+            [`stock_movement.${i}.category`]: "Unrestricted",
+          });
+        }
+      }
+    }
+
     // Fetch and filter categories
     const categoryObjectResponse = await db
       .collection("inventory_category")
@@ -75,13 +106,6 @@ const fetchItemData = async () => {
       [`stock_movement.${rowIndex}.category`],
       filteredCategories
     );
-
-    await this.setData({
-      [`stock_movement.${rowIndex}.stock_summary`]: "",
-      [`stock_movement.${rowIndex}.received_quantity_uom`]: based_uom,
-      [`stock_movement.${rowIndex}.quantity_uom`]: based_uom,
-      [`stock_movement.${rowIndex}.unit_price`]: purchase_unit_price,
-    });
 
     const altUoms = table_uom_conversion.map((data) => data.alt_uom_id);
     altUoms.push(based_uom);
@@ -110,6 +134,13 @@ const fetchItemData = async () => {
     };
 
     updateUomOption();
+
+    await this.setData({
+      [`stock_movement.${rowIndex}.stock_summary`]: "",
+      [`stock_movement.${rowIndex}.received_quantity_uom`]: based_uom,
+      [`stock_movement.${rowIndex}.quantity_uom`]: based_uom,
+      [`stock_movement.${rowIndex}.unit_price`]: purchase_unit_price,
+    });
   } catch (error) {
     console.error("Error fetching item data:", error);
   }

@@ -92,6 +92,7 @@ class StockAdjuster {
       // UOM comparison and conversion logic
       let quantityConverted = item.received_quantity || 0;
       let selected_uom = materialData.based_uom; // Default to base UOM
+      let unitPriceConverted = item.unit_price || 0;
 
       if (
         movementType === "Miscellaneous Receipt" &&
@@ -109,6 +110,9 @@ class StockAdjuster {
               Math.round(
                 (item.received_quantity || 0) * uomConversion.base_qty * 1000
               ) / 1000;
+            unitPriceConverted =
+              Math.round(((item.unit_price || 0) / quantityConverted) * 1000) /
+              1000;
           } else {
             throw new Error(
               `Invalid UOM ${item.received_quantity_uom} for item ${item.item_selection}`
@@ -120,9 +124,10 @@ class StockAdjuster {
       // Always set effective_uom and quantity_converted for the item
       item.effective_uom = selected_uom;
       item.quantity_converted = quantityConverted;
+      item.price_converted = unitPriceConverted;
 
       console.log(
-        `preValidateItems: item ${item.item_selection}, effective_uom: ${item.effective_uom}, quantity_converted: ${quantityConverted}`
+        `preValidateItems: item ${item.item_selection}, effective_uom: ${item.effective_uom}, quantity_converted: ${quantityConverted}, price_converted: ${unitPriceConverted}`
       );
 
       if (
@@ -439,22 +444,22 @@ class StockAdjuster {
         ...stockMovementData,
       });
 
-      // return new Promise((resolve, reject) => {
-      //       this.runWorkflow(
-      //         "1921755711809626113",
-      //         { stock_movement_no: stockMovementData.stock_movement_no },
-      //         (res) => {
-      //           console.log("Workflow success:", res);
-      //           resolve(result); // Resolve with original DB result
-      //         },
-      //         (err) => {
-      //           console.error("Workflow error:", err);
-      //           // Still resolve with the DB result, as the SM is created/updated successfully
-      //           // Just log the workflow error, don't reject the whole operation
-      //           resolve(result);
-      //         }
-      //       );
-      //     });
+      return new Promise((resolve, reject) => {
+        this.runWorkflow(
+          "1921755711809626113",
+          { stock_movement_no: stockMovementData.stock_movement_no },
+          (res) => {
+            console.log("Workflow success:", res);
+            resolve(result); // Resolve with original DB result
+          },
+          (err) => {
+            console.error("Workflow error:", err);
+            // Still resolve with the DB result, as the SM is created/updated successfully
+            // Just log the workflow error, don't reject the whole operation
+            resolve(result);
+          }
+        );
+      });
     } else if (page_status === "Edit") {
       if (!stockMovementNo) {
         throw new Error("Stock movement number is required for editing");
@@ -481,22 +486,22 @@ class StockAdjuster {
           ...stockMovementData,
         });
 
-      // return new Promise((resolve, reject) => {
-      //     this.runWorkflow(
-      //       "1921755711809626113",
-      //       { stock_movement_no: stockMovementData.stock_movement_no },
-      //       (res) => {
-      //         console.log("Workflow success:", res);
-      //         resolve(result); // Resolve with original DB result
-      //       },
-      //       (err) => {
-      //         console.error("Workflow error:", err);
-      //         // Still resolve with the DB result, as the SM is created/updated successfully
-      //         // Just log the workflow error, don't reject the whole operation
-      //         resolve(result);
-      //       }
-      //     );
-      //   });
+      return new Promise((resolve, reject) => {
+        this.runWorkflow(
+          "1921755711809626113",
+          { stock_movement_no: stockMovementData.stock_movement_no },
+          (res) => {
+            console.log("Workflow success:", res);
+            resolve(result); // Resolve with original DB result
+          },
+          (err) => {
+            console.error("Workflow error:", err);
+            // Still resolve with the DB result, as the SM is created/updated successfully
+            // Just log the workflow error, don't reject the whole operation
+            resolve(result);
+          }
+        );
+      });
       console.log("Stock Movement Updated:", result);
     }
   }
@@ -513,10 +518,51 @@ class StockAdjuster {
         throw new Error(`Material not found for item ${item.item_selection}`);
       }
 
-      const balancesToProcess =
+      let tempDataParsed;
+      try {
+        const tempData = item.temp_qty_data;
+        if (!tempData) {
+          console.warn(
+            `No temp_qty_data found for item ${item.item_selection}`
+          );
+          tempDataParsed = [];
+        } else {
+          tempDataParsed = JSON.parse(tempData);
+          tempDataParsed = tempDataParsed.filter(
+            (tempData) => tempData.sm_quantity > 0
+          );
+          if (!Array.isArray(tempDataParsed)) {
+            console.warn(
+              `temp_qty_data for item ${item.item_selection} is not an array:`,
+              tempDataParsed
+            );
+            tempDataParsed = [];
+          }
+        }
+      } catch (parseError) {
+        console.error(
+          `Error parsing temp_qty_data for item ${item.item_selection}:`,
+          parseError
+        );
+        console.error("Raw temp_qty_data:", item.temp_qty_data);
+        tempDataParsed = [];
+      }
+
+      console.log("tempDataParsed", tempDataParsed);
+
+      let balancesToProcess =
         allData.balance_index?.filter(
-          (balance) => balance.sm_quantity && balance.sm_quantity > 0
+          (balance) =>
+            balance.sm_quantity &&
+            balance.sm_quantity > 0 &&
+            tempDataParsed.some(
+              (tempData) =>
+                tempData.material_id === balance.material_id &&
+                tempData.balance_id === balance.balance_id
+            )
         ) || [];
+
+      console.log("balancesToProcess", balancesToProcess);
 
       if (
         movementType === "Miscellaneous Receipt" &&
@@ -530,61 +576,63 @@ class StockAdjuster {
       }
 
       const updates = [];
-      for (const balance of balancesToProcess) {
-        try {
-          console.log(
-            `Processing balance for ${item.item_selection} at location ${balance.location_id}`
-          );
+      if (movementType !== "Miscellaneous Receipt") {
+        for (const balance of balancesToProcess) {
+          try {
+            console.log(
+              `Processing balance for ${item.item_selection} at location ${balance.location_id}`
+            );
 
-          // Capture the weighted average cost from updateQuantities
-          const weightedAvgCost = await this.updateQuantities(
-            materialData,
-            movementType,
-            balance,
-            allData,
-            item,
-            organizationId
-          );
+            // Capture the weighted average cost from updateQuantities
+            const weightedAvgCost = await this.updateQuantities(
+              materialData,
+              movementType,
+              balance,
+              allData,
+              item,
+              organizationId
+            );
 
-          // Store the cost in the balance object for FIFO
-          if (
-            weightedAvgCost !== null &&
-            materialData.material_costing_method === "First In First Out"
-          ) {
-            balance.calculated_fifo_cost = weightedAvgCost;
+            // Store the cost in the balance object for FIFO
+            if (
+              weightedAvgCost !== null &&
+              materialData.material_costing_method === "First In First Out"
+            ) {
+              balance.calculated_fifo_cost = weightedAvgCost;
+            }
+
+            const movementResult = await this.recordInventoryMovement(
+              materialData,
+              movementType,
+              balance,
+              allData,
+              item,
+              organizationId
+            );
+
+            updates.push({
+              balance: balance.location_id,
+              status: "success",
+              result: movementResult,
+            });
+          } catch (balanceError) {
+            console.error(
+              `Error processing balance for ${item.item_selection} at ${balance.location_id}:`,
+              balanceError
+            );
+
+            updates.push({
+              balance: balance.location_id,
+              status: "error",
+              error: balanceError.message,
+            });
+
+            return {
+              itemId: item.item_selection,
+              status: "error",
+              error: balanceError.message,
+            };
           }
-
-          const movementResult = await this.recordInventoryMovement(
-            materialData,
-            movementType,
-            balance,
-            allData,
-            item,
-            organizationId
-          );
-
-          updates.push({
-            balance: balance.location_id,
-            status: "success",
-            result: movementResult,
-          });
-        } catch (balanceError) {
-          console.error(
-            `Error processing balance for ${item.item_selection} at ${balance.location_id}:`,
-            balanceError
-          );
-
-          updates.push({
-            balance: balance.location_id,
-            status: "error",
-            error: balanceError.message,
-          });
-
-          return {
-            itemId: item.item_selection,
-            status: "error",
-            error: balanceError.message,
-          };
         }
       }
 
@@ -1099,6 +1147,8 @@ class StockAdjuster {
       const unitPrice =
         balanceData.unit_price && balanceData.unit_price !== 0
           ? balanceData.unit_price
+          : subformData.price_converted && subformData.price_converted !== 0
+          ? subformData.price_converted
           : subformData.unit_price && subformData.unit_price !== 0
           ? subformData.unit_price
           : materialData.purchase_unit_price || 0;
