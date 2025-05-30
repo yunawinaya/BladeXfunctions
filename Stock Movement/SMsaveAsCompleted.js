@@ -437,6 +437,7 @@ class StockAdjuster {
         await updatePrefix(organizationId, runningNumber, movementType);
 
         stockMovementData.stock_movement_no = prefixToShow;
+        allData.stock_movement_no = prefixToShow;
       }
       const result = await this.db.collection("stock_movement").add({
         stock_movement_status: "Completed",
@@ -475,6 +476,7 @@ class StockAdjuster {
         await updatePrefix(organizationId, runningNumber, movementType);
 
         stockMovementData.stock_movement_no = prefixToShow;
+        allData.stock_movement_no = prefixToShow;
       }
 
       const result = await this.db

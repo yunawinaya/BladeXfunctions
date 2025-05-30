@@ -204,6 +204,13 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
             "stock_movement.view_stock",
           ]);
 
+          if (
+            status === "Created" &&
+            movement_type === "Inter Operation Facility Transfer (Receiving)"
+          ) {
+            this.disabled(["stock_movement.received_quantity"], true);
+          }
+
           if (status === "Completed" || status === "Fully Posted") {
             this.disabled(
               [

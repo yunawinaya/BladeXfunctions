@@ -307,7 +307,8 @@ class ReceivingIOFTProcessor {
             item.unit_price,
             item.received_quantity_uom,
             materialData,
-            organizationId
+            organizationId,
+            item.temp_qty_data
           );
           results.inventoryMovements.issuing.push(
             inventoryMovements.issuingMovement
@@ -595,6 +596,107 @@ class ReceivingIOFTProcessor {
     }
   }
 
+  // Function to get latest FIFO cost price with available quantity check
+  async getLatestFIFOCostPrice(materialData, batchId) {
+    try {
+      const query =
+        materialData.item_batch_management == "1" && batchId
+          ? this.db
+              .collection("fifo_costing_history")
+              .where({ material_id: materialData.id, batch_id: batchId })
+          : this.db
+              .collection("fifo_costing_history")
+              .where({ material_id: materialData.id });
+
+      const response = await query.get();
+      const result = response.data;
+
+      if (result && Array.isArray(result) && result.length > 0) {
+        // Sort by FIFO sequence (lowest/oldest first, as per FIFO principle)
+        const sortedRecords = result.sort(
+          (a, b) => a.fifo_sequence - b.fifo_sequence
+        );
+
+        // First look for records with available quantity
+        for (const record of sortedRecords) {
+          const availableQty = this.roundQty(
+            record.fifo_available_quantity || 0
+          );
+          if (availableQty > 0) {
+            console.log(
+              `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
+            );
+            return this.roundPrice(record.fifo_cost_price || 0);
+          }
+        }
+
+        // If no records with available quantity, use the most recent record
+        console.warn(
+          `No FIFO records with available quantity found for ${materialData.id}, using most recent cost price`
+        );
+        return this.roundPrice(
+          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+        );
+      }
+
+      console.warn(`No FIFO records found for material ${materialData.id}`);
+      return 0;
+    } catch (error) {
+      console.error(
+        `Error retrieving FIFO cost price for ${materialData.id}:`,
+        error
+      );
+      return 0;
+    }
+  }
+
+  // Function to get Weighted Average cost price
+  async getWeightedAverageCostPrice(materialData, batchId) {
+    try {
+      const query =
+        materialData.item_batch_management == "1" && batchId
+          ? this.db
+              .collection("wa_costing_method")
+              .where({ material_id: materialData.id, batch_id: batchId })
+          : this.db
+              .collection("wa_costing_method")
+              .where({ material_id: materialData.id });
+
+      const response = await query.get();
+      const waData = response.data;
+
+      if (waData && Array.isArray(waData) && waData.length > 0) {
+        // Sort by date (newest first) to get the latest record
+        waData.sort((a, b) => {
+          if (a.created_at && b.created_at) {
+            return new Date(b.created_at) - new Date(a.created_at);
+          }
+          return 0;
+        });
+
+        return this.roundPrice(waData[0].wa_cost_price || 0);
+      }
+
+      console.warn(
+        `No weighted average records found for material ${materialData.id}`
+      );
+      return 0;
+    } catch (error) {
+      console.error(
+        `Error retrieving WA cost price for ${materialData.id}:`,
+        error
+      );
+      return 0;
+    }
+  }
+
+  async getFixedCostPrice(materialId) {
+    const query = this.db.collection("Item").where({ id: materialId });
+    const response = await query.get();
+    const result = response.data;
+    return this.roundPrice(result[0].purchase_unit_price || 0);
+  }
+
   async recordInventoryMovements(
     materialId,
     quantity,
@@ -608,13 +710,14 @@ class ReceivingIOFTProcessor {
     unitPrice,
     uom,
     materialData,
-    organizationId
+    organizationId,
+    tempQtyData
   ) {
     const formattedQuantity = this.roundQty(quantity);
     const formattedUnitPrice = this.roundPrice(unitPrice || 0);
     const totalPrice = this.roundPrice(formattedUnitPrice * formattedQuantity);
 
-    // Determine batch management
+    // Determine batch management for receiving
     const isBatchManaged =
       materialData.item_batch_management == "1" ||
       materialData.item_isbatch_managed == "1";
@@ -623,29 +726,93 @@ class ReceivingIOFTProcessor {
     // Use the material's UOM if not specified
     const itemUom = uom || materialData.based_uom || materialData.uom_id;
 
-    // Create OUT movement from in-transit in issuing plant
-    const issuingMovement = {
-      transaction_type: "SM",
-      trx_no: issuingStockMovementNo,
-      movement: "OUT",
-      inventory_category: sourceCategory,
-      parent_trx_no: null,
-      unit_price: formattedUnitPrice,
-      total_price: totalPrice,
-      quantity: formattedQuantity,
-      item_id: materialId,
-      uom_id: itemUom,
-      base_qty: formattedQuantity,
-      base_uom_id: itemUom,
-      bin_location_id: locationId,
-      batch_number_id: batchId,
-      costing_method_id: materialData.material_costing_method,
-      organization_id: organizationId,
-      plant_id: issuingPlantId,
-      created_at: new Date(),
-    };
+    // Parse temp quantity data
+    let tempQtyDataArray = [];
+    try {
+      tempQtyDataArray = JSON.parse(tempQtyData || "[]");
+    } catch (error) {
+      console.error("Failed to parse tempQtyData:", error);
+      tempQtyDataArray = [];
+    }
 
-    // Create IN movement to unrestricted in receiving plant
+    // Create OUT movements from issuing plant
+    const issuingMovements = [];
+    const issuingMovementData = [];
+
+    for (const data of tempQtyDataArray) {
+      if (data.sm_quantity > 0) {
+        // Fetch material data for this specific item
+        let materialDataOUT;
+        try {
+          const materialResponse = await this.db
+            .collection("Item")
+            .where({ id: data.material_id })
+            .get();
+          materialDataOUT = materialResponse.data[0];
+          if (!materialDataOUT) {
+            throw new Error(`Material not found for ID: ${data.material_id}`);
+          }
+        } catch (err) {
+          throw new Error(`Failed to fetch material: ${err.message}`);
+        }
+
+        // Check batch management for this specific material
+        const isBatchManagedOUT =
+          materialDataOUT.item_batch_management == "1" ||
+          materialDataOUT.item_isbatch_managed == "1";
+
+        // Get unit price based on costing method
+        let unitPriceOUT = 0;
+        if (materialDataOUT.material_costing_method === "First In First Out") {
+          unitPriceOUT = await this.getLatestFIFOCostPrice(
+            materialDataOUT,
+            data.batch_id
+          );
+        } else if (
+          materialDataOUT.material_costing_method === "Weighted Average"
+        ) {
+          unitPriceOUT = await this.getWeightedAverageCostPrice(
+            materialDataOUT,
+            data.batch_id
+          );
+        } else if (materialDataOUT.material_costing_method === "Fixed Cost") {
+          unitPriceOUT = await this.getFixedCostPrice(materialDataOUT.id);
+        }
+
+        const formattedSmQuantityOUT = this.roundQty(data.sm_quantity);
+        const formattedUnitPriceOUT = this.roundPrice(unitPriceOUT || 0);
+        const totalPriceOUT = this.roundPrice(
+          formattedUnitPriceOUT * formattedSmQuantityOUT
+        );
+
+        // Create OUT movement
+        const issuingMovement = {
+          transaction_type: "SM",
+          trx_no: issuingStockMovementNo,
+          movement: "OUT",
+          inventory_category: sourceCategory,
+          parent_trx_no: null,
+          unit_price: formattedUnitPriceOUT,
+          total_price: totalPriceOUT,
+          quantity: formattedSmQuantityOUT,
+          item_id: data.material_id,
+          uom_id: materialDataOUT.based_uom || materialDataOUT.uom_id,
+          base_qty: formattedSmQuantityOUT,
+          base_uom_id: materialDataOUT.based_uom || materialDataOUT.uom_id,
+          bin_location_id: data.location_id,
+          batch_number_id: isBatchManagedOUT ? data.batch_id : null,
+          costing_method_id: materialDataOUT.material_costing_method,
+          organization_id: organizationId,
+          plant_id: issuingPlantId,
+          created_at: new Date(),
+        };
+
+        issuingMovements.push(issuingMovement);
+        issuingMovementData.push(issuingMovement);
+      }
+    }
+
+    // Create IN movement to receiving plant
     const receivingMovement = {
       transaction_type: "SM",
       trx_no: receivingStockMovementNo,
@@ -668,16 +835,23 @@ class ReceivingIOFTProcessor {
     };
 
     try {
-      const [issuingResult, receivingResult] = await Promise.all([
-        this.db.collection("inventory_movement").add(issuingMovement),
-        this.db.collection("inventory_movement").add(receivingMovement),
-      ]);
+      // Execute all database operations
+      const issuingResults = await Promise.all(
+        issuingMovements.map((movement) =>
+          this.db.collection("inventory_movement").add(movement)
+        )
+      );
 
+      const receivingResult = await this.db
+        .collection("inventory_movement")
+        .add(receivingMovement);
+
+      // Return properly structured results
       return {
-        issuingMovement: {
-          id: issuingResult.data[0].id,
-          ...issuingMovement,
-        },
+        issuingMovements: issuingResults.map((result, index) => ({
+          id: result.data[0].id,
+          ...issuingMovementData[index],
+        })),
         receivingMovement: {
           id: receivingResult.data[0].id,
           ...receivingMovement,

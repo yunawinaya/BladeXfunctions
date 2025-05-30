@@ -726,98 +726,6 @@ class StockAdjuster {
     organizationId
   ) {
     try {
-      let movementType = allData.movement_type || "";
-
-      const prefixResponse = await this.db
-        .collection("prefix_configuration")
-        .where({
-          document_types: "Stock Movement",
-          movement_type: movementType,
-          is_deleted: 0,
-          organization_id: organizationId,
-          is_active: 1,
-        })
-        .get();
-
-      if (!prefixResponse.data || prefixResponse.data.length === 0) {
-        throw new Error("No prefix configuration found");
-      }
-
-      const prefixData = prefixResponse.data[0];
-      const now = new Date();
-      let newPrefix = "";
-      let prefixToShow;
-      let runningNumber = prefixData.running_number;
-      let isUnique = false;
-      let maxAttempts = 10;
-      let attempts = 0;
-
-      const generatePrefix = (runNumber) => {
-        let generated = prefixData.current_prefix_config;
-        generated = generated.replace("prefix", prefixData.prefix_value);
-        generated = generated.replace("suffix", prefixData.suffix_value);
-        generated = generated.replace(
-          "month",
-          String(now.getMonth() + 1).padStart(2, "0")
-        );
-        generated = generated.replace(
-          "day",
-          String(now.getDate()).padStart(2, "0")
-        );
-        generated = generated.replace("year", now.getFullYear());
-        generated = generated.replace(
-          "running_number",
-          String(runNumber).padStart(prefixData.padding_zeroes, "0")
-        );
-        return generated;
-      };
-
-      const checkUniqueness = async (generatedPrefix) => {
-        try {
-          const existingDoc = await this.db
-            .collection("stock_movement")
-            .where({ stock_movement_no: generatedPrefix })
-            .get();
-          return !existingDoc.data || !existingDoc.data.length;
-        } catch (error) {
-          console.error("Error checking uniqueness:", error);
-          return false; // Assume not unique on error to be safe
-        }
-      };
-
-      const findUniquePrefix = async () => {
-        while (!isUnique && attempts < maxAttempts) {
-          attempts++;
-          prefixToShow = generatePrefix(runningNumber);
-          isUnique = await checkUniqueness(prefixToShow);
-          if (!isUnique) {
-            runningNumber++;
-          }
-        }
-
-        if (!isUnique) {
-          throw new Error(
-            "Could not generate a unique Stock Movement number after maximum attempts"
-          );
-        } else {
-          newPrefix = prefixToShow;
-          await this.db
-            .collection("prefix_configuration")
-            .where({
-              document_types: "Stock Movement",
-              is_deleted: 0,
-              organization_id: organizationId,
-              movement_type: movementType,
-            })
-            .update({
-              running_number: parseInt(runningNumber) + 1,
-              has_record: 1,
-            });
-        }
-      };
-
-      await findUniquePrefix();
-
       // Store material data, unit prices, and balance info for all items
       const materialsMap = {};
       const unitPricesMap = {};
@@ -900,6 +808,99 @@ class StockAdjuster {
         );
       }
 
+      const prefixResponse = await this.db
+        .collection("prefix_configuration")
+        .where({
+          document_types: "Stock Movement",
+          movement_type: movementTypeReceiving,
+          is_deleted: 0,
+          organization_id: organizationId,
+          is_active: 1,
+        })
+        .get();
+
+      if (!prefixResponse.data || prefixResponse.data.length === 0) {
+        throw new Error("No prefix configuration found");
+      }
+
+      const prefixData = prefixResponse.data[0];
+      const now = new Date();
+      let newPrefix = "";
+      let prefixToShow;
+      let runningNumber = prefixData.running_number;
+      let isUnique = false;
+      let maxAttempts = 10;
+      let attempts = 0;
+
+      const generatePrefix = (runNumber) => {
+        let generated = prefixData.current_prefix_config;
+        generated = generated.replace("prefix", prefixData.prefix_value);
+        generated = generated.replace("suffix", prefixData.suffix_value);
+        generated = generated.replace(
+          "month",
+          String(now.getMonth() + 1).padStart(2, "0")
+        );
+        generated = generated.replace(
+          "day",
+          String(now.getDate()).padStart(2, "0")
+        );
+        generated = generated.replace("year", now.getFullYear());
+        generated = generated.replace(
+          "running_number",
+          String(runNumber).padStart(prefixData.padding_zeroes, "0")
+        );
+        return generated;
+      };
+
+      const checkUniqueness = async (generatedPrefix, organizationId) => {
+        try {
+          const existingDoc = await this.db
+            .collection("stock_movement")
+            .where({
+              stock_movement_no: generatedPrefix,
+              organization_id: organizationId,
+            })
+            .get();
+          return !existingDoc.data || !existingDoc.data.length;
+        } catch (error) {
+          console.error("Error checking uniqueness:", error);
+          return false; // Assume not unique on error to be safe
+        }
+      };
+
+      const findUniquePrefix = async (runningNumber, organizationId) => {
+        while (!isUnique && attempts < maxAttempts) {
+          attempts++;
+          prefixToShow = generatePrefix(runningNumber);
+          isUnique = await checkUniqueness(prefixToShow, organizationId);
+          if (!isUnique) {
+            runningNumber++;
+          }
+        }
+
+        if (!isUnique) {
+          throw new Error(
+            "Could not generate a unique Stock Movement number after maximum attempts"
+          );
+        } else {
+          newPrefix = prefixToShow;
+          await this.db
+            .collection("prefix_configuration")
+            .where({
+              document_types: "Stock Movement",
+              is_deleted: 0,
+              organization_id: organizationId,
+              movement_type: movementTypeReceiving,
+            })
+            .update({
+              running_number: parseInt(runningNumber) + 1,
+              has_record: 1,
+            });
+        }
+      };
+
+      await findUniquePrefix(runningNumber, organizationId);
+
       const receivingIOFT = {
         stock_movement_status: "Created",
         stock_movement_no: newPrefix,
@@ -922,17 +923,19 @@ class StockAdjuster {
           return {
             item_selection: item.item_selection,
             total_quantity: item.total_quantity,
+            received_quantity: item.total_quantity,
             received_quantity_uom: material.based_uom,
             unit_price: unitPricesMap[item.item_selection] || 0,
             location_id: binLocationId,
             category: balanceInfo.category,
+            temp_qty_data: item.temp_qty_data,
           };
         }),
         issue_date: allData.issue_date,
         issued_by: allData.issued_by,
         remarks: allData.remarks,
         organization_id: organizationId,
-        posted_status: "Unposted",
+        posted_status: "",
       };
 
       const result = await this.db
