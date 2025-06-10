@@ -326,31 +326,31 @@ const checkCreditOverdueLimit = async (customer_name, so_total) => {
         // Control Type 0: Ignore both checks (always pass)
         0: () => {
           console.log("Control Type 0: Ignoring all credit/overdue checks");
-          return true;
+          return { result: true, priority: "unblock" };
         },
 
         // Control Type 1: Ignore credit, block overdue
         1: () => {
           if (overdueAmount > overdueLimit) {
-            return showPopup(2); // Pop up 2
+            return { result: showPopup(2), priority: "block" };
           }
-          return true;
+          return { result: true, priority: "unblock" };
         },
 
         // Control Type 2: Ignore credit, override overdue
         2: () => {
           if (overdueAmount > overdueLimit) {
-            return showPopup(4); // Pop up 4
+            return { result: showPopup(4), priority: "override" };
           }
-          return true;
+          return { result: true, priority: "unblock" };
         },
 
         // Control Type 3: Block credit, ignore overdue
         3: () => {
           if (revisedOutstandingAmount > creditLimit) {
-            return showPopup(1); // Pop up 1
+            return { result: showPopup(1), priority: "block" };
           }
-          return true;
+          return { result: true, priority: "unblock" };
         },
 
         // Control Type 4: Block both
@@ -359,13 +359,13 @@ const checkCreditOverdueLimit = async (customer_name, so_total) => {
           const overdueExceeded = overdueAmount > overdueLimit;
 
           if (creditExceeded && overdueExceeded) {
-            return showPopup(3); // Pop up 3 - both exceeded
+            return { result: showPopup(3), priority: "block" };
           } else if (creditExceeded) {
-            return showPopup(1); // Pop up 1 - credit only
+            return { result: showPopup(1), priority: "block" };
           } else if (overdueExceeded) {
-            return showPopup(2); // Pop up 2 - overdue only
+            return { result: showPopup(2), priority: "block" };
           }
-          return true;
+          return { result: true, priority: "unblock" };
         },
 
         // Control Type 5: Block credit, override overdue
@@ -373,22 +373,25 @@ const checkCreditOverdueLimit = async (customer_name, so_total) => {
           const creditExceeded = revisedOutstandingAmount > creditLimit;
           const overdueExceeded = overdueAmount > overdueLimit;
 
-          if (creditExceeded && overdueExceeded) {
-            return showPopup(3); // Pop up 3 - both exceeded (credit blocks)
-          } else if (creditExceeded) {
-            return showPopup(1); // Pop up 1 - credit only (blocks)
+          // Credit limit block takes priority
+          if (creditExceeded) {
+            if (overdueExceeded) {
+              return { result: showPopup(3), priority: "block" };
+            } else {
+              return { result: showPopup(1), priority: "block" };
+            }
           } else if (overdueExceeded) {
-            return showPopup(4); // Pop up 4 - overdue only (override)
+            return { result: showPopup(4), priority: "override" };
           }
-          return true;
+          return { result: true, priority: "unblock" };
         },
 
         // Control Type 6: Override credit, ignore overdue
         6: () => {
           if (revisedOutstandingAmount > creditLimit) {
-            return showPopup(5); // Pop up 5
+            return { result: showPopup(5), priority: "override" };
           }
-          return true;
+          return { result: true, priority: "unblock" };
         },
 
         // Control Type 7: Override credit, block overdue
@@ -396,12 +399,13 @@ const checkCreditOverdueLimit = async (customer_name, so_total) => {
           const creditExceeded = revisedOutstandingAmount > creditLimit;
           const overdueExceeded = overdueAmount > overdueLimit;
 
+          // Overdue block takes priority over credit override
           if (overdueExceeded) {
-            return showPopup(2); // Pop up 2 - overdue blocks first
+            return { result: showPopup(2), priority: "block" };
           } else if (creditExceeded) {
-            return showPopup(5); // Pop up 5 - credit override
+            return { result: showPopup(5), priority: "override" };
           }
-          return true;
+          return { result: true, priority: "unblock" };
         },
 
         // Control Type 8: Override both
@@ -410,35 +414,50 @@ const checkCreditOverdueLimit = async (customer_name, so_total) => {
           const overdueExceeded = overdueAmount > overdueLimit;
 
           if (creditExceeded && overdueExceeded) {
-            return showPopup(7); // Pop up 7 - both exceeded (both override)
+            return { result: showPopup(7), priority: "override" };
           } else if (creditExceeded) {
-            return showPopup(5); // Pop up 5 - credit only (override)
+            return { result: showPopup(5), priority: "override" };
           } else if (overdueExceeded) {
-            return showPopup(4); // Pop up 4 - overdue only (override)
+            return { result: showPopup(4), priority: "override" };
           }
-          return true;
+          return { result: true, priority: "unblock" };
         },
 
         // Control Type 9: Suspended customer
         9: () => {
-          return showPopup(6); // Pop up 6
+          return { result: showPopup(6), priority: "block" };
         },
       };
 
       // Process according to specification:
       // "Ignore parameter with unblock > check for parameter with block's first > if not block only proceed to check for override"
 
-      // Check each control type that applies to Sales Orders
-      for (const controlType of controlTypes) {
-        const { control_type, document_type } = controlType;
-        if (
-          document_type === "Sales Orders" &&
-          controlTypeChecks[control_type]
-        ) {
-          const result = controlTypeChecks[control_type]();
-          if (result !== true) {
-            return result; // Return false if a limit check fails
-          }
+      // First, collect all applicable control types for Sales Orders
+      const applicableControls = controlTypes
+        .filter((ct) => ct.document_type === "Sales Orders")
+        .map((ct) => {
+          const checkResult = controlTypeChecks[ct.control_type]
+            ? controlTypeChecks[ct.control_type]()
+            : { result: true, priority: "unblock" };
+          return {
+            ...checkResult,
+            control_type: ct.control_type,
+          };
+        });
+
+      // Sort by priority: blocks first, then overrides, then unblocks
+      const priorityOrder = { block: 1, override: 2, unblock: 3 };
+      applicableControls.sort(
+        (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
+      );
+
+      // Process in priority order
+      for (const control of applicableControls) {
+        if (control.result !== true) {
+          console.log(
+            `Control Type ${control.control_type} triggered with ${control.priority}`
+          );
+          return control.result;
         }
       }
 
