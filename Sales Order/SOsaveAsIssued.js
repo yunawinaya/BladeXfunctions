@@ -580,17 +580,17 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
     const missingFields = validateForm(data, requiredFields);
 
     // Check credit and overdue limits
-    // const canProceed = await checkCreditOverdueLimit(
-    //   data.customer_name,
-    //   data.so_total
-    // );
-    // if (!canProceed) {
-    //   console.log("Credit/overdue limit check failed");
-    //   this.hideLoading();
-    //   return;
-    // }
+    const canProceed = await checkCreditOverdueLimit(
+      data.customer_name,
+      data.so_total
+    );
+    if (!canProceed) {
+      console.log("Credit/overdue limit check failed");
+      this.hideLoading();
+      return;
+    }
 
-    // console.log("Credit/overdue limit check passed");
+    console.log("Credit/overdue limit check passed");
 
     if (missingFields.length === 0) {
       // Get organization ID
