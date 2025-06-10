@@ -816,7 +816,7 @@ class ReceivingIOFTProcessor {
     const receivingMovement = {
       transaction_type: "SM",
       trx_no: receivingStockMovementNo,
-      parent_trx_no: null,
+      parent_trx_no: issuingStockMovementNo || null,
       movement: "IN",
       unit_price: formattedUnitPrice,
       total_price: totalPrice,
