@@ -187,7 +187,6 @@ const checkCreditOverdueLimit = async (customer_name, so_total) => {
     }
 
     const controlTypes = customerData.control_type_list;
-    const isAccurate = customerData.is_accurate;
 
     const outstandingAmount =
       parseFloat(customerData.outstanding_balance || 0) || 0;

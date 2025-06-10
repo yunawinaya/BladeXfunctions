@@ -1,247 +1,256 @@
-(async () => {
-  //this.showLoading();
+const customerItem = arguments[0]?.fieldModel?.item;
+const customerId = customerItem?.id;
 
-  console.log("arguments", arguments[0]);
+if (customerId && !Array.isArray(customerId)) {
+  this.display("address_grid");
 
-  const customerId = this.getValue("customer_name");
-  const customerChangeId = this.getValue("customer_change_id");
-  console.log("customerId", customerId);
-  console.log("customerChangeId", customerChangeId);
-
-  let customerData;
-  let customerCurrencyId;
-  let customerPaymentTermId;
-
-  if (customerId && !Array.isArray(customerId)) {
-    customerData = await db
-      .collection("Customer")
-      .where({ id: customerId })
-      .get()
-      .then((res) => {
-        return res.data[0];
-      });
-
-    customerCurrencyId = customerData.customer_currency_id;
-    customerPaymentTermId = customerData.customer_payment_term_id;
-  }
-
-  console.log("customerCurrencyId", customerCurrencyId);
-  console.log("customerPaymentTermId", customerPaymentTermId);
-
-  // Fetch currency data
-  if (customerCurrencyId) {
-    const resCurrency = await db
-      .collection("currency")
-      .where({ id: customerCurrencyId })
-      .get();
-
-    const currencyEntry = resCurrency.data[0];
-    const currencyCode = currencyEntry.currency_code;
-    this.setData({ so_currency: currencyCode });
-
-    if (!currencyCode) {
-      this.hide([
-        "exchange_rate",
-        "exchange_rate_myr",
-        "exchange_rate_currency",
-        "myr_total_amount",
-        "total_amount_myr",
-      ]);
-      return;
-    } else {
-      this.setData({
-        total_gross_currency: currencyCode,
-        total_discount_currency: currencyCode,
-        total_tax_currency: currencyCode,
-        total_amount_currency: currencyCode,
-        exchange_rate_currency: currencyCode,
-      });
-
-      if (currencyCode !== "----" && currencyCode !== "MYR") {
-        this.setData({ exchange_rate: currencyEntry.currency_buying_rate });
-
-        this.display([
-          "exchange_rate",
-          "exchange_rate_myr",
-          "exchange_rate_currency",
-          "myr_total_amount",
-          "total_amount_myr",
-        ]);
-      } else {
-        this.setData({ exchange_rate: 1 });
-        this.hide([
-          "exchange_rate",
-          "exchange_rate_myr",
-          "exchange_rate_currency",
-          "myr_total_amount",
-          "total_amount_myr",
-        ]);
-      }
-    }
-  }
-
-  // Set payment term
-  if (customerPaymentTermId) {
+  const resetFormFields = () => {
     this.setData({
-      so_payment_term: customerPaymentTermId,
+      cust_billing_name: "",
+      cust_billing_cp: "",
+      cust_billing_address: "",
+      cust_shipping_address: "",
+      billing_address_line_1: "",
+      billing_address_line_2: "",
+      billing_address_line_3: "",
+      billing_address_line_4: "",
+      billing_address_city: "",
+      billing_address_state: "",
+      billing_postal_code: "",
+      billing_address_country: "",
+      billing_address_name: "",
+      billing_address_phone: "",
+      billing_attention: "",
+      shipping_address_line_1: "",
+      shipping_address_line_2: "",
+      shipping_address_line_3: "",
+      shipping_address_line_4: "",
+      shipping_address_city: "",
+      shipping_address_state: "",
+      shipping_postal_code: "",
+      shipping_address_country: "",
+      shipping_address_name: "",
+      shipping_address_phone: "",
+      shipping_attention: "",
     });
-  }
+  };
 
-  // Address handling
-  if (
-    customerId &&
-    (!customerChangeId || customerChangeId !== customerId) &&
-    !Array.isArray(customerId)
-  ) {
-    console.log("passing JN");
-    this.setData({ customer_change_id: customerId });
-    this.display("address_grid");
+  const setDialogAddressFields = (addressType, address) => {
+    this.setData({
+      [`${addressType}_address_line_1`]: address.address_line_1,
+      [`${addressType}_address_line_2`]: address.address_line_2,
+      [`${addressType}_address_line_3`]: address.address_line_3,
+      [`${addressType}_address_line_4`]: address.address_line_4,
+      [`${addressType}_address_city`]: address.address_city,
+      [`${addressType}_address_state`]: address.adddress_state,
+      [`${addressType}_postal_code`]: address.address_postal_code,
+      [`${addressType}_address_country`]: address.address_country_id,
+      [`${addressType}_address_name`]: address.address_name,
+      [`${addressType}_address_phone`]: address.address_phone,
+      [`${addressType}_attention`]: address.address_attention,
+    });
+  };
 
-    const resetFormFields = () => {
-      this.setData({
-        cust_billing_name: "",
-        cust_billing_cp: "",
-        cust_billing_address: "",
-        cust_shipping_address: "",
-        billing_address_line_1: "",
-        billing_address_line_2: "",
-        billing_address_line_3: "",
-        billing_address_line_4: "",
-        billing_address_city: "",
-        billing_address_state: "",
-        billing_postal_code: "",
-        billing_address_country: "",
-        shipping_address_line_1: "",
-        shipping_address_line_2: "",
-        shipping_address_line_3: "",
-        shipping_address_line_4: "",
-        shipping_address_city: "",
-        shipping_address_state: "",
-        shipping_postal_code: "",
-        shipping_address_country: "",
-      });
-    };
+  resetFormFields();
 
-    const setDialogAddressFields = (
-      addressType,
-      address,
-      stateId,
-      countryId
-    ) => {
-      this.setData({
-        [`${addressType}_address_line_1`]: address.address_line_1,
-        [`${addressType}_address_line_2`]: address.address_line_2,
-        [`${addressType}_address_line_3`]: address.address_line_3,
-        [`${addressType}_address_line_4`]: address.address_line_4,
-        [`${addressType}_address_city`]: address.address_city,
-        [`${addressType}_address_state`]: stateId,
-        [`${addressType}_postal_code`]: address.address_postal_code,
-        [`${addressType}_address_country`]: countryId,
-      });
-    };
+  db.collection("Customer")
+    .where({ id: customerId })
+    .get()
+    .then((resCustomer) => {
+      if (resCustomer?.data && resCustomer.data.length > 0) {
+        const customerData = resCustomer.data[0];
 
-    resetFormFields();
+        if (customerData.customer_currency_id) {
+          db.collection("currency")
+            .where({ id: customerData.customer_currency_id })
+            .get()
+            .then((resCurrency) => {
+              if (resCurrency?.data && resCurrency.data.length > 0) {
+                const currencyEntry = resCurrency.data[0];
+                const currencyCode = currencyEntry.currency_code;
+                if (!currencyCode) {
+                  this.hide([
+                    "exchange_rate",
+                    "exchange_rate_myr",
+                    "exchange_rate_currency",
+                    "myr_total_amount",
+                    "total_amount_myr",
+                  ]);
+                  return;
+                } else {
+                  this.setData({
+                    total_gross_currency: currencyCode,
+                    total_discount_currency: currencyCode,
+                    total_tax_currency: currencyCode,
+                    total_amount_currency: currencyCode,
+                    exchange_rate_currency: currencyCode,
+                  });
 
-    const resCustomer = await db
-      .collection("Customer")
-      .where({ id: customerId })
-      .get();
-    if (resCustomer.data.length === 0) return;
+                  if (currencyCode !== "----" && currencyCode !== "MYR") {
+                    this.setData({
+                      exchange_rate: currencyEntry.currency_buying_rate,
+                      so_currency: currencyCode,
+                    });
 
-    const customerData = resCustomer.data[0];
-    const addresses = customerData.address_list?.filter(
-      (address) => address.switch_save_as_default
-    );
+                    this.display([
+                      "exchange_rate",
+                      "exchange_rate_myr",
+                      "exchange_rate_currency",
+                      "myr_total_amount",
+                      "total_amount_myr",
+                    ]);
+                  } else {
+                    this.setData({
+                      exchange_rate: 1,
+                      so_currency: currencyCode,
+                    });
+                    this.hide([
+                      "exchange_rate",
+                      "exchange_rate_myr",
+                      "exchange_rate_currency",
+                      "myr_total_amount",
+                      "total_amount_myr",
+                    ]);
+                  }
+                }
+              }
+            })
+            .catch((error) => {
+              console.error("Error fetching currency:", error);
+            });
+        }
 
-    for (const address of addresses) {
-      const [resCountry, resState, resShipping] = await Promise.all([
-        db
-          .collection("country")
-          .where({ id: address.address_country_id })
-          .get(),
-        db.collection("state").where({ id: address.adddress_state }).get(),
-        db
-          .collection("address_purpose")
-          .where({ purpose_name: "Shipping" })
-          .get(),
-      ]);
+        if (customerData.customer_payment_term_id) {
+          this.setData({
+            so_payment_term: customerData.customer_payment_term_id,
+          });
+        }
 
-      if (
-        resCountry.data.length === 0 ||
-        resState.data.length === 0 ||
-        resShipping.data.length === 0
-      )
-        continue;
+        if (customerData.customer_agent_id) {
+          this.setData({
+            so_sales_person: customerData.customer_agent_id,
+          });
+        }
 
-      const countryName = resCountry.data[0].country_name;
-      const stateName = resState.data[0].state_name;
-      const shippingAddrId = resShipping.data[0].id;
+        const addresses =
+          customerData.address_list?.filter(
+            (address) => address.switch_save_as_default
+          ) || [];
 
-      const addressComponents = [
-        address.address_line_1,
-        address.address_line_2,
-        address.address_line_3,
-        address.address_line_4,
-        address.address_city,
-        address.address_postal_code,
-        stateName,
-        countryName,
-      ];
+        addresses.forEach(async (address) => {
+          let country = "";
+          let state = "";
 
-      const formattedAddress = addressComponents
-        .filter(Boolean)
-        .join(",\n")
-        .replace(/([^,])\n/g, "$1,\n");
-      const isShipping = address.address_purpose_id === shippingAddrId;
-      const addressType = isShipping ? "shipping" : "billing";
-      setDialogAddressFields(
-        addressType,
-        address,
-        resState.data[0].id,
-        resCountry.data[0].id
-      );
+          const resShipping = await db
+            .collection("address_purpose")
+            .where({ purpose_name: "Shipping" })
+            .get();
+          const shippingAddrId = resShipping.data[0].id;
+          if (address.address_country_id) {
+            const resCountry = await db
+              .collection("country")
+              .where({ id: address.address_country_id })
+              .get();
+            country = resCountry?.data[0]?.country_name || "";
+          }
 
-      if (addressType === "shipping") {
-        this.setData({ cust_shipping_address: formattedAddress });
-      } else {
-        this.setData({
-          cust_billing_address: formattedAddress,
-          cust_billing_name: address.address_name,
-          cust_cp: address.address_phone,
+          if (address.adddress_state) {
+            const resState = await db
+              .collection("state")
+              .where({ id: address.adddress_state })
+              .get();
+            state = resState?.data[0]?.state_name || "";
+          }
+          const isShipping = address.address_purpose_id === shippingAddrId;
+          const addressType = isShipping ? "shipping" : "billing";
+          const addressTypeUpperCase = isShipping ? "Shipping" : "Billing";
+
+          const addressLines = [
+            address.address_line_1,
+            address.address_line_2,
+            address.address_line_3,
+            address.address_line_4,
+          ]
+            .filter((line) => line)
+            .join(
+              (
+                [
+                  address.address_line_1,
+                  address.address_line_2,
+                  address.address_line_3,
+                  address.address_line_4,
+                ]
+                  .filter((line) => line)
+                  .pop() || ""
+              ).endsWith(",")
+                ? " "
+                : ", "
+            );
+
+          const cityDetails = [
+            address.address_city,
+            address.address_postal_code,
+            address.adddress_state ? state : "",
+            address.address_country_id ? country : "",
+          ]
+            .filter((detail) => detail)
+            .join(
+              (
+                [
+                  address.address_city,
+                  address.address_postal_code,
+                  address.adddress_state ? state : "",
+                  address.address_country_id ? country : "",
+                ]
+                  .filter((detail) => detail)
+                  .pop() || ""
+              ).endsWith(",")
+                ? " "
+                : ", "
+            );
+
+          const addressAttention = address.address_attention
+            ? "\nAttention: " + address.address_attention
+            : "";
+
+          const addressPurposeName = `\n${addressTypeUpperCase}` + " Address";
+
+          const addressPersonParts = [
+            address.address_name,
+            address.address_phone,
+          ].filter((part) => part); // Remove undefined or null
+          const addressPerson =
+            addressPersonParts.length > 0 ? addressPersonParts.join(" | ") : "";
+
+          const formattedAddress = [
+            addressPerson,
+            addressPurposeName,
+            addressLines,
+            cityDetails,
+            addressAttention,
+          ]
+            .filter(Boolean)
+            .join("\n");
+
+          setDialogAddressFields(addressType, address);
+
+          if (addressType === "shipping") {
+            this.setData({
+              cust_shipping_address: formattedAddress,
+            });
+          } else {
+            this.setData({
+              cust_billing_address: formattedAddress,
+            });
+          }
         });
+
+        if (customerData.is_accurate === 0) {
+          this.openDialog("dialog_accurate");
+        }
       }
-    }
-    //this.hideLoading();
-
-    /*this.showLoading()
-    this.runWorkflow('1902566784276480001', {
-      "CODE": customerData.customer_id,
-      "DOCUMENT": "so"
-    },
-      (res) => { //success
-        const { data: { result: [{ BLOCK_STATUS, TOTAL_OUTSTANDING, REMAINING_AMOUNT }] } } = res;
-        if (BLOCK_STATUS == 1) {
-          this.setData({
-            total_allowed_amount: REMAINING_AMOUNT,
-            total_outstanding_amount: TOTAL_OUTSTANDING
-          })
-          this.openDialog('dialog_credit_limit')
-
-        }
-        this.hideLoading()
-      },
-
-      async (err) => { //err
-        const { data: [{ remaining_amount, total_outstanding, is_exceed_limit }] } = await db.collection('Customer').where({ id: customerData.id }).get()
-        if (is_exceed_limit == 1) {
-          this.setData({
-            total_allowed_amount: remaining_amount,
-            total_outstanding_amount: total_outstanding
-          })
-          this.openDialog('dialog_credit_limit')
-        }
-
-        this.hideLoading()
-      })*/
-  }
-})();
+    })
+    .catch((error) => {
+      console.error("Error fetching customer:", error);
+    });
+}
