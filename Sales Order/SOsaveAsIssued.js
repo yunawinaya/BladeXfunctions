@@ -182,49 +182,106 @@ const checkCreditOverdueLimit = async (customer_name, so_total) => {
     const customerData = fetchCustomer.data[0];
     if (!customerData) {
       console.error(`Customer ${customer_name} not found`);
+      this.$message.error(`Customer ${customer_name} not found`);
       return false;
     }
 
     const controlTypes = customerData.control_type_list;
     const isAccurate = customerData.is_accurate;
-    const outstandingAmount = parseFloat(customerData.outstanding_balance || 0);
-    const overdueAmount = parseFloat(customerData.overdue_inv_total_am || 0);
-    const overdueLimit = parseFloat(customerData.overdue_limit || 0);
-    const creditLimit = parseFloat(customerData.customer_credit_limit || 0);
-    const revisedOutstandingAmount =
-      outstandingAmount + parseFloat(so_total || 0);
 
-    // Helper function to show popup with appropriate messages and data
-    const showLimitDialog = (
-      type,
-      includeCredit = false,
-      includeOverdue = false,
-      isBlock = true
-    ) => {
+    const outstandingAmount =
+      parseFloat(customerData.outstanding_balance || 0) || 0;
+    const overdueAmount =
+      parseFloat(customerData.overdue_inv_total_am || 0) || 0;
+    const overdueLimit = parseFloat(customerData.overdue_limit || 0) || 0;
+    const creditLimit =
+      parseFloat(customerData.customer_credit_limit || 0) || 0;
+    const soTotal = parseFloat(so_total || 0) || 0;
+    const revisedOutstandingAmount = outstandingAmount + soTotal;
+
+    // Helper function to show specific pop-ups as per specification
+    const showPopup = (popupNumber) => {
       this.openDialog("dialog_credit_limit");
 
-      const alerts = {
-        credit: "alert_credit_limit",
-        overdue: "alert_overdue_limit",
-        both: "alert_credit_overdue",
-        suspended: "alert_suspended",
+      const popupConfigs = {
+        1: {
+          // Pop-up 1: Exceed Credit Limit Only (Block)
+          alert: "alert_credit_limit", // "Alert: Credit Limit Exceeded - Review Required"
+          text: "text_credit_limit", // "The customer has exceed the allowed credit limit."
+          showCredit: true,
+          showOverdue: false,
+          isBlock: true,
+          buttonText: "text_1", // "Please review the credit limit or adjust the order amount before issuing the SO."
+        },
+        2: {
+          // Pop-up 2: Exceed Overdue Limit Only (Block)
+          alert: "alert_overdue_limit", // "Alert: Overdue Limit Exceeded - Review Required"
+          text: "text_overdue_limit", // "The customer has exceeded the allowed overdue limit."
+          showCredit: false,
+          showOverdue: true,
+          isBlock: true,
+          buttonText: "text_2", // "Please review overdue invoices before proceeding."
+        },
+        3: {
+          // Pop-up 3: Exceed Both, Credit Limit and Overdue Limit (Block)
+          alert: "alert_credit_overdue", // "Alert: Credit Limit and Overdue Limit Exceeded - Review Required"
+          text: "text_credit_overdue", // "The customer has exceeded both credit limit and overdue limit."
+          showCredit: true,
+          showOverdue: true,
+          isBlock: true,
+          buttonText: "text_3", // "Please review both limits before proceeding."
+        },
+        4: {
+          // Pop-up 4: Exceed Overdue Limit Only (Override)
+          alert: "alert_overdue_limit", // "Alert: Overdue Limit Exceeded - Review Required"
+          text: "text_overdue_limit", // "The customer has exceeded the allowed overdue limit."
+          showCredit: false,
+          showOverdue: true,
+          isBlock: false,
+          buttonText: "text_4", // "Please confirm if you wants to save it."
+        },
+        5: {
+          // Pop-up 5: Exceed Credit Limit Only (Override)
+          alert: "alert_credit_limit", // "Alert: Credit Limit Exceeded - Review Required"
+          text: "text_credit_limit", // "The customer has exceed the allowed credit limit."
+          showCredit: true,
+          showOverdue: false,
+          isBlock: false,
+          buttonText: "text_4", // "Please confirm if you wants to save it."
+        },
+        6: {
+          // Pop-up 6: Suspended
+          alert: "alert_suspended", // "Customer Account Suspended"
+          text: "text_suspended", // "This order cannot be processed at this time due to the customer's suspended account status."
+          showCredit: false,
+          showOverdue: false,
+          isBlock: true,
+          buttonText: null, // No additional text needed
+        },
+        7: {
+          // Pop-up 7: Exceed Both, Credit Limit and Overdue Limit (Override)
+          alert: "alert_credit_overdue", // "Alert: Credit Limit and Overdue Limit Exceeded - Review Required"
+          text: "text_credit_overdue", // "The customer has exceeded both credit limit and overdue limit."
+          showCredit: true,
+          showOverdue: true,
+          isBlock: false,
+          buttonText: "text_4", // "Please confirm if you wants to save it."
+        },
       };
 
-      const texts = {
-        credit: "text_credit_limit",
-        overdue: "text_overdue_limit",
-        both: "text_credit_overdue",
-        suspended: "text_suspended",
-      };
+      const config = popupConfigs[popupNumber];
+      if (!config) return false;
 
-      const alertType = type;
+      // Show alert message
+      this.display(`dialog_credit_limit.${config.alert}`);
 
-      this.display(`dialog_credit_limit.${alerts[alertType]}`);
-      this.display(`dialog_credit_limit.${texts[alertType]}`);
+      // Show description text
+      this.display(`dialog_credit_limit.${config.text}`);
 
       const dataToSet = {};
 
-      if (includeCredit) {
+      // Show credit limit details if applicable
+      if (config.showCredit) {
         this.display("dialog_credit_limit.total_allowed_credit");
         this.display("dialog_credit_limit.total_credit");
         dataToSet["dialog_credit_limit.total_allowed_credit"] = creditLimit;
@@ -232,131 +289,144 @@ const checkCreditOverdueLimit = async (customer_name, so_total) => {
           revisedOutstandingAmount;
       }
 
-      if (includeOverdue) {
+      // Show overdue limit details if applicable
+      if (config.showOverdue) {
         this.display("dialog_credit_limit.total_allowed_overdue");
         this.display("dialog_credit_limit.total_overdue");
         dataToSet["dialog_credit_limit.total_allowed_overdue"] = overdueLimit;
         dataToSet["dialog_credit_limit.total_overdue"] = overdueAmount;
       }
 
-      this.display(
-        `dialog_credit_limit.text_${
-          isBlock ? (includeCredit && includeOverdue ? "3" : "1") : "4"
-        }`
-      );
+      // Show action text if applicable
+      if (config.buttonText) {
+        this.display(`dialog_credit_limit.${config.buttonText}`);
+      }
 
-      if (isBlock) {
-        this.display("dialog_credit_limit.button_back");
+      // Show appropriate buttons
+      if (config.isBlock) {
+        this.display("dialog_credit_limit.button_back"); // "Back" button
       } else {
-        this.display("dialog_credit_limit.button_yes");
-        this.display("dialog_credit_limit.button_no");
+        this.display("dialog_credit_limit.button_yes"); // "Yes" button
+        this.display("dialog_credit_limit.button_no"); // "No" button
       }
 
       this.setData(dataToSet);
-
       return false;
     };
 
     // Check if accuracy flag is set
-    if (controlTypes) {
+    if (controlTypes && Array.isArray(controlTypes)) {
       if (isAccurate === 0) {
-        this.openDialog("dialog_sync_customer");
+        this.openDialog("dialog_accurate");
         return false;
       }
 
-      // Define control type behaviors
+      // Define control type behaviors according to specification
       const controlTypeChecks = {
-        // Check overdue limit (block)
+        // Control Type 0: Ignore both checks (always pass)
+        0: () => {
+          console.log("Control Type 0: Ignoring all credit/overdue checks");
+          return true;
+        },
+
+        // Control Type 1: Ignore credit, block overdue
         1: () => {
           if (overdueAmount > overdueLimit) {
-            return showLimitDialog("overdue", false, true, true);
+            return showPopup(2); // Pop up 2
           }
           return true;
         },
 
-        // Check overdue limit (override)
+        // Control Type 2: Ignore credit, override overdue
         2: () => {
           if (overdueAmount > overdueLimit) {
-            return showLimitDialog("overdue", false, true, false);
+            return showPopup(4); // Pop up 4
           }
           return true;
         },
 
-        // Check credit limit (block)
+        // Control Type 3: Block credit, ignore overdue
         3: () => {
           if (revisedOutstandingAmount > creditLimit) {
-            return showLimitDialog("credit", true, false, true);
+            return showPopup(1); // Pop up 1
           }
           return true;
         },
 
-        // Check both limits (block)
+        // Control Type 4: Block both
         4: () => {
-          if (
-            revisedOutstandingAmount > creditLimit &&
-            overdueAmount > overdueLimit
-          ) {
-            return showLimitDialog("both", true, true, true);
-          } else if (revisedOutstandingAmount > creditLimit) {
-            return showLimitDialog("credit", true, false, true);
-          } else if (overdueAmount > overdueLimit) {
-            return showLimitDialog("overdue", false, true, true);
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          if (creditExceeded && overdueExceeded) {
+            return showPopup(3); // Pop up 3 - both exceeded
+          } else if (creditExceeded) {
+            return showPopup(1); // Pop up 1 - credit only
+          } else if (overdueExceeded) {
+            return showPopup(2); // Pop up 2 - overdue only
           }
           return true;
         },
 
-        // Check both limits (credit block, overdue override)
+        // Control Type 5: Block credit, override overdue
         5: () => {
-          if (
-            revisedOutstandingAmount > creditLimit &&
-            overdueAmount > overdueLimit
-          ) {
-            return showLimitDialog("both", true, true, true);
-          } else if (revisedOutstandingAmount > creditLimit) {
-            return showLimitDialog("credit", true, false, true);
-          } else if (overdueAmount > overdueLimit) {
-            return showLimitDialog("overdue", false, true, false);
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          if (creditExceeded && overdueExceeded) {
+            return showPopup(3); // Pop up 3 - both exceeded (credit blocks)
+          } else if (creditExceeded) {
+            return showPopup(1); // Pop up 1 - credit only (blocks)
+          } else if (overdueExceeded) {
+            return showPopup(4); // Pop up 4 - overdue only (override)
           }
           return true;
         },
 
-        // Check credit limit (override)
+        // Control Type 6: Override credit, ignore overdue
         6: () => {
           if (revisedOutstandingAmount > creditLimit) {
-            return showLimitDialog("credit", true, false, false);
+            return showPopup(5); // Pop up 5
           }
           return true;
         },
 
-        // Check both limits (credit override, overdue block)
+        // Control Type 7: Override credit, block overdue
         7: () => {
-          if (overdueAmount > overdueLimit) {
-            return showLimitDialog("overdue", false, true, true);
-          } else if (revisedOutstandingAmount > creditLimit) {
-            return showLimitDialog("credit", true, false, false);
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          if (overdueExceeded) {
+            return showPopup(2); // Pop up 2 - overdue blocks first
+          } else if (creditExceeded) {
+            return showPopup(5); // Pop up 5 - credit override
           }
           return true;
         },
 
-        // Check both limits (credit override, overdue override)
+        // Control Type 8: Override both
         8: () => {
-          if (
-            revisedOutstandingAmount > creditLimit &&
-            overdueAmount > overdueLimit
-          ) {
-            return showLimitDialog("both", true, true, false);
-          } else if (revisedOutstandingAmount > creditLimit) {
-            return showLimitDialog("credit", true, false, false);
-          } else if (overdueAmount > overdueLimit) {
-            return showLimitDialog("overdue", false, true, false);
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          if (creditExceeded && overdueExceeded) {
+            return showPopup(7); // Pop up 7 - both exceeded (both override)
+          } else if (creditExceeded) {
+            return showPopup(5); // Pop up 5 - credit only (override)
+          } else if (overdueExceeded) {
+            return showPopup(4); // Pop up 4 - overdue only (override)
           }
           return true;
         },
 
+        // Control Type 9: Suspended customer
         9: () => {
-          return showLimitDialog("suspended", false, false, true);
+          return showPopup(6); // Pop up 6
         },
       };
+
+      // Process according to specification:
+      // "Ignore parameter with unblock > check for parameter with block's first > if not block only proceed to check for override"
 
       // Check each control type that applies to Sales Orders
       for (const controlType of controlTypes) {
@@ -375,7 +445,9 @@ const checkCreditOverdueLimit = async (customer_name, so_total) => {
       // All checks passed
       return true;
     } else {
-      console.log("No control type defined for customer");
+      console.log(
+        "No control type defined for customer or invalid control type format"
+      );
       return true;
     }
   } catch (error) {
@@ -396,7 +468,7 @@ const addEntry = async (organizationId, entry) => {
   try {
     const prefixData = await getPrefixData(organizationId);
 
-    if (prefixData.length !== 0) {
+    if (prefixData !== null) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
         prefixData,
         organizationId
@@ -430,7 +502,7 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
   try {
     const prefixData = await getPrefixData(organizationId);
 
-    if (prefixData.length !== 0) {
+    if (prefixData !== 0) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
         prefixData,
         organizationId
