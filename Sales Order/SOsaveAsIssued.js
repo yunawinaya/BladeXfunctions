@@ -316,11 +316,6 @@ const checkCreditOverdueLimit = async (customer_name, so_total) => {
 
     // Check if accuracy flag is set
     if (controlTypes && Array.isArray(controlTypes)) {
-      if (isAccurate === 0) {
-        this.openDialog("dialog_accurate");
-        return false;
-      }
-
       // Define control type behaviors according to specification
       const controlTypeChecks = {
         // Control Type 0: Ignore both checks (always pass)
