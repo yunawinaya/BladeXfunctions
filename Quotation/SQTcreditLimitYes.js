@@ -1,4 +1,3 @@
-// Save as Draft Button onClick Handler
 const closeDialog = () => {
   if (this.parentGenerateForm) {
     this.parentGenerateForm.$refs.SuPageDialogRef.hide();
@@ -7,45 +6,85 @@ const closeDialog = () => {
   }
 };
 
-(async () => {
+const addEntry = async (organizationId, entry) => {
   try {
-    const data = this.getValues();
-    const page_status = data.page_status;
-    const quotation_no = data.id; // Get ID from form data
+    const prefixData = await getPrefixData(organizationId);
 
-    // Define required fields
-    const requiredFields = [
-      { name: "sqt_plant", label: "Plant" },
-      {
-        name: "table_sqt",
-        label: "Item Information",
-        isArray: true,
-        arrayType: "object",
-        arrayFields: [],
-      },
-    ];
+    if (prefixData !== null) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData,
+        organizationId
+      );
 
-    // Validate form
-    const missingFields = requiredFields.filter((field) => {
-      const value = data[field.name];
+      await updatePrefix(organizationId, runningNumber);
 
-      if (Array.isArray(value)) {
-        return value.length === 0;
-      } else if (typeof value === "string") {
-        return value.trim() === "";
-      } else {
-        return !value;
-      }
-    });
-
-    if (missingFields.length > 0) {
-      const missingFieldNames = missingFields.map((f) => f.label).join(", ");
-      this.$message.error(`Missing required fields: ${missingFieldNames}`);
-      return;
+      entry.sqt_no = prefixToShow;
     }
 
-    // Show loading indicator
-    this.showLoading();
+    await db.collection("Quotation").add(entry);
+    await this.runWorkflow(
+      "1917416112949374977",
+      { sqt_no: entry.sqt_no },
+      (res) => {
+        console.log("成功结果：", res);
+      },
+      (err) => {
+        console.error("失败结果：", err);
+        closeDialog();
+      }
+    );
+
+    this.$message.success("Add successfully");
+    await closeDialog();
+  } catch (error) {
+    console.error("Error in addEntry:", error);
+    throw error;
+  }
+};
+
+const updateEntry = async (organizationId, entry, quotationId) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+
+    if (prefixData.length !== 0) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData,
+        organizationId
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      entry.sqt_no = prefixToShow;
+    }
+
+    await db.collection("Quotation").doc(quotationId).update(entry);
+    await this.runWorkflow(
+      "1917416112949374977",
+      { sqt_no: entry.sqt_no },
+      (res) => {
+        console.log("成功结果：", res);
+      },
+      (err) => {
+        console.error("失败结果：", err);
+        closeDialog();
+      }
+    );
+
+    this.$message.success("Update successfully");
+    await closeDialog();
+  } catch (error) {
+    console.error("Error in addEntry:", error);
+    throw error;
+  }
+};
+
+const handleYesButtonClick = async () => {
+  try {
+    console.log("User clicked Yes to override credit/overdue limit");
+
+    const data = this.getValues();
+    const page_status = data.page_status;
+    const quotation_id = data.id;
 
     // Get organization ID
     let organizationId = this.getVarGlobal("deptParentId");
@@ -53,11 +92,12 @@ const closeDialog = () => {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
-    // Prepare entry data
     const {
       sqt_customer_id,
       currency_code,
+      sqt_billing_name,
       sqt_billing_address,
+      sqt_billing_cp,
       sqt_shipping_address,
       sqt_no,
       sqt_plant,
@@ -89,8 +129,7 @@ const closeDialog = () => {
       tpt_transport_name,
       tpt_ic_no,
       tpt_driver_contact_no,
-      customer_type,
-      freight_charges,
+      validity_of_collection,
       sqt_sub_total,
       sqt_total_discount,
       sqt_total_tax,
@@ -100,10 +139,11 @@ const closeDialog = () => {
       sqt_ref_no,
       exchange_rate,
       myr_total_amount,
-      validity_of_collection,
       sqt_new_customer,
       cs_tracking_number,
       cs_est_arrival_date,
+      customer_type,
+      freight_charges,
       billing_address_line_1,
       billing_address_line_2,
       billing_address_line_3,
@@ -136,14 +176,16 @@ const closeDialog = () => {
       is_accurate,
     } = data;
 
-    // Construct `entry` using object shorthand (no need to repeat `field: field`)
     const entry = {
-      sqt_status: "Draft",
+      sqt_status: "Issued",
       organization_id: organizationId,
+      validity_of_collection,
       sqt_ref_doc,
       sqt_customer_id,
       currency_code,
+      sqt_billing_name,
       sqt_billing_address,
+      sqt_billing_cp,
       sqt_shipping_address,
       sqt_no,
       sqt_plant,
@@ -175,7 +217,6 @@ const closeDialog = () => {
       tpt_transport_name,
       tpt_ic_no,
       tpt_driver_contact_no,
-      validity_of_collection,
       customer_type,
       sqt_sub_total,
       sqt_total_discount,
@@ -221,67 +262,33 @@ const closeDialog = () => {
       is_accurate,
     };
 
+    // Add or update based on page status
     if (page_status === "Add" || page_status === "Clone") {
-      try {
-        // Get prefix configuration
-        const prefixEntry = await db
-          .collection("prefix_configuration")
-          .where({
-            document_types: "Quotations",
-            is_deleted: 0,
-            organization_id: organizationId,
-            is_active: 1,
-          })
-          .get();
-
-        // Generate draft number
-        if (prefixEntry.data && prefixEntry.data.length > 0) {
-          const currDraftNum = parseInt(prefixEntry.data[0].draft_number) + 1;
-          const newPrefix = "DRAFT-SQT-" + currDraftNum;
-          entry.sqt_no = newPrefix;
-
-          // Update draft number
-          await db
-            .collection("prefix_configuration")
-            .where({
-              document_types: "Quotations",
-              organization_id: organizationId,
-            })
-            .update({ draft_number: currDraftNum });
-        }
-
-        // Add quotation entry
-        await db.collection("Quotation").add(entry);
-
-        // Close dialog
-        closeDialog();
-      } catch (error) {
-        console.error("Error saving draft:", error);
-        this.hideLoading();
-        this.$message.error(error.message || "Failed to save draft");
-      }
+      await addEntry(organizationId, entry);
     } else if (page_status === "Edit") {
-      try {
-        // Update existing quotation
-        if (!quotation_no) {
-          throw new Error("Quotation ID not found");
-        }
-
-        await db.collection("Quotation").doc(quotation_no).update(entry);
-
-        // Close dialog
-        closeDialog();
-      } catch (error) {
-        console.error("Error updating draft:", error);
-        this.hideLoading();
-        this.$message.error(error.message || "Failed to update draft");
-      }
+      await updateEntry(organizationId, entry, quotation_id);
     } else {
+      console.log("Unknown page status:", page_status);
       this.hideLoading();
       this.$message.error("Invalid page status");
+      return;
     }
   } catch (error) {
-    console.error("Error in save as draft:", error);
-    this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
+    console.error("Error in handleYesButtonClick:", error);
+    this.hideLoading();
+    this.$message.error(
+      error.message || "An error occurred while processing the quotation"
+    );
+  }
+};
+
+(async () => {
+  try {
+    this.showLoading();
+    await handleYesButtonClick();
+  } catch (error) {
+    console.error("Error in main execution:", error);
+    this.hideLoading();
+    this.$message.error("An error occurred while processing the quotation");
   }
 })();

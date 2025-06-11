@@ -175,8 +175,8 @@ const validateField = (value, field) => {
 const checkCreditOverdueLimit = async (customer_name, so_total) => {
   try {
     const fetchCustomer = await db
-      .collection("customer")
-      .where({ customer_name, is_deleted: 0 })
+      .collection("Customer")
+      .where({ id: customer_name, is_deleted: 0 })
       .get();
 
     const customerData = fetchCustomer.data[0];
@@ -191,7 +191,7 @@ const checkCreditOverdueLimit = async (customer_name, so_total) => {
     const outstandingAmount =
       parseFloat(customerData.outstanding_balance || 0) || 0;
     const overdueAmount =
-      parseFloat(customerData.overdue_inv_total_am || 0) || 0;
+      parseFloat(customerData.overdue_inv_total_amount || 0) || 0;
     const overdueLimit = parseFloat(customerData.overdue_limit || 0) || 0;
     const creditLimit =
       parseFloat(customerData.customer_credit_limit || 0) || 0;
@@ -579,14 +579,16 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
     const missingFields = validateForm(data, requiredFields);
 
     // Check credit and overdue limits
-    const canProceed = await checkCreditOverdueLimit(
-      data.customer_name,
-      data.so_total
-    );
-    if (!canProceed) {
-      console.log("Credit/overdue limit check failed");
-      this.hideLoading();
-      return;
+    if (data.acc_integration_type !== null) {
+      const canProceed = await checkCreditOverdueLimit(
+        data.customer_name,
+        data.so_total
+      );
+      if (!canProceed) {
+        console.log("Credit/overdue limit check failed");
+        this.hideLoading();
+        return;
+      }
     }
 
     console.log("Credit/overdue limit check passed");
@@ -673,6 +675,13 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
         shipping_address_name,
         shipping_address_phone,
         shipping_attention,
+        acc_integration_type,
+        last_sync_date,
+        customer_credit_limit,
+        overdue_limit,
+        outstanding_balance,
+        overdue_inv_total_amount,
+        is_accurate,
       } = data;
 
       const entry = {
@@ -752,6 +761,13 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
         shipping_address_name,
         shipping_address_phone,
         shipping_attention,
+        acc_integration_type,
+        last_sync_date,
+        customer_credit_limit,
+        overdue_limit,
+        outstanding_balance,
+        overdue_inv_total_amount,
+        is_accurate,
       };
 
       // Add or update based on page status
