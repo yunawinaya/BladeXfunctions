@@ -472,5 +472,6 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
     );
   } finally {
     console.log("Function execution completed");
+    console.log("Credit limit override by:", this.getVarGlobal("nickname"));
   }
 })();

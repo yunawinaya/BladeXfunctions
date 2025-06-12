@@ -1275,8 +1275,8 @@ const findFieldMessage = (obj) => {
       },
     ];
 
-    for (const gd of data.table_gd) {
-      await this.validate(gd.gd_qty);
+    for (const [index, item] of data.table_gd.entries()) {
+      await this.validate(`table_gd.${index}.gd_qty`);
     }
 
     // Validate form
@@ -1486,5 +1486,6 @@ const findFieldMessage = (obj) => {
     window.isProcessing = false;
     this.hideLoading();
     console.log("Goods Delivery function execution completed");
+    console.log("Credit limit override by:", this.getVarGlobal("nickname"));
   }
 })();

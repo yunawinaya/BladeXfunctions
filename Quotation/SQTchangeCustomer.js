@@ -249,10 +249,7 @@ if (customerId && !Array.isArray(customerId)) {
 
         if (
           customerData.is_accurate === 0 &&
-          customerData.acc_integration_type !== null &&
-          customerData.control_type_list.some(
-            (control) => control.document_type === "Quotations"
-          )
+          customerData.acc_integration_type !== null
         ) {
           this.openDialog("dialog_accurate");
         }

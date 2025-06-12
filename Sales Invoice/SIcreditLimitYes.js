@@ -809,4 +809,5 @@ const handleYesButtonClick = async () => {
 (async () => {
   self.showLoading();
   await handleYesButtonClick();
+  console.log("Credit limit override by:", self.getVarGlobal("nickname"));
 })();
