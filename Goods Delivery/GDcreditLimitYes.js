@@ -1079,6 +1079,58 @@ const findUniquePrefix = async (prefixData, organizationId) => {
   return { prefixToShow, runningNumber };
 };
 
+const validateForm = (data, requiredFields) => {
+  const missingFields = [];
+
+  requiredFields.forEach((field) => {
+    const value = data[field.name];
+
+    // Handle non-array fields (unchanged)
+    if (!field.isArray) {
+      if (validateField(value, field)) {
+        missingFields.push(field.label);
+      }
+      return;
+    }
+
+    // Handle array fields
+    if (!Array.isArray(value)) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    if (value.length === 0) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    // Check each item in the array
+    if (field.arrayType === "object" && field.arrayFields && value.length > 0) {
+      value.forEach((item, index) => {
+        field.arrayFields.forEach((subField) => {
+          const subValue = item[subField.name];
+          if (validateField(subValue, subField)) {
+            missingFields.push(
+              `${subField.label} (in ${field.label} #${index + 1})`
+            );
+          }
+        });
+      });
+    }
+  });
+
+  return missingFields;
+};
+
+const validateField = (value, field) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "number") return value <= 0;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return !value;
+};
+
 const addEntry = async (organizationId, gd, gdStatus) => {
   try {
     const prefixData = await getPrefixData(organizationId);
@@ -1207,6 +1259,28 @@ const findFieldMessage = (obj) => {
     // Get page status
     const page_status = data.page_status;
     const gdStatus = data.gd_status;
+
+    // Define required fields
+    const requiredFields = [
+      { name: "customer_name", label: "Customer" },
+      { name: "plant_id", label: "Plant" },
+      { name: "so_id", label: "Sales Order" },
+      { name: "delivery_date", label: "Delivery Date" },
+      {
+        name: "table_gd",
+        label: "Item Information",
+        isArray: true,
+        arrayType: "object",
+        arrayFields: [],
+      },
+    ];
+
+    for (const gd of data.table_gd) {
+      await this.validate(gd.gd_qty);
+    }
+
+    // Validate form
+    const missingFields = validateForm(data, requiredFields);
 
     if (missingFields.length === 0) {
       // If this is an edit, store previous temporary quantities

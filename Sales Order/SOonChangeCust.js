@@ -245,7 +245,13 @@ if (customerId && !Array.isArray(customerId)) {
           }
         });
 
-        if (customerData.is_accurate === 0) {
+        if (
+          customerData.is_accurate === 0 &&
+          customerData.acc_integration_type !== null &&
+          customerData.control_type_list.some(
+            (control) => control.document_type === "Sales Orders"
+          )
+        ) {
           this.openDialog("dialog_accurate");
         }
 

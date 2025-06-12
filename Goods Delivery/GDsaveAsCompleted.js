@@ -1386,7 +1386,7 @@ const checkCreditOverdueLimit = async (customer_name, gd_total) => {
       // Process according to specification:
       // "Ignore parameter with unblock > check for parameter with block's first > if not block only proceed to check for override"
 
-      // First, collect all applicable control types for Godds Delivery
+      // First, collect all applicable control types for Sales Orders
       const applicableControls = controlTypes
         .filter((ct) => ct.document_type === "Goods Delivery")
         .map((ct) => {

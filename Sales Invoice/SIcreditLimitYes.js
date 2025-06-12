@@ -631,9 +631,6 @@ const handleYesButtonClick = async () => {
     // Get the is_posted flag
     const isPosted = self.getValue("is_posted");
 
-    // Close the credit limit dialog
-    self.hideDialog("dialog_credit_limit");
-
     // Clear the is_posted flag
     self.setData({ is_posted: 0 });
 
