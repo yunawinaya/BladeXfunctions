@@ -655,10 +655,31 @@ const findFieldMessage = (obj) => {
 
     if (missingFields.length === 0) {
       // If this is an edit, store previous temporary quantities
-      if (page_status === "Edit" && Array.isArray(data.table_gd)) {
-        data.table_gd.forEach((item) => {
-          item.prev_temp_qty_data = item.temp_qty_data;
-        });
+      if (page_status === "Edit" && data.id && Array.isArray(data.table_gd)) {
+        try {
+          // Get the original record from database
+          const originalRecord = await db
+            .collection("goods_delivery")
+            .where({ id: data.id })
+            .get();
+          if (originalRecord.data && originalRecord.data.length > 0) {
+            const originalGD = originalRecord.data[0];
+
+            // Store the ORIGINAL quantities as previous
+            data.table_gd.forEach((item, index) => {
+              if (originalGD.table_gd && originalGD.table_gd[index]) {
+                item.prev_temp_qty_data =
+                  originalGD.table_gd[index].temp_qty_data;
+              }
+            });
+          }
+        } catch (error) {
+          console.error("Error retrieving original GD record:", error);
+          // Fallback to current behavior if database fetch fails
+          data.table_gd.forEach((item) => {
+            item.prev_temp_qty_data = item.temp_qty_data;
+          });
+        }
       }
 
       // Get organization ID

@@ -848,31 +848,30 @@ const processBalanceTable = async (
               let finalReservedQty = currentReservedQty;
               let finalBalanceQty = currentBalanceQty;
 
-              if (isUpdate) {
-                const gdQuantityDiff = roundQty(baseQty - prevBaseQty);
-                finalUnrestrictedQty = roundQty(
-                  finalUnrestrictedQty - gdQuantityDiff
-                );
-                finalReservedQty = roundQty(finalReservedQty + gdQuantityDiff);
+              // Calculate how much was reserved by this GD and how much can be used
+              let thisGDReservedQty = prevBaseQty; // What this GD previously reserved
+              if (!isUpdate) {
+                thisGDReservedQty = 0; // New GD, no previous reservation
               }
 
-              // Apply the smart deduction logic based on available reserved for this GD
-              let availableReservedForBalance = currentReservedQty;
-              if (isUpdate && prevBaseQty > 0) {
-                availableReservedForBalance = Math.min(
-                  finalReservedQty,
-                  prevBaseQty
-                );
-              }
+              console.log(`This GD previously reserved: ${thisGDReservedQty}`);
+              console.log(`Current total reserved: ${currentReservedQty}`);
+              console.log(`Need to deliver: ${baseQty}`);
 
-              if (availableReservedForBalance >= baseQty) {
+              // Apply the smart deduction logic - use the same logic as movement creation
+              if (availableReservedForThisGD >= baseQty) {
                 // All quantity can come from Reserved
+                console.log(`All ${baseQty} coming from Reserved`);
                 finalReservedQty = roundQty(finalReservedQty - baseQty);
               } else {
                 // Split between Reserved and Unrestricted
-                const reservedDeduction = availableReservedForBalance;
+                const reservedDeduction = availableReservedForThisGD;
                 const unrestrictedDeduction = roundQty(
                   baseQty - reservedDeduction
+                );
+
+                console.log(
+                  `Splitting: ${reservedDeduction} from Reserved, ${unrestrictedDeduction} from Unrestricted`
                 );
 
                 finalReservedQty = roundQty(
@@ -1831,10 +1830,31 @@ const findFieldMessage = (obj) => {
 
     if (missingFields.length === 0) {
       // If this is an edit, store previous temporary quantities
-      if (page_status === "Edit" && Array.isArray(data.table_gd)) {
-        data.table_gd.forEach((item) => {
-          item.prev_temp_qty_data = item.temp_qty_data;
-        });
+      if (page_status === "Edit" && data.id && Array.isArray(data.table_gd)) {
+        try {
+          // Get the original record from database
+          const originalRecord = await db
+            .collection("goods_delivery")
+            .where({ id: data.id })
+            .get();
+          if (originalRecord.data && originalRecord.data.length > 0) {
+            const originalGD = originalRecord.data[0];
+
+            // Store the ORIGINAL quantities as previous
+            data.table_gd.forEach((item, index) => {
+              if (originalGD.table_gd && originalGD.table_gd[index]) {
+                item.prev_temp_qty_data =
+                  originalGD.table_gd[index].temp_qty_data;
+              }
+            });
+          }
+        } catch (error) {
+          console.error("Error retrieving original GD record:", error);
+          // Fallback to current behavior if database fetch fails
+          data.table_gd.forEach((item) => {
+            item.prev_temp_qty_data = item.temp_qty_data;
+          });
+        }
       }
 
       // Get organization ID
