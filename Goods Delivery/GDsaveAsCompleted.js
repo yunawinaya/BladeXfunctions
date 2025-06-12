@@ -587,6 +587,18 @@ const processBalanceTable = async (
             );
           }
 
+          // Calculate previous quantities for this specific GD
+          let prevBaseQty = 0;
+          if (isUpdate && prevTemp) {
+            let prevAltQty = roundQty(prevTemp.gd_quantity);
+            prevBaseQty = prevAltQty;
+
+            if (uomConversion) {
+              prevBaseQty = roundQty(prevAltQty * uomConversion.base_qty);
+            }
+            console.log(`Previous quantity for this GD: ${prevBaseQty}`);
+          }
+
           const costingMethod = itemData.material_costing_method;
 
           let unitPrice = roundPrice(item.unit_price);
@@ -680,32 +692,31 @@ const processBalanceTable = async (
             console.log(`  Reserved: ${currentReservedQty}`);
             console.log(`  Total Balance: ${currentBalanceQty}`);
 
-            // Calculate quantity to process
-            let qtyToProcess = baseQty;
-
-            if (isUpdate && prevTemp) {
-              let prevAltQty = roundQty(prevTemp.gd_quantity);
-              let prevBaseQty = prevAltQty;
-
-              if (uomConversion) {
-                prevBaseQty = roundQty(prevAltQty * uomConversion.base_qty);
-              }
-
-              qtyToProcess = roundQty(baseQty - prevBaseQty);
-              console.log(`Edit mode: quantity difference = ${qtyToProcess}`);
-            }
-
             // Smart movement logic based on status and available quantities
             if (gdStatus === "Created") {
               // For Created status, we need to move OUT from Reserved
               console.log(
-                `Processing Created status - moving ${qtyToProcess} OUT from Reserved`
+                `Processing Created status - moving ${baseQty} OUT from Reserved`
               );
 
-              if (currentReservedQty >= qtyToProcess) {
-                // Sufficient reserved quantity - move all from Reserved
+              // For edit mode, we can only use the reserved quantity that this GD previously created
+              let availableReservedForThisGD = currentReservedQty;
+              if (isUpdate && prevBaseQty > 0) {
+                // In edit mode, we can only take up to what this GD previously reserved
+                availableReservedForThisGD = Math.min(
+                  currentReservedQty,
+                  prevBaseQty
+                );
+                console.log(`This GD previously reserved: ${prevBaseQty}`);
                 console.log(
-                  `Sufficient reserved quantity (${currentReservedQty}) for ${qtyToProcess}`
+                  `Available reserved for this GD: ${availableReservedForThisGD}`
+                );
+              }
+
+              if (availableReservedForThisGD >= baseQty) {
+                // Sufficient reserved quantity from this GD - move all from Reserved
+                console.log(
+                  `Sufficient reserved quantity for this GD (${availableReservedForThisGD}) for ${baseQty}`
                 );
 
                 const inventoryMovementData = {
@@ -737,15 +748,21 @@ const processBalanceTable = async (
                   docId: invMovementResult.id,
                 });
               } else {
-                // Insufficient reserved quantity - split between Reserved and Unrestricted
-                const reservedQtyToMove = currentReservedQty;
+                // Insufficient reserved quantity for this GD - split between Reserved and Unrestricted
+                const reservedQtyToMove = availableReservedForThisGD;
                 const unrestrictedQtyToMove = roundQty(
-                  qtyToProcess - reservedQtyToMove
+                  baseQty - reservedQtyToMove
                 );
 
-                console.log(`Insufficient reserved quantity. Splitting:`);
-                console.log(`  OUT ${reservedQtyToMove} from Reserved`);
-                console.log(`  OUT ${unrestrictedQtyToMove} from Unrestricted`);
+                console.log(
+                  `Insufficient reserved quantity for this GD. Splitting:`
+                );
+                console.log(
+                  `  OUT ${reservedQtyToMove} from Reserved (from this GD's allocation)`
+                );
+                console.log(
+                  `  OUT ${unrestrictedQtyToMove} from Unrestricted (additional quantity)`
+                );
 
                 if (reservedQtyToMove > 0) {
                   // Create movement for Reserved portion
@@ -832,32 +849,38 @@ const processBalanceTable = async (
               let finalBalanceQty = currentBalanceQty;
 
               if (isUpdate) {
-                let prevAltQty = roundQty(prevTemp.gd_quantity);
-                let prevBaseQty = prevAltQty;
-
-                if (uomConversion) {
-                  prevBaseQty = roundQty(prevAltQty * uomConversion.base_qty);
-                }
-
                 const gdQuantityDiff = roundQty(baseQty - prevBaseQty);
-
                 finalUnrestrictedQty = roundQty(
                   finalUnrestrictedQty - gdQuantityDiff
                 );
                 finalReservedQty = roundQty(finalReservedQty + gdQuantityDiff);
               }
 
-              // Apply the smart deduction logic
-              if (finalReservedQty >= baseQty) {
-                // Deduct all from Reserved
+              // Apply the smart deduction logic based on available reserved for this GD
+              let availableReservedForBalance = currentReservedQty;
+              if (isUpdate && prevBaseQty > 0) {
+                availableReservedForBalance = Math.min(
+                  finalReservedQty,
+                  prevBaseQty
+                );
+              }
+
+              if (availableReservedForBalance >= baseQty) {
+                // All quantity can come from Reserved
                 finalReservedQty = roundQty(finalReservedQty - baseQty);
               } else {
-                // Deduct available from Reserved, rest from Unrestricted
-                const remainingToDeduct = roundQty(baseQty - finalReservedQty);
-                finalUnrestrictedQty = roundQty(
-                  finalUnrestrictedQty - remainingToDeduct
+                // Split between Reserved and Unrestricted
+                const reservedDeduction = availableReservedForBalance;
+                const unrestrictedDeduction = roundQty(
+                  baseQty - reservedDeduction
                 );
-                finalReservedQty = 0;
+
+                finalReservedQty = roundQty(
+                  finalReservedQty - reservedDeduction
+                );
+                finalUnrestrictedQty = roundQty(
+                  finalUnrestrictedQty - unrestrictedDeduction
+                );
               }
 
               finalBalanceQty = roundQty(finalBalanceQty - baseQty);
@@ -888,7 +911,7 @@ const processBalanceTable = async (
             } else {
               // For non-Created status (Unrestricted movement)
               console.log(
-                `Processing ${gdStatus} status - moving ${qtyToProcess} OUT from Unrestricted`
+                `Processing ${gdStatus} status - moving ${baseQty} OUT from Unrestricted`
               );
 
               const inventoryMovementData = {
@@ -926,15 +949,7 @@ const processBalanceTable = async (
               let finalBalanceQty = currentBalanceQty;
 
               if (isUpdate) {
-                let prevAltQty = roundQty(prevTemp.gd_quantity);
-                let prevBaseQty = prevAltQty;
-
-                if (uomConversion) {
-                  prevBaseQty = roundQty(prevAltQty * uomConversion.base_qty);
-                }
-
                 const gdQuantityDiff = roundQty(baseQty - prevBaseQty);
-
                 finalUnrestrictedQty = roundQty(
                   finalUnrestrictedQty - gdQuantityDiff
                 );
@@ -1793,8 +1808,8 @@ const findFieldMessage = (obj) => {
       },
     ];
 
-    for (const gd of data.table_gd) {
-      await this.validate(gd.gd_qty);
+    for (const [index, item] of data.table_gd.entries()) {
+      await this.validate(`table_gd.${index}.gd_qty`);
     }
 
     // Validate form
