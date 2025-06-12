@@ -7,134 +7,95 @@ const closeDialog = () => {
 };
 
 // Updated to handle array of sales order IDs
-const updateSalesOrderStatus = (salesOrderIds, goodsDeliveryNo) => {
+const updateSalesOrderStatus = async (
+  salesOrderIds,
+  tableSI,
+  goodsDeliveryNo
+) => {
   // Ensure salesOrderIds is an array
   const soIds = Array.isArray(salesOrderIds) ? salesOrderIds : [salesOrderIds];
 
-  // Process each sales order
-  soIds.forEach((salesOrderId) => {
-    if (!salesOrderId) {
-      console.warn("Null or undefined sales order ID found");
-      return;
+  const updatePromises = soIds.map(async (salesOrderId) => {
+    const resSO = await db
+      .collection("sales_order")
+      .where({ id: salesOrderId })
+      .get();
+
+    if (!resSO && resSO.data.length === 0) return;
+
+    const soDoc = resSO.data[0];
+    const soItems = soDoc.table_so || [];
+    const filteredSI = tableSI.filter(
+      (item) => item.line_so_no === soDoc.so_no
+    );
+
+    const filteredSO = soItems
+      .map((item, index) => ({ ...item, originalIndex: index }))
+      .filter((item) => item.item_name !== "" || item.so_desc !== "");
+
+    // Initialize tracking objects
+    let totalItems = soItems.length;
+    let partiallyInvoicedItems = 0;
+    let fullyInvoicedItems = 0;
+
+    const updatedSoItems = soItems.map((item) => ({ ...item }));
+
+    filteredSO.forEach((filteredItem, filteredIndex) => {
+      const originalIndex = filteredItem.originalIndex;
+      const orderQty = parseFloat(filteredItem.so_quantity || 0);
+      const siInvoicedQty = parseFloat(
+        filteredSI[filteredIndex]?.invoice_qty || 0
+      );
+      const currentInvoicedQty = parseFloat(
+        updatedSoItems[originalIndex].invoice_qty || 0
+      );
+      const totalInvoicedQty = currentInvoicedQty + siInvoicedQty;
+
+      // Update the quantity in the original soItems structure
+      updatedSoItems[originalIndex].invoice_qty = totalInvoicedQty;
+
+      // Add ratio for tracking purposes
+      updatedSoItems[originalIndex].invoice_ratio =
+        orderQty > 0 ? totalInvoicedQty / orderQty : 0;
+
+      if (totalInvoicedQty > 0) {
+        partiallyInvoicedItems++;
+
+        // Count fully delivered items separately
+        if (totalInvoicedQty >= orderQty) {
+          fullyInvoicedItems++;
+        }
+      }
+    });
+
+    let allItemsComplete = fullyInvoicedItems === totalItems;
+    let anyItemProcessing = partiallyInvoicedItems > 0;
+
+    let newSIStatus = soDoc.si_status;
+
+    if (allItemsComplete) {
+      newSIStatus = "Fully Invoiced";
+    } else if (anyItemProcessing) {
+      newSIStatus = "Partially Invoiced";
     }
 
-    const completedQuery = db
-      .collection("sales_invoice")
-      .where({ si_status: "Completed", so_id: salesOrderId });
+    const updateData = {
+      table_so: updatedSoItems,
+    };
 
-    const fullyPostedQuery = db
-      .collection("sales_invoice")
-      .where({ si_status: "Fully Posted", so_id: salesOrderId });
+    updateData.si_status = newSIStatus;
 
-    Promise.all([
-      completedQuery.get(),
-      fullyPostedQuery.get(),
-      db.collection("sales_order").where({ id: salesOrderId }).get(),
-    ])
-      .then(([resComp, resPost, resSO]) => {
-        // Handle potentially undefined or empty data
-        const compData = resComp?.data || [];
-        const postData = resPost?.data || [];
-        const allSIs = [...compData, ...postData];
-
-        const soData = resSO?.data ? resSO.data[0] : null;
-        if (!soData) {
-          console.warn(`Sales order ${salesOrderId} not found`);
-          return;
-        }
-
-        const soItems = soData.table_so || [];
-
-        // Create a map to sum invoiced quantities for each item
-        const invoicedQtyMap = {};
-
-        // Initialize with zeros
-        soItems.forEach((item) => {
-          if (item && item.item_name) {
-            invoicedQtyMap[item.item_name] = 0;
-          }
-        });
-
-        // Sum invoiced quantities from all SIs
-        allSIs.forEach((si) => {
-          if (!si || !si.table_si) return;
-
-          si.table_si.forEach((siItem) => {
-            if (
-              siItem &&
-              siItem.material_id &&
-              invoicedQtyMap.hasOwnProperty(siItem.material_id)
-            ) {
-              const invoiceQty = parseFloat(siItem.invoice_qty) || 0;
-              invoicedQtyMap[siItem.material_id] += invoiceQty;
-            }
-          });
-        });
-
-        // Check item completion status
-        let allItemsComplete = true;
-        let anyItemProcessing = false;
-
-        soItems.forEach((item) => {
-          if (!item || !item.item_name) return;
-
-          const orderedQty = parseFloat(item.so_quantity) || 0;
-          const invoicedQty = parseFloat(invoicedQtyMap[item.item_name]) || 0;
-
-          if (invoicedQty < orderedQty) {
-            allItemsComplete = false;
-            if (invoicedQty > 0) {
-              anyItemProcessing = true;
-            }
-          }
-        });
-
-        // Determine new status
-        let newSIStatus = soData.si_status;
-
-        if (allItemsComplete) {
-          newSIStatus = "Fully Invoiced";
-        } else if (anyItemProcessing) {
-          newSIStatus = "Partially Invoiced";
-        }
-
-        // Update SO status if changed
-        if (newSIStatus !== soData.si_status) {
-          console.log(`Updating SO ${salesOrderId} status to ${newSIStatus}`);
-          db.collection("sales_order")
-            .doc(soData.id)
-            .update({
-              si_status: newSIStatus,
-            })
-            .catch((error) => {
-              console.error(
-                `Error updating sales order ${salesOrderId}:`,
-                error
-              );
-            });
-        }
-      })
-      .catch((error) => {
-        console.error(`Error processing sales order ${salesOrderId}:`, error);
-      });
+    await db.collection("sales_order").doc(soDoc.id).update(updateData);
   });
 
-  // Update all goods delivery documents
-  if (Array.isArray(goodsDeliveryNo) && goodsDeliveryNo.length > 0) {
-    goodsDeliveryNo.forEach((gd) => {
-      if (!gd) return;
+  await Promise.all(updatePromises);
 
-      db.collection("goods_delivery")
-        .doc(gd)
-        .update({
-          si_status: "Fully Invoiced",
-        })
-        .catch((error) => {
-          console.error(`Error updating goods delivery ${gd}:`, error);
-        });
+  if (goodsDeliveryNo) {
+    goodsDeliveryNo.forEach((gd) => {
+      db.collection("goods_delivery").doc(gd).update({
+        si_status: "Fully Invoiced",
+      });
     });
-  } else {
-    console.warn("No goods delivery numbers provided");
   }
 };
 
@@ -164,7 +125,7 @@ const validateForm = (data, requiredFields) => {
     }
 
     // Check each item in the array
-    if (field.arrayType === "object" && field.arrayFields) {
+    if (field.arrayType === "object" && field.arrayFields && value.length > 0) {
       value.forEach((item, index) => {
         field.arrayFields.forEach((subField) => {
           const subValue = item[subField.name];
@@ -184,6 +145,7 @@ const validateForm = (data, requiredFields) => {
 const validateField = (value, field) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "number") return value <= 0;
   if (Array.isArray(value)) return value.length === 0;
   if (typeof value === "object") return Object.keys(value).length === 0;
   return !value;
@@ -246,21 +208,18 @@ const generatePrefix = (runNumber, now, prefixData) => {
   return generated;
 };
 
-const checkUniqueness = async (generatedPrefix) => {
-  try {
-    const existingDoc = await db
-      .collection("sales_invoice")
-      .where({ sales_invoice_no: generatedPrefix })
-      .get();
-
-    return !existingDoc?.data || existingDoc.data.length === 0;
-  } catch (error) {
-    console.error("Error checking uniqueness:", error);
-    throw error;
-  }
+const checkUniqueness = async (generatedPrefix, organizationId) => {
+  const existingDoc = await db
+    .collection("sales_invoice")
+    .where({
+      sales_invoice_no: generatedPrefix,
+      organization_id: organizationId,
+    })
+    .get();
+  return existingDoc.data[0] ? false : true;
 };
 
-const findUniquePrefix = async (prefixData) => {
+const findUniquePrefix = async (prefixData, organizationId) => {
   const now = new Date();
   let prefixToShow;
   let runningNumber = prefixData.running_number;
@@ -270,8 +229,8 @@ const findUniquePrefix = async (prefixData) => {
 
   while (!isUnique && attempts < maxAttempts) {
     attempts++;
-    prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow);
+    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
+    isUnique = await checkUniqueness(prefixToShow, organizationId);
     if (!isUnique) {
       runningNumber++;
     }
@@ -282,21 +241,331 @@ const findUniquePrefix = async (prefixData) => {
       "Could not generate a unique Sales Invoices number after maximum attempts"
     );
   }
-
   return { prefixToShow, runningNumber };
+};
+
+// Check credit & overdue limit before doing any process
+const checkCreditOverdueLimit = async (customer_id, invoice_total) => {
+  try {
+    const fetchCustomer = await db
+      .collection("Customer")
+      .where({ id: customer_id, is_deleted: 0 })
+      .get();
+
+    const customerData = fetchCustomer.data[0];
+    if (!customerData) {
+      console.error(`Customer ${customer_id} not found`);
+      this.$message.error(`Customer ${customer_id} not found`);
+      return false;
+    }
+
+    const controlTypes = customerData.control_type_list;
+
+    const outstandingAmount =
+      parseFloat(customerData.outstanding_balance || 0) || 0;
+    const overdueAmount =
+      parseFloat(customerData.overdue_inv_total_amount || 0) || 0;
+    const overdueLimit = parseFloat(customerData.overdue_limit || 0) || 0;
+    const creditLimit =
+      parseFloat(customerData.customer_credit_limit || 0) || 0;
+    const gdTotal = parseFloat(invoice_total || 0) || 0;
+    const revisedOutstandingAmount = outstandingAmount + gdTotal;
+
+    // Helper function to show specific pop-ups as per specification
+    const showPopup = (popupNumber) => {
+      this.openDialog("dialog_credit_limit");
+
+      const popupConfigs = {
+        1: {
+          // Pop-up 1: Exceed Credit Limit Only (Block)
+          alert: "alert_credit_limit", // "Alert: Credit Limit Exceeded - Review Required"
+          text: "text_credit_limit", // "The customer has exceed the allowed credit limit."
+          showCredit: true,
+          showOverdue: false,
+          isBlock: true,
+          buttonText: "text_1", // "Please review the credit limit or adjust the order amount before issuing the SO."
+        },
+        2: {
+          // Pop-up 2: Exceed Overdue Limit Only (Block)
+          alert: "alert_overdue_limit", // "Alert: Overdue Limit Exceeded - Review Required"
+          text: "text_overdue_limit", // "The customer has exceeded the allowed overdue limit."
+          showCredit: false,
+          showOverdue: true,
+          isBlock: true,
+          buttonText: "text_2", // "Please review overdue invoices before proceeding."
+        },
+        3: {
+          // Pop-up 3: Exceed Both, Credit Limit and Overdue Limit (Block)
+          alert: "alert_credit_overdue", // "Alert: Credit Limit and Overdue Limit Exceeded - Review Required"
+          text: "text_credit_overdue", // "The customer has exceeded both credit limit and overdue limit."
+          showCredit: true,
+          showOverdue: true,
+          isBlock: true,
+          buttonText: "text_3", // "Please review both limits before proceeding."
+        },
+        4: {
+          // Pop-up 4: Exceed Overdue Limit Only (Override)
+          alert: "alert_overdue_limit", // "Alert: Overdue Limit Exceeded - Review Required"
+          text: "text_overdue_limit", // "The customer has exceeded the allowed overdue limit."
+          showCredit: false,
+          showOverdue: true,
+          isBlock: false,
+          buttonText: "text_4", // "Please confirm if you wants to save it."
+        },
+        5: {
+          // Pop-up 5: Exceed Credit Limit Only (Override)
+          alert: "alert_credit_limit", // "Alert: Credit Limit Exceeded - Review Required"
+          text: "text_credit_limit", // "The customer has exceed the allowed credit limit."
+          showCredit: true,
+          showOverdue: false,
+          isBlock: false,
+          buttonText: "text_4", // "Please confirm if you wants to save it."
+        },
+        6: {
+          // Pop-up 6: Suspended
+          alert: "alert_suspended", // "Customer Account Suspended"
+          text: "text_suspended", // "This order cannot be processed at this time due to the customer's suspended account status."
+          showCredit: false,
+          showOverdue: false,
+          isBlock: true,
+          buttonText: null, // No additional text needed
+        },
+        7: {
+          // Pop-up 7: Exceed Both, Credit Limit and Overdue Limit (Override)
+          alert: "alert_credit_overdue", // "Alert: Credit Limit and Overdue Limit Exceeded - Review Required"
+          text: "text_credit_overdue", // "The customer has exceeded both credit limit and overdue limit."
+          showCredit: true,
+          showOverdue: true,
+          isBlock: false,
+          buttonText: "text_4", // "Please confirm if you wants to save it."
+        },
+      };
+
+      const config = popupConfigs[popupNumber];
+      if (!config) return false;
+
+      // Show alert message
+      this.display(`dialog_credit_limit.${config.alert}`);
+
+      // Show description text
+      this.display(`dialog_credit_limit.${config.text}`);
+
+      const dataToSet = {};
+
+      // Show credit limit details if applicable
+      if (config.showCredit) {
+        this.display("dialog_credit_limit.total_allowed_credit");
+        this.display("dialog_credit_limit.total_credit");
+        dataToSet["dialog_credit_limit.total_allowed_credit"] = creditLimit;
+        dataToSet["dialog_credit_limit.total_credit"] =
+          revisedOutstandingAmount;
+      }
+
+      // Show overdue limit details if applicable
+      if (config.showOverdue) {
+        this.display("dialog_credit_limit.total_allowed_overdue");
+        this.display("dialog_credit_limit.total_overdue");
+        dataToSet["dialog_credit_limit.total_allowed_overdue"] = overdueLimit;
+        dataToSet["dialog_credit_limit.total_overdue"] = overdueAmount;
+      }
+
+      // Show action text if applicable
+      if (config.buttonText) {
+        this.display(`dialog_credit_limit.${config.buttonText}`);
+      }
+
+      // Show appropriate buttons
+      if (config.isBlock) {
+        this.display("dialog_credit_limit.button_back"); // "Back" button
+      } else {
+        this.display("dialog_credit_limit.button_yes"); // "Yes" button
+        this.display("dialog_credit_limit.button_no"); // "No" button
+      }
+
+      this.setData(dataToSet);
+      return false;
+    };
+
+    // Check if accuracy flag is set
+    if (controlTypes && Array.isArray(controlTypes)) {
+      // Define control type behaviors according to specification
+      const controlTypeChecks = {
+        // Control Type 0: Ignore both checks (always pass)
+        0: () => {
+          console.log("Control Type 0: Ignoring all credit/overdue checks");
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 1: Ignore credit, block overdue
+        1: () => {
+          if (overdueAmount > overdueLimit) {
+            return { result: showPopup(2), priority: "block" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 2: Ignore credit, override overdue
+        2: () => {
+          if (overdueAmount > overdueLimit) {
+            return { result: showPopup(4), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 3: Block credit, ignore overdue
+        3: () => {
+          if (revisedOutstandingAmount > creditLimit) {
+            return { result: showPopup(1), priority: "block" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 4: Block both
+        4: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          if (creditExceeded && overdueExceeded) {
+            return { result: showPopup(3), priority: "block" };
+          } else if (creditExceeded) {
+            return { result: showPopup(1), priority: "block" };
+          } else if (overdueExceeded) {
+            return { result: showPopup(2), priority: "block" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 5: Block credit, override overdue
+        5: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          // Credit limit block takes priority
+          if (creditExceeded) {
+            if (overdueExceeded) {
+              return { result: showPopup(3), priority: "block" };
+            } else {
+              return { result: showPopup(1), priority: "block" };
+            }
+          } else if (overdueExceeded) {
+            return { result: showPopup(4), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 6: Override credit, ignore overdue
+        6: () => {
+          if (revisedOutstandingAmount > creditLimit) {
+            return { result: showPopup(5), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 7: Override credit, block overdue
+        7: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          // Overdue block takes priority over credit override
+          if (overdueExceeded) {
+            return { result: showPopup(2), priority: "block" };
+          } else if (creditExceeded) {
+            return { result: showPopup(5), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 8: Override both
+        8: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          if (creditExceeded && overdueExceeded) {
+            return { result: showPopup(7), priority: "override" };
+          } else if (creditExceeded) {
+            return { result: showPopup(5), priority: "override" };
+          } else if (overdueExceeded) {
+            return { result: showPopup(4), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 9: Suspended customer
+        9: () => {
+          return { result: showPopup(6), priority: "block" };
+        },
+      };
+
+      // Process according to specification:
+      // "Ignore parameter with unblock > check for parameter with block's first > if not block only proceed to check for override"
+
+      // First, collect all applicable control types for Sales Invoices
+      const applicableControls = controlTypes
+        .filter((ct) => ct.document_type === "Sales Invoices")
+        .map((ct) => {
+          const checkResult = controlTypeChecks[ct.control_type]
+            ? controlTypeChecks[ct.control_type]()
+            : { result: true, priority: "unblock" };
+          return {
+            ...checkResult,
+            control_type: ct.control_type,
+          };
+        });
+
+      // Sort by priority: blocks first, then overrides, then unblocks
+      const priorityOrder = { block: 1, override: 2, unblock: 3 };
+      applicableControls.sort(
+        (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
+      );
+
+      // Process in priority order
+      for (const control of applicableControls) {
+        if (control.result !== true) {
+          console.log(
+            `Control Type ${control.control_type} triggered with ${control.priority}`
+          );
+          return control.result;
+        }
+      }
+
+      // All checks passed
+      return true;
+    } else {
+      console.log(
+        "No control type defined for customer or invalid control type format"
+      );
+      return true;
+    }
+  } catch (error) {
+    console.error("Error checking credit/overdue limits:", error);
+    this.$alert(
+      "An error occurred while checking credit limits. Please try again.",
+      "Error",
+      {
+        confirmButtonText: "OK",
+        type: "error",
+      }
+    );
+    return false;
+  }
 };
 
 const addEntry = async (organizationId, entry) => {
   try {
     const prefixData = await getPrefixData(organizationId);
 
-    if (!prefixData) {
-      throw new Error("Prefix configuration not found");
+    if (prefixData !== null) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData,
+        organizationId
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      entry.sales_invoice_no = prefixToShow;
     }
 
-    await updatePrefix(organizationId, prefixData.running_number);
-
-    const result = await db.collection("sales_invoice").add(entry);
+    await db.collection("sales_invoice").add(entry);
 
     try {
       await this.runWorkflow(
@@ -315,7 +584,11 @@ const addEntry = async (organizationId, entry) => {
     }
 
     // Handle multiple SO IDs and GD numbers
-    await updateSalesOrderStatus(entry.so_id, entry.goods_delivery_number);
+    await updateSalesOrderStatus(
+      entry.so_id,
+      entry.table_si,
+      entry.goods_delivery_number
+    );
 
     this.$message.success("Add successfully");
     closeDialog();
@@ -329,15 +602,16 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
   try {
     const prefixData = await getPrefixData(organizationId);
 
-    if (!prefixData) {
-      throw new Error("Prefix configuration not found");
+    if (prefixData !== null) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData,
+        organizationId
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      entry.sales_invoice_no = prefixToShow;
     }
-
-    const { prefixToShow, runningNumber } = await findUniquePrefix(prefixData);
-
-    await updatePrefix(organizationId, runningNumber);
-
-    entry.sales_invoice_no = prefixToShow;
 
     await db.collection("sales_invoice").doc(salesInvoiceId).update(entry);
 
@@ -358,7 +632,11 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
     }
 
     // Handle multiple SO IDs and GD numbers
-    await updateSalesOrderStatus(entry.so_id, entry.goods_delivery_number);
+    await updateSalesOrderStatus(
+      entry.so_id,
+      entry.table_si,
+      entry.goods_delivery_number
+    );
 
     this.$message.success("Update successfully");
     closeDialog();
@@ -375,8 +653,8 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
     this.showLoading();
 
     const requiredFields = [
+      { name: "plant_id", label: "Plant" },
       { name: "so_id", label: "SO Number" },
-      { name: "goods_delivery_number", label: "Goods Delivery Number" },
       { name: "sales_invoice_no", label: "Sales Invoice Number " },
       { name: "sales_invoice_date", label: "Sales Invoice Date" },
       { name: "si_description", label: "Description" },
@@ -391,6 +669,20 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
 
     const missingFields = validateForm(data, requiredFields);
 
+    if (data.acc_integration_type !== null) {
+      const canProceed = await checkCreditOverdueLimit(
+        data.customer_id,
+        data.invoice_total
+      );
+      if (!canProceed) {
+        console.log("Credit/overdue limit check failed");
+        this.hideLoading();
+        return;
+      }
+    }
+
+    console.log("Credit/overdue limit check passed");
+
     if (missingFields.length === 0) {
       const page_status = this.getValue("page_status");
 
@@ -403,8 +695,6 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         fake_so_id,
         so_id,
         customer_id,
-        si_address_name,
-        si_address_contact,
         goods_delivery_number,
         sales_invoice_no,
         sales_invoice_date,
@@ -413,7 +703,6 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         si_description,
         plant_id,
         organization_id,
-        fileupload_hmtcurne,
         so_no_display,
         table_si,
         invoice_subtotal,
@@ -433,6 +722,10 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         billing_address_state,
         billing_postal_code,
         billing_address_country,
+        billing_address_name,
+        billing_address_phone,
+        billing_attention,
+
         shipping_address_line_1,
         shipping_address_line_2,
         shipping_address_line_3,
@@ -441,8 +734,21 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         shipping_address_state,
         shipping_postal_code,
         shipping_address_country,
+        shipping_address_name,
+        shipping_address_phone,
+        shipping_attention,
+
         exchange_rate,
         myr_total_amount,
+        si_ref_doc,
+
+        acc_integration_type,
+        last_sync_date,
+        customer_credit_limit,
+        overdue_limit,
+        outstanding_balance,
+        overdue_inv_total_amount,
+        is_accurate,
       } = data;
 
       // Ensure SO IDs and GD numbers are properly handled as arrays
@@ -457,8 +763,6 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         fake_so_id,
         so_id: soIdArray,
         customer_id,
-        si_address_name,
-        si_address_contact,
         goods_delivery_number: gdArray,
         sales_invoice_no,
         sales_invoice_date,
@@ -468,7 +772,6 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         plant_id,
         organization_id,
         so_no_display,
-        fileupload_hmtcurne,
         table_si,
         invoice_subtotal,
         invoice_total_discount,
@@ -487,6 +790,10 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         billing_address_state,
         billing_postal_code,
         billing_address_country,
+        billing_address_name,
+        billing_address_phone,
+        billing_attention,
+
         shipping_address_line_1,
         shipping_address_line_2,
         shipping_address_line_3,
@@ -495,8 +802,21 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         shipping_address_state,
         shipping_postal_code,
         shipping_address_country,
+        shipping_address_name,
+        shipping_address_phone,
+        shipping_attention,
+
         exchange_rate,
         myr_total_amount,
+        si_ref_doc,
+
+        acc_integration_type,
+        last_sync_date,
+        customer_credit_limit,
+        overdue_limit,
+        outstanding_balance,
+        overdue_inv_total_amount,
+        is_accurate,
       };
 
       if (page_status === "Add") {

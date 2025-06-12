@@ -7,13 +7,55 @@ const closeDialog = () => {
 };
 
 const validateForm = (data, requiredFields) => {
-  const missingFields = requiredFields.filter((field) => {
+  const missingFields = [];
+
+  requiredFields.forEach((field) => {
     const value = data[field.name];
-    if (Array.isArray(value)) return value.length === 0;
-    if (typeof value === "string") return value.trim() === "";
-    return !value;
+
+    // Handle non-array fields (unchanged)
+    if (!field.isArray) {
+      if (validateField(value, field)) {
+        missingFields.push(field.label);
+      }
+      return;
+    }
+
+    // Handle array fields
+    if (!Array.isArray(value)) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    if (value.length === 0) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    // Check each item in the array
+    if (field.arrayType === "object" && field.arrayFields && value.length > 0) {
+      value.forEach((item, index) => {
+        field.arrayFields.forEach((subField) => {
+          const subValue = item[subField.name];
+          if (validateField(subValue, subField)) {
+            missingFields.push(
+              `${subField.label} (in ${field.label} #${index + 1})`
+            );
+          }
+        });
+      });
+    }
   });
+
   return missingFields;
+};
+
+const validateField = (value, field) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "number") return value <= 0;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return !value;
 };
 
 const getPrefixData = async (organizationId) => {
@@ -55,7 +97,16 @@ const generateDraftPrefix = async (organizationId) => {
   try {
     this.showLoading();
     const data = this.getValues();
-    const requiredFields = [{ name: "so_id", label: "SO Number" }];
+    const requiredFields = [
+      { name: "plant_id", label: "Plant" },
+      {
+        name: "table_si",
+        label: "Item Information",
+        isArray: true,
+        arrayType: "object",
+        arrayFields: [],
+      },
+    ];
 
     const missingFields = await validateForm(data, requiredFields);
 
@@ -72,8 +123,6 @@ const generateDraftPrefix = async (organizationId) => {
         fake_so_id,
         so_id,
         customer_id,
-        si_address_name,
-        si_address_contact,
         goods_delivery_number,
         sales_invoice_no,
         sales_invoice_date,
@@ -82,7 +131,6 @@ const generateDraftPrefix = async (organizationId) => {
         si_description,
         plant_id,
         organization_id,
-        fileupload_hmtcurne,
         so_no_display,
         table_si,
         invoice_subtotal,
@@ -102,6 +150,10 @@ const generateDraftPrefix = async (organizationId) => {
         billing_address_state,
         billing_postal_code,
         billing_address_country,
+        billing_address_name,
+        billing_address_phone,
+        billing_attention,
+
         shipping_address_line_1,
         shipping_address_line_2,
         shipping_address_line_3,
@@ -110,8 +162,21 @@ const generateDraftPrefix = async (organizationId) => {
         shipping_address_state,
         shipping_postal_code,
         shipping_address_country,
+        shipping_address_name,
+        shipping_address_phone,
+        shipping_attention,
+
         exchange_rate,
         myr_total_amount,
+        si_ref_doc,
+
+        acc_integration_type,
+        last_sync_date,
+        customer_credit_limit,
+        overdue_limit,
+        outstanding_balance,
+        overdue_inv_total_amount,
+        is_accurate,
       } = data;
 
       const entry = {
@@ -120,8 +185,6 @@ const generateDraftPrefix = async (organizationId) => {
         fake_so_id,
         so_id,
         customer_id,
-        si_address_name,
-        si_address_contact,
         goods_delivery_number,
         sales_invoice_no,
         sales_invoice_date,
@@ -131,7 +194,6 @@ const generateDraftPrefix = async (organizationId) => {
         plant_id,
         organization_id,
         so_no_display,
-        fileupload_hmtcurne,
         table_si,
         invoice_subtotal,
         invoice_total_discount,
@@ -150,6 +212,10 @@ const generateDraftPrefix = async (organizationId) => {
         billing_address_state,
         billing_postal_code,
         billing_address_country,
+        billing_address_name,
+        billing_address_phone,
+        billing_attention,
+
         shipping_address_line_1,
         shipping_address_line_2,
         shipping_address_line_3,
@@ -158,8 +224,21 @@ const generateDraftPrefix = async (organizationId) => {
         shipping_address_state,
         shipping_postal_code,
         shipping_address_country,
+        shipping_address_name,
+        shipping_address_phone,
+        shipping_attention,
+
         exchange_rate,
         myr_total_amount,
+        si_ref_doc,
+
+        acc_integration_type,
+        last_sync_date,
+        customer_credit_limit,
+        overdue_limit,
+        outstanding_balance,
+        overdue_inv_total_amount,
+        is_accurate,
       };
 
       if (page_status === "Add" || page_status === "Clone") {
@@ -175,8 +254,7 @@ const generateDraftPrefix = async (organizationId) => {
       }
     } else {
       this.hideLoading();
-      const missingFieldNames = missingFields.map((f) => f.label).join(", ");
-      this.$message.error(`Missing required fields: ${missingFieldNames}`);
+      this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
     }
   } catch (error) {
     this.$message.error(error);

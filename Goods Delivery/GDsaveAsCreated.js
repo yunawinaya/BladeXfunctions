@@ -198,62 +198,39 @@ const generatePrefix = (runNumber, now, prefixData) => {
   }
 };
 
-const checkUniqueness = async (generatedPrefix) => {
-  console.log("Checking uniqueness for prefix:", generatedPrefix);
-  try {
-    const existingDoc = await db
-      .collection("goods_delivery")
-      .where({ delivery_no: generatedPrefix })
-      .get();
+const checkUniqueness = async (generatedPrefix, organizationId) => {
+  const existingDoc = await db
+    .collection("goods_delivery")
+    .where({ delivery_no: generatedPrefix, organization_id: organizationId })
+    .get();
 
-    const isUnique = !existingDoc.data || existingDoc.data.length === 0;
-    console.log("Is unique:", isUnique);
-    return isUnique;
-  } catch (error) {
-    console.error("Error checking uniqueness:", error);
-    throw error;
-  }
+  return !existingDoc.data || existingDoc.data.length === 0;
 };
 
-const findUniquePrefix = async (prefixData) => {
-  console.log("Finding unique prefix");
-  try {
-    const now = new Date();
-    let prefixToShow;
-    let runningNumber = prefixData.running_number || 1;
-    let isUnique = false;
-    let maxAttempts = 10;
-    let attempts = 0;
+const findUniquePrefix = async (prefixData, organizationId) => {
+  const now = new Date();
+  let prefixToShow;
+  let runningNumber = prefixData.running_number || 1;
+  let isUnique = false;
+  let maxAttempts = 10;
+  let attempts = 0;
 
-    while (!isUnique && attempts < maxAttempts) {
-      attempts++;
-      console.log(`Attempt ${attempts} to find unique prefix`);
-      prefixToShow = generatePrefix(runningNumber, now, prefixData);
-      isUnique = await checkUniqueness(prefixToShow);
-      if (!isUnique) {
-        console.log("Prefix not unique, incrementing running number");
-        runningNumber++;
-      }
-    }
-
+  while (!isUnique && attempts < maxAttempts) {
+    attempts++;
+    prefixToShow = generatePrefix(runningNumber, now, prefixData);
+    isUnique = await checkUniqueness(prefixToShow, organizationId);
     if (!isUnique) {
-      console.error("Could not find unique prefix after maximum attempts");
-      throw new Error(
-        "Could not generate a unique Goods Delivery number after maximum attempts"
-      );
+      runningNumber++;
     }
-
-    console.log(
-      "Found unique prefix:",
-      prefixToShow,
-      "with running number:",
-      runningNumber
-    );
-    return { prefixToShow, runningNumber };
-  } catch (error) {
-    console.error("Error finding unique prefix:", error);
-    throw error;
   }
+
+  if (!isUnique) {
+    throw new Error(
+      "Could not generate a unique Goods Delivery number after maximum attempts"
+    );
+  }
+
+  return { prefixToShow, runningNumber };
 };
 
 const processBalanceTable = async (data, isUpdate = false) => {
@@ -273,7 +250,7 @@ const processBalanceTable = async (data, isUpdate = false) => {
       // Input validation
       if (!item.material_id || !item.temp_qty_data) {
         console.error(`Invalid item data for index ${itemIndex}:`, item);
-        return;
+        return null;
       }
 
       // Track created or updated documents for potential rollback
@@ -521,215 +498,285 @@ const processBalanceTable = async (data, isUpdate = false) => {
 };
 
 const validateForm = (data, requiredFields) => {
-  console.log("Validating form");
-  const missingFields = requiredFields.filter((field) => {
+  const missingFields = [];
+
+  requiredFields.forEach((field) => {
     const value = data[field.name];
-    if (Array.isArray(value)) return value.length === 0;
-    if (typeof value === "string") return value.trim() === "";
-    return !value;
+
+    // Handle non-array fields (unchanged)
+    if (!field.isArray) {
+      if (validateField(value, field)) {
+        missingFields.push(field.label);
+      }
+      return;
+    }
+
+    // Handle array fields
+    if (!Array.isArray(value)) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    if (value.length === 0) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    // Check each item in the array
+    if (field.arrayType === "object" && field.arrayFields && value.length > 0) {
+      value.forEach((item, index) => {
+        field.arrayFields.forEach((subField) => {
+          const subValue = item[subField.name];
+          if (validateField(subValue, subField)) {
+            missingFields.push(
+              `${subField.label} (in ${field.label} #${index + 1})`
+            );
+          }
+        });
+      });
+    }
   });
-  console.log("Missing fields:", missingFields);
+
   return missingFields;
+};
+
+const validateField = (value, field) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "number") return value <= 0;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return !value;
+};
+
+const addEntry = async (organizationId, gd) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+
+    if (prefixData.length !== 0) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData,
+        organizationId
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      gd.delivery_no = prefixToShow;
+    }
+
+    await db.collection("goods_delivery").add(gd);
+    await processBalanceTable(gd);
+    this.$message.success("Add successfully");
+    await closeDialog();
+  } catch (error) {
+    this.$message.error(error);
+  }
+};
+
+const updateEntry = async (organizationId, gd, goodsDeliveryId) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+
+    if (prefixData.length !== 0) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData,
+        organizationId
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      gd.delivery_no = prefixToShow;
+    }
+
+    await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+    await processBalanceTable(gd, true);
+    this.$message.success("Update successfully");
+    await closeDialog();
+  } catch (error) {
+    this.$message.error(error);
+  }
+};
+
+const findFieldMessage = (obj) => {
+  // Base case: if current object has the structure we want
+  if (obj && typeof obj === "object") {
+    if (obj.field && obj.message) {
+      return obj.message;
+    }
+
+    // Check array elements
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = findFieldMessage(item);
+        if (found) return found;
+      }
+    }
+
+    // Check all object properties
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const found = findFieldMessage(obj[key]);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
 };
 
 // Main execution wrapped in an async IIFE
 (async () => {
-  console.log("Starting Goods Delivery Created function");
-
   try {
+    this.showLoading();
     const data = await this.getValues();
-    console.log("Form data:", data);
 
     // Get page status
     const page_status = data.page_status;
-    console.log("Page status:", page_status);
 
     // Define required fields
     const requiredFields = [
       { name: "customer_name", label: "Customer" },
       { name: "plant_id", label: "Plant" },
       { name: "so_id", label: "Sales Order" },
+      {
+        name: "table_gd",
+        label: "Item Information",
+        isArray: true,
+        arrayType: "object",
+        arrayFields: [],
+      },
     ];
+
+    for (const gd of data.table_gd) {
+      await this.validate(gd.gd_qty);
+    }
 
     // Validate form
     const missingFields = validateForm(data, requiredFields);
 
-    if (missingFields.length > 0) {
-      this.hideLoading();
-      const missingFieldNames = missingFields.map((f) => f.label).join(", ");
-      this.$message.error(
-        `Please fill in all required fields: ${missingFieldNames}`
-      );
-      console.log("Validation failed, missing fields:", missingFieldNames);
-      return;
-    }
-
-    console.log("Validation passed");
-
-    // If this is an edit, store previous temporary quantities
-    if (page_status === "Edit" && Array.isArray(data.table_gd)) {
-      data.table_gd.forEach((item) => {
-        item.prev_temp_qty_data = item.temp_qty_data;
-      });
-    }
-
-    // Get organization ID
-    let organizationId = this.getVarGlobal("deptParentId");
-    if (organizationId === "0") {
-      organizationId = this.getVarSystem("deptIds").split(",")[0];
-    }
-    console.log("Organization ID:", organizationId);
-
-    // Prepare goods delivery object
-    const gd = {
-      gd_status: "Created",
-      fake_so_id: data.fake_so_id,
-      so_id: data.so_id,
-      so_no: data.so_no,
-      gd_billing_name: data.gd_billing_name,
-      gd_billing_cp: data.gd_billing_cp,
-      gd_billing_address: data.gd_billing_address,
-      gd_shipping_address: data.gd_shipping_address,
-      delivery_no: data.delivery_no,
-      plant_id: data.plant_id,
-      organization_id: organizationId,
-      gd_ref_doc: data.gd_ref_doc,
-      customer_name: data.customer_name,
-      gd_contact_name: data.gd_contact_name,
-      contact_number: data.contact_number,
-      email_address: data.email_address,
-      document_description: data.document_description,
-      gd_delivery_method: data.gd_delivery_method,
-      delivery_date: data.delivery_date,
-      driver_name: data.driver_name,
-      driver_contact_no: data.driver_contact_no,
-      ic_no: data.ic_no,
-      validity_of_collection: data.validity_of_collection,
-      vehicle_no: data.vehicle_no,
-      pickup_date: data.pickup_date,
-      courier_company: data.courier_company,
-      shipping_date: data.shipping_date,
-      freight_charges: data.freight_charges,
-      tracking_number: data.tracking_number,
-      est_arrival_date: data.est_arrival_date,
-      driver_cost: data.driver_cost,
-      est_delivery_date: data.est_delivery_date,
-      shipping_company: data.shipping_company,
-      shipping_method: data.shipping_method,
-      table_gd: data.table_gd,
-      order_remark: data.order_remark,
-      billing_address_line_1: data.billing_address_line_1,
-      billing_address_line_2: data.billing_address_line_2,
-      billing_address_line_3: data.billing_address_line_3,
-      billing_address_line_4: data.billing_address_line_4,
-      billing_address_city: data.billing_address_city,
-      billing_address_state: data.billing_address_state,
-      billing_address_country: data.billing_address_country,
-      billing_postal_code: data.billing_postal_code,
-      shipping_address_line_1: data.shipping_address_line_1,
-      shipping_address_line_2: data.shipping_address_line_2,
-      shipping_address_line_3: data.shipping_address_line_3,
-      shipping_address_line_4: data.shipping_address_line_4,
-      shipping_address_city: data.shipping_address_city,
-      shipping_address_state: data.shipping_address_state,
-      shipping_address_country: data.shipping_address_country,
-      shipping_postal_code: data.shipping_postal_code,
-    };
-
-    // Clean up undefined/null values
-    Object.keys(gd).forEach((key) => {
-      if (gd[key] === undefined || gd[key] === null) {
-        delete gd[key];
-      }
-    });
-
-    console.log("Entry prepared with keys:", Object.keys(gd));
-
-    this.showLoading();
-
-    // Perform action based on page status
-    if (page_status === "Add") {
-      console.log("Adding new GD entry (Add)");
-
-      // Add new document
-      await db
-        .collection("goods_delivery")
-        .add(gd)
-        .then(() => {
-          return db
-            .collection("prefix_configuration")
-            .where({
-              document_types: "Goods Delivery",
-              is_deleted: 0,
-              organization_id: organizationId,
-              is_active: 1,
-            })
-            .get()
-            .then((prefixEntry) => {
-              if (!prefixEntry.data || prefixEntry.data.length === 0) {
-                return;
-              }
-
-              const data = prefixEntry.data[0];
-              return db
-                .collection("prefix_configuration")
-                .where({
-                  document_types: "Goods Delivery",
-                  is_deleted: 0,
-                  organization_id: organizationId,
-                })
-                .update({
-                  running_number: parseInt(data.running_number) + 1,
-                  has_record: 1,
-                });
-            });
+    if (missingFields.length === 0) {
+      // If this is an edit, store previous temporary quantities
+      if (page_status === "Edit" && Array.isArray(data.table_gd)) {
+        data.table_gd.forEach((item) => {
+          item.prev_temp_qty_data = item.temp_qty_data;
         });
-
-      // Process inventory updates
-      await processBalanceTable(gd);
-    } else if (page_status === "Edit") {
-      console.log("Updating existing GD entry (Edit)");
-
-      // Get the GD document ID
-      const goodsDeliveryId = data.id;
-      console.log("Goods Delivery ID:", goodsDeliveryId);
-
-      if (gd.delivery_no.startsWith("DRAFT")) {
-        // For draft -> created, generate a new number if needed
-        const prefixData = await getPrefixData(organizationId);
-
-        if (prefixData) {
-          // Generate new prefix
-          const { prefixToShow, runningNumber } = await findUniquePrefix(
-            prefixData
-          );
-          gd.delivery_no = prefixToShow;
-
-          // Update document with new prefix
-          await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
-
-          // Update prefix configuration
-          await updatePrefix(organizationId, runningNumber);
-        } else {
-          // Just update without changing number
-          await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
-        }
-      } else {
-        // Normal update (not changing from draft)
-        await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
       }
 
-      // Process inventory updates
-      await processBalanceTable(gd, true);
+      // Get organization ID
+      let organizationId = this.getVarGlobal("deptParentId");
+      if (organizationId === "0") {
+        organizationId = this.getVarSystem("deptIds").split(",")[0];
+      }
+
+      // Prepare goods delivery object
+      const gd = {
+        gd_status: "Created",
+        fake_so_id: data.fake_so_id,
+        so_id: data.so_id,
+        so_no: data.so_no,
+        gd_billing_address: data.gd_billing_address,
+        gd_shipping_address: data.gd_shipping_address,
+        delivery_no: data.delivery_no,
+        plant_id: data.plant_id,
+        organization_id: organizationId,
+        gd_ref_doc: data.gd_ref_doc,
+        customer_name: data.customer_name,
+        gd_contact_name: data.gd_contact_name,
+        contact_number: data.contact_number,
+        email_address: data.email_address,
+        document_description: data.document_description,
+        gd_delivery_method: data.gd_delivery_method,
+        delivery_date: data.delivery_date,
+
+        driver_name: data.driver_name,
+        driver_contact_no: data.driver_contact_no,
+        ic_no: data.ic_no,
+        validity_of_collection: data.validity_of_collection,
+        vehicle_no: data.vehicle_no,
+        pickup_date: data.pickup_date,
+
+        courier_company: data.courier_company,
+        shipping_date: data.shipping_date,
+        freight_charges: data.freight_charges,
+        tracking_number: data.tracking_number,
+        est_arrival_date: data.est_arrival_date,
+
+        driver_cost: data.driver_cost,
+        est_delivery_date: data.est_delivery_date,
+
+        shipping_company: data.shipping_company,
+        shipping_method: data.shipping_method,
+
+        tpt_vehicle_number: data.tpt_vehicle_number,
+        tpt_transport_name: data.tpt_transport_name,
+        tpt_ic_no: data.tpt_ic_no,
+        tpt_driver_contact_no: data.tpt_driver_contact_no,
+
+        table_gd: data.table_gd,
+        order_remark: data.order_remark,
+        billing_address_line_1: data.billing_address_line_1,
+        billing_address_line_2: data.billing_address_line_2,
+        billing_address_line_3: data.billing_address_line_3,
+        billing_address_line_4: data.billing_address_line_4,
+        billing_address_city: data.billing_address_city,
+        billing_address_state: data.billing_address_state,
+        billing_address_country: data.billing_address_country,
+        billing_postal_code: data.billing_postal_code,
+        billing_address_name: data.billing_address_name,
+        billing_address_phone: data.billing_address_phone,
+        billing_attention: data.billing_attention,
+
+        shipping_address_line_1: data.shipping_address_line_1,
+        shipping_address_line_2: data.shipping_address_line_2,
+        shipping_address_line_3: data.shipping_address_line_3,
+        shipping_address_line_4: data.shipping_address_line_4,
+        shipping_address_city: data.shipping_address_city,
+        shipping_address_state: data.shipping_address_state,
+        shipping_address_country: data.shipping_address_country,
+        shipping_postal_code: data.shipping_postal_code,
+        shipping_address_name: data.shipping_address_name,
+        shipping_address_phone: data.shipping_address_phone,
+        shipping_attention: data.shipping_attention,
+        acc_integration_type: data.acc_integration_type,
+        last_sync_date: data.last_sync_date,
+        customer_credit_limit: data.customer_credit_limit,
+        overdue_limit: data.overdue_limit,
+        outstanding_balance: data.outstanding_balance,
+        overdue_inv_total_amount: data.overdue_inv_total_amount,
+        is_accurate: data.is_accurate,
+        gd_total: data.gd_total,
+      };
+
+      // Clean up undefined/null values
+      Object.keys(gd).forEach((key) => {
+        if (gd[key] === undefined || gd[key] === null) {
+          delete gd[key];
+        }
+      });
+
+      // Perform action based on page status
+      if (page_status === "Add") {
+        await addEntry(organizationId, gd);
+      } else if (page_status === "Edit") {
+        const goodsDeliveryId = data.id;
+        await updateEntry(organizationId, gd, goodsDeliveryId);
+      }
+    } else {
+      this.hideLoading();
+      this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
+    }
+  } catch (error) {
+    this.hideLoading();
+
+    // Try to get message from standard locations first
+    let errorMessage = "";
+
+    if (error && typeof error === "object") {
+      errorMessage = findFieldMessage(error) || "An error occurred";
+    } else {
+      errorMessage = error;
     }
 
-    console.log("Completed GD operation successfully");
-    closeDialog();
-  } catch (error) {
-    console.error("Error in goods delivery process:", error);
-    this.$message.error(
-      error.message || "An error occurred processing the goods delivery"
-    );
-    this.hideLoading();
+    this.$message.error(errorMessage);
+    console.error(errorMessage);
   }
 })();

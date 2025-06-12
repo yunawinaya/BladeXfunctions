@@ -154,12 +154,65 @@
   const deliveredQty = initialDeliveredQty + totalGdQuantity;
   console.log("Final delivered quantity:", deliveredQty);
 
-  // Store the totals in the form
+  // Calculate price per item for the current row
+  const totalPrice = parseFloat(data.table_gd[rowIndex].total_price) || 0;
+  const orderQuantity =
+    parseFloat(data.table_gd[rowIndex].gd_order_quantity) || 0;
+
+  let pricePerItem = 0;
+  if (orderQuantity > 0) {
+    pricePerItem = totalPrice / orderQuantity;
+  } else {
+    console.warn("Order quantity is zero or invalid for row", rowIndex);
+  }
+
+  const currentRowPrice = pricePerItem * totalGdQuantity;
+  console.log("Price per item:", pricePerItem);
+  console.log("Current row price:", currentRowPrice);
+
+  // Store the row-specific data first
   this.setData({
     [`table_gd.${rowIndex}.gd_delivered_qty`]: deliveredQty,
     [`table_gd.${rowIndex}.gd_qty`]: totalGdQuantity,
     [`table_gd.${rowIndex}.base_qty`]: totalGdQuantity,
+    [`table_gd.${rowIndex}.gd_price`]: currentRowPrice,
+    [`table_gd.${rowIndex}.price_per_item`]: pricePerItem,
     error_message: "", // Clear any error message
+  });
+
+  // Recalculate total from all rows
+  let newTotal = 0;
+
+  // Loop through all rows and sum up their prices
+  data.table_gd.forEach((row, index) => {
+    const rowOrderQty = parseFloat(row.gd_order_quantity) || 0;
+    const rowTotalPrice = parseFloat(row.total_price) || 0;
+
+    let rowGdQty;
+    if (index === rowIndex) {
+      // For the current row being edited, use the new quantity we just calculated
+      rowGdQty = totalGdQuantity;
+    } else {
+      // For other rows, use their existing gd_qty
+      rowGdQty = parseFloat(row.gd_qty) || 0;
+    }
+
+    if (rowOrderQty > 0 && rowGdQty > 0) {
+      const rowPricePerItem = rowTotalPrice / rowOrderQty;
+      const rowPrice = rowPricePerItem * rowGdQty;
+      newTotal += rowPrice;
+
+      console.log(
+        `Row ${index}: qty=${rowGdQty}, pricePerItem=${rowPricePerItem}, rowTotal=${rowPrice}`
+      );
+    }
+  });
+
+  console.log("Recalculated total from all rows:", newTotal);
+
+  // Update the grand total
+  this.setData({
+    [`gd_total`]: newTotal,
   });
 
   this.closeDialog("gd_item_balance");

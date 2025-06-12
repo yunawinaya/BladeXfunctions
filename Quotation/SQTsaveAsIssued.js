@@ -426,9 +426,9 @@ const checkCreditOverdueLimit = async (sqt_customer_id, sqt_totalsum) => {
       // Process according to specification:
       // "Ignore parameter with unblock > check for parameter with block's first > if not block only proceed to check for override"
 
-      // First, collect all applicable control types for Sales Orders
+      // First, collect all applicable control types for Quotations
       const applicableControls = controlTypes
-        .filter((ct) => ct.document_type === "Sales Orders")
+        .filter((ct) => ct.document_type === "Quotations")
         .map((ct) => {
           const checkResult = controlTypeChecks[ct.control_type]
             ? controlTypeChecks[ct.control_type]()

@@ -12,6 +12,8 @@ const resetFormFields = () =>
   this.setData({
     ...["billing", "shipping"].reduce((acc, type) => {
       [
+        "address_name",
+        "address_phone",
         "address_line_1",
         "address_line_2",
         "address_line_3",
@@ -20,76 +22,20 @@ const resetFormFields = () =>
         "address_state",
         "postal_code",
         "address_country",
+        "attention",
       ].forEach((key) => {
         acc[`${type}_${key}`] = "";
       });
       return acc;
     }, {}),
-    si_address_name: "",
   });
-
-const formatAddress = async (
-  { line1, line2, line3, line4, city, postalCode },
-  countryId,
-  stateId
-) => {
-  const [resCountry, resState] = await Promise.all([
-    db.collection("country").where({ id: countryId }).get(),
-    db.collection("state").where({ id: stateId }).get(),
-  ]);
-  return [
-    line1,
-    line2,
-    line3,
-    line4,
-    city,
-    postalCode,
-    resState.data[0]?.state_name,
-    resCountry.data[0]?.country_name,
-  ]
-    .filter(Boolean)
-    .join(",\n");
-};
-
-const setAddressFields = async (type, addr) => {
-  const formatted = await formatAddress(
-    {
-      line1: addr.address_line_1,
-      line2: addr.address_line_2,
-      line3: addr.address_line_3,
-      line4: addr.address_line_4,
-      city: addr.address_city,
-      postalCode: addr.postal_code,
-    },
-    addr.address_country,
-    addr.address_state
-  );
-
-  const base = [
-    "address_line_1",
-    "address_line_2",
-    "address_line_3",
-    "address_line_4",
-    "address_city",
-    "address_state",
-    "postal_code",
-    "address_country",
-  ].reduce(
-    (acc, key) => {
-      acc[`${type}_${key}`] = addr[key];
-      return acc;
-    },
-    { [`si_${type}_address`]: formatted }
-  );
-
-  this.setData(base);
-};
 
 const init = async () => {
   if (!salesOrderId) return;
   resetFormFields();
   const d = await getDbData();
   const currencyCode = d.so_currency;
+  const exchangeRate = d.exchange_rate;
 
   if (!currencyCode) {
     this.hide([
@@ -109,33 +55,16 @@ const init = async () => {
     exchange_rate_currency: currencyCode,
   });
   if (currencyCode != "----" && currencyCode != "MYR") {
-    db.collection("currency")
-      .where({ currency_code: currencyCode })
-      .get()
-      .then((res) => {
-        const currencyEntry = res.data[0];
-        this.setData({
-          exchange_rate:
-            this.getValue("exchange_rate") == undefined
-              ? currencyEntry.currency_selling_rate
-              : this.getValue("exchange_rate") !=
-                currencyEntry.currency_selling_rate
-              ? this.getValue("exchange_rate")
-              : currencyEntry.currency_selling_rate,
-        });
-
-        this.display([
-          "exchange_rate",
-          "exchange_rate_myr",
-          "exchange_rate_currency",
-          "myr_total_amount",
-          "total_amount_myr",
-        ]);
-      });
+    this.setData({ exchange_rate: exchangeRate });
+    this.display([
+      "exchange_rate",
+      "exchange_rate_myr",
+      "exchange_rate_currency",
+      "myr_total_amount",
+      "total_amount_myr",
+    ]);
   } else {
-    this.setData({
-      exchange_rate: 1,
-    });
+    this.setData({ exchange_rate: 1 });
     this.hide([
       "exchange_rate",
       "exchange_rate_myr",
@@ -155,12 +84,12 @@ const init = async () => {
     currency_code: currencyCode,
     si_billing_address: d.cust_billing_address,
     si_shipping_address: d.cust_shipping_address,
-    si_address_name: d.cust_billing_name,
-    si_address_contact: d.cust_cp,
   };
 
   const addressFields = ["billing", "shipping"].reduce((acc, type) => {
     [
+      "address_name",
+      "address_phone",
       "address_line_1",
       "address_line_2",
       "address_line_3",
@@ -169,6 +98,7 @@ const init = async () => {
       "address_state",
       "postal_code",
       "address_country",
+      "attention",
     ].forEach((key) => {
       acc[`${type}_${key}`] = d[`${type}_${key}`];
     });
@@ -177,6 +107,27 @@ const init = async () => {
 
   this.setData({ ...commonFields, ...addressFields });
   this.display("address_grid");
+
+  const resCustomer = await db
+    .collection("Customer")
+    .where({ id: d.customer_name })
+    .get();
+
+  const customerData = resCustomer.data[0];
+
+  if (customerData.is_accurate === 0) {
+    this.openDialog("dialog_accurate");
+  }
+
+  this.setData({
+    acc_integration_type: customerData.acc_integration_type,
+    last_sync_date: customerData.last_sync_date,
+    customer_credit_limit: customerData.customer_credit_limit,
+    overdue_limit: customerData.overdue_limit,
+    outstanding_balance: customerData.outstanding_balance,
+    overdue_inv_total_amount: customerData.overdue_inv_total_amount,
+    is_accurate: customerData.is_accurate,
+  });
 };
 
 init();

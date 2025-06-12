@@ -11,195 +11,134 @@ const closeDialog = () => {
 
 // Updated to handle multiple SOs
 const updateSalesOrderStatus = async (salesInvoiceId) => {
-  try {
-    const currentSIQuery = await db
-      .collection("sales_invoice")
-      .where({ id: salesInvoiceId })
+  const currenctSIQuery = await db
+    .collection("sales_invoice")
+    .where({ id: salesInvoiceId })
+    .get();
+  const currentSI = currenctSIQuery.data[0];
+
+  const soIds = Array.isArray(currentSI.so_id)
+    ? currentSI.so_id
+    : [currentSI.so_id];
+
+  const tableSI = await currentSI.table_si;
+
+  const updatePromises = soIds.map(async (salesOrderId) => {
+    const resSO = await db
+      .collection("sales_order")
+      .where({ id: salesOrderId })
       .get();
 
-    if (!currentSIQuery.data || currentSIQuery.data.length === 0) {
-      console.error("Sales invoice not found:", salesInvoiceId);
-      return;
-    }
+    if (!resSO && resSO.data.length === 0) return;
 
-    const currentSI = currentSIQuery.data[0];
-    const soIds = Array.isArray(currentSI.so_id)
-      ? currentSI.so_id
-      : [currentSI.so_id];
+    const soDoc = resSO.data[0];
+    const soItems = soDoc.table_so || [];
+    const filteredSI = tableSI.filter(
+      (item) => item.line_so_no === soDoc.so_no
+    );
 
-    if (!soIds.length) {
-      console.warn("No sales order IDs found for invoice:", salesInvoiceId);
-      return;
-    }
+    const filteredSO = soItems
+      .map((item, index) => ({ ...item, originalIndex: index }))
+      .filter((item) => item.item_name !== "" || item.so_desc !== "");
 
-    // Process each sales order
-    const soUpdates = [];
+    let totalItems = soItems.length;
+    let partiallyInvoicedItems = 0;
+    let fullyInvoicedItems = 0;
 
-    for (const soId of soIds) {
-      if (!soId) {
-        console.warn(
-          "Null or undefined SO ID found in invoice:",
-          salesInvoiceId
-        );
-        continue;
+    let partiallyPostedItems = 0;
+    let fullyPostedItems = 0;
+
+    const updatedSoItems = soItems.map((item) => ({ ...item }));
+
+    filteredSO.forEach((filteredItem, filteredIndex) => {
+      const originalIndex = filteredItem.originalIndex;
+      const orderQty = parseFloat(filteredItem.so_quantity || 0);
+
+      const siInvoicedQty = parseFloat(
+        filteredSI[filteredIndex]?.invoice_qty || 0
+      );
+      const currentInvoicedQty = parseFloat(
+        updatedSoItems[originalIndex].invoice_qty || 0
+      );
+      const totalInvoicedQty = currentInvoicedQty + siInvoicedQty;
+
+      const siPostedQty = parseFloat(
+        filteredSI[filteredIndex]?.posted_qty || 0
+      );
+      const currentPostedQty = parseFloat(
+        updatedSoItems[originalIndex].posted_qty || 0
+      );
+      const totalPostedQty = currentPostedQty + siPostedQty;
+
+      // Update the quantity in the original soItems structure
+      updatedSoItems[originalIndex].invoice_qty = totalInvoicedQty;
+      updatedSoItems[originalIndex].posted_qty = totalPostedQty;
+
+      // Add ratio for tracking purposes
+      updatedSoItems[originalIndex].invoice_ratio =
+        orderQty > 0 ? totalInvoicedQty / orderQty : 0;
+      updatedSoItems[originalIndex].posted_ratio =
+        orderQty > 0 ? totalPostedQty / orderQty : 0;
+
+      if (totalInvoicedQty > 0) {
+        partiallyInvoicedItems++;
+
+        // Count fully delivered items separately
+        if (totalInvoicedQty >= orderQty) {
+          fullyInvoicedItems++;
+        }
       }
 
-      try {
-        const [resComp, resPost, resSO] = await Promise.all([
-          db
-            .collection("sales_invoice")
-            .where({ si_status: "Completed", so_id: soId })
-            .get(),
-          db
-            .collection("sales_invoice")
-            .where({ si_status: "Fully Posted", so_id: soId })
-            .get(),
-          db.collection("sales_order").where({ id: soId }).get(),
-        ]);
+      if (totalPostedQty > 0) {
+        partiallyPostedItems++;
 
-        const allSIs = [...(resComp.data || []), ...(resPost.data || [])] || [];
-        const postSIs = resPost.data || [];
-
-        if (!resSO.data || resSO.data.length === 0) {
-          console.error("Sales order not found for SO ID:", soId);
-          continue;
+        // Count fully delivered items separately
+        if (totalPostedQty >= orderQty) {
+          fullyPostedItems++;
         }
-
-        const soData = resSO.data[0];
-        const soItems = soData.table_so || [];
-
-        // Create a map to sum received quantities for each item
-        const invoicedQtyMap = {};
-        const postedQtyMap = {};
-
-        // Initialize with zeros
-        soItems.forEach((item) => {
-          if (item && item.item_name) {
-            invoicedQtyMap[item.item_name] = 0;
-            postedQtyMap[item.item_name] = 0;
-          }
-        });
-
-        // Sum received quantities from all SIs
-        allSIs.forEach((si) => {
-          if (!si || !si.table_si) return;
-
-          si.table_si.forEach((siItem) => {
-            if (
-              siItem &&
-              siItem.material_id &&
-              invoicedQtyMap.hasOwnProperty(siItem.material_id)
-            ) {
-              const invoiceQty = parseFloat(siItem.invoice_qty) || 0;
-              invoicedQtyMap[siItem.material_id] += invoiceQty;
-            }
-          });
-        });
-
-        postSIs.forEach((si) => {
-          if (!si || !si.table_si) return;
-
-          si.table_si.forEach((siItem) => {
-            if (
-              siItem &&
-              siItem.material_id &&
-              postedQtyMap.hasOwnProperty(siItem.material_id)
-            ) {
-              const invoiceQty = parseFloat(siItem.invoice_qty) || 0;
-              postedQtyMap[siItem.material_id] += invoiceQty;
-            }
-          });
-        });
-
-        let allItemsComplete = true;
-        let allItemsPosted = true;
-        let anyItemProcessing = false;
-        let anyItemPartiallyPosted = false;
-
-        soItems.forEach((item) => {
-          if (!item || !item.item_name) return;
-
-          const orderedQty = parseFloat(item.so_quantity) || 0;
-          const invoicedQty = parseFloat(invoicedQtyMap[item.item_name]) || 0;
-          const postedQty = parseFloat(postedQtyMap[item.item_name]) || 0;
-
-          if (invoicedQty < orderedQty) {
-            allItemsComplete = false;
-            if (invoicedQty > 0) {
-              anyItemProcessing = true;
-            }
-          }
-
-          if (postedQty < orderedQty) {
-            allItemsPosted = false;
-            if (postedQty > 0) {
-              anyItemPartiallyPosted = true;
-            }
-          }
-        });
-
-        const newSIStatus = allItemsComplete
-          ? "Fully Invoiced"
-          : anyItemProcessing
-          ? "Partially Invoiced"
-          : soData.si_status;
-
-        const newSIPostedStatus = allItemsPosted
-          ? "Fully Posted"
-          : anyItemPartiallyPosted
-          ? "Partially Posted"
-          : soData.si_posted_status;
-
-        // Prepare updates for this SO
-        if (newSIStatus !== soData.si_status) {
-          soUpdates.push(
-            db
-              .collection("sales_order")
-              .doc(soId)
-              .update({ si_status: newSIStatus })
-          );
-        }
-
-        if (newSIPostedStatus !== soData.si_posted_status) {
-          soUpdates.push(
-            db
-              .collection("sales_order")
-              .doc(soId)
-              .update({ si_posted_status: newSIPostedStatus })
-          );
-        }
-      } catch (soError) {
-        console.error(`Error processing sales order ${soId}:`, soError);
-        // Continue with next SO instead of failing the entire operation
       }
+    });
+
+    let allItemsCompleteInvoiced = fullyInvoicedItems === totalItems;
+    let anyItemProcessingInvoiced = partiallyInvoicedItems > 0;
+
+    let allItemsCompletePosted = fullyPostedItems === totalItems;
+    let anyItemProcessingPosted = partiallyPostedItems > 0;
+
+    let newSIStatus = soDoc.si_status;
+    let newSIPostedStatus = soDoc.si_posted_status;
+
+    if (allItemsCompleteInvoiced) {
+      newSIStatus = "Fully Invoiced";
+    } else if (anyItemProcessingInvoiced) {
+      newSIStatus = "Partially Invoiced";
     }
 
-    const updates = [...soUpdates];
-
-    // Update GDs - Only if they exist
-    if (
-      currentSI.goods_delivery_number &&
-      Array.isArray(currentSI.goods_delivery_number)
-    ) {
-      const gdUpdates = currentSI.goods_delivery_number
-        .filter((gd) => gd) // Filter out null/undefined values
-        .map((gd) =>
-          db
-            .collection("goods_delivery")
-            .doc(gd)
-            .update({ si_status: "Fully Invoiced" })
-        );
-      updates.push(...gdUpdates);
+    if (allItemsCompletePosted) {
+      newSIPostedStatus = "Fully Posted";
+    } else if (anyItemProcessingPosted) {
+      newSIPostedStatus = "Partially Posted";
     }
 
-    if (updates.length > 0) {
-      return Promise.all(updates);
-    }
+    const updateData = {
+      table_so: updatedSoItems,
+    };
 
-    return Promise.resolve(); // Return resolved promise if no updates needed
-  } catch (error) {
-    console.error("Error in updateSalesOrderStatus:", error);
-    return Promise.reject(error);
+    updateData.si_status = newSIStatus;
+    updateData.si_posted_status = newSIPostedStatus;
+
+    await db.collection("sales_order").doc(soDoc.id).update(updateData);
+  });
+
+  await Promise.all(updatePromises);
+
+  const goodsDeliveryNo = currentSI.goods_delivery_number;
+  if (goodsDeliveryNo) {
+    goodsDeliveryNo.forEach((gd) => {
+      db.collection("goods_delivery").doc(gd).update({
+        si_status: "Fully Invoiced",
+      });
+    });
   }
 };
 
@@ -229,7 +168,7 @@ const validateForm = (data, requiredFields) => {
     }
 
     // Check each item in the array
-    if (field.arrayType === "object" && field.arrayFields) {
+    if (field.arrayType === "object" && field.arrayFields && value.length > 0) {
       value.forEach((item, index) => {
         field.arrayFields.forEach((subField) => {
           const subValue = item[subField.name];
@@ -249,6 +188,7 @@ const validateForm = (data, requiredFields) => {
 const validateField = (value, field) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "number") return value <= 0;
   if (Array.isArray(value)) return value.length === 0;
   if (typeof value === "object") return Object.keys(value).length === 0;
   return !value;
@@ -311,15 +251,18 @@ const generatePrefix = (runNumber, now, prefixData) => {
   return generated;
 };
 
-const checkUniqueness = async (generatedPrefix) => {
+const checkUniqueness = async (generatedPrefix, organizationId) => {
   const existingDoc = await db
     .collection("sales_invoice")
-    .where({ sales_invoice_no: generatedPrefix })
+    .where({
+      sales_invoice_no: generatedPrefix,
+      organization_id: organizationId,
+    })
     .get();
-  return !existingDoc.data || existingDoc.data.length === 0;
+  return existingDoc.data[0] ? false : true;
 };
 
-const findUniquePrefix = async (prefixData) => {
+const findUniquePrefix = async (prefixData, organizationId) => {
   const now = new Date();
   let prefixToShow;
   let runningNumber = prefixData.running_number;
@@ -329,8 +272,8 @@ const findUniquePrefix = async (prefixData) => {
 
   while (!isUnique && attempts < maxAttempts) {
     attempts++;
-    prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow);
+    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
+    isUnique = await checkUniqueness(prefixToShow, organizationId);
     if (!isUnique) {
       runningNumber++;
     }
@@ -341,86 +284,408 @@ const findUniquePrefix = async (prefixData) => {
       "Could not generate a unique Sales Invoices number after maximum attempts"
     );
   }
-
   return { prefixToShow, runningNumber };
+};
+
+// Check credit & overdue limit before doing any process
+const checkCreditOverdueLimit = async (customer_id, invoice_total) => {
+  try {
+    const fetchCustomer = await db
+      .collection("Customer")
+      .where({ id: customer_id, is_deleted: 0 })
+      .get();
+
+    const customerData = fetchCustomer.data[0];
+    if (!customerData) {
+      console.error(`Customer ${customer_id} not found`);
+      this.$message.error(`Customer ${customer_id} not found`);
+      return false;
+    }
+
+    const controlTypes = customerData.control_type_list;
+
+    const outstandingAmount =
+      parseFloat(customerData.outstanding_balance || 0) || 0;
+    const overdueAmount =
+      parseFloat(customerData.overdue_inv_total_amount || 0) || 0;
+    const overdueLimit = parseFloat(customerData.overdue_limit || 0) || 0;
+    const creditLimit =
+      parseFloat(customerData.customer_credit_limit || 0) || 0;
+    const gdTotal = parseFloat(invoice_total || 0) || 0;
+    const revisedOutstandingAmount = outstandingAmount + gdTotal;
+
+    // Helper function to show specific pop-ups as per specification
+    const showPopup = (popupNumber) => {
+      this.openDialog("dialog_credit_limit");
+      this.setData({ is_posted: 1 });
+
+      const popupConfigs = {
+        1: {
+          // Pop-up 1: Exceed Credit Limit Only (Block)
+          alert: "alert_credit_limit", // "Alert: Credit Limit Exceeded - Review Required"
+          text: "text_credit_limit", // "The customer has exceed the allowed credit limit."
+          showCredit: true,
+          showOverdue: false,
+          isBlock: true,
+          buttonText: "text_1", // "Please review the credit limit or adjust the order amount before issuing the SO."
+        },
+        2: {
+          // Pop-up 2: Exceed Overdue Limit Only (Block)
+          alert: "alert_overdue_limit", // "Alert: Overdue Limit Exceeded - Review Required"
+          text: "text_overdue_limit", // "The customer has exceeded the allowed overdue limit."
+          showCredit: false,
+          showOverdue: true,
+          isBlock: true,
+          buttonText: "text_2", // "Please review overdue invoices before proceeding."
+        },
+        3: {
+          // Pop-up 3: Exceed Both, Credit Limit and Overdue Limit (Block)
+          alert: "alert_credit_overdue", // "Alert: Credit Limit and Overdue Limit Exceeded - Review Required"
+          text: "text_credit_overdue", // "The customer has exceeded both credit limit and overdue limit."
+          showCredit: true,
+          showOverdue: true,
+          isBlock: true,
+          buttonText: "text_3", // "Please review both limits before proceeding."
+        },
+        4: {
+          // Pop-up 4: Exceed Overdue Limit Only (Override)
+          alert: "alert_overdue_limit", // "Alert: Overdue Limit Exceeded - Review Required"
+          text: "text_overdue_limit", // "The customer has exceeded the allowed overdue limit."
+          showCredit: false,
+          showOverdue: true,
+          isBlock: false,
+          buttonText: "text_4", // "Please confirm if you wants to save it."
+        },
+        5: {
+          // Pop-up 5: Exceed Credit Limit Only (Override)
+          alert: "alert_credit_limit", // "Alert: Credit Limit Exceeded - Review Required"
+          text: "text_credit_limit", // "The customer has exceed the allowed credit limit."
+          showCredit: true,
+          showOverdue: false,
+          isBlock: false,
+          buttonText: "text_4", // "Please confirm if you wants to save it."
+        },
+        6: {
+          // Pop-up 6: Suspended
+          alert: "alert_suspended", // "Customer Account Suspended"
+          text: "text_suspended", // "This order cannot be processed at this time due to the customer's suspended account status."
+          showCredit: false,
+          showOverdue: false,
+          isBlock: true,
+          buttonText: null, // No additional text needed
+        },
+        7: {
+          // Pop-up 7: Exceed Both, Credit Limit and Overdue Limit (Override)
+          alert: "alert_credit_overdue", // "Alert: Credit Limit and Overdue Limit Exceeded - Review Required"
+          text: "text_credit_overdue", // "The customer has exceeded both credit limit and overdue limit."
+          showCredit: true,
+          showOverdue: true,
+          isBlock: false,
+          buttonText: "text_4", // "Please confirm if you wants to save it."
+        },
+      };
+
+      const config = popupConfigs[popupNumber];
+      if (!config) return false;
+
+      // Show alert message
+      this.display(`dialog_credit_limit.${config.alert}`);
+
+      // Show description text
+      this.display(`dialog_credit_limit.${config.text}`);
+
+      const dataToSet = {};
+
+      // Show credit limit details if applicable
+      if (config.showCredit) {
+        this.display("dialog_credit_limit.total_allowed_credit");
+        this.display("dialog_credit_limit.total_credit");
+        dataToSet["dialog_credit_limit.total_allowed_credit"] = creditLimit;
+        dataToSet["dialog_credit_limit.total_credit"] =
+          revisedOutstandingAmount;
+      }
+
+      // Show overdue limit details if applicable
+      if (config.showOverdue) {
+        this.display("dialog_credit_limit.total_allowed_overdue");
+        this.display("dialog_credit_limit.total_overdue");
+        dataToSet["dialog_credit_limit.total_allowed_overdue"] = overdueLimit;
+        dataToSet["dialog_credit_limit.total_overdue"] = overdueAmount;
+      }
+
+      // Show action text if applicable
+      if (config.buttonText) {
+        this.display(`dialog_credit_limit.${config.buttonText}`);
+      }
+
+      // Show appropriate buttons
+      if (config.isBlock) {
+        this.display("dialog_credit_limit.button_back"); // "Back" button
+      } else {
+        this.display("dialog_credit_limit.button_yes"); // "Yes" button
+        this.display("dialog_credit_limit.button_no"); // "No" button
+      }
+
+      this.setData(dataToSet);
+      return false;
+    };
+
+    // Check if accuracy flag is set
+    if (controlTypes && Array.isArray(controlTypes)) {
+      // Define control type behaviors according to specification
+      const controlTypeChecks = {
+        // Control Type 0: Ignore both checks (always pass)
+        0: () => {
+          console.log("Control Type 0: Ignoring all credit/overdue checks");
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 1: Ignore credit, block overdue
+        1: () => {
+          if (overdueAmount > overdueLimit) {
+            return { result: showPopup(2), priority: "block" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 2: Ignore credit, override overdue
+        2: () => {
+          if (overdueAmount > overdueLimit) {
+            return { result: showPopup(4), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 3: Block credit, ignore overdue
+        3: () => {
+          if (revisedOutstandingAmount > creditLimit) {
+            return { result: showPopup(1), priority: "block" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 4: Block both
+        4: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          if (creditExceeded && overdueExceeded) {
+            return { result: showPopup(3), priority: "block" };
+          } else if (creditExceeded) {
+            return { result: showPopup(1), priority: "block" };
+          } else if (overdueExceeded) {
+            return { result: showPopup(2), priority: "block" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 5: Block credit, override overdue
+        5: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          // Credit limit block takes priority
+          if (creditExceeded) {
+            if (overdueExceeded) {
+              return { result: showPopup(3), priority: "block" };
+            } else {
+              return { result: showPopup(1), priority: "block" };
+            }
+          } else if (overdueExceeded) {
+            return { result: showPopup(4), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 6: Override credit, ignore overdue
+        6: () => {
+          if (revisedOutstandingAmount > creditLimit) {
+            return { result: showPopup(5), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 7: Override credit, block overdue
+        7: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          // Overdue block takes priority over credit override
+          if (overdueExceeded) {
+            return { result: showPopup(2), priority: "block" };
+          } else if (creditExceeded) {
+            return { result: showPopup(5), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 8: Override both
+        8: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          if (creditExceeded && overdueExceeded) {
+            return { result: showPopup(7), priority: "override" };
+          } else if (creditExceeded) {
+            return { result: showPopup(5), priority: "override" };
+          } else if (overdueExceeded) {
+            return { result: showPopup(4), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 9: Suspended customer
+        9: () => {
+          return { result: showPopup(6), priority: "block" };
+        },
+      };
+
+      // Process according to specification:
+      // "Ignore parameter with unblock > check for parameter with block's first > if not block only proceed to check for override"
+
+      // First, collect all applicable control types for Sales Invoices
+      const applicableControls = controlTypes
+        .filter((ct) => ct.document_type === "Sales Invoices")
+        .map((ct) => {
+          const checkResult = controlTypeChecks[ct.control_type]
+            ? controlTypeChecks[ct.control_type]()
+            : { result: true, priority: "unblock" };
+          return {
+            ...checkResult,
+            control_type: ct.control_type,
+          };
+        });
+
+      // Sort by priority: blocks first, then overrides, then unblocks
+      const priorityOrder = { block: 1, override: 2, unblock: 3 };
+      applicableControls.sort(
+        (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
+      );
+
+      // Process in priority order
+      for (const control of applicableControls) {
+        if (control.result !== true) {
+          console.log(
+            `Control Type ${control.control_type} triggered with ${control.priority}`
+          );
+          return control.result;
+        }
+      }
+
+      // All checks passed
+      return true;
+    } else {
+      console.log(
+        "No control type defined for customer or invalid control type format"
+      );
+      return true;
+    }
+  } catch (error) {
+    console.error("Error checking credit/overdue limits:", error);
+    this.$alert(
+      "An error occurred while checking credit limits. Please try again.",
+      "Error",
+      {
+        confirmButtonText: "OK",
+        type: "error",
+      }
+    );
+    return false;
+  }
 };
 
 const addEntry = async (organizationId, entry) => {
   try {
     const prefixData = await getPrefixData(organizationId);
 
-    if (!prefixData || !prefixData.id) {
-      throw new Error("Invalid prefix configuration");
+    if (prefixData !== null) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData,
+        organizationId
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      entry.sales_invoice_no = prefixToShow;
     }
 
-    const { prefixToShow, runningNumber } = await findUniquePrefix(prefixData);
+    await db.collection("sales_invoice").add(entry);
 
-    // Set the generated prefix
-    entry.sales_invoice_no = prefixToShow;
+    // si line item workflow
+    this.runWorkflow(
+      "1917950696199892993",
+      { sales_invoice_no: entry.sales_invoice_no },
+      (res) => {
+        console.log("Workflow 1 completed successfully:", res);
+      },
+      (err) => {
+        console.error("Workflow 1 failed:", err);
+        this.$message.error(
+          "Workflow execution failed: " + (err.message || "Unknown error")
+        );
+      }
+    );
 
-    // Transaction-like approach to ensure data consistency
-    await updatePrefix(organizationId, runningNumber);
+    const accIntegrationType = this.getValue("acc_integration_type");
 
-    const addResult = await db.collection("sales_invoice").add(entry);
+    if (
+      accIntegrationType === "SQL Accounting" &&
+      entry.organizationId &&
+      entry.organizationId !== ""
+    ) {
+      console.log("Calling SQL Accounting workflow");
 
-    // Run workflow for the newly added invoice
-    await new Promise((resolve, reject) => {
-      self.runWorkflow(
-        "1917950696199892993",
-        { sales_invoice_no: entry.sales_invoice_no },
-        (res) => {
-          console.log("Workflow 1 completed successfully:", res);
-          resolve(res);
-        },
-        (err) => {
-          console.error("Workflow 1 failed:", err);
-          self.$message.error(
-            "Workflow execution failed: " + (err.message || "Unknown error")
-          );
-          reject(err);
-        }
-      );
-    });
-
-    // Run second workflow
-    await new Promise((resolve, reject) => {
-      self.runWorkflow(
-        "1902567975299432449",
+      this.runWorkflow(
+        "1925444406441488386",
         { key: "value" },
-        async (res) => {
-          console.log("Workflow 2 completed successfully:", res);
+        (res) => {
+          console.log("Post SI Success: ", res);
+          const siList = res.data.result;
 
-          const siList = res.data.result || [];
-
-          // Process all successful SIs in parallel
-          try {
-            await Promise.all(
-              siList
-                .filter((si) => si.status === "SUCCESS")
-                .map((si) => updateSalesOrderStatus(si.id))
-            );
-
-            self.$message.success("Add successfully");
-            closeDialog();
-            resolve(res);
-          } catch (updateError) {
-            console.error("Error updating sales order status:", updateError);
-            self.$message.error(
-              "Add successful but failed to update related records"
-            );
-            closeDialog();
-            resolve(res); // Still resolve since the add was successful
-          }
+          siList.forEach(async (si) => {
+            if (si.status === "SUCCESS") {
+              await this.runWorkflow(
+                "1902566784276480001",
+                { cust_id: si.cust_id },
+                async (res) => {
+                  await updateSalesOrderStatus(si.id);
+                  this.$message.success("Post successfully");
+                  closeDialog();
+                },
+                (err) => {
+                  this.hideLoading();
+                  this.$message.error("Post SI Failed: ", err);
+                }
+              );
+            }
+          });
+          this.$message.success("Update Sales Invoice successfully");
+          closeDialog();
         },
         (err) => {
-          console.error("Workflow 2 failed:", err);
-          self.$message.error(
-            "Workflow execution failed: " + (err.message || "Unknown error")
-          );
-          reject(err);
+          this.hideLoading();
+          this.$message.error("Post SI Failed: ", err);
         }
       );
-    });
+    } else if (
+      accIntegrationType === "AutoCount Accounting" &&
+      entry.organizationId &&
+      entry.organizationId !== ""
+    ) {
+      this.$message.success("Add Sales Invoice successfully");
+      await closeDialog();
+      console.log("Calling AutoCount workflow");
+    } else if (
+      accIntegrationType === "No Accounting Integration" &&
+      entry.organizationId &&
+      entry.organizationId !== ""
+    ) {
+      this.$message.success("Add Sales Invoice successfully");
+      await closeDialog();
+      console.log("Not calling workflow");
+    } else {
+      await closeDialog();
+    }
   } catch (error) {
     console.error("Error in addEntry:", error);
     self.$message.error(error.message || "Failed to add Sales Invoice");
@@ -431,69 +696,96 @@ const addEntry = async (organizationId, entry) => {
 
 const updateEntry = async (organizationId, entry, salesInvoiceId) => {
   try {
-    // For updates, we should use the existing sales_invoice_no
-    // No need to generate a new one unless specifically requested
+    const prefixData = await getPrefixData(organizationId);
+
+    if (prefixData !== null) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData,
+        organizationId
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      entry.sales_invoice_no = prefixToShow;
+    }
 
     await db.collection("sales_invoice").doc(salesInvoiceId).update(entry);
 
-    // Run first workflow
-    await new Promise((resolve, reject) => {
-      self.runWorkflow(
-        "1917950696199892993",
-        { sales_invoice_no: entry.sales_invoice_no },
-        (res) => {
-          console.log("Workflow 1 completed successfully:", res);
-          resolve(res);
-        },
-        (err) => {
-          console.error("Workflow 1 failed:", err);
-          self.$message.error(
-            "Workflow execution failed: " + (err.message || "Unknown error")
-          );
-          reject(err);
-        }
-      );
-    });
+    // si line item workflow
+    this.runWorkflow(
+      "1917950696199892993",
+      { sales_invoice_no: entry.sales_invoice_no },
+      (res) => {
+        console.log("Workflow 1 completed successfully:", res);
+      },
+      (err) => {
+        console.error("Workflow 1 failed:", err);
+        this.$message.error(
+          "Workflow execution failed: " + (err.message || "Unknown error")
+        );
+      }
+    );
 
-    // Run second workflow
-    await new Promise((resolve, reject) => {
-      self.runWorkflow(
-        "1902567975299432449",
+    const accIntegrationType = this.getValue("acc_integration_type");
+
+    if (
+      accIntegrationType === "SQL Accounting" &&
+      entry.organizationId &&
+      entry.organizationId !== ""
+    ) {
+      console.log("Calling SQL Accounting workflow");
+
+      this.runWorkflow(
+        "1925444406441488386",
         { key: "value" },
-        async (res) => {
-          console.log("Workflow 2 completed successfully:", res);
+        (res) => {
+          console.log("Post SI Success: ", res);
+          const siList = res.data.result;
 
-          const siList = res.data.result || [];
-
-          // Process all successful SIs in parallel
-          try {
-            await Promise.all(
-              siList
-                .filter((si) => si.status === "SUCCESS")
-                .map((si) => updateSalesOrderStatus(si.id))
-            );
-
-            self.$message.success("Update successfully");
-            closeDialog();
-            resolve(res);
-          } catch (updateError) {
-            console.error("Error updating sales order status:", updateError);
-            self.$message.error(
-              "Update successful but failed to update related records"
-            );
-            closeDialog();
-            resolve(res); // Still resolve since the update was successful
-          }
+          siList.forEach(async (si) => {
+            if (si.status === "SUCCESS") {
+              await this.runWorkflow(
+                "1902566784276480001",
+                { cust_id: si.cust_id },
+                async (res) => {
+                  await updateSalesOrderStatus(si.id);
+                  this.$message.success("Post successfully");
+                  closeDialog();
+                },
+                (err) => {
+                  this.hideLoading();
+                  this.$message.error("Post SI Failed: ", err);
+                }
+              );
+            }
+          });
+          this.$message.success("Update Sales Invoice successfully");
+          closeDialog();
         },
         (err) => {
-          console.error("Workflow 2 failed:", err);
-          self.$message.error(
-            "Workflow execution failed: " + (err.message || "Unknown error")
-          );
-          reject(err);
+          this.hideLoading();
+          this.$message.error("Post SI Failed: ", err);
         }
       );
-    });
+    } else if (
+      accIntegrationType === "AutoCount Accounting" &&
+      entry.organizationId &&
+      entry.organizationId !== ""
+    ) {
+      this.$message.success("Add Sales Invoice successfully");
+      await closeDialog();
+      console.log("Calling AutoCount workflow");
+    } else if (
+      accIntegrationType === "No Accounting Integration" &&
+      entry.organizationId &&
+      entry.organizationId !== ""
+    ) {
+      this.$message.success("Add Sales Invoice successfully");
+      await closeDialog();
+      console.log("Not calling workflow");
+    } else {
+      await closeDialog();
+    }
   } catch (error) {
     console.error("Error in updateEntry:", error);
     self.$message.error(error.message || "Failed to update Sales Invoice");
@@ -509,8 +801,8 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
     self.showLoading();
 
     const requiredFields = [
+      { name: "plant_id", label: "Plant" },
       { name: "so_id", label: "SO Number" },
-      { name: "goods_delivery_number", label: "Goods Delivery Number" },
       { name: "sales_invoice_no", label: "Sales Invoice Number " },
       { name: "sales_invoice_date", label: "Sales Invoice Date" },
       { name: "si_description", label: "Description" },
@@ -524,6 +816,20 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
     ];
 
     const missingFields = validateForm(data, requiredFields);
+
+    if (data.acc_integration_type !== null) {
+      const canProceed = await checkCreditOverdueLimit(
+        data.customer_id,
+        data.invoice_total
+      );
+      if (!canProceed) {
+        console.log("Credit/overdue limit check failed");
+        this.hideLoading();
+        return;
+      }
+    }
+
+    console.log("Credit/overdue limit check passed");
 
     if (missingFields.length === 0) {
       const page_status = self.getValue("page_status");
@@ -546,8 +852,6 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
       const {
         fake_so_id,
         customer_id,
-        si_address_name,
-        si_address_contact,
         sales_invoice_no,
         sales_invoice_date,
         sales_person_id,
@@ -555,7 +859,6 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         si_description,
         plant_id,
         organization_id,
-        fileupload_hmtcurne,
         so_no_display,
         table_si,
         invoice_subtotal,
@@ -575,6 +878,10 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         billing_address_state,
         billing_postal_code,
         billing_address_country,
+        billing_address_name,
+        billing_address_phone,
+        billing_attention,
+
         shipping_address_line_1,
         shipping_address_line_2,
         shipping_address_line_3,
@@ -583,8 +890,21 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         shipping_address_state,
         shipping_postal_code,
         shipping_address_country,
+        shipping_address_name,
+        shipping_address_phone,
+        shipping_attention,
+
         exchange_rate,
         myr_total_amount,
+        si_ref_doc,
+
+        acc_integration_type,
+        last_sync_date,
+        customer_credit_limit,
+        overdue_limit,
+        outstanding_balance,
+        overdue_inv_total_amount,
+        is_accurate,
       } = data;
 
       const entry = {
@@ -593,8 +913,6 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         fake_so_id,
         so_id,
         customer_id,
-        si_address_name,
-        si_address_contact,
         goods_delivery_number,
         sales_invoice_no,
         sales_invoice_date,
@@ -604,7 +922,6 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         plant_id,
         organization_id,
         so_no_display,
-        fileupload_hmtcurne,
         table_si,
         invoice_subtotal,
         invoice_total_discount,
@@ -623,6 +940,10 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         billing_address_state,
         billing_postal_code,
         billing_address_country,
+        billing_address_name,
+        billing_address_phone,
+        billing_attention,
+
         shipping_address_line_1,
         shipping_address_line_2,
         shipping_address_line_3,
@@ -631,8 +952,21 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         shipping_address_state,
         shipping_postal_code,
         shipping_address_country,
+        shipping_address_name,
+        shipping_address_phone,
+        shipping_attention,
+
         exchange_rate,
         myr_total_amount,
+        si_ref_doc,
+
+        acc_integration_type,
+        last_sync_date,
+        customer_credit_limit,
+        overdue_limit,
+        outstanding_balance,
+        overdue_inv_total_amount,
+        is_accurate,
       };
 
       if (page_status === "Add") {
