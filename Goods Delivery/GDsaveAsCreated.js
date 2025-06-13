@@ -233,8 +233,180 @@ const findUniquePrefix = async (prefixData, organizationId) => {
   return { prefixToShow, runningNumber };
 };
 
-const processBalanceTable = async (data, isUpdate = false) => {
+// NEW FUNCTION: Handle existing inventory movements for updates
+const handleExistingInventoryMovements = async (
+  deliveryNo,
+  isUpdate = false
+) => {
+  if (!isUpdate) {
+    console.log(
+      "Not an update operation, skipping existing inventory movement handling"
+    );
+    return;
+  }
+
+  try {
+    console.log(
+      `Handling existing inventory movements for delivery: ${deliveryNo}`
+    );
+
+    // Find all existing inventory movements for this GD
+    const existingMovements = await db
+      .collection("inventory_movement")
+      .where({
+        transaction_type: "GDL",
+        trx_no: deliveryNo,
+        is_deleted: 0,
+      })
+      .get();
+
+    if (existingMovements.data && existingMovements.data.length > 0) {
+      console.log(
+        `Found ${existingMovements.data.length} existing inventory movements to mark as deleted`
+      );
+
+      // Mark all existing movements as deleted
+      const updatePromises = existingMovements.data.map((movement) =>
+        db.collection("inventory_movement").doc(movement.id).update({
+          is_deleted: 1,
+          deleted_at: new Date().toISOString(),
+        })
+      );
+
+      await Promise.all(updatePromises);
+      console.log(
+        "Successfully marked existing inventory movements as deleted"
+      );
+    } else {
+      console.log("No existing inventory movements found for this delivery");
+    }
+  } catch (error) {
+    console.error("Error handling existing inventory movements:", error);
+    throw error;
+  }
+};
+
+// NEW FUNCTION: Reverse balance changes for updates
+const reverseBalanceChanges = async (data, isUpdate = false) => {
+  if (!isUpdate) {
+    console.log("Not an update operation, skipping balance reversal");
+    return;
+  }
+
+  console.log("Reversing previous balance changes");
+  const items = data.table_gd;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    console.log("No items to reverse");
+    return;
+  }
+
+  for (const item of items) {
+    try {
+      // Only process if item has previous temp data and stock control is enabled
+      if (!item.prev_temp_qty_data || !item.material_id) {
+        continue;
+      }
+
+      // Check if this item should be processed based on stock_control
+      const itemRes = await db
+        .collection("Item")
+        .where({ id: item.material_id })
+        .get();
+
+      if (!itemRes.data || !itemRes.data.length) {
+        console.error(`Item not found: ${item.material_id}`);
+        continue;
+      }
+
+      const itemData = itemRes.data[0];
+      if (itemData.stock_control === 0) {
+        console.log(
+          `Skipping balance reversal for item ${item.material_id} (stock_control=0)`
+        );
+        continue;
+      }
+
+      const prevTempData = JSON.parse(item.prev_temp_qty_data);
+
+      for (const prevTemp of prevTempData) {
+        const itemBalanceParams = {
+          material_id: item.material_id,
+          location_id: prevTemp.location_id,
+        };
+
+        if (prevTemp.batch_id) {
+          itemBalanceParams.batch_id = prevTemp.batch_id;
+        }
+
+        const balanceCollection = prevTemp.batch_id
+          ? "item_batch_balance"
+          : "item_balance";
+
+        const balanceQuery = await db
+          .collection(balanceCollection)
+          .where(itemBalanceParams)
+          .get();
+
+        if (balanceQuery.data && balanceQuery.data.length > 0) {
+          const existingDoc = balanceQuery.data[0];
+
+          // UOM Conversion for previous quantity
+          let prevBaseQty = roundQty(prevTemp.gd_quantity);
+
+          if (
+            Array.isArray(itemData.table_uom_conversion) &&
+            itemData.table_uom_conversion.length > 0
+          ) {
+            const uomConversion = itemData.table_uom_conversion.find(
+              (conv) => conv.alt_uom_id === item.gd_order_uom_id
+            );
+
+            if (uomConversion) {
+              prevBaseQty = roundQty(prevBaseQty * uomConversion.base_qty);
+            }
+          }
+
+          // Reverse the previous changes: add back to unrestricted, subtract from reserved
+          await db
+            .collection(balanceCollection)
+            .doc(existingDoc.id)
+            .update({
+              unrestricted_qty: roundQty(
+                parseFloat(existingDoc.unrestricted_qty || 0) + prevBaseQty
+              ),
+              reserved_qty: roundQty(
+                parseFloat(existingDoc.reserved_qty || 0) - prevBaseQty
+              ),
+            });
+
+          console.log(
+            `Reversed balance for item ${item.material_id}, location ${prevTemp.location_id}`
+          );
+        }
+      }
+    } catch (error) {
+      console.error(
+        `Error reversing balance for item ${item.material_id}:`,
+        error
+      );
+      throw error;
+    }
+  }
+};
+
+const processBalanceTable = async (
+  data,
+  isUpdate = false,
+  oldDeliveryNo = null
+) => {
   console.log("Processing balance table");
+
+  // STEP 1: Handle existing inventory movements and reverse balance changes for updates
+  if (isUpdate) {
+    await handleExistingInventoryMovements(oldDeliveryNo, isUpdate);
+    await reverseBalanceChanges(data, isUpdate);
+  }
 
   const items = data.table_gd;
 
@@ -253,9 +425,9 @@ const processBalanceTable = async (data, isUpdate = false) => {
         return null;
       }
 
-      // Track created or updated documents for potential rollback
-      const updatedDocs = [];
+      // Track created documents for potential rollback
       const createdDocs = [];
+      const updatedDocs = [];
 
       // First check if this item should be processed based on stock_control
       const itemRes = await db
@@ -277,17 +449,10 @@ const processBalanceTable = async (data, isUpdate = false) => {
       }
 
       const temporaryData = JSON.parse(item.temp_qty_data);
-      const prevTempData = isUpdate
-        ? JSON.parse(item.prev_temp_qty_data)
-        : null;
 
-      if (
-        temporaryData.length > 0 &&
-        (!isUpdate || (prevTempData && prevTempData.length > 0))
-      ) {
+      if (temporaryData.length > 0) {
         for (let i = 0; i < temporaryData.length; i++) {
           const temp = temporaryData[i];
-          const prevTemp = isUpdate ? prevTempData[i] : null;
 
           const itemBalanceParams = {
             material_id: item.material_id,
@@ -398,6 +563,7 @@ const processBalanceTable = async (data, isUpdate = false) => {
             costing_method_id: item.item_costing_method,
             plant_id: data.plant_id,
             organization_id: data.organization_id,
+            is_deleted: 0, // Explicitly set as not deleted
           };
 
           // Create inventory_movement record - IN to Reserved
@@ -419,6 +585,7 @@ const processBalanceTable = async (data, isUpdate = false) => {
             costing_method_id: item.item_costing_method,
             plant_id: data.plant_id,
             organization_id: data.organization_id,
+            is_deleted: 0, // Explicitly set as not deleted
           };
 
           // Add both movement records
@@ -439,10 +606,8 @@ const processBalanceTable = async (data, isUpdate = false) => {
           });
 
           if (existingDoc && existingDoc.id) {
-            // Determine quantity change based on update or add
-            const gdQuantity = isUpdate
-              ? roundQty(parseFloat(baseQty) - parseFloat(prevTemp.gd_quantity))
-              : roundQty(parseFloat(baseQty));
+            // For new processing, always use the current quantity
+            const gdQuantity = roundQty(parseFloat(baseQty));
 
             // Store original values for potential rollback
             updatedDocs.push({
@@ -565,7 +730,7 @@ const addEntry = async (organizationId, gd) => {
     }
 
     await db.collection("goods_delivery").add(gd);
-    await processBalanceTable(gd);
+    await processBalanceTable(gd, false); // false = not an update
     this.$message.success("Add successfully");
     await closeDialog();
   } catch (error) {
@@ -575,6 +740,7 @@ const addEntry = async (organizationId, gd) => {
 
 const updateEntry = async (organizationId, gd, goodsDeliveryId) => {
   try {
+    const oldDeliveryNo = gd.delivery_no;
     const prefixData = await getPrefixData(organizationId);
 
     if (prefixData.length !== 0) {
@@ -589,7 +755,7 @@ const updateEntry = async (organizationId, gd, goodsDeliveryId) => {
     }
 
     await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
-    await processBalanceTable(gd, true);
+    await processBalanceTable(gd, true, oldDeliveryNo); // true = this is an update
     this.$message.success("Update successfully");
     await closeDialog();
   } catch (error) {
@@ -646,8 +812,8 @@ const findFieldMessage = (obj) => {
       },
     ];
 
-    for (const gd of data.table_gd) {
-      await this.validate(gd.gd_qty);
+    for (const [index, item] of data.table_gd.entries()) {
+      await this.validate(`table_gd.${index}.gd_qty`);
     }
 
     // Validate form

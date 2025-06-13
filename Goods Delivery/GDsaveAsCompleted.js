@@ -947,14 +947,6 @@ const processBalanceTable = async (
               let finalReservedQty = currentReservedQty;
               let finalBalanceQty = currentBalanceQty;
 
-              if (isUpdate) {
-                const gdQuantityDiff = roundQty(baseQty - prevBaseQty);
-                finalUnrestrictedQty = roundQty(
-                  finalUnrestrictedQty - gdQuantityDiff
-                );
-                finalReservedQty = roundQty(finalReservedQty + gdQuantityDiff);
-              }
-
               finalUnrestrictedQty = roundQty(finalUnrestrictedQty - baseQty);
               finalBalanceQty = roundQty(finalBalanceQty - baseQty);
 
