@@ -727,12 +727,13 @@ const reverseBalanceChanges = async (data, isUpdate = false) => {
 const processBalanceTable = async (
   data,
   isUpdate = false,
-  oldDeliveryNo = null
+  oldDeliveryNo = null,
+  gdStatus = null
 ) => {
   console.log("Processing balance table");
 
   // STEP 1: Handle existing inventory movements and reverse balance changes for updates
-  if (isUpdate) {
+  if (isUpdate && gdStatus === "Created") {
     await handleExistingInventoryMovements(oldDeliveryNo, isUpdate);
     await reverseBalanceChanges(data, isUpdate);
   }
@@ -1111,24 +1112,27 @@ const addEntry = async (organizationId, gd) => {
   }
 };
 
-const updateEntry = async (organizationId, gd, goodsDeliveryId) => {
+const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
   try {
-    const oldDeliveryNo = gd.delivery_no;
-    const prefixData = await getPrefixData(organizationId);
+    let oldDeliveryNo;
+    if (gdStatus === "Draft") {
+      oldDeliveryNo = gd.delivery_no;
+      const prefixData = await getPrefixData(organizationId);
 
-    if (prefixData.length !== 0) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId
-      );
+      if (prefixData.length !== 0) {
+        const { prefixToShow, runningNumber } = await findUniquePrefix(
+          prefixData,
+          organizationId
+        );
 
-      await updatePrefix(organizationId, runningNumber);
+        await updatePrefix(organizationId, runningNumber);
 
-      gd.delivery_no = prefixToShow;
+        gd.delivery_no = prefixToShow;
+      }
     }
 
     await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
-    await processBalanceTable(gd, true, oldDeliveryNo); // true = this is an update
+    await processBalanceTable(gd, true, oldDeliveryNo, gdStatus); // true = this is an update
     this.$message.success("Update successfully");
     await closeDialog();
   } catch (error) {
@@ -1318,7 +1322,7 @@ const findFieldMessage = (obj) => {
         await addEntry(organizationId, gd);
       } else if (page_status === "Edit") {
         const goodsDeliveryId = data.id;
-        await updateEntry(organizationId, gd, goodsDeliveryId);
+        await updateEntry(organizationId, gd, goodsDeliveryId, data.gd_status);
       }
     } else {
       this.hideLoading();
