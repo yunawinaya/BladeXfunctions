@@ -17,8 +17,13 @@ const roundPrice = (value) => {
 };
 
 // Update FIFO inventory
-const updateFIFOInventory = (materialId, deliveryQty, batchId, plantId) => {
-  return new Promise((resolve, reject) => {
+const updateFIFOInventory = async (
+  materialId,
+  deliveryQty,
+  batchId,
+  plantId
+) => {
+  try {
     const query = batchId
       ? db.collection("fifo_costing_history").where({
           material_id: materialId,
@@ -29,81 +34,63 @@ const updateFIFOInventory = (materialId, deliveryQty, batchId, plantId) => {
           .collection("fifo_costing_history")
           .where({ material_id: materialId, plant_id: plantId });
 
-    query
-      .get()
-      .then((response) => {
-        const result = response.data;
+    const response = await query.get();
+    const result = response.data;
 
-        if (result && Array.isArray(result) && result.length > 0) {
-          // Sort by FIFO sequence (lowest/oldest first)
-          const sortedRecords = result.sort(
-            (a, b) => a.fifo_sequence - b.fifo_sequence
-          );
+    if (result && Array.isArray(result) && result.length > 0) {
+      const sortedRecords = result.sort(
+        (a, b) => a.fifo_sequence - b.fifo_sequence
+      );
 
-          let remainingQtyToDeduct = parseFloat(deliveryQty);
-          console.log(
-            `Need to deduct ${remainingQtyToDeduct} units from FIFO inventory`
-          );
+      let remainingQtyToDeduct = parseFloat(deliveryQty);
+      console.log(
+        `Need to deduct ${remainingQtyToDeduct} units from FIFO inventory`
+      );
 
-          // Process each FIFO record in sequence until we've accounted for all delivery quantity
-          for (const record of sortedRecords) {
-            if (remainingQtyToDeduct <= 0) {
-              break;
-            }
+      const updatePromises = [];
 
-            const availableQty = roundQty(record.fifo_available_quantity || 0);
-            console.log(
-              `FIFO record ${record.fifo_sequence} has ${availableQty} available`
-            );
-
-            // Calculate how much to take from this record
-            const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
-            const newAvailableQty = roundQty(availableQty - qtyToDeduct);
-
-            console.log(
-              `Deducting ${qtyToDeduct} from FIFO record ${record.fifo_sequence}, new available: ${newAvailableQty}`
-            );
-
-            // Update this FIFO record
-            db.collection("fifo_costing_history")
-              .doc(record.id)
-              .update({
-                fifo_available_quantity: newAvailableQty,
-              })
-              .catch((error) =>
-                console.error(
-                  `Error updating FIFO record ${record.fifo_sequence}:`,
-                  error
-                )
-              );
-
-            // Reduce the remaining quantity to deduct
-            remainingQtyToDeduct -= qtyToDeduct;
-          }
-
-          if (remainingQtyToDeduct > 0) {
-            console.warn(
-              `Warning: Couldn't fully satisfy FIFO deduction. Remaining qty: ${remainingQtyToDeduct}`
-            );
-          }
-        } else {
-          console.warn(`No FIFO records found for material ${materialId}`);
+      for (const record of sortedRecords) {
+        if (remainingQtyToDeduct <= 0) {
+          break;
         }
-      })
-      .catch((error) =>
-        console.error(
-          `Error retrieving FIFO history for material ${materialId}:`,
-          error
-        )
-      )
-      .then(() => {
-        resolve();
-      })
-      .catch((error) => {
-        console.error(`Error in FIFO update:`, error);
-        reject(error);
-      });
-  });
+
+        const availableQty = roundQty(record.fifo_available_quantity || 0);
+        console.log(
+          `FIFO record ${record.fifo_sequence} has ${availableQty} available`
+        );
+
+        const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
+        const newAvailableQty = roundQty(availableQty - qtyToDeduct);
+
+        console.log(
+          `Deducting ${qtyToDeduct} from FIFO record ${record.fifo_sequence}, new available: ${newAvailableQty}`
+        );
+
+        // Collect update promises
+        updatePromises.push(
+          db.collection("fifo_costing_history").doc(record.id).update({
+            fifo_available_quantity: newAvailableQty,
+          })
+        );
+
+        remainingQtyToDeduct -= qtyToDeduct;
+      }
+
+      // Wait for all updates to complete
+      await Promise.all(updatePromises);
+
+      if (remainingQtyToDeduct > 0) {
+        console.warn(
+          `Warning: Couldn't fully satisfy FIFO deduction. Remaining qty: ${remainingQtyToDeduct}`
+        );
+      }
+    } else {
+      console.warn(`No FIFO records found for material ${materialId}`);
+    }
+  } catch (error) {
+    console.error(`Error in FIFO update for material ${materialId}:`, error);
+    throw error;
+  }
 };
 
 const updateWeightedAverage = (item, batchId, baseWAQty, plantId) => {
@@ -537,11 +524,12 @@ const generatePrefix = (runNumber, now, prefixData) => {
 const checkUniqueness = async (
   generatedPrefix,
   organizationId,
-  collection = "goods_delivery"
+  collection = "goods_delivery",
+  prefix = "delivery_no"
 ) => {
   const existingDoc = await db
     .collection(collection)
-    .where({ delivery_no: generatedPrefix, organization_id: organizationId })
+    .where({ [prefix]: generatedPrefix, organization_id: organizationId })
     .get();
 
   return !existingDoc.data || existingDoc.data.length === 0;
@@ -551,7 +539,7 @@ const findUniquePrefix = async (
   prefixData,
   organizationId,
   collection = "goods_delivery",
-  documentType = "Goods Delivery"
+  prefix = "delivery_no"
 ) => {
   const now = new Date();
   let prefixToShow;
@@ -563,7 +551,12 @@ const findUniquePrefix = async (
   while (!isUnique && attempts < maxAttempts) {
     attempts++;
     prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId, collection);
+    isUnique = await checkUniqueness(
+      prefixToShow,
+      organizationId,
+      collection,
+      prefix
+    );
     if (!isUnique) {
       runningNumber++;
     }
@@ -1103,69 +1096,79 @@ const validateField = (value, field) => {
   return !value;
 };
 
-const addEntry = async (
-  organizationId,
-  gd,
-  collection = "goods_delivery",
-  documentType = "Goods Delivery"
-) => {
+const addEntry = async (organizationId, gd) => {
   try {
-    const prefixData = await getPrefixData(organizationId, documentType);
+    const prefixData = await getPrefixData(organizationId, "Goods Delivery");
 
-    if (prefixData.length !== 0) {
+    if (prefixData) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
         prefixData,
         organizationId,
-        collection,
-        documentType
+        "goods_delivery",
+        "delivery_no"
       );
 
-      await updatePrefix(organizationId, runningNumber, documentType);
-
+      await updatePrefix(organizationId, runningNumber, "Goods Delivery");
       gd.delivery_no = prefixToShow;
     }
 
-    await db.collection(collection).add(gd);
-    await processBalanceTable(gd, false); // false = not an update
-    this.$message.success("Add successfully");
+    // Add the record
+    await db.collection("goods_delivery").add(gd);
+
+    // Fetch the created record to get its ID
+    const createdRecord = await db
+      .collection("goods_delivery")
+      .where({
+        delivery_no: gd.delivery_no,
+        organization_id: organizationId,
+      })
+      .get();
+
+    if (!createdRecord.data || createdRecord.data.length === 0) {
+      throw new Error("Failed to retrieve created goods delivery record");
+    }
+
+    const gdId = createdRecord.data[0].id;
+    console.log("Goods delivery created successfully with ID:", gdId);
+
+    // Process balance table with the created record
+    await processBalanceTable(gd, false);
+
+    return gdId; // Return the created ID
   } catch (error) {
-    this.$message.error(error);
+    console.error("Error in addEntry:", error);
+    throw error;
   }
 };
 
-const updateEntry = async (
-  organizationId,
-  gd,
-  goodsDeliveryId,
-  gdStatus,
-  collection = "goods_delivery",
-  documentType = "Goods Delivery"
-) => {
+const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
   try {
-    let oldDeliveryNo;
-    oldDeliveryNo = gd.delivery_no;
-    if (gdStatus === "Draft") {
-      const prefixData = await getPrefixData(organizationId, documentType);
+    let oldDeliveryNo = gd.delivery_no;
 
-      if (prefixData.length !== 0) {
+    if (gdStatus === "Draft") {
+      const prefixData = await getPrefixData(organizationId, "Goods Delivery");
+
+      if (prefixData) {
         const { prefixToShow, runningNumber } = await findUniquePrefix(
           prefixData,
           organizationId,
-          collection,
-          documentType
+          "goods_delivery",
+          "delivery_no"
         );
 
-        await updatePrefix(organizationId, runningNumber, documentType);
-
+        await updatePrefix(organizationId, runningNumber, "Goods Delivery");
         gd.delivery_no = prefixToShow;
       }
     }
 
-    await db.collection(collection).doc(goodsDeliveryId).update(gd);
-    await processBalanceTable(gd, true, oldDeliveryNo, gdStatus); // true = this is an update
-    this.$message.success("Update successfully");
+    await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+    await processBalanceTable(gd, true, oldDeliveryNo, gdStatus);
+
+    console.log("Goods delivery updated successfully");
+    return goodsDeliveryId;
   } catch (error) {
-    this.$message.error(error);
+    console.error("Error in updateEntry:", error);
+    throw error;
   }
 };
 
@@ -1195,19 +1198,24 @@ const findFieldMessage = (obj) => {
   return null;
 };
 
-const createPicking = async (data) => {
+const createOrUpdatePicking = async (
+  gdData,
+  gdId,
+  organizationId,
+  isUpdate = false
+) => {
   try {
     let pickingSetupData;
 
     try {
-      if (!data.plant_id) {
+      if (!gdData.plant_id) {
         throw new Error("Plant ID is required for picking setup");
       }
 
       const pickingSetupResponse = await db
         .collection("picking_setup")
         .where({
-          plant_id: data.plant_id,
+          plant_id: gdData.plant_id,
           movement_type: "Good Delivery",
           picking_required: 1,
         })
@@ -1218,10 +1226,13 @@ const createPicking = async (data) => {
       }
 
       if (pickingSetupResponse.data.length === 0) {
-        console.warn(`No picking setup found for plant ${data.plant_id}`);
+        console.log(
+          `No picking required for plant ${gdData.plant_id} - continuing without Transfer Order`
+        );
+        return { pickingStatus: null };
       } else if (pickingSetupResponse.data.length > 1) {
         console.warn(
-          `Multiple picking setups found for plant ${data.plant_id}, using first active one`
+          `Multiple picking setups found for plant ${gdData.plant_id}, using first active one`
         );
         pickingSetupData = pickingSetupResponse.data[0];
       } else {
@@ -1229,62 +1240,159 @@ const createPicking = async (data) => {
       }
     } catch (error) {
       console.error("Error retrieving picking setup:", error.message);
+      return { pickingStatus: null };
     }
 
-    if (pickingSetupData && pickingSetupData.length > 0) {
+    // Initialize picking status
+    let pickingStatus = null;
+
+    if (pickingSetupData) {
       if (pickingSetupData.auto_trigger_to === 1) {
-        gd.picking_status = "Not Created";
+        pickingStatus = "Not Created";
       } else {
-        gd.picking_status = "Created";
+        pickingStatus = "Created";
       }
 
       if (
         pickingSetupData.picking_mode === "Manual" &&
         pickingSetupData.auto_trigger_to === 1
       ) {
+        // Check if we need to update existing Transfer Order
+        if (isUpdate) {
+          try {
+            // Find existing Transfer Order for this GD
+            const existingTOResponse = await db
+              .collection("transfer_order")
+              .where({
+                ref_doc_type: "Good Delivery",
+                gd_no: gdId,
+                movement_type: "Picking",
+                is_deleted: 0,
+              })
+              .get();
+
+            if (existingTOResponse.data && existingTOResponse.data.length > 0) {
+              const existingTO = existingTOResponse.data[0];
+              console.log(`Found existing Transfer Order: ${existingTO.to_no}`);
+
+              // Prepare updated picking items
+              const updatedPickingItems = [];
+              gdData.table_gd.forEach((item) => {
+                if (item.temp_qty_data) {
+                  try {
+                    const tempData = JSON.parse(item.temp_qty_data);
+                    tempData.forEach((tempItem) => {
+                      const materialId =
+                        tempItem.material_id || item.material_id;
+
+                      transferOrder.table_picking_items.push({
+                        item_code: String(materialId),
+                        item_name: item.material_name,
+                        item_desc: item.gd_material_desc || "",
+                        batch_no: tempItem.batch_id
+                          ? String(tempItem.batch_id)
+                          : null,
+                        qty_to_pick: parseFloat(tempItem.gd_quantity),
+                        item_uom: String(item.gd_order_uom_id),
+                        pending_process_qty: parseFloat(tempItem.gd_quantity),
+                        bin_location_id: String(tempItem.location_id),
+                        line_status: "Open",
+                      });
+                    });
+                  } catch (error) {
+                    console.error(
+                      `Error parsing temp_qty_data for picking: ${error.message}`
+                    );
+                  }
+                }
+              });
+
+              // Update the existing Transfer Order
+              await db
+                .collection("transfer_order")
+                .doc(existingTO.id)
+                .update({
+                  table_picking_items: updatedPickingItems,
+                  updated_by: this.getVarGlobal("nickname"),
+                  updated_at: new Date().toISOString(),
+                  ref_doc: gdData.gd_ref_doc,
+                })
+                .then(() => {
+                  console.log(
+                    `Transfer order ${existingTO.to_no} updated successfully`
+                  );
+                })
+                .catch((error) => {
+                  console.error("Error updating transfer order:", error);
+                  throw error;
+                });
+
+              return { pickingStatus };
+            } else {
+              console.log(
+                "No existing Transfer Order found for update, creating new one"
+              );
+              // Fall through to create new Transfer Order
+            }
+          } catch (error) {
+            console.error(
+              "Error checking/updating existing Transfer Order:",
+              error
+            );
+            // If update fails, we might want to create a new one instead
+            throw error;
+          }
+        }
+
+        // Create new Transfer Order (for new GDs or if no existing TO found)
         const transferOrder = {
           to_status: "Created",
-          plant_id: data.plant_id,
+          plant_id: gdData.plant_id,
           movement_type: "Picking",
           ref_doc_type: "Good Delivery",
-          gd_no: data.id,
+          gd_no: gdId,
           created_by: this.getVarGlobal("nickname"),
           created_at: new Date().toISOString(),
-          ref_doc: data.gd_ref_doc,
-          table_picking_items: data.table_gd
-            .map((item) => {
-              return item.temp_qty_data.map((tempItem) =>
-                JSON.stringify({
-                  item_code: item.material_id,
-                  item_name: item.material_name,
-                  item_desc: item.gd_material_desc,
-                  batch_no: tempItem.batch_id,
-                  item_batch_id: tempItem.batch_id,
-                  qty_to_pick: tempItem.gd_quantity,
-                  item_uom: item.gd_order_uom_id,
-                  pending_process_qty: tempItem.gd_quantity,
-                })
-              );
-            })
-            .flat(),
+          ref_doc: gdData.gd_ref_doc,
+          table_picking_items: [],
+          is_deleted: 0,
         };
+
+        // Process table items
+        gdData.table_gd.forEach((item) => {
+          if (item.temp_qty_data) {
+            const tempData = JSON.parse(item.temp_qty_data);
+            tempData.forEach((tempItem) => {
+              transferOrder.table_picking_items.push({
+                item_code: item.material_id,
+                item_name: item.material_name,
+                item_desc: item.gd_material_desc,
+                batch_no: tempItem.batch_id,
+                item_batch_id: tempItem.batch_id,
+                qty_to_pick: tempItem.gd_quantity,
+                item_uom: item.gd_order_uom_id,
+                pending_process_qty: tempItem.gd_quantity,
+                bin_location_id: tempItem.location_id,
+              });
+            });
+          }
+        });
 
         const prefixData = await getPrefixData(
           organizationId,
           "Transfer Order"
         );
 
-        if (prefixData.length !== 0) {
+        if (prefixData) {
           const { prefixToShow, runningNumber } = await findUniquePrefix(
             prefixData,
             organizationId,
             "transfer_order",
-            "Transfer Order"
+            "to_id"
           );
 
           await updatePrefix(organizationId, runningNumber, "Transfer Order");
-
-          transferOrder.to_no = prefixToShow;
+          transferOrder.to_id = prefixToShow;
         }
 
         await db
@@ -1295,14 +1403,15 @@ const createPicking = async (data) => {
           })
           .catch((error) => {
             console.error("Error creating transfer order:", error);
+            throw error;
           });
       }
     }
+
+    return { pickingStatus };
   } catch (error) {
-    console.error("Error creating picking:", error);
-  } finally {
-    this.hideLoading();
-    closeDialog();
+    console.error("Error in createOrUpdatePicking:", error);
+    throw error;
   }
 };
 
@@ -1311,8 +1420,6 @@ const createPicking = async (data) => {
   try {
     this.showLoading();
     const data = await this.getValues();
-
-    // Get page status
     const page_status = data.page_status;
 
     // Define required fields
@@ -1329,6 +1436,7 @@ const createPicking = async (data) => {
       },
     ];
 
+    // Validate items
     for (const [index, item] of data.table_gd.entries()) {
       await this.validate(`table_gd.${index}.gd_qty`);
     }
@@ -1337,18 +1445,15 @@ const createPicking = async (data) => {
     const missingFields = validateForm(data, requiredFields);
 
     if (missingFields.length === 0) {
-      // If this is an edit, store previous temporary quantities
+      // Handle previous quantities for updates
       if (page_status === "Edit" && data.id && Array.isArray(data.table_gd)) {
         try {
-          // Get the original record from database
           const originalRecord = await db
             .collection("goods_delivery")
             .where({ id: data.id })
             .get();
           if (originalRecord.data && originalRecord.data.length > 0) {
             const originalGD = originalRecord.data[0];
-
-            // Store the ORIGINAL quantities as previous
             data.table_gd.forEach((item, index) => {
               if (originalGD.table_gd && originalGD.table_gd[index]) {
                 item.prev_temp_qty_data =
@@ -1358,7 +1463,6 @@ const createPicking = async (data) => {
           }
         } catch (error) {
           console.error("Error retrieving original GD record:", error);
-          // Fallback to current behavior if database fetch fails
           data.table_gd.forEach((item) => {
             item.prev_temp_qty_data = item.temp_qty_data;
           });
@@ -1390,31 +1494,25 @@ const createPicking = async (data) => {
         document_description: data.document_description,
         gd_delivery_method: data.gd_delivery_method,
         delivery_date: data.delivery_date,
-
         driver_name: data.driver_name,
         driver_contact_no: data.driver_contact_no,
         ic_no: data.ic_no,
         validity_of_collection: data.validity_of_collection,
         vehicle_no: data.vehicle_no,
         pickup_date: data.pickup_date,
-
         courier_company: data.courier_company,
         shipping_date: data.shipping_date,
         freight_charges: data.freight_charges,
         tracking_number: data.tracking_number,
         est_arrival_date: data.est_arrival_date,
-
         driver_cost: data.driver_cost,
         est_delivery_date: data.est_delivery_date,
-
         shipping_company: data.shipping_company,
         shipping_method: data.shipping_method,
-
         tpt_vehicle_number: data.tpt_vehicle_number,
         tpt_transport_name: data.tpt_transport_name,
         tpt_ic_no: data.tpt_ic_no,
         tpt_driver_contact_no: data.tpt_driver_contact_no,
-
         table_gd: data.table_gd,
         order_remark: data.order_remark,
         billing_address_line_1: data.billing_address_line_1,
@@ -1428,7 +1526,6 @@ const createPicking = async (data) => {
         billing_address_name: data.billing_address_name,
         billing_address_phone: data.billing_address_phone,
         billing_attention: data.billing_attention,
-
         shipping_address_line_1: data.shipping_address_line_1,
         shipping_address_line_2: data.shipping_address_line_2,
         shipping_address_line_3: data.shipping_address_line_3,
@@ -1457,14 +1554,64 @@ const createPicking = async (data) => {
         }
       });
 
+      let gdId;
+      let shouldHandlePicking = false;
+      let isPickingUpdate = false;
+
       // Perform action based on page status
       if (page_status === "Add") {
-        await addEntry(organizationId, gd);
-        await createPicking(gd);
+        gdId = await addEntry(organizationId, gd);
+        shouldHandlePicking = true;
+        isPickingUpdate = false;
       } else if (page_status === "Edit") {
-        const goodsDeliveryId = data.id;
-        await updateEntry(organizationId, gd, goodsDeliveryId, data.gd_status);
+        gdId = data.id;
+
+        // Check if we need to handle picking
+        if (data.gd_status === "Draft" && gd.gd_status === "Created") {
+          // Draft to Created - create new picking
+          shouldHandlePicking = true;
+          isPickingUpdate = false;
+        } else if (data.gd_status === "Created" && gd.gd_status === "Created") {
+          // Created to Created - update existing picking
+          shouldHandlePicking = true;
+          isPickingUpdate = true;
+        }
+
+        await updateEntry(organizationId, gd, gdId, data.gd_status);
       }
+
+      // Create or update picking if needed
+      if (shouldHandlePicking && gdId) {
+        try {
+          const { pickingStatus } = await createOrUpdatePicking(
+            gd,
+            gdId,
+            organizationId,
+            isPickingUpdate
+          );
+
+          // Update GD with picking status if applicable
+          if (pickingStatus) {
+            await db.collection("goods_delivery").doc(gdId).update({
+              picking_status: pickingStatus,
+            });
+          }
+        } catch (pickingError) {
+          console.error("Error handling picking:", pickingError);
+          // Don't fail the entire operation if picking handling fails
+          this.$message.warning(
+            isPickingUpdate
+              ? "Goods Delivery updated but picking update failed"
+              : "Goods Delivery created but picking creation failed"
+          );
+        }
+      }
+
+      this.$message.success(
+        page_status === "Add" ? "Added successfully" : "Updated successfully"
+      );
+      this.hideLoading();
+      closeDialog();
     } else {
       this.hideLoading();
       this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
@@ -1472,9 +1619,7 @@ const createPicking = async (data) => {
   } catch (error) {
     this.hideLoading();
 
-    // Try to get message from standard locations first
     let errorMessage = "";
-
     if (error && typeof error === "object") {
       errorMessage = findFieldMessage(error) || "An error occurred";
     } else {
