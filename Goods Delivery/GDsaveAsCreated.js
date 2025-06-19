@@ -447,13 +447,16 @@ const getFixedCostPrice = async (materialId) => {
   }
 };
 
-const getPrefixData = async (organizationId) => {
+const getPrefixData = async (
+  organizationId,
+  documentType = "Goods Delivery"
+) => {
   console.log("Getting prefix data for organization:", organizationId);
   try {
     const prefixEntry = await db
       .collection("prefix_configuration")
       .where({
-        document_types: "Goods Delivery",
+        document_types: documentType,
         is_deleted: 0,
         organization_id: organizationId,
         is_active: 1,
@@ -474,7 +477,11 @@ const getPrefixData = async (organizationId) => {
   }
 };
 
-const updatePrefix = async (organizationId, runningNumber) => {
+const updatePrefix = async (
+  organizationId,
+  runningNumber,
+  documentType = "Goods Delivery"
+) => {
   console.log(
     "Updating prefix for organization:",
     organizationId,
@@ -485,7 +492,7 @@ const updatePrefix = async (organizationId, runningNumber) => {
     await db
       .collection("prefix_configuration")
       .where({
-        document_types: "Goods Delivery",
+        document_types: documentType,
         is_deleted: 0,
         organization_id: organizationId,
       })
@@ -527,16 +534,25 @@ const generatePrefix = (runNumber, now, prefixData) => {
   }
 };
 
-const checkUniqueness = async (generatedPrefix, organizationId) => {
+const checkUniqueness = async (
+  generatedPrefix,
+  organizationId,
+  collection = "goods_delivery"
+) => {
   const existingDoc = await db
-    .collection("goods_delivery")
+    .collection(collection)
     .where({ delivery_no: generatedPrefix, organization_id: organizationId })
     .get();
 
   return !existingDoc.data || existingDoc.data.length === 0;
 };
 
-const findUniquePrefix = async (prefixData, organizationId) => {
+const findUniquePrefix = async (
+  prefixData,
+  organizationId,
+  collection = "goods_delivery",
+  documentType = "Goods Delivery"
+) => {
   const now = new Date();
   let prefixToShow;
   let runningNumber = prefixData.running_number || 1;
@@ -547,7 +563,7 @@ const findUniquePrefix = async (prefixData, organizationId) => {
   while (!isUnique && attempts < maxAttempts) {
     attempts++;
     prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
+    isUnique = await checkUniqueness(prefixToShow, organizationId, collection);
     if (!isUnique) {
       runningNumber++;
     }
@@ -598,7 +614,6 @@ const handleExistingInventoryMovements = async (
       const updatePromises = existingMovements.data.map((movement) =>
         db.collection("inventory_movement").doc(movement.id).update({
           is_deleted: 1,
-          deleted_at: new Date().toISOString(),
         })
       );
 
@@ -1088,53 +1103,67 @@ const validateField = (value, field) => {
   return !value;
 };
 
-const addEntry = async (organizationId, gd) => {
+const addEntry = async (
+  organizationId,
+  gd,
+  collection = "goods_delivery",
+  documentType = "Goods Delivery"
+) => {
   try {
-    const prefixData = await getPrefixData(organizationId);
+    const prefixData = await getPrefixData(organizationId, documentType);
 
     if (prefixData.length !== 0) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
         prefixData,
-        organizationId
+        organizationId,
+        collection,
+        documentType
       );
 
-      await updatePrefix(organizationId, runningNumber);
+      await updatePrefix(organizationId, runningNumber, documentType);
 
       gd.delivery_no = prefixToShow;
     }
 
-    await db.collection("goods_delivery").add(gd);
+    await db.collection(collection).add(gd);
     await processBalanceTable(gd, false); // false = not an update
     this.$message.success("Add successfully");
-    await closeDialog();
   } catch (error) {
     this.$message.error(error);
   }
 };
 
-const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
+const updateEntry = async (
+  organizationId,
+  gd,
+  goodsDeliveryId,
+  gdStatus,
+  collection = "goods_delivery",
+  documentType = "Goods Delivery"
+) => {
   try {
     let oldDeliveryNo;
+    oldDeliveryNo = gd.delivery_no;
     if (gdStatus === "Draft") {
-      oldDeliveryNo = gd.delivery_no;
-      const prefixData = await getPrefixData(organizationId);
+      const prefixData = await getPrefixData(organizationId, documentType);
 
       if (prefixData.length !== 0) {
         const { prefixToShow, runningNumber } = await findUniquePrefix(
           prefixData,
-          organizationId
+          organizationId,
+          collection,
+          documentType
         );
 
-        await updatePrefix(organizationId, runningNumber);
+        await updatePrefix(organizationId, runningNumber, documentType);
 
         gd.delivery_no = prefixToShow;
       }
     }
 
-    await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+    await db.collection(collection).doc(goodsDeliveryId).update(gd);
     await processBalanceTable(gd, true, oldDeliveryNo, gdStatus); // true = this is an update
     this.$message.success("Update successfully");
-    await closeDialog();
   } catch (error) {
     this.$message.error(error);
   }
@@ -1164,6 +1193,117 @@ const findFieldMessage = (obj) => {
     }
   }
   return null;
+};
+
+const createPicking = async (data) => {
+  try {
+    let pickingSetupData;
+
+    try {
+      if (!data.plant_id) {
+        throw new Error("Plant ID is required for picking setup");
+      }
+
+      const pickingSetupResponse = await db
+        .collection("picking_setup")
+        .where({
+          plant_id: data.plant_id,
+          movement_type: "Good Delivery",
+          picking_required: 1,
+        })
+        .get();
+
+      if (!pickingSetupResponse || !pickingSetupResponse.data) {
+        throw new Error("Invalid response from picking setup query");
+      }
+
+      if (pickingSetupResponse.data.length === 0) {
+        console.warn(`No picking setup found for plant ${data.plant_id}`);
+      } else if (pickingSetupResponse.data.length > 1) {
+        console.warn(
+          `Multiple picking setups found for plant ${data.plant_id}, using first active one`
+        );
+        pickingSetupData = pickingSetupResponse.data[0];
+      } else {
+        pickingSetupData = pickingSetupResponse.data[0];
+      }
+    } catch (error) {
+      console.error("Error retrieving picking setup:", error.message);
+    }
+
+    if (pickingSetupData && pickingSetupData.length > 0) {
+      if (pickingSetupData.auto_trigger_to === 1) {
+        gd.picking_status = "Not Created";
+      } else {
+        gd.picking_status = "Created";
+      }
+
+      if (
+        pickingSetupData.picking_mode === "Manual" &&
+        pickingSetupData.auto_trigger_to === 1
+      ) {
+        const transferOrder = {
+          to_status: "Created",
+          plant_id: data.plant_id,
+          movement_type: "Picking",
+          ref_doc_type: "Good Delivery",
+          gd_no: data.id,
+          created_by: this.getVarGlobal("nickname"),
+          created_at: new Date().toISOString(),
+          ref_doc: data.gd_ref_doc,
+          table_picking_items: data.table_gd
+            .map((item) => {
+              return item.temp_qty_data.map((tempItem) =>
+                JSON.stringify({
+                  item_code: item.material_id,
+                  item_name: item.material_name,
+                  item_desc: item.gd_material_desc,
+                  batch_no: tempItem.batch_id,
+                  item_batch_id: tempItem.batch_id,
+                  qty_to_pick: tempItem.gd_quantity,
+                  item_uom: item.gd_order_uom_id,
+                  pending_process_qty: tempItem.gd_quantity,
+                })
+              );
+            })
+            .flat(),
+        };
+
+        const prefixData = await getPrefixData(
+          organizationId,
+          "Transfer Order"
+        );
+
+        if (prefixData.length !== 0) {
+          const { prefixToShow, runningNumber } = await findUniquePrefix(
+            prefixData,
+            organizationId,
+            "transfer_order",
+            "Transfer Order"
+          );
+
+          await updatePrefix(organizationId, runningNumber, "Transfer Order");
+
+          transferOrder.to_no = prefixToShow;
+        }
+
+        await db
+          .collection("transfer_order")
+          .add(transferOrder)
+          .then((res) => {
+            console.log("Transfer order created:", res.id);
+          })
+          .catch((error) => {
+            console.error("Error creating transfer order:", error);
+          });
+      }
+    }
+  } catch (error) {
+    console.error("Error creating picking:", error);
+  } finally {
+    this.hideLoading();
+    closeDialog();
+  }
 };
 
 // Main execution wrapped in an async IIFE
@@ -1320,6 +1460,7 @@ const findFieldMessage = (obj) => {
       // Perform action based on page status
       if (page_status === "Add") {
         await addEntry(organizationId, gd);
+        await createPicking(gd);
       } else if (page_status === "Edit") {
         const goodsDeliveryId = data.id;
         await updateEntry(organizationId, gd, goodsDeliveryId, data.gd_status);

@@ -16,6 +16,40 @@ const closeDialog = () => {
   }
 };
 
+const getInspPrefixData = async (organizationId) => {
+  const prefixEntry = await db
+    .collection("prefix_configuration")
+    .where({
+      document_types: "Receiving Inspection",
+      is_deleted: 0,
+      organization_id: organizationId,
+    })
+    .get();
+
+  const prefixData = await prefixEntry.data[0];
+
+  return prefixData;
+};
+
+const generateInspDraftPrefix = async (organizationId) => {
+  try {
+    const prefixData = await getInspPrefixData(organizationId);
+    const currDraftNum = parseInt(prefixData.draft_number) + 1;
+    const newPrefix = "DRAFT-QL-" + currDraftNum;
+
+    db.collection("prefix_configuration")
+      .where({
+        document_types: "Receiving Inspection",
+        organization_id: organizationId,
+      })
+      .update({ draft_number: currDraftNum });
+
+    return newPrefix;
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
 const addInventory = async (data, plantId, organizationId) => {
   const items = data.table_gr;
 
@@ -691,6 +725,55 @@ const addInventory = async (data, plantId, organizationId) => {
     }
   };
 
+  const createInspectionLot = async (data, item, itemIndex) => {
+    try {
+      const inspPrefix = await generateInspDraftPrefix(data.organization_id);
+
+      let grId = null;
+      const resGR = await db
+        .collection("goods_receiving")
+        .where({ gr_no: data.gr_no, organization_id: data.organization_id })
+        .get();
+
+      if (resGR && resGR.data[0]) {
+        grId = resGR.data[0].id;
+      }
+
+      const inspectionData = {
+        inspection_lot_no: inspPrefix,
+        goods_receiving_no: grId,
+        insp_lot_created_on: new Date().toISOString().split("T")[0],
+        plant_id: data.plant_id,
+        organization_id: data.organization_id,
+        lot_created_by: data.gr_received_by,
+        inspector_name: this.getVarGlobal("nickname"),
+        receiving_insp_status: "Draft",
+        inspection_pass_fail: "0 / 0",
+        remarks: "",
+        lot_created_by: "System",
+        insp_start_time: "",
+        insp_end_time: "",
+        table_insp_mat: [
+          {
+            item_id: item.item_id,
+            item_name: item.item_name || "",
+            item_desc: item.item_desc || "",
+            batch_id: item.item_batch_no || "",
+            received_qty: item.received_qty,
+            received_uom: item.item_uom,
+            passed_qty: 0,
+            failed_qty: 0,
+            gr_line_no: itemIndex + 1,
+          },
+        ],
+      };
+
+      await db.collection("basic_inspection_lot").add(inspectionData);
+    } catch (error) {
+      throw new Error("Error creating inspection lot.");
+    }
+  };
+
   // Process items sequentially instead of in parallel
   for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
     const item = items[itemIndex];
@@ -806,6 +889,10 @@ const addInventory = async (data, plantId, organizationId) => {
       };
 
       await db.collection("inventory_movement").add(inventoryMovementData);
+
+      if (item.inv_category === "Quality Inspection") {
+        await createInspectionLot(data, item, itemIndex);
+      }
 
       await updateOnOrderPurchaseOrder(
         item,
@@ -1044,7 +1131,7 @@ const addInventory = async (data, plantId, organizationId) => {
   return Promise.resolve();
 };
 
-const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
+const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
   const poIds = Array.isArray(purchaseOrderIds)
     ? purchaseOrderIds
     : [purchaseOrderIds];
@@ -1056,14 +1143,15 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
     // Fetch purchase order and related goods receiving documents in parallel
     const updatePromises = poIds.map(async (purchaseOrderId) => {
       try {
+        const filteredGR = tableGR.filter(
+          (item) => item.line_po_id === purchaseOrderId
+        );
+
         // Fetch purchase order and related goods receiving documents in parallel
-        const [resGR, resPO] = await Promise.all([
-          db
-            .collection("goods_receiving")
-            .where({ purchase_order_id: purchaseOrderId })
-            .get(),
-          db.collection("purchase_order").where({ id: purchaseOrderId }).get(),
-        ]);
+        const resPO = await db
+          .collection("purchase_order")
+          .where({ id: purchaseOrderId })
+          .get();
 
         // Validate purchase order exists
         if (!resPO.data || !resPO.data.length) {
@@ -1077,6 +1165,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
 
         const poDoc = resPO.data[0];
         const originalPOStatus = poDoc.po_status;
+
         const poItems = poDoc.table_po || [];
 
         // Validate PO has items
@@ -1089,13 +1178,11 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
           };
         }
 
-        const allGRs = resGR.data || [];
-
-        // Collect goods receiving IDs for this PO
-        const grIds = allGRs.map((gr) => gr.id || gr.gr_id).filter((id) => id);
+        const filteredPO = poItems
+          .map((item, index) => ({ ...item, originalIndex: index }))
+          .filter((item) => item.item_id !== "" || item.item_desc !== "");
 
         // Initialize tracking objects
-        const receivedQtyMap = {};
         let totalItems = poItems.length;
         let partiallyReceivedItems = 0;
         let fullyReceivedItems = 0;
@@ -1103,42 +1190,30 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
         // FIX: Create a proper deep copy of the PO items to preserve all fields
         const updatedPoItems = poItems.map((item) => ({ ...item }));
 
-        // Initialize with zeros
-        poItems.forEach((item) => {
-          const itemId = item.item_id;
-          receivedQtyMap[itemId] = 0;
-        });
+        filteredPO.forEach((filteredItem, filteredIndex) => {
+          const originalIndex = filteredItem.originalIndex;
+          const purchaseQty = parseFloat(filteredItem.quantity || 0);
+          const grReceivedQty = parseFloat(
+            filteredGR[filteredIndex]?.received_qty || 0
+          );
+          const currentReceivedQty = parseFloat(
+            updatedPoItems[originalIndex].received_qty || 0
+          );
+          const totalReceivedQty = currentReceivedQty + grReceivedQty;
 
-        // Sum received quantities from all GRs
-        allGRs.forEach((gr) => {
-          (gr.table_gr || []).forEach((grItem) => {
-            const itemId = grItem.item_id;
-            if (receivedQtyMap.hasOwnProperty(itemId)) {
-              const qty = parseFloat(grItem.received_qty || 0);
-              receivedQtyMap[itemId] += qty;
-            }
-          });
-        });
+          // Update the quantity in the original poItems structure
+          updatedPoItems[originalIndex].received_qty = totalReceivedQty;
 
-        // Update received quantities in PO items and count items
-        updatedPoItems.forEach((item, index) => {
-          // FIX: Ensure item_id is preserved
-          if (!item.item_id && poItems[index].item_id) {
-            item.item_id = poItems[index].item_id;
-          }
+          // Add ratio for tracking purposes
+          updatedPoItems[originalIndex].received_ratio =
+            purchaseQty > 0 ? totalReceivedQty / purchaseQty : 0;
 
-          const itemId = item.item_id;
-          const orderedQty = parseFloat(item.quantity || 0);
-          const receivedQty = receivedQtyMap[itemId] || 0;
-
-          item.received_qty = receivedQty;
-
-          // Count items with ANY received quantity as "partially received"
-          if (receivedQty > 0) {
+          // Count items with ANY delivered quantity as "partially delivered"
+          if (totalReceivedQty > 0) {
             partiallyReceivedItems++;
 
-            // Count fully received items separately
-            if (receivedQty >= orderedQty) {
+            // Count fully delivered items separately
+            if (totalReceivedQty >= purchaseQty) {
               fullyReceivedItems++;
             }
           }
@@ -1184,20 +1259,6 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
           New GR Status: ${newGRStatus}
         `);
 
-        // FIX: Validate that all items have their item_id before updating
-        const hasAllItemIds = updatedPoItems.every((item) => item.item_id);
-        if (!hasAllItemIds) {
-          console.error(
-            `Missing item_id in updated PO items for PO ${purchaseOrderId}`
-          );
-          // Restore item_ids from original if missing
-          updatedPoItems.forEach((item, index) => {
-            if (!item.item_id && poItems[index] && poItems[index].item_id) {
-              item.item_id = poItems[index].item_id;
-            }
-          });
-        }
-
         // Prepare a single update operation with all changes
         const updateData = {
           table_po: updatedPoItems,
@@ -1227,7 +1288,6 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds) => {
         return {
           poId: purchaseOrderId,
           newPOStatus,
-          grIds,
           totalItems,
           partiallyReceivedItems,
           fullyReceivedItems,
@@ -1380,15 +1440,15 @@ const generatePrefix = (runNumber, now, prefixData) => {
   return generated;
 };
 
-const checkUniqueness = async (generatedPrefix) => {
+const checkUniqueness = async (generatedPrefix, organizationId) => {
   const existingDoc = await db
     .collection("goods_receiving")
-    .where({ gr_no: generatedPrefix })
+    .where({ gr_no: generatedPrefix, organization_id: organizationId })
     .get();
   return existingDoc.data[0] ? false : true;
 };
 
-const findUniquePrefix = async (prefixData) => {
+const findUniquePrefix = async (prefixData, organizationId) => {
   const now = new Date();
   let prefixToShow;
   let runningNumber = prefixData.running_number;
@@ -1399,7 +1459,7 @@ const findUniquePrefix = async (prefixData) => {
   while (!isUnique && attempts < maxAttempts) {
     attempts++;
     prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow);
+    isUnique = await checkUniqueness(prefixToShow, organizationId);
     if (!isUnique) {
       runningNumber++;
     }
@@ -1418,15 +1478,23 @@ const addEntry = async (organizationId, entry) => {
   try {
     const prefixData = await getPrefixData(organizationId);
 
-    if (prefixData.length !== 0) {
+    if (prefixData !== null) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData
+        prefixData,
+        organizationId
       );
 
       await updatePrefix(organizationId, runningNumber);
 
       entry.gr_no = prefixToShow;
     }
+
+    const processedTableGr = [];
+    for (const item of entry.table_gr) {
+      const processedItem = await processRow(item, organizationId);
+      processedTableGr.push(processedItem);
+    }
+    entry.table_gr = processedTableGr;
 
     await db.collection("goods_receiving").add(entry);
 
@@ -1436,7 +1504,10 @@ const addEntry = async (organizationId, entry) => {
       ? entry.purchase_order_id
       : [entry.purchase_order_id];
 
-    const { po_data_array } = await updatePurchaseOrderStatus(purchaseOrderIds);
+    const { po_data_array } = await updatePurchaseOrderStatus(
+      purchaseOrderIds,
+      entry.table_gr
+    );
 
     await this.runWorkflow(
       "1917412667253141505",
@@ -1457,26 +1528,97 @@ const addEntry = async (organizationId, entry) => {
   }
 };
 
+const processRow = async (item, organizationId) => {
+  if (item.item_batch_no === "Auto-generated batch number") {
+    const resBatchConfig = await db
+      .collection("batch_level_config")
+      .where({ organization_id: organizationId })
+      .get();
+
+    if (resBatchConfig && resBatchConfig.data.length > 0) {
+      const batchConfigData = resBatchConfig.data[0];
+
+      let batchPrefix = batchConfigData.batch_prefix || "";
+      if (batchPrefix) batchPrefix += "-";
+
+      const generatedBatchNo =
+        batchPrefix +
+        String(batchConfigData.batch_running_number).padStart(10, "0");
+
+      item.item_batch_no = generatedBatchNo;
+      await db
+        .collection("batch_level_config")
+        .where({ id: batchConfigData.id })
+        .update({
+          batch_running_number: batchConfigData.batch_running_number + 1,
+        });
+
+      return item;
+    }
+  } else {
+    return item;
+  }
+};
+
+const findFieldMessage = (obj) => {
+  // Base case: if current object has the structure we want
+  if (obj && typeof obj === "object") {
+    if (obj.field && obj.message) {
+      return obj.message;
+    }
+
+    // Check array elements
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = findFieldMessage(item);
+        if (found) return found;
+      }
+    }
+
+    // Check all object properties
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const found = findFieldMessage(obj[key]);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
+};
+
 const updateEntry = async (organizationId, entry, goodsReceivingId) => {
   try {
     const prefixData = await getPrefixData(organizationId);
 
-    if (prefixData.length !== 0) {
+    if (prefixData !== null) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData
+        prefixData,
+        organizationId
       );
 
       await updatePrefix(organizationId, runningNumber);
 
       entry.gr_no = prefixToShow;
     }
+
+    const processedTableGr = [];
+    for (const item of entry.table_gr) {
+      const processedItem = await processRow(item, organizationId);
+      processedTableGr.push(processedItem);
+    }
+    entry.table_gr = processedTableGr;
     await db.collection("goods_receiving").doc(goodsReceivingId).update(entry);
+
     await addInventory(entry, entry.plant_id, organizationId);
     const purchaseOrderIds = Array.isArray(entry.purchase_order_id)
       ? entry.purchase_order_id
       : [entry.purchase_order_id];
 
-    const { po_data_array } = await updatePurchaseOrderStatus(purchaseOrderIds);
+    const { po_data_array } = await updatePurchaseOrderStatus(
+      purchaseOrderIds,
+      entry.table_gr
+    );
+
     await this.runWorkflow(
       "1917412667253141505",
       { gr_no: entry.gr_no, po_data: po_data_array },
@@ -1503,8 +1645,8 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
 
     const requiredFields = [
       { name: "purchase_order_id", label: "PO Number" },
-      { name: "gr_no", label: "GR Number" },
-      { name: "gr_date", label: "GR Date" },
+      { name: "gr_no", label: "Good Receiving Number" },
+      { name: "gr_date", label: "Received Date" },
       {
         name: "table_gr",
         label: "GR Items",
@@ -1517,6 +1659,13 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         ],
       },
     ];
+
+    for (const [index, item] of data.table_gr.entries()) {
+      await this.validate(
+        `table_gr.${index}.received_qty`,
+        `table_gr.${index}.item_batch_no`
+      );
+    }
 
     const missingFields = await validateForm(data, requiredFields);
 
@@ -1535,8 +1684,6 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         currency_code,
         organization_id,
         purchase_order_number,
-        gr_billing_name,
-        gr_billing_cp,
         gr_billing_address,
         gr_shipping_address,
         supplier_name,
@@ -1563,8 +1710,14 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         shipping_address_state,
         billing_address_country,
         shipping_address_country,
+        billing_address_name,
+        billing_address_phone,
+        billing_attention,
+        shipping_address_name,
+        shipping_address_phone,
+        shipping_attention,
+        reference_doc,
       } = data;
-
       const entry = {
         gr_status: "Completed",
         fake_purchase_order_id,
@@ -1573,8 +1726,6 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         currency_code,
         organization_id,
         purchase_order_number,
-        gr_billing_name,
-        gr_billing_cp,
         gr_billing_address,
         gr_shipping_address,
         supplier_name,
@@ -1589,6 +1740,12 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         billing_address_line_2,
         billing_address_line_3,
         billing_address_line_4,
+        billing_address_name,
+        billing_address_phone,
+        billing_attention,
+        shipping_address_name,
+        shipping_address_phone,
+        shipping_attention,
         shipping_address_line_1,
         shipping_address_line_2,
         shipping_address_line_3,
@@ -1601,8 +1758,8 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         shipping_address_state,
         billing_address_country,
         shipping_address_country,
+        reference_doc,
       };
-
       if (page_status === "Add") {
         await addEntry(organizationId, entry);
       } else if (page_status === "Edit") {
@@ -1615,6 +1772,17 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
     }
   } catch (error) {
     this.hideLoading();
-    this.$message.error(error);
+
+    // Try to get message from standard locations first
+    let errorMessage = "";
+
+    if (error && typeof error === "object") {
+      errorMessage = findFieldMessage(error) || "An error occurred";
+    } else {
+      errorMessage = error;
+    }
+
+    this.$message.error(errorMessage);
+    console.error(errorMessage);
   }
 })();

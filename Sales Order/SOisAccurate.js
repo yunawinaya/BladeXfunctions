@@ -16,6 +16,7 @@
     await db
       .collection("Customer")
       .where({ id: customer_id })
+      .get()
       .then((res) => {
         const customerData = res.data[0];
         if (customerData) {
