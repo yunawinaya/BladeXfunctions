@@ -386,7 +386,6 @@ const disabledSelectStock = async (data) => {
       case "Add":
         // Add mode
         this.display(["draft_status"]);
-        this.reset();
 
         await checkAccIntegrationType(organizationId);
         await setPlant(organizationId);
