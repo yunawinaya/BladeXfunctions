@@ -1285,7 +1285,7 @@ const createOrUpdatePicking = async (
                       const materialId =
                         tempItem.material_id || item.material_id;
 
-                      transferOrder.table_picking_items.push({
+                      updatedPickingItems.push({
                         item_code: String(materialId),
                         item_name: item.material_name,
                         item_desc: item.gd_material_desc || "",
@@ -1332,27 +1332,25 @@ const createOrUpdatePicking = async (
               console.log(
                 "No existing Transfer Order found for update, creating new one"
               );
-              // Fall through to create new Transfer Order
             }
           } catch (error) {
             console.error(
               "Error checking/updating existing Transfer Order:",
               error
             );
-            // If update fails, we might want to create a new one instead
             throw error;
           }
         }
 
-        // Create new Transfer Order (for new GDs or if no existing TO found)
         const transferOrder = {
           to_status: "Created",
           plant_id: gdData.plant_id,
+          organization_id: organizationId,
           movement_type: "Picking",
           ref_doc_type: "Good Delivery",
           gd_no: gdId,
           created_by: this.getVarGlobal("nickname"),
-          created_at: new Date().toISOString(),
+          created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
           ref_doc: gdData.gd_ref_doc,
           table_picking_items: [],
           is_deleted: 0,
@@ -1361,20 +1359,31 @@ const createOrUpdatePicking = async (
         // Process table items
         gdData.table_gd.forEach((item) => {
           if (item.temp_qty_data) {
-            const tempData = JSON.parse(item.temp_qty_data);
-            tempData.forEach((tempItem) => {
-              transferOrder.table_picking_items.push({
-                item_code: item.material_id,
-                item_name: item.material_name,
-                item_desc: item.gd_material_desc,
-                batch_no: tempItem.batch_id,
-                item_batch_id: tempItem.batch_id,
-                qty_to_pick: tempItem.gd_quantity,
-                item_uom: item.gd_order_uom_id,
-                pending_process_qty: tempItem.gd_quantity,
-                bin_location_id: tempItem.location_id,
+            try {
+              const tempData = JSON.parse(item.temp_qty_data);
+              tempData.forEach((tempItem) => {
+                transferOrder.table_picking_items.push({
+                  item_code: item.material_id,
+                  item_name: item.material_name,
+                  item_desc: item.gd_material_desc || "",
+                  batch_no: tempItem.batch_id
+                    ? String(tempItem.batch_id)
+                    : null,
+                  item_batch_id: tempItem.batch_id
+                    ? String(tempItem.batch_id)
+                    : null,
+                  qty_to_pick: parseFloat(tempItem.gd_quantity),
+                  item_uom: String(item.gd_order_uom_id),
+                  pending_process_qty: parseFloat(tempItem.gd_quantity),
+                  bin_location_id: String(tempItem.location_id),
+                  line_status: "Open",
+                });
               });
-            });
+            } catch (error) {
+              console.error(
+                `Error parsing temp_qty_data for new TO: ${error.message}`
+              );
+            }
           }
         });
 
@@ -1478,6 +1487,7 @@ const createOrUpdatePicking = async (
       // Prepare goods delivery object
       const gd = {
         gd_status: "Created",
+        picking_status: data.picking_status,
         fake_so_id: data.fake_so_id,
         so_id: data.so_id,
         so_no: data.so_no,

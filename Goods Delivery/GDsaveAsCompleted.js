@@ -1769,6 +1769,95 @@ const findFieldMessage = (obj) => {
   return null;
 };
 
+const checkPickingStatus = async (gdData, pageStatus, currentGdStatus) => {
+  try {
+    if (!gdData.plant_id) {
+      throw new Error("Plant ID is required for picking setup");
+    }
+
+    // Check if plant has picking setup for Good Delivery
+    const pickingSetupData = await db
+      .collection("picking_setup")
+      .where({
+        plant_id: gdData.plant_id,
+        movement_type: "Good Delivery",
+        picking_required: 1,
+      })
+      .get();
+
+    // If no picking setup found, allow normal processing
+    if (!pickingSetupData.data || pickingSetupData.data.length === 0) {
+      console.log(
+        `No picking setup found for plant ${gdData.plant_id}, proceeding normally`
+      );
+      return { canProceed: true, message: null };
+    }
+
+    // Log warning if multiple setups found (though we don't need the actual setup data)
+    if (pickingSetupData.data.length > 1) {
+      console.warn(
+        `Multiple picking setups found for plant ${gdData.plant_id}, but only need to confirm picking is required`
+      );
+    }
+
+    console.log(
+      `Picking setup found for plant ${gdData.plant_id}. Checking requirements...`
+    );
+
+    // Scenario 1: Fresh Add (Draft -> Complete directly)
+    // User cannot proceed directly to Complete, must create GD first for picking
+    if (pageStatus === "Add") {
+      return {
+        canProceed: false,
+        message: "Picking is Required",
+        title: "Create Goods Delivery to start picking process",
+      };
+    }
+
+    // Scenario 2: Edit mode with Created status
+    // User can only proceed if picking_status is "Completed"
+    if (pageStatus === "Edit" && currentGdStatus === "Created") {
+      if (gdData.picking_status === "Completed") {
+        console.log("Picking completed, allowing GD completion");
+        return { canProceed: true, message: null };
+      } else {
+        return {
+          canProceed: false,
+          message: "Picking is Required",
+          title:
+            "Complete all picking process before completing Goods Delivery",
+        };
+      }
+    }
+
+    // Scenario 3: Edit mode with other statuses (shouldn't reach here in normal flow)
+    if (pageStatus === "Edit") {
+      console.log(
+        `Edit mode with status: ${currentGdStatus}, checking picking status`
+      );
+      if (gdData.picking_status === "Completed") {
+        return { canProceed: true, message: null };
+      } else {
+        return {
+          canProceed: false,
+          message: "Picking process must be completed first",
+          title: "Complete picking before proceeding",
+        };
+      }
+    }
+
+    // Default: allow if no specific blocking condition
+    return { canProceed: true, message: null };
+  } catch (error) {
+    console.error("Error checking picking status:", error);
+    return {
+      canProceed: false,
+      message: "Error checking picking requirements. Please try again.",
+      title: "System Error",
+    };
+  }
+};
+
 // Main execution wrapped in an async IIFE
 (async () => {
   // Prevent duplicate processing
@@ -1780,9 +1869,14 @@ const findFieldMessage = (obj) => {
     this.showLoading();
     const data = await this.getValues();
 
-    // Get page status
+    // Get page status and current GD status
     const page_status = data.page_status;
     const gdStatus = data.gd_status;
+    const targetStatus = "Completed";
+
+    console.log(
+      `Page Status: ${page_status}, Current GD Status: ${gdStatus}, Target Status: ${targetStatus}`
+    );
 
     // Define required fields
     const requiredFields = [
@@ -1799,6 +1893,7 @@ const findFieldMessage = (obj) => {
       },
     ];
 
+    // Validate form fields
     for (const [index, item] of data.table_gd.entries()) {
       await this.validate(`table_gd.${index}.gd_qty`);
     }
@@ -1806,6 +1901,13 @@ const findFieldMessage = (obj) => {
     // Validate form
     const missingFields = validateForm(data, requiredFields);
 
+    if (missingFields.length > 0) {
+      this.hideLoading();
+      this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
+      return;
+    }
+
+    // Check credit/overdue limits if applicable
     if (data.acc_integration_type !== null) {
       const canProceed = await checkCreditOverdueLimit(
         data.customer_name,
@@ -1820,212 +1922,221 @@ const findFieldMessage = (obj) => {
 
     console.log("Credit/overdue limit check passed");
 
-    if (missingFields.length === 0) {
-      // If this is an edit, store previous temporary quantities
-      if (page_status === "Edit" && data.id && Array.isArray(data.table_gd)) {
-        try {
-          // Get the original record from database
-          const originalRecord = await db
-            .collection("goods_delivery")
-            .where({ id: data.id })
-            .get();
-          if (originalRecord.data && originalRecord.data.length > 0) {
-            const originalGD = originalRecord.data[0];
+    // If this is an edit, store previous temporary quantities
+    if (page_status === "Edit" && data.id && Array.isArray(data.table_gd)) {
+      try {
+        // Get the original record from database
+        const originalRecord = await db
+          .collection("goods_delivery")
+          .where({ id: data.id })
+          .get();
+        if (originalRecord.data && originalRecord.data.length > 0) {
+          const originalGD = originalRecord.data[0];
 
-            // Store the ORIGINAL quantities as previous
-            data.table_gd.forEach((item, index) => {
-              if (originalGD.table_gd && originalGD.table_gd[index]) {
-                item.prev_temp_qty_data =
-                  originalGD.table_gd[index].temp_qty_data;
-              }
-            });
-          }
-        } catch (error) {
-          console.error("Error retrieving original GD record:", error);
-          // Fallback to current behavior if database fetch fails
-          data.table_gd.forEach((item) => {
-            item.prev_temp_qty_data = item.temp_qty_data;
+          // Store the ORIGINAL quantities as previous
+          data.table_gd.forEach((item, index) => {
+            if (originalGD.table_gd && originalGD.table_gd[index]) {
+              item.prev_temp_qty_data =
+                originalGD.table_gd[index].temp_qty_data;
+            }
           });
         }
+      } catch (error) {
+        console.error("Error retrieving original GD record:", error);
+        // Fallback to current behavior if database fetch fails
+        data.table_gd.forEach((item) => {
+          item.prev_temp_qty_data = item.temp_qty_data;
+        });
       }
+    }
 
-      // Get organization ID
-      let organizationId = this.getVarGlobal("deptParentId");
-      if (organizationId === "0") {
-        organizationId = this.getVarSystem("deptIds").split(",")[0];
+    // Get organization ID
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
+    }
+
+    const {
+      picking_status,
+      fake_so_id,
+      so_id,
+      so_no,
+      gd_billing_address,
+      gd_shipping_address,
+      delivery_no,
+      plant_id,
+      organization_id,
+      gd_ref_doc,
+      customer_name,
+      email_address,
+      document_description,
+      gd_delivery_method,
+      delivery_date,
+
+      driver_name,
+      driver_contact_no,
+      ic_noic_no,
+      validity_of_collection,
+      vehicle_no,
+      pickup_date,
+
+      courier_company,
+      shipping_date,
+      freight_charges,
+      tracking_number,
+      est_arrival_date,
+
+      driver_cost,
+      est_delivery_date,
+
+      shipping_company,
+      shipping_method,
+
+      tpt_vehicle_number,
+      tpt_transport_name,
+      tpt_ic_no,
+      tpt_driver_contact_no,
+
+      table_gd,
+      order_remark,
+      billing_address_line_1,
+      billing_address_line_2,
+      billing_address_line_3,
+      billing_address_line_4,
+      billing_address_city,
+      billing_address_state,
+      billing_address_country,
+      billing_postal_code,
+      billing_address_name,
+      billing_address_phone,
+      billing_attention,
+
+      shipping_address_line_1,
+      shipping_address_line_2,
+      shipping_address_line_3,
+      shipping_address_line_4,
+      shipping_address_city,
+      shipping_address_state,
+      shipping_address_country,
+      shipping_postal_code,
+      shipping_address_name,
+      shipping_address_phone,
+      shipping_attention,
+
+      acc_integration_type,
+      last_sync_date,
+      customer_credit_limit,
+      overdue_limit,
+      outstanding_balance,
+      overdue_inv_total_amount,
+      is_accurate,
+      gd_total,
+    } = data;
+
+    // Prepare goods delivery object
+    const gd = {
+      gd_status: targetStatus,
+      picking_status,
+      fake_so_id,
+      so_id,
+      so_no,
+      gd_billing_address,
+      gd_shipping_address,
+      delivery_no,
+      plant_id,
+      organization_id,
+      gd_ref_doc,
+      customer_name,
+      email_address,
+      document_description,
+      gd_delivery_method,
+      delivery_date,
+
+      driver_name,
+      driver_contact_no,
+      ic_noic_no,
+      validity_of_collection,
+      vehicle_no,
+      pickup_date,
+
+      courier_company,
+      shipping_date,
+      freight_charges,
+      tracking_number,
+      est_arrival_date,
+
+      driver_cost,
+      est_delivery_date,
+
+      shipping_company,
+      shipping_method,
+
+      tpt_vehicle_number,
+      tpt_transport_name,
+      tpt_ic_no,
+      tpt_driver_contact_no,
+
+      table_gd,
+      order_remark,
+      billing_address_line_1,
+      billing_address_line_2,
+      billing_address_line_3,
+      billing_address_line_4,
+      billing_address_city,
+      billing_address_state,
+      billing_address_country,
+      billing_postal_code,
+      billing_address_name,
+      billing_address_phone,
+      billing_attention,
+
+      shipping_address_line_1,
+      shipping_address_line_2,
+      shipping_address_line_3,
+      shipping_address_line_4,
+      shipping_address_city,
+      shipping_address_state,
+      shipping_address_country,
+      shipping_postal_code,
+      shipping_address_name,
+      shipping_address_phone,
+      shipping_attention,
+
+      acc_integration_type,
+      last_sync_date,
+      customer_credit_limit,
+      overdue_limit,
+      outstanding_balance,
+      overdue_inv_total_amount,
+      is_accurate,
+      gd_total,
+    };
+
+    // Clean up undefined/null values
+    Object.keys(gd).forEach((key) => {
+      if (gd[key] === undefined || gd[key] === null) {
+        delete gd[key];
       }
+    });
 
-      const {
-        fake_so_id,
-        so_id,
-        so_no,
-        gd_billing_address,
-        gd_shipping_address,
-        delivery_no,
-        plant_id,
-        organization_id,
-        gd_ref_doc,
-        customer_name,
-        email_address,
-        document_description,
-        gd_delivery_method,
-        delivery_date,
+    // Check picking requirements with proper parameters
+    const pickingCheck = await checkPickingStatus(gd, page_status, gdStatus);
 
-        driver_name,
-        driver_contact_no,
-        ic_noic_no,
-        validity_of_collection,
-        vehicle_no,
-        pickup_date,
-
-        courier_company,
-        shipping_date,
-        freight_charges,
-        tracking_number,
-        est_arrival_date,
-
-        driver_cost,
-        est_delivery_date,
-
-        shipping_company,
-        shipping_method,
-
-        tpt_vehicle_number,
-        tpt_transport_name,
-        tpt_ic_no,
-        tpt_driver_contact_no,
-
-        table_gd,
-        order_remark,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_address_country,
-        billing_postal_code,
-        billing_address_name,
-        billing_address_phone,
-        billing_attention,
-
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_address_country,
-        shipping_postal_code,
-        shipping_address_name,
-        shipping_address_phone,
-        shipping_attention,
-
-        acc_integration_type,
-        last_sync_date,
-        customer_credit_limit,
-        overdue_limit,
-        outstanding_balance,
-        overdue_inv_total_amount,
-        is_accurate,
-        gd_total,
-      } = data;
-
-      // Prepare goods delivery object
-      const gd = {
-        gd_status: "Completed",
-        fake_so_id,
-        so_id,
-        so_no,
-        gd_billing_address,
-        gd_shipping_address,
-        delivery_no,
-        plant_id,
-        organization_id,
-        gd_ref_doc,
-        customer_name,
-        email_address,
-        document_description,
-        gd_delivery_method,
-        delivery_date,
-
-        driver_name,
-        driver_contact_no,
-        ic_noic_no,
-        validity_of_collection,
-        vehicle_no,
-        pickup_date,
-
-        courier_company,
-        shipping_date,
-        freight_charges,
-        tracking_number,
-        est_arrival_date,
-
-        driver_cost,
-        est_delivery_date,
-
-        shipping_company,
-        shipping_method,
-
-        tpt_vehicle_number,
-        tpt_transport_name,
-        tpt_ic_no,
-        tpt_driver_contact_no,
-
-        table_gd,
-        order_remark,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_address_country,
-        billing_postal_code,
-        billing_address_name,
-        billing_address_phone,
-        billing_attention,
-
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_address_country,
-        shipping_postal_code,
-        shipping_address_name,
-        shipping_address_phone,
-        shipping_attention,
-
-        acc_integration_type,
-        last_sync_date,
-        customer_credit_limit,
-        overdue_limit,
-        outstanding_balance,
-        overdue_inv_total_amount,
-        is_accurate,
-        gd_total,
-      };
-
-      // Clean up undefined/null values
-      Object.keys(gd).forEach((key) => {
-        if (gd[key] === undefined || gd[key] === null) {
-          delete gd[key];
-        }
+    if (!pickingCheck.canProceed) {
+      this.parentGenerateForm.$alert(pickingCheck.message, pickingCheck.title, {
+        confirmButtonText: "OK",
+        type: "warning",
       });
-
-      // Perform action based on page status
-      if (page_status === "Add") {
-        await addEntry(organizationId, gd, gdStatus);
-      } else if (page_status === "Edit") {
-        const goodsDeliveryId = data.id;
-        await updateEntry(organizationId, gd, gdStatus, goodsDeliveryId);
-      }
-    } else {
       this.hideLoading();
-      this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
+      return;
+    }
+
+    // Perform action based on page status
+    if (page_status === "Add") {
+      await addEntry(organizationId, gd, targetStatus);
+    } else if (page_status === "Edit") {
+      const goodsDeliveryId = data.id;
+      await updateEntry(organizationId, gd, targetStatus, goodsDeliveryId);
     }
   } catch (error) {
     this.hideLoading();

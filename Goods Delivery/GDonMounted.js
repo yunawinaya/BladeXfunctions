@@ -65,11 +65,18 @@ const getPrefixData = async (organizationId) => {
     .where({
       document_types: "Goods Delivery",
       is_deleted: 0,
+      organization_id: organizationId,
     })
     .get();
 
   if (!prefixEntry.data || prefixEntry.data.length === 0) {
     return null;
+  } else {
+    if (prefixEntry.data[0].is_active === 0) {
+      this.disabled(["delivery_no"], false);
+    } else {
+      this.disabled(["delivery_no"], true);
+    }
   }
 
   return prefixEntry.data[0];
@@ -81,7 +88,6 @@ const setPrefix = async (organizationId) => {
   if (prefixData && prefixData.is_active === 1) {
     const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
     this.setData({ delivery_no: prefixToShow });
-    this.disabled(["delivery_no"], true);
   }
 };
 
@@ -96,13 +102,20 @@ const showStatusHTML = (status) => {
     case "Completed":
       this.display(["completed_status"]);
       break;
+    case "Cancelled":
+      this.display(["cancel_status"]);
+      break;
     default:
       break;
   }
 };
 
-const disabledField = async (status) => {
-  if (status === "Completed") {
+const disabledField = async (status, pickingStatus) => {
+  if (
+    status === "Completed" ||
+    pickingStatus === "Completed" ||
+    pickingStatus === "In Progress"
+  ) {
     this.disabled(
       [
         "gd_status",
@@ -168,14 +181,29 @@ const disabledField = async (status) => {
       "link_billing_address",
       "link_shipping_address",
       "button_save_as_draft",
-      "button_save_as_completed",
       "button_save_as_created",
       "so_id",
       "fake_so_id",
     ]);
 
+    if (status === "Completed") {
+      this.hide(["button_save_as_completed"]);
+    }
+
     this.display(["so_no"]);
   } else {
+    if (status === "Created") {
+      this.hide(["button_save_as_draft"]);
+    }
+    this.disabled(
+      [
+        "gd_ref_doc",
+        "gd_delivery_method",
+        "document_description",
+        "order_remark",
+      ],
+      false
+    );
     this.hide(["fake_so_id"]);
     this.display("so_id");
   }
@@ -249,11 +277,94 @@ const displayDeliveryMethod = async () => {
   }
 };
 
+const setPlant = async (organizationId) => {
+  const deptId = this.getVarSystem("deptIds").split(",")[0];
+  let plantId = "";
+  if (deptId === organizationId) {
+    const resPlant = await db
+      .collection("blade_dept")
+      .where({ parent_id: deptId })
+      .get();
+
+    if (!resPlant && resPlant.data.length === 0) {
+      plantId = deptId;
+    } else {
+      plantId = "";
+    }
+  } else {
+    plantId = deptId;
+  }
+
+  this.setData({
+    organization_id: organizationId,
+    plant_id: plantId,
+    delivery_date: new Date().toISOString().split("T")[0],
+  });
+};
+
+const checkAccIntegrationType = async (organizationId) => {
+  if (organizationId) {
+    const resAI = await db
+      .collection("accounting_integration")
+      .where({ organization_id: organizationId })
+      .get();
+
+    if (resAI && resAI.data.length > 0) {
+      const aiData = resAI.data[0];
+
+      this.setData({ acc_integration_type: aiData.acc_integration_type });
+    }
+  }
+};
+
+const disabledSelectStock = async (data) => {
+  data.table_gd.forEach(async (item, index) => {
+    if (item.material_id && item.material_id !== "") {
+      if (item.gd_undelivered_qty <= 0) {
+        this.disabled(
+          [`table_gd.${index}.gd_qty`, `table_gd.${index}.gd_delivery_qty`],
+          true
+        );
+      } else {
+        const resItem = await db
+          .collection("item")
+          .where({ id: item.material_id, is_deleted: 0 })
+          .get();
+        if (resItem && resItem.data.length > 0) {
+          const plant = data.plant_id;
+          const itemData = resItem.data[0];
+
+          if (itemData.item_batch_management === 0) {
+            if (plant) {
+              const resItemBalance = await db
+                .collection("item_balance")
+                .where({
+                  plant_id: plant,
+                  material_id: item.material_id,
+                  is_deleted: 0,
+                })
+                .get();
+
+              if (resItemBalance && resItemBalance.data.length === 1) {
+                this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+                this.disabled([`table_gd.${index}.gd_qty`], false);
+              }
+            }
+          } else {
+            console.error("Item batch management is not found.");
+          }
+        }
+      }
+    }
+  });
+};
+
 // Main execution function
 (async () => {
   try {
     let pageStatus = "";
     const status = await this.getValue("gd_status");
+    const pickingStatus = await this.getValue("picking_status");
     const data = this.getValues();
 
     if (this.isAdd) pageStatus = "Add";
@@ -266,10 +377,10 @@ const displayDeliveryMethod = async () => {
     if (organizationId === "0") {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
+
     this.setData({ page_status: pageStatus });
 
     const salesOrderId = this.getValue("so_id");
-    console.log("salesOrderId JN", salesOrderId);
 
     switch (pageStatus) {
       case "Add":
@@ -277,12 +388,19 @@ const displayDeliveryMethod = async () => {
         this.display(["draft_status"]);
         this.reset();
 
+        await checkAccIntegrationType(organizationId);
+        await setPlant(organizationId);
         // Set prefix for new document
         await setPrefix(organizationId);
         break;
 
       case "Edit":
-        await disabledField(status);
+        if (status !== "Completed") {
+          await getPrefixData(organizationId);
+        }
+        await checkAccIntegrationType(organizationId);
+        await disabledField(status, pickingStatus);
+        await disabledSelectStock(data);
         await showStatusHTML(status);
         if (salesOrderId.length > 0) {
           await this.display(["address_grid"]);
