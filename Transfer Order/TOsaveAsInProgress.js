@@ -204,13 +204,13 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
     const item = updatedItems[index];
 
     // Safely parse quantities
-    const qtyToPick = parseFloat(item.qty_to_pick) || 0;
+    let pendingProcessQty = parseFloat(item.pending_process_qty) || 0;
     const pickedQty = parseFloat(item.picked_qty) || 0;
 
     console.log(
       `Item ${
         item.item_id || index
-      }: qtyToPick=${qtyToPick}, pickedQty=${pickedQty}`
+      }: pendingProcessQty=${pendingProcessQty}, pickedQty=${pickedQty}`
     );
 
     // Validation checks
@@ -223,9 +223,9 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
       continue;
     }
 
-    if (pickedQty > qtyToPick) {
+    if (pickedQty > pendingProcessQty) {
       errors.push(
-        `Picked quantity (${pickedQty}) cannot be greater than quantity to pick (${qtyToPick}) for item ${
+        `Picked quantity (${pickedQty}) cannot be greater than quantity to pick (${pendingProcessQty}) for item ${
           item.item_id || `#${index + 1}`
         }`
       );
@@ -236,62 +236,22 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
     let lineStatus;
     if (pickedQty === 0) {
       lineStatus = null;
-    } else if (pickedQty === qtyToPick) {
+    } else if (pickedQty === pendingProcessQty) {
       lineStatus = "Completed";
-    } else if (pickedQty < qtyToPick) {
+    } else if (pickedQty < pendingProcessQty) {
       lineStatus = "In Progress";
     }
 
     // Calculate pending process quantity
-    const pending_process_qty = qtyToPick - pickedQty;
+    pendingProcessQty -= pickedQty;
 
     // Update line status
     updatedItems[index].line_status = lineStatus;
-    updatedItems[index].pending_process_qty = pending_process_qty;
+    updatedItems[index].pending_process_qty = pendingProcessQty;
     console.log(`Item ${item.item_id || index} line status: ${lineStatus}`);
   }
 
   return { updatedItems, errors };
-};
-
-// Determine overall transfer order status based on line statuses
-const determineTransferOrderStatus = (pickingItems) => {
-  if (!Array.isArray(pickingItems) || pickingItems.length === 0) {
-    return "Created";
-  }
-
-  const lineStatuses = pickingItems
-    .map((item) => item.line_status)
-    .filter((status) => status !== undefined);
-
-  console.log("Line statuses:", lineStatuses);
-
-  // Count statuses
-  const completedCount = lineStatuses.filter(
-    (status) => status === "Completed"
-  ).length;
-  const inProgressCount = lineStatuses.filter(
-    (status) => status === "In Progress"
-  ).length;
-  const nullCount = lineStatuses.filter(
-    (status) => status === null || status === undefined
-  ).length;
-  const totalItems = pickingItems.length;
-
-  console.log(
-    `Status counts - Completed: ${completedCount}, In Progress: ${inProgressCount}, Null: ${nullCount}, Total: ${totalItems}`
-  );
-
-  // Determine overall status
-  if (completedCount === totalItems) {
-    return "Completed";
-  } else if (inProgressCount > 0 || completedCount > 0) {
-    return "In Progress";
-  } else if (nullCount === totalItems) {
-    return "Created";
-  } else {
-    return "In Progress";
-  }
 };
 
 const addEntry = async (organizationId, toData) => {
@@ -407,7 +367,7 @@ const updateGoodsDeliveryPickingStatus = async (gdId) => {
       return;
     }
 
-    const newPickingStatus = "Completed";
+    const newPickingStatus = "In Progress";
     await db.collection("goods_delivery").doc(gdId).update({
       picking_status: newPickingStatus,
     });
@@ -422,18 +382,20 @@ const updateGoodsDeliveryPickingStatus = async (gdId) => {
 const createPickingRecord = async (toData) => {
   const pickingRecords = [];
   for (const item of toData.table_picking_items) {
-    const pickingRecord = {
-      item_id: item.item_id,
-      item_name: item.item_name,
-      item_desc: item.item_desc,
-      batch_no: item.batch_no,
-      store_out_qty: item.picked_qty,
-      source_bin: item.source_bin,
-      remark: item.remark,
-      confirmed_by: this.getVarGlobal("nickname"),
-      confirmed_at: new Date().toISOString().slice(0, 19).replace("T", " "),
-    };
-    pickingRecords.push(pickingRecord);
+    if (item.picked_qty > 0) {
+      const pickingRecord = {
+        item_id: item.item_id,
+        item_name: item.item_name,
+        item_desc: item.item_desc,
+        batch_no: item.batch_no,
+        store_out_qty: item.picked_qty,
+        source_bin: item.source_bin,
+        remark: item.remark,
+        confirmed_by: this.getVarGlobal("nickname"),
+        confirmed_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+      };
+      pickingRecords.push(pickingRecord);
+    }
   }
 
   toData.table_picking_records = pickingRecords;
@@ -498,76 +460,6 @@ const createPickingRecord = async (toData) => {
       return;
     }
 
-    // Determine the new transfer order status
-    const newTransferOrderStatus = determineTransferOrderStatus(updatedItems);
-    console.log(
-      `Determined new transfer order status: ${newTransferOrderStatus}`
-    );
-
-    // Block process if status would be "In Progress"
-    if (newTransferOrderStatus === "In Progress") {
-      console.log("Blocking process: Transfer Order status is In Progress");
-
-      // Get incomplete items for better user feedback
-      const incompleteItems = updatedItems
-        .map((item, index) => ({
-          ...item,
-          itemName: item.item_name || `Item #${index + 1}`,
-          qtyToPick: parseFloat(item.qty_to_pick) || 0,
-          pickedQty: parseFloat(item.picked_qty) || 0,
-        }))
-        .filter((item) => {
-          const pickedQty = item.pickedQty;
-          const qtyToPick = item.qtyToPick;
-          return pickedQty < qtyToPick && pickedQty > 0;
-        });
-
-      const unpickedItems = updatedItems
-        .map((item, index) => ({
-          ...item,
-          itemName: item.item_name || `Item #${index + 1}`,
-          qtyToPick: parseFloat(item.qty_to_pick) || 0,
-          pickedQty: parseFloat(item.picked_qty) || 0,
-        }))
-        .filter((item) => item.pickedQty === 0);
-
-      // Create detailed message
-      let detailMessage = "The following items are incomplete:\n\n";
-
-      if (incompleteItems.length > 0) {
-        detailMessage += "Partially picked items:\n";
-        incompleteItems.forEach((item) => {
-          detailMessage += `• ${item.itemName}: ${item.pickedQty}/${item.qtyToPick} picked\n`;
-        });
-      }
-
-      if (unpickedItems.length > 0) {
-        if (incompleteItems.length > 0) detailMessage += "\n";
-        detailMessage += "Not started items:\n";
-        unpickedItems.forEach((item) => {
-          detailMessage += `• ${item.itemName}: 0/${item.qtyToPick} picked\n`;
-        });
-      }
-
-      detailMessage +=
-        "\nPlease complete picking for all items before proceeding, or save as Draft to continue later.";
-
-      this.hideLoading();
-
-      this.parentGenerateForm.$alert(
-        "Picking Items Incomplete",
-        detailMessage,
-        {
-          confirmButtonText: "OK",
-          type: "warning",
-          dangerouslyUseHTMLString: false,
-        }
-      );
-
-      console.log("Process blocked due to incomplete picking");
-      return;
-    }
-
     // Update the form data with the new line statuses (only if we proceed)
     for (let index = 0; index < updatedItems.length; index++) {
       this.setData({
@@ -575,6 +467,8 @@ const createPickingRecord = async (toData) => {
           updatedItems[index].line_status,
       });
     }
+
+    const newTransferOrderStatus = "In Progress";
 
     // Prepare transfer order object
     const toData = {
