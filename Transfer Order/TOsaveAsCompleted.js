@@ -195,6 +195,101 @@ const validateField = (value, field) => {
   return !value;
 };
 
+// Enhanced quantity validation and line status determination
+const validateAndUpdateLineStatuses = (pickingItems) => {
+  const errors = [];
+  const updatedItems = JSON.parse(JSON.stringify(pickingItems));
+
+  for (let index = 0; index < updatedItems.length; index++) {
+    const item = updatedItems[index];
+
+    // Safely parse quantities
+    const qtyToPick = parseFloat(item.qty_to_pick) || 0;
+    const pickedQty = parseFloat(item.picked_qty) || 0;
+
+    console.log(
+      `Item ${
+        item.item_id || index
+      }: qtyToPick=${qtyToPick}, pickedQty=${pickedQty}`
+    );
+
+    // Validation checks
+    if (pickedQty < 0) {
+      errors.push(
+        `Picked quantity cannot be negative for item ${
+          item.item_id || `#${index + 1}`
+        }`
+      );
+      continue;
+    }
+
+    if (pickedQty > qtyToPick) {
+      errors.push(
+        `Picked quantity (${pickedQty}) cannot be greater than quantity to pick (${qtyToPick}) for item ${
+          item.item_id || `#${index + 1}`
+        }`
+      );
+      continue;
+    }
+
+    // Determine line status based on quantities
+    let lineStatus;
+    if (pickedQty === 0) {
+      lineStatus = null;
+    } else if (pickedQty === qtyToPick) {
+      lineStatus = "Completed";
+    } else if (pickedQty < qtyToPick) {
+      lineStatus = "In Progress";
+    }
+
+    // Update line status
+    updatedItems[index].line_status = lineStatus;
+    console.log(`Item ${item.item_id || index} line status: ${lineStatus}`);
+  }
+
+  return { updatedItems, errors };
+};
+
+// Determine overall transfer order status based on line statuses
+const determineTransferOrderStatus = (pickingItems) => {
+  if (!Array.isArray(pickingItems) || pickingItems.length === 0) {
+    return "Created";
+  }
+
+  const lineStatuses = pickingItems
+    .map((item) => item.line_status)
+    .filter((status) => status !== undefined);
+
+  console.log("Line statuses:", lineStatuses);
+
+  // Count statuses
+  const completedCount = lineStatuses.filter(
+    (status) => status === "Completed"
+  ).length;
+  const inProgressCount = lineStatuses.filter(
+    (status) => status === "In Progress"
+  ).length;
+  const nullCount = lineStatuses.filter(
+    (status) => status === null || status === undefined
+  ).length;
+  const totalItems = pickingItems.length;
+
+  console.log(
+    `Status counts - Completed: ${completedCount}, In Progress: ${inProgressCount}, Null: ${nullCount}, Total: ${totalItems}`
+  );
+
+  // Determine overall status
+  if (completedCount === totalItems) {
+    return "Completed";
+  } else if (inProgressCount > 0 || completedCount > 0) {
+    return "In Progress";
+  } else if (nullCount === totalItems) {
+    return "Created";
+  } else {
+    return "In Progress";
+  }
+};
+
 const addEntry = async (organizationId, toData) => {
   try {
     const prefixData = await getPrefixData(organizationId, "Transfer Order");
@@ -240,11 +335,11 @@ const addEntry = async (organizationId, toData) => {
   }
 };
 
-const updateEntry = async (organizationId, toData, toId, toStatus) => {
+const updateEntry = async (organizationId, toData, toId, originalToStatus) => {
   try {
     let oldToId = toData.to_id;
 
-    if (toStatus === "Draft") {
+    if (originalToStatus === "Draft") {
       const prefixData = await getPrefixData(organizationId, "Transfer Order");
 
       if (prefixData) {
@@ -261,7 +356,7 @@ const updateEntry = async (organizationId, toData, toId, toStatus) => {
     }
 
     await db.collection("transfer_order").doc(toId).update(toData);
-    await processBalanceTable(toData, true, oldToId, toStatus);
+    await processBalanceTable(toData, true, oldToId, originalToStatus);
 
     console.log("Transfer order updated successfully");
     return toId;
@@ -303,7 +398,11 @@ const findFieldMessage = (obj) => {
     this.showLoading();
     const data = await this.getValues();
     const page_status = data.page_status;
-    let transferOrderStatus = data.to_status;
+    const originalToStatus = data.to_status;
+
+    console.log(
+      `Page Status: ${page_status}, Original TO Status: ${originalToStatus}`
+    );
 
     // Define required fields
     const requiredFields = [
@@ -329,87 +428,103 @@ const findFieldMessage = (obj) => {
     // Validate form
     const missingFields = validateForm(data, requiredFields);
 
-    if (missingFields.length === 0) {
-      // Get organization ID
-      let organizationId = this.getVarGlobal("deptParentId");
-      if (organizationId === "0") {
-        organizationId = this.getVarSystem("deptIds").split(",")[0];
-      }
-
-      for (let index = 0; index < data.table_picking_items.length; index++) {
-        const item = data.table_picking_items[index];
-        const qtyToPick = item.qty_to_pick;
-        const pickedQty = item.picked_qty;
-
-        if (pickedQty > qtyToPick) {
-          this.$message.error(
-            `Picked quantity cannot be greater than quantity to pick for item ${item.item_id}`
-          );
-          return;
-        }
-
-        if (pickedQty < 0) {
-          this.$message.error(
-            `Picked quantity cannot be less than 0 for item ${item.item_id}`
-          );
-          return;
-        }
-
-        if (qtyToPick > pickedQty && qtyToPick !== pickedQty) {
-          this.setData({
-            [`table_picking_items.${index}.line_status`]: "In Progress",
-          });
-          return;
-        } else if (qtyToPick === pickedQty) {
-          this.setData({
-            [`table_picking_items.${index}.line_status`]: "Completed",
-          });
-        }
-      }
-
-      // Prepare goods delivery object
-      const toData = {
-        to_status: transferOrderStatus,
-        plant_id: data.plant_id,
-        to_id: data.to_id,
-        movement_type: data.movement_type,
-        ref_doc_type: data.ref_doc_type,
-        gd_no: data.gd_no,
-        assigned_to: data.assigned_to,
-        created_by: data.created_by,
-        created_at: data.created_at,
-        organization_id: organizationId,
-        ref_doc: data.ref_doc,
-        table_picking_items: data.table_picking_items,
-        table_picking_records: data.table_picking_records,
-      };
-
-      // Clean up undefined/null values
-      Object.keys(toData).forEach((key) => {
-        if (toData[key] === undefined || toData[key] === null) {
-          delete toData[key];
-        }
-      });
-
-      let toId;
-
-      // Perform action based on page status
-      if (page_status === "Add") {
-        await addEntry(organizationId, toData);
-      } else if (page_status === "Edit") {
-        toId = data.id;
-        await updateEntry(organizationId, toData, toId, data.to_status);
-      }
-
-      this.$message.success(
-        page_status === "Add" ? "Added successfully" : "Updated successfully"
-      );
-      this.hideLoading();
-      closeDialog();
-    } else {
+    if (missingFields.length > 0) {
       this.hideLoading();
       this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
+      return;
     }
+
+    // Get organization ID
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
+    }
+
+    // Validate quantities and update line statuses
+    const { updatedItems, errors } = validateAndUpdateLineStatuses(
+      data.table_picking_items
+    );
+
+    if (errors.length > 0) {
+      this.hideLoading();
+      this.$message.error(errors.join("; "));
+      return;
+    }
+
+    // Determine the new transfer order status
+    const newTransferOrderStatus = determineTransferOrderStatus(updatedItems);
+    console.log(
+      `Determined new transfer order status: ${newTransferOrderStatus}`
+    );
+
+    // Update the form data with the new line statuses
+    for (let index = 0; index < updatedItems.length; index++) {
+      this.setData({
+        [`table_picking_items.${index}.line_status`]:
+          updatedItems[index].line_status,
+      });
+    }
+
+    // Prepare transfer order object
+    const toData = {
+      to_status: newTransferOrderStatus,
+      plant_id: data.plant_id,
+      to_id: data.to_id,
+      movement_type: data.movement_type,
+      ref_doc_type: data.ref_doc_type,
+      gd_no: data.gd_no,
+      assigned_to: data.assigned_to,
+      created_by: data.created_by,
+      created_at: data.created_at,
+      organization_id: organizationId,
+      ref_doc: data.ref_doc,
+      table_picking_items: updatedItems,
+      table_picking_records: data.table_picking_records,
+    };
+
+    // Clean up undefined/null values
+    Object.keys(toData).forEach((key) => {
+      if (toData[key] === undefined || toData[key] === null) {
+        delete toData[key];
+      }
+    });
+
+    let toId;
+
+    if (newTransferOrderStatus === "In Progress") {
+      this.parentGenerateForm.$alert(
+        "Picking Items Incomplete",
+        "It seems that you have not picked all the items. Please choose the option to save as In Progress or complete all picking items.",
+        {
+          confirmButtonText: "OK",
+          type: "warning",
+        }
+      );
+      return;
+    }
+
+    // Perform action based on page status
+    if (page_status === "Add") {
+      await addEntry(organizationId, toData);
+    } else if (page_status === "Edit") {
+      toId = data.id;
+      await updateEntry(organizationId, toData, toId, originalToStatus);
+    }
+
+    // Success message with status information
+    const statusMessage =
+      newTransferOrderStatus !== originalToStatus
+        ? ` (Status updated to: ${newTransferOrderStatus})`
+        : "";
+
+    this.$message.success(
+      `${
+        page_status === "Add" ? "Added" : "Updated"
+      } successfully${statusMessage}`
+    );
+
+    this.hideLoading();
+    closeDialog();
   } catch (error) {
     this.hideLoading();
 
