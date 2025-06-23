@@ -505,6 +505,9 @@ const createPickingRecord = async (toData) => {
     );
 
     // Block process if status would be "In Progress"
+    // Replace the detailed message section with this more concise version:
+
+    // Block process if status would be "In Progress"
     if (newTransferOrderStatus === "In Progress") {
       console.log("Blocking process: Transfer Order status is In Progress");
 
@@ -531,32 +534,25 @@ const createPickingRecord = async (toData) => {
         }))
         .filter((item) => item.pickedQty === 0);
 
-      // Create detailed message
-      let detailMessage = "The following items are incomplete:\n\n";
+      // Create concise message
+      let detailMessage = "Incomplete picking detected. ";
 
       if (incompleteItems.length > 0) {
-        detailMessage += "Partially picked items:\n";
-        incompleteItems.forEach((item) => {
-          detailMessage += `• ${item.itemName}: ${item.pickedQty}/${item.qtyToPick} picked\n`;
-        });
+        detailMessage += `${incompleteItems.length} item(s) partially picked. `;
       }
 
       if (unpickedItems.length > 0) {
-        if (incompleteItems.length > 0) detailMessage += "\n";
-        detailMessage += "Not started items:\n";
-        unpickedItems.forEach((item) => {
-          detailMessage += `• ${item.itemName}: 0/${item.qtyToPick} picked\n`;
-        });
+        detailMessage += `${unpickedItems.length} item(s) not started. `;
       }
 
       detailMessage +=
-        "\nPlease complete picking for all items before proceeding, or save as Draft to continue later.";
+        "Please complete all picking or save as Draft to continue later.";
 
       this.hideLoading();
 
       this.parentGenerateForm.$alert(
-        "Picking Items Incomplete",
         detailMessage,
+        "Picking Items Incomplete",
         {
           confirmButtonText: "OK",
           type: "warning",
@@ -591,6 +587,7 @@ const createPickingRecord = async (toData) => {
       ref_doc: data.ref_doc,
       table_picking_items: updatedItems,
       table_picking_records: data.table_picking_records,
+      remarks: data.remarks,
     };
 
     await createPickingRecord(toData);

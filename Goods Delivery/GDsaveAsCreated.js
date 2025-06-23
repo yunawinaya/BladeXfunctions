@@ -16,6 +16,41 @@ const roundPrice = (value) => {
   return parseFloat(parseFloat(value || 0).toFixed(4));
 };
 
+// Helper function to safely parse JSON
+const parseJsonSafely = (jsonString, defaultValue = []) => {
+  try {
+    return jsonString ? JSON.parse(jsonString) : defaultValue;
+  } catch (error) {
+    console.error("JSON parse error:", error);
+    return defaultValue;
+  }
+};
+
+// Helper function to collect all SO numbers from data
+const collectAllSoNumbers = (data) => {
+  const soNumbers = new Set();
+
+  // From header
+  if (data.so_no) {
+    if (typeof data.so_no === "string") {
+      data.so_no.split(",").forEach((so) => soNumbers.add(so.trim()));
+    } else {
+      soNumbers.add(data.so_no.toString());
+    }
+  }
+
+  // From line items
+  if (Array.isArray(data.table_gd)) {
+    data.table_gd.forEach((item) => {
+      if (item.line_so_no) {
+        soNumbers.add(item.line_so_no.toString().trim());
+      }
+    });
+  }
+
+  return Array.from(soNumbers).filter((so) => so.length > 0);
+};
+
 // Update FIFO inventory
 const updateFIFOInventory = async (
   materialId,
@@ -664,7 +699,7 @@ const reverseBalanceChanges = async (data, isUpdate = false) => {
         continue;
       }
 
-      const prevTempData = JSON.parse(item.prev_temp_qty_data);
+      const prevTempData = parseJsonSafely(item.prev_temp_qty_data);
 
       for (const prevTemp of prevTempData) {
         const itemBalanceParams = {
@@ -756,292 +791,275 @@ const processBalanceTable = async (
   // Create a map to track consumed FIFO quantities during this transaction
   const consumedFIFOQty = new Map();
 
-  const processedItemPromises = items.map(async (item, itemIndex) => {
+  // Separate FIFO items from others for sequential processing
+  const fifoItems = [];
+  const otherItems = [];
+
+  // Pre-process items to determine costing method
+  for (const item of items) {
+    if (!item.material_id || !item.temp_qty_data) {
+      console.error(`Invalid item data:`, item);
+      continue;
+    }
+
     try {
-      console.log(`Processing item ${itemIndex + 1}/${items.length}`);
-
-      // Input validation
-      if (!item.material_id || !item.temp_qty_data) {
-        console.error(`Invalid item data for index ${itemIndex}:`, item);
-        return null;
-      }
-
-      // Track created documents for potential rollback
-      const createdDocs = [];
-      const updatedDocs = [];
-
-      // First check if this item should be processed based on stock_control
       const itemRes = await db
         .collection("Item")
         .where({ id: item.material_id })
         .get();
 
-      if (!itemRes.data || !itemRes.data.length) {
-        console.error(`Item not found: ${item.material_id}`);
-        return;
-      }
+      if (itemRes.data && itemRes.data.length > 0) {
+        const itemData = itemRes.data[0];
+        if (itemData.stock_control === 0) {
+          console.log(`Skipping item ${item.material_id} (stock_control=0)`);
+          continue;
+        }
 
-      const itemData = itemRes.data[0];
-      if (itemData.stock_control === 0) {
-        console.log(
-          `Skipping inventory update for item ${item.material_id} (stock_control=0)`
-        );
-        return;
-      }
-
-      const temporaryData = JSON.parse(item.temp_qty_data);
-
-      if (temporaryData.length > 0) {
-        for (let i = 0; i < temporaryData.length; i++) {
-          const temp = temporaryData[i];
-
-          const itemBalanceParams = {
-            material_id: item.material_id,
-            location_id: temp.location_id,
-          };
-
-          if (temp.batch_id) {
-            itemBalanceParams.batch_id = temp.batch_id;
-          }
-
-          const balanceCollection = temp.batch_id
-            ? "item_batch_balance"
-            : "item_balance";
-
-          const balanceQuery = await db
-            .collection(balanceCollection)
-            .where(itemBalanceParams)
-            .get();
-
-          const hasExistingBalance =
-            balanceQuery.data &&
-            Array.isArray(balanceQuery.data) &&
-            balanceQuery.data.length > 0;
-
-          const existingDoc = hasExistingBalance ? balanceQuery.data[0] : null;
-
-          // UOM Conversion
-          let altQty = roundQty(temp.gd_quantity);
-          let baseQty = altQty;
-          let altUOM = item.gd_order_uom_id;
-          let baseUOM = itemData.based_uom;
-          let altWAQty = roundQty(item.gd_qty);
-          let baseWAQty = altWAQty;
-
-          if (
-            Array.isArray(itemData.table_uom_conversion) &&
-            itemData.table_uom_conversion.length > 0
-          ) {
-            console.log(`Checking UOM conversions for item ${item.item_id}`);
-
-            const uomConversion = itemData.table_uom_conversion.find(
-              (conv) => conv.alt_uom_id === altUOM
-            );
-
-            if (uomConversion) {
-              console.log(
-                `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
-              );
-
-              baseQty = roundQty(altQty * uomConversion.base_qty);
-              baseWAQty = roundQty(altWAQty * uomConversion.base_qty);
-
-              console.log(
-                `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
-              );
-            } else {
-              console.log(`No conversion found for UOM ${altUOM}, using as-is`);
-            }
-          } else {
-            console.log(
-              `No UOM conversion table for item ${item.item_id}, using received quantity as-is`
-            );
-          }
-
-          const costingMethod = itemData.material_costing_method;
-
-          let unitPrice = roundPrice(item.unit_price);
-          let totalPrice = roundPrice(unitPrice * altQty);
-
-          if (costingMethod === "First In First Out") {
-            // UPDATED: Advanced FIFO implementation
-            // Define a key for tracking consumed FIFO quantities
-            const materialBatchKey = temp.batch_id
-              ? `${item.material_id}-${temp.batch_id}`
-              : item.material_id;
-
-            // Get previously consumed quantity (default to 0 if none)
-            const previouslyConsumedQty =
-              consumedFIFOQty.get(materialBatchKey) || 0;
-
-            // Get unit price from latest FIFO sequence with awareness of consumed quantities
-            const fifoCostPrice = await getLatestFIFOCostPrice(
-              item.material_id,
-              temp.batch_id,
-              baseQty,
-              previouslyConsumedQty,
-              data.plant_id
-            );
-
-            // Update the consumed quantity for this material/batch
-            consumedFIFOQty.set(
-              materialBatchKey,
-              previouslyConsumedQty + baseQty
-            );
-
-            unitPrice = roundPrice(fifoCostPrice);
-            totalPrice = roundPrice(fifoCostPrice * baseQty);
-          } else if (costingMethod === "Weighted Average") {
-            // Get unit price from WA cost price
-            const waCostPrice = await getWeightedAverageCostPrice(
-              item.material_id,
-              temp.batch_id,
-              data.plant_id
-            );
-            unitPrice = roundPrice(waCostPrice);
-            totalPrice = roundPrice(waCostPrice * baseQty);
-          } else if (costingMethod === "Fixed Cost") {
-            // Get unit price from Fixed Cost
-            const fixedCostPrice = await getFixedCostPrice(item.material_id);
-            unitPrice = roundPrice(fixedCostPrice);
-            totalPrice = roundPrice(fixedCostPrice * baseQty);
-          } else {
-            return Promise.resolve();
-          }
-
-          // Create inventory_movement record - OUT from Unrestricted
-          const inventoryMovementDataUNR = {
-            transaction_type: "GDL",
-            trx_no: data.delivery_no,
-            parent_trx_no: data.so_no,
-            movement: "OUT",
-            unit_price: unitPrice,
-            total_price: totalPrice,
-            quantity: altQty,
-            item_id: item.material_id,
-            inventory_category: "Unrestricted",
-            uom_id: altUOM,
-            base_qty: baseQty,
-            base_uom_id: baseUOM,
-            bin_location_id: temp.location_id,
-            batch_number_id: temp.batch_id ? temp.batch_id : null,
-            costing_method_id: item.item_costing_method,
-            plant_id: data.plant_id,
-            organization_id: data.organization_id,
-            is_deleted: 0, // Explicitly set as not deleted
-          };
-
-          // Create inventory_movement record - IN to Reserved
-          const inventoryMovementDataRES = {
-            transaction_type: "GDL",
-            trx_no: data.delivery_no,
-            parent_trx_no: data.so_no,
-            movement: "IN",
-            unit_price: unitPrice,
-            total_price: totalPrice,
-            quantity: altQty,
-            item_id: item.material_id,
-            inventory_category: "Reserved",
-            uom_id: altUOM,
-            base_qty: baseQty,
-            base_uom_id: baseUOM,
-            bin_location_id: temp.location_id,
-            batch_number_id: temp.batch_id ? temp.batch_id : null,
-            costing_method_id: item.item_costing_method,
-            plant_id: data.plant_id,
-            organization_id: data.organization_id,
-            is_deleted: 0, // Explicitly set as not deleted
-          };
-
-          // Add both movement records
-          const invMovementResultUNR = await db
-            .collection("inventory_movement")
-            .add(inventoryMovementDataUNR);
-          createdDocs.push({
-            collection: "inventory_movement",
-            docId: invMovementResultUNR.id,
-          });
-
-          const invMovementResultRES = await db
-            .collection("inventory_movement")
-            .add(inventoryMovementDataRES);
-          createdDocs.push({
-            collection: "inventory_movement",
-            docId: invMovementResultRES.id,
-          });
-
-          if (existingDoc && existingDoc.id) {
-            // For new processing, always use the current quantity
-            const gdQuantity = roundQty(parseFloat(baseQty));
-
-            // Store original values for potential rollback
-            updatedDocs.push({
-              collection: balanceCollection,
-              docId: existingDoc.id,
-              originalData: {
-                unrestricted_qty: roundQty(existingDoc.unrestricted_qty || 0),
-                reserved_qty: roundQty(existingDoc.reserved_qty || 0),
-              },
-            });
-
-            // Update balance
-            await db
-              .collection(balanceCollection)
-              .doc(existingDoc.id)
-              .update({
-                unrestricted_qty: roundQty(
-                  parseFloat(existingDoc.unrestricted_qty || 0) - gdQuantity
-                ),
-                reserved_qty: roundQty(
-                  parseFloat(existingDoc.reserved_qty || 0) + gdQuantity
-                ),
-              });
-          }
-
-          // Update costing method inventories
-          if (costingMethod === "First In First Out") {
-            await updateFIFOInventory(
-              item.material_id,
-              baseQty,
-              temp.batch_id,
-              data.plant_id
-            );
-          } else if (costingMethod === "Weighted Average") {
-            await updateWeightedAverage(
-              item,
-              temp.batch_id,
-              baseWAQty,
-              data.plant_id
-            );
-          }
+        if (itemData.material_costing_method === "First In First Out") {
+          fifoItems.push({ item, itemData });
+        } else {
+          otherItems.push({ item, itemData });
         }
       }
     } catch (error) {
-      console.error(`Error processing item ${item.material_id}:`, error);
+      console.error(`Error checking item ${item.material_id}:`, error);
+    }
+  }
 
-      // Rollback changes if any operation fails
-      for (const doc of updatedDocs.reverse()) {
-        try {
-          await db
-            .collection(doc.collection)
-            .doc(doc.docId)
-            .update(doc.originalData);
-        } catch (rollbackError) {
-          console.error("Rollback error:", rollbackError);
+  // Process FIFO items sequentially to avoid race conditions
+  for (const { item, itemData } of fifoItems) {
+    await processItemBalance(item, itemData, data, consumedFIFOQty);
+  }
+
+  // Process non-FIFO items in parallel
+  await Promise.all(
+    otherItems.map(({ item, itemData }) =>
+      processItemBalance(item, itemData, data, consumedFIFOQty)
+    )
+  );
+
+  // Clear the FIFO tracking map
+  consumedFIFOQty.clear();
+};
+
+// Extracted item processing logic for better organization
+const processItemBalance = async (item, itemData, data, consumedFIFOQty) => {
+  const temporaryData = parseJsonSafely(item.temp_qty_data);
+
+  if (temporaryData.length === 0) {
+    console.log(`No temporary data for item ${item.material_id}`);
+    return;
+  }
+
+  // Track created documents for potential rollback
+  const createdDocs = [];
+  const updatedDocs = [];
+
+  try {
+    for (let i = 0; i < temporaryData.length; i++) {
+      const temp = temporaryData[i];
+
+      const itemBalanceParams = {
+        material_id: item.material_id,
+        location_id: temp.location_id,
+      };
+
+      if (temp.batch_id) {
+        itemBalanceParams.batch_id = temp.batch_id;
+      }
+
+      const balanceCollection = temp.batch_id
+        ? "item_batch_balance"
+        : "item_balance";
+
+      const balanceQuery = await db
+        .collection(balanceCollection)
+        .where(itemBalanceParams)
+        .get();
+
+      const hasExistingBalance =
+        balanceQuery.data &&
+        Array.isArray(balanceQuery.data) &&
+        balanceQuery.data.length > 0;
+
+      const existingDoc = hasExistingBalance ? balanceQuery.data[0] : null;
+
+      // UOM Conversion
+      let altQty = roundQty(temp.gd_quantity);
+      let baseQty = altQty;
+      let altUOM = item.gd_order_uom_id;
+      let baseUOM = itemData.based_uom;
+      let altWAQty = roundQty(item.gd_qty);
+      let baseWAQty = altWAQty;
+
+      if (
+        Array.isArray(itemData.table_uom_conversion) &&
+        itemData.table_uom_conversion.length > 0
+      ) {
+        const uomConversion = itemData.table_uom_conversion.find(
+          (conv) => conv.alt_uom_id === altUOM
+        );
+
+        if (uomConversion) {
+          baseQty = roundQty(altQty * uomConversion.base_qty);
+          baseWAQty = roundQty(altWAQty * uomConversion.base_qty);
         }
       }
 
-      for (const doc of createdDocs.reverse()) {
-        try {
-          await db.collection(doc.collection).doc(doc.docId).delete();
-        } catch (rollbackError) {
-          console.error("Rollback error:", rollbackError);
-        }
+      const costingMethod = itemData.material_costing_method;
+      let unitPrice = roundPrice(item.unit_price || 0);
+      let totalPrice = roundPrice(unitPrice * altQty);
+
+      if (costingMethod === "First In First Out") {
+        const materialBatchKey = temp.batch_id
+          ? `${item.material_id}-${temp.batch_id}`
+          : item.material_id;
+
+        const previouslyConsumedQty =
+          consumedFIFOQty.get(materialBatchKey) || 0;
+
+        const fifoCostPrice = await getLatestFIFOCostPrice(
+          item.material_id,
+          temp.batch_id,
+          baseQty,
+          previouslyConsumedQty,
+          data.plant_id
+        );
+
+        consumedFIFOQty.set(materialBatchKey, previouslyConsumedQty + baseQty);
+
+        unitPrice = roundPrice(fifoCostPrice);
+        totalPrice = roundPrice(fifoCostPrice * baseQty);
+      } else if (costingMethod === "Weighted Average") {
+        const waCostPrice = await getWeightedAverageCostPrice(
+          item.material_id,
+          temp.batch_id,
+          data.plant_id
+        );
+        unitPrice = roundPrice(waCostPrice);
+        totalPrice = roundPrice(waCostPrice * baseQty);
+      } else if (costingMethod === "Fixed Cost") {
+        const fixedCostPrice = await getFixedCostPrice(item.material_id);
+        unitPrice = roundPrice(fixedCostPrice);
+        totalPrice = roundPrice(fixedCostPrice * baseQty);
+      }
+
+      // Create inventory movements
+      const baseInventoryMovement = {
+        transaction_type: "GDL",
+        trx_no: data.delivery_no,
+        parent_trx_no: item.line_so_no || data.so_no,
+        unit_price: unitPrice,
+        total_price: totalPrice,
+        quantity: altQty,
+        item_id: item.material_id,
+        uom_id: altUOM,
+        base_qty: baseQty,
+        base_uom_id: baseUOM,
+        bin_location_id: temp.location_id,
+        batch_number_id: temp.batch_id || null,
+        costing_method_id: item.item_costing_method,
+        plant_id: data.plant_id,
+        organization_id: data.organization_id,
+        is_deleted: 0,
+      };
+
+      // Create OUT movement (from Unrestricted)
+      const invMovementResultUNR = await db
+        .collection("inventory_movement")
+        .add({
+          ...baseInventoryMovement,
+          movement: "OUT",
+          inventory_category: "Unrestricted",
+        });
+
+      createdDocs.push({
+        collection: "inventory_movement",
+        docId: invMovementResultUNR.id,
+      });
+
+      // Create IN movement (to Reserved)
+      const invMovementResultRES = await db
+        .collection("inventory_movement")
+        .add({
+          ...baseInventoryMovement,
+          movement: "IN",
+          inventory_category: "Reserved",
+        });
+
+      createdDocs.push({
+        collection: "inventory_movement",
+        docId: invMovementResultRES.id,
+      });
+
+      // Update balances
+      if (existingDoc && existingDoc.id) {
+        const gdQuantity = roundQty(parseFloat(baseQty));
+
+        updatedDocs.push({
+          collection: balanceCollection,
+          docId: existingDoc.id,
+          originalData: {
+            unrestricted_qty: roundQty(existingDoc.unrestricted_qty || 0),
+            reserved_qty: roundQty(existingDoc.reserved_qty || 0),
+          },
+        });
+
+        await db
+          .collection(balanceCollection)
+          .doc(existingDoc.id)
+          .update({
+            unrestricted_qty: roundQty(
+              parseFloat(existingDoc.unrestricted_qty || 0) - gdQuantity
+            ),
+            reserved_qty: roundQty(
+              parseFloat(existingDoc.reserved_qty || 0) + gdQuantity
+            ),
+          });
+      }
+
+      // Update costing method inventories
+      if (costingMethod === "First In First Out") {
+        await updateFIFOInventory(
+          item.material_id,
+          baseQty,
+          temp.batch_id,
+          data.plant_id
+        );
+      } else if (costingMethod === "Weighted Average") {
+        await updateWeightedAverage(
+          item,
+          temp.batch_id,
+          baseWAQty,
+          data.plant_id
+        );
       }
     }
-  });
+  } catch (error) {
+    console.error(`Error processing item ${item.material_id}:`, error);
 
-  await Promise.all(processedItemPromises);
+    // Rollback changes if any operation fails
+    for (const doc of updatedDocs.reverse()) {
+      try {
+        await db
+          .collection(doc.collection)
+          .doc(doc.docId)
+          .update(doc.originalData);
+      } catch (rollbackError) {
+        console.error("Rollback error:", rollbackError);
+      }
+    }
+
+    for (const doc of createdDocs.reverse()) {
+      try {
+        await db.collection(doc.collection).doc(doc.docId).delete();
+      } catch (rollbackError) {
+        console.error("Rollback error:", rollbackError);
+      }
+    }
+
+    throw error; // Re-throw to stop processing
+  }
 };
 
 const validateForm = (data, requiredFields) => {
@@ -1280,7 +1298,7 @@ const createOrUpdatePicking = async (
               gdData.table_gd.forEach((item) => {
                 if (item.temp_qty_data) {
                   try {
-                    const tempData = JSON.parse(item.temp_qty_data);
+                    const tempData = parseJsonSafely(item.temp_qty_data);
                     tempData.forEach((tempItem) => {
                       const materialId =
                         tempItem.material_id || item.material_id;
@@ -1360,7 +1378,7 @@ const createOrUpdatePicking = async (
         gdData.table_gd.forEach((item) => {
           if (item.temp_qty_data) {
             try {
-              const tempData = JSON.parse(item.temp_qty_data);
+              const tempData = parseJsonSafely(item.temp_qty_data);
               tempData.forEach((tempItem) => {
                 transferOrder.table_picking_items.push({
                   item_code: item.material_id,
@@ -1424,6 +1442,280 @@ const createOrUpdatePicking = async (
   }
 };
 
+const checkExistingReservedGoods = async (soNumbers, currentGdId = null) => {
+  try {
+    // Handle multiple SO numbers - convert to array if it's a string
+    let soArray = [];
+
+    if (typeof soNumbers === "string") {
+      // Split by comma and clean up whitespace
+      soArray = soNumbers
+        .split(",")
+        .map((so) => so.trim())
+        .filter((so) => so.length > 0);
+    } else if (Array.isArray(soNumbers)) {
+      soArray = soNumbers.filter((so) => so && so.toString().trim().length > 0);
+    } else if (soNumbers) {
+      // Single SO number
+      soArray = [soNumbers.toString().trim()];
+    }
+
+    if (soArray.length === 0) {
+      console.log("No valid SO numbers provided for reserved goods check");
+      return { hasConflict: false };
+    }
+
+    console.log(
+      `Checking existing reserved goods for SOs: ${soArray.join(", ")}`
+    );
+
+    // Check each SO number for conflicts
+    for (const soNo of soArray) {
+      const query = {
+        so_no: soNo,
+      };
+
+      // If updating an existing GD, exclude its records from the check
+      if (currentGdId) {
+        // Get the current GD's delivery_no to exclude it
+        const currentGdResponse = await db
+          .collection("goods_delivery")
+          .where({ id: currentGdId })
+          .get();
+
+        if (currentGdResponse.data && currentGdResponse.data.length > 0) {
+          const currentGdNo = currentGdResponse.data[0].delivery_no;
+          console.log(
+            `Excluding current GD ${currentGdNo} from validation check for SO ${soNo}`
+          );
+
+          // Get all reserved goods for this specific SO
+          const allReservedResponse = await db
+            .collection("on_reserved_gd")
+            .where(query)
+            .get();
+
+          if (allReservedResponse.data && allReservedResponse.data.length > 0) {
+            // Filter out records belonging to the current GD
+            const otherReservedRecords = allReservedResponse.data.filter(
+              (record) => record.gd_no !== currentGdNo
+            );
+
+            // Check if any other GD has open quantities for this SO
+            const hasOpenQty = otherReservedRecords.some(
+              (record) => parseFloat(record.open_qty || 0) > 0
+            );
+
+            if (hasOpenQty) {
+              // Get the GD number that has open quantities
+              const conflictingRecord = otherReservedRecords.find(
+                (record) => parseFloat(record.open_qty || 0) > 0
+              );
+              return {
+                hasConflict: true,
+                conflictingGdNo: conflictingRecord.gd_no,
+                conflictingSoNo: soNo,
+              };
+            }
+          }
+        }
+      } else {
+        // For new GD creation, check all reserved goods for this specific SO
+        const reservedResponse = await db
+          .collection("on_reserved_gd")
+          .where(query)
+          .get();
+
+        if (reservedResponse.data && reservedResponse.data.length > 0) {
+          // Check if any record has open_qty > 0 for this SO
+          const hasOpenQty = reservedResponse.data.some(
+            (record) => parseFloat(record.open_qty || 0) > 0
+          );
+
+          if (hasOpenQty) {
+            // Get the GD number that has open quantities
+            const conflictingRecord = reservedResponse.data.find(
+              (record) => parseFloat(record.open_qty || 0) > 0
+            );
+            return {
+              hasConflict: true,
+              conflictingGdNo: conflictingRecord.gd_no,
+              conflictingSoNo: soNo,
+            };
+          }
+        }
+      }
+    }
+
+    // No conflicts found for any SO
+    return { hasConflict: false };
+  } catch (error) {
+    console.error("Error checking existing reserved goods:", error);
+    // Return no conflict on error to allow process to continue
+    return { hasConflict: false };
+  }
+};
+
+const createOnReserveGoodsDelivery = async (organizationId, gdData) => {
+  try {
+    const reservedDataBatch = [];
+
+    for (let i = 0; i < gdData.table_gd.length; i++) {
+      const gdLineItem = gdData.table_gd[i];
+      const temp_qty_data = parseJsonSafely(gdLineItem.temp_qty_data);
+
+      for (let j = 0; j < temp_qty_data.length; j++) {
+        const tempItem = temp_qty_data[j];
+
+        // Use line-level SO number, fallback to header SO
+        const soNumber = gdLineItem.line_so_no || gdData.so_no;
+
+        reservedDataBatch.push({
+          so_no: soNumber,
+          gd_no: gdData.delivery_no,
+          material_id: gdLineItem.material_id,
+          item_name: gdLineItem.material_name,
+          item_desc: gdLineItem.gd_material_desc || "",
+          batch_id: tempItem.batch_id || null,
+          bin_location: tempItem.location_id,
+          item_uom: gdLineItem.gd_order_uom_id,
+          gd_line_no: i + 1,
+          reserved_qty: tempItem.gd_quantity,
+          delivered_qty: 0,
+          open_qty: tempItem.gd_quantity,
+          gd_reserved_date: new Date().toISOString().split("T")[0],
+          plant_id: gdData.plant_id,
+          organization_id: organizationId,
+          created_by: this.getVarGlobal("nickname"),
+          created_at: new Date().toISOString(),
+        });
+      }
+    }
+
+    // Batch create all reserved records
+    const createPromises = reservedDataBatch.map((data) =>
+      db.collection("on_reserved_gd").add(data)
+    );
+
+    await Promise.all(createPromises);
+    console.log(`Created ${reservedDataBatch.length} reserved goods records`);
+  } catch (error) {
+    console.error("Error in createOnReserveGoodsDelivery:", error);
+    throw error;
+  }
+};
+
+const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
+  try {
+    console.log(
+      "Updating on_reserved_gd records for delivery:",
+      gdData.delivery_no
+    );
+
+    // Get existing records for this GD
+    const existingReserved = await db
+      .collection("on_reserved_gd")
+      .where({
+        gd_no: gdData.delivery_no,
+        organization_id: organizationId,
+      })
+      .get();
+
+    // Prepare new data from current GD
+    const newReservedData = [];
+    for (let i = 0; i < gdData.table_gd.length; i++) {
+      const gdLineItem = gdData.table_gd[i];
+      const temp_qty_data = parseJsonSafely(gdLineItem.temp_qty_data);
+      for (let j = 0; j < temp_qty_data.length; j++) {
+        const tempItem = temp_qty_data[j];
+        newReservedData.push({
+          so_no: gdLineItem.line_so_no,
+          gd_no: gdData.delivery_no,
+          material_id: gdLineItem.material_id,
+          item_name: gdLineItem.material_name,
+          item_desc: gdLineItem.gd_material_desc || "",
+          batch_id: tempItem.batch_id,
+          bin_location: tempItem.location_id,
+          item_uom: gdLineItem.gd_order_uom_id,
+          gd_line_no: i + 1,
+          reserved_qty: tempItem.gd_quantity,
+          delivered_qty: 0,
+          open_qty: tempItem.gd_quantity,
+          gd_reserved_date: new Date().toISOString().split("T")[0],
+          plant_id: gdData.plant_id,
+          organization_id: organizationId,
+          updated_by: this.getVarGlobal("nickname"),
+          updated_at: new Date().toISOString(),
+        });
+      }
+    }
+
+    if (existingReserved.data && existingReserved.data.length > 0) {
+      console.log(
+        `Found ${existingReserved.data.length} existing reserved records to update`
+      );
+
+      const updatePromises = [];
+
+      // Update existing records (up to the number of existing records)
+      for (
+        let i = 0;
+        i < Math.min(existingReserved.data.length, newReservedData.length);
+        i++
+      ) {
+        const existingRecord = existingReserved.data[i];
+        const newData = newReservedData[i];
+
+        updatePromises.push(
+          db.collection("on_reserved_gd").doc(existingRecord.id).update(newData)
+        );
+      }
+
+      // If there are more existing records than new data, delete the extras
+      if (existingReserved.data.length > newReservedData.length) {
+        for (
+          let i = newReservedData.length;
+          i < existingReserved.data.length;
+          i++
+        ) {
+          const extraRecord = existingReserved.data[i];
+          updatePromises.push(
+            db.collection("on_reserved_gd").doc(extraRecord.id).delete()
+          );
+        }
+      }
+
+      // If there are more new records than existing, create the extras
+      if (newReservedData.length > existingReserved.data.length) {
+        for (
+          let i = existingReserved.data.length;
+          i < newReservedData.length;
+          i++
+        ) {
+          const extraData = {
+            ...newReservedData[i],
+            created_by: this.getVarGlobal("nickname"),
+            created_at: new Date().toISOString(),
+          };
+          updatePromises.push(db.collection("on_reserved_gd").add(extraData));
+        }
+      }
+
+      await Promise.all(updatePromises);
+      console.log("Successfully updated existing reserved records");
+    } else {
+      // No existing records, create new ones
+      console.log("No existing records found, creating new ones");
+      await createOnReserveGoodsDelivery(organizationId, gdData);
+    }
+
+    console.log("Updated reserved goods records successfully");
+  } catch (error) {
+    console.error("Error updating reserved goods delivery:", error);
+    throw error;
+  }
+};
+
 // Main execution wrapped in an async IIFE
 (async () => {
   try {
@@ -1454,7 +1746,46 @@ const createOrUpdatePicking = async (
     const missingFields = validateForm(data, requiredFields);
 
     if (missingFields.length === 0) {
-      // Handle previous quantities for updates
+      let needsReservedGoodsCheck = false;
+      let currentGdId = null;
+
+      if (page_status === "Add") {
+        needsReservedGoodsCheck = true;
+      } else if (page_status === "Edit" && data.gd_status === "Draft") {
+        needsReservedGoodsCheck = true;
+        currentGdId = data.id;
+      }
+
+      // Improved SO number collection and reserved goods check
+      if (needsReservedGoodsCheck) {
+        const allSoNumbers = collectAllSoNumbers(data);
+
+        if (allSoNumbers.length > 0) {
+          const reservedCheck = await checkExistingReservedGoods(
+            allSoNumbers,
+            currentGdId
+          );
+
+          if (reservedCheck.hasConflict) {
+            const conflictMessage = reservedCheck.conflictingSoNo
+              ? `A Goods Delivery (No: ${reservedCheck.conflictingGdNo}) is already in Created status for Sales Order ${reservedCheck.conflictingSoNo}. To proceed, either: Edit that Goods Delivery to update the quantity or details, or Cancel it to create a new Goods Delivery.`
+              : `A Goods Delivery (No: ${reservedCheck.conflictingGdNo}) is already in Created status for the Sales Orders. To proceed, either: Edit that Goods Delivery to update the quantity or details, or Cancel it to create a new Goods Delivery.`;
+
+            this.parentGenerateForm.$alert(
+              conflictMessage,
+              "Existing Goods Delivery Found",
+              {
+                confirmButtonText: "OK",
+                type: "warning",
+              }
+            );
+            this.hideLoading();
+            return;
+          }
+        }
+      }
+
+      // Handle previous quantities for updates (existing logic)
       if (page_status === "Edit" && data.id && Array.isArray(data.table_gd)) {
         try {
           const originalRecord = await db
@@ -1571,6 +1902,7 @@ const createOrUpdatePicking = async (
       // Perform action based on page status
       if (page_status === "Add") {
         gdId = await addEntry(organizationId, gd);
+        await createOnReserveGoodsDelivery(organizationId, gd);
         shouldHandlePicking = true;
         isPickingUpdate = false;
       } else if (page_status === "Edit") {
@@ -1581,10 +1913,12 @@ const createOrUpdatePicking = async (
           // Draft to Created - create new picking
           shouldHandlePicking = true;
           isPickingUpdate = false;
+          await createOnReserveGoodsDelivery(organizationId, gd);
         } else if (data.gd_status === "Created" && gd.gd_status === "Created") {
           // Created to Created - update existing picking
           shouldHandlePicking = true;
           isPickingUpdate = true;
+          await updateOnReserveGoodsDelivery(organizationId, gd);
         }
 
         await updateEntry(organizationId, gd, gdId, data.gd_status);

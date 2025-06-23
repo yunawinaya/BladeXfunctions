@@ -45,6 +45,31 @@ const preventDuplicateProcessing = () => {
   return true;
 };
 
+// Helper function to collect all SO numbers from data
+const collectAllSoNumbers = (data) => {
+  const soNumbers = new Set();
+
+  // From header
+  if (data.so_no) {
+    if (typeof data.so_no === "string") {
+      data.so_no.split(",").forEach((so) => soNumbers.add(so.trim()));
+    } else {
+      soNumbers.add(data.so_no.toString());
+    }
+  }
+
+  // From line items
+  if (Array.isArray(data.table_gd)) {
+    data.table_gd.forEach((item) => {
+      if (item.line_so_no) {
+        soNumbers.add(item.line_so_no.toString().trim());
+      }
+    });
+  }
+
+  return Array.from(soNumbers).filter((so) => so.length > 0);
+};
+
 // Update FIFO inventory
 const updateFIFOInventory = (materialId, deliveryQty, batchId, plantId) => {
   return new Promise((resolve, reject) => {
@@ -843,7 +868,92 @@ const processBalanceTable = async (
                 }
               }
 
-              // Update balance quantities for Created status
+              // ADDED: Handle unused reserved quantities
+              if (isUpdate && prevBaseQty > 0) {
+                const deliveredQty = baseQty;
+                const originalReservedQty = prevBaseQty;
+                const unusedReservedQty = roundQty(
+                  originalReservedQty - deliveredQty
+                );
+
+                console.log(`Checking for unused reservations:`);
+                console.log(`  Originally reserved: ${originalReservedQty}`);
+                console.log(`  Actually delivered: ${deliveredQty}`);
+                console.log(`  Unused reserved: ${unusedReservedQty}`);
+
+                if (unusedReservedQty > 0) {
+                  console.log(
+                    `Releasing ${unusedReservedQty} unused reserved quantity back to unrestricted`
+                  );
+
+                  // Calculate alternative UOM for unused quantity
+                  const unusedAltQty = uomConversion
+                    ? roundQty(unusedReservedQty / uomConversion.base_qty)
+                    : unusedReservedQty;
+
+                  // Create movement to release unused reserved back to unrestricted
+                  const releaseReservedMovementData = {
+                    transaction_type: "GDL",
+                    trx_no: data.delivery_no,
+                    parent_trx_no: item.line_so_no,
+                    movement: "OUT",
+                    unit_price: unitPrice,
+                    total_price: roundPrice(unitPrice * unusedAltQty),
+                    quantity: unusedAltQty,
+                    item_id: item.material_id,
+                    inventory_category: "Reserved",
+                    uom_id: altUOM,
+                    base_qty: unusedReservedQty,
+                    base_uom_id: baseUOM,
+                    bin_location_id: temp.location_id,
+                    batch_number_id: temp.batch_id,
+                    costing_method_id: item.item_costing_method,
+                    plant_id: plantId,
+                    organization_id: organizationId,
+                  };
+
+                  const returnUnrestrictedMovementData = {
+                    transaction_type: "GDL",
+                    trx_no: data.delivery_no,
+                    parent_trx_no: item.line_so_no,
+                    movement: "IN",
+                    unit_price: unitPrice,
+                    total_price: roundPrice(unitPrice * unusedAltQty),
+                    quantity: unusedAltQty,
+                    item_id: item.material_id,
+                    inventory_category: "Unrestricted",
+                    uom_id: altUOM,
+                    base_qty: unusedReservedQty,
+                    base_uom_id: baseUOM,
+                    bin_location_id: temp.location_id,
+                    batch_number_id: temp.batch_id,
+                    costing_method_id: item.item_costing_method,
+                    plant_id: plantId,
+                    organization_id: organizationId,
+                  };
+
+                  // Add the release movements
+                  const releaseMovementResult = await db
+                    .collection("inventory_movement")
+                    .add(releaseReservedMovementData);
+
+                  createdDocs.push({
+                    collection: "inventory_movement",
+                    docId: releaseMovementResult.id,
+                  });
+
+                  const returnMovementResult = await db
+                    .collection("inventory_movement")
+                    .add(returnUnrestrictedMovementData);
+
+                  createdDocs.push({
+                    collection: "inventory_movement",
+                    docId: returnMovementResult.id,
+                  });
+                }
+              }
+
+              // Update balance quantities for Completed status
               let finalUnrestrictedQty = currentUnrestrictedQty;
               let finalReservedQty = currentReservedQty;
               let finalBalanceQty = currentBalanceQty;
@@ -863,6 +973,22 @@ const processBalanceTable = async (
                 // All quantity can come from Reserved
                 console.log(`All ${baseQty} coming from Reserved`);
                 finalReservedQty = roundQty(finalReservedQty - baseQty);
+
+                // ADDED: If there are unused reservations, release them to unrestricted
+                if (isUpdate && prevBaseQty > 0) {
+                  const unusedReservedQty = roundQty(prevBaseQty - baseQty);
+                  if (unusedReservedQty > 0) {
+                    console.log(
+                      `Releasing ${unusedReservedQty} unused reserved to unrestricted`
+                    );
+                    finalReservedQty = roundQty(
+                      finalReservedQty - unusedReservedQty
+                    );
+                    finalUnrestrictedQty = roundQty(
+                      finalUnrestrictedQty + unusedReservedQty
+                    );
+                  }
+                }
               } else {
                 // Split between Reserved and Unrestricted
                 const reservedDeduction = availableReservedForThisGD;
@@ -884,7 +1010,7 @@ const processBalanceTable = async (
 
               finalBalanceQty = roundQty(finalBalanceQty - baseQty);
 
-              console.log(`Final quantities after Created processing:`);
+              console.log(`Final quantities after Completed processing:`);
               console.log(`  Unrestricted: ${finalUnrestrictedQty}`);
               console.log(`  Reserved: ${finalReservedQty}`);
               console.log(`  Total Balance: ${finalBalanceQty}`);
@@ -1858,6 +1984,231 @@ const checkPickingStatus = async (gdData, pageStatus, currentGdStatus) => {
   }
 };
 
+const checkExistingReservedGoods = async (soNumbers, currentGdId = null) => {
+  try {
+    // Handle multiple SO numbers - convert to array if it's a string
+    let soArray = [];
+
+    if (typeof soNumbers === "string") {
+      // Split by comma and clean up whitespace
+      soArray = soNumbers
+        .split(",")
+        .map((so) => so.trim())
+        .filter((so) => so.length > 0);
+    } else if (Array.isArray(soNumbers)) {
+      soArray = soNumbers.filter((so) => so && so.toString().trim().length > 0);
+    } else if (soNumbers) {
+      // Single SO number
+      soArray = [soNumbers.toString().trim()];
+    }
+
+    if (soArray.length === 0) {
+      console.log("No valid SO numbers provided for reserved goods check");
+      return { hasConflict: false };
+    }
+
+    console.log(
+      `Checking existing reserved goods for SOs: ${soArray.join(", ")}`
+    );
+
+    // Check each SO number for conflicts
+    for (const soNo of soArray) {
+      const query = {
+        so_no: soNo,
+      };
+
+      // If updating an existing GD, exclude its records from the check
+      if (currentGdId) {
+        // Get the current GD's delivery_no to exclude it
+        const currentGdResponse = await db
+          .collection("goods_delivery")
+          .where({ id: currentGdId })
+          .get();
+
+        if (currentGdResponse.data && currentGdResponse.data.length > 0) {
+          const currentGdNo = currentGdResponse.data[0].delivery_no;
+          console.log(
+            `Excluding current GD ${currentGdNo} from validation check for SO ${soNo}`
+          );
+
+          // Get all reserved goods for this specific SO
+          const allReservedResponse = await db
+            .collection("on_reserved_gd")
+            .where(query)
+            .get();
+
+          if (allReservedResponse.data && allReservedResponse.data.length > 0) {
+            // Filter out records belonging to the current GD
+            const otherReservedRecords = allReservedResponse.data.filter(
+              (record) => record.gd_no !== currentGdNo
+            );
+
+            // Check if any other GD has open quantities for this SO
+            const hasOpenQty = otherReservedRecords.some(
+              (record) => parseFloat(record.open_qty || 0) > 0
+            );
+
+            if (hasOpenQty) {
+              // Get the GD number that has open quantities
+              const conflictingRecord = otherReservedRecords.find(
+                (record) => parseFloat(record.open_qty || 0) > 0
+              );
+              return {
+                hasConflict: true,
+                conflictingGdNo: conflictingRecord.gd_no,
+                conflictingSoNo: soNo,
+              };
+            }
+          }
+        }
+      } else {
+        // For new GD creation, check all reserved goods for this specific SO
+        const reservedResponse = await db
+          .collection("on_reserved_gd")
+          .where(query)
+          .get();
+
+        if (reservedResponse.data && reservedResponse.data.length > 0) {
+          // Check if any record has open_qty > 0 for this SO
+          const hasOpenQty = reservedResponse.data.some(
+            (record) => parseFloat(record.open_qty || 0) > 0
+          );
+
+          if (hasOpenQty) {
+            // Get the GD number that has open quantities
+            const conflictingRecord = reservedResponse.data.find(
+              (record) => parseFloat(record.open_qty || 0) > 0
+            );
+            return {
+              hasConflict: true,
+              conflictingGdNo: conflictingRecord.gd_no,
+              conflictingSoNo: soNo,
+            };
+          }
+        }
+      }
+    }
+
+    // No conflicts found for any SO
+    return { hasConflict: false };
+  } catch (error) {
+    console.error("Error checking existing reserved goods:", error);
+    // Return no conflict on error to allow process to continue
+    return { hasConflict: false };
+  }
+};
+
+const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
+  try {
+    console.log(
+      "Updating on_reserved_gd records for delivery:",
+      gdData.delivery_no
+    );
+
+    // Get existing records for this GD
+    const existingReserved = await db
+      .collection("on_reserved_gd")
+      .where({
+        gd_no: gdData.delivery_no,
+        organization_id: organizationId,
+      })
+      .get();
+
+    // Prepare new data from current GD
+    const newReservedData = [];
+    for (let i = 0; i < gdData.table_gd.length; i++) {
+      const gdLineItem = gdData.table_gd[i];
+      const temp_qty_data = JSON.parse(gdLineItem.temp_qty_data);
+      for (let j = 0; j < temp_qty_data.length; j++) {
+        const tempItem = temp_qty_data[j];
+        newReservedData.push({
+          so_no: gdLineItem.line_so_no,
+          gd_no: gdData.delivery_no,
+          material_id: gdLineItem.material_id,
+          item_name: gdLineItem.material_name,
+          item_desc: gdLineItem.gd_material_desc || "",
+          batch_id: tempItem.batch_id,
+          bin_location: tempItem.location_id,
+          item_uom: gdLineItem.gd_order_uom_id,
+          gd_line_no: i + 1,
+          reserved_qty: tempItem.gd_quantity,
+          delivered_qty: tempItem.gd_quantity,
+          open_qty: 0,
+          gd_reserved_date: new Date().toISOString().split("T")[0],
+          plant_id: gdData.plant_id,
+          organization_id: organizationId,
+          updated_by: this.getVarGlobal("nickname"),
+          updated_at: new Date().toISOString(),
+        });
+      }
+    }
+
+    if (existingReserved.data && existingReserved.data.length > 0) {
+      console.log(
+        `Found ${existingReserved.data.length} existing reserved records to update`
+      );
+
+      const updatePromises = [];
+
+      // Update existing records (up to the number of existing records)
+      for (
+        let i = 0;
+        i < Math.min(existingReserved.data.length, newReservedData.length);
+        i++
+      ) {
+        const existingRecord = existingReserved.data[i];
+        const newData = newReservedData[i];
+
+        updatePromises.push(
+          db.collection("on_reserved_gd").doc(existingRecord.id).update(newData)
+        );
+      }
+
+      // If there are more existing records than new data, delete the extras
+      if (existingReserved.data.length > newReservedData.length) {
+        for (
+          let i = newReservedData.length;
+          i < existingReserved.data.length;
+          i++
+        ) {
+          const extraRecord = existingReserved.data[i];
+          updatePromises.push(
+            db.collection("on_reserved_gd").doc(extraRecord.id).delete()
+          );
+        }
+      }
+
+      // If there are more new records than existing, create the extras
+      if (newReservedData.length > existingReserved.data.length) {
+        for (
+          let i = existingReserved.data.length;
+          i < newReservedData.length;
+          i++
+        ) {
+          const extraData = {
+            ...newReservedData[i],
+            created_by: this.getVarGlobal("nickname"),
+            created_at: new Date().toISOString(),
+          };
+          updatePromises.push(db.collection("on_reserved_gd").add(extraData));
+        }
+      }
+
+      await Promise.all(updatePromises);
+      console.log("Successfully updated existing reserved records");
+    } else {
+      // No existing records, create new ones
+      console.log("No existing records found, creating new ones");
+      await createOnReserveGoodsDelivery(organizationId, gdData);
+    }
+
+    console.log("Updated reserved goods records successfully");
+  } catch (error) {
+    console.error("Error updating reserved goods delivery:", error);
+    throw error;
+  }
+};
+
 // Main execution wrapped in an async IIFE
 (async () => {
   // Prevent duplicate processing
@@ -1905,6 +2256,45 @@ const checkPickingStatus = async (gdData, pageStatus, currentGdStatus) => {
       this.hideLoading();
       this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
       return;
+    }
+
+    let needsReservedGoodsCheck = false;
+    let currentGdId = null;
+
+    if (page_status === "Add") {
+      needsReservedGoodsCheck = true;
+    } else if (page_status === "Edit" && data.gd_status === "Draft") {
+      needsReservedGoodsCheck = true;
+      currentGdId = data.id;
+    }
+
+    // Improved SO number collection and reserved goods check
+    if (needsReservedGoodsCheck) {
+      const allSoNumbers = collectAllSoNumbers(data);
+
+      if (allSoNumbers.length > 0) {
+        const reservedCheck = await checkExistingReservedGoods(
+          allSoNumbers,
+          currentGdId
+        );
+
+        if (reservedCheck.hasConflict) {
+          const conflictMessage = reservedCheck.conflictingSoNo
+            ? `A Goods Delivery (No: ${reservedCheck.conflictingGdNo}) is already in Created status for Sales Order ${reservedCheck.conflictingSoNo}. To proceed, either: Edit that Goods Delivery to update the quantity or details, or Cancel it to create a new Goods Delivery.`
+            : `A Goods Delivery (No: ${reservedCheck.conflictingGdNo}) is already in Created status for the Sales Orders. To proceed, either: Edit that Goods Delivery to update the quantity or details, or Cancel it to create a new Goods Delivery.`;
+
+          this.parentGenerateForm.$alert(
+            conflictMessage,
+            "Existing Goods Delivery Found",
+            {
+              confirmButtonText: "OK",
+              type: "warning",
+            }
+          );
+          this.hideLoading();
+          return;
+        }
+      }
     }
 
     // Check credit/overdue limits if applicable
@@ -2123,7 +2513,7 @@ const checkPickingStatus = async (gdData, pageStatus, currentGdStatus) => {
     const pickingCheck = await checkPickingStatus(gd, page_status, gdStatus);
 
     if (!pickingCheck.canProceed) {
-      this.parentGenerateForm.$alert(pickingCheck.title, pickingCheck.message, {
+      this.parentGenerateForm.$alert(pickingCheck.message, pickingCheck.title, {
         confirmButtonText: "OK",
         type: "warning",
       });
@@ -2133,10 +2523,13 @@ const checkPickingStatus = async (gdData, pageStatus, currentGdStatus) => {
 
     // Perform action based on page status
     if (page_status === "Add") {
-      await addEntry(organizationId, gd, targetStatus);
+      await addEntry(organizationId, gd, gdStatus);
     } else if (page_status === "Edit") {
       const goodsDeliveryId = data.id;
-      await updateEntry(organizationId, gd, targetStatus, goodsDeliveryId);
+      await updateEntry(organizationId, gd, gdStatus, goodsDeliveryId);
+      if (gdStatus === "Created") {
+        await updateOnReserveGoodsDelivery(organizationId, gd);
+      }
     }
   } catch (error) {
     this.hideLoading();

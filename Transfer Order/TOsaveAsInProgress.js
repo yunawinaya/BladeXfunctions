@@ -485,6 +485,7 @@ const createPickingRecord = async (toData) => {
       ref_doc: data.ref_doc,
       table_picking_items: updatedItems,
       table_picking_records: data.table_picking_records,
+      remarks: data.remarks,
     };
 
     await createPickingRecord(toData);

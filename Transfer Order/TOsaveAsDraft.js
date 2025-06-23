@@ -154,6 +154,7 @@ const generateDraftPrefix = async (organizationId) => {
         ref_doc: data.ref_doc,
         table_picking_items: data.table_picking_items,
         table_picking_records: data.table_picking_records,
+        remarks: data.remarks,
       };
 
       // Clean up undefined/null values
