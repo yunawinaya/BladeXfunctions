@@ -33,7 +33,7 @@
               qty_to_pick: parseFloat(tempItem.gd_quantity),
               item_uom: item.gd_order_uom_id,
               pending_process_qty: parseFloat(tempItem.gd_quantity),
-              bin_location_id: tempItem.location_id,
+              source_bin: tempItem.location_id,
               line_status: "Open",
               so_no: item.line_so_no,
             });
@@ -47,6 +47,7 @@
     });
 
     this.setData({
+      delivery_no: gdData.delivery_no,
       table_picking_items: tablePickingItems,
       customer_id: gdData.customer_name,
       created_by: this.getVarGlobal("nickname"),

@@ -2516,7 +2516,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     const pickingCheck = await checkPickingStatus(gd, page_status, gdStatus);
 
     if (!pickingCheck.canProceed) {
-      this.parentGenerateForm.$alert(pickingCheck.message, pickingCheck.title, {
+      this.parentGenerateForm.$alert(pickingCheck.title, pickingCheck.message, {
         confirmButtonText: "OK",
         type: "warning",
       });

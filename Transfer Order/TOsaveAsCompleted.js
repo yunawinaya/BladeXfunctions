@@ -205,12 +205,13 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
 
     // Safely parse quantities
     const qtyToPick = parseFloat(item.qty_to_pick) || 0;
+    const pendingProcessQty = parseFloat(item.pending_process_qty) || 0;
     const pickedQty = parseFloat(item.picked_qty) || 0;
 
     console.log(
       `Item ${
         item.item_id || index
-      }: qtyToPick=${qtyToPick}, pickedQty=${pickedQty}`
+      }: qtyToPick=${qtyToPick}, pendingProcessQty=${pendingProcessQty}, pickedQty=${pickedQty}`
     );
 
     // Validation checks
@@ -223,9 +224,9 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
       continue;
     }
 
-    if (pickedQty > qtyToPick) {
+    if (pickedQty > pendingProcessQty) {
       errors.push(
-        `Picked quantity (${pickedQty}) cannot be greater than quantity to pick (${qtyToPick}) for item ${
+        `Picked quantity (${pickedQty}) cannot be greater than quantity to pick (${pendingProcessQty}) for item ${
           item.item_id || `#${index + 1}`
         }`
       );
@@ -236,14 +237,14 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
     let lineStatus;
     if (pickedQty === 0) {
       lineStatus = null;
-    } else if (pickedQty === qtyToPick) {
+    } else if (pickedQty === pendingProcessQty) {
       lineStatus = "Completed";
-    } else if (pickedQty < qtyToPick) {
+    } else if (pickedQty < pendingProcessQty) {
       lineStatus = "In Progress";
     }
 
     // Calculate pending process quantity
-    const pending_process_qty = qtyToPick - pickedQty;
+    const pending_process_qty = pendingProcessQty - pickedQty;
 
     // Update line status
     updatedItems[index].line_status = lineStatus;
@@ -1258,7 +1259,7 @@ const findFieldMessage = (obj) => {
 const updateGoodsDeliveryPickingStatus = async (gdId) => {
   try {
     const gd = await db.collection("goods_delivery").doc(gdId).get();
-    const gdData = gd.data();
+    const gdData = gd.data[0];
     const pickingStatus = gdData.picking_status;
 
     if (pickingStatus === "Completed") {
@@ -1282,11 +1283,12 @@ const createPickingRecord = async (toData) => {
   const pickingRecords = [];
   for (const item of toData.table_picking_items) {
     const pickingRecord = {
-      item_id: item.item_id,
+      item_code: item.item_code,
       item_name: item.item_name,
       item_desc: item.item_desc,
       batch_no: item.batch_no,
       store_out_qty: item.picked_qty,
+      item_uom: item.item_uom,
       source_bin: item.source_bin,
       remark: item.remark,
       confirmed_by: this.getVarGlobal("nickname"),
@@ -1295,7 +1297,8 @@ const createPickingRecord = async (toData) => {
     pickingRecords.push(pickingRecord);
   }
 
-  toData.table_picking_records = pickingRecords;
+  toData.table_picking_records =
+    toData.table_picking_records.concat(pickingRecords);
 };
 
 // Main execution wrapped in an async IIFE
@@ -1439,6 +1442,7 @@ const createPickingRecord = async (toData) => {
       movement_type: data.movement_type,
       ref_doc_type: data.ref_doc_type,
       gd_no: data.gd_no,
+      delivery_no: data.delivery_no,
       assigned_to: data.assigned_to,
       created_by: data.created_by,
       created_at: data.created_at,

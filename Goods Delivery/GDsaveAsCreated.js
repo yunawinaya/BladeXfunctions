@@ -1268,9 +1268,9 @@ const createOrUpdatePicking = async (
 
     if (pickingSetupData) {
       if (pickingSetupData.auto_trigger_to === 1) {
-        pickingStatus = "Not Created";
-      } else {
         pickingStatus = "Created";
+      } else {
+        pickingStatus = "Not Created";
       }
 
       if (
@@ -1314,8 +1314,8 @@ const createOrUpdatePicking = async (
                           : null,
                         qty_to_pick: parseFloat(tempItem.gd_quantity),
                         item_uom: String(item.gd_order_uom_id),
+                        source_bin: String(tempItem.location_id),
                         pending_process_qty: parseFloat(tempItem.gd_quantity),
-                        bin_location_id: String(tempItem.location_id),
                         line_status: "Open",
                       });
                     });
@@ -1369,6 +1369,7 @@ const createOrUpdatePicking = async (
           movement_type: "Picking",
           ref_doc_type: "Good Delivery",
           gd_no: gdId,
+          delivery_no: gdData.delivery_no,
           customer_id: gdData.customer_name,
           created_by: this.getVarGlobal("nickname"),
           created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
@@ -1396,7 +1397,7 @@ const createOrUpdatePicking = async (
                   qty_to_pick: parseFloat(tempItem.gd_quantity),
                   item_uom: String(item.gd_order_uom_id),
                   pending_process_qty: parseFloat(tempItem.gd_quantity),
-                  bin_location_id: String(tempItem.location_id),
+                  source_bin: String(tempItem.location_id),
                   line_status: "Open",
                   so_no: item.line_so_no,
                 });

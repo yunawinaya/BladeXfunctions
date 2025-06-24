@@ -340,8 +340,16 @@ const disabledSelectStock = async (data) => {
               .get();
 
             if (resItemBalance && resItemBalance.data.length === 1) {
-              this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-              this.disabled([`table_gd.${index}.gd_qty`], false);
+              if (
+                data.picking_status === "Completed" ||
+                data.picking_status === "In Progress"
+              ) {
+                this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+                this.disabled([`table_gd.${index}.gd_qty`], true);
+              } else {
+                this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+                this.disabled([`table_gd.${index}.gd_qty`], false);
+              }
             }
           }
         } else {

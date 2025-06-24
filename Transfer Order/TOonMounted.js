@@ -135,10 +135,14 @@ const disabledField = async (status) => {
       true
     );
 
+    this.hide([
+      "button_save_as_draft",
+      "button_inprogress",
+      "button_completed",
+    ]);
+
     // Disable table rows
     disableTableRows();
-
-    this.display(["goods_delivery_no"]);
   } else {
     if (status === "Created") {
       this.hide(["button_save_as_draft"]);
@@ -212,6 +216,9 @@ const setPlant = async (organizationId) => {
       case "Add":
         // Add mode
         this.display(["draft_status"]);
+        this.setData({
+          "table_picking_items.picked_qty": 0,
+        });
 
         await setPlant(organizationId);
         await setPrefix(organizationId);
@@ -225,11 +232,18 @@ const setPlant = async (organizationId) => {
         ) {
           await getPrefixData(organizationId);
         }
+        this.setData({
+          "table_picking_items.picked_qty": 0,
+        });
+        this.hide(["gd_no"]);
+        this.display(["delivery_no"]);
         await disabledField(status);
         await showStatusHTML(status);
         break;
 
       case "View":
+        this.hide(["gd_no"]);
+        this.display(["delivery_no"]);
         await showStatusHTML(status);
         this.hide([
           "button_save_as_draft",
