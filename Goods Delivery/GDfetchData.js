@@ -106,30 +106,6 @@ const populateAddressesFromSO = (soData) => {
   console.log("Addresses populated from SO successfully");
 };
 
-// Helper function to fetch all GD records for multiple SO IDs
-const fetchGoodsDeliveries = async (soIds) => {
-  const promises = soIds.map((soId) =>
-    db
-      .collection("goods_delivery")
-      .where({ so_id: soId, gd_status: "Completed" })
-      .get()
-  );
-
-  try {
-    const results = await Promise.all(promises);
-    let allGDData = [];
-    results.forEach((response) => {
-      if (response.data && response.data.length > 0) {
-        allGDData = [...allGDData, ...response.data];
-      }
-    });
-    return allGDData;
-  } catch (error) {
-    console.error("Error fetching goods deliveries:", error);
-    return [];
-  }
-};
-
 // Helper function to fetch source items from multiple SO IDs
 const fetchSourceItems = async (soIds) => {
   const promises = soIds.map((soId) =>
@@ -223,7 +199,41 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
 
   // Process each material group
   for (const [materialId, items] of Object.entries(materialGroups)) {
-    if (!materialId || materialId === "") continue;
+    // Skip database call and enable gd_qty if materialId is null
+    if (!materialId) {
+      console.log(`Skipping item with null materialId`);
+      items.forEach((item) => {
+        const index = item.originalIndex;
+        const orderedQty = item.orderedQty;
+        const deliveredQty = item.deliveredQtyFromSource;
+        const undeliveredQty = orderedQty - deliveredQty;
+
+        this.setData({
+          [`table_gd.${index}.material_id`]: materialId || "",
+          [`table_gd.${index}.material_name`]: item.itemName || "",
+          [`table_gd.${index}.gd_material_desc`]: item.sourceItem.so_desc || "",
+          [`table_gd.${index}.gd_order_quantity`]: orderedQty,
+          [`table_gd.${index}.gd_delivered_qty`]: deliveredQty,
+          [`table_gd.${index}.gd_initial_delivered_qty`]: deliveredQty,
+          [`table_gd.${index}.gd_order_uom_id`]: item.altUOM,
+          [`table_gd.${index}.good_delivery_uom_id`]: item.altUOM,
+          [`table_gd.${index}.more_desc`]: item.sourceItem.more_desc || "",
+          [`table_gd.${index}.line_remark_1`]:
+            item.sourceItem.line_remark_1 || "",
+          [`table_gd.${index}.line_remark_2`]:
+            item.sourceItem.line_remark_2 || "",
+          [`table_gd.${index}.base_uom_id`]: "",
+          [`table_gd.${index}.unit_price`]: item.sourceItem.so_item_price || 0,
+          [`table_gd.${index}.total_price`]: item.sourceItem.so_amount || 0,
+          [`table_gd.${index}.item_costing_method`]: "",
+          [`table_gd.${index}.gd_qty`]: undeliveredQty,
+        });
+
+        this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+        this.disabled([`table_gd.${index}.gd_qty`], false);
+      });
+      continue;
+    }
 
     try {
       // Fetch item data
@@ -292,6 +302,11 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
           .where({ material_id: materialId, plant_id: plantId })
           .get();
         const itemBatchBalanceData = response.data || [];
+
+        if (itemBatchBalanceData.length === 1) {
+          this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+          this.disabled([`table_gd.${index}.gd_qty`], false);
+        }
         totalUnrestrictedQtyBase = itemBatchBalanceData.reduce(
           (sum, balance) => sum + (balance.unrestricted_qty || 0),
           0
@@ -302,6 +317,12 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
           .where({ material_id: materialId, plant_id: plantId })
           .get();
         const itemBalanceData = response.data || [];
+
+        if (itemBalanceData.length === 1) {
+          this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+          this.disabled([`table_gd.${index}.gd_qty`], false);
+        }
+
         totalUnrestrictedQtyBase = itemBalanceData.reduce(
           (sum, balance) => sum + (balance.unrestricted_qty || 0),
           0
@@ -424,19 +445,14 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
 
           // Set the actual deliverable quantity
           if (availableQtyAlt > 0) {
-            this.disabled([`table_gd.${index}.gd_qty`], false);
             this.setData({
               [`table_gd.${index}.gd_qty`]: availableQtyAlt,
             });
           } else {
-            this.disabled([`table_gd.${index}.gd_qty`], true);
             this.setData({
               [`table_gd.${index}.gd_qty`]: 0,
             });
           }
-
-          // Disable delivery qty field
-          this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
         });
 
         // Add to insufficient items list
@@ -470,8 +486,6 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
             this.setData({
               [`table_gd.${index}.gd_qty`]: undeliveredQty,
             });
-            this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-            this.disabled([`table_gd.${index}.gd_qty`], false);
           }
         });
       }
@@ -507,10 +521,6 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
     if (!isSOUnchanged) {
       await handleMultipleSOMAddresses(salesOrderIds);
     }
-
-    // Fetch goods deliveries for all SO IDs
-    const GDData = await fetchGoodsDeliveries(salesOrderIds);
-    console.log("GDData extracted for all SOs:", GDData);
 
     // Check if we have valid salesOrderIds
     if (salesOrderIds.length > 0 && salesOrderIds[0]) {

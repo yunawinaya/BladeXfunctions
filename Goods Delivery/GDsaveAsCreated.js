@@ -1116,6 +1116,312 @@ const validateField = (value, field) => {
   return !value;
 };
 
+// Check credit & overdue limit before doing any process
+const checkCreditOverdueLimit = async (customer_name, gd_total) => {
+  try {
+    const fetchCustomer = await db
+      .collection("Customer")
+      .where({ id: customer_name, is_deleted: 0 })
+      .get();
+
+    const customerData = fetchCustomer.data[0];
+    if (!customerData) {
+      console.error(`Customer ${customer_name} not found`);
+      this.$message.error(`Customer ${customer_name} not found`);
+      return false;
+    }
+
+    const controlTypes = customerData.control_type_list;
+
+    const outstandingAmount =
+      parseFloat(customerData.outstanding_balance || 0) || 0;
+    const overdueAmount =
+      parseFloat(customerData.overdue_inv_total_amount || 0) || 0;
+    const overdueLimit = parseFloat(customerData.overdue_limit || 0) || 0;
+    const creditLimit =
+      parseFloat(customerData.customer_credit_limit || 0) || 0;
+    const gdTotal = parseFloat(gd_total || 0) || 0;
+    const revisedOutstandingAmount = outstandingAmount + gdTotal;
+
+    // Helper function to show specific pop-ups as per specification
+    const showPopup = (popupNumber) => {
+      this.openDialog("dialog_credit_limit");
+
+      const popupConfigs = {
+        1: {
+          // Pop-up 1: Exceed Credit Limit Only (Block)
+          alert: "alert_credit_limit", // "Alert: Credit Limit Exceeded - Review Required"
+          text: "text_credit_limit", // "The customer has exceed the allowed credit limit."
+          showCredit: true,
+          showOverdue: false,
+          isBlock: true,
+          buttonText: "text_1", // "Please review the credit limit or adjust the order amount before issuing the SO."
+        },
+        2: {
+          // Pop-up 2: Exceed Overdue Limit Only (Block)
+          alert: "alert_overdue_limit", // "Alert: Overdue Limit Exceeded - Review Required"
+          text: "text_overdue_limit", // "The customer has exceeded the allowed overdue limit."
+          showCredit: false,
+          showOverdue: true,
+          isBlock: true,
+          buttonText: "text_2", // "Please review overdue invoices before proceeding."
+        },
+        3: {
+          // Pop-up 3: Exceed Both, Credit Limit and Overdue Limit (Block)
+          alert: "alert_credit_overdue", // "Alert: Credit Limit and Overdue Limit Exceeded - Review Required"
+          text: "text_credit_overdue", // "The customer has exceeded both credit limit and overdue limit."
+          showCredit: true,
+          showOverdue: true,
+          isBlock: true,
+          buttonText: "text_3", // "Please review both limits before proceeding."
+        },
+        4: {
+          // Pop-up 4: Exceed Overdue Limit Only (Override)
+          alert: "alert_overdue_limit", // "Alert: Overdue Limit Exceeded - Review Required"
+          text: "text_overdue_limit", // "The customer has exceeded the allowed overdue limit."
+          showCredit: false,
+          showOverdue: true,
+          isBlock: false,
+          buttonText: "text_4", // "Please confirm if you wants to save it."
+        },
+        5: {
+          // Pop-up 5: Exceed Credit Limit Only (Override)
+          alert: "alert_credit_limit", // "Alert: Credit Limit Exceeded - Review Required"
+          text: "text_credit_limit", // "The customer has exceed the allowed credit limit."
+          showCredit: true,
+          showOverdue: false,
+          isBlock: false,
+          buttonText: "text_4", // "Please confirm if you wants to save it."
+        },
+        6: {
+          // Pop-up 6: Suspended
+          alert: "alert_suspended", // "Customer Account Suspended"
+          text: "text_suspended", // "This order cannot be processed at this time due to the customer's suspended account status."
+          showCredit: false,
+          showOverdue: false,
+          isBlock: true,
+          buttonText: null, // No additional text needed
+        },
+        7: {
+          // Pop-up 7: Exceed Both, Credit Limit and Overdue Limit (Override)
+          alert: "alert_credit_overdue", // "Alert: Credit Limit and Overdue Limit Exceeded - Review Required"
+          text: "text_credit_overdue", // "The customer has exceeded both credit limit and overdue limit."
+          showCredit: true,
+          showOverdue: true,
+          isBlock: false,
+          buttonText: "text_4", // "Please confirm if you wants to save it."
+        },
+      };
+
+      const config = popupConfigs[popupNumber];
+      if (!config) return false;
+
+      // Show alert message
+      this.display(`dialog_credit_limit.${config.alert}`);
+
+      // Show description text
+      this.display(`dialog_credit_limit.${config.text}`);
+
+      const dataToSet = {};
+
+      // Show credit limit details if applicable
+      if (config.showCredit) {
+        this.display("dialog_credit_limit.total_allowed_credit");
+        this.display("dialog_credit_limit.total_credit");
+        dataToSet["dialog_credit_limit.total_allowed_credit"] = creditLimit;
+        dataToSet["dialog_credit_limit.total_credit"] =
+          revisedOutstandingAmount;
+      }
+
+      // Show overdue limit details if applicable
+      if (config.showOverdue) {
+        this.display("dialog_credit_limit.total_allowed_overdue");
+        this.display("dialog_credit_limit.total_overdue");
+        dataToSet["dialog_credit_limit.total_allowed_overdue"] = overdueLimit;
+        dataToSet["dialog_credit_limit.total_overdue"] = overdueAmount;
+      }
+
+      // Show action text if applicable
+      if (config.buttonText) {
+        this.display(`dialog_credit_limit.${config.buttonText}`);
+      }
+
+      // Show appropriate buttons
+      if (config.isBlock) {
+        this.display("dialog_credit_limit.button_back"); // "Back" button
+      } else {
+        this.display("dialog_credit_limit.button_yes"); // "Yes" button
+        this.display("dialog_credit_limit.button_no"); // "No" button
+      }
+
+      this.setData(dataToSet);
+      return false;
+    };
+
+    // Check if accuracy flag is set
+    if (controlTypes && Array.isArray(controlTypes)) {
+      // Define control type behaviors according to specification
+      const controlTypeChecks = {
+        // Control Type 0: Ignore both checks (always pass)
+        0: () => {
+          console.log("Control Type 0: Ignoring all credit/overdue checks");
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 1: Ignore credit, block overdue
+        1: () => {
+          if (overdueAmount > overdueLimit) {
+            return { result: showPopup(2), priority: "block" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 2: Ignore credit, override overdue
+        2: () => {
+          if (overdueAmount > overdueLimit) {
+            return { result: showPopup(4), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 3: Block credit, ignore overdue
+        3: () => {
+          if (revisedOutstandingAmount > creditLimit) {
+            return { result: showPopup(1), priority: "block" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 4: Block both
+        4: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          if (creditExceeded && overdueExceeded) {
+            return { result: showPopup(3), priority: "block" };
+          } else if (creditExceeded) {
+            return { result: showPopup(1), priority: "block" };
+          } else if (overdueExceeded) {
+            return { result: showPopup(2), priority: "block" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 5: Block credit, override overdue
+        5: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          // Credit limit block takes priority
+          if (creditExceeded) {
+            if (overdueExceeded) {
+              return { result: showPopup(3), priority: "block" };
+            } else {
+              return { result: showPopup(1), priority: "block" };
+            }
+          } else if (overdueExceeded) {
+            return { result: showPopup(4), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 6: Override credit, ignore overdue
+        6: () => {
+          if (revisedOutstandingAmount > creditLimit) {
+            return { result: showPopup(5), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 7: Override credit, block overdue
+        7: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          // Overdue block takes priority over credit override
+          if (overdueExceeded) {
+            return { result: showPopup(2), priority: "block" };
+          } else if (creditExceeded) {
+            return { result: showPopup(5), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 8: Override both
+        8: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          if (creditExceeded && overdueExceeded) {
+            return { result: showPopup(7), priority: "override" };
+          } else if (creditExceeded) {
+            return { result: showPopup(5), priority: "override" };
+          } else if (overdueExceeded) {
+            return { result: showPopup(4), priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 9: Suspended customer
+        9: () => {
+          return { result: showPopup(6), priority: "block" };
+        },
+      };
+
+      // Process according to specification:
+      // "Ignore parameter with unblock > check for parameter with block's first > if not block only proceed to check for override"
+
+      // First, collect all applicable control types for Sales Orders
+      const applicableControls = controlTypes
+        .filter((ct) => ct.document_type === "Goods Delivery")
+        .map((ct) => {
+          const checkResult = controlTypeChecks[ct.control_type]
+            ? controlTypeChecks[ct.control_type]()
+            : { result: true, priority: "unblock" };
+          return {
+            ...checkResult,
+            control_type: ct.control_type,
+          };
+        });
+
+      // Sort by priority: blocks first, then overrides, then unblocks
+      const priorityOrder = { block: 1, override: 2, unblock: 3 };
+      applicableControls.sort(
+        (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
+      );
+
+      // Process in priority order
+      for (const control of applicableControls) {
+        if (control.result !== true) {
+          console.log(
+            `Control Type ${control.control_type} triggered with ${control.priority}`
+          );
+          return control.result;
+        }
+      }
+
+      // All checks passed
+      return true;
+    } else {
+      console.log(
+        "No control type defined for customer or invalid control type format"
+      );
+      return true;
+    }
+  } catch (error) {
+    console.error("Error checking credit/overdue limits:", error);
+    this.$alert(
+      "An error occurred while checking credit limits. Please try again.",
+      "Error",
+      {
+        confirmButtonText: "OK",
+        type: "error",
+      }
+    );
+    return false;
+  }
+};
+
 const addEntry = async (organizationId, gd) => {
   try {
     const prefixData = await getPrefixData(organizationId, "Goods Delivery");
@@ -1222,7 +1528,8 @@ const createOrUpdatePicking = async (
   gdData,
   gdId,
   organizationId,
-  isUpdate = false
+  isUpdate = false,
+  pickingSetupResponse
 ) => {
   try {
     let pickingSetupData;
@@ -1231,15 +1538,6 @@ const createOrUpdatePicking = async (
       if (!gdData.plant_id) {
         throw new Error("Plant ID is required for picking setup");
       }
-
-      const pickingSetupResponse = await db
-        .collection("picking_setup")
-        .where({
-          plant_id: gdData.plant_id,
-          movement_type: "Good Delivery",
-          picking_required: 1,
-        })
-        .get();
 
       if (!pickingSetupResponse || !pickingSetupResponse.data) {
         throw new Error("Invalid response from picking setup query");
@@ -1298,7 +1596,7 @@ const createOrUpdatePicking = async (
               // Prepare updated picking items
               const updatedPickingItems = [];
               gdData.table_gd.forEach((item) => {
-                if (item.temp_qty_data) {
+                if (item.temp_qty_data && item.material_id) {
                   try {
                     const tempData = parseJsonSafely(item.temp_qty_data);
                     tempData.forEach((tempItem) => {
@@ -1380,7 +1678,7 @@ const createOrUpdatePicking = async (
 
         // Process table items
         gdData.table_gd.forEach((item) => {
-          if (item.temp_qty_data) {
+          if (item.temp_qty_data && item.material_id) {
             try {
               const tempData = parseJsonSafely(item.temp_qty_data);
               tempData.forEach((tempItem) => {
@@ -1568,6 +1866,13 @@ const createOnReserveGoodsDelivery = async (organizationId, gdData) => {
     for (let i = 0; i < gdData.table_gd.length; i++) {
       const gdLineItem = gdData.table_gd[i];
       const temp_qty_data = parseJsonSafely(gdLineItem.temp_qty_data);
+
+      if (!gdLineItem.material_id || gdLineItem.material_id === "") {
+        console.log(
+          `Skipping item ${gdLineItem.material_id} due to no material_id`
+        );
+        continue;
+      }
 
       for (let j = 0; j < temp_qty_data.length; j++) {
         const tempItem = temp_qty_data[j];
@@ -1795,6 +2100,31 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
         }
       }
 
+      const pickingSetupResponse = await db
+        .collection("picking_setup")
+        .where({
+          plant_id: data.plant_id,
+          movement_type: "Good Delivery",
+          picking_required: 1,
+        })
+        .get();
+
+      if (pickingSetupResponse.data.length > 0) {
+        if (data.acc_integration_type !== null) {
+          const canProceed = await checkCreditOverdueLimit(
+            data.customer_name,
+            data.gd_total
+          );
+          if (!canProceed) {
+            console.log("Credit/overdue limit check failed");
+            this.hideLoading();
+            return;
+          }
+        }
+
+        console.log("Credit/overdue limit check passed");
+      }
+
       // Handle previous quantities for updates (existing logic)
       if (page_status === "Edit" && data.id && Array.isArray(data.table_gd)) {
         try {
@@ -1941,7 +2271,8 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
             gd,
             gdId,
             organizationId,
-            isPickingUpdate
+            isPickingUpdate,
+            pickingSetupResponse
           );
 
           // Update GD with picking status if applicable

@@ -2118,6 +2118,14 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     const newReservedData = [];
     for (let i = 0; i < gdData.table_gd.length; i++) {
       const gdLineItem = gdData.table_gd[i];
+
+      if (!gdLineItem.material_id || gdLineItem.material_id === "") {
+        console.log(
+          `Skipping item ${gdLineItem.material_id} due to no material_id`
+        );
+        continue;
+      }
+
       const temp_qty_data = JSON.parse(gdLineItem.temp_qty_data);
       for (let j = 0; j < temp_qty_data.length; j++) {
         const tempItem = temp_qty_data[j];
@@ -2199,12 +2207,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
 
       await Promise.all(updatePromises);
       console.log("Successfully updated existing reserved records");
-    } else {
-      // No existing records, create new ones
-      console.log("No existing records found, creating new ones");
-      await createOnReserveGoodsDelivery(organizationId, gdData);
     }
-
     console.log("Updated reserved goods records successfully");
   } catch (error) {
     console.error("Error updating reserved goods delivery:", error);
