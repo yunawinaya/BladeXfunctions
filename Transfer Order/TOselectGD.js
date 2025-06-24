@@ -35,6 +35,7 @@
               pending_process_qty: parseFloat(tempItem.gd_quantity),
               bin_location_id: tempItem.location_id,
               line_status: "Open",
+              so_no: item.line_so_no,
             });
           });
         } catch (error) {
@@ -47,6 +48,7 @@
 
     this.setData({
       table_picking_items: tablePickingItems,
+      customer_id: gdData.customer_name,
       created_by: this.getVarGlobal("nickname"),
       created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
       organization_id: organizationId,

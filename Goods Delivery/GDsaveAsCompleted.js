@@ -2134,11 +2134,14 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
           reserved_qty: tempItem.gd_quantity,
           delivered_qty: tempItem.gd_quantity,
           open_qty: 0,
-          gd_reserved_date: new Date().toISOString().split("T")[0],
+          gd_reserved_date: new Date()
+            .toISOString()
+            .slice(0, 19)
+            .replace("T", " "),
           plant_id: gdData.plant_id,
           organization_id: organizationId,
           updated_by: this.getVarGlobal("nickname"),
-          updated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString().slice(0, 19).replace("T", " "),
         });
       }
     }
@@ -2188,7 +2191,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
           const extraData = {
             ...newReservedData[i],
             created_by: this.getVarGlobal("nickname"),
-            created_at: new Date().toISOString(),
+            created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
           };
           updatePromises.push(db.collection("on_reserved_gd").add(extraData));
         }

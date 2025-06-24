@@ -1052,7 +1052,9 @@ const processItemBalance = async (item, itemData, data, consumedFIFOQty) => {
 
     for (const doc of createdDocs.reverse()) {
       try {
-        await db.collection(doc.collection).doc(doc.docId).delete();
+        await db.collection(doc.collection).doc(doc.docId).update({
+          is_deleted: 1,
+        });
       } catch (rollbackError) {
         console.error("Rollback error:", rollbackError);
       }
@@ -1367,6 +1369,7 @@ const createOrUpdatePicking = async (
           movement_type: "Picking",
           ref_doc_type: "Good Delivery",
           gd_no: gdId,
+          customer_id: gdData.customer_name,
           created_by: this.getVarGlobal("nickname"),
           created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
           ref_doc: gdData.gd_ref_doc,
@@ -1395,6 +1398,7 @@ const createOrUpdatePicking = async (
                   pending_process_qty: parseFloat(tempItem.gd_quantity),
                   bin_location_id: String(tempItem.location_id),
                   line_status: "Open",
+                  so_no: item.line_so_no,
                 });
               });
             } catch (error) {
@@ -1583,11 +1587,14 @@ const createOnReserveGoodsDelivery = async (organizationId, gdData) => {
           reserved_qty: tempItem.gd_quantity,
           delivered_qty: 0,
           open_qty: tempItem.gd_quantity,
-          gd_reserved_date: new Date().toISOString().split("T")[0],
+          gd_reserved_date: new Date()
+            .toISOString()
+            .slice(0, 19)
+            .replace("T", " "),
           plant_id: gdData.plant_id,
           organization_id: organizationId,
           created_by: this.getVarGlobal("nickname"),
-          created_at: new Date().toISOString(),
+          created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
         });
       }
     }
@@ -1680,7 +1687,9 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
         ) {
           const extraRecord = existingReserved.data[i];
           updatePromises.push(
-            db.collection("on_reserved_gd").doc(extraRecord.id).delete()
+            db.collection("on_reserved_gd").doc(extraRecord.id).update({
+              is_deleted: 1,
+            })
           );
         }
       }

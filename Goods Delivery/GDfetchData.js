@@ -11,6 +11,7 @@ const salesOrderIds = Array.isArray(salesOrderId)
 
 if (salesOrderIds.length > 1) {
   this.setData({ gd_delivery_method: "" });
+  this.triggerEvent("func_reset_delivery_method");
 }
 
 // Function to convert base quantity to alternative quantity
@@ -43,8 +44,6 @@ const populateAddressesFromSO = (soData) => {
 
   // Extract address data from SO
   const {
-    cust_billing_name,
-    cust_cp,
     cust_billing_address,
     cust_shipping_address,
     billing_address_line_1,
@@ -55,6 +54,9 @@ const populateAddressesFromSO = (soData) => {
     billing_address_state,
     billing_address_country,
     billing_postal_code,
+    billing_address_phone,
+    billing_address_name,
+    billing_attention,
     shipping_address_line_1,
     shipping_address_line_2,
     shipping_address_line_3,
@@ -63,13 +65,14 @@ const populateAddressesFromSO = (soData) => {
     shipping_address_state,
     shipping_address_country,
     shipping_postal_code,
+    shipping_address_name,
+    shipping_address_phone,
+    shipping_attention,
   } = soData;
 
   // Set address fields from SO data
   this.setData({
     // Main address fields (formatted addresses)
-    gd_billing_name: cust_billing_name || "",
-    gd_billing_cp: cust_cp || "",
     gd_billing_address: cust_billing_address || "",
     gd_shipping_address: cust_shipping_address || "",
 
@@ -82,6 +85,9 @@ const populateAddressesFromSO = (soData) => {
     billing_address_state: billing_address_state || "",
     billing_address_country: billing_address_country || "",
     billing_postal_code: billing_postal_code || "",
+    billing_address_phone: billing_address_phone || "",
+    billing_address_name: billing_address_name || "",
+    billing_attention: billing_attention || "",
 
     // Detailed shipping address fields
     shipping_address_line_1: shipping_address_line_1 || "",
@@ -92,6 +98,9 @@ const populateAddressesFromSO = (soData) => {
     shipping_address_state: shipping_address_state || "",
     shipping_address_country: shipping_address_country || "",
     shipping_postal_code: shipping_postal_code || "",
+    shipping_address_name: shipping_address_name || "",
+    shipping_address_phone: shipping_address_phone || "",
+    shipping_attention: shipping_attention || "",
   });
 
   console.log("Addresses populated from SO successfully");
@@ -261,7 +270,10 @@ const checkInventoryForItem = async (item, itemData, index, deliveredSoFar) => {
         shortfallQty,
     });
 
-    return shortfallQty > 0;
+    return {
+      hasShortfall: shortfallQty > 0,
+      shortfallQty: shortfallQty,
+    };
   } catch (error) {
     console.error(`Error checking inventory for item ${itemId}:`, error);
     return false;
@@ -353,22 +365,22 @@ const checkInventoryForItem = async (item, itemData, index, deliveredSoFar) => {
     }
 
     // Store the highest delivered quantities for each item
-    let deliveredQty = {};
+    // let deliveredQty = {};
 
-    GDData.forEach((gdRecord) => {
-      if (Array.isArray(gdRecord.table_gd)) {
-        gdRecord.table_gd.forEach((gdItem) => {
-          const itemId = gdItem.material_id;
-          if (itemId) {
-            const currentQty = parseFloat(gdItem.gd_delivered_qty || 0);
-            if (!deliveredQty[itemId]) {
-              deliveredQty[itemId] = 0;
-            }
-            deliveredQty[itemId] += currentQty;
-          }
-        });
-      }
-    });
+    // GDData.forEach((gdRecord) => {
+    //   if (Array.isArray(gdRecord.table_gd)) {
+    //     gdRecord.table_gd.forEach((gdItem) => {
+    //       const itemId = gdItem.material_id;
+    //       if (itemId) {
+    //         const currentQty = parseFloat(gdItem.gd_delivered_qty || 0);
+    //         if (!deliveredQty[itemId]) {
+    //           deliveredQty[itemId] = 0;
+    //         }
+    //         deliveredQty[itemId] += currentQty;
+    //       }
+    //     });
+    //   }
+    // });
 
     if (!isSOUnchanged) {
       // Reset table data
@@ -379,26 +391,32 @@ const checkInventoryForItem = async (item, itemData, index, deliveredSoFar) => {
         },
       });
 
-      setTimeout(() => {
+      setTimeout(async () => {
         // Create items array
         const allItems = [];
 
         sourceItems.forEach((sourceItem) => {
           const itemId = sourceItem.item_name || "";
-          if (!itemId) return;
-
+          const itemDesc = sourceItem.so_desc || "";
           const itemName = sourceItem.item_id || "";
-          if (!itemName) return;
+
+          if (itemId === "" && itemDesc === "") return;
 
           const orderedQty = parseFloat(sourceItem.so_quantity || 0);
+          const deliveredQtyFromSource = parseFloat(
+            sourceItem.delivered_qty || 0
+          );
+
           const altUOM = sourceItem.so_item_uom || "";
 
           allItems.push({
             itemId,
             itemName,
+            itemDesc,
             orderedQty,
             altUOM,
             sourceItem,
+            deliveredQtyFromSource,
             original_so_id: sourceItem.original_so_id,
             so_no: sourceItem.so_no,
           });
@@ -406,16 +424,18 @@ const checkInventoryForItem = async (item, itemData, index, deliveredSoFar) => {
 
         // Create new table_gd structure
         const newTableGd = allItems.map((item) => ({
-          material_id: item.itemId,
-          material_name: item.itemName,
-          gd_material_desc: item.sourceItem.so_desc || "",
+          material_id: item.itemId || "",
+          material_name: item.itemName || "",
+          gd_material_desc: item.itemDesc || "",
           gd_order_quantity: item.orderedQty,
-          gd_delivered_qty: deliveredQty[item.itemId] || 0,
-          gd_undelivered_qty:
-            item.orderedQty - (deliveredQty[item.itemId] || 0),
+          gd_delivered_qty: item.sourceItem.delivered_qty,
+          gd_undelivered_qty: item.orderedQty - item.sourceItem.delivered_qty,
           gd_order_uom_id: item.altUOM,
           unit_price: item.sourceItem.so_item_price || 0,
           total_price: item.sourceItem.so_amount || 0,
+          more_desc: item.sourceItem.more_desc || "",
+          line_remark_1: item.sourceItem.line_remark_1 || "",
+          line_remark_2: item.sourceItem.line_remark_2 || "",
           line_so_no: item.so_no,
           line_so_id: item.original_so_id,
           fm_key:
@@ -424,9 +444,80 @@ const checkInventoryForItem = async (item, itemData, index, deliveredSoFar) => {
 
         console.log("New table_gd structure:", newTableGd);
 
-        this.setData({
+        await this.setData({
           table_gd: newTableGd,
         });
+
+        setTimeout(async () => {
+          newTableGd.forEach(async (item, index) => {
+            if (item.material_id === "" && item.gd_material_desc !== "") {
+              if (item.gd_undelivered_qty <= 0) {
+                this.disabled(
+                  [
+                    `table_gd.${index}.gd_qty`,
+                    `table_gd.${index}.gd_delivery_qty`,
+                  ],
+                  true
+                );
+              } else {
+                this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+                this.disabled([`table_gd.${index}.gd_qty`], false);
+                this.setData({
+                  [`table_gd.${index}.gd_initial_delivered_qty`]:
+                    item.gd_delivered_qty,
+                  [`table_gd.${index}.gd_qty`]: item.gd_undelivered_qty,
+                });
+              }
+            } else if (item.material_id && item.material_id !== "") {
+              if (item.gd_undelivered_qty <= 0) {
+                this.disabled(
+                  [
+                    `table_gd.${index}.gd_qty`,
+                    `table_gd.${index}.gd_delivery_qty`,
+                  ],
+                  true
+                );
+              } else {
+                const resItem = await db
+                  .collection("item")
+                  .where({ id: item.material_id, is_deleted: 0 })
+                  .get();
+                if (resItem && resItem.data.length > 0) {
+                  const plant = this.getValue("plant_id");
+                  const itemData = resItem.data[0];
+
+                  if (itemData.item_batch_management === 0) {
+                    if (plant) {
+                      const resItemBalance = await db
+                        .collection("item_balance")
+                        .where({
+                          plant_id: plant,
+                          material_id: item.material_id,
+                          is_deleted: 0,
+                        })
+                        .get();
+
+                      if (resItemBalance && resItemBalance.data.length === 1) {
+                        this.disabled(
+                          [`table_gd.${index}.gd_delivery_qty`],
+                          true
+                        );
+                        this.disabled([`table_gd.${index}.gd_qty`], false);
+                        this.setData({
+                          [`table_gd.${index}.gd_initial_delivered_qty`]:
+                            item.gd_delivered_qty,
+                          [`table_gd.${index}.gd_qty`]: item.gd_undelivered_qty,
+                        });
+                      }
+                    }
+                  } else {
+                    console.error("Item batch management is not found.");
+                  }
+                }
+              }
+            }
+          });
+        }, 100);
 
         // Create insufficient items table structure
         const newTableInsufficient = allItems.map((item) => ({
@@ -457,9 +548,10 @@ const checkInventoryForItem = async (item, itemData, index, deliveredSoFar) => {
             const item = allItems[index];
             const itemId = item.itemId;
             const itemName = item.itemName;
+            const itemDesc = item.itemDesc;
             const orderedQty = item.orderedQty;
             const altUOM = item.altUOM;
-            const deliveredSoFar = deliveredQty[itemId] || 0;
+            const deliveredSoFar = item.deliveredQtyFromSource;
 
             console.log(`Processing item ${index}:`, item);
 
@@ -494,6 +586,14 @@ const checkInventoryForItem = async (item, itemData, index, deliveredSoFar) => {
                     deliveredSoFar,
                   [`table_gd.${index}.gd_order_uom_id`]: altUOM,
                   [`table_gd.${index}.good_delivery_uom_id`]: altUOM,
+
+                  [`table_gd.${index}.more_desc`]:
+                    item.sourceItem.more_desc || "",
+                  [`table_gd.${index}.line_remark_1`]:
+                    item.sourceItem.line_remark_1 || "",
+                  [`table_gd.${index}.line_remark_2`]:
+                    item.sourceItem.line_remark_2 || "",
+
                   [`table_gd.${index}.base_uom_id`]: itemData.based_uom || "",
                   [`table_gd.${index}.unit_price`]:
                     item.sourceItem.so_item_price || 0,
@@ -507,15 +607,33 @@ const checkInventoryForItem = async (item, itemData, index, deliveredSoFar) => {
                     orderedQty,
                 });
 
+                if (itemId === "" && itemDesc !== "") {
+                  this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+                  this.disabled([`table_gd.${index}.gd_qty`], false);
+                }
+
                 // Check inventory
-                const hasShortfall = await checkInventoryForItem(
-                  item,
-                  itemData,
-                  index,
-                  deliveredSoFar
-                );
+                const { hasShortfall, shortfallQty } =
+                  await checkInventoryForItem(
+                    item,
+                    itemData,
+                    index,
+                    deliveredSoFar
+                  );
 
                 if (hasShortfall) {
+                  this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+                  const availableQty =
+                    orderedQty - deliveredSoFar - shortfallQty;
+                  if (availableQty > 0) {
+                    this.disabled([`table_gd.${index}.gd_qty`], false);
+                    this.setData({
+                      [`table_gd.${index}.gd_qty`]: availableQty,
+                    });
+                  } else {
+                    this.disabled([`table_gd.${index}.gd_qty`], true);
+                    this.setData({ [`table_gd.${index}.gd_qty`]: 0 });
+                  }
                   insufficientItems.push({
                     itemId,
                     itemName,

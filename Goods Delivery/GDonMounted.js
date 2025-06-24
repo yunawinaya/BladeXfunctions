@@ -320,39 +320,32 @@ const checkAccIntegrationType = async (organizationId) => {
 const disabledSelectStock = async (data) => {
   data.table_gd.forEach(async (item, index) => {
     if (item.material_id && item.material_id !== "") {
-      if (item.gd_undelivered_qty <= 0) {
-        this.disabled(
-          [`table_gd.${index}.gd_qty`, `table_gd.${index}.gd_delivery_qty`],
-          true
-        );
-      } else {
-        const resItem = await db
-          .collection("item")
-          .where({ id: item.material_id, is_deleted: 0 })
-          .get();
-        if (resItem && resItem.data.length > 0) {
-          const plant = data.plant_id;
-          const itemData = resItem.data[0];
+      const resItem = await db
+        .collection("item")
+        .where({ id: item.material_id, is_deleted: 0 })
+        .get();
+      if (resItem && resItem.data.length > 0) {
+        const plant = data.plant_id;
+        const itemData = resItem.data[0];
 
-          if (itemData.item_batch_management === 0) {
-            if (plant) {
-              const resItemBalance = await db
-                .collection("item_balance")
-                .where({
-                  plant_id: plant,
-                  material_id: item.material_id,
-                  is_deleted: 0,
-                })
-                .get();
+        if (itemData.item_batch_management === 0) {
+          if (plant) {
+            const resItemBalance = await db
+              .collection("item_balance")
+              .where({
+                plant_id: plant,
+                material_id: item.material_id,
+                is_deleted: 0,
+              })
+              .get();
 
-              if (resItemBalance && resItemBalance.data.length === 1) {
-                this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-                this.disabled([`table_gd.${index}.gd_qty`], false);
-              }
+            if (resItemBalance && resItemBalance.data.length === 1) {
+              this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+              this.disabled([`table_gd.${index}.gd_qty`], false);
             }
-          } else {
-            console.error("Item batch management is not found.");
           }
+        } else {
+          console.error("Item batch management is not found.");
         }
       }
     }
@@ -396,10 +389,10 @@ const disabledSelectStock = async (data) => {
       case "Edit":
         if (status !== "Completed") {
           await getPrefixData(organizationId);
+          await disabledSelectStock(data);
         }
         await checkAccIntegrationType(organizationId);
         await disabledField(status, pickingStatus);
-        await disabledSelectStock(data);
         await showStatusHTML(status);
         if (salesOrderId.length > 0) {
           await this.display(["address_grid"]);
