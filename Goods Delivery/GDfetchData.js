@@ -35,6 +35,398 @@ const convertBaseToAlt = (baseQty, itemData, altUOM) => {
   return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
 };
 
+// Initialize global allocation tracker for the session
+if (!window.globalAllocationTracker) {
+  window.globalAllocationTracker = new Map();
+}
+
+// Function to perform automatic allocation for eligible items
+const performAutomaticAllocation = async (
+  materialId,
+  rowIndex,
+  quantity,
+  plantId,
+  uomId
+) => {
+  try {
+    console.log(
+      `Auto-allocating for row ${rowIndex}, material ${materialId}, quantity ${quantity}`
+    );
+
+    // Get current allocations for this material from previous rows
+    const getCurrentAllocations = (materialId, currentRowIndex) => {
+      const materialAllocations =
+        window.globalAllocationTracker.get(materialId) || new Map();
+      const allocatedQuantities = new Map();
+
+      // Get allocations from global tracker (excluding current row)
+      materialAllocations.forEach((rowAllocations, rIdx) => {
+        if (rIdx !== currentRowIndex) {
+          rowAllocations.forEach((qty, locationKey) => {
+            const currentAllocated = allocatedQuantities.get(locationKey) || 0;
+            allocatedQuantities.set(locationKey, currentAllocated + qty);
+          });
+        }
+      });
+
+      return allocatedQuantities;
+    };
+
+    // Apply cross-row allocations to balance data
+    const applyAllocationsToBalances = (
+      balances,
+      allocatedQuantities,
+      isBatchManaged
+    ) => {
+      return balances.map((balance) => {
+        const key = isBatchManaged
+          ? `${balance.location_id}-${balance.batch_id || "no_batch"}`
+          : `${balance.location_id}`;
+
+        const allocatedFromOthers = allocatedQuantities.get(key) || 0;
+        const originalUnrestrictedQty = balance.unrestricted_qty || 0;
+        const adjustedUnrestrictedQty = Math.max(
+          0,
+          originalUnrestrictedQty - allocatedFromOthers
+        );
+
+        return {
+          ...balance,
+          unrestricted_qty: adjustedUnrestrictedQty,
+          original_unrestricted_qty: originalUnrestrictedQty,
+        };
+      });
+    };
+
+    // Get picking setup
+    const pickingSetupResponse = await db
+      .collection("picking_setup")
+      .where({ plant_id: plantId, movement_type: "Good Delivery" })
+      .get();
+
+    if (!pickingSetupResponse?.data?.length) {
+      console.log("No picking setup found, skipping auto-allocation");
+      return;
+    }
+
+    const {
+      picking_mode: pickingMode,
+      default_strategy_id: defaultStrategy,
+      fallback_strategy_id: fallbackStrategy,
+    } = pickingSetupResponse.data[0];
+
+    // Only proceed with auto-allocation for Auto picking mode
+    if (pickingMode !== "Auto") {
+      console.log(`Picking mode is ${pickingMode}, skipping auto-allocation`);
+      return;
+    }
+
+    // Fetch item data
+    const itemResult = await db
+      .collection("item")
+      .where({ id: materialId, is_deleted: 0 })
+      .get();
+
+    if (!itemResult?.data?.length) {
+      console.log("Item not found, skipping auto-allocation");
+      return;
+    }
+
+    const itemData = itemResult.data[0];
+
+    // Get default bin for item
+    const getDefaultBin = (itemData, plantId) => {
+      if (!itemData.table_default_bin?.length) return null;
+      const defaultBinEntry = itemData.table_default_bin.find(
+        (bin) => bin.plant_id === plantId
+      );
+      return defaultBinEntry?.bin_location || null;
+    };
+
+    const defaultBin = getDefaultBin(itemData, plantId);
+
+    // Get current allocations for this material
+    const allocatedFromOtherRows = getCurrentAllocations(materialId, rowIndex);
+
+    let allAllocations = [];
+
+    // Handle batch-managed items
+    if (itemData.item_batch_management === 1) {
+      const batchResult = await db
+        .collection("batch")
+        .where({
+          material_id: itemData.id,
+          is_deleted: 0,
+          plant_id: plantId,
+        })
+        .get();
+
+      if (!batchResult?.data?.length) {
+        console.log("No batches found for item");
+        return;
+      }
+
+      const batchData = batchResult.data[0];
+
+      const batchBalanceResult = await db
+        .collection("item_batch_balance")
+        .where({
+          material_id: itemData.id,
+          is_deleted: 0,
+        })
+        .get();
+
+      if (!batchBalanceResult?.data?.length) {
+        console.log("No batch balance found");
+        return;
+      }
+
+      const adjustedBalances = applyAllocationsToBalances(
+        batchBalanceResult.data,
+        allocatedFromOtherRows,
+        true
+      );
+
+      allAllocations = await processAutoAllocation(
+        adjustedBalances,
+        defaultBin,
+        quantity,
+        defaultStrategy,
+        fallbackStrategy,
+        true,
+        batchData
+      );
+    } else if (itemData.item_batch_management === 0) {
+      const itemBalanceResult = await db
+        .collection("item_balance")
+        .where({
+          plant_id: plantId,
+          material_id: materialId,
+          is_deleted: 0,
+        })
+        .get();
+
+      if (!itemBalanceResult?.data?.length) {
+        console.log("No item balance found");
+        return;
+      }
+
+      const adjustedBalances = applyAllocationsToBalances(
+        itemBalanceResult.data,
+        allocatedFromOtherRows,
+        false
+      );
+
+      allAllocations = await processAutoAllocation(
+        adjustedBalances,
+        defaultBin,
+        quantity,
+        defaultStrategy,
+        fallbackStrategy,
+        false
+      );
+    }
+
+    // Update global allocations
+    if (!window.globalAllocationTracker.has(materialId)) {
+      window.globalAllocationTracker.set(materialId, new Map());
+    }
+
+    const materialAllocations = window.globalAllocationTracker.get(materialId);
+    const rowAllocations = new Map();
+
+    allAllocations.forEach((allocation) => {
+      const key = allocation.batchData
+        ? `${allocation.balance.location_id}-${allocation.batchData.id}`
+        : `${allocation.balance.location_id}`;
+      rowAllocations.set(key, allocation.quantity);
+    });
+
+    materialAllocations.set(rowIndex, rowAllocations);
+
+    // Create temp_qty_data and summary
+    const tempQtyData = allAllocations.map((allocation) => ({
+      material_id: materialId,
+      location_id: allocation.balance.location_id,
+      block_qty: allocation.balance.block_qty,
+      reserved_qty: allocation.balance.reserved_qty,
+      unrestricted_qty:
+        allocation.balance.original_unrestricted_qty ||
+        allocation.balance.unrestricted_qty,
+      qualityinsp_qty: allocation.balance.qualityinsp_qty,
+      intransit_qty: allocation.balance.intransit_qty,
+      balance_quantity: allocation.balance.balance_quantity,
+      plant_id: plantId,
+      organization_id: allocation.balance.organization_id,
+      is_deleted: 0,
+      gd_quantity: allocation.quantity,
+      ...(allocation.batchData && { batch_id: allocation.batchData.id }),
+    }));
+
+    // Get UOM name for summary
+    const getUOMData = async (uomId) => {
+      if (!uomId) return "";
+      try {
+        const uomResult = await db
+          .collection("unit_of_measurement")
+          .where({ id: uomId })
+          .get();
+        return uomResult?.data?.[0]?.uom_name || "";
+      } catch (error) {
+        console.error("Error fetching UOM data:", error);
+        return "";
+      }
+    };
+
+    const uomName = await getUOMData(uomId);
+
+    const summaryDetails = allAllocations.map((allocation, index) => {
+      let summaryLine = `${index + 1}. ${allocation.binLocation}: ${
+        allocation.quantity
+      } ${uomName}`;
+      if (allocation.batchData) {
+        summaryLine += `\n[${allocation.batchData.batch_number}]`;
+      }
+      return summaryLine;
+    });
+
+    const totalAllocated = allAllocations.reduce(
+      (sum, alloc) => sum + alloc.quantity,
+      0
+    );
+    const summary = `Total: ${totalAllocated} ${uomName}\n\nDETAILS:\n${summaryDetails.join(
+      "\n"
+    )}`;
+
+    // Update the row data with allocation results
+    this.setData({
+      [`table_gd.${rowIndex}.view_stock`]: summary,
+      [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify(tempQtyData),
+    });
+
+    console.log(
+      `Auto-allocation completed for row ${rowIndex}: ${allAllocations.length} allocations`
+    );
+  } catch (error) {
+    console.error(`Error in auto-allocation for row ${rowIndex}:`, error);
+  }
+};
+
+// Helper function to process auto allocation strategies
+const processAutoAllocation = async (
+  balances,
+  defaultBin,
+  quantity,
+  defaultStrategy,
+  fallbackStrategy,
+  isBatchManaged,
+  batchData = null
+) => {
+  let allAllocations = [];
+  let remainingQty = quantity;
+
+  // Get bin location details
+  const getBinLocationDetails = async (locationId) => {
+    try {
+      const binLocationResult = await db
+        .collection("bin_location")
+        .where({ id: locationId, is_deleted: 0 })
+        .get();
+      return binLocationResult?.data?.[0] || null;
+    } catch (error) {
+      console.error("Error fetching bin location:", error);
+      return null;
+    }
+  };
+
+  if (defaultStrategy === "FIXED BIN") {
+    if (defaultBin) {
+      // Try fixed bin first
+      const defaultBinBalance = balances.find(
+        (balance) => balance.location_id === defaultBin
+      );
+
+      if (defaultBinBalance) {
+        const availableQty = defaultBinBalance.unrestricted_qty || 0;
+        const allocatedQty = Math.min(remainingQty, availableQty);
+
+        if (allocatedQty > 0) {
+          const binDetails = await getBinLocationDetails(
+            defaultBinBalance.location_id
+          );
+          if (binDetails) {
+            allAllocations.push({
+              balance: defaultBinBalance,
+              quantity: allocatedQty,
+              binLocation: binDetails.bin_location_combine,
+              batchData: isBatchManaged ? batchData : null,
+            });
+            remainingQty -= allocatedQty;
+          }
+        }
+      }
+    }
+
+    // Use fallback strategy for remaining quantity
+    if (remainingQty > 0 && fallbackStrategy === "RANDOM") {
+      const availableBalances = balances
+        .filter(
+          (balance) =>
+            balance.location_id !== defaultBin &&
+            (balance.unrestricted_qty || 0) > 0
+        )
+        .sort((a, b) => balances.indexOf(a) - balances.indexOf(b));
+
+      for (const balance of availableBalances) {
+        if (remainingQty <= 0) break;
+
+        const availableQty = balance.unrestricted_qty || 0;
+        const allocatedQty = Math.min(remainingQty, availableQty);
+
+        if (allocatedQty > 0) {
+          const binDetails = await getBinLocationDetails(balance.location_id);
+          if (binDetails) {
+            allAllocations.push({
+              balance: balance,
+              quantity: allocatedQty,
+              binLocation: binDetails.bin_location_combine,
+              batchData: isBatchManaged ? batchData : null,
+            });
+            remainingQty -= allocatedQty;
+          }
+        }
+      }
+    }
+  } else if (defaultStrategy === "RANDOM") {
+    // Direct random allocation
+    const availableBalances = balances
+      .filter((balance) => (balance.unrestricted_qty || 0) > 0)
+      .sort((a, b) => balances.indexOf(a) - balances.indexOf(b));
+
+    for (const balance of availableBalances) {
+      if (remainingQty <= 0) break;
+
+      const availableQty = balance.unrestricted_qty || 0;
+      const allocatedQty = Math.min(remainingQty, availableQty);
+
+      if (allocatedQty > 0) {
+        const binDetails = await getBinLocationDetails(balance.location_id);
+        if (binDetails) {
+          allAllocations.push({
+            balance: balance,
+            quantity: allocatedQty,
+            binLocation: binDetails.bin_location_combine,
+            batchData: isBatchManaged ? batchData : null,
+          });
+          remainingQty -= allocatedQty;
+        }
+      }
+    }
+  }
+
+  return allAllocations;
+};
+
 // Helper function to populate addresses from SO data
 const populateAddressesFromSO = (soData) => {
   console.log("Populating addresses from SO:", soData);
@@ -184,7 +576,6 @@ const handleMultipleSOMAddresses = async (soIds) => {
   }
 };
 
-// Enhanced function to check inventory with duplicate material handling
 const checkInventoryWithDuplicates = async (allItems, plantId) => {
   // Group items by material_id to find duplicates
   const materialGroups = {};
@@ -201,7 +592,10 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
 
   const insufficientItems = [];
 
-  // Process each material group
+  // Create a flat array of all items that need allocation, sorted by index
+  const itemsForAllocation = [];
+
+  // First pass: Set up all item data and determine which items need allocation
   for (const [materialId, items] of Object.entries(materialGroups)) {
     // Skip database call and enable gd_qty if materialId is null
     if (!materialId) {
@@ -253,7 +647,6 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
         console.log(
           `Skipping item ${materialId} due to stock_control or show_delivery settings`
         );
-        // Still set up the items normally for non-stock items
         items.forEach((item) => {
           const index = item.originalIndex;
           const orderedQty = item.orderedQty;
@@ -299,6 +692,8 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
 
       // Get total available stock for this material
       let totalUnrestrictedQtyBase = 0;
+      let itemBatchBalanceData = [];
+      let itemBalanceData = [];
 
       if (itemData.item_batch_management === 1) {
         try {
@@ -306,10 +701,9 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
             .collection("item_batch_balance")
             .where({ material_id: materialId, plant_id: plantId })
             .get();
-          const itemBatchBalanceData = response.data || [];
+          itemBatchBalanceData = response.data || [];
 
           if (itemBatchBalanceData.length === 1) {
-            // Apply to all items in this material group
             items.forEach((item) => {
               const itemIndex = item.originalIndex;
               this.disabled([`table_gd.${itemIndex}.gd_delivery_qty`], true);
@@ -333,10 +727,9 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
             .collection("item_balance")
             .where({ material_id: materialId, plant_id: plantId })
             .get();
-          const itemBalanceData = response.data || [];
+          itemBalanceData = response.data || [];
 
           if (itemBalanceData.length === 1) {
-            // Apply to all items in this material group
             items.forEach((item) => {
               const itemIndex = item.originalIndex;
               this.disabled([`table_gd.${itemIndex}.gd_delivery_qty`], true);
@@ -357,10 +750,12 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
         }
       }
 
-      // Calculate total demand from ALL line items for this material
-      let totalDemandBase = 0;
+      const balanceData =
+        itemData.item_batch_management === 1
+          ? itemBatchBalanceData
+          : itemBalanceData;
 
-      // Picking setup for auto picking mode
+      // Get picking setup
       const pickingSetupResponse = await db
         .collection("picking_setup")
         .where({ plant_id: plantId, movement_type: "Good Delivery" })
@@ -368,12 +763,13 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
       const pickingMode = pickingSetupResponse.data[0].picking_mode;
       const defaultStrategy = pickingSetupResponse.data[0].default_strategy_id;
 
+      // Calculate total demand and set up basic item data
+      let totalDemandBase = 0;
       items.forEach((item) => {
         const orderedQty = item.orderedQty;
         const deliveredQty = item.deliveredQtyFromSource;
         const undeliveredQty = orderedQty - deliveredQty;
 
-        // Convert to base UOM if needed
         let undeliveredQtyBase = undeliveredQty;
         if (item.altUOM !== itemData.based_uom) {
           const uomConversion = itemData.table_uom_conversion?.find(
@@ -383,20 +779,10 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
             undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
           }
         }
-
         totalDemandBase += undeliveredQtyBase;
-      });
 
-      console.log(
-        `Material ${materialId}: Available=${totalUnrestrictedQtyBase}, Total Demand=${totalDemandBase}, Line Count=${items.length}`
-      );
-
-      // Set basic item data for all items in this group
-      items.forEach((item) => {
+        // Set basic item data
         const index = item.originalIndex;
-        const orderedQty = item.orderedQty;
-        const deliveredQty = item.deliveredQtyFromSource;
-
         this.setData({
           [`table_gd.${index}.material_id`]: materialId,
           [`table_gd.${index}.material_name`]: item.itemName,
@@ -423,12 +809,16 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
         });
       });
 
-      // Check if total demand exceeds available stock
+      console.log(
+        `Material ${materialId}: Available=${totalUnrestrictedQtyBase}, Total Demand=${totalDemandBase}, Line Count=${items.length}`
+      );
+
+      // Handle insufficient vs sufficient stock scenarios
       const totalShortfallBase = totalDemandBase - totalUnrestrictedQtyBase;
 
       if (totalShortfallBase > 0) {
         console.log(
-          `❌ Insufficient stock for material ${materialId}: Shortfall=${totalShortfallBase} (${items.length} line items)`
+          `❌ Insufficient stock for material ${materialId}: Shortfall=${totalShortfallBase}`
         );
 
         // Distribute available stock proportionally
@@ -440,7 +830,6 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
           const deliveredQty = item.deliveredQtyFromSource;
           const undeliveredQty = orderedQty - deliveredQty;
 
-          // Convert available stock back to alt UOM
           let availableQtyAlt = 0;
           if (remainingStockBase > 0 && undeliveredQty > 0) {
             let undeliveredQtyBase = undeliveredQty;
@@ -453,7 +842,6 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
               }
             }
 
-            // Allocate proportionally or take minimum
             const allocatedBase = Math.min(
               remainingStockBase,
               undeliveredQtyBase
@@ -479,16 +867,27 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
               undeliveredQty - availableQtyAlt,
           });
 
-          // Set the actual deliverable quantity
+          // Set quantity and add to allocation queue if eligible
           if (
             availableQtyAlt > 0 &&
-            (itemBalanceData.length === 1 ||
+            (balanceData.length === 1 ||
               (["FIXED BIN", "RANDOM"].includes(defaultStrategy) &&
                 pickingMode === "Auto"))
           ) {
             this.setData({
               [`table_gd.${index}.gd_qty`]: availableQtyAlt,
             });
+
+            // Add to allocation queue
+            if (materialId) {
+              itemsForAllocation.push({
+                materialId,
+                rowIndex: index,
+                quantity: availableQtyAlt,
+                plantId,
+                uomId: item.altUOM,
+              });
+            }
           } else {
             this.setData({
               [`table_gd.${index}.gd_qty`]: 0,
@@ -496,7 +895,6 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
           }
         });
 
-        // Add to insufficient items list
         insufficientItems.push({
           itemId: materialId,
           itemName: items[0].itemName,
@@ -504,7 +902,6 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
           lineCount: items.length,
         });
       } else {
-        // Sufficient stock available - set up items normally
         console.log(
           `✅ Sufficient stock for material ${materialId}: Available=${totalUnrestrictedQtyBase}, Demand=${totalDemandBase}`
         );
@@ -527,6 +924,22 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
             this.setData({
               [`table_gd.${index}.gd_qty`]: undeliveredQty,
             });
+
+            // Add to allocation queue if eligible
+            if (
+              materialId &&
+              (balanceData.length === 1 ||
+                (["FIXED BIN", "RANDOM"].includes(defaultStrategy) &&
+                  pickingMode === "Auto"))
+            ) {
+              itemsForAllocation.push({
+                materialId,
+                rowIndex: index,
+                quantity: undeliveredQty,
+                plantId,
+                uomId: item.altUOM,
+              });
+            }
           }
         });
       }
@@ -535,6 +948,26 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
     }
   }
 
+  // Second pass: Process all allocations sequentially by row index
+  console.log(
+    `Processing ${itemsForAllocation.length} items for allocation sequentially...`
+  );
+
+  // Sort by row index to ensure consistent processing order
+  itemsForAllocation.sort((a, b) => a.rowIndex - b.rowIndex);
+
+  for (const allocationItem of itemsForAllocation) {
+    console.log(`Processing allocation for row ${allocationItem.rowIndex}`);
+    await performAutomaticAllocation(
+      allocationItem.materialId,
+      allocationItem.rowIndex,
+      allocationItem.quantity,
+      allocationItem.plantId,
+      allocationItem.uomId
+    );
+  }
+
+  console.log("All allocations completed sequentially");
   return insufficientItems;
 };
 

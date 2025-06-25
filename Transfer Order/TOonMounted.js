@@ -235,8 +235,10 @@ const setPlant = async (organizationId) => {
         this.setData({
           "table_picking_items.picked_qty": 0,
         });
-        this.hide(["gd_no"]);
-        this.display(["delivery_no"]);
+        if (status !== "Draft") {
+          this.hide(["gd_no"]);
+          this.display(["delivery_no"]);
+        }
         await disabledField(status);
         await showStatusHTML(status);
         break;
