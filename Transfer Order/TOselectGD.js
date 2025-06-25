@@ -47,6 +47,7 @@
     });
 
     this.setData({
+      so_no: gdData.so_no,
       delivery_no: gdData.delivery_no,
       table_picking_items: tablePickingItems,
       customer_id: gdData.customer_name,

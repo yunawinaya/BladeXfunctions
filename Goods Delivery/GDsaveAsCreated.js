@@ -1665,6 +1665,7 @@ const createOrUpdatePicking = async (
           ref_doc_type: "Good Delivery",
           gd_no: gdId,
           delivery_no: gdData.delivery_no,
+          so_no: gdData.so_no,
           customer_id: gdData.customer_name,
           created_by: this.getVarGlobal("nickname"),
           created_at: new Date().toISOString().slice(0, 19).replace("T", " "),

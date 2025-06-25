@@ -147,6 +147,8 @@ const generateDraftPrefix = async (organizationId) => {
         movement_type: data.movement_type,
         ref_doc_type: data.ref_doc_type,
         gd_no: data.gd_no,
+        delivery_no: data.delivery_no,
+        so_no: data.so_no,
         assigned_to: data.assigned_to,
         created_by: data.created_by,
         created_at: data.created_at,

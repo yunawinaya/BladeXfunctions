@@ -1,6 +1,6 @@
 const data = this.getValues();
+const lineItemData = arguments[0]?.row;
 const rowIndex = arguments[0]?.rowIndex;
-const lineItemData = data.table_gd[rowIndex];
 
 console.log("lineItemData", lineItemData);
 
@@ -9,64 +9,6 @@ const altUOM = lineItemData.gd_order_uom_id;
 const plantId = data.plant_id;
 
 const tempQtyData = lineItemData.temp_qty_data;
-
-// Helper function to calculate allocated quantities from other line items
-const calculateAllocatedQuantitiesFromOtherRows = (
-  materialId,
-  currentRowIndex,
-  tableGdData
-) => {
-  const allocatedQuantities = new Map(); // Key: location_id or location_id-batch_id, Value: allocated quantity
-
-  if (!tableGdData || !Array.isArray(tableGdData)) {
-    console.log("No table_gd data found");
-    return allocatedQuantities;
-  }
-
-  console.log("Calculating allocated quantities from other rows...");
-
-  tableGdData.forEach((row, index) => {
-    // Skip current row and rows with different material_id
-    if (index === currentRowIndex || row.material_id !== materialId) {
-      return;
-    }
-
-    // Parse temp_qty_data from other rows
-    if (row.temp_qty_data) {
-      try {
-        const otherRowTempData = JSON.parse(row.temp_qty_data);
-        if (Array.isArray(otherRowTempData)) {
-          otherRowTempData.forEach((tempItem) => {
-            if (tempItem.gd_quantity && tempItem.gd_quantity > 0) {
-              // Create key based on whether item is batch managed
-              const key = tempItem.batch_id
-                ? `${tempItem.location_id}-${tempItem.batch_id}`
-                : `${tempItem.location_id}`;
-
-              const currentAllocated = allocatedQuantities.get(key) || 0;
-              allocatedQuantities.set(
-                key,
-                currentAllocated + tempItem.gd_quantity
-              );
-
-              console.log(
-                `Row ${index}: Found allocation for ${key} = ${tempItem.gd_quantity}`
-              );
-            }
-          });
-        }
-      } catch (error) {
-        console.error(`Error parsing temp_qty_data for row ${index}:`, error);
-      }
-    }
-  });
-
-  console.log(
-    "Total allocated quantities from other rows:",
-    Object.fromEntries(allocatedQuantities)
-  );
-  return allocatedQuantities;
-};
 
 db.collection("Item")
   .where({
@@ -167,44 +109,13 @@ db.collection("Item")
       });
     };
 
-    const mergeWithTempData = (
-      freshDbData,
-      tempDataArray,
-      allocatedFromOtherRows
-    ) => {
+    const mergeWithTempData = (freshDbData, tempDataArray) => {
       if (!tempDataArray || tempDataArray.length === 0) {
-        console.log(
-          "No temp data to merge, using fresh DB data with cross-row adjustments"
-        );
-
-        // Apply cross-row adjustments even when no temp data
-        return freshDbData.map((dbItem) => {
-          const key =
-            itemData.item_batch_management === 1
-              ? `${dbItem.location_id}-${dbItem.batch_id || "no_batch"}`
-              : `${dbItem.location_id}`;
-
-          const allocatedFromOthers = allocatedFromOtherRows.get(key) || 0;
-          const adjustedUnrestrictedQty = Math.max(
-            0,
-            (dbItem.unrestricted_qty || 0) - allocatedFromOthers
-          );
-
-          console.log(
-            `Location ${key}: Original=${dbItem.unrestricted_qty}, Allocated by others=${allocatedFromOthers}, Available=${adjustedUnrestrictedQty}`
-          );
-
-          return {
-            ...dbItem,
-            unrestricted_qty: adjustedUnrestrictedQty,
-            gd_quantity: 0,
-          };
-        });
+        console.log("No temp data to merge, using fresh DB data");
+        return freshDbData;
       }
 
-      console.log(
-        "Merging fresh DB data with existing temp data and cross-row adjustments"
-      );
+      console.log("Merging fresh DB data with existing temp data");
 
       const tempDataMap = new Map();
       tempDataArray.forEach((tempItem) => {
@@ -222,39 +133,24 @@ db.collection("Item")
             : `${dbItem.location_id}`;
 
         const tempItem = tempDataMap.get(key);
-        const allocatedFromOthers = allocatedFromOtherRows.get(key) || 0;
-
-        // Calculate available quantity after subtracting allocations from other rows
-        const originalUnrestrictedQty = dbItem.unrestricted_qty || 0;
-        const adjustedUnrestrictedQty = Math.max(
-          0,
-          originalUnrestrictedQty - allocatedFromOthers
-        );
-
-        console.log(
-          `Location ${key}: Original=${originalUnrestrictedQty}, Allocated by others=${allocatedFromOthers}, Available=${adjustedUnrestrictedQty}`
-        );
 
         if (tempItem) {
           console.log(
-            `Merging data for ${key}: DB unrestricted=${adjustedUnrestrictedQty}, temp gd_quantity=${tempItem.gd_quantity}`
+            `Merging data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, temp gd_quantity=${tempItem.gd_quantity}`
           );
           return {
             ...dbItem,
-            unrestricted_qty: adjustedUnrestrictedQty,
             gd_quantity: tempItem.gd_quantity,
             remarks: tempItem.remarks || dbItem.remarks,
           };
         } else {
           return {
             ...dbItem,
-            unrestricted_qty: adjustedUnrestrictedQty,
             gd_quantity: 0,
           };
         }
       });
 
-      // Add temp-only items (items that exist in temp but not in DB)
       tempDataArray.forEach((tempItem) => {
         const key =
           itemData.item_batch_management === 1
@@ -271,20 +167,12 @@ db.collection("Item")
 
         if (!existsInDb) {
           console.log(`Adding temp-only data for ${key}`);
-          // For temp-only items, we don't adjust quantities since they're not in the main DB
           mergedData.push(tempItem);
         }
       });
 
       return mergedData;
     };
-
-    // Calculate quantities already allocated by other line items
-    const allocatedFromOtherRows = calculateAllocatedQuantitiesFromOtherRows(
-      materialId,
-      rowIndex,
-      data.table_gd
-    );
 
     if (itemData.item_batch_management === 1) {
       this.display("gd_item_balance.table_item_balance.batch_id");
@@ -314,8 +202,7 @@ db.collection("Item")
 
           const finalData = mergeWithTempData(
             processedFreshData,
-            tempDataArray,
-            allocatedFromOtherRows
+            tempDataArray
           );
 
           console.log("Final merged data:", finalData);
@@ -355,8 +242,7 @@ db.collection("Item")
 
           const finalData = mergeWithTempData(
             processedFreshData,
-            tempDataArray,
-            allocatedFromOtherRows
+            tempDataArray
           );
 
           console.log("Final merged data:", finalData);

@@ -123,6 +123,8 @@ const disabledField = async (status) => {
         "movement_type",
         "ref_doc_type",
         "gd_no",
+        "delivery_no",
+        "so_no",
         "assigned_to",
         "created_by",
         "created_at",
