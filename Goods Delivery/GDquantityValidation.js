@@ -1,134 +1,94 @@
-const data = this.getValues();
-const fieldParts = rule.field.split(".");
-const index = fieldParts[1];
-const gdStatus = data.gd_status;
-const order_quantity = parseFloat(data.table_gd[index].gd_order_quantity || 0);
-const gd_undelivered_qty = parseFloat(
-  data.table_gd[index].gd_undelivered_qty || 0
-);
-const gd_initial_delivered_qty = parseFloat(
-  data.table_gd[index].gd_initial_delivered_qty || 0
-);
-const gdUndeliveredQty = order_quantity - gd_initial_delivered_qty;
-const quantity = value;
-const delivered_quantity = parseFloat(
-  data.table_gd[index].gd_delivered_qty || 0
-);
-const materialId = data.table_gd[index].material_id;
-
-// Create or use a global validation state
-if (!window.validationState) {
-  window.validationState = {};
-}
-
-if (Object.keys(window.validationState).length === 0) {
-  const rowCount = data.table_gd.length;
-  for (let i = 0; i < rowCount; i++) {
-    window.validationState[i] = true;
-  }
-}
-
 (async () => {
   try {
-    if (!materialId) {
-      window.validationState[index] = true;
-      if (quantity > gdUndeliveredQty) {
-        window.validationState[index] = false;
-        callback("Quantity exceed delivered limit.");
-      } else {
-        window.validationState[index] = true;
-        callback();
+    const data = this.getValues();
+    const fieldParts = rule.field.split(".");
+    const index = fieldParts[2];
+    const rowIndex = data.gd_item_balance.row_index;
+    const gdStatus = data.gd_status;
+
+    const materialId = data.table_gd[rowIndex].material_id;
+    const gd_order_quantity = parseFloat(
+      data.table_gd[rowIndex].gd_order_quantity || 0
+    );
+    const initialDeliveredQty = parseFloat(
+      data.table_gd[rowIndex].gd_initial_delivered_qty || 0
+    );
+
+    let currentDialogTotal = 0;
+    for (let i = 0; i < data.gd_item_balance.table_item_balance.length; i++) {
+      currentDialogTotal += parseFloat(
+        data.gd_item_balance.table_item_balance[i].gd_quantity || 0
+      );
+    }
+
+    const gd_delivered_qty = initialDeliveredQty + currentDialogTotal;
+
+    const parsedValue = parseFloat(value);
+    const unrestricted_field =
+      data.gd_item_balance.table_item_balance[index].unrestricted_qty;
+    const reserved_field =
+      data.gd_item_balance.table_item_balance[index].reserved_qty;
+
+    if (!window.validationState) {
+      window.validationState = {};
+    }
+
+    if (Object.keys(window.validationState).length === 0) {
+      const rowCount = data.gd_item_balance.table_item_balance.length;
+      for (let i = 0; i < rowCount; i++) {
+        window.validationState[i] = true;
       }
-    } else {
-      const itemRes = await db
+    }
+
+    if (materialId) {
+      const resItem = await db
         .collection("Item")
         .where({ id: materialId })
         .get();
 
-      if (!itemRes.data || !itemRes.data.length) {
-        console.warn(`Item not found: ${materialId}`);
-        window.validationState[index] = true;
-        callback();
-        return;
-      }
+      console.log("data", resItem.data);
+      if (resItem.data && resItem.data[0]) {
+        const orderLimit =
+          (gd_order_quantity *
+            (100 + resItem.data[0].over_delivery_tolerance)) /
+          100;
 
-      const itemData = itemRes.data[0];
-      let orderLimit = gdUndeliveredQty;
-
-      if (itemData.over_delivery_tolerance > 0) {
-        orderLimit =
-          gdUndeliveredQty +
-          gdUndeliveredQty * (itemData.over_delivery_tolerance / 100);
-      }
-
-      if (gdStatus === "Created") {
         const resGD = await db
           .collection("goods_delivery")
           .where({ id: data.id })
           .get();
 
-        const prevGDQty = resGD?.data[0]?.table_gd[index]?.gd_qty;
-        const prevTempData = JSON.parse(
-          resGD?.data[0]?.table_gd[index]?.temp_qty_data
-        );
-
-        if (prevTempData.length === 1) {
-          const unrestricted_field = prevTempData[0].unrestricted_qty;
-          const reserved_field = prevTempData[0].reserved_qty;
-
-          if (reserved_field - prevGDQty + unrestricted_field < quantity) {
-            window.validationState[index] = false;
-            callback("Quantity is not enough");
-          } else {
-            window.validationState[index] = true;
-            callback();
-          }
-        } else {
-          window.validationState[index] = true;
-          callback();
+        const prevGDQty = resGD?.data[0]?.table_gd[rowIndex]?.gd_qty;
+        if (
+          gdStatus === "Created" &&
+          reserved_field - prevGDQty + unrestricted_field < parsedValue
+        ) {
+          window.validationState[index] = false;
+          callback("Quantity is not enough");
+          return;
+        } else if (gdStatus !== "Created" && unrestricted_field < parsedValue) {
+          window.validationState[index] = false;
+          callback("Unrestricted quantity is not enough");
+          return;
         }
-      } else {
-        if (itemData.item_batch_management === 0) {
-          const resItemBalance = await db
-            .collection("item_balance")
-            .where({
-              plant_id: data.plant_id,
-              material_id: materialId,
-              is_deleted: 0,
-            })
-            .get();
+        console.log("Order limit with tolerance:", orderLimit);
+        console.log("Initial delivered quantity:", initialDeliveredQty);
+        console.log("Current dialog total:", currentDialogTotal);
+        console.log("Total delivered quantity:", gd_delivered_qty);
 
-          if (resItemBalance?.data?.length === 1) {
-            const balanceData = resItemBalance.data[0];
-
-            const unrestricted_field = balanceData.unrestricted_qty;
-
-            if (unrestricted_field < quantity) {
-              window.validationState[index] = false;
-              callback("Unrestricted quantity is not enough");
-            } else {
-              window.validationState[index] = true;
-              callback();
-            }
-          }
+        if (orderLimit < gd_delivered_qty) {
+          window.validationState[index] = false;
+          callback("Quantity exceeds delivery limit");
+          return;
         }
-      }
-
-      if (quantity > orderLimit) {
-        console.log("orderLimit", orderLimit);
-        window.validationState[index] = false;
-        callback("Quantity exceeds delivery limit");
-      } else {
-        console.log("orderLimit", orderLimit);
-        console.log("deliveredQty", quantity);
-
-        window.validationState[index] = true;
-        callback();
       }
     }
+
+    window.validationState[index] = true;
+    callback();
   } catch (error) {
     console.error("Error during validation:", error);
     window.validationState[index] = false;
-    callback("Error checking quantity limit");
+    callback("Error validating quantity");
   }
 })();

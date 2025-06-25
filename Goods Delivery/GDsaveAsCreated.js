@@ -1571,10 +1571,7 @@ const createOrUpdatePicking = async (
         pickingStatus = "Not Created";
       }
 
-      if (
-        pickingSetupData.picking_mode === "Manual" &&
-        pickingSetupData.auto_trigger_to === 1
-      ) {
+      if (pickingSetupData.auto_trigger_to === 1) {
         // Check if we need to update existing Transfer Order
         if (isUpdate) {
           try {

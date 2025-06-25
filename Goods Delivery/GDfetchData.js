@@ -108,32 +108,36 @@ const populateAddressesFromSO = (soData) => {
 
 // Helper function to fetch source items from multiple SO IDs
 const fetchSourceItems = async (soIds) => {
-  const promises = soIds.map((soId) =>
-    db
-      .collection("sales_order")
-      .where({ id: soId })
-      .get()
-      .then((response) => {
-        if (
-          response.data &&
-          response.data.length > 0 &&
-          response.data[0].table_so
-        ) {
-          console.log("response.data[0]:", response.data[0]);
+  const promises = soIds.map(async (soId) => {
+    try {
+      const response = await db
+        .collection("sales_order")
+        .where({ id: soId })
+        .get();
 
-          // Add the SO ID to each item for reference
-          return {
-            soData: response.data[0],
-            items: response.data[0].table_so.map((item) => ({
-              ...item,
-              original_so_id: soId,
-              so_no: response.data[0].so_no,
-            })),
-          };
-        }
-        return { soData: null, items: [] };
-      })
-  );
+      if (
+        response.data &&
+        response.data.length > 0 &&
+        response.data[0].table_so
+      ) {
+        console.log("response.data[0]:", response.data[0]);
+
+        // Add the SO ID to each item for reference
+        return {
+          soData: response.data[0],
+          items: response.data[0].table_so.map((item) => ({
+            ...item,
+            original_so_id: soId,
+            so_no: response.data[0].so_no,
+          })),
+        };
+      }
+      return { soData: null, items: [] };
+    } catch (error) {
+      console.error(`Error fetching SO ${soId}:`, error);
+      return { soData: null, items: [] };
+    }
+  });
 
   try {
     const results = await Promise.all(promises);
@@ -297,40 +301,71 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
       let totalUnrestrictedQtyBase = 0;
 
       if (itemData.item_batch_management === 1) {
-        const response = await db
-          .collection("item_batch_balance")
-          .where({ material_id: materialId, plant_id: plantId })
-          .get();
-        const itemBatchBalanceData = response.data || [];
+        try {
+          const response = await db
+            .collection("item_batch_balance")
+            .where({ material_id: materialId, plant_id: plantId })
+            .get();
+          const itemBatchBalanceData = response.data || [];
 
-        if (itemBatchBalanceData.length === 1) {
-          this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-          this.disabled([`table_gd.${index}.gd_qty`], false);
+          if (itemBatchBalanceData.length === 1) {
+            // Apply to all items in this material group
+            items.forEach((item) => {
+              const itemIndex = item.originalIndex;
+              this.disabled([`table_gd.${itemIndex}.gd_delivery_qty`], true);
+              this.disabled([`table_gd.${itemIndex}.gd_qty`], false);
+            });
+          }
+          totalUnrestrictedQtyBase = itemBatchBalanceData.reduce(
+            (sum, balance) => sum + (balance.unrestricted_qty || 0),
+            0
+          );
+        } catch (error) {
+          console.error(
+            `Error fetching batch balance for ${materialId}:`,
+            error
+          );
+          totalUnrestrictedQtyBase = 0;
         }
-        totalUnrestrictedQtyBase = itemBatchBalanceData.reduce(
-          (sum, balance) => sum + (balance.unrestricted_qty || 0),
-          0
-        );
       } else {
-        const response = await db
-          .collection("item_balance")
-          .where({ material_id: materialId, plant_id: plantId })
-          .get();
-        const itemBalanceData = response.data || [];
+        try {
+          const response = await db
+            .collection("item_balance")
+            .where({ material_id: materialId, plant_id: plantId })
+            .get();
+          const itemBalanceData = response.data || [];
 
-        if (itemBalanceData.length === 1) {
-          this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-          this.disabled([`table_gd.${index}.gd_qty`], false);
+          if (itemBalanceData.length === 1) {
+            // Apply to all items in this material group
+            items.forEach((item) => {
+              const itemIndex = item.originalIndex;
+              this.disabled([`table_gd.${itemIndex}.gd_delivery_qty`], true);
+              this.disabled([`table_gd.${itemIndex}.gd_qty`], false);
+            });
+          }
+
+          totalUnrestrictedQtyBase = itemBalanceData.reduce(
+            (sum, balance) => sum + (balance.unrestricted_qty || 0),
+            0
+          );
+        } catch (error) {
+          console.error(
+            `Error fetching item balance for ${materialId}:`,
+            error
+          );
+          totalUnrestrictedQtyBase = 0;
         }
-
-        totalUnrestrictedQtyBase = itemBalanceData.reduce(
-          (sum, balance) => sum + (balance.unrestricted_qty || 0),
-          0
-        );
       }
 
       // Calculate total demand from ALL line items for this material
       let totalDemandBase = 0;
+
+      const pickingSetupResponse = await db
+        .collection("picking_setup")
+        .where({ plant_id: plantId, movement_type: "Good Delivery" })
+        .get();
+      const pickingMode = pickingSetupResponse.data[0].picking_mode;
+      const defaultStrategy = pickingSetupResponse.data[0].default_strategy_id;
 
       items.forEach((item) => {
         const orderedQty = item.orderedQty;
@@ -444,7 +479,12 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
           });
 
           // Set the actual deliverable quantity
-          if (availableQtyAlt > 0) {
+          if (
+            availableQtyAlt > 0 &&
+            (itemBalanceData.length === 1 ||
+              (["FIXED BIN", "RANDOM"].includes(defaultStrategy) &&
+                pickingMode === "Auto"))
+          ) {
             this.setData({
               [`table_gd.${index}.gd_qty`]: availableQtyAlt,
             });
@@ -528,43 +568,46 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
 
       // Set SO numbers in so_no field
       if (salesOrderIds.length > 1) {
-        Promise.all(
-          salesOrderIds.map((soId) =>
-            db
-              .collection("sales_order")
-              .where({ id: soId })
-              .get()
-              .then((response) => {
+        try {
+          const soNumbers = await Promise.all(
+            salesOrderIds.map(async (soId) => {
+              try {
+                const response = await db
+                  .collection("sales_order")
+                  .where({ id: soId })
+                  .get();
                 if (response.data && response.data.length > 0) {
                   return response.data[0].so_no;
                 }
                 return "";
-              })
-          )
-        )
-          .then((soNumbers) => {
-            const validSoNumbers = soNumbers.filter(Boolean);
-            this.setData({
-              so_no: validSoNumbers.join(", "),
-            });
-          })
-          .catch((error) => {
-            console.error("Error fetching SO numbers:", error);
+              } catch (error) {
+                console.error(`Error fetching SO number for ${soId}:`, error);
+                return "";
+              }
+            })
+          );
+
+          const validSoNumbers = soNumbers.filter(Boolean);
+          this.setData({
+            so_no: validSoNumbers.join(", "),
           });
+        } catch (error) {
+          console.error("Error fetching SO numbers:", error);
+        }
       } else {
-        db.collection("sales_order")
-          .where({ id: salesOrderIds[0] })
-          .get()
-          .then((response) => {
-            if (response.data && response.data.length > 0) {
-              this.setData({
-                so_no: response.data[0].so_no,
-              });
-            }
-          })
-          .catch((error) => {
-            console.error("Error fetching SO number:", error);
-          });
+        try {
+          const response = await db
+            .collection("sales_order")
+            .where({ id: salesOrderIds[0] })
+            .get();
+          if (response.data && response.data.length > 0) {
+            this.setData({
+              so_no: response.data[0].so_no,
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching SO number:", error);
+        }
       }
     }
 
@@ -587,101 +630,112 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
       });
 
       setTimeout(async () => {
-        // Create items array
-        const allItems = [];
+        try {
+          // Create items array
+          const allItems = [];
 
-        sourceItems.forEach((sourceItem) => {
-          const itemId = sourceItem.item_name || "";
-          const itemDesc = sourceItem.so_desc || "";
-          const itemName = sourceItem.item_id || "";
+          sourceItems.forEach((sourceItem) => {
+            const itemId = sourceItem.item_name || "";
+            const itemDesc = sourceItem.so_desc || "";
+            const itemName = sourceItem.item_id || "";
 
-          if (itemId === "" && itemDesc === "") return;
+            if (itemId === "" && itemDesc === "") return;
 
-          const orderedQty = parseFloat(sourceItem.so_quantity || 0);
-          const deliveredQtyFromSource = parseFloat(
-            sourceItem.delivered_qty || 0
-          );
-
-          const altUOM = sourceItem.so_item_uom || "";
-
-          allItems.push({
-            itemId,
-            itemName,
-            itemDesc,
-            orderedQty,
-            altUOM,
-            sourceItem,
-            deliveredQtyFromSource,
-            original_so_id: sourceItem.original_so_id,
-            so_no: sourceItem.so_no,
-          });
-        });
-
-        // Create new table_gd structure
-        const newTableGd = allItems.map((item) => ({
-          material_id: item.itemId || "",
-          material_name: item.itemName || "",
-          gd_material_desc: item.itemDesc || "",
-          gd_order_quantity: item.orderedQty,
-          gd_delivered_qty: item.sourceItem.delivered_qty,
-          gd_undelivered_qty: item.orderedQty - item.sourceItem.delivered_qty,
-          gd_order_uom_id: item.altUOM,
-          unit_price: item.sourceItem.so_item_price || 0,
-          total_price: item.sourceItem.so_amount || 0,
-          more_desc: item.sourceItem.more_desc || "",
-          line_remark_1: item.sourceItem.line_remark_1 || "",
-          line_remark_2: item.sourceItem.line_remark_2 || "",
-          line_so_no: item.so_no,
-          line_so_id: item.original_so_id,
-          fm_key:
-            Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-        }));
-
-        console.log("New table_gd structure:", newTableGd);
-
-        await this.setData({
-          table_gd: newTableGd,
-        });
-
-        // Create insufficient items table structure
-        const newTableInsufficient = allItems.map((item) => ({
-          material_id: item.itemId,
-          material_name: item.itemName,
-          material_uom: item.altUOM,
-          order_quantity: item.orderedQty,
-          available_qty: "",
-          shortfall_qty: "",
-          fm_key:
-            Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-        }));
-
-        console.log("New table_insufficient structure:", newTableInsufficient);
-
-        this.setData({
-          dialog_insufficient: {
-            table_insufficient: newTableInsufficient,
-          },
-        });
-
-        // Use a longer delay to ensure the arrays are created
-        setTimeout(async () => {
-          // Use the new enhanced inventory checking function
-          const insufficientItems = await checkInventoryWithDuplicates(
-            allItems,
-            plantId
-          );
-
-          // Show insufficient dialog if there are any shortfalls
-          if (insufficientItems.length > 0) {
-            console.log(
-              "Materials with insufficient inventory:",
-              insufficientItems
+            const orderedQty = parseFloat(sourceItem.so_quantity || 0);
+            const deliveredQtyFromSource = parseFloat(
+              sourceItem.delivered_qty || 0
             );
-            this.openDialog("dialog_insufficient");
-          }
 
-          console.log("Finished populating table_gd items");
-        }, 200);
+            const altUOM = sourceItem.so_item_uom || "";
+
+            allItems.push({
+              itemId,
+              itemName,
+              itemDesc,
+              orderedQty,
+              altUOM,
+              sourceItem,
+              deliveredQtyFromSource,
+              original_so_id: sourceItem.original_so_id,
+              so_no: sourceItem.so_no,
+            });
+          });
+
+          // Create new table_gd structure
+          const newTableGd = allItems.map((item) => ({
+            material_id: item.itemId || "",
+            material_name: item.itemName || "",
+            gd_material_desc: item.itemDesc || "",
+            gd_order_quantity: item.orderedQty,
+            gd_delivered_qty: item.sourceItem.delivered_qty,
+            gd_undelivered_qty: item.orderedQty - item.sourceItem.delivered_qty,
+            gd_order_uom_id: item.altUOM,
+            unit_price: item.sourceItem.so_item_price || 0,
+            total_price: item.sourceItem.so_amount || 0,
+            more_desc: item.sourceItem.more_desc || "",
+            line_remark_1: item.sourceItem.line_remark_1 || "",
+            line_remark_2: item.sourceItem.line_remark_2 || "",
+            line_so_no: item.so_no,
+            line_so_id: item.original_so_id,
+            fm_key:
+              Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+          }));
+
+          console.log("New table_gd structure:", newTableGd);
+
+          await this.setData({
+            table_gd: newTableGd,
+          });
+
+          // Create insufficient items table structure
+          const newTableInsufficient = allItems.map((item) => ({
+            material_id: item.itemId,
+            material_name: item.itemName,
+            material_uom: item.altUOM,
+            order_quantity: item.orderedQty,
+            available_qty: "",
+            shortfall_qty: "",
+            fm_key:
+              Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+          }));
+
+          console.log(
+            "New table_insufficient structure:",
+            newTableInsufficient
+          );
+
+          this.setData({
+            dialog_insufficient: {
+              table_insufficient: newTableInsufficient,
+            },
+          });
+
+          // Use a longer delay to ensure the arrays are created
+          setTimeout(async () => {
+            try {
+              // Use the new enhanced inventory checking function
+              const insufficientItems = await checkInventoryWithDuplicates(
+                allItems,
+                plantId
+              );
+
+              // Show insufficient dialog if there are any shortfalls
+              if (insufficientItems.length > 0) {
+                console.log(
+                  "Materials with insufficient inventory:",
+                  insufficientItems
+                );
+                this.openDialog("dialog_insufficient");
+              }
+
+              console.log("Finished populating table_gd items");
+            } catch (error) {
+              console.error("Error in inventory check:", error);
+            }
+          }, 200);
+        } catch (error) {
+          console.error("Error in setTimeout processing:", error);
+        }
       }, 100);
     } else {
       console.log("Preserving existing table_gd data during edit");
