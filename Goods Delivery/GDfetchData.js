@@ -360,6 +360,7 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
       // Calculate total demand from ALL line items for this material
       let totalDemandBase = 0;
 
+      // Picking setup for auto picking mode
       const pickingSetupResponse = await db
         .collection("picking_setup")
         .where({ plant_id: plantId, movement_type: "Good Delivery" })
