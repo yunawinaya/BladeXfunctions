@@ -246,7 +246,10 @@ const findFieldMessage = (obj) => {
         sales_default_uom: data.sales_default_uom,
         receiving_inspection: data.receiving_inspection,
         table_default_bin: data.table_default_bin,
+        is_base: data.is_base,
       };
+
+      console.log("JN", entry);
 
       // Add or update based on page status
       if (page_status === "Add" || page_status === "Clone") {

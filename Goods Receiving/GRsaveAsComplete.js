@@ -35,7 +35,7 @@ const generateInspDraftPrefix = async (organizationId) => {
   try {
     const prefixData = await getInspPrefixData(organizationId);
     const currDraftNum = parseInt(prefixData.draft_number) + 1;
-    const newPrefix = "DRAFT-QL-" + currDraftNum;
+    const newPrefix = `DRAFT-${prefixData.prefix_value}-` + currDraftNum;
 
     db.collection("prefix_configuration")
       .where({
@@ -50,7 +50,12 @@ const generateInspDraftPrefix = async (organizationId) => {
   }
 };
 
-const addInventory = async (data, plantId, organizationId) => {
+const addInventory = async (
+  data,
+  plantId,
+  organizationId,
+  putAwaySetupData
+) => {
   const items = data.table_gr;
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -725,7 +730,15 @@ const addInventory = async (data, plantId, organizationId) => {
     }
   };
 
-  const createInspectionLot = async (data, item, itemIndex) => {
+  const createInspectionLot = async (
+    data,
+    item,
+    itemIndex,
+    batchId,
+    totalPrice,
+    unitPrice,
+    materialCode
+  ) => {
     try {
       const inspPrefix = await generateInspDraftPrefix(data.organization_id);
 
@@ -742,6 +755,7 @@ const addInventory = async (data, plantId, organizationId) => {
       const inspectionData = {
         inspection_lot_no: inspPrefix,
         goods_receiving_no: grId,
+        gr_no_display: data.gr_no,
         insp_lot_created_on: new Date().toISOString().split("T")[0],
         plant_id: data.plant_id,
         organization_id: data.organization_id,
@@ -756,14 +770,19 @@ const addInventory = async (data, plantId, organizationId) => {
         table_insp_mat: [
           {
             item_id: item.item_id,
+            item_code: materialCode,
             item_name: item.item_name || "",
             item_desc: item.item_desc || "",
-            batch_id: item.item_batch_no || "",
+            batch_id: batchId || "",
             received_qty: item.received_qty,
             received_uom: item.item_uom,
             passed_qty: 0,
             failed_qty: 0,
             gr_line_no: itemIndex + 1,
+            batch_no: item.item_batch_no || "",
+            total_price: totalPrice,
+            location_id: item.location_id,
+            unit_price: unitPrice,
           },
         ],
       };
@@ -773,6 +792,131 @@ const addInventory = async (data, plantId, organizationId) => {
       throw new Error("Error creating inspection lot.");
     }
   };
+
+  const createPutAway = async (
+    data,
+    organizationId,
+    unitPriceArray,
+    totalPriceArray
+  ) => {
+    try {
+      const prefixData = await getPrefixData(
+        organizationId,
+        "Transfer Order (Putaway)"
+      );
+      let putAwayPrefix = "";
+
+      if (prefixData !== null) {
+        const { prefixToShow, runningNumber } = await findUniquePrefix(
+          prefixData,
+          organizationId,
+          "Transfer Order (Putaway)"
+        );
+
+        await updatePrefix(
+          organizationId,
+          runningNumber,
+          "Transfer Order (Putaway)"
+        );
+
+        putAwayPrefix = prefixToShow;
+      }
+
+      let grId = null;
+      const resGR = await db
+        .collection("goods_receiving")
+        .where({ gr_no: data.gr_no, organization_id: organizationId })
+        .get();
+
+      if (resGR && resGR.data[0]) {
+        grId = resGR.data[0].id;
+      }
+
+      const putAwayLineItemData = [];
+
+      for (const [index, item] of data.table_gr.entries()) {
+        const resItem = await db
+          .collection("item")
+          .where({ id: item.item_id })
+          .get();
+        if (resItem && resItem.data.length > 0) {
+          const itemData = resItem.data[0];
+          if (
+            (itemData.receiving_inspection === 0 &&
+              item.inv_category === "Quality Inspection") ||
+            item.inv_category !== "Quality Inspection"
+          ) {
+            let batchNo = null;
+
+            if (item.item_batch_no !== "-") {
+              const resBatch = await db
+                .collection("batch")
+                .where({
+                  batch_number: item.item_batch_no,
+                  organization_id: organizationId,
+                })
+                .get();
+              batchNo = resBatch?.data[0] || null;
+            }
+
+            const lineItemData = {
+              line_index: index + 1,
+              item_code: item.item_id,
+              item_name: item.item_name,
+              item_desc: item.item_desc,
+              batch_no: batchNo?.id || "",
+              inv_category: item.inv_category,
+              received_qty: item.received_qty,
+              item_uom: item.item_uom,
+              source_bin: item.location_id,
+              qty_to_putaway: item.received_qty,
+              pending_process_qty: item.received_qty,
+              putaway_qty: 0,
+              target_location: "",
+              remark: "",
+              line_status: "Open",
+              po_no: item.line_po_id,
+              is_split: "No",
+              parent_or_child: "Parent",
+              parent_index: index,
+              unit_price: unitPriceArray[index],
+              total_price: totalPriceArray[index],
+            };
+
+            putAwayLineItemData.push(lineItemData);
+          }
+        }
+
+        continue;
+      }
+
+      const putawayData = {
+        plant_id: data.plant_id,
+        to_id: putAwayPrefix,
+        movement_type: "Putaway",
+        ref_doc_type: "Goods Receiving",
+        gr_no: grId,
+        receiving_no: data.gr_no,
+        supplier_id: data.supplier_name,
+        created_by: "System",
+        created_at: new Date().toISOString().split("T")[0],
+        organization_id: organizationId,
+        to_status: "Created",
+        table_putaway_item: putAwayLineItemData,
+      };
+
+      await db.collection("transfer_order_putaway").add(putawayData);
+      await db
+        .collection("goods_receiving")
+        .where({ id: grId })
+        .update({ putaway_status: "Created" });
+    } catch (error) {
+      throw new Error("Error creating putaway.");
+    }
+  };
+
+  const unitPriceArray = [];
+  const totalPriceArray = [];
 
   // Process items sequentially instead of in parallel
   for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
@@ -849,6 +993,9 @@ const addInventory = async (data, plantId, organizationId) => {
       let unitPrice = roundPrice(item.unit_price);
       let totalPrice = roundPrice(item.unit_price * baseQty);
 
+      unitPriceArray.push(unitPrice);
+      totalPriceArray.push(totalPrice);
+
       const costingMethod = itemData.material_costing_method;
 
       if (
@@ -890,10 +1037,6 @@ const addInventory = async (data, plantId, organizationId) => {
 
       await db.collection("inventory_movement").add(inventoryMovementData);
 
-      if (item.inv_category === "Quality Inspection") {
-        await createInspectionLot(data, item, itemIndex);
-      }
-
       await updateOnOrderPurchaseOrder(
         item,
         baseQty,
@@ -929,6 +1072,8 @@ const addInventory = async (data, plantId, organizationId) => {
       } else {
         unrestricted_qty = receivedQty;
       }
+
+      let batchId = null;
 
       if (item.item_batch_no !== "-") {
         // Batch item processing
@@ -968,7 +1113,7 @@ const addInventory = async (data, plantId, organizationId) => {
             continue;
           }
 
-          const batchId = batchResult[0].id;
+          batchId = batchResult[0].id;
 
           // Create new balance record
           balance_quantity =
@@ -1120,12 +1265,51 @@ const addInventory = async (data, plantId, organizationId) => {
           continue;
         }
       }
+
+      if (
+        item.inv_category === "Quality Inspection" &&
+        itemData.receiving_inspection === 1
+      ) {
+        await createInspectionLot(
+          data,
+          item,
+          itemIndex,
+          batchId,
+          totalPrice,
+          unitPrice,
+          itemData.material_code
+        );
+      }
     } catch (error) {
       console.error(`Error processing item ${item.item_id}:`, error);
       console.log(
         `Error encountered for item ${item.item_id}, continuing with next item`
       );
     }
+  }
+
+  if (putAwaySetupData && putAwaySetupData.putaway_required === 1) {
+    if (putAwaySetupData.auto_trigger_to === 1) {
+      await createPutAway(
+        data,
+        organizationId,
+        unitPriceArray,
+        totalPriceArray
+      );
+    } else if (putAwaySetupData.auto_trigger_to === 0) {
+      await db
+        .collection("goods_receiving")
+        .where({ gr_no: data.gr_no, organization_id: organizationId })
+        .update({ putaway_status: "Not Created" });
+    }
+  } else if (
+    !putAwaySetupData ||
+    (putAwaySetupData && putAwaySetupData.putaway_required === 0)
+  ) {
+    await db
+      .collection("goods_receiving")
+      .where({ gr_no: data.gr_no, organization_id: organizationId })
+      .update({ gr_status: "Completed" });
   }
 
   return Promise.resolve();
@@ -1341,8 +1525,14 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
   }
 };
 
-const validateForm = (data, requiredFields) => {
+const validateForm = (data, requiredFields, grType) => {
   const missingFields = [];
+
+  if (grType === "Document") {
+    requiredFields.push({ name: "purchase_order_id", label: "PO Number" });
+  } else if (grType === "Item") {
+    requiredFields.push({ name: "item_id", label: "Item Code" });
+  }
 
   requiredFields.forEach((field) => {
     const value = data[field.name];
@@ -1392,11 +1582,11 @@ const validateField = (value, field) => {
   return !value;
 };
 
-const getPrefixData = async (organizationId) => {
+const getPrefixData = async (organizationId, documentTypes) => {
   const prefixEntry = await db
     .collection("prefix_configuration")
     .where({
-      document_types: "Goods Receiving",
+      document_types: documentTypes,
       is_deleted: 0,
       organization_id: organizationId,
       is_active: 1,
@@ -1408,12 +1598,12 @@ const getPrefixData = async (organizationId) => {
   return prefixData;
 };
 
-const updatePrefix = async (organizationId, runningNumber) => {
+const updatePrefix = async (organizationId, runningNumber, documentTypes) => {
   try {
     await db
       .collection("prefix_configuration")
       .where({
-        document_types: "Goods Receiving",
+        document_types: documentTypes,
         is_deleted: 0,
         organization_id: organizationId,
       })
@@ -1440,15 +1630,29 @@ const generatePrefix = (runNumber, now, prefixData) => {
   return generated;
 };
 
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("goods_receiving")
-    .where({ gr_no: generatedPrefix, organization_id: organizationId })
-    .get();
-  return existingDoc.data[0] ? false : true;
+const checkUniqueness = async (
+  generatedPrefix,
+  organizationId,
+  documentTypes
+) => {
+  if (documentTypes === "Goods Receiving") {
+    const existingDoc = await db
+      .collection("goods_receiving")
+      .where({ gr_no: generatedPrefix, organization_id: organizationId })
+      .get();
+
+    return existingDoc.data[0] ? false : true;
+  } else if (documentTypes === "Transfer Order (Putaway)") {
+    const existingDoc = await db
+      .collection("transfer_order_putaway")
+      .where({ to_id: generatedPrefix, organization_id: organizationId })
+      .get();
+
+    return existingDoc.data[0] ? false : true;
+  }
 };
 
-const findUniquePrefix = async (prefixData, organizationId) => {
+const findUniquePrefix = async (prefixData, organizationId, documentTypes) => {
   const now = new Date();
   let prefixToShow;
   let runningNumber = prefixData.running_number;
@@ -1459,7 +1663,11 @@ const findUniquePrefix = async (prefixData, organizationId) => {
   while (!isUnique && attempts < maxAttempts) {
     attempts++;
     prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
+    isUnique = await checkUniqueness(
+      prefixToShow,
+      organizationId,
+      documentTypes
+    );
     if (!isUnique) {
       runningNumber++;
     }
@@ -1467,7 +1675,7 @@ const findUniquePrefix = async (prefixData, organizationId) => {
 
   if (!isUnique) {
     this.$message.error(
-      "Could not generate a unique Goods Receiving number after maximum attempts"
+      `Could not generate a unique ${documentTypes} number after maximum attempts`
     );
   }
 
@@ -1476,15 +1684,16 @@ const findUniquePrefix = async (prefixData, organizationId) => {
 
 const addEntry = async (organizationId, entry) => {
   try {
-    const prefixData = await getPrefixData(organizationId);
+    const prefixData = await getPrefixData(organizationId, "Goods Receiving");
 
     if (prefixData !== null) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
         prefixData,
-        organizationId
+        organizationId,
+        "Goods Receiving"
       );
 
-      await updatePrefix(organizationId, runningNumber);
+      await updatePrefix(organizationId, runningNumber, "Goods Receiving");
 
       entry.gr_no = prefixToShow;
     }
@@ -1498,7 +1707,13 @@ const addEntry = async (organizationId, entry) => {
 
     await db.collection("goods_receiving").add(entry);
 
-    await addInventory(entry, entry.plant_id, organizationId);
+    const resPutAwaySetup = await db
+      .collection("putaway_setup")
+      .where({ plant_id: entry.plant_id, movement_type: "Good Receiving" })
+      .get();
+    const putAwaySetupData = resPutAwaySetup?.data[0];
+
+    await addInventory(entry, entry.plant_id, organizationId, putAwaySetupData);
 
     const purchaseOrderIds = Array.isArray(entry.purchase_order_id)
       ? entry.purchase_order_id
@@ -1509,22 +1724,29 @@ const addEntry = async (organizationId, entry) => {
       entry.table_gr
     );
 
-    await this.runWorkflow(
-      "1917412667253141505",
-      { gr_no: entry.gr_no, po_data: po_data_array },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        this.$message.error("Workflow execution failed");
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
+    if (
+      !putAwaySetupData ||
+      (putAwaySetupData && putAwaySetupData.putaway_required === 0)
+    ) {
+      await this.runWorkflow(
+        "1917412667253141505",
+        { gr_no: entry.gr_no, po_data: po_data_array },
+        async (res) => {
+          console.log("成功结果：", res);
+        },
+        (err) => {
+          this.$message.error("Workflow execution failed");
+          console.error("失败结果：", err);
+          closeDialog();
+        }
+      );
+    }
+
     this.$message.success("Add successfully");
     await closeDialog();
   } catch (error) {
-    this.$message.error(error);
+    console.error(error);
+    this.$message.error(error.message || String(error));
   }
 };
 
@@ -1588,15 +1810,16 @@ const findFieldMessage = (obj) => {
 
 const updateEntry = async (organizationId, entry, goodsReceivingId) => {
   try {
-    const prefixData = await getPrefixData(organizationId);
+    const prefixData = await getPrefixData(organizationId, "Goods Receiving");
 
     if (prefixData !== null) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
         prefixData,
-        organizationId
+        organizationId,
+        "Goods Receiving"
       );
 
-      await updatePrefix(organizationId, runningNumber);
+      await updatePrefix(organizationId, runningNumber, "Goods Receiving");
 
       entry.gr_no = prefixToShow;
     }
@@ -1609,7 +1832,13 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
     entry.table_gr = processedTableGr;
     await db.collection("goods_receiving").doc(goodsReceivingId).update(entry);
 
-    await addInventory(entry, entry.plant_id, organizationId);
+    const resPutAwaySetup = await db
+      .collection("putaway_setup")
+      .where({ plant_id: entry.plant_id, movement_type: "Good Receiving" })
+      .get();
+    const putAwaySetupData = resPutAwaySetup?.data[0];
+
+    await addInventory(entry, entry.plant_id, organizationId, putAwaySetupData);
     const purchaseOrderIds = Array.isArray(entry.purchase_order_id)
       ? entry.purchase_order_id
       : [entry.purchase_order_id];
@@ -1619,18 +1848,23 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
       entry.table_gr
     );
 
-    await this.runWorkflow(
-      "1917412667253141505",
-      { gr_no: entry.gr_no, po_data: po_data_array },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        alert();
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
+    if (
+      !putAwaySetupData ||
+      (putAwaySetupData && putAwaySetupData.putaway_required === 0)
+    ) {
+      await this.runWorkflow(
+        "1917412667253141505",
+        { gr_no: entry.gr_no, po_data: po_data_array },
+        async (res) => {
+          console.log("成功结果：", res);
+        },
+        (err) => {
+          this.$message.error("Workflow execution failed");
+          console.error("失败结果：", err);
+          closeDialog();
+        }
+      );
+    }
     this.$message.success("Update successfully");
     await closeDialog();
   } catch (error) {
@@ -1644,7 +1878,7 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
     this.showLoading();
 
     const requiredFields = [
-      { name: "purchase_order_id", label: "PO Number" },
+      { name: "gr_type", label: "GR Type" },
       { name: "gr_no", label: "Good Receiving Number" },
       { name: "gr_date", label: "Received Date" },
       {
@@ -1667,7 +1901,13 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
       );
     }
 
-    const missingFields = await validateForm(data, requiredFields);
+    await this.validate("gr_no");
+
+    const missingFields = await validateForm(
+      data,
+      requiredFields,
+      data.gr_type
+    );
 
     if (missingFields.length === 0) {
       const page_status = this.getValue("page_status");
@@ -1684,6 +1924,8 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         currency_code,
         organization_id,
         purchase_order_number,
+        fake_item_id,
+        item_id,
         gr_billing_address,
         gr_shipping_address,
         supplier_name,
@@ -1717,9 +1959,13 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         shipping_address_phone,
         shipping_attention,
         reference_doc,
+        ref_no_1,
+        ref_no_2,
       } = data;
       const entry = {
-        gr_status: "Completed",
+        gr_status: "Received",
+        fake_item_id,
+        item_id,
         fake_purchase_order_id,
         purchase_order_id,
         plant_id,
@@ -1740,12 +1986,6 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         billing_address_line_2,
         billing_address_line_3,
         billing_address_line_4,
-        billing_address_name,
-        billing_address_phone,
-        billing_attention,
-        shipping_address_name,
-        shipping_address_phone,
-        shipping_attention,
         shipping_address_line_1,
         shipping_address_line_2,
         shipping_address_line_3,
@@ -1758,7 +1998,15 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         shipping_address_state,
         billing_address_country,
         shipping_address_country,
+        billing_address_name,
+        billing_address_phone,
+        billing_attention,
+        shipping_address_name,
+        shipping_address_phone,
+        shipping_attention,
         reference_doc,
+        ref_no_1,
+        ref_no_2,
       };
       if (page_status === "Add") {
         await addEntry(organizationId, entry);

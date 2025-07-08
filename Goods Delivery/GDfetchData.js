@@ -104,16 +104,24 @@ const performAutomaticAllocation = async (
       .where({ plant_id: plantId, movement_type: "Good Delivery" })
       .get();
 
-    if (!pickingSetupResponse?.data?.length) {
-      console.log("No picking setup found, skipping auto-allocation");
-      return;
-    }
+    // DEBUG: Log picking setup response
+    console.log(`DEBUG - Picking setup response for plant ${plantId}:`, {
+      response: pickingSetupResponse,
+      data: pickingSetupResponse.data,
+      dataLength: pickingSetupResponse.data?.length,
+    });
 
-    const {
-      picking_mode: pickingMode,
-      default_strategy_id: defaultStrategy,
-      fallback_strategy_id: fallbackStrategy,
-    } = pickingSetupResponse.data[0];
+    let pickingMode, defaultStrategy, fallbackStrategy;
+    if (!pickingSetupResponse?.data?.length) {
+      console.log("No picking setup found, using default values");
+      // Set default values to prevent errors
+      pickingMode = "Manual";
+      defaultStrategy = "RANDOM";
+    } else {
+      pickingMode = pickingSetupResponse.data[0].picking_mode;
+      defaultStrategy = pickingSetupResponse.data[0].default_strategy_id;
+      fallbackStrategy = pickingSetupResponse.data[0].fallback_strategy_id;
+    }
 
     // Only proceed with auto-allocation for Auto picking mode
     if (pickingMode !== "Auto") {
@@ -703,6 +711,13 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
             .get();
           itemBatchBalanceData = response.data || [];
 
+          // DEBUG: Log batch balance data
+          console.log(`DEBUG - Batch balance for material ${materialId}:`, {
+            response: response,
+            data: itemBatchBalanceData,
+            dataLength: itemBatchBalanceData.length,
+          });
+
           if (itemBatchBalanceData.length === 1) {
             items.forEach((item) => {
               const itemIndex = item.originalIndex;
@@ -728,6 +743,13 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
             .where({ material_id: materialId, plant_id: plantId })
             .get();
           itemBalanceData = response.data || [];
+
+          // DEBUG: Log item balance data
+          console.log(`DEBUG - Item balance for material ${materialId}:`, {
+            response: response,
+            data: itemBalanceData,
+            dataLength: itemBalanceData.length,
+          });
 
           if (itemBalanceData.length === 1) {
             items.forEach((item) => {
@@ -762,6 +784,17 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
         .get();
       const pickingMode = pickingSetupResponse.data[0].picking_mode;
       const defaultStrategy = pickingSetupResponse.data[0].default_strategy_id;
+      const fallbackStrategy =
+        pickingSetupResponse.data[0].fallback_strategy_id;
+
+      // DEBUG: Log picking setup information
+      console.log(`DEBUG - Material ${materialId}:`, {
+        pickingMode,
+        defaultStrategy,
+        fallbackStrategy,
+        balanceDataLength: balanceData.length,
+        balanceData: balanceData,
+      });
 
       // Calculate total demand and set up basic item data
       let totalDemandBase = 0;
@@ -868,12 +901,40 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
           });
 
           // Set quantity and add to allocation queue if eligible
-          if (
-            availableQtyAlt > 0 &&
-            (balanceData.length === 1 ||
-              (["FIXED BIN", "RANDOM"].includes(defaultStrategy) &&
-                pickingMode === "Auto"))
-          ) {
+          const allocationCondition1 = availableQtyAlt > 0;
+          const allocationCondition2 = balanceData.length === 1;
+          const allocationCondition3 = ["FIXED BIN", "RANDOM"].includes(
+            defaultStrategy
+          );
+          const allocationCondition4 = ["FIXED BIN", "RANDOM"].includes(
+            fallbackStrategy
+          );
+          const allocationCondition5 = pickingMode === "Auto";
+          const allocationCondition6 =
+            allocationCondition3 && allocationCondition4;
+          const isEligibleForAllocation =
+            allocationCondition1 &&
+            (allocationCondition2 ||
+              allocationCondition5 ||
+              allocationCondition6);
+
+          // DEBUG: Log allocation conditions
+          console.log(`DEBUG - Row ${index} allocation conditions:`, {
+            materialId,
+            availableQtyAlt,
+            balanceDataLength: balanceData.length,
+            defaultStrategy,
+            pickingMode,
+            allocationCondition1,
+            allocationCondition2,
+            allocationCondition3,
+            allocationCondition4,
+            allocationCondition5,
+            allocationCondition6,
+            isEligibleForAllocation,
+          });
+
+          if (isEligibleForAllocation) {
             this.setData({
               [`table_gd.${index}.gd_qty`]: availableQtyAlt,
             });
@@ -887,11 +948,17 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
                 plantId,
                 uomId: item.altUOM,
               });
+              console.log(
+                `DEBUG - Added to allocation queue: row ${index}, material ${materialId}, qty ${availableQtyAlt}`
+              );
             }
           } else {
             this.setData({
               [`table_gd.${index}.gd_qty`]: 0,
             });
+            console.log(
+              `DEBUG - NOT eligible for allocation: row ${index}, material ${materialId}`
+            );
           }
         });
 
@@ -926,12 +993,43 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
             });
 
             // Add to allocation queue if eligible
-            if (
-              materialId &&
-              (balanceData.length === 1 ||
-                (["FIXED BIN", "RANDOM"].includes(defaultStrategy) &&
-                  pickingMode === "Auto"))
-            ) {
+            const allocationCondition1 = materialId;
+            const allocationCondition2 = balanceData.length === 1;
+            const allocationCondition3 = ["FIXED BIN", "RANDOM"].includes(
+              defaultStrategy
+            );
+            const allocationCondition4 = ["FIXED BIN", "RANDOM"].includes(
+              fallbackStrategy
+            );
+            const allocationCondition5 = pickingMode === "Auto";
+            const allocationCondition6 =
+              allocationCondition3 && allocationCondition4;
+            const isEligibleForAllocation =
+              allocationCondition1 &&
+              (allocationCondition2 ||
+                allocationCondition5 ||
+                allocationCondition6);
+
+            // DEBUG: Log allocation conditions for sufficient stock
+            console.log(
+              `DEBUG - Sufficient stock row ${index} allocation conditions:`,
+              {
+                materialId,
+                undeliveredQty,
+                balanceDataLength: balanceData.length,
+                defaultStrategy,
+                pickingMode,
+                allocationCondition1,
+                allocationCondition2,
+                allocationCondition3,
+                allocationCondition4,
+                allocationCondition5,
+                allocationCondition6,
+                isEligibleForAllocation,
+              }
+            );
+
+            if (isEligibleForAllocation) {
               itemsForAllocation.push({
                 materialId,
                 rowIndex: index,
@@ -939,6 +1037,13 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
                 plantId,
                 uomId: item.altUOM,
               });
+              console.log(
+                `DEBUG - Added to allocation queue (sufficient): row ${index}, material ${materialId}, qty ${undeliveredQty}`
+              );
+            } else {
+              console.log(
+                `DEBUG - NOT eligible for allocation (sufficient): row ${index}, material ${materialId}`
+              );
             }
           }
         });
@@ -952,6 +1057,18 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
   console.log(
     `Processing ${itemsForAllocation.length} items for allocation sequentially...`
   );
+
+  // DEBUG: Log detailed allocation queue information
+  console.log(`DEBUG - Allocation queue details:`, {
+    totalItems: itemsForAllocation.length,
+    items: itemsForAllocation.map((item) => ({
+      materialId: item.materialId,
+      rowIndex: item.rowIndex,
+      quantity: item.quantity,
+      plantId: item.plantId,
+      uomId: item.uomId,
+    })),
+  });
 
   // Sort by row index to ensure consistent processing order
   itemsForAllocation.sort((a, b) => a.rowIndex - b.rowIndex);
