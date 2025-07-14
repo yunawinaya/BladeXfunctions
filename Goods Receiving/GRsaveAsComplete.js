@@ -16,40 +16,6 @@ const closeDialog = () => {
   }
 };
 
-const getInspPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Receiving Inspection",
-      is_deleted: 0,
-      organization_id: organizationId,
-    })
-    .get();
-
-  const prefixData = await prefixEntry.data[0];
-
-  return prefixData;
-};
-
-const generateInspDraftPrefix = async (organizationId) => {
-  try {
-    const prefixData = await getInspPrefixData(organizationId);
-    const currDraftNum = parseInt(prefixData.draft_number) + 1;
-    const newPrefix = `DRAFT-${prefixData.prefix_value}-` + currDraftNum;
-
-    db.collection("prefix_configuration")
-      .where({
-        document_types: "Receiving Inspection",
-        organization_id: organizationId,
-      })
-      .update({ draft_number: currDraftNum });
-
-    return newPrefix;
-  } catch (error) {
-    throw new Error(error);
-  }
-};
-
 const addInventory = async (
   data,
   plantId,
@@ -730,69 +696,6 @@ const addInventory = async (
     }
   };
 
-  const createInspectionLot = async (
-    data,
-    item,
-    itemIndex,
-    batchId,
-    totalPrice,
-    unitPrice,
-    materialCode
-  ) => {
-    try {
-      const inspPrefix = await generateInspDraftPrefix(data.organization_id);
-
-      let grId = null;
-      const resGR = await db
-        .collection("goods_receiving")
-        .where({ gr_no: data.gr_no, organization_id: data.organization_id })
-        .get();
-
-      if (resGR && resGR.data[0]) {
-        grId = resGR.data[0].id;
-      }
-
-      const inspectionData = {
-        inspection_lot_no: inspPrefix,
-        goods_receiving_no: grId,
-        gr_no_display: data.gr_no,
-        insp_lot_created_on: new Date().toISOString().split("T")[0],
-        plant_id: data.plant_id,
-        organization_id: data.organization_id,
-        lot_created_by: data.gr_received_by,
-        inspector_name: this.getVarGlobal("nickname"),
-        receiving_insp_status: "Draft",
-        inspection_pass_fail: "0 / 0",
-        remarks: "",
-        lot_created_by: "System",
-        insp_start_time: "",
-        insp_end_time: "",
-        table_insp_mat: [
-          {
-            item_id: item.item_id,
-            item_code: materialCode,
-            item_name: item.item_name || "",
-            item_desc: item.item_desc || "",
-            batch_id: batchId || "",
-            received_qty: item.received_qty,
-            received_uom: item.item_uom,
-            passed_qty: 0,
-            failed_qty: 0,
-            gr_line_no: itemIndex + 1,
-            batch_no: item.item_batch_no || "",
-            total_price: totalPrice,
-            location_id: item.location_id,
-            unit_price: unitPrice,
-          },
-        ],
-      };
-
-      await db.collection("basic_inspection_lot").add(inspectionData);
-    } catch (error) {
-      throw new Error("Error creating inspection lot.");
-    }
-  };
-
   const createPutAway = async (
     data,
     organizationId,
@@ -840,51 +743,44 @@ const addInventory = async (
           .where({ id: item.item_id })
           .get();
         if (resItem && resItem.data.length > 0) {
-          const itemData = resItem.data[0];
-          if (
-            (itemData.receiving_inspection === 0 &&
-              item.inv_category === "Quality Inspection") ||
-            item.inv_category !== "Quality Inspection"
-          ) {
-            let batchNo = null;
+          let batchNo = null;
 
-            if (item.item_batch_no !== "-") {
-              const resBatch = await db
-                .collection("batch")
-                .where({
-                  batch_number: item.item_batch_no,
-                  organization_id: organizationId,
-                })
-                .get();
-              batchNo = resBatch?.data[0] || null;
-            }
-
-            const lineItemData = {
-              line_index: index + 1,
-              item_code: item.item_id,
-              item_name: item.item_name,
-              item_desc: item.item_desc,
-              batch_no: batchNo?.id || "",
-              inv_category: item.inv_category,
-              received_qty: item.received_qty,
-              item_uom: item.item_uom,
-              source_bin: item.location_id,
-              qty_to_putaway: item.received_qty,
-              pending_process_qty: item.received_qty,
-              putaway_qty: 0,
-              target_location: "",
-              remark: "",
-              line_status: "Open",
-              po_no: item.line_po_id,
-              is_split: "No",
-              parent_or_child: "Parent",
-              parent_index: index,
-              unit_price: unitPriceArray[index],
-              total_price: totalPriceArray[index],
-            };
-
-            putAwayLineItemData.push(lineItemData);
+          if (item.item_batch_no !== "-") {
+            const resBatch = await db
+              .collection("batch")
+              .where({
+                batch_number: item.item_batch_no,
+                organization_id: organizationId,
+              })
+              .get();
+            batchNo = resBatch?.data[0] || null;
           }
+
+          const lineItemData = {
+            line_index: index + 1,
+            item_code: item.item_id,
+            item_name: item.item_name,
+            item_desc: item.item_desc,
+            batch_no: batchNo?.id || "",
+            inv_category: item.inv_category,
+            received_qty: item.received_qty,
+            item_uom: item.item_uom,
+            source_bin: item.location_id,
+            qty_to_putaway: item.received_qty,
+            pending_process_qty: item.received_qty,
+            putaway_qty: 0,
+            target_location: "",
+            remark: "",
+            line_status: "Open",
+            po_no: item.line_po_id,
+            is_split: "No",
+            parent_or_child: "Parent",
+            parent_index: index,
+            unit_price: unitPriceArray[index],
+            total_price: totalPriceArray[index],
+          };
+
+          putAwayLineItemData.push(lineItemData);
         }
 
         continue;
@@ -1264,21 +1160,6 @@ const addInventory = async (
           );
           continue;
         }
-      }
-
-      if (
-        item.inv_category === "Quality Inspection" &&
-        itemData.receiving_inspection === 1
-      ) {
-        await createInspectionLot(
-          data,
-          item,
-          itemIndex,
-          batchId,
-          totalPrice,
-          unitPrice,
-          itemData.material_code
-        );
       }
     } catch (error) {
       console.error(`Error processing item ${item.item_id}:`, error);

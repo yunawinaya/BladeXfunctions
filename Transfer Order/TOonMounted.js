@@ -220,6 +220,8 @@ const setPlant = async (organizationId) => {
         this.display(["draft_status"]);
         this.setData({
           "table_picking_items.picked_qty": 0,
+          created_by: this.getVarGlobal("nickname"),
+          movement_type: "Picking",
         });
 
         await setPlant(organizationId);
@@ -236,9 +238,11 @@ const setPlant = async (organizationId) => {
         }
         this.setData({
           "table_picking_items.picked_qty": 0,
+          "table_picking_items.remark": "",
         });
         if (status !== "Draft") {
           this.hide(["gd_no"]);
+          this.hide(["button_save_as_draft"]);
           this.display(["delivery_no"]);
         }
         await disabledField(status);

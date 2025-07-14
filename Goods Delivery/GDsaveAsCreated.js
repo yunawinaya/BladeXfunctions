@@ -1743,7 +1743,11 @@ const createOrUpdatePicking = async (
   }
 };
 
-const checkExistingReservedGoods = async (soNumbers, currentGdId = null) => {
+const checkExistingReservedGoods = async (
+  soNumbers,
+  currentGdId = null,
+  organizationId
+) => {
   try {
     // Handle multiple SO numbers - convert to array if it's a string
     let soArray = [];
@@ -1781,7 +1785,7 @@ const checkExistingReservedGoods = async (soNumbers, currentGdId = null) => {
         // Get the current GD's delivery_no to exclude it
         const currentGdResponse = await db
           .collection("goods_delivery")
-          .where({ id: currentGdId })
+          .where({ id: currentGdId, organization_id: organizationId })
           .get();
 
         if (currentGdResponse.data && currentGdResponse.data.length > 0) {
@@ -2050,6 +2054,12 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
       },
     ];
 
+    // Get organization ID
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
+    }
+
     // Validate items
     for (const [index, item] of data.table_gd.entries()) {
       await this.validate(`table_gd.${index}.gd_qty`);
@@ -2076,7 +2086,8 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
         if (allSoNumbers.length > 0) {
           const reservedCheck = await checkExistingReservedGoods(
             allSoNumbers,
-            currentGdId
+            currentGdId,
+            organizationId
           );
 
           if (reservedCheck.hasConflict) {
@@ -2145,12 +2156,6 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
             item.prev_temp_qty_data = item.temp_qty_data;
           });
         }
-      }
-
-      // Get organization ID
-      let organizationId = this.getVarGlobal("deptParentId");
-      if (organizationId === "0") {
-        organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
 
       // Prepare goods delivery object

@@ -131,7 +131,7 @@ const performAutomaticAllocation = async (
 
     // Fetch item data
     const itemResult = await db
-      .collection("item")
+      .collection("Item")
       .where({ id: materialId, is_deleted: 0 })
       .get();
 

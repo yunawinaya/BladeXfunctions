@@ -151,7 +151,7 @@ const validateForm = (data, requiredFields) => {
 
     // Handle non-array fields (unchanged)
     if (!field.isArray) {
-      if (validateField(value, field)) {
+      if (validateField(value)) {
         missingFields.push(field.label);
       }
       return;
@@ -173,7 +173,7 @@ const validateForm = (data, requiredFields) => {
       value.forEach((item, index) => {
         field.arrayFields.forEach((subField) => {
           const subValue = item[subField.name];
-          if (validateField(subValue, subField)) {
+          if (validateField(subValue)) {
             missingFields.push(
               `${subField.label} (in ${field.label} #${index + 1})`
             );
@@ -186,7 +186,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, field) => {
+const validateField = (value) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "number") return value <= 0;
@@ -1862,7 +1862,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     ];
 
     // Validate items
-    for (const [index, item] of data.table_picking_items.entries()) {
+    for (const [index] of data.table_picking_items.entries()) {
       await this.validate(`table_picking_items.${index}.picked_qty`);
     }
 
@@ -1902,8 +1902,13 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     // Replace the detailed message section with this more concise version:
 
     // Block process if status would be "In Progress"
-    if (newTransferOrderStatus === "In Progress") {
-      console.log("Blocking process: Transfer Order status is In Progress");
+    if (
+      newTransferOrderStatus === "In Progress" ||
+      newTransferOrderStatus === "Created"
+    ) {
+      console.log(
+        "Blocking process: Transfer Order status is In Progress or Created"
+      );
 
       // Get incomplete items for better user feedback
       const incompleteItems = updatedItems
