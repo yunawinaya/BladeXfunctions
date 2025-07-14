@@ -321,7 +321,7 @@ const disabledSelectStock = async (data) => {
   data.table_gd.forEach(async (item, index) => {
     if (item.material_id && item.material_id !== "") {
       const resItem = await db
-        .collection("item")
+        .collection("Item")
         .where({ id: item.material_id, is_deleted: 0 })
         .get();
       if (resItem && resItem.data.length > 0) {
@@ -350,6 +350,24 @@ const disabledSelectStock = async (data) => {
                 this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
                 this.disabled([`table_gd.${index}.gd_qty`], false);
               }
+            }
+          }
+        } else if (itemData.item_batch_management === 1) {
+          const resItemBatchBalance = await db
+            .collection("item_batch_balance")
+            .where({ material_id: materialId, plant_id: plant })
+            .get();
+
+          if (resItemBatchBalance && resItemBatchBalance.data.length === 1) {
+            if (
+              data.picking_status === "Completed" ||
+              data.picking_status === "In Progress"
+            ) {
+              this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+              this.disabled([`table_gd.${index}.gd_qty`], true);
+            } else {
+              this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+              this.disabled([`table_gd.${index}.gd_qty`], false);
             }
           }
         } else {
@@ -419,7 +437,6 @@ const disabledSelectStock = async (data) => {
           "button_save_as_created",
           "so_id",
           "fake_so_id",
-          "table_gd.gd_delivery_qty",
         ]);
 
         if (salesOrderId.length > 0) {

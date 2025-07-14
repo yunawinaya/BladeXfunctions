@@ -186,7 +186,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, field) => {
+const validateField = (value) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "number") return value <= 0;
@@ -299,8 +299,6 @@ const addEntry = async (organizationId, toData) => {
 
 const updateEntry = async (organizationId, toData, toId, originalToStatus) => {
   try {
-    let oldToId = toData.to_id;
-
     if (originalToStatus === "Draft") {
       const prefixData = await getPrefixData(organizationId, "Transfer Order");
 
@@ -385,9 +383,11 @@ const createPickingRecord = async (toData) => {
         item_name: item.item_name,
         item_desc: item.item_desc,
         batch_no: item.batch_no,
+        target_batch: item.batch_no,
         store_out_qty: item.picked_qty,
         item_uom: item.item_uom,
         source_bin: item.source_bin,
+        target_location: item.source_bin,
         remark: item.remark,
         confirmed_by: this.getVarGlobal("nickname"),
         confirmed_at: new Date().toISOString().slice(0, 19).replace("T", " "),
@@ -429,7 +429,7 @@ const createPickingRecord = async (toData) => {
     ];
 
     // Validate items
-    for (const [index, item] of data.table_picking_items.entries()) {
+    for (const [index] of data.table_picking_items.entries()) {
       await this.validate(`table_picking_items.${index}.picked_qty`);
     }
 
