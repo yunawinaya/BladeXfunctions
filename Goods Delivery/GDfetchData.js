@@ -14,27 +14,6 @@ if (salesOrderIds.length > 1) {
   this.triggerEvent("func_reset_delivery_method");
 }
 
-// Function to convert base quantity to alternative quantity
-const convertBaseToAlt = (baseQty, itemData, altUOM) => {
-  if (
-    !Array.isArray(itemData.table_uom_conversion) ||
-    itemData.table_uom_conversion.length === 0 ||
-    !altUOM
-  ) {
-    return baseQty;
-  }
-
-  const uomConversion = itemData.table_uom_conversion.find(
-    (conv) => conv.alt_uom_id === altUOM
-  );
-
-  if (!uomConversion || !uomConversion.base_qty) {
-    return baseQty;
-  }
-
-  return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
-};
-
 // Initialize global allocation tracker for the session
 if (!window.globalAllocationTracker) {
   window.globalAllocationTracker = new Map();

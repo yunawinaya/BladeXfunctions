@@ -1786,6 +1786,13 @@ class StockAdjuster {
           "issue_date",
           "issuing_operation_faci",
         ];
+
+        if (
+          allData.movement_type === "Miscellaneous Receipt" ||
+          allData.movement_type === "Location Transfer"
+        ) {
+          requiredTopLevelFields.push("stock_movement.location_id");
+        }
         this.validateRequiredFields(allData, requiredTopLevelFields);
       } catch (error) {
         // Show required fields error as an alert
