@@ -46,6 +46,134 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
   }
 };
 
+const checkAccIntegrationType = async (organizationId) => {
+  if (organizationId) {
+    const resAI = await db
+      .collection("accounting_integration")
+      .where({ organization_id: organizationId })
+      .get();
+
+    if (resAI && resAI.data.length > 0) {
+      const aiData = resAI.data[0];
+
+      this.setData({ acc_integration_type: aiData.acc_integration_type });
+    }
+  }
+};
+
+const filterMovementType = async () => {
+  const resDict = await db
+    .collection("blade_dict")
+    .where({ dict_value: "Stock Movement Type" })
+    .get();
+
+  if (resDict && resDict.data.length > 0) {
+    const stockMovementId = resDict.data[0].id;
+
+    const resMovementType = await db
+      .collection("blade_dict")
+      .where({ parent_id: stockMovementId })
+      .get();
+
+    if (resMovementType && resMovementType.data.length > 0) {
+      const allMovementTypes = await resMovementType.data;
+      const restrictedTypes = [
+        "Good Issue",
+        "Production Receipt",
+        "Inter Operation Facility Transfer (Receiving)",
+      ];
+
+      const filteredTypes = allMovementTypes.filter(
+        (type) => !restrictedTypes.includes(type.dict_value)
+      );
+
+      this.setOptionData(["movement_type"], filteredTypes);
+    } else {
+      console.error("No movement types found in database");
+      return;
+    }
+  } else {
+    console.error("No movement types found in database");
+    return;
+  }
+};
+
+const displayDeliveryField = async () => {
+  const deliveryMethodName = this.getValue("delivery_method");
+  console.log("deliveryMethodName", deliveryMethodName);
+
+  if (
+    deliveryMethodName &&
+    typeof deliveryMethodName === "string" &&
+    deliveryMethodName.trim() !== "" &&
+    deliveryMethodName !== "{}"
+  ) {
+    this.setData({ delivery_method_text: deliveryMethodName });
+
+    const visibilityMap = {
+      "Self Pickup": "self_pickup",
+      "Courier Service": "courier_service",
+      "Company Truck": "company_truck",
+      "Shipping Service": "shipping_service",
+      "3rd Party Transporter": "third_party_transporter",
+    };
+
+    const selectedField = visibilityMap[deliveryMethodName] || null;
+    const fields = [
+      "self_pickup",
+      "courier_service",
+      "company_truck",
+      "shipping_service",
+      "third_party_transporter",
+    ];
+
+    if (!selectedField) {
+      this.hide(fields);
+    } else {
+      fields.forEach((field) => {
+        field === selectedField ? this.display(field) : this.hide(field);
+      });
+    }
+  } else {
+    this.setData({ delivery_method_text: "" });
+
+    const fields = [
+      "self_pickup",
+      "courier_service",
+      "company_truck",
+      "shipping_service",
+      "third_party_transporter",
+    ];
+    this.hide(fields);
+  }
+};
+
+const filterIOFTReceivingCategory = async () => {
+  const data = this.getValues();
+  const stockMovement = data.stock_movement;
+
+  const categoryObjectResponse = await db
+    .collection("blade_dict")
+    .where({ code: "inventory_category" })
+    .get();
+
+  const allowedCategories = ["Unrestricted", "Quality Inspection", "Blocked"];
+
+  const filteredCategories = categoryObjectResponse.data.filter((category) =>
+    allowedCategories.includes(category.dict_key)
+  );
+
+  console.log("filteredCategories", filteredCategories);
+
+  // Set category options
+  for (const [rowIndex, sm] of stockMovement.entries()) {
+    await this.setOptionData(
+      [`stock_movement.${rowIndex}.category`],
+      filteredCategories
+    );
+  }
+};
+
 // Main execution function
 (async () => {
   try {
@@ -87,7 +215,8 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
     if (pageStatus !== "Add") {
       // Handle Edit/View/Clone modes
       const stockMovementId = data.id;
-
+      await checkAccIntegrationType(organizationId);
+      await displayDeliveryField();
       const resSM = await db
         .collection("stock_movement")
         .where({ id: stockMovementId })
@@ -122,23 +251,36 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
           movement_id,
           is_production_order,
           production_order_id,
-          driver_name,
-          driver_contact_no,
-          vehicle_no,
-          pickup_date,
-          courier_company,
-          shipping_date,
-          freight_charges,
-          tracking_number,
-          est_arrival_date,
-          delivery_cost,
-          est_delivery_date,
           organization_id,
-          shipping_company,
-          date_qn0dl3t6,
-          input_77h4nsq8,
-          shipping_method,
-          tracking_no,
+
+          cp_driver_name,
+          cp_ic_no,
+          cp_driver_contact_no,
+          cp_vehicle_number,
+          cp_pickup_date,
+          cp_validity_collection,
+          cs_courier_company,
+          cs_shipping_date,
+          cs_tracking_number,
+          cs_est_arrival_date,
+          cs_freight_charges,
+          ct_driver_name,
+          ct_driver_contact_no,
+          ct_ic_no,
+          ct_vehicle_number,
+          ct_est_delivery_date,
+          ct_delivery_cost,
+          ss_shipping_company,
+          ss_shipping_date,
+          ss_freight_charges,
+          ss_shipping_method,
+          ss_est_arrival_date,
+          ss_tracking_number,
+          tpt_vehicle_number,
+          tpt_transport_name,
+          tpt_ic_no,
+          tpt_driver_contact_no,
+
           stock_movement,
           balance_index,
         } = stockMovement;
@@ -160,22 +302,35 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
           movement_id,
           is_production_order,
           production_order_id,
-          driver_name,
-          driver_contact_no,
-          vehicle_no,
-          pickup_date,
-          courier_company,
-          shipping_date,
-          freight_charges,
-          tracking_number,
-          est_arrival_date,
-          delivery_cost,
-          est_delivery_date,
-          shipping_company,
-          date_qn0dl3t6,
-          input_77h4nsq8,
-          shipping_method,
-          tracking_no,
+
+          cp_driver_name,
+          cp_ic_no,
+          cp_driver_contact_no,
+          cp_vehicle_number,
+          cp_pickup_date,
+          cp_validity_collection,
+          cs_courier_company,
+          cs_shipping_date,
+          cs_tracking_number,
+          cs_est_arrival_date,
+          cs_freight_charges,
+          ct_driver_name,
+          ct_driver_contact_no,
+          ct_ic_no,
+          ct_vehicle_number,
+          ct_est_delivery_date,
+          ct_delivery_cost,
+          ss_shipping_company,
+          ss_shipping_date,
+          ss_freight_charges,
+          ss_shipping_method,
+          ss_est_arrival_date,
+          ss_tracking_number,
+          tpt_vehicle_number,
+          tpt_transport_name,
+          tpt_ic_no,
+          tpt_driver_contact_no,
+
           stock_movement,
           balance_index,
         };
@@ -193,6 +348,7 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
 
           // Set data for edit mode
           await this.setData(data);
+          await filterMovementType();
 
           // Show appropriate status UI
           showStatusHTML(stock_movement_status);
@@ -209,6 +365,7 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
             movement_type === "Inter Operation Facility Transfer (Receiving)"
           ) {
             this.disabled(["stock_movement.received_quantity"], true);
+            await filterIOFTReceivingCategory();
           }
 
           if (status === "Completed" || status === "Fully Posted") {
@@ -227,21 +384,40 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
                 "movement_id",
                 "is_production_order",
                 "production_order_id",
-                "driver_name",
-                "driver_contact_no",
-                "vehicle_no",
-                "pickup_date",
-                "courier_company",
-                "shipping_date",
-                "freight_charges",
-                "tracking_number",
-                "est_arrival_date",
-                "est_delivery_date",
-                "shipping_company",
-                "date_qn0dl3t6",
-                "input_77h4nsq8",
-                "shipping_method",
-                "tracking_no",
+
+                "cp_driver_name",
+                "cp_ic_no",
+                "cp_driver_contact_no",
+                "cp_vehicle_number",
+                "cp_pickup_date",
+                "cp_validity_collection",
+
+                "cs_courier_company",
+                "cs_shipping_date",
+                "cs_tracking_number",
+                "cs_est_arrival_date",
+                "cs_freight_charges",
+
+                "ct_driver_name",
+                "ct_driver_contact_no",
+                "ct_ic_no",
+                "ct_vehicle_number",
+                "ct_est_delivery_date",
+                "ct_delivery_cost",
+
+                "ss_shipping_company",
+                "ss_shipping_date",
+                "ss_freight_charges",
+                "ss_shipping_method",
+                "ss_est_arrival_date",
+                "ss_tracking_number",
+
+                "tpt_vehicle_number",
+                "tpt_transport_name",
+                "tpt_ic_no",
+                "tpt_driver_contact_no",
+
+                "stock_movement",
                 "stock_movement.item_selection",
                 "stock_movement.total_quantity",
                 "stock_movement.category",
@@ -305,21 +481,39 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
                 "movement_id",
                 "is_production_order",
                 "production_order_id",
-                "driver_name",
-                "driver_contact_no",
-                "vehicle_no",
-                "pickup_date",
-                "courier_company",
-                "shipping_date",
-                "freight_charges",
-                "tracking_number",
-                "est_arrival_date",
-                "est_delivery_date",
-                "shipping_company",
-                "date_qn0dl3t6",
-                "input_77h4nsq8",
-                "shipping_method",
-                "tracking_no",
+
+                "cp_driver_name",
+                "cp_ic_no",
+                "cp_driver_contact_no",
+                "cp_vehicle_number",
+                "cp_pickup_date",
+                "cp_validity_collection",
+
+                "cs_courier_company",
+                "cs_shipping_date",
+                "cs_tracking_number",
+                "cs_est_arrival_date",
+                "cs_freight_charges",
+
+                "ct_driver_name",
+                "ct_driver_contact_no",
+                "ct_ic_no",
+                "ct_vehicle_number",
+                "ct_est_delivery_date",
+                "ct_delivery_cost",
+
+                "ss_shipping_company",
+                "ss_shipping_date",
+                "ss_freight_charges",
+                "ss_shipping_method",
+                "ss_est_arrival_date",
+                "ss_tracking_number",
+
+                "tpt_vehicle_number",
+                "tpt_transport_name",
+                "tpt_ic_no",
+                "tpt_driver_contact_no",
+
                 "stock_movement.item_selection",
                 "stock_movement.total_quantity",
                 "stock_movement.category",
@@ -353,7 +547,8 @@ const checkPrefixConfiguration = async (movementType, organizationId) => {
       }
     } else {
       const nickName = await this.getVarGlobal("nickname");
-
+      await checkAccIntegrationType(organizationId);
+      await filterMovementType();
       this.setData({
         issued_by: nickName,
         issue_date: new Date().toISOString().split("T")[0],

@@ -506,6 +506,354 @@ const getFixedCostPrice = async (materialId) => {
   }
 };
 
+// Add this inventory validation function to your completed GD code
+const validateInventoryAvailabilityForCompleted = async (data) => {
+  console.log("Validating inventory availability for Completed GD");
+
+  const items = data.table_gd;
+  if (!Array.isArray(items) || items.length === 0) {
+    return { isValid: true };
+  }
+
+  // Create a map to track total required quantities by material/location/batch
+  const requiredQuantities = new Map();
+
+  // First pass: Calculate total required quantities
+  for (const item of items) {
+    if (!item.material_id || !item.temp_qty_data) {
+      continue;
+    }
+
+    try {
+      // Get item data to check stock control and UOM conversion
+      const itemRes = await db
+        .collection("Item")
+        .where({ id: item.material_id })
+        .get();
+
+      if (!itemRes.data || !itemRes.data.length) {
+        return {
+          isValid: false,
+          error: `Item not found: ${item.material_id}`,
+        };
+      }
+
+      const itemData = itemRes.data[0];
+
+      // Skip if stock control is disabled
+      if (itemData.stock_control === 0) {
+        continue;
+      }
+
+      const temporaryData = JSON.parse(item.temp_qty_data);
+
+      for (const temp of temporaryData) {
+        // Calculate base quantity with UOM conversion
+        let baseQty = roundQty(temp.gd_quantity);
+
+        if (
+          Array.isArray(itemData.table_uom_conversion) &&
+          itemData.table_uom_conversion.length > 0
+        ) {
+          const uomConversion = itemData.table_uom_conversion.find(
+            (conv) => conv.alt_uom_id === item.gd_order_uom_id
+          );
+
+          if (uomConversion) {
+            baseQty = roundQty(baseQty * uomConversion.base_qty);
+          }
+        }
+
+        // Create unique key for material/location/batch combination
+        const key = temp.batch_id
+          ? `${item.material_id}-${temp.location_id}-${temp.batch_id}`
+          : `${item.material_id}-${temp.location_id}`;
+
+        // Add to required quantities
+        const currentRequired = requiredQuantities.get(key) || 0;
+        requiredQuantities.set(key, currentRequired + baseQty);
+      }
+    } catch (error) {
+      console.error(`Error processing item ${item.material_id}:`, error);
+      return {
+        isValid: false,
+        error: `Error processing item ${item.material_id}: ${error.message}`,
+      };
+    }
+  }
+
+  // Second pass: Check availability against current balances
+  // For "Completed" status, we need to check TOTAL available (unrestricted + reserved)
+  for (const [key, requiredQty] of requiredQuantities.entries()) {
+    const [materialId, locationId, batchId] = key.split("-");
+
+    try {
+      const itemBalanceParams = {
+        material_id: materialId,
+        location_id: locationId,
+      };
+
+      if (batchId && batchId !== "undefined") {
+        itemBalanceParams.batch_id = batchId;
+      }
+
+      const balanceCollection =
+        batchId && batchId !== "undefined"
+          ? "item_batch_balance"
+          : "item_balance";
+
+      const balanceQuery = await db
+        .collection(balanceCollection)
+        .where(itemBalanceParams)
+        .get();
+
+      let totalAvailableQty = 0;
+
+      if (balanceQuery.data && balanceQuery.data.length > 0) {
+        const balance = balanceQuery.data[0];
+        const unrestrictedQty = roundQty(
+          parseFloat(balance.unrestricted_qty || 0)
+        );
+        const reservedQty = roundQty(parseFloat(balance.reserved_qty || 0));
+
+        // For Completed status, both unrestricted and reserved can be used
+        totalAvailableQty = roundQty(unrestrictedQty + reservedQty);
+
+        console.log(
+          `Item ${materialId} at ${locationId}: Unrestricted=${unrestrictedQty}, Reserved=${reservedQty}, Total=${totalAvailableQty}`
+        );
+      }
+
+      if (totalAvailableQty < requiredQty) {
+        // Get item name for better error message
+        const itemRes = await db
+          .collection("Item")
+          .where({ id: materialId })
+          .get();
+
+        const itemName =
+          itemRes.data && itemRes.data.length > 0
+            ? itemRes.data[0].item_name || materialId
+            : materialId;
+
+        const locationRes = await db
+          .collection("bin_location")
+          .where({ id: locationId })
+          .get();
+
+        const locationName =
+          locationRes.data && locationRes.data.length > 0
+            ? locationRes.data[0].bin_location_name || locationId
+            : locationId;
+
+        let errorMsg = `Insufficient total inventory for item "${itemName}" at location "${locationName}". `;
+        errorMsg += `Required: ${requiredQty}, Available: ${totalAvailableQty}`;
+
+        if (batchId && batchId !== "undefined") {
+          const batchRes = await db
+            .collection("item_batch")
+            .where({ id: batchId })
+            .get();
+
+          const batchName =
+            batchRes.data && batchRes.data.length > 0
+              ? batchRes.data[0].batch_no || batchId
+              : batchId;
+
+          errorMsg += `, Batch: "${batchName}"`;
+        }
+
+        return {
+          isValid: false,
+          error: errorMsg,
+          details: {
+            materialId,
+            itemName,
+            locationId,
+            locationName,
+            batchId: batchId !== "undefined" ? batchId : null,
+            requiredQty,
+            totalAvailableQty,
+          },
+        };
+      }
+    } catch (error) {
+      console.error(`Error checking balance for ${key}:`, error);
+      return {
+        isValid: false,
+        error: `Error checking inventory balance: ${error.message}`,
+      };
+    }
+  }
+
+  console.log("Inventory validation passed for Completed GD");
+  return { isValid: true };
+};
+
+// Enhanced processBalanceTable with validation
+const processBalanceTableWithValidation = async (
+  data,
+  isUpdate,
+  plantId,
+  organizationId,
+  gdStatus
+) => {
+  console.log("Processing balance table with validation for Completed GD");
+
+  // STEP 0: Validate inventory availability for Completed status
+  if (gdStatus === "Completed") {
+    const validationResult = await validateInventoryAvailabilityForCompleted(
+      data
+    );
+
+    if (!validationResult.isValid) {
+      // Use alert dialog instead of throwing error
+      this.parentGenerateForm.$alert(
+        validationResult.error,
+        "Insufficient Total Inventory",
+        {
+          confirmButtonText: "OK",
+          type: "error",
+        }
+      );
+      return Promise.reject(new Error("Inventory validation failed"));
+    }
+  }
+
+  return await processBalanceTable(
+    data,
+    isUpdate,
+    plantId,
+    organizationId,
+    gdStatus
+  );
+};
+
+const addEntryWithValidation = async (organizationId, gd, gdStatus) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+
+    if (prefixData.length !== 0) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData,
+        organizationId
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+      gd.delivery_no = prefixToShow;
+    }
+
+    await db.collection("goods_delivery").add(gd);
+
+    // Use validation-enhanced process
+    await processBalanceTableWithValidation(
+      gd,
+      false,
+      gd.plant_id,
+      organizationId,
+      gdStatus
+    );
+
+    const { so_data_array } = await updateSalesOrderStatus(
+      gd.so_id,
+      gd.table_gd
+    );
+
+    await this.runWorkflow(
+      "1918140858502557698",
+      { delivery_no: gd.delivery_no, so_data: so_data_array },
+      async (res) => {
+        console.log("成功结果：", res);
+      },
+      (err) => {
+        alert();
+        console.error("失败结果：", err);
+        closeDialog();
+      }
+    );
+
+    this.$message.success("Add successfully");
+    await closeDialog();
+  } catch (error) {
+    // Handle inventory validation gracefully
+    if (error.message === "Inventory validation failed") {
+      // Alert dialog already shown, don't show additional error
+      console.log(
+        "Inventory validation failed - user notified via alert dialog"
+      );
+      return;
+    }
+
+    this.$message.error(error);
+  }
+};
+
+const updateEntryWithValidation = async (
+  organizationId,
+  gd,
+  gdStatus,
+  goodsDeliveryId
+) => {
+  try {
+    if (gdStatus === "Draft") {
+      const prefixData = await getPrefixData(organizationId);
+
+      if (prefixData.length !== 0) {
+        const { prefixToShow, runningNumber } = await findUniquePrefix(
+          prefixData,
+          organizationId
+        );
+
+        await updatePrefix(organizationId, runningNumber);
+        gd.delivery_no = prefixToShow;
+      }
+    }
+
+    await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+
+    // Use validation-enhanced process
+    await processBalanceTableWithValidation(
+      gd,
+      true,
+      gd.plant_id,
+      organizationId,
+      gdStatus
+    );
+
+    const { so_data_array } = await updateSalesOrderStatus(
+      gd.so_id,
+      gd.table_gd
+    );
+
+    await this.runWorkflow(
+      "1918140858502557698",
+      { delivery_no: gd.delivery_no, so_data: so_data_array },
+      async (res) => {
+        console.log("成功结果：", res);
+      },
+      (err) => {
+        alert();
+        console.error("失败结果：", err);
+        closeDialog();
+      }
+    );
+
+    this.$message.success("Update successfully");
+    await closeDialog();
+  } catch (error) {
+    // Handle inventory validation gracefully
+    if (error.message === "Inventory validation failed") {
+      // Alert dialog already shown, don't show additional error
+      console.log(
+        "Inventory validation failed - user notified via alert dialog"
+      );
+      return;
+    }
+
+    this.$message.error(error);
+  }
+};
+
 const processBalanceTable = async (
   data,
   isUpdate,
@@ -724,6 +1072,20 @@ const processBalanceTable = async (
                 `Processing Created status - moving ${baseQty} OUT from Reserved`
               );
 
+              let pickingNumber;
+
+              const transferOrderPickingData = await db
+                .collection("transfer_order")
+                .where({
+                  delivery_no: data.delivery_no,
+                  organization_id: organizationId,
+                })
+                .get();
+
+              if (transferOrderPickingData.data.length > 0) {
+                pickingNumber = transferOrderPickingData.data[0].to_id;
+              }
+
               // For edit mode, we can only use the reserved quantity that this GD previously created
               let availableReservedForThisGD = currentReservedQty;
               if (isUpdate && prevBaseQty > 0) {
@@ -745,9 +1107,16 @@ const processBalanceTable = async (
                 );
 
                 const inventoryMovementData = {
-                  transaction_type: "GDL",
-                  trx_no: data.delivery_no,
-                  parent_trx_no: item.line_so_no,
+                  transaction_type:
+                    data.picking_status !== "Completed" ? "GDL" : "TO - PICK",
+                  trx_no:
+                    data.picking_status !== "Completed"
+                      ? data.delivery_no
+                      : pickingNumber,
+                  parent_trx_no:
+                    data.picking_status !== "Completed"
+                      ? item.line_so_no
+                      : data.delivery_no,
                   movement: "OUT",
                   unit_price: unitPrice,
                   total_price: totalPrice,
@@ -799,9 +1168,16 @@ const processBalanceTable = async (
                   );
 
                   const reservedMovementData = {
-                    transaction_type: "GDL",
-                    trx_no: data.delivery_no,
-                    parent_trx_no: item.line_so_no,
+                    transaction_type:
+                      data.picking_status !== "Completed" ? "GDL" : "TO - PICK",
+                    trx_no:
+                      data.picking_status !== "Completed"
+                        ? data.delivery_no
+                        : pickingNumber,
+                    parent_trx_no:
+                      data.picking_status !== "Completed"
+                        ? item.line_so_no
+                        : data.delivery_no,
                     movement: "OUT",
                     unit_price: unitPrice,
                     total_price: reservedTotalPrice,
@@ -838,9 +1214,16 @@ const processBalanceTable = async (
                   );
 
                   const unrestrictedMovementData = {
-                    transaction_type: "GDL",
-                    trx_no: data.delivery_no,
-                    parent_trx_no: item.line_so_no,
+                    transaction_type:
+                      data.picking_status !== "Completed" ? "GDL" : "TO - PICK",
+                    trx_no:
+                      data.picking_status !== "Completed"
+                        ? data.delivery_no
+                        : pickingNumber,
+                    parent_trx_no:
+                      data.picking_status !== "Completed"
+                        ? item.line_so_no
+                        : data.delivery_no,
                     movement: "OUT",
                     unit_price: unitPrice,
                     total_price: unrestrictedTotalPrice,
@@ -893,9 +1276,16 @@ const processBalanceTable = async (
 
                   // Create movement to release unused reserved back to unrestricted
                   const releaseReservedMovementData = {
-                    transaction_type: "GDL",
-                    trx_no: data.delivery_no,
-                    parent_trx_no: item.line_so_no,
+                    transaction_type:
+                      data.picking_status !== "Completed" ? "GDL" : "TO - PICK",
+                    trx_no:
+                      data.picking_status !== "Completed"
+                        ? data.delivery_no
+                        : pickingNumber,
+                    parent_trx_no:
+                      data.picking_status !== "Completed"
+                        ? item.line_so_no
+                        : data.delivery_no,
                     movement: "OUT",
                     unit_price: unitPrice,
                     total_price: roundPrice(unitPrice * unusedAltQty),
@@ -913,9 +1303,16 @@ const processBalanceTable = async (
                   };
 
                   const returnUnrestrictedMovementData = {
-                    transaction_type: "GDL",
-                    trx_no: data.delivery_no,
-                    parent_trx_no: item.line_so_no,
+                    transaction_type:
+                      data.picking_status !== "Completed" ? "GDL" : "TO - PICK",
+                    trx_no:
+                      data.picking_status !== "Completed"
+                        ? data.delivery_no
+                        : pickingNumber,
+                    parent_trx_no:
+                      data.picking_status !== "Completed"
+                        ? item.line_so_no
+                        : data.delivery_no,
                     movement: "IN",
                     unit_price: unitPrice,
                     total_price: roundPrice(unitPrice * unusedAltQty),
@@ -1431,7 +1828,7 @@ const validateForm = (data, requiredFields) => {
 
     // Handle non-array fields (unchanged)
     if (!field.isArray) {
-      if (validateField(value, field)) {
+      if (validateField(value)) {
         missingFields.push(field.label);
       }
       return;
@@ -1453,7 +1850,7 @@ const validateForm = (data, requiredFields) => {
       value.forEach((item, index) => {
         field.arrayFields.forEach((subField) => {
           const subValue = item[subField.name];
-          if (validateField(subValue, subField)) {
+          if (validateField(subValue)) {
             missingFields.push(
               `${subField.label} (in ${field.label} #${index + 1})`
             );
@@ -1466,7 +1863,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, field) => {
+const validateField = (value) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "number") return value <= 0;
@@ -1778,94 +2175,6 @@ const checkCreditOverdueLimit = async (customer_name, gd_total) => {
       }
     );
     return false;
-  }
-};
-
-const addEntry = async (organizationId, gd, gdStatus) => {
-  try {
-    const prefixData = await getPrefixData(organizationId);
-
-    if (prefixData.length !== 0) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId
-      );
-
-      await updatePrefix(organizationId, runningNumber);
-
-      gd.delivery_no = prefixToShow;
-    }
-    await db.collection("goods_delivery").add(gd);
-
-    await processBalanceTable(gd, false, gd.plant_id, organizationId, gdStatus);
-
-    const { so_data_array } = await updateSalesOrderStatus(
-      gd.so_id,
-      gd.table_gd
-    );
-
-    await this.runWorkflow(
-      "1918140858502557698",
-      { delivery_no: gd.delivery_no, so_data: so_data_array },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        alert();
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
-
-    this.$message.success("Add successfully");
-    await closeDialog();
-  } catch (error) {
-    this.$message.error(error);
-  }
-};
-
-const updateEntry = async (organizationId, gd, gdStatus, goodsDeliveryId) => {
-  try {
-    if (gdStatus === "Draft") {
-      const prefixData = await getPrefixData(organizationId);
-
-      if (prefixData.length !== 0) {
-        const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData,
-          organizationId
-        );
-
-        await updatePrefix(organizationId, runningNumber);
-
-        gd.delivery_no = prefixToShow;
-      }
-    }
-    await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
-
-    await processBalanceTable(gd, true, gd.plant_id, organizationId, gdStatus);
-
-    const { so_data_array } = await updateSalesOrderStatus(
-      gd.so_id,
-      gd.table_gd
-    );
-
-    await this.runWorkflow(
-      "1918140858502557698",
-      { delivery_no: gd.delivery_no, so_data: so_data_array },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        alert();
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
-
-    this.$message.success("Update successfully");
-    await closeDialog();
-  } catch (error) {
-    this.$message.error(error);
   }
 };
 
@@ -2261,7 +2570,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     }
 
     // Validate form fields
-    for (const [index, item] of data.table_gd.entries()) {
+    for (const [index] of data.table_gd.entries()) {
       await this.validate(`table_gd.${index}.gd_qty`);
     }
 
@@ -2534,16 +2843,28 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
 
     // Perform action based on page status
     if (page_status === "Add") {
-      await addEntry(organizationId, gd, gdStatus);
+      await addEntryWithValidation(organizationId, gd, gdStatus);
     } else if (page_status === "Edit") {
       const goodsDeliveryId = data.id;
-      await updateEntry(organizationId, gd, gdStatus, goodsDeliveryId);
+      await updateEntryWithValidation(
+        organizationId,
+        gd,
+        gdStatus,
+        goodsDeliveryId
+      );
       if (gdStatus === "Created") {
         await updateOnReserveGoodsDelivery(organizationId, gd);
       }
     }
   } catch (error) {
     this.hideLoading();
+
+    if (error.message === "Inventory validation failed") {
+      console.log(
+        "Inventory validation failed - user notified via alert dialog"
+      );
+      return;
+    }
 
     // Try to get message from standard locations first
     let errorMessage = "";

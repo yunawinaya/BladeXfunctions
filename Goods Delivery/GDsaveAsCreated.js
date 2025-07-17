@@ -51,186 +51,6 @@ const collectAllSoNumbers = (data) => {
   return Array.from(soNumbers).filter((so) => so.length > 0);
 };
 
-// Update FIFO inventory
-const updateFIFOInventory = async (
-  materialId,
-  deliveryQty,
-  batchId,
-  plantId
-) => {
-  try {
-    const query = batchId
-      ? db.collection("fifo_costing_history").where({
-          material_id: materialId,
-          batch_id: batchId,
-          plant_id: plantId,
-        })
-      : db
-          .collection("fifo_costing_history")
-          .where({ material_id: materialId, plant_id: plantId });
-
-    const response = await query.get();
-    const result = response.data;
-
-    if (result && Array.isArray(result) && result.length > 0) {
-      const sortedRecords = result.sort(
-        (a, b) => a.fifo_sequence - b.fifo_sequence
-      );
-
-      let remainingQtyToDeduct = parseFloat(deliveryQty);
-      console.log(
-        `Need to deduct ${remainingQtyToDeduct} units from FIFO inventory`
-      );
-
-      const updatePromises = [];
-
-      for (const record of sortedRecords) {
-        if (remainingQtyToDeduct <= 0) {
-          break;
-        }
-
-        const availableQty = roundQty(record.fifo_available_quantity || 0);
-        console.log(
-          `FIFO record ${record.fifo_sequence} has ${availableQty} available`
-        );
-
-        const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
-        const newAvailableQty = roundQty(availableQty - qtyToDeduct);
-
-        console.log(
-          `Deducting ${qtyToDeduct} from FIFO record ${record.fifo_sequence}, new available: ${newAvailableQty}`
-        );
-
-        // Collect update promises
-        updatePromises.push(
-          db.collection("fifo_costing_history").doc(record.id).update({
-            fifo_available_quantity: newAvailableQty,
-          })
-        );
-
-        remainingQtyToDeduct -= qtyToDeduct;
-      }
-
-      // Wait for all updates to complete
-      await Promise.all(updatePromises);
-
-      if (remainingQtyToDeduct > 0) {
-        console.warn(
-          `Warning: Couldn't fully satisfy FIFO deduction. Remaining qty: ${remainingQtyToDeduct}`
-        );
-      }
-    } else {
-      console.warn(`No FIFO records found for material ${materialId}`);
-    }
-  } catch (error) {
-    console.error(`Error in FIFO update for material ${materialId}:`, error);
-    throw error;
-  }
-};
-
-const updateWeightedAverage = (item, batchId, baseWAQty, plantId) => {
-  // Input validation
-  if (
-    !item ||
-    !item.material_id ||
-    isNaN(parseFloat(baseWAQty)) ||
-    parseFloat(baseWAQty) <= 0
-  ) {
-    console.error("Invalid item data for weighted average update:", item);
-    return Promise.resolve();
-  }
-
-  const deliveredQty = parseFloat(baseWAQty);
-  const query = batchId
-    ? db.collection("wa_costing_method").where({
-        material_id: item.material_id,
-        batch_id: batchId,
-        plant_id: plantId,
-      })
-    : db
-        .collection("wa_costing_method")
-        .where({ material_id: item.material_id, plant_id: plantId });
-
-  return query
-    .get()
-    .then((waResponse) => {
-      const waData = waResponse.data;
-      if (!waData || !Array.isArray(waData) || waData.length === 0) {
-        console.warn(
-          `No weighted average records found for material ${item.material_id}`
-        );
-        return Promise.resolve();
-      }
-
-      // Sort by date (newest first) to get the latest record
-      waData.sort((a, b) => {
-        if (a.created_at && b.created_at) {
-          return new Date(b.created_at) - new Date(a.created_at);
-        }
-        return 0;
-      });
-
-      const waDoc = waData[0];
-      const waCostPrice = roundPrice(waDoc.wa_cost_price || 0);
-      const waQuantity = roundQty(waDoc.wa_quantity || 0);
-
-      if (waQuantity <= deliveredQty) {
-        console.warn(
-          `Warning: Cannot fully update weighted average for ${item.material_id} - ` +
-            `Available: ${waQuantity}, Requested: ${deliveredQty}`
-        );
-
-        if (waQuantity <= 0) {
-          return Promise.resolve();
-        }
-      }
-
-      const newWaQuantity = Math.max(0, roundQty(waQuantity - deliveredQty));
-
-      // If new quantity would be zero, handle specially
-      if (newWaQuantity === 0) {
-        return db
-          .collection("wa_costing_method")
-          .doc(waDoc.id)
-          .update({
-            wa_quantity: 0,
-            updated_at: new Date(),
-          })
-          .then(() => {
-            console.log(
-              `Updated Weighted Average for item ${item.material_id} to zero quantity`
-            );
-            return Promise.resolve();
-          });
-      }
-
-      return db
-        .collection("wa_costing_method")
-        .doc(waDoc.id)
-        .update({
-          wa_quantity: newWaQuantity,
-          wa_cost_price: waCostPrice,
-          updated_at: new Date(),
-        })
-        .then(() => {
-          console.log(
-            `Successfully processed Weighted Average for item ${item.material_id}, ` +
-              `new quantity: ${newWaQuantity}, new cost price: ${waCostPrice}`
-          );
-          return Promise.resolve();
-        });
-    })
-    .catch((error) => {
-      console.error(
-        `Error processing Weighted Average for item ${
-          item?.material_id || "unknown"
-        }:`,
-        error
-      );
-      return Promise.reject(error);
-    });
-};
-
 // Function to get latest FIFO cost price with available quantity check
 const getLatestFIFOCostPrice = async (
   materialId,
@@ -767,13 +587,205 @@ const reverseBalanceChanges = async (data, isUpdate = false) => {
   }
 };
 
-const processBalanceTable = async (
+// New function to validate inventory availability before processing
+const validateInventoryAvailability = async (data) => {
+  console.log("Validating inventory availability");
+
+  const items = data.table_gd;
+  if (!Array.isArray(items) || items.length === 0) {
+    return { isValid: true };
+  }
+
+  // Create a map to track total required quantities by material/location/batch
+  const requiredQuantities = new Map();
+
+  // First pass: Calculate total required quantities
+  for (const item of items) {
+    if (!item.material_id || !item.temp_qty_data) {
+      continue;
+    }
+
+    try {
+      // Get item data to check stock control and UOM conversion
+      const itemRes = await db
+        .collection("Item")
+        .where({ id: item.material_id })
+        .get();
+
+      if (!itemRes.data || !itemRes.data.length) {
+        return {
+          isValid: false,
+          error: `Item not found: ${item.material_id}`,
+        };
+      }
+
+      const itemData = itemRes.data[0];
+
+      // Skip if stock control is disabled
+      if (itemData.stock_control === 0) {
+        continue;
+      }
+
+      const temporaryData = parseJsonSafely(item.temp_qty_data);
+
+      for (const temp of temporaryData) {
+        // Calculate base quantity with UOM conversion
+        let baseQty = roundQty(temp.gd_quantity);
+
+        if (
+          Array.isArray(itemData.table_uom_conversion) &&
+          itemData.table_uom_conversion.length > 0
+        ) {
+          const uomConversion = itemData.table_uom_conversion.find(
+            (conv) => conv.alt_uom_id === item.gd_order_uom_id
+          );
+
+          if (uomConversion) {
+            baseQty = roundQty(baseQty * uomConversion.base_qty);
+          }
+        }
+
+        // Create unique key for material/location/batch combination
+        const key = temp.batch_id
+          ? `${item.material_id}-${temp.location_id}-${temp.batch_id}`
+          : `${item.material_id}-${temp.location_id}`;
+
+        // Add to required quantities
+        const currentRequired = requiredQuantities.get(key) || 0;
+        requiredQuantities.set(key, currentRequired + baseQty);
+      }
+    } catch (error) {
+      console.error(`Error processing item ${item.material_id}:`, error);
+      return {
+        isValid: false,
+        error: `Error processing item ${item.material_id}: ${error.message}`,
+      };
+    }
+  }
+
+  // Second pass: Check availability against current balances
+  for (const [key, requiredQty] of requiredQuantities.entries()) {
+    const [materialId, locationId, batchId] = key.split("-");
+
+    try {
+      const itemBalanceParams = {
+        material_id: materialId,
+        location_id: locationId,
+      };
+
+      if (batchId && batchId !== "undefined") {
+        itemBalanceParams.batch_id = batchId;
+      }
+
+      const balanceCollection =
+        batchId && batchId !== "undefined"
+          ? "item_batch_balance"
+          : "item_balance";
+
+      const balanceQuery = await db
+        .collection(balanceCollection)
+        .where(itemBalanceParams)
+        .get();
+
+      let availableQty = 0;
+
+      if (balanceQuery.data && balanceQuery.data.length > 0) {
+        const balance = balanceQuery.data[0];
+        availableQty = roundQty(parseFloat(balance.unrestricted_qty || 0));
+      }
+
+      if (availableQty < requiredQty) {
+        // Get item name for better error message
+        const itemRes = await db
+          .collection("Item")
+          .where({ id: materialId })
+          .get();
+
+        const itemName =
+          itemRes.data && itemRes.data.length > 0
+            ? itemRes.data[0].item_name || materialId
+            : materialId;
+
+        const locationRes = await db
+          .collection("bin_location")
+          .where({ id: locationId })
+          .get();
+
+        const locationName =
+          locationRes.data && locationRes.data.length > 0
+            ? locationRes.data[0].bin_location_name || locationId
+            : locationId;
+
+        let errorMsg = `Insufficient inventory for item "${itemName}" at location "${locationName}". `;
+        errorMsg += `Required: ${requiredQty}, Available: ${availableQty}`;
+
+        if (batchId && batchId !== "undefined") {
+          const batchRes = await db
+            .collection("item_batch")
+            .where({ id: batchId })
+            .get();
+
+          const batchName =
+            batchRes.data && batchRes.data.length > 0
+              ? batchRes.data[0].batch_no || batchId
+              : batchId;
+
+          errorMsg += `, Batch: "${batchName}"`;
+        }
+
+        return {
+          isValid: false,
+          error: errorMsg,
+          details: {
+            materialId,
+            itemName,
+            locationId,
+            locationName,
+            batchId: batchId !== "undefined" ? batchId : null,
+            requiredQty,
+            availableQty,
+          },
+        };
+      }
+    } catch (error) {
+      console.error(`Error checking balance for ${key}:`, error);
+      return {
+        isValid: false,
+        error: `Error checking inventory balance: ${error.message}`,
+      };
+    }
+  }
+
+  console.log("Inventory validation passed");
+  return { isValid: true };
+};
+
+// Modified processBalanceTable function with inventory validation
+const processBalanceTableWithValidation = async (
   data,
   isUpdate = false,
   oldDeliveryNo = null,
   gdStatus = null
 ) => {
-  console.log("Processing balance table");
+  console.log("Processing balance table with validation");
+
+  // STEP 0: Validate inventory availability (only for new records or draft->created)
+  if (!isUpdate || (isUpdate && gdStatus === "Draft")) {
+    const validationResult = await validateInventoryAvailability(data);
+
+    if (!validationResult.isValid) {
+      // Use alert dialog instead of throwing error
+      this.parentGenerateForm.$alert(
+        validationResult.error,
+        "Insufficient Inventory",
+        {
+          confirmButtonText: "OK",
+          type: "error",
+        }
+      );
+      return Promise.reject(new Error("Inventory validation failed"));
+    }
+  }
 
   // STEP 1: Handle existing inventory movements and reverse balance changes for updates
   if (isUpdate && gdStatus === "Created") {
@@ -831,12 +843,11 @@ const processBalanceTable = async (
     await processItemBalance(item, itemData, data, consumedFIFOQty);
   }
 
-  // Process non-FIFO items in parallel
-  await Promise.all(
-    otherItems.map(({ item, itemData }) =>
-      processItemBalance(item, itemData, data, consumedFIFOQty)
-    )
-  );
+  // Process non-FIFO items sequentially as well to maintain inventory consistency
+  // Changed from parallel to sequential processing
+  for (const { item, itemData } of otherItems) {
+    await processItemBalance(item, itemData, data, consumedFIFOQty);
+  }
 
   // Clear the FIFO tracking map
   consumedFIFOQty.clear();
@@ -890,7 +901,6 @@ const processItemBalance = async (item, itemData, data, consumedFIFOQty) => {
       let altUOM = item.gd_order_uom_id;
       let baseUOM = itemData.based_uom;
       let altWAQty = roundQty(item.gd_qty);
-      let baseWAQty = altWAQty;
 
       if (
         Array.isArray(itemData.table_uom_conversion) &&
@@ -1017,23 +1027,6 @@ const processItemBalance = async (item, itemData, data, consumedFIFOQty) => {
             ),
           });
       }
-
-      // Update costing method inventories
-      if (costingMethod === "First In First Out") {
-        await updateFIFOInventory(
-          item.material_id,
-          baseQty,
-          temp.batch_id,
-          data.plant_id
-        );
-      } else if (costingMethod === "Weighted Average") {
-        await updateWeightedAverage(
-          item,
-          temp.batch_id,
-          baseWAQty,
-          data.plant_id
-        );
-      }
     }
   } catch (error) {
     console.error(`Error processing item ${item.material_id}:`, error);
@@ -1072,7 +1065,7 @@ const validateForm = (data, requiredFields) => {
 
     // Handle non-array fields (unchanged)
     if (!field.isArray) {
-      if (validateField(value, field)) {
+      if (validateField(value)) {
         missingFields.push(field.label);
       }
       return;
@@ -1094,7 +1087,7 @@ const validateForm = (data, requiredFields) => {
       value.forEach((item, index) => {
         field.arrayFields.forEach((subField) => {
           const subValue = item[subField.name];
-          if (validateField(subValue, subField)) {
+          if (validateField(subValue)) {
             missingFields.push(
               `${subField.label} (in ${field.label} #${index + 1})`
             );
@@ -1107,319 +1100,13 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, field) => {
+const validateField = (value) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "number") return value <= 0;
   if (Array.isArray(value)) return value.length === 0;
   if (typeof value === "object") return Object.keys(value).length === 0;
   return !value;
-};
-
-// Check credit & overdue limit before doing any process
-const checkCreditOverdueLimit = async (customer_name, gd_total) => {
-  try {
-    const fetchCustomer = await db
-      .collection("Customer")
-      .where({ id: customer_name, is_deleted: 0 })
-      .get();
-
-    const customerData = fetchCustomer.data[0];
-    if (!customerData) {
-      console.error(`Customer ${customer_name} not found`);
-      this.$message.error(`Customer ${customer_name} not found`);
-      return false;
-    }
-
-    const controlTypes = customerData.control_type_list;
-
-    const outstandingAmount =
-      parseFloat(customerData.outstanding_balance || 0) || 0;
-    const overdueAmount =
-      parseFloat(customerData.overdue_inv_total_amount || 0) || 0;
-    const overdueLimit = parseFloat(customerData.overdue_limit || 0) || 0;
-    const creditLimit =
-      parseFloat(customerData.customer_credit_limit || 0) || 0;
-    const gdTotal = parseFloat(gd_total || 0) || 0;
-    const revisedOutstandingAmount = outstandingAmount + gdTotal;
-
-    // Helper function to show specific pop-ups as per specification
-    const showPopup = (popupNumber) => {
-      this.openDialog("dialog_credit_limit");
-
-      const popupConfigs = {
-        1: {
-          // Pop-up 1: Exceed Credit Limit Only (Block)
-          alert: "alert_credit_limit", // "Alert: Credit Limit Exceeded - Review Required"
-          text: "text_credit_limit", // "The customer has exceed the allowed credit limit."
-          showCredit: true,
-          showOverdue: false,
-          isBlock: true,
-          buttonText: "text_1", // "Please review the credit limit or adjust the order amount before issuing the SO."
-        },
-        2: {
-          // Pop-up 2: Exceed Overdue Limit Only (Block)
-          alert: "alert_overdue_limit", // "Alert: Overdue Limit Exceeded - Review Required"
-          text: "text_overdue_limit", // "The customer has exceeded the allowed overdue limit."
-          showCredit: false,
-          showOverdue: true,
-          isBlock: true,
-          buttonText: "text_2", // "Please review overdue invoices before proceeding."
-        },
-        3: {
-          // Pop-up 3: Exceed Both, Credit Limit and Overdue Limit (Block)
-          alert: "alert_credit_overdue", // "Alert: Credit Limit and Overdue Limit Exceeded - Review Required"
-          text: "text_credit_overdue", // "The customer has exceeded both credit limit and overdue limit."
-          showCredit: true,
-          showOverdue: true,
-          isBlock: true,
-          buttonText: "text_3", // "Please review both limits before proceeding."
-        },
-        4: {
-          // Pop-up 4: Exceed Overdue Limit Only (Override)
-          alert: "alert_overdue_limit", // "Alert: Overdue Limit Exceeded - Review Required"
-          text: "text_overdue_limit", // "The customer has exceeded the allowed overdue limit."
-          showCredit: false,
-          showOverdue: true,
-          isBlock: false,
-          buttonText: "text_4", // "Please confirm if you wants to save it."
-        },
-        5: {
-          // Pop-up 5: Exceed Credit Limit Only (Override)
-          alert: "alert_credit_limit", // "Alert: Credit Limit Exceeded - Review Required"
-          text: "text_credit_limit", // "The customer has exceed the allowed credit limit."
-          showCredit: true,
-          showOverdue: false,
-          isBlock: false,
-          buttonText: "text_4", // "Please confirm if you wants to save it."
-        },
-        6: {
-          // Pop-up 6: Suspended
-          alert: "alert_suspended", // "Customer Account Suspended"
-          text: "text_suspended", // "This order cannot be processed at this time due to the customer's suspended account status."
-          showCredit: false,
-          showOverdue: false,
-          isBlock: true,
-          buttonText: null, // No additional text needed
-        },
-        7: {
-          // Pop-up 7: Exceed Both, Credit Limit and Overdue Limit (Override)
-          alert: "alert_credit_overdue", // "Alert: Credit Limit and Overdue Limit Exceeded - Review Required"
-          text: "text_credit_overdue", // "The customer has exceeded both credit limit and overdue limit."
-          showCredit: true,
-          showOverdue: true,
-          isBlock: false,
-          buttonText: "text_4", // "Please confirm if you wants to save it."
-        },
-      };
-
-      const config = popupConfigs[popupNumber];
-      if (!config) return false;
-
-      // Show alert message
-      this.display(`dialog_credit_limit.${config.alert}`);
-
-      // Show description text
-      this.display(`dialog_credit_limit.${config.text}`);
-
-      const dataToSet = {};
-
-      // Show credit limit details if applicable
-      if (config.showCredit) {
-        this.display("dialog_credit_limit.total_allowed_credit");
-        this.display("dialog_credit_limit.total_credit");
-        dataToSet["dialog_credit_limit.total_allowed_credit"] = creditLimit;
-        dataToSet["dialog_credit_limit.total_credit"] =
-          revisedOutstandingAmount;
-      }
-
-      // Show overdue limit details if applicable
-      if (config.showOverdue) {
-        this.display("dialog_credit_limit.total_allowed_overdue");
-        this.display("dialog_credit_limit.total_overdue");
-        dataToSet["dialog_credit_limit.total_allowed_overdue"] = overdueLimit;
-        dataToSet["dialog_credit_limit.total_overdue"] = overdueAmount;
-      }
-
-      // Show action text if applicable
-      if (config.buttonText) {
-        this.display(`dialog_credit_limit.${config.buttonText}`);
-      }
-
-      // Show appropriate buttons
-      if (config.isBlock) {
-        this.display("dialog_credit_limit.button_back"); // "Back" button
-      } else {
-        this.display("dialog_credit_limit.button_yes"); // "Yes" button
-        this.display("dialog_credit_limit.button_no"); // "No" button
-      }
-
-      this.setData(dataToSet);
-      return false;
-    };
-
-    // Check if accuracy flag is set
-    if (controlTypes && Array.isArray(controlTypes)) {
-      // Define control type behaviors according to specification
-      const controlTypeChecks = {
-        // Control Type 0: Ignore both checks (always pass)
-        0: () => {
-          console.log("Control Type 0: Ignoring all credit/overdue checks");
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 1: Ignore credit, block overdue
-        1: () => {
-          if (overdueAmount > overdueLimit) {
-            return { result: showPopup(2), priority: "block" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 2: Ignore credit, override overdue
-        2: () => {
-          if (overdueAmount > overdueLimit) {
-            return { result: showPopup(4), priority: "override" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 3: Block credit, ignore overdue
-        3: () => {
-          if (revisedOutstandingAmount > creditLimit) {
-            return { result: showPopup(1), priority: "block" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 4: Block both
-        4: () => {
-          const creditExceeded = revisedOutstandingAmount > creditLimit;
-          const overdueExceeded = overdueAmount > overdueLimit;
-
-          if (creditExceeded && overdueExceeded) {
-            return { result: showPopup(3), priority: "block" };
-          } else if (creditExceeded) {
-            return { result: showPopup(1), priority: "block" };
-          } else if (overdueExceeded) {
-            return { result: showPopup(2), priority: "block" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 5: Block credit, override overdue
-        5: () => {
-          const creditExceeded = revisedOutstandingAmount > creditLimit;
-          const overdueExceeded = overdueAmount > overdueLimit;
-
-          // Credit limit block takes priority
-          if (creditExceeded) {
-            if (overdueExceeded) {
-              return { result: showPopup(3), priority: "block" };
-            } else {
-              return { result: showPopup(1), priority: "block" };
-            }
-          } else if (overdueExceeded) {
-            return { result: showPopup(4), priority: "override" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 6: Override credit, ignore overdue
-        6: () => {
-          if (revisedOutstandingAmount > creditLimit) {
-            return { result: showPopup(5), priority: "override" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 7: Override credit, block overdue
-        7: () => {
-          const creditExceeded = revisedOutstandingAmount > creditLimit;
-          const overdueExceeded = overdueAmount > overdueLimit;
-
-          // Overdue block takes priority over credit override
-          if (overdueExceeded) {
-            return { result: showPopup(2), priority: "block" };
-          } else if (creditExceeded) {
-            return { result: showPopup(5), priority: "override" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 8: Override both
-        8: () => {
-          const creditExceeded = revisedOutstandingAmount > creditLimit;
-          const overdueExceeded = overdueAmount > overdueLimit;
-
-          if (creditExceeded && overdueExceeded) {
-            return { result: showPopup(7), priority: "override" };
-          } else if (creditExceeded) {
-            return { result: showPopup(5), priority: "override" };
-          } else if (overdueExceeded) {
-            return { result: showPopup(4), priority: "override" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 9: Suspended customer
-        9: () => {
-          return { result: showPopup(6), priority: "block" };
-        },
-      };
-
-      // Process according to specification:
-      // "Ignore parameter with unblock > check for parameter with block's first > if not block only proceed to check for override"
-
-      // First, collect all applicable control types for Sales Orders
-      const applicableControls = controlTypes
-        .filter((ct) => ct.document_type === "Goods Delivery")
-        .map((ct) => {
-          const checkResult = controlTypeChecks[ct.control_type]
-            ? controlTypeChecks[ct.control_type]()
-            : { result: true, priority: "unblock" };
-          return {
-            ...checkResult,
-            control_type: ct.control_type,
-          };
-        });
-
-      // Sort by priority: blocks first, then overrides, then unblocks
-      const priorityOrder = { block: 1, override: 2, unblock: 3 };
-      applicableControls.sort(
-        (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
-      );
-
-      // Process in priority order
-      for (const control of applicableControls) {
-        if (control.result !== true) {
-          console.log(
-            `Control Type ${control.control_type} triggered with ${control.priority}`
-          );
-          return control.result;
-        }
-      }
-
-      // All checks passed
-      return true;
-    } else {
-      console.log(
-        "No control type defined for customer or invalid control type format"
-      );
-      return true;
-    }
-  } catch (error) {
-    console.error("Error checking credit/overdue limits:", error);
-    this.$alert(
-      "An error occurred while checking credit limits. Please try again.",
-      "Error",
-      {
-        confirmButtonText: "OK",
-        type: "error",
-      }
-    );
-    return false;
-  }
 };
 
 const addEntry = async (organizationId, gd) => {
@@ -1458,7 +1145,7 @@ const addEntry = async (organizationId, gd) => {
     console.log("Goods delivery created successfully with ID:", gdId);
 
     // Process balance table with the created record
-    await processBalanceTable(gd, false);
+    await processBalanceTableWithValidation(gd, false);
 
     return gdId; // Return the created ID
   } catch (error) {
@@ -1488,7 +1175,7 @@ const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
     }
 
     await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
-    await processBalanceTable(gd, true, oldDeliveryNo, gdStatus);
+    await processBalanceTableWithValidation(gd, true, oldDeliveryNo, gdStatus);
 
     console.log("Goods delivery updated successfully");
     return goodsDeliveryId;
@@ -1956,7 +1643,10 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
           reserved_qty: tempItem.gd_quantity,
           delivered_qty: 0,
           open_qty: tempItem.gd_quantity,
-          gd_reserved_date: new Date().toISOString().split("T")[0],
+          gd_reserved_date: new Date()
+            .toISOString()
+            .slice(0, 19)
+            .replace("T", " "),
           plant_id: gdData.plant_id,
           organization_id: organizationId,
           updated_by: this.getVarGlobal("nickname"),
@@ -2061,7 +1751,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     }
 
     // Validate items
-    for (const [index, item] of data.table_gd.entries()) {
+    for (const [index] of data.table_gd.entries()) {
       await this.validate(`table_gd.${index}.gd_qty`);
     }
 
@@ -2117,22 +1807,6 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
           picking_required: 1,
         })
         .get();
-
-      if (pickingSetupResponse.data.length > 0) {
-        if (data.acc_integration_type !== null) {
-          const canProceed = await checkCreditOverdueLimit(
-            data.customer_name,
-            data.gd_total
-          );
-          if (!canProceed) {
-            console.log("Credit/overdue limit check failed");
-            this.hideLoading();
-            return;
-          }
-        }
-
-        console.log("Credit/overdue limit check passed");
-      }
 
       // Handle previous quantities for updates (existing logic)
       if (page_status === "Edit" && data.id && Array.isArray(data.table_gd)) {
@@ -2306,6 +1980,15 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     }
   } catch (error) {
     this.hideLoading();
+
+    // Handle inventory validation rejection gracefully
+    if (error.message === "Inventory validation failed") {
+      // Alert dialog already shown, just return without showing additional error
+      console.log(
+        "Inventory validation failed - user notified via alert dialog"
+      );
+      return;
+    }
 
     let errorMessage = "";
     if (error && typeof error === "object") {

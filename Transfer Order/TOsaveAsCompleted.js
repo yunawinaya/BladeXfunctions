@@ -742,6 +742,7 @@ const roundPrice = (value) => {
 };
 
 const processBalanceTable = async (
+  toData,
   data,
   isUpdate,
   plantId,
@@ -980,9 +981,9 @@ const processBalanceTable = async (
                 );
 
                 const inventoryMovementData = {
-                  transaction_type: "GDL",
-                  trx_no: data.delivery_no,
-                  parent_trx_no: item.line_so_no,
+                  transaction_type: "TO - PICK",
+                  trx_no: toData.to_id,
+                  parent_trx_no: data.delivery_no,
                   movement: "OUT",
                   unit_price: unitPrice,
                   total_price: totalPrice,
@@ -1034,9 +1035,9 @@ const processBalanceTable = async (
                   );
 
                   const reservedMovementData = {
-                    transaction_type: "GDL",
-                    trx_no: data.delivery_no,
-                    parent_trx_no: item.line_so_no,
+                    transaction_type: "TO - PICK",
+                    trx_no: toData.to_id,
+                    parent_trx_no: data.delivery_no,
                     movement: "OUT",
                     unit_price: unitPrice,
                     total_price: reservedTotalPrice,
@@ -1073,9 +1074,9 @@ const processBalanceTable = async (
                   );
 
                   const unrestrictedMovementData = {
-                    transaction_type: "GDL",
-                    trx_no: data.delivery_no,
-                    parent_trx_no: item.line_so_no,
+                    transaction_type: "TO - PICK",
+                    trx_no: toData.to_id,
+                    parent_trx_no: data.delivery_no,
                     movement: "OUT",
                     unit_price: unitPrice,
                     total_price: unrestrictedTotalPrice,
@@ -1128,9 +1129,9 @@ const processBalanceTable = async (
 
                   // Create movement to release unused reserved back to unrestricted
                   const releaseReservedMovementData = {
-                    transaction_type: "GDL",
-                    trx_no: data.delivery_no,
-                    parent_trx_no: item.line_so_no,
+                    transaction_type: "TO - PICK",
+                    trx_no: toData.to_id,
+                    parent_trx_no: data.delivery_no,
                     movement: "OUT",
                     unit_price: unitPrice,
                     total_price: roundPrice(unitPrice * unusedAltQty),
@@ -1148,9 +1149,9 @@ const processBalanceTable = async (
                   };
 
                   const returnUnrestrictedMovementData = {
-                    transaction_type: "GDL",
-                    trx_no: data.delivery_no,
-                    parent_trx_no: item.line_so_no,
+                    transaction_type: "TO - PICK",
+                    trx_no: toData.to_id,
+                    parent_trx_no: data.delivery_no,
                     movement: "IN",
                     unit_price: unitPrice,
                     total_price: roundPrice(unitPrice * unusedAltQty),
@@ -1638,6 +1639,7 @@ const findFieldMessage = (obj) => {
 };
 
 const updateGoodsDelivery = async (
+  toData,
   gdId,
   isAutoCompleteGD = 0,
   organizationId
@@ -1662,6 +1664,7 @@ const updateGoodsDelivery = async (
         gd_status: "Completed",
       });
       await processBalanceTable(
+        toData,
         gdData,
         false,
         gdData.plant_id,
@@ -1952,7 +1955,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
       }
 
       detailMessage +=
-        "Please complete all picking or save as Draft to continue later.";
+        "Please complete all picking or save as In Progress to continue later.";
 
       this.hideLoading();
 
@@ -2022,11 +2025,21 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     // Perform action based on page status
     if (page_status === "Add") {
       await addEntry(organizationId, toData);
-      await updateGoodsDelivery(data.gd_no, isAutoCompleteGD, organizationId);
+      await updateGoodsDelivery(
+        toData,
+        data.gd_no,
+        isAutoCompleteGD,
+        organizationId
+      );
     } else if (page_status === "Edit") {
       toId = data.id;
       await updateEntry(organizationId, toData, toId, originalToStatus);
-      await updateGoodsDelivery(data.gd_no, isAutoCompleteGD, organizationId);
+      await updateGoodsDelivery(
+        toData,
+        data.gd_no,
+        isAutoCompleteGD,
+        organizationId
+      );
     }
 
     // Success message with status information

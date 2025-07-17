@@ -94,6 +94,19 @@ class StockAdjuster {
       let unitPriceConverted = item.unit_price || 0;
 
       if (
+        movementType === "Location Transfer" &&
+        allData.is_production_order === 1
+      ) {
+        for (const sm of subformData) {
+          if (sm.requested_qty !== sm.total_quantity) {
+            throw new Error(
+              "Total quantity is not equal to requested quantity."
+            );
+          }
+        }
+      }
+
+      if (
         movementType === "Miscellaneous Receipt" &&
         item.received_quantity_uom
       ) {
@@ -304,21 +317,35 @@ class StockAdjuster {
       table_item_balance: table_item_balance,
       remarks: allData.remarks,
       delivery_method: allData.delivery_method,
-      driver_name: allData.driver_name,
-      vehicle_no: allData.vehicle_no,
-      pickup_date: allData.pickup_date,
-      courier_company: allData.courier_company,
-      tracking_number: allData.tracking_number,
-      est_arrival_date: allData.est_arrival_date,
-      freight_charges: allData.freight_charges,
-      driver_contact_no: allData.driver_contact_no,
-      delivery_cost: allData.delivery_cost,
-      est_delivery_date: allData.est_delivery_date,
-      shipping_company: allData.shipping_company,
-      shipping_method: allData.shipping_method,
-      date_qn0dl3t6: allData.date_qn0dl3t6,
-      input_77h4nsq8: allData.input_77h4nsq8,
-      tracking_no: allData.tracking_no,
+
+      cp_driver_name: allData.cp_driver_name,
+      cp_ic_no: allData.cp_ic_no,
+      cp_driver_contact_no: allData.cp_driver_contact_no,
+      cp_vehicle_number: allData.cp_vehicle_number,
+      cp_pickup_date: allData.cp_pickup_date,
+      cp_validity_collection: allData.cp_validity_collection,
+      cs_courier_company: allData.cs_courier_company,
+      cs_shipping_date: allData.cs_shipping_date,
+      cs_tracking_number: allData.cs_tracking_number,
+      cs_est_arrival_date: allData.cs_est_arrival_date,
+      cs_freight_charges: allData.cs_freight_charges,
+      ct_driver_name: allData.ct_driver_name,
+      ct_driver_contact_no: allData.ct_driver_contact_no,
+      ct_ic_no: allData.ct_ic_no,
+      ct_vehicle_number: allData.ct_vehicle_number,
+      ct_est_delivery_date: allData.ct_est_delivery_date,
+      ct_delivery_cost: allData.ct_delivery_cost,
+      ss_shipping_company: allData.ss_shipping_company,
+      ss_shipping_date: allData.ss_shipping_date,
+      ss_freight_charges: allData.ss_freight_charges,
+      ss_shipping_method: allData.ss_shipping_method,
+      ss_est_arrival_date: allData.ss_est_arrival_date,
+      ss_tracking_number: allData.ss_tracking_number,
+      tpt_vehicle_number: allData.tpt_vehicle_number,
+      tpt_transport_name: allData.tpt_transport_name,
+      tpt_ic_no: allData.tpt_ic_no,
+      tpt_driver_contact_no: allData.tpt_driver_contact_no,
+
       balance_index: allData.balance_index,
       organization_id: organizationId,
       posted_status: postedStatus,
@@ -444,22 +471,16 @@ class StockAdjuster {
         ...stockMovementData,
       });
 
-      // return new Promise((resolve, reject) => {
-      //       this.runWorkflow(
-      //         "1921755711809626113",
-      //         { stock_movement_no: stockMovementData.stock_movement_no },
-      //         (res) => {
-      //           console.log("Workflow success:", res);
-      //           resolve(result); // Resolve with original DB result
-      //         },
-      //         (err) => {
-      //           console.error("Workflow error:", err);
-      //           // Still resolve with the DB result, as the SM is created/updated successfully
-      //           // Just log the workflow error, don't reject the whole operation
-      //           resolve(result);
-      //         }
-      //       );
-      //     });
+      this.runWorkflow(
+        "1921755711809626113",
+        { stock_movement_no: stockMovementData.stock_movement_no },
+        (res) => {
+          console.log("Workflow success:", res);
+        },
+        (err) => {
+          console.error("Workflow error:", err);
+        }
+      );
     } else if (page_status === "Edit") {
       if (!stockMovementNo) {
         throw new Error("Stock movement number is required for editing");
@@ -487,22 +508,16 @@ class StockAdjuster {
           ...stockMovementData,
         });
 
-      // return new Promise((resolve, reject) => {
-      //     this.runWorkflow(
-      //       "1921755711809626113",
-      //       { stock_movement_no: stockMovementData.stock_movement_no },
-      //       (res) => {
-      //         console.log("Workflow success:", res);
-      //         resolve(result); // Resolve with original DB result
-      //       },
-      //       (err) => {
-      //         console.error("Workflow error:", err);
-      //         // Still resolve with the DB result, as the SM is created/updated successfully
-      //         // Just log the workflow error, don't reject the whole operation
-      //         resolve(result);
-      //       }
-      //     );
-      //   });
+      await this.runWorkflow(
+        "1921755711809626113",
+        { stock_movement_no: stockMovementData.stock_movement_no },
+        (res) => {
+          console.log("Workflow success:", res);
+        },
+        (err) => {
+          console.error("Workflow error:", err);
+        }
+      );
       console.log("Stock Movement Updated:", result);
     }
   }
@@ -868,11 +883,11 @@ class StockAdjuster {
     } else {
       console.log("Updating existing balance record");
       const updateFields = {
-        balance_quantity: updateData.balance_quantity,
-        unrestricted_qty: updateData.unrestricted_qty,
-        qualityinsp_qty: updateData.qualityinsp_qty,
-        block_qty: updateData.block_qty,
-        reserved_qty: updateData.reserved_qty,
+        balance_quantity: parseFloat(updateData.balance_quantity.toFixed(3)),
+        unrestricted_qty: parseFloat(updateData.unrestricted_qty.toFixed(3)),
+        qualityinsp_qty: parseFloat(updateData.qualityinsp_qty.toFixed(3)),
+        block_qty: parseFloat(updateData.block_qty.toFixed(3)),
+        reserved_qty: parseFloat(updateData.reserved_qty.toFixed(3)),
         update_time: updateData.update_time,
         update_user: updateData.update_user,
         plant_id: updateData.plant_id,
@@ -1021,11 +1036,11 @@ class StockAdjuster {
       );
     } else {
       const updateFields = {
-        balance_quantity: updateData.balance_quantity,
-        unrestricted_qty: updateData.unrestricted_qty,
-        qualityinsp_qty: updateData.qualityinsp_qty,
-        block_qty: updateData.block_qty,
-        reserved_qty: updateData.reserved_qty,
+        balance_quantity: parseFloat(updateData.balance_quantity.toFixed(3)),
+        unrestricted_qty: parseFloat(updateData.unrestricted_qty.toFixed(3)),
+        qualityinsp_qty: parseFloat(updateData.qualityinsp_qty.toFixed(3)),
+        block_qty: parseFloat(updateData.block_qty.toFixed(3)),
+        reserved_qty: parseFloat(updateData.reserved_qty.toFixed(3)),
         update_time: updateData.update_time,
         update_user: updateData.update_user,
         plant_id: updateData.plant_id,
@@ -1045,13 +1060,6 @@ class StockAdjuster {
         `Updated existing ${collectionName} record for batch ${balance.batch_id} at location ${receivingLocationId}`
       );
     }
-  }
-
-  async updatePendingReceive(materialId, receivedQty, allData) {
-    const pendingRecQuery = await this.db
-      .collection("stock_movement")
-      .where({ stock_movement_no: allData.stock_movement_no })
-      .get();
   }
 
   async createBatch(
@@ -1949,21 +1957,8 @@ class StockAdjuster {
       console.log("⭐ Validation successful - all checks passed");
       return true;
     } catch (error) {
-      // Step 8: Handle errors (excluding required fields, which are handled above)
       console.error("Error in preCheckQuantitiesAndCosting:", error.message);
-      // if (error.message.includes('Please fill in all required fields')) {
-      //     // Skip popup for required fields errors, as they are already handled as alerts
-      //     throw error;
-      // }
-      if (context && context.parentGenerateForm) {
-        context.parentGenerateForm.$alert(error.message, "Validation Error", {
-          confirmButtonText: "OK",
-          type: "error",
-        });
-      } else {
-        alert(error.message);
-      }
-      console.error("❌ Validation failed with error:", error.message);
+
       throw error;
     }
   }
@@ -1978,15 +1973,8 @@ async function processFormData(db, formData, context, organizationId) {
     adjuster.getParamsVariables = context.getParamsVariables.bind(context);
     //adjuster.getParamsVariables = this.getParamsVariables('page_status');
     adjuster.parentGenerateForm = context.parentGenerateForm;
+    adjuster.runWorkflow = context.runWorkflow.bind(context); // Bind the original context
   }
-
-  const closeDialog = () => {
-    if (context.parentGenerateForm) {
-      context.parentGenerateForm.$refs.SuPageDialogRef.hide();
-      context.parentGenerateForm.refresh();
-      context.hideLoading();
-    }
-  };
 
   try {
     console.log("🔍 About to run validation checks");
@@ -2005,10 +1993,97 @@ async function processFormData(db, formData, context, organizationId) {
   } catch (error) {
     console.error("❌ Error in processFormData:", error.message);
     throw error;
-  } finally {
-    closeDialog();
   }
 }
+
+const processRow = async (item, organizationId) => {
+  if (item.batch_id === "Auto-generated batch number") {
+    const resBatchConfig = await db
+      .collection("batch_level_config")
+      .where({ organization_id: organizationId })
+      .get();
+
+    if (resBatchConfig && resBatchConfig.data.length > 0) {
+      const batchConfigData = resBatchConfig.data[0];
+
+      let batchPrefix = batchConfigData.batch_prefix || "";
+      if (batchPrefix) batchPrefix += "-";
+
+      const generatedBatchNo =
+        batchPrefix +
+        String(batchConfigData.batch_running_number).padStart(10, "0");
+
+      item.batch_id = generatedBatchNo;
+      await db
+        .collection("batch_level_config")
+        .where({ id: batchConfigData.id })
+        .update({
+          batch_running_number: batchConfigData.batch_running_number + 1,
+        });
+
+      return item;
+    }
+  } else {
+    return item;
+  }
+};
+
+const findFieldMessage = (obj) => {
+  // Base case: if current object has the structure we want
+  if (obj && typeof obj === "object") {
+    if (obj.field && obj.message) {
+      return obj.message;
+    }
+
+    // Check array elements
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = findFieldMessage(item);
+        if (found) return found;
+      }
+    }
+
+    // Check all object properties
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const found = findFieldMessage(obj[key]);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
+};
+
+const updateItemTransactionDate = async (entry) => {
+  try {
+    const tableSM = entry.stock_movement;
+
+    const uniqueItemIds = [
+      ...new Set(
+        tableSM
+          .filter((item) => item.item_selection)
+          .map((item) => item.item_selection)
+      ),
+    ];
+
+    const date = new Date().toISOString();
+    for (const [index, item] of uniqueItemIds.entries()) {
+      try {
+        await db
+          .collection("Item")
+          .doc(item)
+          .update({ last_transaction_date: date });
+      } catch (error) {
+        throw new Error(
+          `Cannot update last transaction date for item #${index + 1}.`,
+          error
+        );
+      }
+    }
+  } catch (error) {
+    throw new Error(error);
+  }
+};
 
 // Add this at the bottom of your Save as Completed button handler
 const self = this;
@@ -2017,26 +2092,63 @@ let organizationId = this.getVarGlobal("deptParentId");
 if (organizationId === "0") {
   organizationId = this.getVarSystem("deptIds").split(",")[0];
 }
-this.showLoading();
 
-processFormData(db, allData, self, organizationId)
-  .then((results) => {
+const processStockMovements = async () => {
+  try {
+    const processedTableSM = [];
+    for (const [index, item] of allData.stock_movement.entries()) {
+      await self.validate(`stock_movement.${index}.batch_id`);
+
+      const processedItem = await processRow(item, organizationId);
+      processedTableSM.push(processedItem);
+    }
+
+    // Wait for all processRow calls to complete
+    allData.stock_movement = processedTableSM;
+
+    console.log("this.getVarGlobal", this.getVarGlobal("deptParentId"));
+    self.showLoading();
+
+    console.log("Starting processFormData with data:", JSON.stringify(allData));
+
+    // Now processFormData will receive allData with resolved stock_movement array
+    const results = await processFormData(db, allData, self, organizationId);
+    console.log(
+      "ProcessFormData completed successfully with results:",
+      results
+    );
+
     if (allData.page_status === "Add") {
+      console.log("New stock movement created:", results);
       self.hideLoading();
+      await updateItemTransactionDate(allData);
       self.$message.success("Stock movement created successfully");
       self.parentGenerateForm.$refs.SuPageDialogRef.hide();
       self.parentGenerateForm.refresh();
     } else if (allData.page_status === "Edit") {
+      console.log("Stock movement updated:", results);
       self.hideLoading();
+      await updateItemTransactionDate(allData);
       self.$message.success("Stock movement updated successfully");
       self.parentGenerateForm.$refs.SuPageDialogRef.hide();
       self.parentGenerateForm.refresh();
     }
-  })
-  .catch((error) => {
-    console.error("Error in processFormData:", error);
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
+  } catch (error) {
     self.hideLoading();
-    self.$message.error(error.message || "An unknown error occurred");
-  });
+
+    // Try to get message from standard locations first
+    let errorMessage = "";
+
+    if (error && typeof error === "object") {
+      errorMessage = findFieldMessage(error) || "An error occurred";
+    } else {
+      errorMessage = error;
+    }
+
+    self.$message.error(errorMessage);
+    console.error(errorMessage);
+  }
+};
+
+// Call the async function
+processStockMovements();

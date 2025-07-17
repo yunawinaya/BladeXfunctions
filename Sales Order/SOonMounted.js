@@ -50,8 +50,13 @@ const findUniquePrefix = async (prefixData, organizationId) => {
 
 const setPrefix = async (organizationId) => {
   const prefixData = await getPrefixData(organizationId);
-  const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
-  this.setData({ so_no: prefixToShow });
+  let newPrefix = "";
+
+  if (prefixData.is_active === 1) {
+    const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
+    newPrefix = prefixToShow;
+  }
+  this.setData({ so_no: newPrefix });
 };
 
 const getPrefixData = async (organizationId) => {
@@ -117,7 +122,7 @@ const displayCurrency = async () => {
 };
 
 const disabledField = async (status) => {
-  if (status !== "Draft") {
+  if (status !== "Draft" && status !== "Issued") {
     this.disabled(
       [
         "so_status",
@@ -201,6 +206,8 @@ const disabledField = async (status) => {
       "link_billing_address",
       "link_shipping_address",
     ]);
+  } else if (status === "Issued") {
+    this.hide("button_save_as_draft");
   }
 };
 
@@ -262,6 +269,63 @@ const displayTax = async () => {
   }
 };
 
+const enabledUOMField = async () => {
+  const tableSO = this.getValue("table_so");
+
+  tableSO.forEach((so, rowIndex) => {
+    if (so.item_name || so.so_desc !== "") {
+      this.triggerEvent("onChange_item", { soItem: so, index: rowIndex });
+      this.disabled([`table_so.${rowIndex}.so_item_uom`], false);
+    }
+  });
+};
+
+const checkAccIntegrationType = async (organizationId) => {
+  if (organizationId) {
+    const resAI = await db
+      .collection("accounting_integration")
+      .where({ organization_id: organizationId })
+      .get();
+
+    if (resAI && resAI.data.length > 0) {
+      const aiData = resAI.data[0];
+
+      this.setData({ acc_integration_type: aiData.acc_integration_type });
+    }
+  }
+};
+
+const cloneResetQuantity = async (status) => {
+  if (status === "Processing" || status === "Completed") {
+    const tableSO = this.getValue("table_so");
+
+    for (const so of tableSO) {
+      so.delivered_qty = 0;
+      so.return_qty = 0;
+      so.invoice_qty = 0;
+      so.posted_qty = 0;
+      so.production_qty = 0;
+      so.production_status = "";
+    }
+
+    this.setData({ table_so: tableSO });
+  }
+};
+
+const setPlant = (organizationId, pageStatus) => {
+  const currentDept = this.getVarSystem("deptIds").split(",")[0];
+
+  if (currentDept === organizationId) {
+    this.disabled("plant_name", false);
+  } else {
+    this.disabled("plant_name", true);
+
+    if (pageStatus === "Add") {
+      this.setData({ plant_name: currentDept });
+    }
+  }
+};
+
 (async () => {
   try {
     const status = await this.getValue("so_status");
@@ -302,16 +366,21 @@ const displayTax = async () => {
     switch (pageStatus) {
       case "Add":
         this.display(["draft_status"]);
+        await checkAccIntegrationType(organizationId);
         await setPrefix(organizationId);
+        await setPlant(organizationId, pageStatus);
         this.setData({ so_date: new Date().toISOString().split("T")[0] });
         break;
 
       case "Edit":
+        await checkAccIntegrationType(organizationId);
+        await enabledUOMField();
         await disabledField(status);
         await getPrefixData(organizationId);
         await showStatusHTML(status);
         await displayCurrency();
         await displayTax();
+        await setPlant(organizationId, pageStatus);
         await displayDeliveryMethod();
         if (this.getValue("sqt_no")) {
           this.display("sqt_no");
@@ -325,6 +394,13 @@ const displayTax = async () => {
         if (this.getValue("sqt_no")) {
           this.display("sqt_no");
         }
+        this.setData({ so_date: new Date().toISOString().split("T")[0] });
+        await enabledUOMField();
+        await cloneResetQuantity(status);
+        await checkAccIntegrationType(organizationId);
+        await displayCurrency();
+        await displayTax();
+        await displayDeliveryMethod();
         break;
 
       case "View":

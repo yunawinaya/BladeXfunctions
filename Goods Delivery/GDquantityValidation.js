@@ -53,15 +53,9 @@
             (100 + resItem.data[0].over_delivery_tolerance)) /
           100;
 
-        const resGD = await db
-          .collection("goods_delivery")
-          .where({ id: data.id })
-          .get();
-
-        const prevGDQty = resGD?.data[0]?.table_gd[rowIndex]?.gd_qty;
         if (
           gdStatus === "Created" &&
-          reserved_field - prevGDQty + unrestricted_field < parsedValue
+          reserved_field + unrestricted_field < parsedValue
         ) {
           window.validationState[index] = false;
           callback("Quantity is not enough");

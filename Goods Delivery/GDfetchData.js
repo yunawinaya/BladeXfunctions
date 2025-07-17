@@ -41,6 +41,7 @@ if (!window.globalAllocationTracker) {
 }
 
 // Function to perform automatic allocation for eligible items
+// Fixed version of the batch allocation logic
 const performAutomaticAllocation = async (
   materialId,
   rowIndex,
@@ -104,17 +105,9 @@ const performAutomaticAllocation = async (
       .where({ plant_id: plantId, movement_type: "Good Delivery" })
       .get();
 
-    // DEBUG: Log picking setup response
-    console.log(`DEBUG - Picking setup response for plant ${plantId}:`, {
-      response: pickingSetupResponse,
-      data: pickingSetupResponse.data,
-      dataLength: pickingSetupResponse.data?.length,
-    });
-
     let pickingMode, defaultStrategy, fallbackStrategy;
     if (!pickingSetupResponse?.data?.length) {
       console.log("No picking setup found, using default values");
-      // Set default values to prevent errors
       pickingMode = "Manual";
       defaultStrategy = "RANDOM";
     } else {
@@ -158,8 +151,9 @@ const performAutomaticAllocation = async (
 
     let allAllocations = [];
 
-    // Handle batch-managed items
+    // Handle batch-managed items - FIXED VERSION
     if (itemData.item_batch_management === 1) {
+      // Get ALL batches for this material, not just the first one
       const batchResult = await db
         .collection("batch")
         .where({
@@ -174,8 +168,7 @@ const performAutomaticAllocation = async (
         return;
       }
 
-      const batchData = batchResult.data[0];
-
+      // Get all batch balances
       const batchBalanceResult = await db
         .collection("item_batch_balance")
         .where({
@@ -195,6 +188,7 @@ const performAutomaticAllocation = async (
         true
       );
 
+      // Process allocation with ALL batch data
       allAllocations = await processAutoAllocation(
         adjustedBalances,
         defaultBin,
@@ -202,7 +196,7 @@ const performAutomaticAllocation = async (
         defaultStrategy,
         fallbackStrategy,
         true,
-        batchData
+        batchResult.data // Pass ALL batch data, not just first one
       );
     } else if (itemData.item_batch_management === 0) {
       const itemBalanceResult = await db
@@ -320,7 +314,7 @@ const performAutomaticAllocation = async (
   }
 };
 
-// Helper function to process auto allocation strategies
+// FIXED Helper function to process auto allocation strategies
 const processAutoAllocation = async (
   balances,
   defaultBin,
@@ -328,7 +322,7 @@ const processAutoAllocation = async (
   defaultStrategy,
   fallbackStrategy,
   isBatchManaged,
-  batchData = null
+  batchDataArray = null // Now accepts array of all batches
 ) => {
   let allAllocations = [];
   let remainingQty = quantity;
@@ -347,27 +341,56 @@ const processAutoAllocation = async (
     }
   };
 
+  // Helper function to find batch data by batch_id
+  const findBatchData = (batchId) => {
+    if (!isBatchManaged || !batchDataArray) return null;
+    return batchDataArray.find((batch) => batch.id === batchId) || null;
+  };
+
   if (defaultStrategy === "FIXED BIN") {
     if (defaultBin) {
-      // Try fixed bin first
-      const defaultBinBalance = balances.find(
-        (balance) => balance.location_id === defaultBin
+      // Try fixed bin first - handle multiple batches in the same bin
+      const defaultBinBalances = balances.filter(
+        (balance) =>
+          balance.location_id === defaultBin &&
+          (balance.unrestricted_qty || 0) > 0
       );
 
-      if (defaultBinBalance) {
-        const availableQty = defaultBinBalance.unrestricted_qty || 0;
+      // Sort by batch expiry date or batch number for consistent allocation
+      if (isBatchManaged) {
+        defaultBinBalances.sort((a, b) => {
+          const batchA = findBatchData(a.batch_id);
+          const batchB = findBatchData(b.batch_id);
+
+          // Sort by expiry date first (FIFO), then by batch number
+          if (batchA?.expiry_date && batchB?.expiry_date) {
+            return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+          }
+          return (batchA?.batch_number || "").localeCompare(
+            batchB?.batch_number || ""
+          );
+        });
+      }
+
+      // Allocate from fixed bin balances
+      for (const balance of defaultBinBalances) {
+        if (remainingQty <= 0) break;
+
+        const availableQty = balance.unrestricted_qty || 0;
         const allocatedQty = Math.min(remainingQty, availableQty);
 
         if (allocatedQty > 0) {
-          const binDetails = await getBinLocationDetails(
-            defaultBinBalance.location_id
-          );
+          const binDetails = await getBinLocationDetails(balance.location_id);
           if (binDetails) {
+            const batchData = isBatchManaged
+              ? findBatchData(balance.batch_id)
+              : null;
+
             allAllocations.push({
-              balance: defaultBinBalance,
+              balance: balance,
               quantity: allocatedQty,
               binLocation: binDetails.bin_location_combine,
-              batchData: isBatchManaged ? batchData : null,
+              batchData: batchData,
             });
             remainingQty -= allocatedQty;
           }
@@ -377,13 +400,31 @@ const processAutoAllocation = async (
 
     // Use fallback strategy for remaining quantity
     if (remainingQty > 0 && fallbackStrategy === "RANDOM") {
-      const availableBalances = balances
-        .filter(
-          (balance) =>
-            balance.location_id !== defaultBin &&
-            (balance.unrestricted_qty || 0) > 0
-        )
-        .sort((a, b) => balances.indexOf(a) - balances.indexOf(b));
+      const availableBalances = balances.filter(
+        (balance) =>
+          balance.location_id !== defaultBin &&
+          (balance.unrestricted_qty || 0) > 0
+      );
+
+      // Sort by batch expiry date for batch-managed items
+      if (isBatchManaged) {
+        availableBalances.sort((a, b) => {
+          const batchA = findBatchData(a.batch_id);
+          const batchB = findBatchData(b.batch_id);
+
+          if (batchA?.expiry_date && batchB?.expiry_date) {
+            return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+          }
+          return (batchA?.batch_number || "").localeCompare(
+            batchB?.batch_number || ""
+          );
+        });
+      } else {
+        // For non-batch items, maintain original order
+        availableBalances.sort(
+          (a, b) => balances.indexOf(a) - balances.indexOf(b)
+        );
+      }
 
       for (const balance of availableBalances) {
         if (remainingQty <= 0) break;
@@ -394,11 +435,15 @@ const processAutoAllocation = async (
         if (allocatedQty > 0) {
           const binDetails = await getBinLocationDetails(balance.location_id);
           if (binDetails) {
+            const batchData = isBatchManaged
+              ? findBatchData(balance.batch_id)
+              : null;
+
             allAllocations.push({
               balance: balance,
               quantity: allocatedQty,
               binLocation: binDetails.bin_location_combine,
-              batchData: isBatchManaged ? batchData : null,
+              batchData: batchData,
             });
             remainingQty -= allocatedQty;
           }
@@ -406,10 +451,30 @@ const processAutoAllocation = async (
       }
     }
   } else if (defaultStrategy === "RANDOM") {
-    // Direct random allocation
-    const availableBalances = balances
-      .filter((balance) => (balance.unrestricted_qty || 0) > 0)
-      .sort((a, b) => balances.indexOf(a) - balances.indexOf(b));
+    // Direct random allocation - handle multiple batches
+    const availableBalances = balances.filter(
+      (balance) => (balance.unrestricted_qty || 0) > 0
+    );
+
+    // Sort by batch expiry date for batch-managed items (FIFO)
+    if (isBatchManaged) {
+      availableBalances.sort((a, b) => {
+        const batchA = findBatchData(a.batch_id);
+        const batchB = findBatchData(b.batch_id);
+
+        if (batchA?.expiry_date && batchB?.expiry_date) {
+          return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+        }
+        return (batchA?.batch_number || "").localeCompare(
+          batchB?.batch_number || ""
+        );
+      });
+    } else {
+      // For non-batch items, maintain original order
+      availableBalances.sort(
+        (a, b) => balances.indexOf(a) - balances.indexOf(b)
+      );
+    }
 
     for (const balance of availableBalances) {
       if (remainingQty <= 0) break;
@@ -420,11 +485,15 @@ const processAutoAllocation = async (
       if (allocatedQty > 0) {
         const binDetails = await getBinLocationDetails(balance.location_id);
         if (binDetails) {
+          const batchData = isBatchManaged
+            ? findBatchData(balance.batch_id)
+            : null;
+
           allAllocations.push({
             balance: balance,
             quantity: allocatedQty,
             binLocation: binDetails.bin_location_combine,
-            batchData: isBatchManaged ? batchData : null,
+            batchData: batchData,
           });
           remainingQty -= allocatedQty;
         }
