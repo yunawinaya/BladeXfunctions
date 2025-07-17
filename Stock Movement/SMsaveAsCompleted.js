@@ -1786,16 +1786,8 @@ class StockAdjuster {
           "issue_date",
           "issuing_operation_faci",
         ];
-
-        if (
-          allData.movement_type === "Miscellaneous Receipt" ||
-          allData.movement_type === "Location Transfer"
-        ) {
-          requiredTopLevelFields.push("stock_movement.location_id");
-        }
         this.validateRequiredFields(allData, requiredTopLevelFields);
       } catch (error) {
-        // Show required fields error as an alert
         if (context && context.parentGenerateForm) {
           context.parentGenerateForm.$alert(
             error.message,
@@ -1808,7 +1800,7 @@ class StockAdjuster {
         } else {
           alert(error.message);
         }
-        throw error; // Stop further processing
+        throw error;
       }
 
       // Step 2: Get movement type details
@@ -1820,141 +1812,228 @@ class StockAdjuster {
         throw new Error("Stock movement items are required");
       }
 
+      if (
+        movementType === "Miscellaneous Receipt" ||
+        movementType === "Location Transfer"
+      ) {
+        for (let i = 0; i < subformData.length; i++) {
+          const item = subformData[i];
+          if (!item.location_id) {
+            throw new Error(
+              `Location ID is required for item ${i + 1} in stock movement`
+            );
+          }
+        }
+      }
+
       // Step 4: Perform item validations and quantity checks
       await this.preValidateItems(subformData, movementType, allData);
 
-      // Step 5: Check quantities and costing records for deduction movements
-      for (const item of subformData) {
-        const materialResponse = await this.db
-          .collection("Item")
-          .where({ id: item.item_selection })
-          .get();
-        const materialData = materialResponse.data[0];
-        if (!materialData) {
-          throw new Error(`Material not found: ${item.item_selection}`);
-        }
-        if (!materialData.based_uom) {
-          throw new Error(
-            `Base UOM is missing for item ${item.item_selection}`
-          );
-        }
+      // Step 5: ENHANCED LOGIC - Aggregate quantities by location and material for deduction movements
+      if (
+        ["Miscellaneous Issue", "Disposal/Scrap", "Location Transfer"].includes(
+          movementType
+        )
+      ) {
+        console.log("🔍 Starting quantity aggregation for deduction movements");
+
+        // Get all balance indices to process
         const balancesToProcess =
           allData.balance_index?.filter(
             (balance) => balance.sm_quantity && balance.sm_quantity > 0
           ) || [];
 
-        if (
-          [
-            "Miscellaneous Issue",
-            "Disposal/Scrap",
-            "Location Transfer",
-          ].includes(movementType)
-        ) {
-          for (const balance of balancesToProcess) {
-            const collectionName =
-              materialData.item_batch_management == "1"
-                ? "item_batch_balance"
-                : "item_balance";
-            const balanceResponse = await this.db
-              .collection(collectionName)
-              .where({
-                material_id: materialData.id,
-                location_id: balance.location_id,
-              })
-              .get();
-            const balanceData = balanceResponse.data[0];
+        console.log("📊 Balances to process:", balancesToProcess);
 
-            // if (!balanceData) {
-            //     throw new Error(`No existing balance found for item ${item.item_selection} at location ${balance.location_id}`);
-            // }
+        if (balancesToProcess.length === 0) {
+          console.log("⚠️ No balances to process - skipping aggregation");
+          return true;
+        }
 
-            const categoryField =
-              movementType === "Location Transfer"
-                ? this.categoryMap[balance.category || "Unrestricted"]
-                : this.categoryMap[
-                    balance.category || subformData.category || "Unrestricted"
-                  ];
-            const currentQty = balanceData[categoryField] || 0;
-            const requestedQty =
-              balance.quantity_converted || balance.sm_quantity;
+        // Create a map to track total requested quantities per location/material/category combination
+        const locationQuantityMap = new Map();
 
-            if (currentQty < requestedQty) {
+        // Process all balance indices to aggregate quantities
+        for (const balance of balancesToProcess) {
+          // Create a unique key for each combination
+          const materialId = balance.material_id || "";
+          const locationId = balance.location_id || "";
+          const category = balance.category || "Unrestricted";
+
+          // Use a more reliable key format
+          const key = `${materialId}|${locationId}|${category}`;
+          const requestedQty =
+            balance.quantity_converted || balance.sm_quantity || 0;
+
+          console.log(
+            `📝 Processing balance - Material: ${materialId}, Location: ${locationId}, Category: ${category}, Qty: ${requestedQty}`
+          );
+
+          if (locationQuantityMap.has(key)) {
+            const existingQty = locationQuantityMap.get(key);
+            const newTotal = existingQty + requestedQty;
+            locationQuantityMap.set(key, newTotal);
+            console.log(
+              `📈 Updated aggregated quantity for ${key}: ${existingQty} + ${requestedQty} = ${newTotal}`
+            );
+          } else {
+            locationQuantityMap.set(key, requestedQty);
+            console.log(`📌 New entry for ${key}: ${requestedQty}`);
+          }
+        }
+
+        console.log(
+          "🗺️ Final locationQuantityMap:",
+          Array.from(locationQuantityMap.entries())
+        );
+
+        // Now check each aggregated quantity against available balance
+        for (const [key, totalRequestedQty] of locationQuantityMap.entries()) {
+          console.log(
+            `🔍 Checking aggregated quantity for key: ${key}, total requested: ${totalRequestedQty}`
+          );
+
+          const [materialId, locationId, category] = key.split("|");
+
+          // Get material data
+          const materialResponse = await this.db
+            .collection("Item")
+            .where({ id: materialId })
+            .get();
+          const materialData = materialResponse.data[0];
+
+          if (!materialData) {
+            throw new Error(`Material not found: ${materialId}`);
+          }
+
+          if (!materialData.based_uom) {
+            throw new Error(`Base UOM is missing for item ${materialId}`);
+          }
+
+          // Get current balance
+          const collectionName =
+            materialData.item_batch_management == "1"
+              ? "item_batch_balance"
+              : "item_balance";
+
+          console.log(
+            `🔍 Querying ${collectionName} for material: ${materialId}, location: ${locationId}`
+          );
+
+          const balanceResponse = await this.db
+            .collection(collectionName)
+            .where({
+              material_id: materialId,
+              location_id: locationId,
+            })
+            .get();
+
+          const balanceData = balanceResponse.data[0];
+
+          if (!balanceData) {
+            throw new Error(
+              `No existing balance found for item ${materialId} at location ${locationId}`
+            );
+          }
+
+          const categoryField = this.categoryMap[category];
+          const currentQty = balanceData[categoryField] || 0;
+
+          console.log(
+            `📊 Current quantity in ${category}: ${currentQty}, Total requested: ${totalRequestedQty}`
+          );
+
+          // Check if total requested quantity exceeds available quantity
+          if (currentQty < totalRequestedQty) {
+            const errorMessage = `Insufficient quantity in ${category} for item ${materialId} at location ${locationId}. Available: ${currentQty}, Total Requested: ${totalRequestedQty}`;
+            console.error(`❌ ${errorMessage}`);
+            throw new Error(errorMessage);
+          }
+
+          console.log(
+            `✅ Sufficient quantity available for ${materialId} at ${locationId}`
+          );
+
+          // Step 6: Check costing records for deduction movements
+          if (
+            ["Miscellaneous Issue", "Disposal/Scrap"].includes(movementType)
+          ) {
+            const costingMethod = materialData.material_costing_method;
+            if (!costingMethod) {
               throw new Error(
-                `Insufficient quantity in ${
-                  balance.category || "Unrestricted"
-                } for item ${item.item_selection} at location ${
-                  balance.location_id
-                }. Available: ${currentQty}, Requested: ${requestedQty}`
+                `Costing method not defined for item ${materialId}`
               );
             }
 
-            // Step 6: Check costing records for deduction
-            if (
-              ["Miscellaneous Issue", "Disposal/Scrap"].includes(movementType)
-            ) {
-              const costingMethod = materialData.material_costing_method;
-              if (!costingMethod) {
+            if (costingMethod === "Weighted Average") {
+              // Find any balance with this material and location to get batch_id if needed
+              const sampleBalance = balancesToProcess.find(
+                (b) =>
+                  b.material_id === materialId && b.location_id === locationId
+              );
+
+              const waQuery =
+                materialData.item_batch_management == "1" &&
+                sampleBalance?.batch_id
+                  ? this.db.collection("wa_costing_method").where({
+                      material_id: materialId,
+                      batch_id: sampleBalance.batch_id,
+                      plant_id: allData.issuing_operation_faci,
+                    })
+                  : this.db.collection("wa_costing_method").where({
+                      material_id: materialId,
+                      plant_id: allData.issuing_operation_faci,
+                    });
+
+              const waResponse = await waQuery.get();
+              if (!waResponse.data || waResponse.data.length === 0) {
                 throw new Error(
-                  `Costing method not defined for item ${item.item_selection}`
+                  `No costing record found for deduction for item ${materialId} (Weighted Average)`
                 );
               }
 
-              if (costingMethod === "Weighted Average") {
-                const waQuery =
-                  materialData.item_batch_management == "1" && balance.batch_id
-                    ? this.db.collection("wa_costing_method").where({
-                        material_id: materialData.id,
-                        batch_id: balance.batch_id,
-                        plant_id: allData.issuing_operation_faci,
-                      })
-                    : this.db.collection("wa_costing_method").where({
-                        material_id: materialData.id,
-                        plant_id: allData.issuing_operation_faci,
-                      });
-
-                const waResponse = await waQuery.get();
-                if (!waResponse.data || waResponse.data.length === 0) {
-                  throw new Error(
-                    `No costing record found for deduction for item ${item.item_selection} (Weighted Average)`
-                  );
-                }
-
-                const waData = waResponse.data[0];
-                if ((waData.wa_quantity || 0) < requestedQty) {
-                  throw new Error(
-                    `Insufficient WA quantity for item ${item.item_selection}. Available: ${waData.wa_quantity}, Requested: ${requestedQty}`
-                  );
-                }
-              } else if (costingMethod === "First In First Out") {
-                const fifoQuery =
-                  materialData.item_batch_management == "1" && balance.batch_id
-                    ? this.db.collection("fifo_costing_history").where({
-                        material_id: materialData.id,
-                        batch_id: balance.batch_id,
-                        plant_id: allData.issuing_operation_faci,
-                      })
-                    : this.db.collection("fifo_costing_history").where({
-                        material_id: materialData.id,
-                        plant_id: allData.issuing_operation_faci,
-                      });
-
-                const fifoResponse = await fifoQuery.get();
-                if (!fifoResponse.data || fifoResponse.data.length === 0) {
-                  throw new Error(
-                    `No costing record found for deduction for item ${item.item_selection} (FIFO)`
-                  );
-                }
-
-                const fifoData = fifoResponse.data;
-                const totalAvailable = fifoData.reduce(
-                  (sum, record) => sum + (record.fifo_available_quantity || 0),
-                  0
+              const waData = waResponse.data[0];
+              if ((waData.wa_quantity || 0) < totalRequestedQty) {
+                throw new Error(
+                  `Insufficient WA quantity for item ${materialId}. Available: ${waData.wa_quantity}, Total Requested: ${totalRequestedQty}`
                 );
-                if (totalAvailable < requestedQty) {
-                  throw new Error(
-                    `Insufficient FIFO quantity for item ${item.item_selection}. Available: ${totalAvailable}, Requested: ${requestedQty}`
-                  );
-                }
+              }
+            } else if (costingMethod === "First In First Out") {
+              // Find any balance with this material and location to get batch_id if needed
+              const sampleBalance = balancesToProcess.find(
+                (b) =>
+                  b.material_id === materialId && b.location_id === locationId
+              );
+
+              const fifoQuery =
+                materialData.item_batch_management == "1" &&
+                sampleBalance?.batch_id
+                  ? this.db.collection("fifo_costing_history").where({
+                      material_id: materialId,
+                      batch_id: sampleBalance.batch_id,
+                      plant_id: allData.issuing_operation_faci,
+                    })
+                  : this.db.collection("fifo_costing_history").where({
+                      material_id: materialId,
+                      plant_id: allData.issuing_operation_faci,
+                    });
+
+              const fifoResponse = await fifoQuery.get();
+              if (!fifoResponse.data || fifoResponse.data.length === 0) {
+                throw new Error(
+                  `No costing record found for deduction for item ${materialId} (FIFO)`
+                );
+              }
+
+              const fifoData = fifoResponse.data;
+              const totalAvailable = fifoData.reduce(
+                (sum, record) => sum + (record.fifo_available_quantity || 0),
+                0
+              );
+              if (totalAvailable < totalRequestedQty) {
+                throw new Error(
+                  `Insufficient FIFO quantity for item ${materialId}. Available: ${totalAvailable}, Total Requested: ${totalRequestedQty}`
+                );
               }
             }
           }
@@ -1964,8 +2043,8 @@ class StockAdjuster {
       console.log("⭐ Validation successful - all checks passed");
       return true;
     } catch (error) {
-      console.error("Error in preCheckQuantitiesAndCosting:", error.message);
-
+      console.error("❌ Error in preCheckQuantitiesAndCosting:", error.message);
+      console.error("Full error object:", error);
       throw error;
     }
   }
@@ -2143,17 +2222,27 @@ const processStockMovements = async () => {
   } catch (error) {
     self.hideLoading();
 
-    // Try to get message from standard locations first
     let errorMessage = "";
 
     if (error && typeof error === "object") {
-      errorMessage = findFieldMessage(error) || "An error occurred";
-    } else {
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.field) {
+        errorMessage = error.field;
+      } else {
+        const foundMessage = findFieldMessage(error);
+        errorMessage = foundMessage || "An error occurred";
+      }
+    } else if (typeof error === "string") {
       errorMessage = error;
+    } else {
+      errorMessage = "An unknown error occurred";
     }
 
+    console.error("Full error object:", error);
+    console.error("Extracted error message:", errorMessage);
+
     self.$message.error(errorMessage);
-    console.error(errorMessage);
   }
 };
 

@@ -87,19 +87,13 @@ setTimeout(() => {
 
     // If we have a valid delivered quantity, preview the FIFO sequences
     if (deliveredQty > 0) {
-      previewFIFOSequences(
-        materialId,
-        deliveredQty,
-        (fifoSequenceString, usedSequences) => {
-          console.log(
-            `FIFO sequences for ${materialId}: ${fifoSequenceString}`
-          );
-          this.setData({
-            [`table_gd.${rowIndex}.fifo_sequence`]:
-              fifoSequenceString || "No FIFO sequences available",
-          });
-        }
-      );
+      previewFIFOSequences(materialId, deliveredQty, (fifoSequenceString) => {
+        console.log(`FIFO sequences for ${materialId}: ${fifoSequenceString}`);
+        this.setData({
+          [`table_gd.${rowIndex}.fifo_sequence`]:
+            fifoSequenceString || "No FIFO sequences available",
+        });
+      });
     } else {
       this.setData({
         [`table_gd.${rowIndex}.fifo_sequence`]: "",
