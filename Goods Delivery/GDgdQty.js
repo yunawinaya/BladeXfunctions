@@ -77,7 +77,7 @@
   try {
     // Fetch item data
     const itemResult = await db
-      .collection("item")
+      .collection("Item")
       .where({ id: itemCode, is_deleted: 0 })
       .get();
 

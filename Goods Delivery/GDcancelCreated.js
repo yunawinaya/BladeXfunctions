@@ -1,6 +1,6 @@
 const id = this.getValue("goods_delivery_id");
 
-async () => {
+(async () => {
   try {
     db.collection("goods_delivery")
       .doc(id)
@@ -366,6 +366,7 @@ async () => {
         // Update goods delivery status
         await db.collection("goods_delivery").doc(id).update({
           gd_status: "Cancelled",
+          picking_status: "Cancelled",
         });
 
         // Handle transfer order cancellation
@@ -377,14 +378,23 @@ async () => {
 
           if (toResult.data && toResult.data.length > 0) {
             const toData = toResult.data[0];
-            const toId = toData.to_id;
+            const toId = toData.id;
 
-            await db.collection("transfer_order").doc(toId).update({
+            console.log("toId", toId);
+
+            await db.collection("transfer_order").where({ id: toId }).update({
               to_status: "Cancelled",
             });
           } else {
             console.warn("Transfer order not found for goods delivery:", id);
           }
+        }
+
+        for (const soID of gdData.so_id) {
+          await db
+            .collection("sales_order")
+            .doc(soID)
+            .update({ gd_status: null });
         }
 
         console.log("Goods Delivery successfully cancelled");
@@ -398,4 +408,4 @@ async () => {
     console.error("Error in cancellation process:", error);
     alert("An error occurred during cancellation. Please try again.");
   }
-};
+})();

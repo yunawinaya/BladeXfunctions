@@ -479,7 +479,11 @@ const handleExistingInventoryMovements = async (
 };
 
 // NEW FUNCTION: Reverse balance changes for updates
-const reverseBalanceChanges = async (data, isUpdate = false) => {
+const reverseBalanceChanges = async (
+  data,
+  isUpdate = false,
+  organizationId
+) => {
   if (!isUpdate) {
     console.log("Not an update operation, skipping balance reversal");
     return;
@@ -525,6 +529,8 @@ const reverseBalanceChanges = async (data, isUpdate = false) => {
         const itemBalanceParams = {
           material_id: item.material_id,
           location_id: prevTemp.location_id,
+          plant_id: data.plant_id,
+          organization_id: organizationId,
         };
 
         if (prevTemp.batch_id) {
@@ -588,7 +594,7 @@ const reverseBalanceChanges = async (data, isUpdate = false) => {
 };
 
 // New function to validate inventory availability before processing
-const validateInventoryAvailability = async (data) => {
+const validateInventoryAvailability = async (data, organizationId) => {
   console.log("Validating inventory availability");
 
   const items = data.table_gd;
@@ -671,6 +677,8 @@ const validateInventoryAvailability = async (data) => {
       const itemBalanceParams = {
         material_id: materialId,
         location_id: locationId,
+        plant_id: data.plant_id,
+        organization_id: organizationId,
       };
 
       if (batchId && batchId !== "undefined") {
@@ -703,7 +711,7 @@ const validateInventoryAvailability = async (data) => {
 
         const itemName =
           itemRes.data && itemRes.data.length > 0
-            ? itemRes.data[0].item_name || materialId
+            ? itemRes.data[0].material_name || materialId
             : materialId;
 
         const locationRes = await db
@@ -713,7 +721,7 @@ const validateInventoryAvailability = async (data) => {
 
         const locationName =
           locationRes.data && locationRes.data.length > 0
-            ? locationRes.data[0].bin_location_name || locationId
+            ? locationRes.data[0].bin_location_combine || locationId
             : locationId;
 
         let errorMsg = `Insufficient inventory for item "${itemName}" at location "${locationName}". `;
@@ -765,32 +773,15 @@ const processBalanceTableWithValidation = async (
   data,
   isUpdate = false,
   oldDeliveryNo = null,
-  gdStatus = null
+  gdStatus = null,
+  organizationId
 ) => {
-  console.log("Processing balance table with validation");
-
-  // STEP 0: Validate inventory availability (only for new records or draft->created)
-  if (!isUpdate || (isUpdate && gdStatus === "Draft")) {
-    const validationResult = await validateInventoryAvailability(data);
-
-    if (!validationResult.isValid) {
-      // Use alert dialog instead of throwing error
-      this.parentGenerateForm.$alert(
-        validationResult.error,
-        "Insufficient Inventory",
-        {
-          confirmButtonText: "OK",
-          type: "error",
-        }
-      );
-      return Promise.reject(new Error("Inventory validation failed"));
-    }
-  }
+  console.log("Processing balance table");
 
   // STEP 1: Handle existing inventory movements and reverse balance changes for updates
   if (isUpdate && gdStatus === "Created") {
     await handleExistingInventoryMovements(oldDeliveryNo, isUpdate);
-    await reverseBalanceChanges(data, isUpdate);
+    await reverseBalanceChanges(data, isUpdate, organizationId);
   }
 
   const items = data.table_gd;
@@ -840,13 +831,24 @@ const processBalanceTableWithValidation = async (
 
   // Process FIFO items sequentially to avoid race conditions
   for (const { item, itemData } of fifoItems) {
-    await processItemBalance(item, itemData, data, consumedFIFOQty);
+    await processItemBalance(
+      item,
+      itemData,
+      data,
+      consumedFIFOQty,
+      organizationId
+    );
   }
 
   // Process non-FIFO items sequentially as well to maintain inventory consistency
-  // Changed from parallel to sequential processing
   for (const { item, itemData } of otherItems) {
-    await processItemBalance(item, itemData, data, consumedFIFOQty);
+    await processItemBalance(
+      item,
+      itemData,
+      data,
+      consumedFIFOQty,
+      organizationId
+    );
   }
 
   // Clear the FIFO tracking map
@@ -854,7 +856,13 @@ const processBalanceTableWithValidation = async (
 };
 
 // Extracted item processing logic for better organization
-const processItemBalance = async (item, itemData, data, consumedFIFOQty) => {
+const processItemBalance = async (
+  item,
+  itemData,
+  data,
+  consumedFIFOQty,
+  organizationId
+) => {
   const temporaryData = parseJsonSafely(item.temp_qty_data);
 
   if (temporaryData.length === 0) {
@@ -873,6 +881,8 @@ const processItemBalance = async (item, itemData, data, consumedFIFOQty) => {
       const itemBalanceParams = {
         material_id: item.material_id,
         location_id: temp.location_id,
+        plant_id: data.plant_id,
+        organization_id: organizationId,
       };
 
       if (temp.batch_id) {
@@ -1111,24 +1121,54 @@ const validateField = (value) => {
 
 const addEntry = async (organizationId, gd) => {
   try {
-    const prefixData = await getPrefixData(organizationId, "Goods Delivery");
+    let prefixData = null;
+    let runningNumber = null;
+
+    // Step 1: Prepare prefix data but don't update counter yet
+    prefixData = await getPrefixData(organizationId, "Goods Delivery");
 
     if (prefixData) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId,
-        "goods_delivery",
-        "delivery_no"
-      );
+      const { prefixToShow, runningNumber: newRunningNumber } =
+        await findUniquePrefix(
+          prefixData,
+          organizationId,
+          "goods_delivery",
+          "delivery_no"
+        );
 
-      await updatePrefix(organizationId, runningNumber, "Goods Delivery");
+      runningNumber = newRunningNumber;
       gd.delivery_no = prefixToShow;
     }
 
-    // Add the record
+    // Step 2: VALIDATE INVENTORY AVAILABILITY FIRST
+    console.log("Validating inventory availability in addEntry");
+    const validationResult = await validateInventoryAvailability(
+      gd,
+      organizationId
+    );
+
+    if (!validationResult.isValid) {
+      throw new Error(`Inventory validation failed: ${validationResult.error}`);
+    }
+
+    // Step 3: Process balance table (inventory operations) AFTER validation passes
+    await processBalanceTableWithValidation(
+      gd,
+      false,
+      null,
+      null,
+      organizationId
+    );
+
+    // Step 4: Add the record ONLY after inventory processing succeeds
     await db.collection("goods_delivery").add(gd);
 
-    // Fetch the created record to get its ID
+    // Step 5: Update prefix counter ONLY after record is successfully added
+    if (prefixData && runningNumber !== null) {
+      await updatePrefix(organizationId, runningNumber, "Goods Delivery");
+    }
+
+    // Step 6: Fetch the created record to get its ID
     const createdRecord = await db
       .collection("goods_delivery")
       .where({
@@ -1144,10 +1184,7 @@ const addEntry = async (organizationId, gd) => {
     const gdId = createdRecord.data[0].id;
     console.log("Goods delivery created successfully with ID:", gdId);
 
-    // Process balance table with the created record
-    await processBalanceTableWithValidation(gd, false);
-
-    return gdId; // Return the created ID
+    return gdId;
   } catch (error) {
     console.error("Error in addEntry:", error);
     throw error;
@@ -1157,25 +1194,60 @@ const addEntry = async (organizationId, gd) => {
 const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
   try {
     let oldDeliveryNo = gd.delivery_no;
+    let prefixData = null;
+    let runningNumber = null;
 
+    // Step 1: Prepare prefix data for Draft status but don't update counter yet
     if (gdStatus === "Draft") {
-      const prefixData = await getPrefixData(organizationId, "Goods Delivery");
+      prefixData = await getPrefixData(organizationId, "Goods Delivery");
 
       if (prefixData) {
-        const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData,
-          organizationId,
-          "goods_delivery",
-          "delivery_no"
-        );
+        const { prefixToShow, runningNumber: newRunningNumber } =
+          await findUniquePrefix(
+            prefixData,
+            organizationId,
+            "goods_delivery",
+            "delivery_no"
+          );
 
-        await updatePrefix(organizationId, runningNumber, "Goods Delivery");
+        runningNumber = newRunningNumber;
         gd.delivery_no = prefixToShow;
       }
     }
 
+    // Step 2: VALIDATE INVENTORY AVAILABILITY FIRST (only for Draft to Created)
+    if (gdStatus === "Draft") {
+      console.log(
+        "Validating inventory availability in updateEntry for Draft to Created"
+      );
+      const validationResult = await validateInventoryAvailability(
+        gd,
+        organizationId
+      );
+
+      if (!validationResult.isValid) {
+        throw new Error(
+          `Inventory validation failed: ${validationResult.error}`
+        );
+      }
+    }
+
+    // Step 3: Process balance table (inventory operations) AFTER validation passes
+    await processBalanceTableWithValidation(
+      gd,
+      true,
+      oldDeliveryNo,
+      gdStatus,
+      organizationId
+    );
+
+    // Step 4: Update the record ONLY after inventory processing succeeds
     await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
-    await processBalanceTableWithValidation(gd, true, oldDeliveryNo, gdStatus);
+
+    // Step 5: Update prefix counter ONLY after record is successfully updated
+    if (gdStatus === "Draft" && prefixData && runningNumber !== null) {
+      await updatePrefix(organizationId, runningNumber, "Goods Delivery");
+    }
 
     console.log("Goods delivery updated successfully");
     return goodsDeliveryId;
@@ -1465,6 +1537,7 @@ const checkExistingReservedGoods = async (
     for (const soNo of soArray) {
       const query = {
         so_no: soNo,
+        organization_id: organizationId,
       };
 
       // If updating an existing GD, exclude its records from the check
@@ -1723,6 +1796,25 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
   }
 };
 
+const updateSalesOrderStatus = async (salesOrderId) => {
+  try {
+    for (const soId of salesOrderId) {
+      const resSO = await db.collection("sales_order").doc(soId).get();
+
+      if (resSO && resSO?.data.length > 0) {
+        if (!resSO.data[0].gd_status || resSO.data[0].gd_status === null) {
+          await db
+            .collection("sales_order")
+            .doc(soId)
+            .update({ gd_status: "Created" });
+        }
+      }
+    }
+  } catch (error) {
+    throw new Error("Error updating sales order.", error);
+  }
+};
+
 // Main execution wrapped in an async IIFE
 (async () => {
   try {
@@ -1769,7 +1861,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
         currentGdId = data.id;
       }
 
-      // Improved SO number collection and reserved goods check
+      // Check for existing reserved goods conflicts
       if (needsReservedGoodsCheck) {
         const allSoNumbers = collectAllSoNumbers(data);
 
@@ -1799,6 +1891,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
         }
       }
 
+      // Get picking setup
       const pickingSetupResponse = await db
         .collection("picking_setup")
         .where({
@@ -1808,7 +1901,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
         })
         .get();
 
-      // Handle previous quantities for updates (existing logic)
+      // Handle previous quantities for updates
       if (page_status === "Edit" && data.id && Array.isArray(data.table_gd)) {
         try {
           const originalRecord = await db
@@ -1972,6 +2065,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
       this.$message.success(
         page_status === "Add" ? "Added successfully" : "Updated successfully"
       );
+      await updateSalesOrderStatus(gd.so_id);
       this.hideLoading();
       closeDialog();
     } else {
@@ -1982,8 +2076,20 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     this.hideLoading();
 
     // Handle inventory validation rejection gracefully
-    if (error.message === "Inventory validation failed") {
-      // Alert dialog already shown, just return without showing additional error
+    if (
+      error.message &&
+      error.message.includes("Inventory validation failed")
+    ) {
+      // Extract the actual error message after the prefix
+      const actualError = error.message.replace(
+        "Inventory validation failed: ",
+        ""
+      );
+
+      this.parentGenerateForm.$alert(actualError, "Insufficient Inventory", {
+        confirmButtonText: "OK",
+        type: "error",
+      });
       console.log(
         "Inventory validation failed - user notified via alert dialog"
       );

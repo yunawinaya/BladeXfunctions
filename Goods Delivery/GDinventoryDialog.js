@@ -174,6 +174,21 @@ db.collection("Item")
       return mergedData;
     };
 
+    const filterZeroQuantityRecords = (data) => {
+      return data.filter((record) => {
+        // Check if any of the quantity fields have a value greater than 0
+        const hasQuantity =
+          (record.block_qty && record.block_qty > 0) ||
+          (record.reserved_qty && record.reserved_qty > 0) ||
+          (record.unrestricted_qty && record.unrestricted_qty > 0) ||
+          (record.qualityinsp_qty && record.qualityinsp_qty > 0) ||
+          (record.intransit_qty && record.intransit_qty > 0) ||
+          (record.balance_quantity && record.balance_quantity > 0);
+
+        return hasQuantity;
+      });
+    };
+
     if (itemData.item_batch_management === 1) {
       this.display("gd_item_balance.table_item_balance.batch_id");
 
@@ -205,10 +220,13 @@ db.collection("Item")
             tempDataArray
           );
 
-          console.log("Final merged data:", finalData);
+          // Filter out records with all zero quantities
+          const filteredData = filterZeroQuantityRecords(finalData);
+
+          console.log("Final filtered data:", filteredData);
 
           this.setData({
-            [`gd_item_balance.table_item_balance`]: finalData,
+            [`gd_item_balance.table_item_balance`]: filteredData,
           });
         })
         .catch((error) => {
@@ -245,10 +263,13 @@ db.collection("Item")
             tempDataArray
           );
 
-          console.log("Final merged data:", finalData);
+          // Filter out records with all zero quantities
+          const filteredData = filterZeroQuantityRecords(finalData);
+
+          console.log("Final filtered data:", filteredData);
 
           this.setData({
-            [`gd_item_balance.table_item_balance`]: finalData,
+            [`gd_item_balance.table_item_balance`]: filteredData,
           });
         })
         .catch((error) => {

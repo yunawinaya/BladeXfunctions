@@ -851,10 +851,20 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
         .collection("picking_setup")
         .where({ plant_id: plantId, movement_type: "Good Delivery" })
         .get();
-      const pickingMode = pickingSetupResponse.data[0].picking_mode;
-      const defaultStrategy = pickingSetupResponse.data[0].default_strategy_id;
-      const fallbackStrategy =
-        pickingSetupResponse.data[0].fallback_strategy_id;
+
+      // Handle case where no picking setup exists for the plant
+      let pickingMode, defaultStrategy, fallbackStrategy;
+      if (!pickingSetupResponse?.data?.length) {
+        console.log("No picking setup found for plant, using default values");
+        pickingMode = "Manual";
+        defaultStrategy = "RANDOM";
+        fallbackStrategy = "RANDOM";
+      } else {
+        const pickingSetup = pickingSetupResponse.data[0];
+        pickingMode = pickingSetup.picking_mode || "Manual";
+        defaultStrategy = pickingSetup.default_strategy_id || "RANDOM";
+        fallbackStrategy = pickingSetup.fallback_strategy_id || "RANDOM";
+      }
 
       // DEBUG: Log picking setup information
       console.log(`DEBUG - Material ${materialId}:`, {
