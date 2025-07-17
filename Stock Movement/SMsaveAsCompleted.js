@@ -1812,6 +1812,18 @@ class StockAdjuster {
         throw new Error("Stock movement items are required");
       }
 
+      console.log("📋 Stock movement items:", subformData);
+      console.log("📋 Stock movement items length:", subformData.length);
+
+      // Log each item's material_id and location_id
+      subformData.forEach((item, index) => {
+        console.log(
+          `📦 Item ${index + 1}: material_id=${
+            item.item_selection
+          }, location_id=${item.location_id}`
+        );
+      });
+
       if (
         movementType === "Miscellaneous Receipt" ||
         movementType === "Location Transfer"
@@ -1838,12 +1850,19 @@ class StockAdjuster {
         console.log("🔍 Starting quantity aggregation for deduction movements");
 
         // Get all balance indices to process
+        console.log("🔍 Raw balance_index:", allData.balance_index);
+        console.log(
+          "🔍 Balance_index length:",
+          allData.balance_index?.length || 0
+        );
+
         const balancesToProcess =
           allData.balance_index?.filter(
             (balance) => balance.sm_quantity && balance.sm_quantity > 0
           ) || [];
 
         console.log("📊 Balances to process:", balancesToProcess);
+        console.log("📊 Balances to process length:", balancesToProcess.length);
 
         if (balancesToProcess.length === 0) {
           console.log("⚠️ No balances to process - skipping aggregation");
@@ -1945,7 +1964,7 @@ class StockAdjuster {
 
           // Check if total requested quantity exceeds available quantity
           if (currentQty < totalRequestedQty) {
-            const errorMessage = `Insufficient quantity in ${category} for item ${materialId} at location ${locationId}. Available: ${currentQty}, Total Requested: ${totalRequestedQty}`;
+            const errorMessage = `Insufficient quantity in ${category} for item ${materialData.material_name}. Available: ${currentQty}, Total Requested: ${totalRequestedQty}`;
             console.error(`❌ ${errorMessage}`);
             throw new Error(errorMessage);
           }

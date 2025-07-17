@@ -25,7 +25,7 @@
     .where({ id: materialUOMid })
     .get()
     .then((res) => {
-      return res.data[0]?.uom_name || "PCS";
+      return res.data[0]?.uom_name || "";
     });
 
   const totalSmQuantity = temporaryData
@@ -90,27 +90,77 @@
       [`stock_movement.${rowIndex}.total_quantity`]: totalSmQuantity,
     });
 
-    // Update balance index
+    // ================================
+    // ENHANCED BALANCE INDEX UPDATE WITH FULL DEBUGGING
+    // ================================
     const currentBalanceIndex = this.getValues().balance_index || [];
     const rowsToUpdate = temporaryData.filter(
       (item) => (item.sm_quantity || 0) > 0
     );
 
-    let updatedBalanceIndex = [...currentBalanceIndex];
+    console.log("🔍 BALANCE INDEX DEBUG INFO:");
+    console.log("Current rowIndex:", rowIndex);
+    console.log("Current balance_index length:", currentBalanceIndex.length);
+    console.log(
+      "Current balance_index:",
+      JSON.stringify(currentBalanceIndex, null, 2)
+    );
+    console.log("Rows to update:", JSON.stringify(rowsToUpdate, null, 2));
+    console.log("Rows to update length:", rowsToUpdate.length);
 
-    rowsToUpdate.forEach((newRow) => {
-      const existingIndex = updatedBalanceIndex.findIndex(
-        (item) => item.balance_id === newRow.balance_id
+    // Check what row_index values exist in current balance_index
+    const existingRowIndexes = currentBalanceIndex.map(
+      (item) => item.row_index
+    );
+    console.log(
+      "Existing row_index values in balance_index:",
+      existingRowIndexes
+    );
+
+    // Filter out any existing entries that belong to this specific row
+    let updatedBalanceIndex = currentBalanceIndex.filter((item) => {
+      const shouldKeep = item.row_index !== rowIndex;
+      console.log(
+        `Checking item with row_index ${
+          item.row_index
+        } against current rowIndex ${rowIndex}: ${
+          shouldKeep ? "KEEP" : "REMOVE"
+        }`
       );
-      console.log("existingIndex", existingIndex);
-      if (existingIndex !== -1) {
-        updatedBalanceIndex[existingIndex] = { ...newRow };
-      } else {
-        updatedBalanceIndex.push({ ...newRow });
-      }
+      return shouldKeep;
     });
 
-    console.log("updatedBalanceIndex", updatedBalanceIndex);
+    console.log(
+      "After filtering, balance_index length:",
+      updatedBalanceIndex.length
+    );
+    console.log(
+      "After filtering, balance_index:",
+      JSON.stringify(updatedBalanceIndex, null, 2)
+    );
+
+    // Add all new entries for this row
+    rowsToUpdate.forEach((newRow, index) => {
+      const newEntry = {
+        ...newRow,
+        row_index: rowIndex,
+      };
+      updatedBalanceIndex.push(newEntry);
+      console.log(
+        `Added new entry ${index + 1} for row ${rowIndex}:`,
+        JSON.stringify(newEntry, null, 2)
+      );
+    });
+
+    console.log("Final balance_index length:", updatedBalanceIndex.length);
+    console.log(
+      "Final balance_index:",
+      JSON.stringify(updatedBalanceIndex, null, 2)
+    );
+
+    // ================================
+    // REST OF THE ORIGINAL CODE
+    // ================================
 
     const formatFilteredData = async (temporaryData) => {
       // Filter data to only include items with quantity > 0
