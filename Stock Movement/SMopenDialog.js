@@ -20,6 +20,21 @@ if (movementTypeName === "Inventory Category Transfer Posting") {
   this.hide("sm_item_balance.table_item_balance.category_to");
 }
 
+const filterZeroQuantityRecords = (data) => {
+  return data.filter((record) => {
+    // Check if any of the quantity fields have a value greater than 0
+    const hasQuantity =
+      (record.block_qty && record.block_qty > 0) ||
+      (record.reserved_qty && record.reserved_qty > 0) ||
+      (record.unrestricted_qty && record.unrestricted_qty > 0) ||
+      (record.qualityinsp_qty && record.qualityinsp_qty > 0) ||
+      (record.intransit_qty && record.intransit_qty > 0) ||
+      (record.balance_quantity && record.balance_quantity > 0);
+
+    return hasQuantity;
+  });
+};
+
 // Fetch item data
 if (materialId) {
   db.collection("Item")
@@ -54,13 +69,22 @@ if (materialId) {
             console.log("material", materialId);
             const itemBalanceData = response.data;
 
-            // Map the id from item_batch_balance to balance_id
+            // Map the data and remove the original id to prevent duplicate key errors
             const mappedData = Array.isArray(itemBalanceData)
-              ? itemBalanceData.map((item) => ({
-                  ...item,
-                  balance_id: item.id,
-                }))
-              : [{ ...itemBalanceData, balance_id: itemBalanceData.id }];
+              ? itemBalanceData.map((item) => {
+                  const { id, ...itemWithoutId } = item; // Remove original id
+                  return {
+                    ...itemWithoutId,
+                    balance_id: id, // Keep balance_id for reference
+                  };
+                })
+              : (() => {
+                  const { id, ...itemWithoutId } = itemBalanceData;
+                  return { ...itemWithoutId, balance_id: id };
+                })();
+
+            const filteredData = filterZeroQuantityRecords(mappedData);
+            console.log("filteredData", filteredData);
 
             if (tempQtyData) {
               const tempQtyDataArray = JSON.parse(tempQtyData);
@@ -69,7 +93,7 @@ if (materialId) {
               });
             } else {
               this.setData({
-                [`sm_item_balance.table_item_balance`]: mappedData,
+                [`sm_item_balance.table_item_balance`]: filteredData,
               });
             }
           })
@@ -89,13 +113,22 @@ if (materialId) {
             console.log("response item_balance", response.data);
             const itemBalanceData = response.data;
 
-            // Map the id from item_balance to balance_id
+            // Map the data and remove the original id to prevent duplicate key errors
             const mappedData = Array.isArray(itemBalanceData)
-              ? itemBalanceData.map((item) => ({
-                  ...item,
-                  balance_id: item.id,
-                }))
-              : [{ ...itemBalanceData, balance_id: itemBalanceData.id }];
+              ? itemBalanceData.map((item) => {
+                  const { id, ...itemWithoutId } = item; // Remove original id
+                  return {
+                    ...itemWithoutId,
+                    balance_id: id, // Keep balance_id for reference
+                  };
+                })
+              : (() => {
+                  const { id, ...itemWithoutId } = itemBalanceData;
+                  return { ...itemWithoutId, balance_id: id };
+                })();
+
+            const filteredData = filterZeroQuantityRecords(mappedData);
+            console.log("filteredData", filteredData);
 
             if (tempQtyData) {
               const tempQtyDataArray = JSON.parse(tempQtyData);
@@ -106,7 +139,7 @@ if (materialId) {
               });
             } else {
               this.setData({
-                [`sm_item_balance.table_item_balance`]: mappedData,
+                [`sm_item_balance.table_item_balance`]: filteredData,
               });
             }
           })

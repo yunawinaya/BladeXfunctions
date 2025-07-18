@@ -9,14 +9,24 @@ const plant_id = allData.issuing_operation_faci;
 
 // Show/hide and disable category columns based on movement type
 if (movementTypeName === "Inventory Category Transfer Posting") {
-  this.display("sm_item_balance.table_item_balance.category_from");
-  this.disabled("sm_item_balance.table_item_balance.category_from", true);
-  this.display("sm_item_balance.table_item_balance.category_to");
-  this.disabled("sm_item_balance.table_item_balance.category_to", true);
+  this.display([
+    "sm_item_balance.table_item_balance.category_from",
+    "sm_item_balance.table_item_balance.category_to",
+  ]);
+
+  this.disabled(
+    [
+      "sm_item_balance.table_item_balance.category_from",
+      "sm_item_balance.table_item_balance.category_to",
+    ],
+    true
+  );
   this.hide("sm_item_balance.table_item_balance.category");
 } else {
-  this.hide("sm_item_balance.table_item_balance.category_from");
-  this.hide("sm_item_balance.table_item_balance.category_to");
+  this.hide([
+    "sm_item_balance.table_item_balance.category_from",
+    "sm_item_balance.table_item_balance.category_to",
+  ]);
   this.display("sm_item_balance.table_item_balance.category");
 }
 

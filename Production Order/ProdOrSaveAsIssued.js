@@ -1,22 +1,19 @@
-const createStockMovement = async (
-  stockMovementData,
-  organizationId,
-  db,
-  self
-) => {
+const createStockMovement = async (stockMovementData, organizationId, db) => {
   try {
     // Map table_bom to balance_index and stock_movement
     const tableBom = stockMovementData.table_bom || [];
-    const balanceIndex = stockMovementData.balance_index || [];
 
     const stockMovementItems = tableBom.map((item) => ({
       item_selection: item.material_id,
+      item_name: item.material_name,
+      item_desc: item.material_desc,
       requested_qty: item.material_quantity,
       location_id: item.bin_location_id,
       quantity_uom: item.material_uom,
     }));
 
     const issued_by = await this.getVarGlobal("nickname");
+    console.log("JN❤️", stockMovementData);
 
     // Initialize stock movement data
     const stockMovement = {
@@ -26,10 +23,8 @@ const createStockMovement = async (
       stock_movement_status: "Draft",
       issued_by: issued_by || "",
       issue_date: stockMovementData.created_at || new Date(),
-      tenant_id: stockMovementData.tenant_id || "000000",
-      issuing_operation_faci: stockMovementData.plant_id || "000000",
+      issuing_operation_faci: stockMovementData.plant_id,
       stock_movement: stockMovementItems,
-      balance_index: balanceIndex,
       organization_id: organizationId,
       is_production_order: 1,
       production_order_id: stockMovementData.id,
@@ -37,28 +32,6 @@ const createStockMovement = async (
       create_time: new Date(),
       update_time: new Date(),
     };
-
-    // Fetch movement type ID
-    const movementTypeQuery = await db
-      .collection("blade_dict")
-      .where({ dict_key: "Location Transfer" })
-      .get();
-    if (!movementTypeQuery.data || movementTypeQuery.data.length === 0) {
-      throw new Error("No stock movement type found for LOT");
-    }
-    // stockMovement.movement_type = movementTypeQuery.data[0].id;
-
-    // Fetch movement reason ID
-    const movementReasonQuery = await db
-      .collection("stock_movement_reason")
-      .where({ sm_reason_name: "Bin Location Transfer" })
-      .get();
-    if (!movementReasonQuery.data || movementReasonQuery.data.length === 0) {
-      throw new Error(
-        "No stock movement reason found for Bin Location Transfer"
-      );
-    }
-    // stockMovement.movement_reason = movementReasonQuery.data[0].id;
 
     // Generate unique stock movement number
     const prefixEntryQuery = await db
@@ -75,97 +48,36 @@ const createStockMovement = async (
     }
 
     const prefixData = prefixEntryQuery.data[0];
-    const now = new Date();
-    let runningNumber = parseInt(prefixData.running_number);
-    let isUnique = false;
-    let maxAttempts = 10;
-    let attempts = 0;
+    const currDraftNum =
+      prefixData.draft_number != null && prefixData.draft_number !== undefined
+        ? parseInt(prefixData.draft_number) + 1
+        : 1; // or some default value like 0
+    const newPrefix = `DRAFT-${prefixData?.prefix_value}-${currDraftNum}`;
+    stockMovement.stock_movement_no = newPrefix;
 
-    const generatePrefix = (runNumber) => {
-      let generated = prefixData.current_prefix_config;
-      generated = generated.replace("prefix", prefixData.prefix_value);
-      generated = generated.replace("suffix", prefixData.suffix_value);
-      generated = generated.replace(
-        "month",
-        String(now.getMonth() + 1).padStart(2, "0")
-      );
-      generated = generated.replace(
-        "day",
-        String(now.getDate()).padStart(2, "0")
-      );
-      generated = generated.replace("year", now.getFullYear());
-      generated = generated.replace(
-        "running_number",
-        String(runNumber).padStart(prefixData.padding_zeroes, "0")
-      );
-      return generated;
-    };
-
-    const checkUniqueness = async (generatedPrefix) => {
-      const existingDoc = await db
-        .collection("stock_movement")
-        .where({ stock_movement_no: generatedPrefix })
-        .get();
-      return !existingDoc.data || existingDoc.data.length === 0;
-    };
-
-    let prefixToShow;
-    while (!isUnique && attempts < maxAttempts) {
-      attempts++;
-      prefixToShow = generatePrefix(runningNumber);
-      isUnique = await checkUniqueness(prefixToShow);
-      if (!isUnique) {
-        runningNumber++;
-      }
-    }
-
-    if (!isUnique) {
-      throw new Error(
-        "Could not generate a unique Stock Movement number after maximum attempts"
-      );
-    }
-
-    stockMovement.stock_movement_no = prefixToShow;
+    await db
+      .collection("prefix_configuration")
+      .doc(prefixData.id)
+      .update({ draft_number: currDraftNum });
 
     // Add stock movement to database
     await db.collection("stock_movement").add(stockMovement);
 
-    // Update prefix configuration
-    await db
-      .collection("prefix_configuration")
-      .doc(prefixData.id)
-      .update({ running_number: runningNumber + 1 });
-
-    // Update UI data
-    self.setData({ stock_movement_no: prefixToShow });
-
-    return { success: true, stock_movement_no: prefixToShow };
+    return { success: true };
   } catch (error) {
     console.error("Error creating Stock Movement:", error);
     throw error;
   }
 };
 
-// Integration with existing production order code
-const self = this;
-const page_status = self.getValue("page_status");
-const productionOrderId = self.getValue("id");
-const allData = self.getValues();
-
 const closeDialog = () => {
-  try {
-    if (self.parentGenerateForm) {
-      self.parentGenerateForm.$refs.SuPageDialogRef.hide();
-      self.parentGenerateForm.refresh();
-    }
-  } catch (error) {
-    console.error("Error closing dialog:", error);
+  if (this.parentGenerateForm) {
+    this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+    this.parentGenerateForm.refresh();
+    this.hideLoading();
   }
 };
-let organizationId = this.getVarGlobal("deptParentId");
-if (organizationId === "0") {
-  organizationId = this.getVarSystem("deptIds").split(",")[0];
-}
+
 const createEntry = (data) => ({
   production_order_no: data.production_order_no,
   production_order_status: "Issued",
@@ -173,22 +85,18 @@ const createEntry = (data) => ({
   plant_id: data.plant_id,
   plan_type: data.plan_type,
   material_id: data.material_id,
+  material_name: data.material_name,
+  material_desc: data.material_desc,
   priority: data.priority,
   planned_qty: data.planned_qty,
   planned_qty_uom: data.planned_qty_uom,
   lead_time: data.lead_time,
   table_sales_order: data.table_sales_order,
-  organization_id: organizationId,
+  organization_id: data.organization_id,
   process_source: data.process_source,
   process_route_no: data.process_route_no,
   process_route_name: data.process_route_name,
   table_process_route: data.table_process_route,
-  create_user: data.create_user,
-  create_dept: data.create_dept,
-  create_time: data.create_time || new Date(),
-  update_user: data.update_user,
-  update_time: data.update_time || new Date(),
-  is_deleted: data.is_deleted || 0,
   tenant_id: data.tenant_id,
   table_bom: data.table_bom,
   bom_id: data.bom_id,
@@ -201,6 +109,7 @@ const createEntry = (data) => ({
     ? data.table_bom.map((item) => ({
         material_id: item.material_id,
         material_name: item.material_name,
+        material_desc: item.material_desc,
         material_category: item.material_category,
         material_uom: item.material_uom,
         item_process_id: item.item_process_id,
@@ -212,205 +121,345 @@ const createEntry = (data) => ({
   batch_id: data.batch_id,
 });
 
-const validateData = (data) => {
-  const requiredFields = [
-    { field: "production_order_name", label: "Production Order Name" },
-    { field: "plant_id", label: "Plant" },
-    { field: "plan_type", label: "Plan Type" },
-    { field: "material_id", label: "Item Code" },
-    { field: "table_bom", label: "Bill of Materials", isArray: true },
-  ];
+const validateForm = (data, requiredFields, planType) => {
+  const missingFields = [];
 
-  for (const { field, label, isArray } of requiredFields) {
-    if (isArray) {
-      if (
-        !data[field] ||
-        !Array.isArray(data[field]) ||
-        data[field].length === 0
-      ) {
-        showErrorPopup(`${label} cannot be empty`);
-        return false;
-      }
-    } else {
-      if (!data[field] || data[field].toString().trim() === "") {
-        showErrorPopup(`${label} cannot be empty`);
-        return false;
-      }
-    }
-  }
-
-  return true;
-};
-
-// Add a helper method to show error popup using $alert
-const showErrorPopup = (message) => {
-  try {
-    // Using $alert (assumes Element UI or similar framework)
-    this.$alert(message, "Error", {
-      confirmButtonText: "OK",
-      type: "error",
+  if (planType === "Make to Order") {
+    requiredFields.push({
+      name: "table_sales_order",
+      label: "Sales Order",
+      isArray: true,
+      arrayType: "object",
+      arrayFields: [{ name: "sales_order_id", label: "SO Number" }],
     });
-  } catch (error) {
-    console.error("Error showing alert:", error);
-    // Fallback to native alert if $alert fails
-    alert(message);
   }
+
+  requiredFields.forEach((field) => {
+    const value = data[field.name];
+
+    // Handle non-array fields (unchanged)
+    if (!field.isArray) {
+      if (validateField(value)) {
+        missingFields.push(field.label);
+      }
+      return;
+    }
+
+    // Handle array fields
+    if (!Array.isArray(value)) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    if (value.length === 0) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    // Check each item in the array
+    if (field.arrayType === "object" && field.arrayFields && value.length > 0) {
+      value.forEach((item, index) => {
+        field.arrayFields.forEach((subField) => {
+          const subValue = item[subField.name];
+          if (validateField(subValue)) {
+            missingFields.push(
+              `${subField.label} (in ${field.label} #${index + 1})`
+            );
+          }
+        });
+      });
+    }
+  });
+
+  return missingFields;
 };
 
-if (page_status === "Add" || page_status == undefined) {
+const validateField = (value) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "number") return value <= 0;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return !value;
+};
+
+const updatePrefix = async (organizationId, runningNumber) => {
   try {
-    if (!validateData(allData)) {
-      return; // Stop execution if validation fails
-    }
-
-    const prefixEntry = await db
-      .collection("prefix_configuration")
-      .where({ document_types: "Production Order", is_deleted: 0 })
-      .get();
-    if (!prefixEntry.data || prefixEntry.data.length === 0) {
-      throw new Error("No prefix configuration found");
-    }
-
-    const currDraftNum = parseInt(prefixEntry.data[0].draft_number) + 1;
-    const newPrefix = `${allData.production_order_no || currDraftNum}`;
-
-    const entry = createEntry(allData);
-    entry.production_order_no = newPrefix;
-
-    const productionOrderResult = await db
-      .collection("production_order")
-      .add(entry);
-    console.log("createStockMovement", productionOrderResult);
-
-    const stockMovementData = {
-      id: productionOrderResult.data[0].id,
-      created_at: new Date(),
-      tenant_id: allData.tenant_id,
-      plant_id: allData.plant_id,
-      table_bom: allData.table_bom,
-      organization_id: allData.organization_id,
-    };
-
-    await createStockMovement(
-      stockMovementData,
-      allData.organization_id,
-      db,
-      self
-    );
-
     await db
-      .collection("prefix_configuration")
-      .doc(prefixEntry.data[0].id)
-      .update({ draft_number: currDraftNum });
-
-    closeDialog();
-  } catch (error) {
-    console.error("Add operation failed:", error);
-    showErrorPopup("Failed to create production order: " + error.message);
-  }
-} else if (page_status === "Edit") {
-  try {
-    if (!validateData(allData)) {
-      return; // Stop execution if validation fails
-    }
-    let organizationId = this.getVarGlobal("deptParentId");
-    if (organizationId === "0") {
-      organizationId = this.getVarSystem("deptIds").split(",")[0];
-    }
-    const entry = createEntry(allData);
-    const prefixQuery = await db
       .collection("prefix_configuration")
       .where({
         document_types: "Production Order",
         is_deleted: 0,
         organization_id: organizationId,
-        is_active: 1,
       })
-      .get();
+      .update({
+        running_number: parseInt(runningNumber) + 1,
+        has_record: 1,
+      });
+    console.log("Prefix update successful");
+  } catch (error) {
+    console.error("Error updating prefix:", error);
+    throw error;
+  }
+};
 
-    let newPrefix = entry.production_order_no;
-    if (prefixQuery.data && prefixQuery.data.length > 0) {
-      const prefixData = prefixQuery.data[0];
-      const now = new Date();
-      let runningNumber = parseInt(prefixData.running_number || 0);
-      let isUnique = false;
-      let maxAttempts = 10;
-      let attempts = 0;
+const generatePrefix = (runNumber, now, prefixData) => {
+  console.log("Generating prefix with running number:", runNumber);
+  try {
+    let generated = prefixData.current_prefix_config;
+    generated = generated.replace("prefix", prefixData.prefix_value);
+    generated = generated.replace("suffix", prefixData.suffix_value);
+    generated = generated.replace(
+      "month",
+      String(now.getMonth() + 1).padStart(2, "0")
+    );
+    generated = generated.replace(
+      "day",
+      String(now.getDate()).padStart(2, "0")
+    );
+    generated = generated.replace("year", now.getFullYear());
+    generated = generated.replace(
+      "running_number",
+      String(runNumber).padStart(prefixData.padding_zeroes, "0")
+    );
+    console.log("Generated prefix:", generated);
+    return generated;
+  } catch (error) {
+    console.error("Error generating prefix:", error);
+    throw error;
+  }
+};
 
-      const generatePrefix = (runNumber) => {
-        let generated = prefixData.current_prefix_config;
-        generated = generated.replace("prefix", prefixData.prefix_value);
-        generated = generated.replace("suffix", prefixData.suffix_value);
-        generated = generated.replace(
-          "month",
-          String(now.getMonth() + 1).padStart(2, "0")
-        );
-        generated = generated.replace(
-          "day",
-          String(now.getDate()).padStart(2, "0")
-        );
-        generated = generated.replace("year", now.getFullYear());
-        generated = generated.replace(
-          "running_number",
-          String(runNumber).padStart(prefixData.padding_zeroes, "0")
-        );
-        return generated;
-      };
+const checkUniqueness = async (generatedPrefix, organizationId) => {
+  const existingDoc = await db
+    .collection("production_order")
+    .where({
+      production_order_no: generatedPrefix,
+      organization_id: organizationId,
+    })
+    .get();
 
-      const checkUniqueness = async (generatedPrefix) => {
-        const existingDoc = await db
-          .collection("production_order")
-          .where({ production_order_no: generatedPrefix })
-          .get();
-        return !existingDoc.data || existingDoc.data.length === 0;
-      };
+  return !existingDoc.data || existingDoc.data.length === 0;
+};
 
-      while (!isUnique && attempts < maxAttempts) {
-        attempts++;
-        newPrefix = generatePrefix(runningNumber);
-        isUnique = await checkUniqueness(newPrefix);
-        if (!isUnique) {
-          runningNumber++;
-        }
-      }
+const findUniquePrefix = async (prefixData, organizationId) => {
+  const now = new Date();
+  let prefixToShow;
+  let runningNumber = prefixData.running_number || 1;
+  let isUnique = false;
+  let maxAttempts = 10;
+  let attempts = 0;
 
-      if (!isUnique) {
+  while (!isUnique && attempts < maxAttempts) {
+    attempts++;
+    prefixToShow = generatePrefix(runningNumber, now, prefixData);
+    isUnique = await checkUniqueness(prefixToShow, organizationId);
+    if (!isUnique) {
+      runningNumber++;
+    }
+  }
+
+  if (!isUnique) {
+    throw new Error(
+      "Could not generate a unique Production Order number after maximum attempts"
+    );
+  }
+
+  return { prefixToShow, runningNumber };
+};
+
+const updateItemTransactionDate = async (entry) => {
+  try {
+    const tableBOM = entry.table_bom;
+
+    const uniqueItemIds = [
+      ...new Set(
+        tableBOM
+          .filter((item) => item.material_id)
+          .map((item) => item.material_id)
+      ),
+    ];
+
+    const date = new Date().toISOString();
+    for (const [index, item] of uniqueItemIds.entries()) {
+      try {
+        await db
+          .collection("Item")
+          .doc(item)
+          .update({ last_transaction_date: date });
+      } catch (error) {
         throw new Error(
-          "Could not generate a unique Production Order number after maximum attempts"
+          `Cannot update last transaction date for item #${index + 1}.`,
+          error
         );
       }
+    }
+  } catch (error) {
+    throw new Error(error);
+  }
+};
 
-      await db
-        .collection("prefix_configuration")
-        .doc(prefixData.id)
-        .update({
-          running_number: runningNumber + 1,
-          has_record: 1,
-        });
+(async () => {
+  try {
+    const self = this;
+    const page_status = self.getValue("page_status");
+    const productionOrderId = self.getValue("id");
+    const allData = self.getValues();
+    this.showLoading();
+
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
-    entry.production_order_no = newPrefix;
-    console.log("Updating production order with ID:", productionOrderId);
+    const requiredFields = [
+      { name: "plant_id", label: "Plant" },
+      { name: "plan_type", label: "Plan Type" },
+      { name: "material_id", label: "Item Code" },
+      {
+        name: "table_bom",
+        label: "Bill of Materials",
+        isArray: true,
+        arrayType: "object",
+        arrayFields: [{ name: "bin_location_id", label: "Bin Location" }],
+      },
+    ];
 
-    await db
-      .collection("production_order")
-      .doc(productionOrderId)
-      .update(entry);
+    const missingFields = await validateForm(
+      allData,
+      requiredFields,
+      allData.plan_type
+    );
 
-    const stockMovementData = {
-      id: productionOrderId,
-      created_at: new Date(),
-      tenant_id: allData.tenant_id,
-      plant_id: allData.plant_id,
-      table_bom: allData.table_bom,
-      organization_id: organizationId,
-    };
+    if (missingFields.length === 0) {
+      if (page_status === "Add" || page_status == undefined) {
+        try {
+          const prefixEntry = await db
+            .collection("prefix_configuration")
+            .where({
+              document_types: "Production Order",
+              is_deleted: 0,
+              organization_id: organizationId,
+              is_active: 1,
+            })
+            .get();
+          if (!prefixEntry.data || prefixEntry.data.length === 0) {
+            console.log("No prefix configuration found");
+            return null;
+          } else {
+            const prefixData = prefixEntry.data[0];
 
-    await createStockMovement(stockMovementData, organizationId, db, self);
+            const { prefixToShow, runningNumber } = await findUniquePrefix(
+              prefixData,
+              organizationId
+            );
 
-    closeDialog();
+            await updatePrefix(organizationId, runningNumber);
+            allData.production_order_no = prefixToShow;
+          }
+
+          const entry = createEntry(allData);
+
+          const productionOrderResult = await db
+            .collection("production_order")
+            .add(entry);
+          console.log("createStockMovement", productionOrderResult);
+
+          await updateItemTransactionDate(entry);
+
+          const stockMovementData = {
+            id: productionOrderResult.data[0].id,
+            created_at: new Date(),
+            tenant_id: allData.tenant_id,
+            plant_id: allData.plant_id,
+            table_bom: allData.table_bom,
+            organization_id: allData.organization_id,
+          };
+
+          await createStockMovement(
+            stockMovementData,
+            allData.organization_id,
+            db,
+            self
+          );
+
+          closeDialog();
+        } catch (error) {
+          this.hideLoading();
+          console.error("Add operation failed:", error);
+          this.$message.error(
+            "Failed to create production order: " + error.message
+          );
+        }
+      } else if (page_status === "Edit") {
+        try {
+          const entry = createEntry(allData);
+          const prefixQuery = await db
+            .collection("prefix_configuration")
+            .where({
+              document_types: "Production Order",
+              is_deleted: 0,
+              organization_id: organizationId,
+              is_active: 1,
+            })
+            .get();
+
+          if (!prefixQuery.data || prefixQuery.data.length === 0) {
+            console.log("No prefix configuration found");
+            return null;
+          } else {
+            const prefixData = prefixQuery.data[0];
+
+            const { prefixToShow, runningNumber } = await findUniquePrefix(
+              prefixData,
+              organizationId
+            );
+
+            await updatePrefix(organizationId, runningNumber);
+            entry.production_order_no = prefixToShow;
+          }
+
+          console.log("Updating production order with ID:", productionOrderId);
+
+          await db
+            .collection("production_order")
+            .doc(productionOrderId)
+            .update(entry);
+
+          await updateItemTransactionDate(entry);
+
+          const stockMovementData = {
+            id: productionOrderId,
+            created_at: new Date(),
+            tenant_id: allData.tenant_id,
+            plant_id: allData.plant_id,
+            table_bom: allData.table_bom,
+            organization_id: organizationId,
+          };
+
+          await createStockMovement(
+            stockMovementData,
+            organizationId,
+            db,
+            self
+          );
+
+          closeDialog();
+        } catch (error) {
+          this.hideLoading();
+          console.error("Edit operation failed:", error);
+          this.$message.error(
+            "Failed to update production order: " + error.message
+          );
+        }
+      }
+    } else {
+      this.hideLoading();
+      console.log(missingFields);
+      this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
+    }
   } catch (error) {
-    console.error("Edit operation failed:", error);
-    showErrorPopup("Failed to update production order: " + error.message);
+    this.hideLoading();
+    this.$message.error(error);
   }
-}
+})();

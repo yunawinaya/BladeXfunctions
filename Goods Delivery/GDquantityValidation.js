@@ -14,16 +14,22 @@
       data.table_gd[rowIndex].gd_initial_delivered_qty || 0
     );
 
+    // Calculate total EXCLUDING the current row being validated
     let currentDialogTotal = 0;
     for (let i = 0; i < data.gd_item_balance.table_item_balance.length; i++) {
-      currentDialogTotal += parseFloat(
-        data.gd_item_balance.table_item_balance[i].gd_quantity || 0
-      );
+      if (i !== parseInt(index)) {
+        // Exclude current row
+        currentDialogTotal += parseFloat(
+          data.gd_item_balance.table_item_balance[i].gd_quantity || 0
+        );
+      }
     }
 
-    const gd_delivered_qty = initialDeliveredQty + currentDialogTotal;
-
+    // Add the new value being validated
     const parsedValue = parseFloat(value);
+    const totalWithNewValue = currentDialogTotal + parsedValue;
+    const gd_delivered_qty = initialDeliveredQty + totalWithNewValue;
+
     const unrestricted_field =
       data.gd_item_balance.table_item_balance[index].unrestricted_qty;
     const reserved_field =
@@ -65,9 +71,15 @@
           callback("Unrestricted quantity is not enough");
           return;
         }
+
         console.log("Order limit with tolerance:", orderLimit);
         console.log("Initial delivered quantity:", initialDeliveredQty);
-        console.log("Current dialog total:", currentDialogTotal);
+        console.log(
+          "Current dialog total (excluding current row):",
+          currentDialogTotal
+        );
+        console.log("New value being validated:", parsedValue);
+        console.log("Total with new value:", totalWithNewValue);
         console.log("Total delivered quantity:", gd_delivered_qty);
 
         if (orderLimit < gd_delivered_qty) {

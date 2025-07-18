@@ -90,9 +90,6 @@
       [`stock_movement.${rowIndex}.total_quantity`]: totalSmQuantity,
     });
 
-    // ================================
-    // ENHANCED BALANCE INDEX UPDATE WITH FULL DEBUGGING
-    // ================================
     const currentBalanceIndex = this.getValues().balance_index || [];
     const rowsToUpdate = temporaryData.filter(
       (item) => (item.sm_quantity || 0) > 0
@@ -144,7 +141,11 @@
       const newEntry = {
         ...newRow,
         row_index: rowIndex,
+        id: undefined,
       };
+
+      delete newEntry.id;
+
       updatedBalanceIndex.push(newEntry);
       console.log(
         `Added new entry ${index + 1} for row ${rowIndex}:`,
@@ -157,10 +158,6 @@
       "Final balance_index:",
       JSON.stringify(updatedBalanceIndex, null, 2)
     );
-
-    // ================================
-    // REST OF THE ORIGINAL CODE
-    // ================================
 
     const formatFilteredData = async (temporaryData) => {
       // Filter data to only include items with quantity > 0

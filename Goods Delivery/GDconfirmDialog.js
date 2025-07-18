@@ -11,18 +11,81 @@
       return res.data[0].uom_name;
     });
 
-  // Check if all rows have passed validation
-  const allValid = temporaryData.every((item, idx) => {
-    const isValid =
-      window.validationState && window.validationState[idx] !== false;
-    console.log(`Row ${idx} validation: ${isValid}`);
-    return isValid;
-  });
+  // Re-validate all rows with quantities > 0 before confirming
+  const gdStatus = data.gd_status;
+  const materialId = data.table_gd[rowIndex].material_id;
+  const gd_order_quantity = parseFloat(
+    data.table_gd[rowIndex].gd_order_quantity || 0
+  );
+  const initialDeliveredQty = parseFloat(
+    data.table_gd[rowIndex].gd_initial_delivered_qty || 0
+  );
 
-  if (!allValid) {
-    console.log("Validation failed, canceling confirm");
+  let orderLimit = 0;
+  if (materialId) {
+    const resItem = await db.collection("Item").where({ id: materialId }).get();
+
+    if (resItem.data && resItem.data[0]) {
+      orderLimit =
+        (gd_order_quantity * (100 + resItem.data[0].over_delivery_tolerance)) /
+        100;
+    }
+  }
+
+  // Calculate total quantity from all rows with gd_quantity > 0
+  const totalDialogQuantity = temporaryData.reduce((sum, item) => {
+    return sum + (item.gd_quantity > 0 ? parseFloat(item.gd_quantity || 0) : 0);
+  }, 0);
+
+  const totalDeliveredQty = initialDeliveredQty + totalDialogQuantity;
+
+  console.log("Re-validation check:");
+  console.log("Order limit with tolerance:", orderLimit);
+  console.log("Initial delivered quantity:", initialDeliveredQty);
+  console.log("Total dialog quantity:", totalDialogQuantity);
+  console.log("Total delivered quantity:", totalDeliveredQty);
+
+  // Check each row for validation
+  for (let idx = 0; idx < temporaryData.length; idx++) {
+    const item = temporaryData[idx];
+    const quantity = parseFloat(item.gd_quantity || 0);
+
+    // Skip rows with quantity <= 0
+    if (quantity <= 0) {
+      console.log(`Row ${idx} has quantity <= 0, skipping validation`);
+      continue;
+    }
+
+    // Check stock availability
+    const unrestricted_field = item.unrestricted_qty;
+    const reserved_field = item.reserved_qty;
+
+    if (
+      gdStatus === "Created" &&
+      reserved_field + unrestricted_field < quantity
+    ) {
+      console.log(`Row ${idx} validation failed: Quantity is not enough`);
+      alert(`Row ${idx + 1}: Quantity is not enough`);
+      return;
+    } else if (gdStatus !== "Created" && unrestricted_field < quantity) {
+      console.log(
+        `Row ${idx} validation failed: Unrestricted quantity is not enough`
+      );
+      alert(`Row ${idx + 1}: Unrestricted quantity is not enough`);
+      return;
+    }
+
+    console.log(`Row ${idx} validation: passed`);
+  }
+
+  // Check total delivery limit
+  if (orderLimit > 0 && orderLimit < totalDeliveredQty) {
+    console.log("Validation failed: Total quantity exceeds delivery limit");
+    alert("Total quantity exceeds delivery limit");
     return;
   }
+
+  console.log("All validations passed, proceeding with confirm");
 
   // Filter out items where gd_quantity is less than or equal to 0
   const filteredData = temporaryData.filter((item) => item.gd_quantity > 0);
@@ -147,11 +210,11 @@
   console.log("Total GD quantity:", totalGdQuantity);
 
   // Get the initial delivered quantity from the table_gd
-  const initialDeliveredQty =
+  const initialDeliveredQty2 =
     data.table_gd[rowIndex].gd_initial_delivered_qty || 0;
-  console.log("Initial delivered quantity:", initialDeliveredQty);
+  console.log("Initial delivered quantity:", initialDeliveredQty2);
 
-  const deliveredQty = initialDeliveredQty + totalGdQuantity;
+  const deliveredQty = initialDeliveredQty2 + totalGdQuantity;
   console.log("Final delivered quantity:", deliveredQty);
 
   // Calculate price per item for the current row
