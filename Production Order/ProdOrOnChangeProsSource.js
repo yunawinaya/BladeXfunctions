@@ -1,9 +1,8 @@
 const self = this;
-const allData = self.getValues();
 const processSource = arguments[0].value;
 const pageStatus = this.getValue("page_status");
 const productionOrderId = self.getValue("id");
-const plantId = allData.plant_id;
+const materialId = self.getValue("material_id");
 
 if (processSource) {
   this.display(["card_details"]);
@@ -39,6 +38,25 @@ if (pageStatus === "Edit" || pageStatus === "View") {
   } else {
     this.hide("grid_9gn5igyx");
   }
-  this.setData({ [`table_process_route`]: [] });
-  this.setData({ [`table_bom`]: [] });
+  this.setData({
+    [`table_process_route`]: [],
+    [`table_bom`]: [],
+    process_route_no: "",
+    process_route_name: "",
+    bom_id: "",
+  });
+
+  if (processSource === "Process Route") {
+    await db
+      .collection("process_route")
+      .where({ material_code: materialId, is_main_process_route: 1 })
+      .get()
+      .then((response) => {
+        const processRouteData = response.data[0];
+        console.log("processRouteData JN", processRouteData);
+        self.setData({
+          process_route_no: processRouteData.id,
+        });
+      });
+  }
 }

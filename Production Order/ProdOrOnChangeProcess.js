@@ -1,4 +1,6 @@
 (async () => {
+  const allData = this.getValues();
+
   // Helper function to handle process table data and set BOM options
   const handleProcessTableData = async (processTable, materialTable) => {
     try {
@@ -39,10 +41,12 @@
       if (validProcessData.length > 0) {
         // Set option data for each row in BOM table
         const optionPromises = materialTable.map((_, index) =>
-          this.setOptionData(
-            `table_bom.${index}.item_process_id`,
-            validProcessData
-          )
+          setTimeout(() => {
+            this.setOptionData(
+              `table_bom.${index}.item_process_id`,
+              validProcessData
+            );
+          }, 50)
         );
 
         await Promise.all(optionPromises);
@@ -54,6 +58,23 @@
       }
     } catch (error) {
       console.error("Error handling process table data:", error);
+    }
+  };
+
+  const fetchUomData = async (uomIds) => {
+    try {
+      const resUOM = await Promise.all(
+        uomIds.map((id) =>
+          db.collection("unit_of_measurement").where({ id }).get()
+        )
+      );
+
+      const uomData = resUOM.map((response) => response.data[0]);
+
+      return uomData;
+    } catch (error) {
+      console.error("Error fetching UOM data:", error);
+      return [];
     }
   };
 
@@ -72,13 +93,23 @@
       const processData = response.data[0];
       const processList = processData.process_table || [];
       const materialList = processData.mat_consumption_table || [];
-
+      const qtyToProduce = parseFloat(allData.planned_qty.toFixed(3));
+      const processRouteBaseQty = parseFloat(
+        processData.bom_base_qty.toFixed(3)
+      );
       // Map material data to BOM format
-      const mappedBomData = materialList.map((item) => ({
+      const mappedBomData = await materialList.map((item) => ({
         material_id: item.bom_material_code,
         material_name: item.bom_material_name,
+        material_desc: item.material_desc,
         material_category: item.bom_material_category,
-        material_quantity: item.quantity,
+        material_quantity: parseFloat(
+          (
+            (qtyToProduce / processRouteBaseQty) *
+            item.quantity *
+            (1 + item.wastage / 100)
+          ).toFixed(3)
+        ),
         material_uom: item.base_uom,
         item_process_id: item.item_process_id || null,
         bin_location_id: item.bin_location || null,
@@ -129,6 +160,35 @@
         const mappedData = await fetchAndMapProcessData(processId);
         await this.setData(mappedData);
 
+        const tableBOM = await this.getValue("table_bom");
+
+        tableBOM.forEach(async (material, rowIndex) => {
+          if (material.material_id) {
+            const resItem = await db
+              .collection("item")
+              .where({ id: material.material_id })
+              .get();
+
+            if (resItem && resItem.data.length > 0) {
+              const itemData = resItem.data[0];
+
+              const altUoms = itemData.table_uom_conversion.map(
+                (data) => data.alt_uom_id
+              );
+              let uomOptions = [];
+              await altUoms.push(itemData.based_uom);
+
+              const res = await fetchUomData(altUoms);
+              uomOptions.push(...res);
+              console.log("rowIndex", rowIndex);
+              await this.setOptionData(
+                [`table_bom.${rowIndex}.material_uom`],
+                uomOptions
+              );
+            }
+          }
+        });
+
         // Update process options after setting data
         const updatedData = this.getValues();
         await handleProcessTableData(
@@ -157,6 +217,35 @@
       const mappedData = await fetchAndMapProcessData(processId);
       await this.setData(mappedData);
 
+      const tableBOM = await this.getValue("table_bom");
+
+      tableBOM.forEach(async (material, rowIndex) => {
+        if (material.material_id) {
+          const resItem = await db
+            .collection("Item")
+            .where({ id: material.material_id })
+            .get();
+
+          if (resItem && resItem.data.length > 0) {
+            const itemData = resItem.data[0];
+
+            const altUoms = itemData.table_uom_conversion.map(
+              (data) => data.alt_uom_id
+            );
+            let uomOptions = [];
+            await altUoms.push(itemData.based_uom);
+
+            const res = await fetchUomData(altUoms);
+            uomOptions.push(...res);
+            console.log("rowIndex", rowIndex);
+            await this.setOptionData(
+              [`table_bom.${rowIndex}.material_uom`],
+              uomOptions
+            );
+          }
+        }
+      });
+
       // Update process options after setting data
       await handleProcessTableData(
         mappedData.table_process_route,
@@ -179,7 +268,11 @@
 
     // Input validation
     if (!processId) {
-      console.error("Missing required processId");
+      this.setData({
+        process_route_name: "",
+        table_process_route: [],
+        table_bom: [],
+      });
       return;
     }
 

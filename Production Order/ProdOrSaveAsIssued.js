@@ -115,6 +115,7 @@ const createEntry = (data) => ({
         item_process_id: item.item_process_id,
         bin_location_id: item.bin_location_id,
         material_required_qty: item.material_quantity,
+        material_actual_qty: item.material_quantity,
         item_remarks: item.item_remarks,
       }))
     : [],
