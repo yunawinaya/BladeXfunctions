@@ -65,6 +65,9 @@
 
     const uomName = await getUOMData(uomId);
     this.setData({
+      [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
+      [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+        orderedQty - totalDeliveredQty,
       [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}`,
     });
     return;

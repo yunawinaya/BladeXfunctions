@@ -16,40 +16,6 @@ const closeDialog = () => {
   }
 };
 
-const getInspPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Receiving Inspection",
-      is_deleted: 0,
-      organization_id: organizationId,
-    })
-    .get();
-
-  const prefixData = await prefixEntry.data[0];
-
-  return prefixData;
-};
-
-const generateInspDraftPrefix = async (organizationId) => {
-  try {
-    const prefixData = await getInspPrefixData(organizationId);
-    const currDraftNum = parseInt(prefixData.draft_number) + 1;
-    const newPrefix = `DRAFT-${prefixData.prefix_value}-` + currDraftNum;
-
-    db.collection("prefix_configuration")
-      .where({
-        document_types: "Receiving Inspection",
-        organization_id: organizationId,
-      })
-      .update({ draft_number: currDraftNum });
-
-    return newPrefix;
-  } catch (error) {
-    throw new Error(error);
-  }
-};
-
 const addInventory = async (
   data,
   plantId,
@@ -740,7 +706,27 @@ const addInventory = async (
     materialCode
   ) => {
     try {
-      const inspPrefix = await generateInspDraftPrefix(data.organization_id);
+      const prefixData = await getPrefixData(
+        organizationId,
+        "Receiving Inspection"
+      );
+      let inspPrefix = "";
+
+      if (prefixData !== null) {
+        const { prefixToShow, runningNumber } = await findUniquePrefix(
+          prefixData,
+          organizationId,
+          "Receiving Inspection"
+        );
+
+        await updatePrefix(
+          organizationId,
+          runningNumber,
+          "Receiving Inspection"
+        );
+
+        inspPrefix = prefixToShow;
+      }
 
       let grId = null;
       const resGR = await db
@@ -761,9 +747,10 @@ const addInventory = async (
         organization_id: data.organization_id,
         lot_created_by: data.gr_received_by,
         inspector_name: this.getVarGlobal("nickname"),
-        receiving_insp_status: "Draft",
+        receiving_insp_status: "Created",
         inspection_pass_fail: "0 / 0",
         remarks: "",
+        lot_created_by: "System",
         insp_start_time: "",
         insp_end_time: "",
         table_insp_mat: [
@@ -1649,6 +1636,16 @@ const checkUniqueness = async (
       .get();
 
     return existingDoc.data[0] ? false : true;
+  } else if (documentTypes === "Receiving Inspection") {
+    const existingDoc = await db
+      .collection("basic_inspection_lot")
+      .where({
+        inspection_lot_no: generatedPrefix,
+        organization_id: organizationId,
+      })
+      .get();
+
+    return existingDoc.data[0] ? false : true;
   }
 };
 
@@ -1897,6 +1894,39 @@ const checkQuantitiesByPoId = async (tableGR) => {
   };
 };
 
+const checkCompletedPO = async (po_id) => {
+  for (const purchase_order_id of po_id) {
+    const resPO = await db
+      .collection("purchase_order")
+      .where({ id: purchase_order_id })
+      .get();
+
+    if (!resPO.data || !resPO.data.length) {
+      console.warn(`Purchase order ${purchase_order_id} not found`);
+      continue;
+    }
+
+    const poData = resPO.data[0];
+
+    const allItemsFullyReceived = poData.table_po.every((item) => {
+      const quantity = parseFloat(item.quantity || 0);
+      const receivedQty = parseFloat(item.received_qty || 0);
+
+      if (quantity <= 0) return true;
+
+      return receivedQty >= quantity;
+    });
+
+    if (allItemsFullyReceived) {
+      throw new Error(
+        `Purchase Order ${poData.purchase_order_no} is already fully received and cannot be processed further.`
+      );
+    }
+  }
+
+  return true;
+};
+
 (async () => {
   try {
     const data = this.getValues();
@@ -2050,7 +2080,6 @@ const checkQuantitiesByPoId = async (tableGR) => {
           )} is 0. Please delete the PO or receive at least one item with quantity > 0.`
         );
       }
-
       const latestGR = entry.table_gr.filter((item) => item.received_qty > 0);
 
       entry.table_gr = latestGR;
@@ -2060,6 +2089,8 @@ const checkQuantitiesByPoId = async (tableGR) => {
           "All Received Quantity must not be 0. Please add at lease one item with received quantity > 0."
         );
       }
+
+      await checkCompletedPO(entry.po_id);
 
       if (page_status === "Add") {
         await addEntry(organizationId, entry);
