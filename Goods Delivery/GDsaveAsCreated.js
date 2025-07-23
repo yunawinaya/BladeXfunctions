@@ -1536,8 +1536,9 @@ const checkExistingReservedGoods = async (
     // Check each SO number for conflicts
     for (const soNo of soArray) {
       const query = {
-        so_no: soNo,
+        parent_no: soNo,
         organization_id: organizationId,
+        is_deleted: 0,
       };
 
       // If updating an existing GD, exclude its records from the check
@@ -1545,7 +1546,11 @@ const checkExistingReservedGoods = async (
         // Get the current GD's delivery_no to exclude it
         const currentGdResponse = await db
           .collection("goods_delivery")
-          .where({ id: currentGdId, organization_id: organizationId })
+          .where({
+            id: currentGdId,
+            organization_id: organizationId,
+            is_deleted: 0,
+          })
           .get();
 
         if (currentGdResponse.data && currentGdResponse.data.length > 0) {
@@ -1563,7 +1568,7 @@ const checkExistingReservedGoods = async (
           if (allReservedResponse.data && allReservedResponse.data.length > 0) {
             // Filter out records belonging to the current GD
             const otherReservedRecords = allReservedResponse.data.filter(
-              (record) => record.gd_no !== currentGdNo
+              (record) => record.doc_no !== currentGdNo
             );
 
             // Check if any other GD has open quantities for this SO
@@ -1578,7 +1583,7 @@ const checkExistingReservedGoods = async (
               );
               return {
                 hasConflict: true,
-                conflictingGdNo: conflictingRecord.gd_no,
+                conflictingGdNo: conflictingRecord.doc_no,
                 conflictingSoNo: soNo,
               };
             }
@@ -1604,7 +1609,7 @@ const checkExistingReservedGoods = async (
             );
             return {
               hasConflict: true,
-              conflictingGdNo: conflictingRecord.gd_no,
+              conflictingGdNo: conflictingRecord.doc_no,
               conflictingSoNo: soNo,
             };
           }
@@ -1643,19 +1648,20 @@ const createOnReserveGoodsDelivery = async (organizationId, gdData) => {
         const soNumber = gdLineItem.line_so_no || gdData.so_no;
 
         reservedDataBatch.push({
-          so_no: soNumber,
-          gd_no: gdData.delivery_no,
+          doc_type: "Good Delivery",
+          parent_no: soNumber,
+          doc_no: gdData.delivery_no,
           material_id: gdLineItem.material_id,
           item_name: gdLineItem.material_name,
           item_desc: gdLineItem.gd_material_desc || "",
           batch_id: tempItem.batch_id || null,
           bin_location: tempItem.location_id,
           item_uom: gdLineItem.gd_order_uom_id,
-          gd_line_no: i + 1,
+          line_no: i + 1,
           reserved_qty: tempItem.gd_quantity,
           delivered_qty: 0,
           open_qty: tempItem.gd_quantity,
-          gd_reserved_date: new Date()
+          reserved_date: new Date()
             .toISOString()
             .slice(0, 19)
             .replace("T", " "),
@@ -1691,7 +1697,8 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     const existingReserved = await db
       .collection("on_reserved_gd")
       .where({
-        gd_no: gdData.delivery_no,
+        doc_type: "Good Delivery",
+        doc_no: gdData.delivery_no,
         organization_id: organizationId,
       })
       .get();
@@ -1704,19 +1711,20 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
       for (let j = 0; j < temp_qty_data.length; j++) {
         const tempItem = temp_qty_data[j];
         newReservedData.push({
-          so_no: gdLineItem.line_so_no,
-          gd_no: gdData.delivery_no,
+          doc_type: "Good Delivery",
+          parent_no: gdLineItem.line_so_no,
+          doc_no: gdData.delivery_no,
           material_id: gdLineItem.material_id,
           item_name: gdLineItem.material_name,
           item_desc: gdLineItem.gd_material_desc || "",
           batch_id: tempItem.batch_id,
           bin_location: tempItem.location_id,
           item_uom: gdLineItem.gd_order_uom_id,
-          gd_line_no: i + 1,
+          line_no: i + 1,
           reserved_qty: tempItem.gd_quantity,
           delivered_qty: 0,
           open_qty: tempItem.gd_quantity,
-          gd_reserved_date: new Date()
+          reserved_date: new Date()
             .toISOString()
             .slice(0, 19)
             .replace("T", " "),
@@ -1995,7 +2003,7 @@ const updateSalesOrderStatus = async (salesOrderId) => {
         outstanding_balance: data.outstanding_balance,
         overdue_inv_total_amount: data.overdue_inv_total_amount,
         is_accurate: data.is_accurate,
-        gd_total: data.gd_total,
+        gd_total: parseFloat(data.gd_total.toFixed(3)),
       };
 
       // Clean up undefined/null values

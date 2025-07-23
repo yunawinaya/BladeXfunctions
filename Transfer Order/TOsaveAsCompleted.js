@@ -981,9 +981,9 @@ const processBalanceTable = async (
                 );
 
                 const inventoryMovementData = {
-                  transaction_type: "TO - PICK",
-                  trx_no: toData.to_id,
-                  parent_trx_no: data.delivery_no,
+                  transaction_type: "GDL",
+                  trx_no: data.delivery_no,
+                  parent_trx_no: item.so_no,
                   movement: "OUT",
                   unit_price: unitPrice,
                   total_price: totalPrice,
@@ -1035,9 +1035,9 @@ const processBalanceTable = async (
                   );
 
                   const reservedMovementData = {
-                    transaction_type: "TO - PICK",
-                    trx_no: toData.to_id,
-                    parent_trx_no: data.delivery_no,
+                    transaction_type: "GDL",
+                    trx_no: data.delivery_no,
+                    parent_trx_no: item.so_no,
                     movement: "OUT",
                     unit_price: unitPrice,
                     total_price: reservedTotalPrice,
@@ -1074,9 +1074,9 @@ const processBalanceTable = async (
                   );
 
                   const unrestrictedMovementData = {
-                    transaction_type: "TO - PICK",
-                    trx_no: toData.to_id,
-                    parent_trx_no: data.delivery_no,
+                    transaction_type: "GDL",
+                    trx_no: data.delivery_no,
+                    parent_trx_no: item.so_no,
                     movement: "OUT",
                     unit_price: unitPrice,
                     total_price: unrestrictedTotalPrice,
@@ -1129,9 +1129,9 @@ const processBalanceTable = async (
 
                   // Create movement to release unused reserved back to unrestricted
                   const releaseReservedMovementData = {
-                    transaction_type: "TO - PICK",
-                    trx_no: toData.to_id,
-                    parent_trx_no: data.delivery_no,
+                    transaction_type: "GDL",
+                    trx_no: data.delivery_no,
+                    parent_trx_no: item.so_no,
                     movement: "OUT",
                     unit_price: unitPrice,
                     total_price: roundPrice(unitPrice * unusedAltQty),
@@ -1149,9 +1149,9 @@ const processBalanceTable = async (
                   };
 
                   const returnUnrestrictedMovementData = {
-                    transaction_type: "TO - PICK",
-                    trx_no: toData.to_id,
-                    parent_trx_no: data.delivery_no,
+                    transaction_type: "GDL",
+                    trx_no: data.delivery_no,
+                    parent_trx_no: item.so_no,
                     movement: "IN",
                     unit_price: unitPrice,
                     total_price: roundPrice(unitPrice * unusedAltQty),
@@ -1737,7 +1737,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     const existingReserved = await db
       .collection("on_reserved_gd")
       .where({
-        gd_no: gdData.delivery_no,
+        doc_no: gdData.delivery_no,
         organization_id: organizationId,
       })
       .get();
@@ -1750,19 +1750,20 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
       for (let j = 0; j < temp_qty_data.length; j++) {
         const tempItem = temp_qty_data[j];
         newReservedData.push({
-          so_no: gdLineItem.line_so_no,
-          gd_no: gdData.delivery_no,
+          doc_type: "Good Delivery",
+          parent_no: gdLineItem.line_so_no,
+          doc_no: gdData.delivery_no,
           material_id: gdLineItem.material_id,
           item_name: gdLineItem.material_name,
           item_desc: gdLineItem.gd_material_desc || "",
           batch_id: tempItem.batch_id,
           bin_location: tempItem.location_id,
           item_uom: gdLineItem.gd_order_uom_id,
-          gd_line_no: i + 1,
+          line_no: i + 1,
           reserved_qty: tempItem.gd_quantity,
           delivered_qty: tempItem.gd_quantity,
           open_qty: 0,
-          gd_reserved_date: new Date()
+          reserved_date: new Date()
             .toISOString()
             .slice(0, 19)
             .replace("T", " "),

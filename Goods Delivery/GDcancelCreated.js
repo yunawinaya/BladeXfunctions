@@ -335,7 +335,7 @@ const id = this.getValue("goods_delivery_id");
           const reservedGoodsQuery = await db
             .collection("on_reserved_gd")
             .where({
-              gd_no: gdData.delivery_no,
+              doc_no: gdData.delivery_no,
               organization_id: gdData.organization_id,
             })
             .get();

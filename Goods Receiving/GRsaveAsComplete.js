@@ -16,6 +16,40 @@ const closeDialog = () => {
   }
 };
 
+const getInspPrefixData = async (organizationId) => {
+  const prefixEntry = await db
+    .collection("prefix_configuration")
+    .where({
+      document_types: "Receiving Inspection",
+      is_deleted: 0,
+      organization_id: organizationId,
+    })
+    .get();
+
+  const prefixData = await prefixEntry.data[0];
+
+  return prefixData;
+};
+
+const generateInspDraftPrefix = async (organizationId) => {
+  try {
+    const prefixData = await getInspPrefixData(organizationId);
+    const currDraftNum = parseInt(prefixData.draft_number) + 1;
+    const newPrefix = `DRAFT-${prefixData.prefix_value}-` + currDraftNum;
+
+    db.collection("prefix_configuration")
+      .where({
+        document_types: "Receiving Inspection",
+        organization_id: organizationId,
+      })
+      .update({ draft_number: currDraftNum });
+
+    return newPrefix;
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
 const addInventory = async (
   data,
   plantId,
@@ -696,6 +730,68 @@ const addInventory = async (
     }
   };
 
+  const createInspectionLot = async (
+    data,
+    item,
+    itemIndex,
+    batchId,
+    totalPrice,
+    unitPrice,
+    materialCode
+  ) => {
+    try {
+      const inspPrefix = await generateInspDraftPrefix(data.organization_id);
+
+      let grId = null;
+      const resGR = await db
+        .collection("goods_receiving")
+        .where({ gr_no: data.gr_no, organization_id: data.organization_id })
+        .get();
+
+      if (resGR && resGR.data[0]) {
+        grId = resGR.data[0].id;
+      }
+
+      const inspectionData = {
+        inspection_lot_no: inspPrefix,
+        goods_receiving_no: grId,
+        gr_no_display: data.gr_no,
+        insp_lot_created_on: new Date().toISOString().split("T")[0],
+        plant_id: data.plant_id,
+        organization_id: data.organization_id,
+        lot_created_by: data.gr_received_by,
+        inspector_name: this.getVarGlobal("nickname"),
+        receiving_insp_status: "Draft",
+        inspection_pass_fail: "0 / 0",
+        remarks: "",
+        insp_start_time: "",
+        insp_end_time: "",
+        table_insp_mat: [
+          {
+            item_id: item.item_id,
+            item_code: materialCode,
+            item_name: item.item_name || "",
+            item_desc: item.item_desc || "",
+            batch_id: batchId || "",
+            received_qty: item.received_qty,
+            received_uom: item.item_uom,
+            passed_qty: 0,
+            failed_qty: 0,
+            gr_line_no: itemIndex + 1,
+            batch_no: item.item_batch_no || "",
+            total_price: totalPrice,
+            location_id: item.location_id,
+            unit_price: unitPrice,
+          },
+        ],
+      };
+
+      await db.collection("basic_inspection_lot").add(inspectionData);
+    } catch (error) {
+      throw new Error("Error creating inspection lot.");
+    }
+  };
+
   const createPutAway = async (
     data,
     organizationId,
@@ -736,54 +832,50 @@ const addInventory = async (
       }
 
       const putAwayLineItemData = [];
+      const tableGR = data.table_gr.filter((gr) => gr.item_id);
+      const grWithoutQI = tableGR.filter(
+        (gr) => gr.inv_category !== "Quality Inspection"
+      );
 
-      for (const [index, item] of data.table_gr.entries()) {
-        const resItem = await db
-          .collection("item")
-          .where({ id: item.item_id })
-          .get();
-        if (resItem && resItem.data.length > 0) {
-          let batchNo = null;
+      for (const [index, item] of grWithoutQI.entries()) {
+        let batchNo = null;
 
-          if (item.item_batch_no !== "-") {
-            const resBatch = await db
-              .collection("batch")
-              .where({
-                batch_number: item.item_batch_no,
-                organization_id: organizationId,
-              })
-              .get();
-            batchNo = resBatch?.data[0] || null;
-          }
-
-          const lineItemData = {
-            line_index: index + 1,
-            item_code: item.item_id,
-            item_name: item.item_name,
-            item_desc: item.item_desc,
-            batch_no: batchNo?.id || "",
-            inv_category: item.inv_category,
-            received_qty: item.received_qty,
-            item_uom: item.item_uom,
-            source_bin: item.location_id,
-            qty_to_putaway: item.received_qty,
-            pending_process_qty: item.received_qty,
-            putaway_qty: 0,
-            target_location: "",
-            remark: "",
-            line_status: "Open",
-            po_no: item.line_po_id,
-            is_split: "No",
-            parent_or_child: "Parent",
-            parent_index: index,
-            unit_price: unitPriceArray[index],
-            total_price: totalPriceArray[index],
-          };
-
-          putAwayLineItemData.push(lineItemData);
+        if (item.item_batch_no !== "-") {
+          const resBatch = await db
+            .collection("batch")
+            .where({
+              batch_number: item.item_batch_no,
+              organization_id: organizationId,
+            })
+            .get();
+          batchNo = resBatch?.data[0] || null;
         }
 
-        continue;
+        const lineItemData = {
+          line_index: index + 1,
+          item_code: item.item_id,
+          item_name: item.item_name,
+          item_desc: item.item_desc,
+          batch_no: batchNo?.id || "",
+          inv_category: item.inv_category,
+          received_qty: item.received_qty,
+          item_uom: item.item_uom,
+          source_bin: item.location_id,
+          qty_to_putaway: item.received_qty,
+          pending_process_qty: item.received_qty,
+          putaway_qty: 0,
+          target_location: "",
+          remark: "",
+          line_status: "Open",
+          po_no: item.line_po_id,
+          is_split: "No",
+          parent_or_child: "Parent",
+          parent_index: index,
+          unit_price: unitPriceArray[index],
+          total_price: totalPriceArray[index],
+        };
+
+        putAwayLineItemData.push(lineItemData);
       }
 
       const putawayData = {
@@ -889,9 +981,6 @@ const addInventory = async (
       let unitPrice = roundPrice(item.unit_price);
       let totalPrice = roundPrice(item.unit_price * baseQty);
 
-      unitPriceArray.push(unitPrice);
-      totalPriceArray.push(totalPrice);
-
       const costingMethod = itemData.material_costing_method;
 
       if (
@@ -909,6 +998,9 @@ const addInventory = async (
         unitPrice = roundPrice(fixedCostPrice);
         totalPrice = roundPrice(fixedCostPrice * baseQty);
       }
+
+      unitPriceArray.push(unitPrice);
+      totalPriceArray.push(totalPrice);
 
       // Create inventory_movement record
       const inventoryMovementData = {
@@ -1161,6 +1253,21 @@ const addInventory = async (
           continue;
         }
       }
+
+      if (
+        item.inv_category === "Quality Inspection" &&
+        itemData.receiving_inspection === 1
+      ) {
+        await createInspectionLot(
+          data,
+          item,
+          itemIndex,
+          batchId,
+          totalPrice,
+          unitPrice,
+          itemData.material_code
+        );
+      }
     } catch (error) {
       console.error(`Error processing item ${item.item_id}:`, error);
       console.log(
@@ -1171,12 +1278,24 @@ const addInventory = async (
 
   if (putAwaySetupData && putAwaySetupData.putaway_required === 1) {
     if (putAwaySetupData.auto_trigger_to === 1) {
-      await createPutAway(
-        data,
-        organizationId,
-        unitPriceArray,
-        totalPriceArray
+      const allNoItemCode = data.table_gr.every((gr) => !gr.item_id);
+      const allQICategory = data.table_gr.every(
+        (gr) => gr.inv_category === "Quality Inspection"
       );
+
+      if (!allNoItemCode && !allQICategory)
+        await createPutAway(
+          data,
+          organizationId,
+          unitPriceArray,
+          totalPriceArray
+        );
+      else if (allQICategory && !allNoItemCode) return;
+      else
+        await db
+          .collection("goods_receiving")
+          .where({ gr_no: data.gr_no, organization_id: organizationId })
+          .update({ gr_status: "Completed" });
     } else if (putAwaySetupData.auto_trigger_to === 0) {
       await db
         .collection("goods_receiving")
@@ -1596,18 +1715,18 @@ const addEntry = async (organizationId, entry) => {
 
     await addInventory(entry, entry.plant_id, organizationId, putAwaySetupData);
 
-    const purchaseOrderIds = Array.isArray(entry.purchase_order_id)
-      ? entry.purchase_order_id
-      : [entry.purchase_order_id];
+    const purchaseOrderIds = entry.po_id;
 
     const { po_data_array } = await updatePurchaseOrderStatus(
       purchaseOrderIds,
       entry.table_gr
     );
 
+    const allNoItemCode = entry.table_gr.every((gr) => !gr.item_id);
     if (
       !putAwaySetupData ||
-      (putAwaySetupData && putAwaySetupData.putaway_required === 0)
+      (putAwaySetupData && putAwaySetupData.putaway_required === 0) ||
+      allNoItemCode
     ) {
       await this.runWorkflow(
         "1917412667253141505",
@@ -1720,18 +1839,17 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
     const putAwaySetupData = resPutAwaySetup?.data[0];
 
     await addInventory(entry, entry.plant_id, organizationId, putAwaySetupData);
-    const purchaseOrderIds = Array.isArray(entry.purchase_order_id)
-      ? entry.purchase_order_id
-      : [entry.purchase_order_id];
+    const purchaseOrderIds = entry.po_id;
 
     const { po_data_array } = await updatePurchaseOrderStatus(
       purchaseOrderIds,
       entry.table_gr
     );
-
+    const allNoItemCode = entry.table_gr.every((gr) => !gr.item_id);
     if (
       !putAwaySetupData ||
-      (putAwaySetupData && putAwaySetupData.putaway_required === 0)
+      (putAwaySetupData && putAwaySetupData.putaway_required === 0) ||
+      allNoItemCode
     ) {
       await this.runWorkflow(
         "1917412667253141505",
@@ -1753,6 +1871,32 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
   }
 };
 
+const checkQuantitiesByPoId = async (tableGR) => {
+  // Step 1: Group by po_id and sum quantities
+  const totalsByPoId = tableGR.reduce((acc, item) => {
+    const { line_po_no, received_qty } = item;
+    acc[line_po_no] = (acc[line_po_no] || 0) + received_qty;
+    return acc;
+  }, {});
+
+  // Step 2: Check for po_ids with total quantity of 0
+  const errors = [];
+  const results = Object.entries(totalsByPoId).map(
+    ([line_po_no, totalQuantity]) => {
+      if (totalQuantity === 0) {
+        errors.push(line_po_no);
+      }
+      return { line_po_no, totalQuantity };
+    }
+  );
+
+  // Step 3: Return results and errors
+  return {
+    totals: results,
+    errors: errors.length > 0 ? errors : null,
+  };
+};
+
 (async () => {
   try {
     const data = this.getValues();
@@ -1762,6 +1906,7 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
       { name: "gr_type", label: "GR Type" },
       { name: "gr_no", label: "Good Receiving Number" },
       { name: "gr_date", label: "Received Date" },
+      { name: "plant_id", label: "Plant" },
       {
         name: "table_gr",
         label: "GR Items",
@@ -1807,6 +1952,9 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         purchase_order_number,
         fake_item_id,
         item_id,
+        gr_type,
+        item_code,
+        po_id,
         gr_billing_address,
         gr_shipping_address,
         supplier_name,
@@ -1845,8 +1993,11 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
       } = data;
       const entry = {
         gr_status: "Received",
+        gr_type,
         fake_item_id,
         item_id,
+        item_code,
+        po_id,
         fake_purchase_order_id,
         purchase_order_id,
         plant_id,
@@ -1889,6 +2040,27 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
         ref_no_1,
         ref_no_2,
       };
+
+      const result = await checkQuantitiesByPoId(entry.table_gr);
+
+      if (result.errors) {
+        throw new Error(
+          `Total quantity for PO Number ${result.errors.join(
+            ", "
+          )} is 0. Please delete the PO or receive at least one item with quantity > 0.`
+        );
+      }
+
+      const latestGR = entry.table_gr.filter((item) => item.received_qty > 0);
+
+      entry.table_gr = latestGR;
+
+      if (entry.table_gr.length === 0) {
+        throw new Error(
+          "All Received Quantity must not be 0. Please add at lease one item with received quantity > 0."
+        );
+      }
+
       if (page_status === "Add") {
         await addEntry(organizationId, entry);
       } else if (page_status === "Edit") {
@@ -1906,9 +2078,9 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
     let errorMessage = "";
 
     if (error && typeof error === "object") {
-      errorMessage = findFieldMessage(error) || "An error occurred";
+      errorMessage = findFieldMessage(error) || error.toString();
     } else {
-      errorMessage = error;
+      errorMessage = error.toString() || error.message;
     }
 
     this.$message.error(errorMessage);
