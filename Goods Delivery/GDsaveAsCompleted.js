@@ -1098,20 +1098,6 @@ const processBalanceTable = async (
                 `Processing Created status - moving ${baseQty} OUT from Reserved`
               );
 
-              let pickingNumber;
-
-              const transferOrderPickingData = await db
-                .collection("transfer_order")
-                .where({
-                  delivery_no: data.delivery_no,
-                  organization_id: organizationId,
-                })
-                .get();
-
-              if (transferOrderPickingData.data.length > 0) {
-                pickingNumber = transferOrderPickingData.data[0].to_id;
-              }
-
               // For edit mode, we can only use the reserved quantity that this GD previously created
               let availableReservedForThisGD = currentReservedQty;
               if (isUpdate && prevBaseQty > 0) {
@@ -2527,6 +2513,41 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
   }
 };
 
+const checkCompletedSO = async (so_id) => {
+  const soIds = Array.isArray(so_id) ? so_id : [so_id];
+
+  for (const sales_order_id of soIds) {
+    const resSO = await db
+      .collection("sales_order")
+      .where({ id: sales_order_id })
+      .get();
+
+    if (!resSO.data || !resSO.data.length) {
+      console.warn(`Sales order ${sales_order_id} not found`);
+      continue;
+    }
+
+    const soData = resSO.data[0];
+
+    const allItemsFullyDelivered = soData.table_so.every((item) => {
+      const quantity = parseFloat(item.so_quantity || 0);
+      const deliveredQty = parseFloat(item.delivered_qty || 0);
+
+      if (quantity <= 0) return true;
+
+      return deliveredQty >= quantity;
+    });
+
+    if (allItemsFullyDelivered) {
+      throw new Error(
+        `Sales Order ${soData.so_no} is already fully delivered and cannot be processed further.`
+      );
+    }
+  }
+
+  return true;
+};
+
 // Main execution wrapped in an async IIFE
 (async () => {
   // Prevent duplicate processing
@@ -2840,6 +2861,8 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
       return;
     }
 
+    await checkCompletedSO(gd.so_id);
+
     // Perform action based on page status
     if (page_status === "Add") {
       await addEntryWithValidation(organizationId, gd, gdStatus);
@@ -2869,9 +2892,13 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     let errorMessage = "";
 
     if (error && typeof error === "object") {
-      errorMessage = findFieldMessage(error) || "An error occurred";
+      errorMessage =
+        findFieldMessage(error) ||
+        error.message ||
+        error.toString() ||
+        JSON.stringify(error);
     } else {
-      errorMessage = error;
+      errorMessage = String(error);
     }
 
     this.$message.error(errorMessage);
