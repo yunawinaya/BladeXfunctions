@@ -1107,6 +1107,50 @@ const validateForm = (data, requiredFields) => {
     }
   });
 
+  // Add GD quantity validation for Completed status
+  if (data.table_gd) {
+    if (!Array.isArray(data.table_gd) || data.table_gd.length === 0) {
+      missingFields.push("No items found in the goods delivery");
+    } else {
+      // Check if all gd_qty values are 0 or empty
+      const hasValidQuantity = data.table_gd.some((item) => {
+        const gdQty = parseFloat(item.gd_qty || 0);
+        return gdQty > 0;
+      });
+
+      if (!hasValidQuantity) {
+        missingFields.push(
+          "All delivery quantities are zero - please allocate stock or set delivery quantities"
+        );
+      }
+
+      // Check for items with stock control enabled but no temp_qty_data
+      const invalidItems = data.table_gd.filter((item) => {
+        const gdQty = parseFloat(item.gd_qty || 0);
+        const hasStockControl = item.material_id && item.material_id !== "";
+        const hasAllocation =
+          item.temp_qty_data &&
+          item.temp_qty_data !== "[]" &&
+          item.temp_qty_data !== "";
+
+        return gdQty > 0 && hasStockControl && !hasAllocation;
+      });
+
+      if (invalidItems.length > 0) {
+        const invalidItemNames = invalidItems
+          .map(
+            (item) =>
+              item.material_name || item.gd_material_desc || "Unknown Item"
+          )
+          .join(", ");
+
+        missingFields.push(
+          `Items with quantities but no stock allocation: ${invalidItemNames}`
+        );
+      }
+    }
+  }
+
   return missingFields;
 };
 

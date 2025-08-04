@@ -152,6 +152,7 @@ const performAutomaticAllocation = async (
         .collection("item_batch_balance")
         .where({
           material_id: itemData.id,
+          plant_id: plantId,
           is_deleted: 0,
         })
         .get();
@@ -279,10 +280,20 @@ const performAutomaticAllocation = async (
       "\n"
     )}`;
 
+    const deliveredQty = this.getValue(
+      `table_gd.${rowIndex}.gd_initial_delivered_qty`
+    );
+    const undeliveredQty = this.getValue(
+      `table_gd.${rowIndex}.gd_undelivered_qty`
+    );
+
     // Update the row data with allocation results
     this.setData({
       [`table_gd.${rowIndex}.view_stock`]: summary,
       [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify(tempQtyData),
+      [`table_gd.${rowIndex}.gd_delivered_qty`]: deliveredQty + totalAllocated,
+      [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+        undeliveredQty - totalAllocated,
     });
 
     console.log(
@@ -958,65 +969,59 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
               undeliveredQty - availableQtyAlt,
           });
 
-          // Set quantity and add to allocation queue if eligible
-          const allocationCondition1 = availableQtyAlt > 0;
-          const allocationCondition2 = balanceData.length === 1;
-          const allocationCondition3 = ["FIXED BIN", "RANDOM"].includes(
-            defaultStrategy
-          );
-          const allocationCondition4 = ["FIXED BIN", "RANDOM"].includes(
-            fallbackStrategy
-          );
-          const allocationCondition5 = pickingMode === "Auto";
-          const allocationCondition6 =
-            allocationCondition3 && allocationCondition4;
-          const isEligibleForAllocation =
-            allocationCondition1 &&
-            (allocationCondition2 ||
-              allocationCondition5 ||
-              allocationCondition6);
-
-          // DEBUG: Log allocation conditions
-          console.log(`DEBUG - Row ${index} allocation conditions:`, {
-            materialId,
-            availableQtyAlt,
-            balanceDataLength: balanceData.length,
-            defaultStrategy,
-            pickingMode,
-            allocationCondition1,
-            allocationCondition2,
-            allocationCondition3,
-            allocationCondition4,
-            allocationCondition5,
-            allocationCondition6,
-            isEligibleForAllocation,
-          });
-
-          if (isEligibleForAllocation) {
+          if (pickingMode === "Manual") {
+            // Manual mode: Don't set gd_qty, let user manually select
             this.setData({
-              [`table_gd.${index}.gd_qty`]: availableQtyAlt,
-            });
-
-            // Add to allocation queue
-            if (materialId) {
-              itemsForAllocation.push({
-                materialId,
-                rowIndex: index,
-                quantity: availableQtyAlt,
-                plantId,
-                uomId: item.altUOM,
-              });
-              console.log(
-                `DEBUG - Added to allocation queue: row ${index}, material ${materialId}, qty ${availableQtyAlt}`
-              );
-            }
-          } else {
-            this.setData({
-              [`table_gd.${index}.gd_qty`]: 0,
+              [`table_gd.${index}.gd_qty`]: 0, // Keep at 0 for manual selection
             });
             console.log(
-              `DEBUG - NOT eligible for allocation: row ${index}, material ${materialId}`
+              `Manual picking mode: gd_qty set to 0 for row ${index} - user must manually select stock`
             );
+          } else {
+            // Auto mode: Set gd_qty and perform allocation
+            const allocationCondition1 = availableQtyAlt > 0;
+            const allocationCondition2 = balanceData.length === 1;
+            const allocationCondition3 = ["FIXED BIN", "RANDOM"].includes(
+              defaultStrategy
+            );
+            const allocationCondition4 = ["FIXED BIN", "RANDOM"].includes(
+              fallbackStrategy
+            );
+            const allocationCondition5 = pickingMode === "Auto";
+            const allocationCondition6 =
+              allocationCondition3 && allocationCondition4;
+            const isEligibleForAllocation =
+              allocationCondition1 &&
+              (allocationCondition2 ||
+                allocationCondition5 ||
+                allocationCondition6);
+
+            if (isEligibleForAllocation) {
+              this.setData({
+                [`table_gd.${index}.gd_qty`]: availableQtyAlt,
+              });
+
+              // Add to allocation queue
+              if (materialId) {
+                itemsForAllocation.push({
+                  materialId,
+                  rowIndex: index,
+                  quantity: availableQtyAlt,
+                  plantId,
+                  uomId: item.altUOM,
+                });
+                console.log(
+                  `Auto mode: Added to allocation queue: row ${index}, material ${materialId}, qty ${availableQtyAlt}`
+                );
+              }
+            } else {
+              this.setData({
+                [`table_gd.${index}.gd_qty`]: 0,
+              });
+              console.log(
+                `Auto mode: NOT eligible for allocation: row ${index}, material ${materialId}`
+              );
+            }
           }
         });
 
@@ -1046,62 +1051,54 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
               [`table_gd.${index}.gd_qty`]: 0,
             });
           } else {
-            this.setData({
-              [`table_gd.${index}.gd_qty`]: undeliveredQty,
-            });
-
-            // Add to allocation queue if eligible
-            const allocationCondition1 = materialId;
-            const allocationCondition2 = balanceData.length === 1;
-            const allocationCondition3 = ["FIXED BIN", "RANDOM"].includes(
-              defaultStrategy
-            );
-            const allocationCondition4 = ["FIXED BIN", "RANDOM"].includes(
-              fallbackStrategy
-            );
-            const allocationCondition5 = pickingMode === "Auto";
-            const allocationCondition6 =
-              allocationCondition3 && allocationCondition4;
-            const isEligibleForAllocation =
-              allocationCondition1 &&
-              (allocationCondition2 ||
-                allocationCondition5 ||
-                allocationCondition6);
-
-            // DEBUG: Log allocation conditions for sufficient stock
-            console.log(
-              `DEBUG - Sufficient stock row ${index} allocation conditions:`,
-              {
-                materialId,
-                undeliveredQty,
-                balanceDataLength: balanceData.length,
-                defaultStrategy,
-                pickingMode,
-                allocationCondition1,
-                allocationCondition2,
-                allocationCondition3,
-                allocationCondition4,
-                allocationCondition5,
-                allocationCondition6,
-                isEligibleForAllocation,
-              }
-            );
-
-            if (isEligibleForAllocation) {
-              itemsForAllocation.push({
-                materialId,
-                rowIndex: index,
-                quantity: undeliveredQty,
-                plantId,
-                uomId: item.altUOM,
+            if (pickingMode === "Manual") {
+              // Manual mode: Don't set gd_qty, let user manually select
+              this.setData({
+                [`table_gd.${index}.gd_qty`]: 0, // Keep at 0 for manual selection
               });
               console.log(
-                `DEBUG - Added to allocation queue (sufficient): row ${index}, material ${materialId}, qty ${undeliveredQty}`
+                `Manual picking mode: gd_qty set to 0 for row ${index} - user must manually select stock`
               );
             } else {
-              console.log(
-                `DEBUG - NOT eligible for allocation (sufficient): row ${index}, material ${materialId}`
+              // Auto mode: Set gd_qty and check for allocation eligibility
+              this.setData({
+                [`table_gd.${index}.gd_qty`]: undeliveredQty,
+              });
+
+              // Add to allocation queue if eligible
+              const allocationCondition1 = materialId;
+              const allocationCondition2 = balanceData.length === 1;
+              const allocationCondition3 = ["FIXED BIN", "RANDOM"].includes(
+                defaultStrategy
               );
+              const allocationCondition4 = ["FIXED BIN", "RANDOM"].includes(
+                fallbackStrategy
+              );
+              const allocationCondition5 = pickingMode === "Auto";
+              const allocationCondition6 =
+                allocationCondition3 && allocationCondition4;
+              const isEligibleForAllocation =
+                allocationCondition1 &&
+                (allocationCondition2 ||
+                  allocationCondition5 ||
+                  allocationCondition6);
+
+              if (isEligibleForAllocation) {
+                itemsForAllocation.push({
+                  materialId,
+                  rowIndex: index,
+                  quantity: undeliveredQty,
+                  plantId,
+                  uomId: item.altUOM,
+                });
+                console.log(
+                  `Auto mode: Added to allocation queue (sufficient): row ${index}, material ${materialId}, qty ${undeliveredQty}`
+                );
+              } else {
+                console.log(
+                  `Auto mode: NOT eligible for allocation (sufficient): row ${index}, material ${materialId}`
+                );
+              }
             }
           }
         });
@@ -1276,7 +1273,7 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
             material_name: item.itemName || "",
             gd_material_desc: item.itemDesc || "",
             gd_order_quantity: item.orderedQty,
-            gd_delivered_qty: item.sourceItem.delivered_qty,
+            gd_delivered_qty: item.deliveredQtyFromSource,
             gd_undelivered_qty: item.orderedQty - item.sourceItem.delivered_qty,
             gd_order_uom_id: item.altUOM,
             unit_price: item.sourceItem.so_item_price || 0,
@@ -1289,8 +1286,6 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
             fm_key:
               Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           }));
-
-          console.log("New table_gd structure:", newTableGd);
 
           await this.setData({
             table_gd: newTableGd,

@@ -127,7 +127,7 @@ const validateForm = (data, requiredFields) => {
 
     // Handle non-array fields (unchanged)
     if (!field.isArray) {
-      if (validateField(value)) {
+      if (validateField(value, field)) {
         missingFields.push(field.label);
       }
       return;
@@ -149,7 +149,7 @@ const validateForm = (data, requiredFields) => {
       value.forEach((item, index) => {
         field.arrayFields.forEach((subField) => {
           const subValue = item[subField.name];
-          if (validateField(subValue)) {
+          if (validateField(subValue, subField)) {
             missingFields.push(
               `${subField.label} (in ${field.label} #${index + 1})`
             );
@@ -162,7 +162,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value) => {
+const validateField = (value, field) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "number") return value <= 0;
@@ -201,6 +201,28 @@ const checkCreditOverdueLimit = async (customer_name, so_total) => {
     // Helper function to show specific pop-ups as per specification
     const showPopup = (popupNumber) => {
       this.openDialog("dialog_credit_limit");
+
+      this.hide([
+        "dialog_credit_limit.alert_credit_limit",
+        "dialog_credit_limit.alert_overdue_limit",
+        "dialog_credit_limit.alert_credit_overdue",
+        "dialog_credit_limit.alert_suspended",
+        "dialog_credit_limit.text_credit_limit",
+        "dialog_credit_limit.text_overdue_limit",
+        "dialog_credit_limit.text_credit_overdue",
+        "dialog_credit_limit.text_suspended",
+        "dialog_credit_limit.total_allowed_credit",
+        "dialog_credit_limit.total_credit",
+        "dialog_credit_limit.total_allowed_overdue",
+        "dialog_credit_limit.total_overdue",
+        "dialog_credit_limit.text_1",
+        "dialog_credit_limit.text_2",
+        "dialog_credit_limit.text_3",
+        "dialog_credit_limit.text_4",
+        "dialog_credit_limit.button_back",
+        "dialog_credit_limit.button_no",
+        "dialog_credit_limit.button_yes",
+      ]);
 
       const popupConfigs = {
         1: {
@@ -614,8 +636,7 @@ const updateItemTransactionDate = async (entry) => {
           .update({ last_transaction_date: date });
       } catch (error) {
         throw new Error(
-          `Cannot update last transaction date for item #${index + 1}.`,
-          error
+          `Cannot update last transaction date for item #${index + 1}.`
         );
       }
     }
@@ -923,13 +944,16 @@ const checkExistingSalesInvoice = async () => {
             this.openDialog("auto_delete_dialog");
 
             if (existingGD.length > 0 && existingSI.length === 0) {
-              this.display("text_gd");
-              this.hide("text_si");
+              this.display("auto_delete_dialog.text_gd");
+              this.hide("auto_delete_dialog.text_si");
             } else if (existingGD.length === 0 && existingSI.length > 0) {
-              this.display("text_si");
-              this.hide("text_gd");
+              this.display("auto_delete_dialog.text_si");
+              this.hide("auto_delete_dialog.text_gd");
             } else {
-              this.display(["text_si", "text_gd"]);
+              this.display([
+                "auto_delete_dialog.text_si",
+                "auto_delete_dialog.text_gd",
+              ]);
             }
 
             return;

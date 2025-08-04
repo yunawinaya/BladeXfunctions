@@ -9,136 +9,304 @@ const closeDialog = () => {
   }
 };
 
-// Updated to handle multiple SOs
-const updateSalesOrderStatus = async (salesInvoiceId) => {
-  const currenctSIQuery = await db
-    .collection("sales_invoice")
-    .where({ id: salesInvoiceId })
-    .get();
-  const currentSI = currenctSIQuery.data[0];
-
-  const soIds = Array.isArray(currentSI.so_id)
-    ? currentSI.so_id
-    : [currentSI.so_id];
-
-  const tableSI = await currentSI.table_si;
-
-  const updatePromises = soIds.map(async (salesOrderId) => {
-    const resSO = await db
-      .collection("sales_order")
-      .where({ id: salesOrderId })
-      .get();
-
-    if (!resSO && resSO.data.length === 0) return;
-
-    const soDoc = resSO.data[0];
-    const soItems = soDoc.table_so || [];
-    const filteredSI = tableSI.filter(
-      (item) => item.line_so_no === soDoc.so_no
-    );
-
-    const filteredSO = soItems
-      .map((item, index) => ({ ...item, originalIndex: index }))
-      .filter((item) => item.item_name !== "" || item.so_desc !== "");
-
-    let totalItems = soItems.length;
-    let partiallyInvoicedItems = 0;
-    let fullyInvoicedItems = 0;
-
-    let partiallyPostedItems = 0;
-    let fullyPostedItems = 0;
-
-    const updatedSoItems = soItems.map((item) => ({ ...item }));
-
-    filteredSO.forEach((filteredItem, filteredIndex) => {
-      const originalIndex = filteredItem.originalIndex;
-      const orderQty = parseFloat(filteredItem.so_quantity || 0);
-
-      const siInvoicedQty = parseFloat(
-        filteredSI[filteredIndex]?.invoice_qty || 0
-      );
-      const currentInvoicedQty = parseFloat(
-        updatedSoItems[originalIndex].invoice_qty || 0
-      );
-      const totalInvoicedQty = currentInvoicedQty + siInvoicedQty;
-
-      const siPostedQty = parseFloat(
-        filteredSI[filteredIndex]?.posted_qty || 0
-      );
-      const currentPostedQty = parseFloat(
-        updatedSoItems[originalIndex].posted_qty || 0
-      );
-      const totalPostedQty = currentPostedQty + siPostedQty;
-
-      // Update the quantity in the original soItems structure
-      updatedSoItems[originalIndex].invoice_qty = totalInvoicedQty;
-      updatedSoItems[originalIndex].posted_qty = totalPostedQty;
-
-      // Add ratio for tracking purposes
-      updatedSoItems[originalIndex].invoice_ratio =
-        orderQty > 0 ? totalInvoicedQty / orderQty : 0;
-      updatedSoItems[originalIndex].posted_ratio =
-        orderQty > 0 ? totalPostedQty / orderQty : 0;
-
-      if (totalInvoicedQty > 0) {
-        partiallyInvoicedItems++;
-
-        // Count fully delivered items separately
-        if (totalInvoicedQty >= orderQty) {
-          fullyInvoicedItems++;
-        }
-      }
-
-      if (totalPostedQty > 0) {
-        partiallyPostedItems++;
-
-        // Count fully delivered items separately
-        if (totalPostedQty >= orderQty) {
-          fullyPostedItems++;
-        }
-      }
+const updateSalesOrderSIStatus = async (
+  salesOrderIds,
+  tableSI,
+  goodsDeliveryNo
+) => {
+  try {
+    console.log("Starting updateSalesOrderSIStatus", {
+      salesOrderIds,
+      tableSI,
+      goodsDeliveryNo,
     });
 
-    let allItemsCompleteInvoiced = fullyInvoicedItems === totalItems;
-    let anyItemProcessingInvoiced = partiallyInvoicedItems > 0;
+    const soIds = Array.isArray(salesOrderIds)
+      ? salesOrderIds
+      : [salesOrderIds];
+    console.log("Normalized salesOrderIds:", soIds);
 
-    let allItemsCompletePosted = fullyPostedItems === totalItems;
-    let anyItemProcessingPosted = partiallyPostedItems > 0;
+    const updatePromises = soIds.map(async (salesOrderId) => {
+      console.log(`Processing salesOrderId: ${salesOrderId}`);
 
-    let newSIStatus = soDoc.si_status;
-    let newSIPostedStatus = soDoc.si_posted_status;
+      const resSO = await db
+        .collection("sales_order")
+        .where({ id: salesOrderId })
+        .get();
+      console.log(
+        `Database query result for salesOrderId ${salesOrderId}:`,
+        resSO
+      );
 
-    if (allItemsCompleteInvoiced) {
-      newSIStatus = "Fully Invoiced";
-    } else if (anyItemProcessingInvoiced) {
-      newSIStatus = "Partially Invoiced";
-    }
+      if (!resSO || resSO.data.length === 0) {
+        console.log(`No sales order found for salesOrderId: ${salesOrderId}`);
+        return;
+      }
 
-    if (allItemsCompletePosted) {
-      newSIPostedStatus = "Fully Posted";
-    } else if (anyItemProcessingPosted) {
-      newSIPostedStatus = "Partially Posted";
-    }
+      const soDoc = resSO.data[0];
+      console.log("Sales order document:", soDoc);
 
-    const updateData = {
-      table_so: updatedSoItems,
-    };
+      const soItems = soDoc.table_so || [];
+      console.log("Sales order items:", soItems);
 
-    updateData.si_status = newSIStatus;
-    updateData.si_posted_status = newSIPostedStatus;
+      const filteredSI = tableSI.filter(
+        (item) => item.line_so_no === soDoc.so_no
+      );
+      console.log("Filtered SI items:", filteredSI);
 
-    await db.collection("sales_order").doc(soDoc.id).update(updateData);
-  });
+      const filteredSO = soItems
+        .map((item, index) => ({ ...item, originalIndex: index }))
+        .filter((item) => item.item_name !== "" || item.so_desc !== "");
+      console.log("Filtered SO items with original indices:", filteredSO);
 
-  await Promise.all(updatePromises);
-
-  const goodsDeliveryNo = currentSI.goods_delivery_number;
-  if (goodsDeliveryNo) {
-    goodsDeliveryNo.forEach((gd) => {
-      db.collection("goods_delivery").doc(gd).update({
-        si_status: "Fully Invoiced",
+      // Initialize tracking objects
+      let totalItems = soItems.length;
+      let partiallyInvoicedItems = 0;
+      let fullyInvoicedItems = 0;
+      console.log("Initial tracking:", {
+        totalItems,
+        partiallyInvoicedItems,
+        fullyInvoicedItems,
       });
+
+      const updatedSoItems = soItems.map((item) => ({ ...item }));
+      console.log("Initial updatedSoItems:", updatedSoItems);
+
+      filteredSO.forEach((filteredItem, filteredIndex) => {
+        const originalIndex = filteredItem.originalIndex;
+        const orderQty = parseFloat(filteredItem.so_quantity || 0);
+        const siInvoicedQty = parseFloat(
+          filteredSI[filteredIndex]?.invoice_qty || 0
+        );
+        const currentInvoicedQty = parseFloat(
+          updatedSoItems[originalIndex].invoice_qty || 0
+        );
+        const totalInvoicedQty = currentInvoicedQty + siInvoicedQty;
+
+        console.log(`Processing item at index ${originalIndex}:`, {
+          orderQty,
+          siInvoicedQty,
+          currentInvoicedQty,
+          totalInvoicedQty,
+        });
+
+        // Update the quantity in the original poItems structure
+        updatedSoItems[originalIndex].invoice_qty = totalInvoicedQty;
+
+        // Add ratio for tracking purposes
+        updatedSoItems[originalIndex].invoice_ratio =
+          orderQty > 0 ? totalInvoicedQty / orderQty : 0;
+        console.log(
+          `Updated item at index ${originalIndex}:`,
+          updatedSoItems[originalIndex]
+        );
+
+        if (totalInvoicedQty > 0) {
+          partiallyInvoicedItems++;
+          console.log(
+            `Incremented partiallyInvoicedItems: ${partiallyInvoicedItems}`
+          );
+
+          // Count fully delivered items separately
+          if (totalInvoicedQty >= orderQty) {
+            fullyInvoicedItems++;
+            console.log(
+              `Incremented fullyInvoicedItems: ${fullyInvoicedItems}`
+            );
+          }
+        }
+      });
+
+      let allItemsComplete = fullyInvoicedItems === totalItems;
+      let anyItemProcessing = partiallyInvoicedItems > 0;
+      console.log("Status checks:", { allItemsComplete, anyItemProcessing });
+
+      let newSIStatus = soDoc.si_status;
+      console.log("Current SI status:", newSIStatus);
+
+      if (allItemsComplete) {
+        newSIStatus = "Fully Invoiced";
+      } else if (anyItemProcessing) {
+        newSIStatus = "Partially Invoiced";
+      }
+      console.log("New SI status:", newSIStatus);
+
+      const updateData = {
+        table_so: updatedSoItems,
+        si_status: newSIStatus,
+      };
+      console.log("Update data for sales order:", updateData);
+
+      await db.collection("sales_order").doc(soDoc.id).update(updateData);
+      console.log(`Updated sales order document ${soDoc.id}`);
     });
+
+    console.log("Awaiting all update promises");
+    await Promise.all(updatePromises);
+    console.log("All sales order updates completed");
+
+    if (goodsDeliveryNo) {
+      console.log("Processing goods delivery updates:", goodsDeliveryNo);
+      goodsDeliveryNo.forEach((gd) => {
+        console.log(`Updating goods delivery ${gd}`);
+        db.collection("goods_delivery").doc(gd).update({
+          si_status: "Fully Invoiced",
+        });
+        console.log(`Updated goods delivery ${gd}`);
+      });
+    }
+
+    console.log("updateSalesOrderSIStatus completed successfully");
+  } catch (error) {
+    console.error("Error in updateSalesOrderSIStatus:", error);
+    throw new Error("An error occurred.");
+  }
+};
+// Updated to handle multiple SOs
+const updateSalesOrderSIPostedStatus = async (salesInvoiceId) => {
+  try {
+    console.log("Starting updateSalesOrderSIPostedStatus", { salesInvoiceId });
+
+    const currenctSIQuery = await db
+      .collection("sales_invoice")
+      .where({ id: salesInvoiceId })
+      .get();
+    console.log("Sales invoice query result:", currenctSIQuery);
+
+    const currentSI = currenctSIQuery.data[0];
+    console.log("Current sales invoice:", currentSI);
+
+    const soIds = Array.isArray(currentSI.so_id)
+      ? currentSI.so_id
+      : [currentSI.so_id];
+    console.log("Normalized sales order IDs:", soIds);
+
+    const tableSI = await currentSI.table_si;
+    console.log("Table SI data:", tableSI);
+
+    const updatePromises = soIds.map(async (salesOrderId) => {
+      console.log(`Processing salesOrderId: ${salesOrderId}`);
+
+      const resSO = await db
+        .collection("sales_order")
+        .where({ id: salesOrderId })
+        .get();
+      console.log(
+        `Database query result for salesOrderId ${salesOrderId}:`,
+        resSO
+      );
+
+      if (!resSO || resSO.data.length === 0) {
+        console.log(`No sales order found for salesOrderId: ${salesOrderId}`);
+        return;
+      }
+
+      const soDoc = resSO.data[0];
+      console.log("Sales order document:", soDoc);
+
+      const soItems = soDoc.table_so || [];
+      console.log("Sales order items:", soItems);
+
+      const filteredSI = tableSI.filter(
+        (item) => item.line_so_no === soDoc.so_no
+      );
+      console.log("Filtered SI items:", filteredSI);
+
+      const filteredSO = soItems
+        .map((item, index) => ({ ...item, originalIndex: index }))
+        .filter((item) => item.item_name !== "" || item.so_desc !== "");
+      console.log("Filtered SO items with original indices:", filteredSO);
+
+      let totalItems = soItems.length;
+      let partiallyPostedItems = 0;
+      let fullyPostedItems = 0;
+      console.log("Initial tracking:", {
+        totalItems,
+        partiallyPostedItems,
+        fullyPostedItems,
+      });
+
+      const updatedSoItems = soItems.map((item) => ({ ...item }));
+      console.log("Initial updatedSoItems:", updatedSoItems);
+
+      filteredSO.forEach((filteredItem, filteredIndex) => {
+        const originalIndex = filteredItem.originalIndex;
+        const orderQty = parseFloat(filteredItem.so_quantity || 0);
+        const siPostedQty = parseFloat(
+          filteredSI[filteredIndex]?.invoice_qty || 0
+        );
+        const currentPostedQty = parseFloat(
+          updatedSoItems[originalIndex].posted_qty || 0
+        );
+        const totalPostedQty = currentPostedQty + siPostedQty;
+
+        console.log(`Processing item at index ${originalIndex}:`, {
+          orderQty,
+          siPostedQty,
+          currentPostedQty,
+          totalPostedQty,
+        });
+
+        // Update the quantity in the original soItems structure
+        updatedSoItems[originalIndex].posted_qty = totalPostedQty;
+
+        // Add ratio for tracking purposes
+        updatedSoItems[originalIndex].posted_ratio =
+          orderQty > 0 ? totalPostedQty / orderQty : 0;
+        console.log(
+          `Updated item at index ${originalIndex}:`,
+          updatedSoItems[originalIndex]
+        );
+
+        if (totalPostedQty > 0) {
+          partiallyPostedItems++;
+          console.log(
+            `Incremented partiallyPostedItems: ${partiallyPostedItems}`
+          );
+
+          // Count fully delivered items separately
+          if (totalPostedQty >= orderQty) {
+            fullyPostedItems++;
+            console.log(`Incremented fullyPostedItems: ${fullyPostedItems}`);
+          }
+        }
+      });
+
+      let allItemsCompletePosted = fullyPostedItems === totalItems;
+      let anyItemProcessingPosted = partiallyPostedItems > 0;
+      console.log("Status checks:", {
+        allItemsCompletePosted,
+        anyItemProcessingPosted,
+      });
+
+      let newSIPostedStatus = soDoc.si_posted_status;
+      console.log("Current SI posted status:", newSIPostedStatus);
+
+      if (allItemsCompletePosted) {
+        newSIPostedStatus = "Fully Posted";
+      } else if (anyItemProcessingPosted) {
+        newSIPostedStatus = "Partially Posted";
+      }
+      console.log("New SI posted status:", newSIPostedStatus);
+
+      const updateData = {
+        table_so: updatedSoItems,
+        si_posted_status: newSIPostedStatus,
+      };
+      console.log("Update data for sales order:", updateData);
+
+      await db.collection("sales_order").doc(soDoc.id).update(updateData);
+      console.log(`Updated sales order document ${soDoc.id}`);
+    });
+
+    console.log("Awaiting all update promises");
+    await Promise.all(updatePromises);
+    console.log("All sales order updates completed");
+
+    console.log("updateSalesOrderSIPostedStatus completed successfully");
+  } catch (error) {
+    console.error("Error in updateSalesOrderSIPostedStatus:", error);
+    throw new Error("An error occurred.");
   }
 };
 
@@ -318,6 +486,28 @@ const checkCreditOverdueLimit = async (customer_id, invoice_total) => {
     const showPopup = (popupNumber) => {
       this.openDialog("dialog_credit_limit");
       this.setData({ is_posted: 1 });
+
+      this.hide([
+        "dialog_credit_limit.alert_credit_limit",
+        "dialog_credit_limit.alert_overdue_limit",
+        "dialog_credit_limit.alert_credit_overdue",
+        "dialog_credit_limit.alert_suspended",
+        "dialog_credit_limit.text_credit_limit",
+        "dialog_credit_limit.text_overdue_limit",
+        "dialog_credit_limit.text_credit_overdue",
+        "dialog_credit_limit.text_suspended",
+        "dialog_credit_limit.total_allowed_credit",
+        "dialog_credit_limit.total_credit",
+        "dialog_credit_limit.total_allowed_overdue",
+        "dialog_credit_limit.total_overdue",
+        "dialog_credit_limit.text_1",
+        "dialog_credit_limit.text_2",
+        "dialog_credit_limit.text_3",
+        "dialog_credit_limit.text_4",
+        "dialog_credit_limit.button_back",
+        "dialog_credit_limit.button_no",
+        "dialog_credit_limit.button_yes",
+      ]);
 
       const popupConfigs = {
         1: {
@@ -610,6 +800,11 @@ const addEntry = async (organizationId, entry) => {
     }
 
     await db.collection("sales_invoice").add(entry);
+    await updateSalesOrderSIStatus(
+      entry.so_id,
+      entry.table_si,
+      entry.goods_delivery_number
+    );
 
     // si line item workflow
     this.runWorkflow(
@@ -619,22 +814,19 @@ const addEntry = async (organizationId, entry) => {
         console.log("Workflow 1 completed successfully:", res);
       },
       (err) => {
+        closeDialog();
         console.error("Workflow 1 failed:", err);
-        this.$message.error(
-          "Workflow execution failed: " + (err.message || "Unknown error")
-        );
+        throw new Error("An error occurred.");
       }
     );
 
     const accIntegrationType = this.getValue("acc_integration_type");
-
+    console.log("accIntegration", accIntegrationType);
     if (
       accIntegrationType === "SQL Accounting" &&
-      entry.organizationId &&
-      entry.organizationId !== ""
+      organizationId &&
+      organizationId !== ""
     ) {
-      console.log("Calling SQL Accounting workflow");
-
       this.runWorkflow(
         "1925444406441488386",
         { key: "value" },
@@ -648,13 +840,14 @@ const addEntry = async (organizationId, entry) => {
                 "1902566784276480001",
                 { cust_id: si.cust_id },
                 async (res) => {
-                  await updateSalesOrderStatus(si.id);
+                  await updateSalesOrderSIPostedStatus(si.id);
                   this.$message.success("Post successfully");
                   closeDialog();
                 },
                 (err) => {
-                  this.hideLoading();
-                  this.$message.error("Post SI Failed: ", err);
+                  closeDialog();
+                  console.error("Post SI Failed: ", err);
+                  throw new Error("An error occurred.");
                 }
               );
             }
@@ -663,26 +856,25 @@ const addEntry = async (organizationId, entry) => {
           closeDialog();
         },
         (err) => {
-          this.hideLoading();
-          this.$message.error("Post SI Failed: ", err);
+          closeDialog();
+          console.error("Post SI Failed: ", err);
+          throw new Error("An error occurred.");
         }
       );
     } else if (
       accIntegrationType === "AutoCount Accounting" &&
-      entry.organizationId &&
-      entry.organizationId !== ""
+      organizationId &&
+      organizationId !== ""
     ) {
       this.$message.success("Add Sales Invoice successfully");
       await closeDialog();
-      console.log("Calling AutoCount workflow");
     } else if (
       accIntegrationType === "No Accounting Integration" &&
-      entry.organizationId &&
-      entry.organizationId !== ""
+      organizationId &&
+      organizationId !== ""
     ) {
       this.$message.success("Add Sales Invoice successfully");
       await closeDialog();
-      console.log("Not calling workflow");
     } else {
       await closeDialog();
     }
@@ -710,6 +902,11 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
     }
 
     await db.collection("sales_invoice").doc(salesInvoiceId).update(entry);
+    await updateSalesOrderSIStatus(
+      entry.so_id,
+      entry.table_si,
+      entry.goods_delivery_number
+    );
 
     // si line item workflow
     this.runWorkflow(
@@ -719,10 +916,12 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         console.log("Workflow 1 completed successfully:", res);
       },
       (err) => {
+        closeDialog();
         console.error("Workflow 1 failed:", err);
-        this.$message.error(
+        console.error(
           "Workflow execution failed: " + (err.message || "Unknown error")
         );
+        throw new Error("An error occurred.");
       }
     );
 
@@ -730,11 +929,9 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
 
     if (
       accIntegrationType === "SQL Accounting" &&
-      entry.organizationId &&
-      entry.organizationId !== ""
+      organizationId &&
+      organizationId !== ""
     ) {
-      console.log("Calling SQL Accounting workflow");
-
       this.runWorkflow(
         "1925444406441488386",
         { key: "value" },
@@ -748,13 +945,14 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
                 "1902566784276480001",
                 { cust_id: si.cust_id },
                 async (res) => {
-                  await updateSalesOrderStatus(si.id);
+                  await updateSalesOrderSIPostedStatus(si.id);
                   this.$message.success("Post successfully");
                   closeDialog();
                 },
                 (err) => {
-                  this.hideLoading();
-                  this.$message.error("Post SI Failed: ", err);
+                  closeDialog();
+                  console.error("Post SI Failed: ", err);
+                  throw new Error("An error occurred.");
                 }
               );
             }
@@ -763,26 +961,25 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
           closeDialog();
         },
         (err) => {
-          this.hideLoading();
-          this.$message.error("Post SI Failed: ", err);
+          closeDialog();
+          console.error("Post SI Failed: ", err);
+          throw new Error("An error occurred.");
         }
       );
     } else if (
       accIntegrationType === "AutoCount Accounting" &&
-      entry.organizationId &&
-      entry.organizationId !== ""
+      organizationId &&
+      organizationId !== ""
     ) {
       this.$message.success("Add Sales Invoice successfully");
       await closeDialog();
-      console.log("Calling AutoCount workflow");
     } else if (
       accIntegrationType === "No Accounting Integration" &&
-      entry.organizationId &&
-      entry.organizationId !== ""
+      organizationId &&
+      organizationId !== ""
     ) {
       this.$message.success("Add Sales Invoice successfully");
       await closeDialog();
-      console.log("Not calling workflow");
     } else {
       await closeDialog();
     }
@@ -792,6 +989,32 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
     self.hideLoading();
     throw error;
   }
+};
+
+const findFieldMessage = (obj) => {
+  // Base case: if current object has the structure we want
+  if (obj && typeof obj === "object") {
+    if (obj.field && obj.message) {
+      return obj.message;
+    }
+
+    // Check array elements
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = findFieldMessage(item);
+        if (found) return found;
+      }
+    }
+
+    // Check all object properties
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const found = findFieldMessage(obj[key]);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
 };
 
 // Main execution
@@ -815,6 +1038,7 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
       },
     ];
 
+    await this.validate("sales_invoice_no");
     const missingFields = validateForm(data, requiredFields);
 
     if (data.acc_integration_type !== null) {
@@ -985,8 +1209,17 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
       self.$message.error(`Missing fields: ${missingFields.join(", ")}`);
     }
   } catch (error) {
-    console.error("Main execution error:", error);
-    self.hideLoading();
-    self.$message.error(error.message || "An unexpected error occurred");
+    this.hideLoading();
+
+    let errorMessage = "";
+
+    if (error && typeof error === "object") {
+      errorMessage = findFieldMessage(error) || "An error occurred";
+    } else {
+      errorMessage = error;
+    }
+
+    this.$message.error(errorMessage);
+    console.error(errorMessage);
   }
 })();

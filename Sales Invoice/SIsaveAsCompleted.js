@@ -12,90 +12,96 @@ const updateSalesOrderStatus = async (
   tableSI,
   goodsDeliveryNo
 ) => {
-  // Ensure salesOrderIds is an array
-  const soIds = Array.isArray(salesOrderIds) ? salesOrderIds : [salesOrderIds];
+  try {
+    // Ensure salesOrderIds is an array
+    const soIds = Array.isArray(salesOrderIds)
+      ? salesOrderIds
+      : [salesOrderIds];
 
-  const updatePromises = soIds.map(async (salesOrderId) => {
-    const resSO = await db
-      .collection("sales_order")
-      .where({ id: salesOrderId })
-      .get();
+    const updatePromises = soIds.map(async (salesOrderId) => {
+      const resSO = await db
+        .collection("sales_order")
+        .where({ id: salesOrderId })
+        .get();
 
-    if (!resSO && resSO.data.length === 0) return;
+      if (!resSO && resSO.data.length === 0) return;
 
-    const soDoc = resSO.data[0];
-    const soItems = soDoc.table_so || [];
-    const filteredSI = tableSI.filter(
-      (item) => item.line_so_no === soDoc.so_no
-    );
-
-    const filteredSO = soItems
-      .map((item, index) => ({ ...item, originalIndex: index }))
-      .filter((item) => item.item_name !== "" || item.so_desc !== "");
-
-    // Initialize tracking objects
-    let totalItems = soItems.length;
-    let partiallyInvoicedItems = 0;
-    let fullyInvoicedItems = 0;
-
-    const updatedSoItems = soItems.map((item) => ({ ...item }));
-
-    filteredSO.forEach((filteredItem, filteredIndex) => {
-      const originalIndex = filteredItem.originalIndex;
-      const orderQty = parseFloat(filteredItem.so_quantity || 0);
-      const siInvoicedQty = parseFloat(
-        filteredSI[filteredIndex]?.invoice_qty || 0
+      const soDoc = resSO.data[0];
+      const soItems = soDoc.table_so || [];
+      const filteredSI = tableSI.filter(
+        (item) => item.line_so_no === soDoc.so_no
       );
-      const currentInvoicedQty = parseFloat(
-        updatedSoItems[originalIndex].invoice_qty || 0
-      );
-      const totalInvoicedQty = currentInvoicedQty + siInvoicedQty;
 
-      // Update the quantity in the original soItems structure
-      updatedSoItems[originalIndex].invoice_qty = totalInvoicedQty;
+      const filteredSO = soItems
+        .map((item, index) => ({ ...item, originalIndex: index }))
+        .filter((item) => item.item_name !== "" || item.so_desc !== "");
 
-      // Add ratio for tracking purposes
-      updatedSoItems[originalIndex].invoice_ratio =
-        orderQty > 0 ? totalInvoicedQty / orderQty : 0;
+      // Initialize tracking objects
+      let totalItems = soItems.length;
+      let partiallyInvoicedItems = 0;
+      let fullyInvoicedItems = 0;
 
-      if (totalInvoicedQty > 0) {
-        partiallyInvoicedItems++;
+      const updatedSoItems = soItems.map((item) => ({ ...item }));
 
-        // Count fully delivered items separately
-        if (totalInvoicedQty >= orderQty) {
-          fullyInvoicedItems++;
+      filteredSO.forEach((filteredItem, filteredIndex) => {
+        const originalIndex = filteredItem.originalIndex;
+        const orderQty = parseFloat(filteredItem.so_quantity || 0);
+        const siInvoicedQty = parseFloat(
+          filteredSI[filteredIndex]?.invoice_qty || 0
+        );
+        const currentInvoicedQty = parseFloat(
+          updatedSoItems[originalIndex].invoice_qty || 0
+        );
+        const totalInvoicedQty = currentInvoicedQty + siInvoicedQty;
+
+        // Update the quantity in the original soItems structure
+        updatedSoItems[originalIndex].invoice_qty = totalInvoicedQty;
+
+        // Add ratio for tracking purposes
+        updatedSoItems[originalIndex].invoice_ratio =
+          orderQty > 0 ? totalInvoicedQty / orderQty : 0;
+
+        if (totalInvoicedQty > 0) {
+          partiallyInvoicedItems++;
+
+          // Count fully delivered items separately
+          if (totalInvoicedQty >= orderQty) {
+            fullyInvoicedItems++;
+          }
         }
-      }
-    });
-
-    let allItemsComplete = fullyInvoicedItems === totalItems;
-    let anyItemProcessing = partiallyInvoicedItems > 0;
-
-    let newSIStatus = soDoc.si_status;
-
-    if (allItemsComplete) {
-      newSIStatus = "Fully Invoiced";
-    } else if (anyItemProcessing) {
-      newSIStatus = "Partially Invoiced";
-    }
-
-    const updateData = {
-      table_so: updatedSoItems,
-    };
-
-    updateData.si_status = newSIStatus;
-
-    await db.collection("sales_order").doc(soDoc.id).update(updateData);
-  });
-
-  await Promise.all(updatePromises);
-
-  if (goodsDeliveryNo) {
-    goodsDeliveryNo.forEach((gd) => {
-      db.collection("goods_delivery").doc(gd).update({
-        si_status: "Fully Invoiced",
       });
+
+      let allItemsComplete = fullyInvoicedItems === totalItems;
+      let anyItemProcessing = partiallyInvoicedItems > 0;
+
+      let newSIStatus = soDoc.si_status;
+
+      if (allItemsComplete) {
+        newSIStatus = "Fully Invoiced";
+      } else if (anyItemProcessing) {
+        newSIStatus = "Partially Invoiced";
+      }
+
+      const updateData = {
+        table_so: updatedSoItems,
+      };
+
+      updateData.si_status = newSIStatus;
+
+      await db.collection("sales_order").doc(soDoc.id).update(updateData);
     });
+
+    await Promise.all(updatePromises);
+
+    if (goodsDeliveryNo) {
+      goodsDeliveryNo.forEach((gd) => {
+        db.collection("goods_delivery").doc(gd).update({
+          si_status: "Fully Invoiced",
+        });
+      });
+    }
+  } catch (error) {
+    throw new Error("An error occurred.");
   }
 };
 
@@ -274,6 +280,28 @@ const checkCreditOverdueLimit = async (customer_id, invoice_total) => {
     // Helper function to show specific pop-ups as per specification
     const showPopup = (popupNumber) => {
       this.openDialog("dialog_credit_limit");
+
+      this.hide([
+        "dialog_credit_limit.alert_credit_limit",
+        "dialog_credit_limit.alert_overdue_limit",
+        "dialog_credit_limit.alert_credit_overdue",
+        "dialog_credit_limit.alert_suspended",
+        "dialog_credit_limit.text_credit_limit",
+        "dialog_credit_limit.text_overdue_limit",
+        "dialog_credit_limit.text_credit_overdue",
+        "dialog_credit_limit.text_suspended",
+        "dialog_credit_limit.total_allowed_credit",
+        "dialog_credit_limit.total_credit",
+        "dialog_credit_limit.total_allowed_overdue",
+        "dialog_credit_limit.total_overdue",
+        "dialog_credit_limit.text_1",
+        "dialog_credit_limit.text_2",
+        "dialog_credit_limit.text_3",
+        "dialog_credit_limit.text_4",
+        "dialog_credit_limit.button_back",
+        "dialog_credit_limit.button_no",
+        "dialog_credit_limit.button_yes",
+      ]);
 
       const popupConfigs = {
         1: {
@@ -550,6 +578,32 @@ const checkCreditOverdueLimit = async (customer_id, invoice_total) => {
   }
 };
 
+const findFieldMessage = (obj) => {
+  // Base case: if current object has the structure we want
+  if (obj && typeof obj === "object") {
+    if (obj.field && obj.message) {
+      return obj.message;
+    }
+
+    // Check array elements
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = findFieldMessage(item);
+        if (found) return found;
+      }
+    }
+
+    // Check all object properties
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const found = findFieldMessage(obj[key]);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
+};
+
 const addEntry = async (organizationId, entry) => {
   try {
     const prefixData = await getPrefixData(organizationId);
@@ -566,6 +620,12 @@ const addEntry = async (organizationId, entry) => {
     }
 
     await db.collection("sales_invoice").add(entry);
+    // Handle multiple SO IDs and GD numbers
+    await updateSalesOrderStatus(
+      entry.so_id,
+      entry.table_si,
+      entry.goods_delivery_number
+    );
 
     try {
       await this.runWorkflow(
@@ -577,22 +637,17 @@ const addEntry = async (organizationId, entry) => {
         (err) => {
           console.error("Workflow error:", err);
           closeDialog();
+          throw new Error("An error occurred.");
         }
       );
     } catch (workflowError) {
       console.error("Error running workflow:", workflowError);
     }
 
-    // Handle multiple SO IDs and GD numbers
-    await updateSalesOrderStatus(
-      entry.so_id,
-      entry.table_si,
-      entry.goods_delivery_number
-    );
-
     this.$message.success("Add successfully");
     closeDialog();
   } catch (error) {
+    this.hideLoading();
     console.error("Error adding entry:", error);
     throw error;
   }
@@ -614,6 +669,12 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
     }
 
     await db.collection("sales_invoice").doc(salesInvoiceId).update(entry);
+    // Handle multiple SO IDs and GD numbers
+    await updateSalesOrderStatus(
+      entry.so_id,
+      entry.table_si,
+      entry.goods_delivery_number
+    );
 
     try {
       await this.runWorkflow(
@@ -625,22 +686,17 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         (err) => {
           console.error("Workflow error:", err);
           closeDialog();
+          throw new Error("An error occurred.");
         }
       );
     } catch (workflowError) {
       console.error("Error running workflow:", workflowError);
     }
 
-    // Handle multiple SO IDs and GD numbers
-    await updateSalesOrderStatus(
-      entry.so_id,
-      entry.table_si,
-      entry.goods_delivery_number
-    );
-
     this.$message.success("Update successfully");
     closeDialog();
   } catch (error) {
+    this.hideLoading();
     console.error("Error updating entry:", error);
     throw error;
   }
@@ -667,6 +723,7 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
       },
     ];
 
+    await this.validate("sales_invoice_no");
     const missingFields = validateForm(data, requiredFields);
 
     if (data.acc_integration_type !== null) {
@@ -831,6 +888,16 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
     }
   } catch (error) {
     this.hideLoading();
-    this.$message.error(error.message || error);
+
+    let errorMessage = "";
+
+    if (error && typeof error === "object") {
+      errorMessage = findFieldMessage(error) || "An error occurred";
+    } else {
+      errorMessage = error;
+    }
+
+    this.$message.error(errorMessage);
+    console.error(errorMessage);
   }
 })();

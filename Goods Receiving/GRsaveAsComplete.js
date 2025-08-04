@@ -78,24 +78,24 @@ const addInventory = async (
         // Find the specific PO item that corresponds to this GR item
         let targetPoItem = null;
 
-        // If we have a line_po_id, use it for precise matching
-        if (itemData.line_po_id && matchingPoItems.length > 0) {
-          // Try to match by line_po_id if it's available on the PO items
+        // If we have a po_line_item_id, use it for precise matching
+        if (itemData.po_line_item_id && matchingPoItems.length > 0) {
+          // Try to match by po_line_item_id if it's available on the PO items
           const lineIdMatch = matchingPoItems.find(
             (poItem) =>
-              poItem.id === itemData.line_po_id ||
-              poItem.line_id === itemData.line_po_id
+              poItem.id === itemData.po_line_item_id ||
+              poItem.line_id === itemData.po_line_item_id
           );
 
           if (lineIdMatch) {
             targetPoItem = lineIdMatch;
             console.log(
-              `Found exact match by line_po_id: ${itemData.line_po_id} for item ${itemData.item_id}`
+              `Found exact match by po_line_item_id: ${itemData.po_line_item_id} for item ${itemData.item_id}`
             );
           }
         }
 
-        // If we couldn't match by line_po_id, try matching by line_po_no if available
+        // If we couldn't match by po_line_item_id, try matching by line_po_no if available
         if (
           !targetPoItem &&
           itemData.line_po_no &&
@@ -159,19 +159,19 @@ const addInventory = async (
             }
 
             // If still no match, try to match by identical price/amount
-            if (!targetPoItem && itemData.unit_price) {
+            if (!targetPoItem && itemData.total_price) {
               const priceMatch = matchingPoItems.find(
                 (poItem) =>
                   Math.abs(
-                    parseFloat(poItem.unit_price || 0) -
-                      parseFloat(itemData.unit_price || 0)
+                    parseFloat(poItem.po_amount || 0) -
+                      parseFloat(itemData.total_price || 0)
                   ) < 0.0001
               );
 
               if (priceMatch) {
                 targetPoItem = priceMatch;
                 console.log(
-                  `Matched by unit price: ${itemData.unit_price} for item ${itemData.item_id}`
+                  `Matched by total price: ${itemData.total_price} for item ${itemData.item_id}`
                 );
               }
             }
@@ -844,7 +844,8 @@ const addInventory = async (
           item_name: item.item_name,
           item_desc: item.item_desc,
           batch_no: batchNo?.id || "",
-          inv_category: item.inv_category,
+          source_inv_category: item.inv_category,
+          target_inv_category: "Unrestricted",
           received_qty: item.received_qty,
           item_uom: item.item_uom,
           source_bin: item.location_id,
@@ -853,6 +854,7 @@ const addInventory = async (
           putaway_qty: 0,
           target_location: "",
           remark: "",
+          qi_no: null,
           line_status: "Open",
           po_no: item.line_po_id,
           is_split: "No",
@@ -874,6 +876,7 @@ const addInventory = async (
         receiving_no: data.gr_no,
         supplier_id: data.supplier_name,
         created_by: "System",
+        assigned_to: data.assigned_to,
         created_at: new Date().toISOString().split("T")[0],
         organization_id: organizationId,
         to_status: "Created",
@@ -1351,7 +1354,10 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
 
         const filteredPO = poItems
           .map((item, index) => ({ ...item, originalIndex: index }))
-          .filter((item) => item.item_id !== "" || item.item_desc !== "");
+          .filter((item) => item.item_id !== "" || item.item_desc !== "")
+          .filter((item) =>
+            filteredGR.some((gr) => gr.po_line_item_id === item.id)
+          );
 
         // Initialize tracking objects
         let totalItems = poItems.length;
@@ -1679,7 +1685,7 @@ const findUniquePrefix = async (prefixData, organizationId, documentTypes) => {
   return { prefixToShow, runningNumber };
 };
 
-const addEntry = async (organizationId, entry) => {
+const addEntry = async (organizationId, entry, putAwaySetupData) => {
   try {
     const prefixData = await getPrefixData(organizationId, "Goods Receiving");
 
@@ -1703,12 +1709,6 @@ const addEntry = async (organizationId, entry) => {
     entry.table_gr = processedTableGr;
 
     await db.collection("goods_receiving").add(entry);
-
-    const resPutAwaySetup = await db
-      .collection("putaway_setup")
-      .where({ plant_id: entry.plant_id, movement_type: "Good Receiving" })
-      .get();
-    const putAwaySetupData = resPutAwaySetup?.data[0];
 
     await addInventory(entry, entry.plant_id, organizationId, putAwaySetupData);
 
@@ -1805,7 +1805,12 @@ const findFieldMessage = (obj) => {
   return null;
 };
 
-const updateEntry = async (organizationId, entry, goodsReceivingId) => {
+const updateEntry = async (
+  organizationId,
+  entry,
+  goodsReceivingId,
+  putAwaySetupData
+) => {
   try {
     const prefixData = await getPrefixData(organizationId, "Goods Receiving");
 
@@ -1828,12 +1833,6 @@ const updateEntry = async (organizationId, entry, goodsReceivingId) => {
     }
     entry.table_gr = processedTableGr;
     await db.collection("goods_receiving").doc(goodsReceivingId).update(entry);
-
-    const resPutAwaySetup = await db
-      .collection("putaway_setup")
-      .where({ plant_id: entry.plant_id, movement_type: "Good Receiving" })
-      .get();
-    const putAwaySetupData = resPutAwaySetup?.data[0];
 
     await addInventory(entry, entry.plant_id, organizationId, putAwaySetupData);
     const purchaseOrderIds = entry.po_id;
@@ -1959,6 +1958,12 @@ const checkCompletedPO = async (po_id) => {
 
     await this.validate("gr_no");
 
+    const resPutAwaySetup = await db
+      .collection("putaway_setup")
+      .where({ plant_id: data.plant_id, movement_type: "Good Receiving" })
+      .get();
+    const putAwaySetupData = resPutAwaySetup?.data[0];
+
     const missingFields = await validateForm(
       data,
       requiredFields,
@@ -1971,6 +1976,25 @@ const checkCompletedPO = async (po_id) => {
       let organizationId = this.getVarGlobal("deptParentId");
       if (organizationId === "0") {
         organizationId = this.getVarSystem("deptIds").split(",")[0];
+      }
+
+      if (putAwaySetupData.putaway_required === 1) {
+        if (!data.assigned_to) {
+          await this.$confirm(
+            `Assigned To field is empty.\nIf you proceed, assigned person in putaway record will be empty. \nWould you like to proceed?`,
+            "No Assigned Person Detected",
+            {
+              confirmButtonText: "OK",
+              cancelButtonText: "Cancel",
+              type: "warning",
+              dangerouslyUseHTMLString: false,
+            }
+          ).catch(() => {
+            console.log("User clicked Cancel or closed the dialog");
+            this.hideLoading();
+            throw new Error("Saving goods receiving cancelled.");
+          });
+        }
       }
 
       const {
@@ -1993,6 +2017,7 @@ const checkCompletedPO = async (po_id) => {
         supplier_email,
         gr_no,
         gr_received_by,
+        assigned_to,
         gr_date,
         table_gr,
         billing_address_line_1,
@@ -2042,6 +2067,7 @@ const checkCompletedPO = async (po_id) => {
         supplier_email,
         gr_no,
         gr_received_by,
+        assigned_to,
         gr_date,
         table_gr,
         billing_address_line_1,
@@ -2093,10 +2119,15 @@ const checkCompletedPO = async (po_id) => {
       await checkCompletedPO(entry.po_id);
 
       if (page_status === "Add") {
-        await addEntry(organizationId, entry);
+        await addEntry(organizationId, entry, putAwaySetupData);
       } else if (page_status === "Edit") {
         const goodsReceivingId = this.getValue("id");
-        await updateEntry(organizationId, entry, goodsReceivingId);
+        await updateEntry(
+          organizationId,
+          entry,
+          goodsReceivingId,
+          putAwaySetupData
+        );
       }
     } else {
       this.hideLoading();
