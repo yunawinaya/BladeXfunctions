@@ -1638,6 +1638,205 @@ const findFieldMessage = (obj) => {
   return null;
 };
 
+const setCreditLimitStatus = async (data, credit_limit_status) => {
+  if (data.id && (data.gd_status === "Created" || data.gd_status === "Draft")) {
+    await db.collection("goods_delivery").doc(data.id).update({
+      credit_limit_status: credit_limit_status,
+    });
+    console.log("Credit limit status set to: ", credit_limit_status);
+  }
+};
+
+// Simplified credit limit check without popups - for auto-complete GD only
+const checkCreditLimitForAutoComplete = async (
+  customer_name,
+  gd_total,
+  data
+) => {
+  try {
+    const fetchCustomer = await db
+      .collection("Customer")
+      .where({ id: customer_name, is_deleted: 0 })
+      .get();
+
+    const customerData = fetchCustomer.data[0];
+    if (!customerData) {
+      console.error(`Customer ${customer_name} not found`);
+      return false;
+    }
+
+    const controlTypes = customerData.control_type_list;
+
+    const outstandingAmount =
+      parseFloat(customerData.outstanding_balance || 0) || 0;
+    const overdueAmount =
+      parseFloat(customerData.overdue_inv_total_amount || 0) || 0;
+    const overdueLimit = parseFloat(customerData.overdue_limit || 0) || 0;
+    const creditLimit =
+      parseFloat(customerData.customer_credit_limit || 0) || 0;
+    const gdTotal = parseFloat(gd_total || 0) || 0;
+    const revisedOutstandingAmount = outstandingAmount + gdTotal;
+
+    // Check if accuracy flag is set
+    if (controlTypes && Array.isArray(controlTypes)) {
+      // Define control type behaviors according to specification
+      const controlTypeChecks = {
+        // Control Type 0: Ignore both checks (always pass)
+        0: () => {
+          console.log("Control Type 0: Ignoring all credit/overdue checks");
+          setCreditLimitStatus(data, "Passed");
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 1: Ignore credit, block overdue
+        1: () => {
+          if (overdueAmount > overdueLimit) {
+            setCreditLimitStatus(data, "Blocked");
+            return { result: false, priority: "block" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 2: Ignore credit, override overdue
+        2: () => {
+          if (overdueAmount > overdueLimit) {
+            setCreditLimitStatus(data, "Override Required");
+            return { result: false, priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 3: Block credit, ignore overdue
+        3: () => {
+          if (revisedOutstandingAmount > creditLimit) {
+            setCreditLimitStatus(data, "Blocked");
+            return { result: false, priority: "block" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 4: Block both
+        4: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          if (creditExceeded && overdueExceeded) {
+            setCreditLimitStatus(data, "Blocked");
+            return { result: false, priority: "block" };
+          } else if (creditExceeded) {
+            setCreditLimitStatus(data, "Blocked");
+            return { result: false, priority: "block" };
+          } else if (overdueExceeded) {
+            setCreditLimitStatus(data, "Blocked");
+            return { result: false, priority: "block" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 5: Block credit, override overdue
+        5: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          // Credit limit block takes priority
+          if (creditExceeded) {
+            setCreditLimitStatus(data, "Blocked");
+            return { result: false, priority: "block" };
+          } else if (overdueExceeded) {
+            setCreditLimitStatus(data, "Override Required");
+            return { result: false, priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 6: Override credit, ignore overdue
+        6: () => {
+          if (revisedOutstandingAmount > creditLimit) {
+            setCreditLimitStatus(data, "Override Required");
+            return { result: false, priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 7: Override credit, block overdue
+        7: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          // Overdue block takes priority over credit override
+          if (overdueExceeded) {
+            setCreditLimitStatus(data, "Blocked");
+            return { result: false, priority: "block" };
+          } else if (creditExceeded) {
+            setCreditLimitStatus(data, "Override Required");
+            return { result: false, priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 8: Override both
+        8: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+
+          if (creditExceeded || overdueExceeded) {
+            setCreditLimitStatus(data, "Override Required");
+            return { result: false, priority: "override" };
+          }
+          return { result: true, priority: "unblock" };
+        },
+
+        // Control Type 9: Suspended customer
+        9: () => {
+          setCreditLimitStatus(data, "Blocked");
+          return { result: false, priority: "block" };
+        },
+      };
+
+      // First, collect all applicable control types for Goods Delivery
+      const applicableControls = controlTypes
+        .filter((ct) => ct.document_type === "Goods Delivery")
+        .map((ct) => {
+          const checkResult = controlTypeChecks[ct.control_type]
+            ? controlTypeChecks[ct.control_type]()
+            : { result: true, priority: "unblock" };
+          return {
+            ...checkResult,
+            control_type: ct.control_type,
+          };
+        });
+
+      // Sort by priority: blocks first, then overrides, then unblocks
+      const priorityOrder = { block: 1, override: 2, unblock: 3 };
+      applicableControls.sort(
+        (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
+      );
+
+      // Process in priority order
+      for (const control of applicableControls) {
+        if (control.result !== true) {
+          console.log(
+            `Control Type ${control.control_type} triggered with ${control.priority} - blocking auto-complete`
+          );
+          return false;
+        }
+      }
+
+      // All checks passed - set status as Passed since there are controlTypes
+      setCreditLimitStatus(data, "Passed");
+      return true;
+    } else {
+      console.log(
+        "No control type defined for customer or invalid control type format"
+      );
+      return true;
+    }
+  } catch (error) {
+    console.error("Error checking credit/overdue limits:", error);
+    return false;
+  }
+};
+
 const updateGoodsDelivery = async (
   toData,
   gdId,
@@ -1659,7 +1858,28 @@ const updateGoodsDelivery = async (
       picking_status: newPickingStatus,
     });
 
-    if (isAutoCompleteGD === 1) {
+    // Check if we should auto-complete GD
+    let shouldAutoComplete = isAutoCompleteGD === 1;
+
+    if (shouldAutoComplete) {
+      // Check credit limit before auto-completing GD
+      console.log("Checking credit limit for auto-complete GD...");
+      const creditCheckPassed = await checkCreditLimitForAutoComplete(
+        gdData.customer_name,
+        gdData.gd_total,
+        gdData
+      );
+
+      if (!creditCheckPassed) {
+        console.log(
+          "Credit limit check failed - treating as if auto_completed_gd is 0"
+        );
+        shouldAutoComplete = false;
+      }
+    }
+
+    if (shouldAutoComplete) {
+      console.log("Auto-completing GD (credit limit check passed)");
       await db.collection("goods_delivery").doc(gdId).update({
         gd_status: "Completed",
       });
@@ -1691,9 +1911,10 @@ const updateGoodsDelivery = async (
       );
 
       await updateOnReserveGoodsDelivery(organizationId, gdData);
+      this.$message.success(
+        "Goods Delivery picking status updated successfully"
+      );
     }
-
-    this.$message.success("Goods Delivery picking status updated successfully");
   } catch (error) {
     this.$message.error("Error updating Goods Delivery picking status");
     console.error("Error flipping Goods Delivery picking status:", error);

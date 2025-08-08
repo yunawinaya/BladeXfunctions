@@ -2490,6 +2490,7 @@ const checkCompletedSO = async (so_id) => {
     const gd = {
       gd_status: targetStatus,
       picking_status,
+      credit_limit_status: "Overridden",
       fake_so_id,
       so_id,
       so_no,

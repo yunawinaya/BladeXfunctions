@@ -1893,8 +1893,20 @@ const validateField = (value) => {
   return !value;
 };
 
+const setCreditLimitStatus = async (data, credit_limit_status) => {
+  this.setData({
+    credit_limit_status: credit_limit_status,
+  });
+  if (data.id && (data.gd_status === "Created" || data.gd_status === "Draft")) {
+    await db.collection("goods_delivery").doc(data.id).update({
+      credit_limit_status: credit_limit_status,
+    });
+    console.log("Credit limit status set to: ", credit_limit_status);
+  }
+};
+
 // Check credit & overdue limit before doing any process
-const checkCreditOverdueLimit = async (customer_name, gd_total) => {
+const checkCreditOverdueLimit = async (customer_name, gd_total, data) => {
   try {
     const fetchCustomer = await db
       .collection("Customer")
@@ -2064,12 +2076,14 @@ const checkCreditOverdueLimit = async (customer_name, gd_total) => {
         // Control Type 0: Ignore both checks (always pass)
         0: () => {
           console.log("Control Type 0: Ignoring all credit/overdue checks");
+          setCreditLimitStatus(data, "Passed");
           return { result: true, priority: "unblock" };
         },
 
         // Control Type 1: Ignore credit, block overdue
         1: () => {
           if (overdueAmount > overdueLimit) {
+            setCreditLimitStatus(data, "Blocked");
             return { result: showPopup(2), priority: "block" };
           }
           return { result: true, priority: "unblock" };
@@ -2078,6 +2092,7 @@ const checkCreditOverdueLimit = async (customer_name, gd_total) => {
         // Control Type 2: Ignore credit, override overdue
         2: () => {
           if (overdueAmount > overdueLimit) {
+            setCreditLimitStatus(data, "Override Required");
             return { result: showPopup(4), priority: "override" };
           }
           return { result: true, priority: "unblock" };
@@ -2086,6 +2101,7 @@ const checkCreditOverdueLimit = async (customer_name, gd_total) => {
         // Control Type 3: Block credit, ignore overdue
         3: () => {
           if (revisedOutstandingAmount > creditLimit) {
+            setCreditLimitStatus(data, "Blocked");
             return { result: showPopup(1), priority: "block" };
           }
           return { result: true, priority: "unblock" };
@@ -2097,10 +2113,13 @@ const checkCreditOverdueLimit = async (customer_name, gd_total) => {
           const overdueExceeded = overdueAmount > overdueLimit;
 
           if (creditExceeded && overdueExceeded) {
+            setCreditLimitStatus(data, "Blocked");
             return { result: showPopup(3), priority: "block" };
           } else if (creditExceeded) {
+            setCreditLimitStatus(data, "Blocked");
             return { result: showPopup(1), priority: "block" };
           } else if (overdueExceeded) {
+            setCreditLimitStatus(data, "Blocked");
             return { result: showPopup(2), priority: "block" };
           }
           return { result: true, priority: "unblock" };
@@ -2114,11 +2133,14 @@ const checkCreditOverdueLimit = async (customer_name, gd_total) => {
           // Credit limit block takes priority
           if (creditExceeded) {
             if (overdueExceeded) {
+              setCreditLimitStatus(data, "Blocked");
               return { result: showPopup(3), priority: "block" };
             } else {
+              setCreditLimitStatus(data, "Blocked");
               return { result: showPopup(1), priority: "block" };
             }
           } else if (overdueExceeded) {
+            setCreditLimitStatus(data, "Override Required");
             return { result: showPopup(4), priority: "override" };
           }
           return { result: true, priority: "unblock" };
@@ -2127,6 +2149,7 @@ const checkCreditOverdueLimit = async (customer_name, gd_total) => {
         // Control Type 6: Override credit, ignore overdue
         6: () => {
           if (revisedOutstandingAmount > creditLimit) {
+            setCreditLimitStatus(data, "Override Required");
             return { result: showPopup(5), priority: "override" };
           }
           return { result: true, priority: "unblock" };
@@ -2139,8 +2162,10 @@ const checkCreditOverdueLimit = async (customer_name, gd_total) => {
 
           // Overdue block takes priority over credit override
           if (overdueExceeded) {
+            setCreditLimitStatus(data, "Blocked");
             return { result: showPopup(2), priority: "block" };
           } else if (creditExceeded) {
+            setCreditLimitStatus(data, "Override Required");
             return { result: showPopup(5), priority: "override" };
           }
           return { result: true, priority: "unblock" };
@@ -2152,10 +2177,13 @@ const checkCreditOverdueLimit = async (customer_name, gd_total) => {
           const overdueExceeded = overdueAmount > overdueLimit;
 
           if (creditExceeded && overdueExceeded) {
+            setCreditLimitStatus(data, "Override Required");
             return { result: showPopup(7), priority: "override" };
           } else if (creditExceeded) {
+            setCreditLimitStatus(data, "Override Required");
             return { result: showPopup(5), priority: "override" };
           } else if (overdueExceeded) {
+            setCreditLimitStatus(data, "Override Required");
             return { result: showPopup(4), priority: "override" };
           }
           return { result: true, priority: "unblock" };
@@ -2163,6 +2191,7 @@ const checkCreditOverdueLimit = async (customer_name, gd_total) => {
 
         // Control Type 9: Suspended customer
         9: () => {
+          setCreditLimitStatus(data, "Blocked");
           return { result: showPopup(6), priority: "block" };
         },
       };
@@ -2199,7 +2228,8 @@ const checkCreditOverdueLimit = async (customer_name, gd_total) => {
         }
       }
 
-      // All checks passed
+      // All checks passed - set status as Passed since there are controlTypes
+      setCreditLimitStatus(data, "Passed");
       return true;
     } else {
       console.log(
@@ -2713,7 +2743,8 @@ const checkCompletedSO = async (so_id) => {
     if (data.acc_integration_type !== null) {
       const canProceed = await checkCreditOverdueLimit(
         data.customer_name,
-        data.gd_total
+        data.gd_total,
+        data
       );
       if (!canProceed) {
         console.log("Credit/overdue limit check failed");
@@ -2754,6 +2785,7 @@ const checkCompletedSO = async (so_id) => {
 
     const {
       picking_status,
+      credit_limit_status,
       fake_so_id,
       so_id,
       so_no,
@@ -2833,6 +2865,7 @@ const checkCompletedSO = async (so_id) => {
     const gd = {
       gd_status: targetStatus,
       picking_status,
+      credit_limit_status,
       fake_so_id,
       so_id,
       so_no,

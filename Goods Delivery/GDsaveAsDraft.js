@@ -79,7 +79,7 @@ const generateDraftPrefix = async (organizationId) => {
     const prefixData = await getPrefixData(organizationId);
     if (prefixData.length !== 0) {
       const currDraftNum = parseInt(prefixData.draft_number) + 1;
-      const newPrefix = "DRAFT-GD-" + currDraftNum;
+      const newPrefix = `DRAFT-${prefixData.prefix_value}-` + currDraftNum;
 
       db.collection("prefix_configuration")
         .where({
@@ -211,7 +211,7 @@ const generateDraftPrefix = async (organizationId) => {
         outstanding_balance: data.outstanding_balance,
         overdue_inv_total_amount: data.overdue_inv_total_amount,
         is_accurate: data.is_accurate,
-        gd_total: data.gd_total,
+        gd_total: parseFloat(data.gd_total.toFixed(3)),
       };
 
       // Clean up undefined/null values
