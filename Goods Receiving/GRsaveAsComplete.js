@@ -1055,8 +1055,8 @@ const addInventory = async (
             batch_number: item.item_batch_no,
             material_id: item.item_id,
             initial_quantity: baseQty,
-            goods_receiving_no: data.gr_no,
-            purchase_order_no: item.line_po_no,
+            transaction_no: data.gr_no,
+            parent_transaction_no: item.line_po_no,
             plant_id: plantId,
             organization_id: organizationId,
           };
@@ -1071,8 +1071,8 @@ const addInventory = async (
             .where({
               batch_number: item.item_batch_no,
               material_id: item.item_id,
-              goods_receiving_no: data.gr_no,
-              purchase_order_no: item.line_po_no,
+              transaction_no: data.gr_no,
+              parent_transaction_no: item.line_po_no,
             })
             .get();
 

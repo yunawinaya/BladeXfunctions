@@ -31,38 +31,122 @@ class StockAdjuster {
     }
   }
 
-  async updateProductionOrder(allData, subformData, balanceIndex) {
+  async updateProductionOrder(
+    allData,
+    subformData,
+    balanceIndex,
+    productionOrderData
+  ) {
     if (allData.is_production_order !== 1 || !allData.production_order_id) {
       return; // Skip if not a production order or no production order ID
     }
 
-    // const tableMatConfirmation = subformData.map((item) => ({
-    //   material_id: item.item_selection,
-    //   material_required_qty: item.total_quantity || item.received_quantity || 0,
-    //   bin_location_id: item.location_id,
-    // }));
-    console.log("Table Mat Confirmation", balanceIndex);
-    try {
-      const productionOrderResponse = await this.db
-        .collection("production_order")
-        .where({ id: allData.production_order_id })
+    let tableMatConfirmation = [];
+
+    const previousTableMatConfirmation =
+      productionOrderData.table_mat_confirmation.map((item) => ({
+        ...item,
+      }));
+
+    for (const [index, item] of previousTableMatConfirmation.entries()) {
+      //get material data
+      const resItem = await this.db
+        .collection("Item")
+        .doc(item.material_id)
         .get();
 
+      if (!resItem || resItem.data.length === 0) return;
+
+      const materialData = resItem.data[0];
+
+      // if item no batch, table mat confirmation remain the same
       if (
-        !productionOrderResponse.data ||
-        productionOrderResponse.data.length === 0
+        !materialData.item_batch_management ||
+        materialData.item_batch_management === 0
       ) {
-        throw new Error(
-          `Production order ${allData.production_order_id} not found`
-        );
+        const matConfirmationData = {
+          material_id: item.material_id,
+          material_name: item.material_name,
+          material_desc: item.material_desc,
+          material_category: item.material_category,
+          material_uom: item.material_uom,
+          item_process_id: item.item_process_id,
+          bin_location_id: item.bin_location_id,
+          material_required_qty: item.material_required_qty,
+          material_actual_qty: item.material_actual_qty,
+          item_remarks: item.item_remarks,
+        };
+
+        tableMatConfirmation.push(matConfirmationData);
+        continue;
       }
-      const productionOrderId = productionOrderResponse.data[0].id;
+      // if item has batch, map the data to table mat confirmation
+      else {
+        let tempDataParsed;
+        const subFormItem = subformData[index];
+        try {
+          const tempData = subFormItem.temp_qty_data;
+          if (!tempData) {
+            console.warn(
+              `No temp_qty_data found for item ${subFormItem.item_selection}`
+            );
+            tempDataParsed = [];
+          } else {
+            tempDataParsed = JSON.parse(tempData);
+            tempDataParsed = tempDataParsed.filter(
+              (tempData) => tempData.sm_quantity > 0
+            );
+          }
+        } catch (parseError) {
+          console.error(
+            `Error parsing temp_qty_data for item ${item.item_selection}:`,
+            parseError
+          );
+          tempDataParsed = [];
+        }
+
+        console.log("tempDataParsed", tempDataParsed);
+
+        let balancesToProcess =
+          allData.balance_index?.filter(
+            (balance) =>
+              balance.sm_quantity &&
+              balance.sm_quantity > 0 &&
+              tempDataParsed.some(
+                (tempData) =>
+                  tempData.material_id === balance.material_id &&
+                  tempData.balance_id === balance.balance_id
+              )
+          ) || [];
+
+        for (const balance of balancesToProcess) {
+          const matConfirmationData = {
+            material_id: item.material_id,
+            material_name: item.material_name,
+            material_desc: item.material_desc,
+            material_category: item.material_category,
+            material_uom: item.material_uom,
+            item_process_id: item.item_process_id,
+            bin_location_id: item.bin_location_id,
+            material_required_qty: balance.sm_quantity,
+            material_actual_qty: balance.sm_quantity,
+            item_remarks: item.item_remarks,
+            batch_id: balance.batch_id,
+          };
+
+          tableMatConfirmation.push(matConfirmationData);
+        }
+      }
+    }
+
+    try {
       await this.db
         .collection("production_order")
-        .doc(productionOrderId)
+        .doc(productionOrderData.id)
         .update({
           balance_index: balanceIndex || [],
           production_order_status: "In Progress",
+          table_mat_confirmation: tableMatConfirmation,
           update_time: new Date().toISOString(),
         });
 
@@ -98,7 +182,10 @@ class StockAdjuster {
         allData.is_production_order === 1
       ) {
         for (const sm of subformData) {
-          if (sm.requested_qty !== sm.total_quantity) {
+          if (
+            sm.total_quantity < sm.requested_qty ||
+            sm.total_quantity > sm.requested_qty
+          ) {
             throw new Error(
               "Total quantity is not equal to requested quantity."
             );
@@ -157,7 +244,10 @@ class StockAdjuster {
         }
 
         const balancesToProcess = allData.balance_index.filter(
-          (balance) => balance.sm_quantity && balance.sm_quantity > 0
+          (balance) =>
+            balance.sm_quantity &&
+            balance.sm_quantity > 0 &&
+            balance.material_id === item.item_selection
         );
 
         if (balancesToProcess.length === 0) {
@@ -199,6 +289,9 @@ class StockAdjuster {
           // if (!categoryField && movementType != 'Inventory Category Transfer Posting') {
           //     throw new Error(`Invalid category: ${balance.category || 'Unrestricted'}`);
           // }
+
+          console.log("balancesToProcess", balancesToProcess);
+          console.log("current processing balance", balance);
 
           if (!balanceData) {
             throw new Error(
@@ -258,7 +351,26 @@ class StockAdjuster {
       movementType === "Location Transfer" &&
       allData.is_production_order === 1
     ) {
-      await this.updateProductionOrder(allData, subformData, balanceIndex);
+      const resProductionOrder = await this.db
+        .collection("production_order")
+        .doc(allData.production_order_id)
+        .get();
+
+      if (!resProductionOrder || resProductionOrder.data.length === 0) return;
+
+      const productionOrderData = resProductionOrder.data[0];
+
+      await this.updateProductionOrder(
+        allData,
+        subformData,
+        balanceIndex,
+        productionOrderData
+      );
+      await this.updateOnReservedTable(
+        allData,
+        subformData,
+        productionOrderData
+      );
     }
 
     const updates = [];
@@ -295,9 +407,10 @@ class StockAdjuster {
     let postedStatus = "";
 
     if (
-      movementType === "Miscellaneous Issue" ||
-      movementType === "Miscellaneous Receipt" ||
-      movementType === "Disposal/Scrap"
+      (movementType === "Miscellaneous Issue" ||
+        movementType === "Miscellaneous Receipt" ||
+        movementType === "Disposal/Scrap") &&
+      allData.acc_integration_type !== "No Accounting Integration"
     ) {
       postedStatus = "Unposted";
     } else {
@@ -350,6 +463,9 @@ class StockAdjuster {
       organization_id: organizationId,
       posted_status: postedStatus,
       reference_documents: allData.reference_documents,
+
+      is_production_order: allData.is_production_order,
+      production_order_id: allData.production_order_id,
     };
 
     const page_status = allData.page_status ? allData.page_status : null;
@@ -623,7 +739,8 @@ class StockAdjuster {
               balance,
               allData,
               item,
-              organizationId
+              organizationId,
+              balancesToProcess
             );
 
             updates.push({
@@ -671,7 +788,8 @@ class StockAdjuster {
             { sm_quantity: item.received_quantity },
             allData,
             item,
-            organizationId
+            organizationId,
+            balancesToProcess
           );
 
           updates.push({
@@ -1013,12 +1131,19 @@ class StockAdjuster {
           organization_id: organizationId,
         };
 
-    const categoryField =
+    let categoryField =
       movementType === "Location Transfer"
         ? this.categoryMap[balance.category || "Unrestricted"]
         : movementType === "Miscellaneous Receipt"
         ? this.categoryMap[subformData.category || "Unrestricted"]
         : this.categoryMap[balance.category || "Unrestricted"];
+
+    if (
+      movementType === "Location Transfer" &&
+      allData.is_production_order === 1
+    ) {
+      categoryField = this.categoryMap["Reserved"];
+    }
 
     updateData.balance_quantity =
       (updateData.balance_quantity || 0) + qtyChangeValue;
@@ -1686,6 +1811,7 @@ class StockAdjuster {
     switch (movementType) {
       case "Location Transfer":
         let productionOrderNo = null;
+        let category = null;
         if (allData.is_production_order === 1) {
           const productionOrder = await this.db
             .collection("production_order")
@@ -1695,6 +1821,7 @@ class StockAdjuster {
             .get();
           productionOrderNo =
             productionOrder.data[0]?.production_order_no || null;
+          category = "Reserved";
           console.log("Production Order No:", productionOrderNo);
         }
         const outMovement = {
@@ -1709,7 +1836,7 @@ class StockAdjuster {
           movement: "IN",
           bin_location_id: subformData.location_id,
           parent_trx_no: productionOrderNo,
-          inventory_category: balance.category || "Unrestricted",
+          inventory_category: category || balance.category,
         };
         const [outResult, inResult] = await Promise.all([
           this.db.collection("inventory_movement").add(outMovement),
@@ -1771,6 +1898,125 @@ class StockAdjuster {
           bin_location_id: binLocationId,
         };
         return await this.db.collection("inventory_movement").add(movementData);
+    }
+  }
+
+  async updateOnReservedTable(allData, subformData, productionOrderData) {
+    try {
+      for (const [index, item] of subformData.entries()) {
+        if (!item.item_selection || item.item_selection === "") {
+          console.log(
+            `Skipping item ${item.item_selection} due to no item_selection`
+          );
+          return;
+        }
+
+        //get material data
+        const resItem = await this.db
+          .collection("Item")
+          .doc(item.item_selection)
+          .get();
+
+        if (!resItem || resItem.data.length === 0) return;
+
+        const materialData = resItem.data[0];
+
+        // process item without batch
+        if (
+          !materialData.item_batch_management ||
+          materialData.item_batch_management === 0
+        ) {
+          this.db.collection("on_reserved_gd").add({
+            doc_type: "Location Transfer",
+            parent_no: productionOrderData.production_order_no,
+            doc_no: allData.stock_movement_no,
+            material_id: item.item_selection,
+            item_name: materialData.material_name,
+            item_desc: materialData.material_desc || "",
+            batch_id: null,
+            bin_location: item.location_id,
+            item_uom: item.quantity_uom,
+            line_no: index + 1,
+            reserved_qty: item.total_quantity,
+            delivered_qty: 0,
+            open_qty: item.total_quantity,
+            reserved_date: new Date()
+              .toISOString()
+              .slice(0, 19)
+              .replace("T", " "),
+            plant_id: allData.issuing_operation_faci,
+            organization_id: allData.organization_id,
+            created_by: this.getVarGlobal("nickname"),
+            created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+          });
+        } else {
+          let tempDataParsed;
+          try {
+            const tempData = item.temp_qty_data;
+            if (!tempData) {
+              console.warn(
+                `No temp_qty_data found for item ${item.item_selection}`
+              );
+              tempDataParsed = [];
+            } else {
+              tempDataParsed = JSON.parse(tempData);
+              tempDataParsed = tempDataParsed.filter(
+                (tempData) => tempData.sm_quantity > 0
+              );
+            }
+          } catch (parseError) {
+            console.error(
+              `Error parsing temp_qty_data for item ${item.item_selection}:`,
+              parseError
+            );
+            tempDataParsed = [];
+          }
+
+          console.log("tempDataParsed", tempDataParsed);
+
+          let balancesToProcess =
+            allData.balance_index?.filter(
+              (balance) =>
+                balance.sm_quantity &&
+                balance.sm_quantity > 0 &&
+                tempDataParsed.some(
+                  (tempData) =>
+                    tempData.material_id === balance.material_id &&
+                    tempData.balance_id === balance.balance_id
+                )
+            ) || [];
+          for (const balance of balancesToProcess) {
+            this.db.collection("on_reserved_gd").add({
+              doc_type: "Location Transfer",
+              parent_no: productionOrderData.production_order_no,
+              doc_no: allData.stock_movement_no,
+              material_id: balance.material_id,
+              item_name: materialData.material_name,
+              item_desc: materialData.material_desc || "",
+              batch_id: balance.batch_id || null,
+              bin_location: item.location_id,
+              item_uom: item.quantity_uom,
+              line_no: index + 1,
+              reserved_qty: balance.sm_quantity,
+              delivered_qty: 0,
+              open_qty: balance.sm_quantity,
+              reserved_date: new Date()
+                .toISOString()
+                .slice(0, 19)
+                .replace("T", " "),
+              plant_id: allData.issuing_operation_faci,
+              organization_id: allData.organization_id,
+              created_by: this.getVarGlobal("nickname"),
+              created_at: new Date()
+                .toISOString()
+                .slice(0, 19)
+                .replace("T", " "),
+            });
+          }
+        }
+      }
+    } catch (error) {
+      throw error;
     }
   }
 
@@ -1877,10 +2123,11 @@ class StockAdjuster {
           // Create a unique key for each combination
           const materialId = balance.material_id || "";
           const locationId = balance.location_id || "";
+          const batchId = balance.batch_id || "";
           const category = balance.category || "Unrestricted";
 
           // Use a more reliable key format
-          const key = `${materialId}|${locationId}|${category}`;
+          const key = `${materialId}|${locationId}|${category}|${batchId}`;
           const requestedQty =
             balance.quantity_converted || balance.sm_quantity || 0;
 
@@ -1912,7 +2159,7 @@ class StockAdjuster {
             `🔍 Checking aggregated quantity for key: ${key}, total requested: ${totalRequestedQty}`
           );
 
-          const [materialId, locationId, category] = key.split("|");
+          const [materialId, locationId, category, batchId] = key.split("|");
 
           // Get material data
           const materialResponse = await this.db
@@ -1944,6 +2191,9 @@ class StockAdjuster {
             .where({
               material_id: materialId,
               location_id: locationId,
+              ...(collectionName === "item_batch_balance"
+                ? { batch_id: batchId || null }
+                : {}),
             })
             .get();
 
@@ -2076,6 +2326,7 @@ async function processFormData(db, formData, context, organizationId) {
 
   if (context) {
     adjuster.getParamsVariables = context.getParamsVariables.bind(context);
+    adjuster.getVarGlobal = context.getVarGlobal.bind(context);
     //adjuster.getParamsVariables = this.getParamsVariables('page_status');
     adjuster.parentGenerateForm = context.parentGenerateForm;
     adjuster.runWorkflow = context.runWorkflow.bind(context); // Bind the original context
