@@ -20,7 +20,7 @@ const createStockMovement = async (stockMovementData, organizationId, db) => {
       movement_type: "Location Transfer",
       stock_movement_no: "",
       movement_reason: "Bin Location Transfer",
-      stock_movement_status: "Draft",
+      stock_movement_status: "Created",
       issued_by: issued_by || "",
       issue_date: stockMovementData.created_at || new Date(),
       issuing_operation_faci: stockMovementData.plant_id,
@@ -33,32 +33,29 @@ const createStockMovement = async (stockMovementData, organizationId, db) => {
       update_time: new Date(),
     };
 
-    // Generate unique stock movement number
-    const prefixEntryQuery = await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Stock Movement",
-        movement_type: "Location Transfer",
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .get();
-    if (!prefixEntryQuery.data || prefixEntryQuery.data.length === 0) {
-      throw new Error("No prefix configuration found for Stock Movement");
+    const prefixData = await getPrefixData(
+      organizationId,
+      "Stock Movement",
+      "Location Transfer"
+    );
+
+    if (prefixData !== null) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData,
+        organizationId,
+        "Stock Movement",
+        "Location Transfer"
+      );
+
+      await updatePrefix(
+        organizationId,
+        runningNumber,
+        "Stock Movement",
+        "Location Transfer"
+      );
+
+      stockMovement.stock_movement_no = prefixToShow;
     }
-
-    const prefixData = prefixEntryQuery.data[0];
-    const currDraftNum =
-      prefixData.draft_number != null && prefixData.draft_number !== undefined
-        ? parseInt(prefixData.draft_number) + 1
-        : 1; // or some default value like 0
-    const newPrefix = `DRAFT-${prefixData?.prefix_value}-${currDraftNum}`;
-    stockMovement.stock_movement_no = newPrefix;
-
-    await db
-      .collection("prefix_configuration")
-      .doc(prefixData.id)
-      .update({ draft_number: currDraftNum });
 
     // Add stock movement to database
     await db.collection("stock_movement").add(stockMovement);
@@ -184,91 +181,6 @@ const validateField = (value) => {
   return !value;
 };
 
-const updatePrefix = async (organizationId, runningNumber) => {
-  try {
-    await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Production Order",
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .update({
-        running_number: parseInt(runningNumber) + 1,
-        has_record: 1,
-      });
-    console.log("Prefix update successful");
-  } catch (error) {
-    console.error("Error updating prefix:", error);
-    throw error;
-  }
-};
-
-const generatePrefix = (runNumber, now, prefixData) => {
-  console.log("Generating prefix with running number:", runNumber);
-  try {
-    let generated = prefixData.current_prefix_config;
-    generated = generated.replace("prefix", prefixData.prefix_value);
-    generated = generated.replace("suffix", prefixData.suffix_value);
-    generated = generated.replace(
-      "month",
-      String(now.getMonth() + 1).padStart(2, "0")
-    );
-    generated = generated.replace(
-      "day",
-      String(now.getDate()).padStart(2, "0")
-    );
-    generated = generated.replace("year", now.getFullYear());
-    generated = generated.replace(
-      "running_number",
-      String(runNumber).padStart(prefixData.padding_zeroes, "0")
-    );
-    console.log("Generated prefix:", generated);
-    return generated;
-  } catch (error) {
-    console.error("Error generating prefix:", error);
-    throw error;
-  }
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("production_order")
-    .where({
-      production_order_no: generatedPrefix,
-      organization_id: organizationId,
-    })
-    .get();
-
-  return !existingDoc.data || existingDoc.data.length === 0;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number || 1;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Production Order number after maximum attempts"
-    );
-  }
-
-  return { prefixToShow, runningNumber };
-};
-
 const updateItemTransactionDate = async (entry) => {
   try {
     const tableBOM = entry.table_bom;
@@ -298,6 +210,130 @@ const updateItemTransactionDate = async (entry) => {
   } catch (error) {
     throw new Error(error);
   }
+};
+
+const getPrefixData = async (organizationId, documentTypes, movementTypes) => {
+  const prefixEntry = await db
+    .collection("prefix_configuration")
+    .where({
+      document_types: documentTypes,
+      ...(documentTypes === "Stock Movement"
+        ? { movement_type: movementTypes || null }
+        : {}),
+      is_deleted: 0,
+      organization_id: organizationId,
+      is_active: 1,
+    })
+    .get();
+
+  const prefixData = await prefixEntry.data[0];
+
+  return prefixData;
+};
+
+const updatePrefix = async (
+  organizationId,
+  runningNumber,
+  documentTypes,
+  movementTypes
+) => {
+  try {
+    await db
+      .collection("prefix_configuration")
+      .where({
+        document_types: documentTypes,
+        ...(documentTypes === "Stock Movement"
+          ? { movement_type: movementTypes || null }
+          : {}),
+        is_deleted: 0,
+        organization_id: organizationId,
+      })
+      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
+  } catch (error) {
+    this.$message.error(error);
+  }
+};
+
+const generatePrefix = (runNumber, now, prefixData) => {
+  let generated = prefixData.current_prefix_config;
+  generated = generated.replace("prefix", prefixData.prefix_value);
+  generated = generated.replace("suffix", prefixData.suffix_value);
+  generated = generated.replace(
+    "month",
+    String(now.getMonth() + 1).padStart(2, "0")
+  );
+  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
+  generated = generated.replace("year", now.getFullYear());
+  generated = generated.replace(
+    "running_number",
+    String(runNumber).padStart(prefixData.padding_zeroes, "0")
+  );
+  return generated;
+};
+
+const checkUniqueness = async (
+  generatedPrefix,
+  organizationId,
+  documentTypes,
+  movementTypes
+) => {
+  if (documentTypes === "Production Order") {
+    const existingDoc = await db
+      .collection("production_order")
+      .where({
+        production_order_no: generatedPrefix,
+        organization_id: organizationId,
+      })
+      .get();
+
+    return existingDoc.data[0] ? false : true;
+  } else if (documentTypes === "Stock Movement") {
+    const existingDoc = await db
+      .collection("stock_movement")
+      .where({
+        stock_movement_no: generatedPrefix,
+        organization_id: organizationId,
+      })
+      .get();
+
+    return existingDoc.data[0] ? false : true;
+  }
+};
+
+const findUniquePrefix = async (
+  prefixData,
+  organizationId,
+  documentTypes,
+  movementTypes
+) => {
+  const now = new Date();
+  let prefixToShow;
+  let runningNumber = prefixData.running_number;
+  let isUnique = false;
+  let maxAttempts = 10;
+  let attempts = 0;
+
+  while (!isUnique && attempts < maxAttempts) {
+    attempts++;
+    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
+    isUnique = await checkUniqueness(
+      prefixToShow,
+      organizationId,
+      documentTypes,
+      movementTypes
+    );
+    if (!isUnique) {
+      runningNumber++;
+    }
+  }
+
+  if (!isUnique) {
+    this.$message.error(
+      `Could not generate a unique ${documentTypes} number after maximum attempts`
+    );
+  }
+
+  return { prefixToShow, runningNumber };
 };
 
 (async () => {
@@ -335,27 +371,27 @@ const updateItemTransactionDate = async (entry) => {
     if (missingFields.length === 0) {
       if (page_status === "Add" || page_status == undefined) {
         try {
-          const prefixEntry = await db
-            .collection("prefix_configuration")
-            .where({
-              document_types: "Production Order",
-              is_deleted: 0,
-              organization_id: organizationId,
-              is_active: 1,
-            })
-            .get();
-          if (!prefixEntry.data || prefixEntry.data.length === 0) {
-            console.log("No prefix configuration found");
-            return null;
-          } else {
-            const prefixData = prefixEntry.data[0];
+          const prefixData = await getPrefixData(
+            organizationId,
+            "Production Order",
+            ""
+          );
 
+          if (prefixData !== null) {
             const { prefixToShow, runningNumber } = await findUniquePrefix(
               prefixData,
-              organizationId
+              organizationId,
+              "Production Order",
+              ""
             );
 
-            await updatePrefix(organizationId, runningNumber);
+            await updatePrefix(
+              organizationId,
+              runningNumber,
+              "Production Order",
+              ""
+            );
+
             allData.production_order_no = prefixToShow;
           }
 
@@ -395,28 +431,27 @@ const updateItemTransactionDate = async (entry) => {
       } else if (page_status === "Edit") {
         try {
           const entry = createEntry(allData);
-          const prefixQuery = await db
-            .collection("prefix_configuration")
-            .where({
-              document_types: "Production Order",
-              is_deleted: 0,
-              organization_id: organizationId,
-              is_active: 1,
-            })
-            .get();
+          const prefixData = await getPrefixData(
+            organizationId,
+            "Production Order",
+            ""
+          );
 
-          if (!prefixQuery.data || prefixQuery.data.length === 0) {
-            console.log("No prefix configuration found");
-            return null;
-          } else {
-            const prefixData = prefixQuery.data[0];
-
+          if (prefixData !== null) {
             const { prefixToShow, runningNumber } = await findUniquePrefix(
               prefixData,
-              organizationId
+              organizationId,
+              "Production Order",
+              ""
             );
 
-            await updatePrefix(organizationId, runningNumber);
+            await updatePrefix(
+              organizationId,
+              runningNumber,
+              "Production Order",
+              ""
+            );
+
             entry.production_order_no = prefixToShow;
           }
 

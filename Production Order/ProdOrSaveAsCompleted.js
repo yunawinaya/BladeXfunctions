@@ -46,7 +46,7 @@ const createStockMovement = async (
         }
 
         const matItemQuery = await db
-          .collection("item")
+          .collection("Item")
           .where({ id: item.material_id, is_deleted: 0 })
           .get();
         if (!matItemQuery.data || matItemQuery.data.length === 0) {
@@ -101,35 +101,91 @@ const createStockMovement = async (
       })
     );
 
-    const stockMovementItems = itemsArray.map((item) => {
+    const stockMovementItems = itemsArray.map(async (item, index) => {
       if (!item.material_id) {
         throw new Error(
           `Material ID is missing in item for stock movement (${movementTypeCode})`
         );
       }
+
+      const itemQuery = await db
+        .collection("Item")
+        .where({ id: item.material_id, is_deleted: 0 })
+        .get();
+      if (!itemQuery.data || itemQuery.data.length === 0) {
+        throw new Error(`Item not found for material_id: ${item.material_id}`);
+      }
+
+      const itemData = itemQuery.data[0];
+      let stockSummary = "";
+
+      if (movementTypeCode === "Good Issue") {
+        const resUOM = await db
+          .collection("unit_of_measurement")
+          .where({ id: itemData.based_uom })
+          .get();
+        const uomName = resUOM?.data[0] ? resUOM.data[0].uom_name : "";
+
+        const resBinLocation = await db
+          .collection("bin_location")
+          .where({ id: item.bin_location_id })
+          .get();
+        const binLocationName = resBinLocation?.data[0]
+          ? resBinLocation.data[0].bin_location_combine
+          : "";
+
+        const batchId = item.batch_id;
+
+        let batchNumber = "";
+        if (batchId) {
+          const resBatch = await db
+            .collection("batch")
+            .where({ id: batchId })
+            .get();
+          batchNumber = resBatch?.data[0]
+            ? `\n[${resBatch.data[0].batch_number}]`
+            : "";
+        }
+
+        stockSummary = `Total: ${item.material_actual_qty} ${uomName}\n\nDETAILS:\n1. ${binLocationName}: ${item.material_actual_qty} ${uomName}${batchNumber}`;
+      }
+
       return {
         item_selection: item.material_id,
+        item_name: item.material_name,
+        item_desc: item.material_desc,
         requested_qty:
           item.yield_qty || item.quantity || item.material_actual_qty,
         received_quantity: item.yield_qty || 0,
         received_quantity_uom: allData.planned_qty_uom || "",
+        quantity_uom: itemData.based_uom || "",
         total_quantity:
           item.yield_qty || item.quantity || item.material_actual_qty,
         location_id: item.target_bin_location || item.bin_location_id,
         category: item.category || null,
+        unit_price: itemData.purchase_unit_price || 0,
+        amount: itemData.purchase_unit_price * allData.planned_qty,
+        batch_id:
+          movementTypeCode === MOVEMENT_TYPES.PRODUCTION_RECEIPT &&
+          itemData.item_batch_management === 1
+            ? item.batch_id || null
+            : null,
+        stock_summary: stockSummary || "",
       };
     });
+
+    const resolvedStockMovementItems = await Promise.all(stockMovementItems);
 
     const stockMovement = {
       movement_type: movementTypeCode,
       stock_movement_no: "",
+      posted_status: "Unposted",
       movement_reason: movementReasonName,
       stock_movement_status: "Completed",
       issued_by: stockMovementData.issued_by || currentUser,
       issue_date: stockMovementData.created_at || new Date(),
-      tenant_id: stockMovementData.tenant_id || "000000",
       issuing_operation_faci: stockMovementData.plant_id || "000000",
-      stock_movement: stockMovementItems,
+      stock_movement: resolvedStockMovementItems,
       balance_index: balanceIndexData || [],
       is_production_order: 1,
       production_order_id: stockMovementData.id,
@@ -138,12 +194,6 @@ const createStockMovement = async (
       create_time: new Date(),
       update_time: new Date(),
     };
-
-    const movementReasonQuery = await db
-      .collection("stock_movement_reason")
-      .where({ sm_reason_name: movementReasonName })
-      .get();
-    // stockMovement.movement_reason = movementReasonQuery.data && movementReasonQuery.data.length > 0 ? movementReasonQuery.data[0].id : "";
 
     const prefixEntryQuery = await db
       .collection("prefix_configuration")
@@ -185,10 +235,13 @@ const createStockMovement = async (
       return generated;
     };
 
-    const checkUniqueness = async (generatedPrefix) => {
+    const checkUniqueness = async (generatedPrefix, organizationId) => {
       const existingDoc = await db
         .collection("stock_movement")
-        .where({ stock_movement_no: generatedPrefix })
+        .where({
+          stock_movement_no: generatedPrefix,
+          organization_id: organizationId,
+        })
         .get();
       return !existingDoc.data || existingDoc.data.length === 0;
     };
@@ -197,7 +250,7 @@ const createStockMovement = async (
     while (!isUnique && attempts < maxAttempts) {
       attempts++;
       prefixToShow = generatePrefix(runningNumber);
-      isUnique = await checkUniqueness(prefixToShow);
+      isUnique = await checkUniqueness(prefixToShow, organizationId);
       if (!isUnique) runningNumber++;
     }
 
@@ -214,9 +267,7 @@ const createStockMovement = async (
     await db
       .collection("prefix_configuration")
       .doc(prefixData.id)
-      .update({ running_number: runningNumber + 1 });
-
-    self.setData({ stock_movement_no: prefixToShow });
+      .update({ running_number: runningNumber + 1, has_record: 1 });
 
     return { success: true, stock_movement_no: prefixToShow };
   } catch (error) {
@@ -240,6 +291,7 @@ const closeDialog = () => {
     if (self.parentGenerateForm) {
       self.parentGenerateForm.$refs.SuPageDialogRef.hide();
       self.parentGenerateForm.refresh();
+      this.hideLoading();
       console.log("Dialog closed and parent form refreshed");
     }
   } catch (error) {
@@ -254,6 +306,8 @@ const createEntry = (data) => ({
   plant_id: data.plant_id,
   plan_type: data.plan_type,
   material_id: data.material_id,
+  material_name: data.material_name,
+  material_desc: data.material_desc,
   priority: data.priority,
   planned_qty: data.planned_qty,
   planned_qty_uom: data.planned_qty_uom,
@@ -287,7 +341,6 @@ const validateData = (data) => {
 
   // Required field validation
   const requiredFields = {
-    production_order_name: "Production order name",
     plant_id: "Plant",
     material_id: "Material",
     target_bin_location: "Target bin location",
@@ -324,11 +377,6 @@ const validateData = (data) => {
           `Material ID is missing in confirmation entry ${index + 1}`
         );
       }
-      if (!mat.material_actual_qty) {
-        errors.push(
-          `Material quantity is missing in confirmation entry ${index + 1}`
-        );
-      }
       if (mat.material_actual_qty < 0) {
         errors.push(
           `Material quantity cannot be negative in confirmation entry ${
@@ -340,6 +388,8 @@ const validateData = (data) => {
   }
 
   if (errors.length > 0) {
+    this.$message.error(errors.join(", "));
+    this.hideLoading();
     throw new Error("Validation failed: " + errors.join(", "));
   }
 
@@ -365,7 +415,7 @@ const preCheckMaterialQuantities = async (data) => {
       );
 
       const matItemQuery = await db
-        .collection("item")
+        .collection("Item")
         .where({ id: mat.material_id, is_deleted: 0 })
         .get();
       if (!matItemQuery.data || matItemQuery.data.length === 0) {
@@ -390,7 +440,7 @@ const preCheckMaterialQuantities = async (data) => {
       let totalAvailable = 0;
       if (balanceQuery.data && balanceQuery.data.length > 0) {
         balanceQuery.data.forEach((balance) => {
-          totalAvailable += balance.unrestricted_qty || 0;
+          totalAvailable += balance.reserved_qty || 0;
         });
       }
 
@@ -535,6 +585,9 @@ const calculateCostingAndUpdateTables = async (
       totalPrice = totalCost;
       unitPrice = Math.round(unitPrice * 10000) / 10000;
       totalPrice = Math.round(totalPrice * 10000) / 10000;
+    } else if (materialData.material_costing_method === "Fixed Cost") {
+      unitPrice = materialData.purchase_unit_price;
+      totalPrice = unitPrice * mat.material_actual_qty;
     }
 
     const movement = {
@@ -542,17 +595,14 @@ const calculateCostingAndUpdateTables = async (
       trx_no: trxNo,
       parent_trx_no: parentTrxNo,
       movement:
-        transactionType === "PRO" && materialData.id === allData.material_id
+        transactionType === "SM" && materialData.id === allData.material_id
           ? "IN"
           : "OUT",
       unit_price: unitPrice,
       total_price: totalPrice,
       quantity: mat.material_actual_qty || 0,
       item_id: materialData.id,
-      inventory_category:
-        transactionType === "PRO" && materialData.id === allData.material_id
-          ? allData.category
-          : "Unrestricted",
+      inventory_category: "Reserved",
       uom_id: materialData.based_uom,
       base_qty: mat.material_actual_qty || 0,
       base_uom_id: materialData.based_uom,
@@ -590,7 +640,7 @@ const updateOutputCosting = async (data, unitPrice, db) => {
   try {
     const roundedUnitPrice = Math.round(unitPrice * 10000) / 10000;
     const itemQuery = await db
-      .collection("item")
+      .collection("Item")
       .where({ id: data.material_id, is_deleted: 0 })
       .get();
     if (!itemQuery.data || itemQuery.data.length === 0) {
@@ -755,8 +805,8 @@ const updateOutputCosting = async (data, unitPrice, db) => {
 const createBalanceIndexForStockMovement = (materials) => {
   return materials.map((mat) => ({
     material_id: mat.material_id,
-    material_actual_qty: mat.material_actual_qty,
-    bin_location_id: mat.bin_location_id,
+    sm_quantity: mat.material_actual_qty,
+    location_id: mat.bin_location_id,
     batch_id: mat.batch_id || null,
   }));
 };
@@ -780,7 +830,7 @@ const handleInventoryBalanceAndMovement = async (
       );
 
       const matItemQuery = await db
-        .collection("item")
+        .collection("Item")
         .where({ id: mat.material_id, is_deleted: 0 })
         .get();
       if (!matItemQuery.data || matItemQuery.data.length === 0) {
@@ -827,7 +877,7 @@ const handleInventoryBalanceAndMovement = async (
           }
 
           const matBalance = matBalanceQuery.data[0];
-          const availableQty = matBalance.unrestricted_qty || 0;
+          const availableQty = matBalance.reserved_qty || 0;
           const qtyToDeduct = Math.min(
             availableQty,
             remainingQty,
@@ -852,16 +902,30 @@ const handleInventoryBalanceAndMovement = async (
               matBalance,
               data.plant_id,
               db,
-              "PRO",
-              productionOrderNo,
-              stockMovementGINo
+              "SM",
+              stockMovementGINo,
+              productionOrderNo
             );
 
           totalInputCost += totalPrice;
 
           const updatedMatQuantities = {
-            balance_quantity: (matBalance.balance_quantity || 0) - qtyToDeduct,
-            unrestricted_qty: (matBalance.unrestricted_qty || 0) - qtyToDeduct,
+            balance_quantity: parseFloat(
+              (
+                (matBalance.balance_quantity || 0) - mat.material_actual_qty
+              ).toFixed(3)
+            ),
+            reserved_qty: parseFloat(
+              (
+                (matBalance.reserved_qty || 0) - mat.material_required_qty
+              ).toFixed(3)
+            ),
+            unrestricted_qty: parseFloat(
+              (
+                (matBalance.unrestricted_qty || 0) +
+                (mat.material_required_qty - mat.material_actual_qty)
+              ).toFixed(3)
+            ),
             update_time: new Date().toISOString(),
           };
 
@@ -870,7 +934,7 @@ const handleInventoryBalanceAndMovement = async (
             .doc(matBalance.id)
             .update(updatedMatQuantities);
           console.log(
-            `Balance record updated for ID: ${matBalance.id}, batch_id: ${batch.batch_id}, deducted: ${qtyToDeduct}`
+            `Balance record updated for ID: ${matBalance.id}, batch_id: ${batch.batch_id}, deducted: ${mat.material_actual_qty}`
           );
 
           remainingQty -= qtyToDeduct;
@@ -885,7 +949,6 @@ const handleInventoryBalanceAndMovement = async (
               material_id: mat.material_id,
               plant_id: data.plant_id,
               location_id: mat.bin_location_id,
-              unrestricted_qty: db.greaterThan(0),
             })
             .get();
 
@@ -905,13 +968,13 @@ const handleInventoryBalanceAndMovement = async (
           for (const matBalance of additionalBatches) {
             if (remainingQty <= 0) break;
 
-            const availableQty = matBalance.unrestricted_qty || 0;
+            const availableQty = matBalance.reserved_qty || 0;
             const qtyToDeduct = Math.min(availableQty, remainingQty);
             if (qtyToDeduct <= 0) continue;
 
             if (availableQty < qtyToDeduct) {
               throw new Error(
-                `Insufficient stock for material_id: ${mat.material_id}, batch_id: ${matBalance.batch_id}, required: ${qtyToDeduct}, available: ${availableQty}`
+                `Insufficient stock for material_id: ${mat.material_id}, batch_id: ${matBalance.batch_id}, required: ${mat.material_actual_qty}, available: ${availableQty}`
               );
             }
 
@@ -926,18 +989,30 @@ const handleInventoryBalanceAndMovement = async (
                 matBalance,
                 data.plant_id,
                 db,
-                "PRO",
-                productionOrderNo,
-                stockMovementGINo
+                "SM",
+                stockMovementGINo,
+                productionOrderNo
               );
 
             totalInputCost += totalPrice;
 
             const updatedMatQuantities = {
-              balance_quantity:
-                (matBalance.balance_quantity || 0) - qtyToDeduct,
-              unrestricted_qty:
-                (matBalance.unrestricted_qty || 0) - qtyToDeduct,
+              balance_quantity: parseFloat(
+                (
+                  (matBalance.balance_quantity || 0) - mat.material_actual_qty
+                ).toFixed(3)
+              ),
+              reserved_qty: parseFloat(
+                (
+                  (matBalance.reserved_qty || 0) - mat.material_required_qty
+                ).toFixed(3)
+              ),
+              unrestricted_qty: parseFloat(
+                (
+                  (matBalance.unrestricted_qty || 0) +
+                  (mat.material_required_qty - mat.material_actual_qty)
+                ).toFixed(3)
+              ),
               update_time: new Date().toISOString(),
             };
 
@@ -958,6 +1033,29 @@ const handleInventoryBalanceAndMovement = async (
             );
           }
         }
+
+        const resOnReserve = await db
+          .collection("on_reserved_gd")
+          .where({
+            parent_no: productionOrderNo,
+            organization_id: data.organization_id,
+            is_deleted: 0,
+            material_id: mat.material_id,
+            batch_id: mat.batch_id,
+            bin_location: mat.bin_location_id,
+          })
+          .get();
+
+        if (!resOnReserve || resOnReserve.data.length === 0)
+          throw new Error("Error fetching on reserve table.");
+
+        const onReserveData = resOnReserve.data[0];
+
+        await db.collection("on_reserved_gd").doc(onReserveData.id).update({
+          delivered_qty: mat.material_required_qty,
+          open_qty: 0,
+          doc_no: stockMovementGINo,
+        });
       } else {
         const matBalanceQuery = await db
           .collection(matCollectionName)
@@ -974,7 +1072,7 @@ const handleInventoryBalanceAndMovement = async (
         }
 
         const matBalance = matBalanceQuery.data[0];
-        if (matBalance.unrestricted_qty < mat.material_actual_qty) {
+        if (matBalance.reserved_qty < mat.material_actual_qty) {
           throw new Error(
             `Insufficient stock for material_id: ${mat.material_id}`
           );
@@ -986,18 +1084,31 @@ const handleInventoryBalanceAndMovement = async (
           matBalance,
           data.plant_id,
           db,
-          "PRO",
-          productionOrderNo,
-          stockMovementGINo
+          "SM",
+          stockMovementGINo,
+          productionOrderNo
         );
 
         totalInputCost += totalPrice;
 
         const updatedMatQuantities = {
-          balance_quantity:
-            (matBalance.balance_quantity || 0) - (mat.material_actual_qty || 0),
-          unrestricted_qty:
-            (matBalance.unrestricted_qty || 0) - (mat.material_actual_qty || 0),
+          balance_quantity: parseFloat(
+            (
+              (matBalance.balance_quantity || 0) -
+              (mat.material_actual_qty || 0)
+            ).toFixed(3)
+          ),
+          reserved_qty: parseFloat(
+            (
+              (matBalance.reserved_qty || 0) - (mat.material_required_qty || 0)
+            ).toFixed(3)
+          ),
+          unrestricted_qty: parseFloat(
+            (
+              (matBalance.unrestricted_qty || 0) +
+              (mat.material_required_qty - mat.material_actual_qty)
+            ).toFixed(3)
+          ),
           update_time: new Date().toISOString(),
         };
 
@@ -1006,12 +1117,34 @@ const handleInventoryBalanceAndMovement = async (
           .doc(matBalance.id)
           .update(updatedMatQuantities);
         console.log(`Balance record updated for ID: ${matBalance.id}`);
+
+        const resOnReserve = await db
+          .collection("on_reserved_gd")
+          .where({
+            parent_no: productionOrderNo,
+            organization_id: data.organization_id,
+            is_deleted: 0,
+            material_id: mat.material_id,
+            bin_location: mat.bin_location_id,
+          })
+          .get();
+
+        if (!resOnReserve || resOnReserve.data.length === 0)
+          throw new Error("Error fetching on reserve table.");
+
+        const onReserveData = resOnReserve.data[0];
+
+        await db.collection("on_reserved_gd").doc(onReserveData.id).update({
+          delivered_qty: mat.material_required_qty,
+          open_qty: 0,
+          doc_no: stockMovementGINo,
+        });
       }
     }
 
     // Process produced item
     const itemQuery = await db
-      .collection("item")
+      .collection("Item")
       .where({ id: data.material_id, is_deleted: 0 })
       .get();
     if (!itemQuery.data || itemQuery.data.length === 0) {
@@ -1026,17 +1159,24 @@ const handleInventoryBalanceAndMovement = async (
 
     if (item_batch_management === 1) {
       const batchData = {
-        batch_number: data.batch_id || `BATCH-${productionOrderNo}`,
+        batch_number: data.batch_id || "",
         material_id: data.material_id,
         initial_quantity: data.yield_qty,
         plant_id: data.plant_id,
-        transaction_no: productionOrderNo,
+        parent_transaction_no: productionOrderNo,
+        transaction_no: stockMovementNo,
         organization_id: organizationId,
         created_at: new Date(),
         create_user: data.create_user || currentUser,
       };
-      const batchResult = await db.collection("batch").add(batchData);
-      producedBatchId = batchResult.id;
+      await db.collection("batch").add(batchData);
+      const resBatch = await db
+        .collection("batch")
+        .where({ batch_number: producedBatchId })
+        .get();
+      if (resBatch && resBatch.data.length > 0) {
+        producedBatchId = await resBatch.data[0].id;
+      }
       console.log(`Created new batch record with ID: ${producedBatchId}`);
     }
 
@@ -1108,9 +1248,9 @@ const handleInventoryBalanceAndMovement = async (
     const roundedOutputUnitPrice = Math.round(outputUnitPrice * 10000) / 10000;
 
     const inMovement = {
-      transaction_type: "PRO",
-      trx_no: productionOrderNo,
-      parent_trx_no: stockMovementNo,
+      transaction_type: "SM",
+      trx_no: stockMovementNo,
+      parent_trx_no: productionOrderNo,
       movement: "IN",
       unit_price: roundedOutputUnitPrice,
       total_price:
@@ -1139,6 +1279,26 @@ const handleInventoryBalanceAndMovement = async (
     console.log(
       `Inventory movement record created for produced item with ID: ${movementResult.id}`
     );
+
+    const resSM = await db
+      .collection("stock_movement")
+      .where({
+        stock_movement_no: stockMovementNo,
+        organization_id: organizationId,
+        is_deleted: 0,
+      })
+      .get();
+
+    if (!resSM || resSM.data.length > 0) {
+      const smData = resSM.data[0];
+      await db
+        .collection("stock_movement_d2c7o1jd_sub")
+        .where({
+          stock_movement_id: smData.id,
+          is_deleted: 0,
+        })
+        .update({ unit_price: roundedOutputUnitPrice });
+    }
 
     await updateOutputCosting(
       { ...data, batch_id: producedBatchId },
@@ -1177,12 +1337,348 @@ const checkExistingStockMovements = async (productionOrderId, db) => {
   return null;
 };
 
+const generateBatchNumber = async (batch_id, organizationId) => {
+  try {
+    if (batch_id === "Auto-generated batch number") {
+      const resBatchConfig = await db
+        .collection("batch_level_config")
+        .where({ organization_id: organizationId })
+        .get();
+
+      if (resBatchConfig && resBatchConfig.data.length > 0) {
+        const batchConfigData = resBatchConfig.data[0];
+
+        let batchPrefix = batchConfigData.batch_prefix || "";
+        if (batchPrefix) batchPrefix += "-";
+
+        const generatedBatchNo =
+          batchPrefix +
+          String(batchConfigData.batch_running_number).padStart(10, "0");
+
+        await db
+          .collection("batch_level_config")
+          .where({ id: batchConfigData.id })
+          .update({
+            batch_running_number: batchConfigData.batch_running_number + 1,
+          });
+
+        return generatedBatchNo;
+      }
+    } else {
+      return batch_id;
+    }
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
+const updateItemTransactionDate = async (entry) => {
+  try {
+    const tableBOM = entry.table_bom;
+
+    const uniqueItemIds = [
+      ...new Set(
+        tableBOM
+          .filter((item) => item.material_id)
+          .map((item) => item.material_id)
+      ),
+    ];
+
+    const date = new Date().toISOString();
+    for (const [index, item] of uniqueItemIds.entries()) {
+      try {
+        await db
+          .collection("Item")
+          .doc(item)
+          .update({ last_transaction_date: date });
+      } catch (error) {
+        throw new Error(
+          `Cannot update last transaction date for item #${index + 1}.`
+        );
+      }
+    }
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
+const createICTPStockMovement = async (allData, productionOrderNo) => {
+  try {
+    const unusedQuantity = allData.table_mat_confirmation.filter(
+      (item) => item.material_required_qty - item.material_actual_qty > 0
+    );
+
+    // generate ICTP prefix
+    const generateICTPPrefix = async () => {
+      const prefixEntryQuery = await db
+        .collection("prefix_configuration")
+        .where({
+          document_types: "Stock Movement",
+          movement_type: "Inventory Category Transfer Posting",
+          is_deleted: 0,
+          organization_id: organizationId,
+        })
+        .get();
+      if (!prefixEntryQuery.data || prefixEntryQuery.data.length === 0) {
+        throw new Error("No prefix configuration found for Stock Movement");
+      }
+
+      const prefixData = prefixEntryQuery.data[0];
+      const now = new Date();
+      let runningNumber = parseInt(prefixData.running_number);
+      let isUnique = false;
+      let maxAttempts = 10;
+      let attempts = 0;
+
+      const generatePrefix = (runNumber) => {
+        let generated = prefixData.current_prefix_config;
+        generated = generated.replace("prefix", prefixData.prefix_value);
+        generated = generated.replace("suffix", prefixData.suffix_value);
+        generated = generated.replace(
+          "month",
+          String(now.getMonth() + 1).padStart(2, "0")
+        );
+        generated = generated.replace(
+          "day",
+          String(now.getDate()).padStart(2, "0")
+        );
+        generated = generated.replace("year", now.getFullYear());
+        generated = generated.replace(
+          "running_number",
+          String(runNumber).padStart(prefixData.padding_zeroes, "0")
+        );
+        return generated;
+      };
+
+      const checkUniqueness = async (generatedPrefix, organizationId) => {
+        const existingDoc = await db
+          .collection("stock_movement")
+          .where({
+            stock_movement_no: generatedPrefix,
+            organization_id: organizationId,
+          })
+          .get();
+        return !existingDoc.data || existingDoc.data.length === 0;
+      };
+
+      let prefixToShow;
+      while (!isUnique && attempts < maxAttempts) {
+        attempts++;
+        prefixToShow = generatePrefix(runningNumber);
+        isUnique = await checkUniqueness(prefixToShow, organizationId);
+        if (!isUnique) runningNumber++;
+      }
+
+      if (!isUnique) {
+        throw new Error(
+          "Could not generate a unique Stock Movement number after maximum attempts"
+        );
+      }
+
+      await db
+        .collection("prefix_configuration")
+        .doc(prefixData.id)
+        .update({ running_number: runningNumber + 1, has_record: 1 });
+
+      return prefixToShow;
+    };
+
+    const convertUOM = async (materialData, mat) => {
+      let baseQTY = 0;
+      let matQTY = mat.material_required_qty - mat.material_actual_qty;
+
+      if (mat.material_uom === materialData.based_uom) baseQTY = matQTY;
+      else {
+        if (materialData.table_uom_conversion.length > 0) {
+          for (const uom of materialData.table_uom_conversion) {
+            if (mat.material_uom === uom.alt_uom_id) {
+              baseQTY = parseFloat(
+                (parseFloat(matQTY) * uom.base_qty).toFixed(3)
+              );
+            }
+          }
+        } else baseQTY = matQTY;
+      }
+
+      return baseQTY;
+    };
+
+    const createInventoryMovement = async (mat, allData, prefix) => {
+      const resItem = await db.collection("Item").doc(mat.material_id).get();
+
+      if (!resItem || resItem.data.length === 0)
+        throw new Error("Error fetching item data when create ICTP.");
+
+      const materialData = resItem.data[0];
+
+      const baseQTY = await convertUOM(materialData, mat);
+
+      const inventoryMovementOUTData = {
+        transaction_type: "SM",
+        trx_no: prefix,
+        parent_trx_no: productionOrderNo,
+        movement: "OUT",
+        unit_price: 0,
+        total_price: 0,
+        quantity: mat.material_required_qty - mat.material_actual_qty || 0,
+        item_id: mat.material_id,
+        inventory_category: "Reserved",
+        uom_id: mat.material_uom,
+        base_qty: baseQTY || 0,
+        base_uom_id: materialData.based_uom,
+        bin_location_id: mat.bin_location_id,
+        batch_number_id:
+          materialData.item_batch_management === "1"
+            ? mat.batch_id || null
+            : null,
+        costing_method_id: materialData.material_costing_method,
+        created_at: new Date().toISOString(),
+        plant_id: allData.plant_id,
+        organization_id: allData.organization_id,
+        update_time: new Date().toISOString(),
+        is_deleted: 0,
+      };
+
+      const inventoryMovementINData = {
+        transaction_type: "SM",
+        trx_no: prefix,
+        parent_trx_no: productionOrderNo,
+        movement: "IN",
+        unit_price: 0,
+        total_price: 0,
+        quantity: mat.material_required_qty - mat.material_actual_qty || 0,
+        item_id: mat.material_id,
+        inventory_category: "Unrestricted",
+        uom_id: mat.material_uom,
+        base_qty: baseQTY || 0,
+        base_uom_id: materialData.based_uom,
+        bin_location_id: mat.bin_location_id,
+        batch_number_id:
+          materialData.item_batch_management === "1"
+            ? mat.batch_id || null
+            : null,
+        costing_method_id: materialData.material_costing_method,
+        created_at: new Date().toISOString(),
+        plant_id: allData.plant_id,
+        organization_id: allData.organization_id,
+        update_time: new Date().toISOString(),
+        is_deleted: 0,
+      };
+
+      await Promise.all([
+        db.collection("inventory_movement").add(inventoryMovementOUTData),
+        db.collection("inventory_movement").add(inventoryMovementINData),
+      ]);
+
+      const resOnReserve = await db
+        .collection("on_reserved_gd")
+        .where({
+          parent_no: allData.production_order_no,
+          organization_id: allData.organization_id,
+          is_deleted: 0,
+          material_id: mat.material_id,
+          batch_id: mat.batch_id,
+          bin_location: mat.bin_location_id,
+        })
+        .get();
+
+      if (!resOnReserve || resOnReserve.data.length === 0)
+        throw new Error("Error fetching on reserve table.");
+
+      const onReserveData = resOnReserve.data[0];
+
+      await db.collection("on_reserved_gd").doc(onReserveData.id).update({
+        doc_no: prefix,
+      });
+    };
+
+    if (unusedQuantity.length > 0) {
+      const ICTPPrefix = await generateICTPPrefix();
+
+      let stockMovementData = [];
+      for (const mat of unusedQuantity) {
+        let stockSummary = "";
+
+        const resUOM = await db
+          .collection("unit_of_measurement")
+          .where({ id: mat.material_uom })
+          .get();
+        const uomName = resUOM?.data[0] ? resUOM.data[0].uom_name : "";
+
+        const resBinLocation = await db
+          .collection("bin_location")
+          .where({ id: mat.bin_location_id })
+          .get();
+        const binLocationName = resBinLocation?.data[0]
+          ? resBinLocation.data[0].bin_location_combine
+          : "";
+
+        const batchId = mat.batch_id;
+
+        let batchNumber = "";
+        if (batchId) {
+          const resBatch = await db
+            .collection("batch")
+            .where({ id: batchId })
+            .get();
+          batchNumber = resBatch?.data[0]
+            ? `\n[${resBatch.data[0].batch_number}]`
+            : "";
+        }
+
+        stockSummary = `Total: ${
+          mat.material_required_qty - mat.material_actual_qty
+        } ${uomName}\n\nDETAILS:\n1. ${binLocationName}: ${
+          mat.material_required_qty - mat.material_actual_qty
+        } ${uomName} (RES -> UNR)${batchNumber}`;
+
+        const smLineItemData = {
+          item_selection: mat.material_id,
+          item_name: mat.material_name,
+          item_desc: mat.material_desc,
+          quantity_uom: mat.material_uom || "",
+          total_quantity: mat.material_required_qty - mat.material_actual_qty,
+          stock_summary: stockSummary || "",
+        };
+
+        stockMovementData.push(smLineItemData);
+
+        await createInventoryMovement(mat, allData, ICTPPrefix);
+      }
+
+      const ICTPData = {
+        movement_type: "Inventory Category Transfer Posting",
+        stock_movement_no: ICTPPrefix || null,
+        movement_reason: "",
+        stock_movement_status: "Completed",
+        issued_by: this.getVarGlobal("nickname"),
+        issue_date: new Date(),
+        issuing_operation_faci: allData.plant_id,
+        stock_movement: stockMovementData,
+        balance_index: allData.balance_index || [],
+        is_production_order: 1,
+        production_order_id: allData.id,
+        organization_id: allData.organization_id,
+        is_deleted: 0,
+        create_time: new Date(),
+        update_time: new Date(),
+      };
+
+      await db.collection("stock_movement").add(ICTPData);
+    }
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
 // Main execution - Always in Edit mode
 try {
   console.log(
     "Starting Edit operation for production order ID:",
     productionOrderId
   );
+
+  this.showLoading();
 
   if (!productionOrderId) {
     throw new Error("Production order ID is required for edit operation");
@@ -1191,9 +1687,15 @@ try {
   validateData(allData);
   await preCheckMaterialQuantities(allData);
 
+  allData.batch_id = await generateBatchNumber(
+    allData.batch_id,
+    organizationId
+  );
+
   const entry = createEntry(allData);
 
   await db.collection("production_order").doc(productionOrderId).update(entry);
+  await updateItemTransactionDate(entry);
 
   const properBalanceIndex = createBalanceIndexForStockMovement(
     allData.table_mat_confirmation
@@ -1217,9 +1719,12 @@ try {
     self,
     {
       material_id: allData.material_id,
+      material_name: allData.material_name,
+      material_desc: allData.material_desc,
       yield_qty: allData.yield_qty,
       target_bin_location: allData.target_bin_location,
       category: allData.category,
+      batch_id: allData.batch_id,
     },
     MOVEMENT_TYPES.PRODUCTION_RECEIPT,
     "Production Order - Production Receipt"
@@ -1250,8 +1755,63 @@ try {
     giStockMovementNo
   );
 
+  await createICTPStockMovement(allData, entry.production_order_no);
+
+  const soLineItem = entry.table_sales_order;
+  const materialId = entry.material_id;
+
+  if (soLineItem.length > 0) {
+    soLineItem.forEach(async (item) => {
+      try {
+        console.log("soLineItem", soLineItem);
+        const resSO = await db
+          .collection("sales_order")
+          .where({ id: item.sales_order_id })
+          .get();
+
+        if (resSO && resSO.data.length > 0) {
+          const soData = resSO.data[0];
+          const tableSO = soData.table_so;
+
+          for (const soItem of tableSO) {
+            if (soItem.item_name === materialId) {
+              if (
+                !soItem.production_status ||
+                soItem.production_status !== "Completed"
+              ) {
+                soItem.production_qty += item.production_qty;
+
+                if (soItem.production_qty >= soItem.so_quantity) {
+                  soItem.production_status = "Completed";
+                } else if (
+                  soItem.production_qty < soItem.so_quantity &&
+                  soItem.production_qty > 0
+                ) {
+                  soItem.production_status = "Partially";
+                } else {
+                  soItem.production_status = "";
+                }
+
+                break;
+              }
+            }
+          }
+
+          await db
+            .collection("sales_order")
+            .doc(item.sales_order_id)
+            .update({ table_so: tableSO });
+        }
+      } catch (error) {
+        this.$message.error("Cannot update Sales Order");
+        throw error;
+      }
+    });
+  }
+
   closeDialog();
 } catch (error) {
   console.error("Edit operation failed:", error);
+  this.hideLoading();
   throw error;
 }
