@@ -883,6 +883,28 @@ const addInventory = async (
         .collection("goods_receiving")
         .where({ id: grId })
         .update({ putaway_status: "Created" });
+
+      const notificationParam = {
+        title: "New Putaway Assignment",
+        body: `You have been assigned a putaway task for Goods Receiving: ${data.gr_no}. Transfer Order: ${putAwayPrefix}`,
+        userId: data.assigned_to,
+        data: {
+          docId: putAwayPrefix,
+          deepLink: `sudumobileexpo://putaway/batch/${putAwayPrefix}`,
+        },
+      };
+
+      await this.runWorkflow(
+        "1945684747032735745",
+        notificationParam,
+        async (res) => {
+          console.log("Notification sent successfully:", res);
+        },
+        (err) => {
+          this.$message.error("Workflow execution failed");
+          console.error("Workflow execution failed:", err);
+        }
+      );
     } catch (error) {
       throw new Error("Error creating putaway.");
     }

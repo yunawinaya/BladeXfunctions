@@ -1327,6 +1327,19 @@ const findFieldMessage = (obj) => {
   return null;
 };
 
+const sendNotification = async (notificationParam) => {
+  await this.runWorkflow(
+    "1945684747032735745",
+    notificationParam,
+    async (res) => {
+      console.log("Notification sent successfully:", res);
+    }
+  ).catch((err) => {
+    this.$message.error("Workflow execution failed");
+    console.error("Workflow execution failed:", err);
+  });
+};
+
 const createOrUpdatePicking = async (
   gdData,
   gdId,
@@ -1391,7 +1404,7 @@ const createOrUpdatePicking = async (
 
             if (existingTOResponse.data && existingTOResponse.data.length > 0) {
               const existingTO = existingTOResponse.data[0];
-              console.log(`Found existing Transfer Order: ${existingTO.to_no}`);
+              console.log(`Found existing Transfer Order: ${existingTO.to_id}`);
 
               // Prepare updated picking items
               const updatedPickingItems = [];
@@ -1430,6 +1443,7 @@ const createOrUpdatePicking = async (
                 .collection("transfer_order")
                 .doc(existingTO.id)
                 .update({
+                  assigned_to: gdData.assigned_to,
                   table_picking_items: updatedPickingItems,
                   updated_by: this.getVarGlobal("nickname"),
                   updated_at: new Date().toISOString(),
@@ -1437,13 +1451,101 @@ const createOrUpdatePicking = async (
                 })
                 .then(() => {
                   console.log(
-                    `Transfer order ${existingTO.to_no} updated successfully`
+                    `Transfer order ${existingTO.to_id} updated successfully`
                   );
                 })
                 .catch((error) => {
                   console.error("Error updating transfer order:", error);
                   throw error;
                 });
+
+              // Notification for new and old picking assignment
+              if (existingTO.assigned_to && gdData.assigned_to) {
+                const oldAssigned = Array.isArray(existingTO.assigned_to)
+                  ? existingTO.assigned_to
+                  : [existingTO.assigned_to];
+
+                const newAssigned = Array.isArray(gdData.assigned_to)
+                  ? gdData.assigned_to
+                  : [gdData.assigned_to];
+
+                // Users who were removed
+                const removedUsers = oldAssigned.filter(
+                  (userId) => !newAssigned.includes(userId)
+                );
+
+                // Users who were added
+                const addedUsers = newAssigned.filter(
+                  (userId) => !oldAssigned.includes(userId)
+                );
+
+                console.log(`Removed users: ${removedUsers.join(", ")}`);
+                console.log(`Added users: ${addedUsers.join(", ")}`);
+
+                // Send cancellation notifications to removed users
+                const cancellationPromises = removedUsers.map(
+                  async (userId) => {
+                    const notificationParam = {
+                      title: "Picking Assignment Cancelled",
+                      body: `Your picking task for Transfer Order: ${existingTO.to_id} has been cancelled.`,
+                      userId: [userId],
+                      data: {
+                        docId: existingTO.to_id,
+                        deepLink: `sudumobileexpo://picking/batch/${existingTO.to_id}`,
+                        action: "cancelled",
+                      },
+                    };
+
+                    try {
+                      await sendNotification(notificationParam);
+                      console.log(
+                        `Cancellation notification sent to user: ${userId}`
+                      );
+                    } catch (error) {
+                      console.error(
+                        `Failed to send cancellation notification to ${userId}:`,
+                        error
+                      );
+                    }
+                  }
+                );
+
+                // Send new assignment notifications to added users
+                const assignmentPromises = addedUsers.map(async (userId) => {
+                  const notificationParam = {
+                    title: "New Picking Assignment",
+                    body: `You have been assigned a picking task for Goods Delivery: ${gdData.delivery_no}. Transfer Order: ${existingTO.to_id}`,
+                    userId: [userId],
+                    data: {
+                      docId: existingTO.to_id,
+                      deepLink: `sudumobileexpo://picking/batch/${existingTO.to_id}`,
+                      action: "assigned",
+                    },
+                  };
+
+                  try {
+                    await sendNotification(notificationParam);
+                    console.log(
+                      `Assignment notification sent to user: ${userId}`
+                    );
+                  } catch (error) {
+                    console.error(
+                      `Failed to send assignment notification to ${userId}:`,
+                      error
+                    );
+                  }
+                });
+
+                try {
+                  await Promise.all([
+                    ...cancellationPromises,
+                    ...assignmentPromises,
+                  ]);
+                  console.log("All notifications sent successfully");
+                } catch (error) {
+                  console.error("Some notifications failed to send:", error);
+                }
+              }
 
               return { pickingStatus };
             } else {
@@ -1473,6 +1575,7 @@ const createOrUpdatePicking = async (
           created_by: this.getVarGlobal("nickname"),
           created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
           ref_doc: gdData.gd_ref_doc,
+          assigned_to: gdData.assigned_to,
           table_picking_items: [],
           is_deleted: 0,
         };
@@ -1536,6 +1639,20 @@ const createOrUpdatePicking = async (
             console.error("Error creating transfer order:", error);
             throw error;
           });
+
+        if (transferOrder.assigned_to) {
+          const notificationParam = {
+            title: "New Picking Assignment",
+            body: `You have been assigned a picking task for Goods Delivery: ${gdData.delivery_no}. Transfer Order: ${transferOrder.to_id}`,
+            userId: transferOrder.assigned_to,
+            data: {
+              docId: transferOrder.to_id,
+              deepLink: `sudumobileexpo://picking/batch/${transferOrder.to_id}`,
+            },
+          };
+
+          await sendNotification(notificationParam);
+        }
       }
     }
 
@@ -1953,6 +2070,25 @@ const updateSalesOrderStatus = async (salesOrderId) => {
         })
         .get();
 
+      if (pickingSetupResponse.data.length > 0) {
+        if (!data.assigned_to) {
+          await this.$confirm(
+            `Assigned To field is empty.\nIf you proceed, assigned person in picking record will be empty. \nWould you like to proceed?`,
+            "No Assigned Person Detected",
+            {
+              confirmButtonText: "OK",
+              cancelButtonText: "Cancel",
+              type: "warning",
+              dangerouslyUseHTMLString: false,
+            }
+          ).catch(() => {
+            console.log("User clicked Cancel or closed the dialog");
+            this.hideLoading();
+            throw new Error("Saving goods delivery cancelled.");
+          });
+        }
+      }
+
       // Handle previous quantities for updates
       if (page_status === "Edit" && data.id && Array.isArray(data.table_gd)) {
         try {
@@ -2048,6 +2184,7 @@ const updateSalesOrderStatus = async (salesOrderId) => {
         overdue_inv_total_amount: data.overdue_inv_total_amount,
         is_accurate: data.is_accurate,
         gd_total: parseFloat(data.gd_total.toFixed(3)),
+        assigned_to: data.assigned_to,
       };
 
       // Clean up undefined/null values

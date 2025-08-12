@@ -378,6 +378,21 @@ const disabledSelectStock = async (data) => {
   });
 };
 
+const setDisplayAssignedTo = async (data) => {
+  const pickingSetupResponse = await db
+    .collection("picking_setup")
+    .where({
+      plant_id: data.plant_id,
+      movement_type: "Good Delivery",
+      picking_required: 1,
+    })
+    .get();
+
+  if (pickingSetupResponse.data.length > 0) {
+    this.display("assigned_to");
+  }
+};
+
 // Main execution function
 (async () => {
   try {
@@ -416,6 +431,7 @@ const disabledSelectStock = async (data) => {
         if (status !== "Completed") {
           await getPrefixData(organizationId);
           await disabledSelectStock(data);
+          await setDisplayAssignedTo(data);
         }
         await checkAccIntegrationType(organizationId);
         await disabledField(status, pickingStatus);
@@ -429,6 +445,7 @@ const disabledSelectStock = async (data) => {
       case "View":
         await showStatusHTML(status);
         await displayDeliveryMethod();
+        await setDisplayAssignedTo(data);
         this.hide([
           "link_billing_address",
           "link_shipping_address",
