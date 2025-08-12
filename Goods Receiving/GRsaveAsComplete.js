@@ -45,12 +45,7 @@ const addInventory = async (
       conversion = 1.0;
     }
 
-    const relevantPoId =
-      itemData.line_po_id ||
-      itemData.po_id ||
-      (Array.isArray(data.purchase_order_id)
-        ? data.purchase_order_id[0]
-        : data.purchase_order_id);
+    const relevantPoId = itemData.line_po_id || itemData.po_id;
 
     if (!relevantPoId) {
       console.error("No relevant PO ID found for cost calculation");
@@ -1306,28 +1301,36 @@ const addInventory = async (
 };
 
 const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
+  console.log("Starting updatePurchaseOrderStatus", {
+    purchaseOrderIds,
+    tableGRLength: tableGR.length,
+  });
+
   const poIds = Array.isArray(purchaseOrderIds)
     ? purchaseOrderIds
     : [purchaseOrderIds];
+  console.log("Normalized poIds", { poIds });
 
-  // Arrays to collect data for the return format
   let poDataArray = [];
 
   try {
-    // Fetch purchase order and related goods receiving documents in parallel
     const updatePromises = poIds.map(async (purchaseOrderId) => {
+      console.log(`Processing purchase order ${purchaseOrderId}`);
+
       try {
         const filteredGR = tableGR.filter(
           (item) => item.line_po_id === purchaseOrderId
         );
+        console.log(`Filtered GR for PO ${purchaseOrderId}`, {
+          filteredGRCount: filteredGR.length,
+        });
 
-        // Fetch purchase order and related goods receiving documents in parallel
         const resPO = await db
           .collection("purchase_order")
           .where({ id: purchaseOrderId })
           .get();
+        console.log(`Fetched PO ${purchaseOrderId}`, { poData: resPO.data });
 
-        // Validate purchase order exists
         if (!resPO.data || !resPO.data.length) {
           console.warn(`Purchase order ${purchaseOrderId} not found`);
           return {
@@ -1339,10 +1342,16 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
 
         const poDoc = resPO.data[0];
         const originalPOStatus = poDoc.po_status;
+        console.log(`PO ${purchaseOrderId} details`, {
+          poDoc,
+          originalPOStatus,
+        });
 
         const poItems = poDoc.table_po || [];
+        console.log(`PO ${purchaseOrderId} items`, {
+          poItemsCount: poItems.length,
+        });
 
-        // Validate PO has items
         if (!poItems.length) {
           console.warn(`No items found in purchase order ${purchaseOrderId}`);
           return {
@@ -1358,14 +1367,23 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
           .filter((item) =>
             filteredGR.some((gr) => gr.po_line_item_id === item.id)
           );
+        console.log(`Filtered PO items for ${purchaseOrderId}`, {
+          filteredPOCount: filteredPO.length,
+        });
 
-        // Initialize tracking objects
         let totalItems = poItems.length;
         let partiallyReceivedItems = 0;
         let fullyReceivedItems = 0;
+        console.log(`Initial counts for PO ${purchaseOrderId}`, {
+          totalItems,
+          partiallyReceivedItems,
+          fullyReceivedItems,
+        });
 
-        // FIX: Create a proper deep copy of the PO items to preserve all fields
         const updatedPoItems = poItems.map((item) => ({ ...item }));
+        console.log(`Created deep copy of PO items for ${purchaseOrderId}`, {
+          updatedPoItems,
+        });
 
         filteredPO.forEach((filteredItem, filteredIndex) => {
           const originalIndex = filteredItem.originalIndex;
@@ -1378,33 +1396,52 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
           );
           const totalReceivedQty = currentReceivedQty + grReceivedQty;
 
-          // Update the quantity in the original poItems structure
-          updatedPoItems[originalIndex].received_qty = totalReceivedQty;
+          const outstandingQty = parseFloat(purchaseQty - totalReceivedQty);
+          if (outstandingQty < 0) {
+            updatedPoItems[originalIndex].outstanding_quantity = 0;
+          } else {
+            updatedPoItems[originalIndex].outstanding_quantity = outstandingQty;
+          }
 
-          // Add ratio for tracking purposes
+          console.log(
+            `Processing item ${filteredItem.id} for PO ${purchaseOrderId}`,
+            {
+              purchaseQty,
+              grReceivedQty,
+              currentReceivedQty,
+              totalReceivedQty,
+            }
+          );
+
+          updatedPoItems[originalIndex].received_qty = totalReceivedQty;
           updatedPoItems[originalIndex].received_ratio =
             purchaseQty > 0 ? totalReceivedQty / purchaseQty : 0;
+        });
 
-          // Count items with ANY delivered quantity as "partially delivered"
-          if (totalReceivedQty > 0) {
+        for (const po of updatedPoItems) {
+          if (po.received_qty > 0) {
             partiallyReceivedItems++;
-
-            // Count fully delivered items separately
-            if (totalReceivedQty >= purchaseQty) {
+            if (po.received_qty >= po.quantity) {
               fullyReceivedItems++;
             }
           }
+        }
+
+        console.log(`Updated counts for PO ${purchaseOrderId}`, {
+          partiallyReceivedItems,
+          fullyReceivedItems,
         });
 
-        // Check item completion status
         let allItemsComplete = fullyReceivedItems === totalItems;
         let anyItemProcessing = partiallyReceivedItems > 0;
+        console.log(`Completion status for PO ${purchaseOrderId}`, {
+          allItemsComplete,
+          anyItemProcessing,
+        });
 
-        // FIX: Preserve the original status if it's already "Completed"
         let newPOStatus = poDoc.po_status;
         let newGRStatus = poDoc.gr_status;
 
-        // Only update status if not already completed
         if (poDoc.po_status !== "Completed") {
           if (allItemsComplete) {
             newPOStatus = "Completed";
@@ -1414,7 +1451,6 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
             newGRStatus = "Partially Received";
           }
         } else {
-          // If already completed, maintain completed status
           newPOStatus = "Completed";
           if (allItemsComplete) {
             newGRStatus = "Fully Received";
@@ -1422,28 +1458,25 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
             newGRStatus = "Partially Received";
           }
         }
+        console.log(`Status update for PO ${purchaseOrderId}`, {
+          originalPOStatus,
+          newPOStatus,
+          newGRStatus,
+        });
 
-        // Create tracking ratios
         const partiallyReceivedRatio = `${partiallyReceivedItems} / ${totalItems}`;
         const fullyReceivedRatio = `${fullyReceivedItems} / ${totalItems}`;
+        console.log(`Ratios for PO ${purchaseOrderId}`, {
+          partiallyReceivedRatio,
+          fullyReceivedRatio,
+        });
 
-        console.log(`PO ${purchaseOrderId} status:
-          Original status: ${originalPOStatus}
-          Total items: ${totalItems}
-          Partially received items (including fully received): ${partiallyReceivedItems} (${partiallyReceivedRatio})
-          Fully received items: ${fullyReceivedItems} (${fullyReceivedRatio})
-          New PO Status: ${newPOStatus}
-          New GR Status: ${newGRStatus}
-        `);
-
-        // Prepare a single update operation with all changes
         const updateData = {
           table_po: updatedPoItems,
           partially_received: partiallyReceivedRatio,
           fully_received: fullyReceivedRatio,
         };
 
-        // Only include status changes if needed
         if (newPOStatus !== poDoc.po_status) {
           updateData.po_status = newPOStatus;
         }
@@ -1451,11 +1484,13 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
         if (newGRStatus !== poDoc.gr_status) {
           updateData.gr_status = newGRStatus;
         }
+        console.log(`Prepared update data for PO ${purchaseOrderId}`, {
+          updateData,
+        });
 
-        // Execute a single database update
         await db.collection("purchase_order").doc(poDoc.id).update(updateData);
+        console.log(`Successfully updated PO ${purchaseOrderId} in database`);
 
-        // Log the status change if it occurred
         if (newPOStatus !== originalPOStatus) {
           console.log(
             `Updated PO ${purchaseOrderId} status from ${originalPOStatus} to ${newPOStatus}`
@@ -1484,19 +1519,18 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
     });
 
     const results = await Promise.all(updatePromises);
+    console.log("All update promises resolved", { results });
 
-    // Process results to build the desired return format
     results.forEach((result) => {
       if (result && result.success) {
-        // Add PO data
         poDataArray.push({
           po_id: result.poId,
           status: result.newPOStatus,
         });
       }
     });
+    console.log("Processed results", { poDataArray });
 
-    // Aggregate results for logging
     const successCount = results.filter((r) => r && r.success).length;
     const failCount = results.filter((r) => r && !r.success).length;
 
@@ -1506,7 +1540,6 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
       Failed updates: ${failCount}
     `);
 
-    // Return in the requested format
     return {
       po_data_array: poDataArray,
     };
@@ -1518,14 +1551,8 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
   }
 };
 
-const validateForm = (data, requiredFields, grType) => {
+const validateForm = (data, requiredFields) => {
   const missingFields = [];
-
-  if (grType === "Document") {
-    requiredFields.push({ name: "purchase_order_id", label: "PO Number" });
-  } else if (grType === "Item") {
-    requiredFields.push({ name: "item_id", label: "Item Code" });
-  }
 
   requiredFields.forEach((field) => {
     const value = data[field.name];
@@ -1932,7 +1959,6 @@ const checkCompletedPO = async (po_id) => {
     this.showLoading();
 
     const requiredFields = [
-      { name: "gr_type", label: "GR Type" },
       { name: "gr_no", label: "Good Receiving Number" },
       { name: "gr_date", label: "Received Date" },
       { name: "plant_id", label: "Plant" },
@@ -1964,11 +1990,7 @@ const checkCompletedPO = async (po_id) => {
       .get();
     const putAwaySetupData = resPutAwaySetup?.data[0];
 
-    const missingFields = await validateForm(
-      data,
-      requiredFields,
-      data.gr_type
-    );
+    const missingFields = await validateForm(data, requiredFields);
 
     if (missingFields.length === 0) {
       const page_status = this.getValue("page_status");
@@ -1998,16 +2020,10 @@ const checkCompletedPO = async (po_id) => {
       }
 
       const {
-        fake_purchase_order_id,
-        purchase_order_id,
         plant_id,
         currency_code,
         organization_id,
         purchase_order_number,
-        fake_item_id,
-        item_id,
-        gr_type,
-        item_code,
         po_id,
         gr_billing_address,
         gr_shipping_address,
@@ -2048,13 +2064,7 @@ const checkCompletedPO = async (po_id) => {
       } = data;
       const entry = {
         gr_status: "Received",
-        gr_type,
-        fake_item_id,
-        item_id,
-        item_code,
         po_id,
-        fake_purchase_order_id,
-        purchase_order_id,
         plant_id,
         currency_code,
         organization_id,
@@ -2103,7 +2113,7 @@ const checkCompletedPO = async (po_id) => {
         throw new Error(
           `Total quantity for PO Number ${result.errors.join(
             ", "
-          )} is 0. Please delete the PO or receive at least one item with quantity > 0.`
+          )} is 0. Please delete the item with related PO or receive at least one item with quantity > 0.`
         );
       }
       const latestGR = entry.table_gr.filter((item) => item.received_qty > 0);
