@@ -22,22 +22,35 @@
       movement_id,
       is_production_order,
       production_order_id,
-      driver_name,
-      driver_contact_no,
-      vehicle_no,
-      pickup_date,
-      courier_company,
-      shipping_date,
-      freight_charges,
-      tracking_number,
-      est_arrival_date,
-      delivery_cost,
-      est_delivery_date,
-      shipping_company,
-      date_qn0dl3t6,
-      input_77h4nsq8,
-      shipping_method,
-      tracking_no,
+
+      cp_driver_name,
+      cp_ic_no,
+      cp_driver_contact_no,
+      cp_vehicle_number,
+      cp_pickup_date,
+      cp_validity_collection,
+      cs_courier_company,
+      cs_shipping_date,
+      cs_tracking_number,
+      cs_est_arrival_date,
+      cs_freight_charges,
+      ct_driver_name,
+      ct_driver_contact_no,
+      ct_ic_no,
+      ct_vehicle_number,
+      ct_est_delivery_date,
+      ct_delivery_cost,
+      ss_shipping_company,
+      ss_shipping_date,
+      ss_freight_charges,
+      ss_shipping_method,
+      ss_est_arrival_date,
+      ss_tracking_number,
+      tpt_vehicle_number,
+      tpt_transport_name,
+      tpt_ic_no,
+      tpt_driver_contact_no,
+
       stock_movement,
       balance_index,
       sm_item_balance,
@@ -57,7 +70,7 @@
     const entry = {
       stock_movement_status: "Issued",
       organization_id: organizationId,
-      posted_status: "Unposted",
+      posted_status: "",
       issue_date,
       stock_movement_no,
       movement_type,
@@ -72,22 +85,35 @@
       movement_id,
       is_production_order,
       production_order_id,
-      driver_name,
-      driver_contact_no,
-      vehicle_no,
-      pickup_date,
-      courier_company,
-      shipping_date,
-      freight_charges,
-      tracking_number,
-      est_arrival_date,
-      delivery_cost,
-      est_delivery_date,
-      shipping_company,
-      date_qn0dl3t6,
-      input_77h4nsq8,
-      shipping_method,
-      tracking_no,
+
+      cp_driver_name,
+      cp_ic_no,
+      cp_driver_contact_no,
+      cp_vehicle_number,
+      cp_pickup_date,
+      cp_validity_collection,
+      cs_courier_company,
+      cs_shipping_date,
+      cs_tracking_number,
+      cs_est_arrival_date,
+      cs_freight_charges,
+      ct_driver_name,
+      ct_driver_contact_no,
+      ct_ic_no,
+      ct_vehicle_number,
+      ct_est_delivery_date,
+      ct_delivery_cost,
+      ss_shipping_company,
+      ss_shipping_date,
+      ss_freight_charges,
+      ss_shipping_method,
+      ss_est_arrival_date,
+      ss_tracking_number,
+      tpt_vehicle_number,
+      tpt_transport_name,
+      tpt_ic_no,
+      tpt_driver_contact_no,
+
       stock_movement,
       balance_index,
       sm_item_balance,
@@ -107,7 +133,7 @@
     };
 
     // Helper function to generate a unique prefix
-    const generateUniquePrefix = async (prefixData) => {
+    const generateUniquePrefix = async (prefixData, organizationId) => {
       const now = new Date();
       let runningNumber = prefixData.running_number;
       let isUnique = false;
@@ -135,10 +161,13 @@
         return generated;
       };
 
-      const checkUniqueness = async (generatedPrefix) => {
+      const checkUniqueness = async (generatedPrefix, organizationId) => {
         const existingDoc = await db
           .collection("stock_movement")
-          .where({ stock_movement_no: generatedPrefix })
+          .where({
+            stock_movement_no: generatedPrefix,
+            organization_id: organizationId,
+          })
           .get();
         return !existingDoc.data || existingDoc.data.length === 0;
       };
@@ -146,7 +175,7 @@
       while (!isUnique && attempts < maxAttempts) {
         attempts++;
         prefixToShow = generatePrefix(runningNumber);
-        isUnique = await checkUniqueness(prefixToShow);
+        isUnique = await checkUniqueness(prefixToShow, organizationId);
         if (!isUnique) {
           runningNumber++;
         }
@@ -162,7 +191,11 @@
     };
 
     // Helper function to update prefix running number
-    const updatePrefixRunningNumber = async (movementType, runningNumber) => {
+    const updatePrefixRunningNumber = async (
+      movementType,
+      runningNumber,
+      organizationId
+    ) => {
       await db
         .collection("prefix_configuration")
         .where({
@@ -177,11 +210,40 @@
         });
     };
 
+    const updateItemTransactionDate = async (entry) => {
+      try {
+        const tableSM = entry.stock_movement;
+
+        const uniqueItemIds = [
+          ...new Set(
+            tableSM
+              .filter((item) => item.item_selection)
+              .map((item) => item.item_selection)
+          ),
+        ];
+
+        const date = new Date().toISOString();
+        for (const [index, item] of uniqueItemIds.entries()) {
+          try {
+            await db
+              .collection("Item")
+              .doc(item)
+              .update({ last_transaction_date: date });
+          } catch (error) {
+            throw new Error(
+              `Cannot update last transaction date for item #${index + 1}.`
+            );
+          }
+        }
+      } catch (error) {
+        throw new Error(error);
+      }
+    };
+
     try {
       if (page_status === "Add") {
         // Add mode
         console.log("Processing Add mode");
-        await db.collection("stock_movement").add(entry);
 
         // Update prefix running number
         const prefixEntryResponse = await db
@@ -197,11 +259,19 @@
 
         if (prefixEntryResponse.data && prefixEntryResponse.data.length > 0) {
           const prefixData = prefixEntryResponse.data[0];
+          const { prefixToShow, runningNumber } = await generateUniquePrefix(
+            prefixData,
+            organizationId
+          );
+
+          entry.stock_movement_no = prefixToShow;
           await updatePrefixRunningNumber(
             movement_type,
-            prefixData.running_number
+            runningNumber,
+            organizationId
           );
         }
+        await db.collection("stock_movement").add(entry);
 
         this.$message.success("Stock Movement successfully issued");
       } else if (page_status === "Edit") {
@@ -221,18 +291,23 @@
         if (prefixEntryResponse.data && prefixEntryResponse.data.length > 0) {
           const prefixData = prefixEntryResponse.data[0];
           const { prefixToShow, runningNumber } = await generateUniquePrefix(
-            prefixData
+            prefixData,
+            organizationId
           );
 
           // Update entry with new stock_movement_no
           entry.stock_movement_no = prefixToShow;
+
+          // Update prefix running number
+          await updatePrefixRunningNumber(
+            movement_type,
+            runningNumber,
+            organizationId
+          );
           await db
             .collection("stock_movement")
             .doc(stockMovementId)
             .update(entry);
-
-          // Update prefix running number
-          await updatePrefixRunningNumber(movement_type, runningNumber);
         } else {
           await db
             .collection("stock_movement")
@@ -244,7 +319,8 @@
       }
 
       // Close dialog on success
-      closeDialog();
+      await updateItemTransactionDate(entry);
+      await closeDialog();
     } catch (error) {
       console.error("Error processing stock movement:", error);
       this.$message.error(error.message || "An error occurred");

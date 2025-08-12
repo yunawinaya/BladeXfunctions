@@ -922,6 +922,8 @@ class StockAdjuster {
 
           return {
             item_selection: item.item_selection,
+            item_name: item.item_name,
+            item_desc: item.item_desc,
             total_quantity: item.total_quantity,
             received_quantity: item.total_quantity,
             received_quantity_uom: material.based_uom,
@@ -950,6 +952,36 @@ class StockAdjuster {
   }
 }
 
+const updateItemTransactionDate = async (entry) => {
+  try {
+    const tableSM = entry.stock_movement;
+
+    const uniqueItemIds = [
+      ...new Set(
+        tableSM
+          .filter((item) => item.item_selection)
+          .map((item) => item.item_selection)
+      ),
+    ];
+
+    const date = new Date().toISOString();
+    for (const [index, item] of uniqueItemIds.entries()) {
+      try {
+        await db
+          .collection("Item")
+          .doc(item)
+          .update({ last_transaction_date: date });
+      } catch (error) {
+        throw new Error(
+          `Cannot update last transaction date for item #${index + 1}.`
+        );
+      }
+    }
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
 async function processFormData(db, self, organizationId) {
   const adjuster = new StockAdjuster(db);
   const closeDialog = () => {
@@ -966,6 +998,9 @@ async function processFormData(db, self, organizationId) {
       self,
       organizationId
     );
+
+    const entry = self.getValues();
+    await updateItemTransactionDate(entry);
     closeDialog();
     console.log("Stock movement processed:", results);
     return results;

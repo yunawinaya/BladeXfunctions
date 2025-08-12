@@ -32,22 +32,35 @@ const {
   movement_id,
   is_production_order,
   production_order_id,
-  driver_name,
-  driver_contact_no,
-  vehicle_no,
-  pickup_date,
-  courier_company,
-  shipping_date,
-  freight_charges,
-  tracking_number,
-  est_arrival_date,
-  delivery_cost,
-  est_delivery_date,
-  shipping_company,
-  date_qn0dl3t6,
-  input_77h4nsq8,
-  shipping_method,
-  tracking_no,
+
+  cp_driver_name,
+  cp_ic_no,
+  cp_driver_contact_no,
+  cp_vehicle_number,
+  cp_pickup_date,
+  cp_validity_collection,
+  cs_courier_company,
+  cs_shipping_date,
+  cs_tracking_number,
+  cs_est_arrival_date,
+  cs_freight_charges,
+  ct_driver_name,
+  ct_driver_contact_no,
+  ct_ic_no,
+  ct_vehicle_number,
+  ct_est_delivery_date,
+  ct_delivery_cost,
+  ss_shipping_company,
+  ss_shipping_date,
+  ss_freight_charges,
+  ss_shipping_method,
+  ss_est_arrival_date,
+  ss_tracking_number,
+  tpt_vehicle_number,
+  tpt_transport_name,
+  tpt_ic_no,
+  tpt_driver_contact_no,
+
   stock_movement,
   balance_index,
   sm_item_balance,
@@ -75,22 +88,35 @@ const entry = {
   movement_id,
   is_production_order,
   production_order_id,
-  driver_name,
-  driver_contact_no,
-  vehicle_no,
-  pickup_date,
-  courier_company,
-  shipping_date,
-  freight_charges,
-  tracking_number,
-  est_arrival_date,
-  delivery_cost,
-  est_delivery_date,
-  shipping_company,
-  date_qn0dl3t6,
-  input_77h4nsq8,
-  shipping_method,
-  tracking_no,
+
+  cp_driver_name,
+  cp_ic_no,
+  cp_driver_contact_no,
+  cp_vehicle_number,
+  cp_pickup_date,
+  cp_validity_collection,
+  cs_courier_company,
+  cs_shipping_date,
+  cs_tracking_number,
+  cs_est_arrival_date,
+  cs_freight_charges,
+  ct_driver_name,
+  ct_driver_contact_no,
+  ct_ic_no,
+  ct_vehicle_number,
+  ct_est_delivery_date,
+  ct_delivery_cost,
+  ss_shipping_company,
+  ss_shipping_date,
+  ss_freight_charges,
+  ss_shipping_method,
+  ss_est_arrival_date,
+  ss_tracking_number,
+  tpt_vehicle_number,
+  tpt_transport_name,
+  tpt_ic_no,
+  tpt_driver_contact_no,
+
   stock_movement,
   balance_index,
   sm_item_balance,
@@ -104,18 +130,47 @@ db.collection("stock_movement")
   .doc(stockMovementId)
   .update(entry)
   .then(async () => {
-    await this.runWorkflow(
-      "1910197713380311041",
-      { key: "value" },
-      (res) => {
-        console.log("成功结果：", res);
-        this.$message.success("Stock Movement posted successfully.");
-      },
-      (err) => {
-        console.error("失败结果：", err);
-        this.$message.error(err);
-      }
-    );
+    // post workflow
+    const accIntegrationType = this.getValue("acc_integration_type");
+
+    if (
+      accIntegrationType === "SQL Accounting" &&
+      organizationId &&
+      organizationId !== ""
+    ) {
+      console.log("Calling SQL Accounting workflow");
+
+      await this.runWorkflow(
+        "1910197713380311041",
+        { key: "value" },
+        (res) => {
+          console.log("成功结果：", res);
+          this.$message.success("Stock Movement posted successfully.");
+        },
+        (err) => {
+          console.error("失败结果：", err);
+          this.$message.error(err);
+        }
+      );
+    } else if (
+      accIntegrationType === "AutoCount Accounting" &&
+      organizationId &&
+      organizationId !== ""
+    ) {
+      this.$message.success("Post Stock Movement successfully");
+      await closeDialog();
+      console.log("Calling AutoCount workflow");
+    } else if (
+      accIntegrationType === "No Accounting Integration" &&
+      organizationId &&
+      organizationId !== ""
+    ) {
+      this.$message.success("Post Stock Movement successfully");
+      await closeDialog();
+      console.log("Not calling workflow");
+    } else {
+      await closeDialog();
+    }
   })
   .then(() => {
     closeDialog();

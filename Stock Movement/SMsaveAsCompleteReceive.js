@@ -144,6 +144,7 @@ class ReceivingIOFTProcessor {
     if (errors.length > 0) {
       const errorMessage = errors.join("\n");
       if (self && self.parentGenerateForm) {
+        self.hideLoading();
         await self.parentGenerateForm.$alert(
           errorMessage,
           "Validation Errors",
@@ -186,6 +187,7 @@ class ReceivingIOFTProcessor {
               const processingErrors = [err.message];
               const errorMessage = processingErrors.join("\n");
               if (self && self.parentGenerateForm) {
+                self.hideLoading();
                 await self.parentGenerateForm.$alert(
                   errorMessage,
                   "Processing Errors",
@@ -218,6 +220,7 @@ class ReceivingIOFTProcessor {
           })
           .catch((err) => {
             const errorMessage = `Processing failed: ${err.message}`;
+            self.hideLoading();
             alert(errorMessage);
             reject(new Error("Processing failed with errors"));
           });
