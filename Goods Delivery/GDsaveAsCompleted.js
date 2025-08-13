@@ -1571,6 +1571,13 @@ const updateSalesOrderStatus = async (salesOrderId, tableGD) => {
         // Update the quantity in the original soItems structure
         updatedSoItems[originalIndex].delivered_qty = totalDeliveredQty;
 
+        const outstandingQty = parseFloat(orderedQty - totalDeliveredQty);
+        if (outstandingQty < 0) {
+          updatedSoItems[originalIndex].outstanding_quantity = 0;
+        } else {
+          updatedSoItems[originalIndex].outstanding_quantity = outstandingQty;
+        }
+
         // Add ratio for tracking purposes
         updatedSoItems[originalIndex].delivery_ratio =
           orderedQty > 0 ? totalDeliveredQty / orderedQty : 0;
@@ -2800,6 +2807,7 @@ const checkCompletedSO = async (so_id) => {
       document_description,
       gd_delivery_method,
       delivery_date,
+      assigned_to,
 
       driver_name,
       driver_contact_no,
@@ -2880,6 +2888,7 @@ const checkCompletedSO = async (so_id) => {
       document_description,
       gd_delivery_method,
       delivery_date,
+      assigned_to,
 
       driver_name,
       driver_contact_no,

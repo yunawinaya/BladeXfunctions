@@ -884,27 +884,29 @@ const addInventory = async (
         .where({ id: grId })
         .update({ putaway_status: "Created" });
 
-      const notificationParam = {
-        title: "New Putaway Assignment",
-        body: `You have been assigned a putaway task for Goods Receiving: ${data.gr_no}. Transfer Order: ${putAwayPrefix}`,
-        userId: data.assigned_to,
-        data: {
-          docId: putAwayPrefix,
-          deepLink: `sudumobileexpo://putaway/batch/${putAwayPrefix}`,
-        },
-      };
+      if (data.assigned_to && data.assigned_to.length > 0) {
+        const notificationParam = {
+          title: "New Putaway Assignment",
+          body: `You have been assigned a putaway task for Goods Receiving: ${data.gr_no}. Transfer Order: ${putAwayPrefix}`,
+          userId: data.assigned_to,
+          data: {
+            docId: putAwayPrefix,
+            deepLink: `sudumobileexpo://putaway/batch/${putAwayPrefix}`,
+          },
+        };
 
-      await this.runWorkflow(
-        "1945684747032735745",
-        notificationParam,
-        async (res) => {
-          console.log("Notification sent successfully:", res);
-        },
-        (err) => {
-          this.$message.error("Workflow execution failed");
-          console.error("Workflow execution failed:", err);
-        }
-      );
+        await this.runWorkflow(
+          "1945684747032735745",
+          notificationParam,
+          async (res) => {
+            console.log("Notification sent successfully:", res);
+          },
+          (err) => {
+            this.$message.error("Workflow execution failed");
+            console.error("Workflow execution failed:", err);
+          }
+        );
+      }
     } catch (error) {
       throw new Error("Error creating putaway.");
     }
@@ -1975,6 +1977,17 @@ const checkCompletedPO = async (po_id) => {
   return true;
 };
 
+const fillbackHeaderFields = async (entry) => {
+  try {
+    for (const [index, grLineItem] of entry.table_gr.entries()) {
+      grLineItem.supplier_id = entry.supplier_name || null;
+    }
+    return entry.table_gr;
+  } catch (error) {
+    throw new Error("Error processing goods receiving.");
+  }
+};
+
 (async () => {
   try {
     const data = this.getValues();
@@ -2149,6 +2162,7 @@ const checkCompletedPO = async (po_id) => {
       }
 
       await checkCompletedPO(entry.po_id);
+      await fillbackHeaderFields(entry);
 
       if (page_status === "Add") {
         await addEntry(organizationId, entry, putAwaySetupData);

@@ -154,6 +154,7 @@ const generateDraftPrefix = async (organizationId) => {
         document_description: data.document_description,
         gd_delivery_method: data.gd_delivery_method,
         delivery_date: data.delivery_date,
+        assigned_to: data.assigned_to,
 
         driver_name: data.driver_name,
         driver_contact_no: data.driver_contact_no,
