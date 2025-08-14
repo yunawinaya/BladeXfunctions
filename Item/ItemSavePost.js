@@ -242,7 +242,7 @@ const findFieldMessage = (obj) => {
         under_receive_tolerance: data.under_receive_tolerance,
         over_delivery_tolerance: data.over_delivery_tolerance,
         under_delivery_tolerance: data.under_delivery_tolerance,
-        posted_status: "",
+        posted_status: "Pending Post",
         barcode_number: data.barcode_number,
         purchase_default_uom: data.purchase_default_uom,
         sales_default_uom: data.sales_default_uom,
@@ -251,8 +251,6 @@ const findFieldMessage = (obj) => {
         is_base: data.is_base,
         last_transaction_date: data.last_transaction_date,
       };
-
-      console.log("JN", entry);
 
       // Add or update based on page status
       if (page_status === "Add" || page_status === "Clone") {
@@ -272,8 +270,48 @@ const findFieldMessage = (obj) => {
           }
 
           await db.collection("Item").add(entry);
-          this.$message.success("Add successfully.");
-          await closeDialog();
+
+          if (organizationId) {
+            const resAI = await db
+              .collection("accounting_integration")
+              .where({ organization_id: organizationId })
+              .get();
+
+            if (resAI && resAI.data.length > 0) {
+              const aiData = resAI.data[0];
+
+              if (aiData.acc_integration_type === "SQL Accounting") {
+                // Run SQL workflow
+                console.log("Calling SQL Accounting workflow");
+                await this.runWorkflow(
+                  "1906666085143818241",
+                  { key: "value" },
+                  (res) => {
+                    console.log("成功结果：", res);
+                    this.$message.success("Save item successfully.");
+                    closeDialog();
+                  },
+                  (err) => {
+                    console.error("失败结果：", err);
+                    this.$message.error(err);
+                    this.hideLoading();
+                  }
+                );
+              } else if (
+                aiData.acc_integration_type === "AutoCount Accounting"
+              ) {
+                await closeDialog();
+                console.log("Calling AutoCount workflow");
+              } else if (
+                aiData.acc_integration_type === "No Accounting Integration"
+              ) {
+                await closeDialog();
+                console.log("Not calling workflow");
+              } else {
+                await closeDialog();
+              }
+            }
+          }
         } catch (error) {
           console.error("Error adding item:", error);
           this.hideLoading();
@@ -289,7 +327,50 @@ const findFieldMessage = (obj) => {
           }
 
           await db.collection("Item").doc(item_no).update(entry);
-          this.$message.success("Update successfully.");
+
+          if (organizationId) {
+            const resAI = await db
+              .collection("accounting_integration")
+              .where({ organization_id: organizationId })
+              .get();
+
+            if (resAI && resAI.data.length > 0) {
+              const aiData = resAI.data[0];
+
+              if (aiData.acc_integration_type === "SQL Accounting") {
+                // Run SQL workflow
+                console.log("Calling SQL Accounting workflow");
+                // Run workflow
+                await this.runWorkflow(
+                  "1906666085143818241",
+                  { key: "value" },
+                  (res) => {
+                    console.log("成功结果：", res);
+                    this.$message.success("Save item successfully.");
+                    closeDialog();
+                  },
+                  (err) => {
+                    console.error("失败结果：", err);
+                    this.$message.error(err);
+                    this.hideLoading();
+                  }
+                );
+              } else if (
+                aiData.acc_integration_type === "AutoCount Accounting"
+              ) {
+                await closeDialog();
+                console.log("Calling AutoCount workflow");
+              } else if (
+                aiData.acc_integration_type === "No Accounting Integration"
+              ) {
+                await closeDialog();
+                console.log("Not calling workflow");
+              } else {
+                await closeDialog();
+              }
+            }
+          }
+
           // Close dialog after successful operation
           closeDialog();
         } catch (error) {
@@ -320,6 +401,6 @@ const findFieldMessage = (obj) => {
     }
 
     this.$message.error(errorMessage);
-    console.error(error);
+    console.error(errorMessage);
   }
 })();

@@ -15,15 +15,15 @@ const generatePrefix = (runNumber, now, prefixData) => {
   return generated;
 };
 
-const checkUniqueness = async (generatedPrefix) => {
+const checkUniqueness = async (generatedPrefix, organizationId) => {
   const existingDoc = await db
     .collection("Item")
-    .where({ material_code: generatedPrefix })
+    .where({ material_code: generatedPrefix, organization_id: organizationId })
     .get();
   return existingDoc.data[0] ? false : true;
 };
 
-const findUniquePrefix = async (prefixData) => {
+const findUniquePrefix = async (prefixData, organizationId) => {
   const now = new Date();
   let prefixToShow;
   let runningNumber = prefixData.running_number;
@@ -34,7 +34,7 @@ const findUniquePrefix = async (prefixData) => {
   while (!isUnique && attempts < maxAttempts) {
     attempts++;
     prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow);
+    isUnique = await checkUniqueness(prefixToShow, organizationId);
     if (!isUnique) {
       runningNumber++;
     }
@@ -50,8 +50,17 @@ const findUniquePrefix = async (prefixData) => {
 
 const setPrefix = async (organizationId) => {
   const prefixData = await getPrefixData(organizationId);
-  const { prefixToShow } = await findUniquePrefix(prefixData);
-  this.setData({ material_code: prefixToShow });
+  const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
+
+  if (prefixData.is_active === 0) {
+    this.disabled(["material_code"], false);
+    this.setData({ material_code: "", item_current_prefix: prefixToShow });
+  } else {
+    this.setData({
+      material_code: prefixToShow,
+      item_current_prefix: prefixToShow,
+    });
+  }
 };
 
 const getPrefixData = async (organizationId) => {
@@ -64,10 +73,6 @@ const getPrefixData = async (organizationId) => {
     })
     .get();
   const prefixData = prefixEntry.data[0];
-
-  if (prefixData.is_active === 0) {
-    this.disabled(["material_code"], false);
-  }
 
   return prefixData;
 };
@@ -82,6 +87,98 @@ const showStatusHTML = async (status) => {
       break;
     default:
       break;
+  }
+};
+
+const enabledBatchManagement = async () => {
+  const stockControl = this.getValue("stock_control");
+
+  if (stockControl === 0) {
+    this.display("show_delivery");
+    this.display("show_receiving");
+
+    this.disabled(["item_batch_management", "batch_number_genaration"], true);
+  } else if (stockControl === 1) {
+    this.hide("show_delivery");
+    this.hide("show_receiving");
+
+    const lastTransactionDate = this.getValue("last_transaction_date");
+    if (!lastTransactionDate || lastTransactionDate === null) {
+      this.display("batch_number_genaration");
+      this.disabled(
+        ["item_batch_management", "batch_number_genaration"],
+        false
+      );
+    } else {
+      this.disabled(["item_batch_management", "batch_number_genaration"], true);
+    }
+  }
+};
+
+const enabledSerialNumberManagement = async () => {
+  const serialNumberManagement = this.getValue("serial_number_management");
+
+  if (serialNumberManagement === 1) {
+    this.display("is_single_unit_serial");
+    this.display("serial_no_generate_rule");
+  } else {
+    this.hide("is_single_unit_serial");
+    this.hide("serial_no_generate_rule");
+  }
+};
+
+const checkAccIntegrationType = async (organizationId) => {
+  if (organizationId) {
+    const resAI = await db
+      .collection("accounting_integration")
+      .where({ organization_id: organizationId })
+      .get();
+
+    if (resAI && resAI.data.length > 0) {
+      const aiData = resAI.data[0];
+
+      if (aiData.acc_integration_type === "No Accounting Integration") {
+        this.hide("button_save_post");
+      } else {
+        await getIsBaseValue(organizationId);
+      }
+    }
+  }
+};
+
+const getIsBaseValue = async (organizationId) => {
+  const resItem = await db
+    .collection("Item")
+    .where({ organization_id: organizationId })
+    .get();
+
+  const itemData = resItem.data.find((item) => item.is_base);
+
+  const isBase = itemData.is_base || null;
+  console.log("item", itemData);
+
+  this.setData({ is_base: isBase });
+};
+
+const enabledDefaultBin = async () => {
+  const tableDefaultBin = this.getValue("table_default_bin");
+
+  for (const [index, bin] of tableDefaultBin.entries()) {
+    if (bin.plant_id && bin.plant_id !== null) {
+      this.disabled(`table_default_bin.${index}.bin_location`, false);
+    }
+  }
+};
+
+const enabledDefaultUOM = async () => {
+  const basedUOM = this.getValue("based_uom");
+  const UOMConversion = this.getValue("table_uom_conversion");
+
+  if (
+    (!basedUOM || basedUOM === null) &&
+    (!UOMConversion || UOMConversion.length === 0)
+  ) {
+    this.disabled(["purchase_default_uom", "sales_default_uom"], true);
   }
 };
 
@@ -108,40 +205,33 @@ const showStatusHTML = async (status) => {
       case "Add":
         this.display(["active_status"]);
         await setPrefix(organizationId);
+        await checkAccIntegrationType(organizationId);
+
+        this.disabled(["purchase_default_uom", "sales_default_uom"], false);
         break;
 
       case "Edit":
-        const itemId = this.getValue("item_no");
-        await getPrefixData(organizationId);
+        showStatusHTML(activeStatus);
+        await enabledBatchManagement();
+        await enabledSerialNumberManagement();
+        this.triggerEvent("onChange_batch_management");
+        await checkAccIntegrationType(organizationId);
+        await enabledDefaultBin();
+        await enabledDefaultUOM();
+        this.disabled(
+          [
+            "material_type",
+            "material_code",
+            "material_name",
+            "item_category",
+            "material_costing_method",
+            "stock_control",
+            "based_uom",
+            "barcode_number",
+          ],
+          true
+        );
 
-        if (itemId) {
-          db.collection("Item")
-            .where({ id: itemId })
-            .get()
-            .then((resItem) => {
-              if (resItem.data && resItem.data.length > 0) {
-                const item = resItem.data[0];
-                this.setData(item);
-                showStatusHTML(item.is_active);
-
-                // Disable specific fields in Edit mode
-                this.disabled(
-                  [
-                    "material_type",
-                    "material_code",
-                    "material_name",
-                    "material_category",
-                    "material_sub_category",
-                    "material_costing_method",
-                    "stock_control",
-                    "based_uom",
-                  ],
-                  true
-                );
-                this.setData({ posted_status: 0 });
-              }
-            });
-        }
         break;
 
       case "Clone":
@@ -150,71 +240,11 @@ const showStatusHTML = async (status) => {
         break;
 
       case "View":
-        this.hide(["button_cancel", "button_save"]);
-
-        const itemIdView = this.getValue("item_no");
-
-        if (itemIdView) {
-          db.collection("Item")
-            .where({ id: itemIdView })
-            .get()
-            .then((resItem) => {
-              if (resItem.data && resItem.data.length > 0) {
-                const item = resItem.data[0];
-                this.setData(item);
-                showStatusHTML(item.is_active);
-
-                // Disable all fields in View mode
-                this.disabled(
-                  [
-                    "is_active",
-                    "imgupload_wk19nrhg",
-                    "material_type",
-                    "material_code",
-                    "material_name",
-                    "material_category",
-                    "material_sub_category",
-                    "material_desc",
-                    "material_costing_method",
-                    "stock_control",
-                    "show_delivery",
-                    "show_receiving",
-                    "based_uom",
-                    "table_uom_conversion",
-                    "purchase_tariff_id",
-                    "mat_purchase_currency_id",
-                    "mat_purchase_tax_id",
-                    "purchase_tax_percent",
-                    "purchase_unit_price",
-                    "sales_tariff_id",
-                    "mat_sales_tax_id",
-                    "sales_tax_percent",
-                    "mat_sales_currency_id",
-                    "sales_unit_price",
-                    "item_batch_management",
-                    "batch_number_genaration",
-                    "brand_id",
-                    "brand_artwork_id",
-                    "subform_packaging_remark",
-                    "reorder_level",
-                    "shelf",
-                    "lead_time",
-                    "assembly_cost",
-                    "bom_related",
-                    "reorder_quantity",
-                    "irbm_id",
-                    "production_time",
-                    "over_receive_tolerance",
-                    "under_receive_tolerance",
-                    "over_delivery_tolerance",
-                    "under_delivery_tolerance",
-                    "additional_remark",
-                  ],
-                  true
-                );
-              }
-            });
-        }
+        await enabledBatchManagement();
+        await enabledSerialNumberManagement();
+        this.triggerEvent("onChange_batch_management");
+        this.hide(["button_cancel", "button_save", "button_save_post"]);
+        showStatusHTML(activeStatus);
         break;
     }
   } catch (error) {
