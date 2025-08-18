@@ -19,8 +19,13 @@ const processData = async (
 ) => {
   for (const [rowIndex, gr] of tableGR.entries()) {
     const index = existingGR.length + rowIndex;
+    console.log(gr.item_id);
     // check item batch field
-    this.disabled(`table_gr.${index}.item_batch_no`, gr.item_batch_no !== "");
+    this.disabled(
+      `table_gr.${index}.item_batch_no`,
+      (gr.item_batch_no !== "" && gr.item_id !== "") ||
+        (!gr.item_id && gr.item_batch_no === "")
+    );
 
     // set inventory category option and default value
     if (gr.inspection_required === "No") {
@@ -94,8 +99,9 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
 (async () => {
   const referenceType = this.getValue(`dialog_select_item.reference_type`);
   const currentItemArray = this.getValue(`dialog_select_item.item_array`);
-  const existingGR = this.getValue("table_gr");
+  let existingGR = this.getValue("table_gr");
   const predefinedData = this.getValue("predefined_data");
+  const previousReferenceType = this.getValue("reference_type");
 
   const putawaySetupData = predefinedData[0].putawaySetup;
   const defaultBinLocationID = predefinedData[0].defaultBinLocation;
@@ -112,6 +118,24 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
     });
 
     return;
+  }
+
+  if (previousReferenceType && previousReferenceType !== referenceType) {
+    await this.$confirm(
+      `You've selected a different reference type than previously used. <br><br>Current Reference Type: ${referenceType} <br>Previous Reference Type: ${previousReferenceType} <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,
+      "Different Reference Type Detected",
+      {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "error",
+        dangerouslyUseHTMLString: true,
+      }
+    ).catch(() => {
+      console.log("User clicked Cancel or closed the dialog");
+      throw new Error();
+    });
+
+    existingGR = [];
   }
 
   const uniqueSuppliers = new Set(
@@ -142,21 +166,24 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
     case "Document":
       for (const po of currentItemArray) {
         for (const poItem of po.table_po) {
-          const itemData = await fetchItemData(poItem.item_id);
+          let itemData;
+          if (poItem.item_id) {
+            itemData = await fetchItemData(poItem.item_id);
+          }
 
           const newTableGrRecord = {
-            item_id: poItem.item_id,
+            item_id: poItem.item_id || null,
             item_name: poItem.item_name,
             item_desc: poItem.item_desc,
             more_desc: poItem.more_desc,
             ordered_qty: poItem.quantity,
-            ordered_qty_uom: poItem.quantity_uom,
+            ordered_qty_uom: poItem.quantity_uom || null,
             base_ordered_qty: poItem.quantity,
-            base_ordered_qty_uom: poItem.quantity_uom,
-            base_item_uom: poItem.quantity_uom,
-            base_received_qty_uom: poItem.quantity_uom,
+            base_ordered_qty_uom: poItem.quantity_uom || null,
+            base_item_uom: poItem.quantity_uom || null,
+            base_received_qty_uom: poItem.quantity_uom || null,
             inspection_required:
-              itemData.receiving_inspection === 1 ? "Yes" : "No",
+              itemData?.receiving_inspection === 1 ? "Yes" : "No",
             to_received_qty: 0.0,
             received_qty: parseFloat(
               (poItem.quantity - (poItem.received_qty || 0)).toFixed(3)
@@ -164,7 +191,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
             base_received_qty: parseFloat(
               (poItem.quantity - (poItem.received_qty || 0)).toFixed(3)
             ),
-            item_uom: poItem.quantity_uom,
+            item_uom: poItem.quantity_uom || null,
             location_id: defaultBinLocationID,
             item_batch_no:
               itemData?.item_batch_management === 0
@@ -181,14 +208,14 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
             line_po_id: po.purchase_order_id,
             unit_price: poItem.unit_price,
             total_price: poItem.po_amount,
-            item_costing_method: itemData.material_costing_method,
+            item_costing_method: itemData?.material_costing_method || null,
             line_remark_1: poItem.line_remark_1,
             line_remark_2: poItem.line_remark_2,
             po_line_item_id: poItem.id,
-            item_category_id: itemData.item_category,
+            item_category_id: itemData?.item_category || null,
           };
 
-          const isAltUOM = itemData.table_uom_conversion.find(
+          const isAltUOM = itemData?.table_uom_conversion?.find(
             (conv) => conv.alt_uom_id === poItem.quantity_uom
           );
 
@@ -218,15 +245,15 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
             }
 
             newTableGrRecord.base_ordered_qty = baseQty;
-            newTableGrRecord.base_ordered_qty_uom = itemData.based_uom;
-            newTableGrRecord.base_received_qty_uom = itemData.based_uom;
-            newTableGrRecord.base_item_uom = itemData.based_uom;
+            newTableGrRecord.base_ordered_qty_uom = itemData?.based_uom;
+            newTableGrRecord.base_received_qty_uom = itemData?.based_uom;
+            newTableGrRecord.base_item_uom = itemData?.based_uom;
             newTableGrRecord.base_received_qty = parseFloat(
               (baseQty - baseReceivedQty || 0).toFixed(3)
             );
           }
 
-          if (itemData.serial_number_management === 1) {
+          if (itemData?.serial_number_management === 1) {
             this.display("table_gr.select_serial_number");
             this.disabled("table_gr.received_qty", true);
             this.disabled("table_gr.base_received_qty", true);
@@ -241,18 +268,18 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
     case "Item":
       for (const poItem of currentItemArray) {
         const newTableGrRecord = {
-          item_id: poItem.item.id,
-          item_name: poItem.item.material_name,
+          item_id: poItem.item?.id || null,
+          item_name: poItem.item?.material_name,
           item_desc: poItem.item_desc,
           more_desc: poItem.more_desc,
           ordered_qty: poItem.ordered_qty,
-          ordered_qty_uom: poItem.item_uom,
+          ordered_qty_uom: poItem.item_uom || null,
           base_ordered_qty: poItem.ordered_qty,
-          base_ordered_qty_uom: poItem.item_uom,
-          base_item_uom: poItem.item_uom,
-          base_received_qty_uom: poItem.item_uom,
+          base_ordered_qty_uom: poItem.item_uom || null,
+          base_item_uom: poItem.item_uom || null,
+          base_received_qty_uom: poItem.item_uom || null,
           inspection_required:
-            poItem.item.receiving_inspection === 1 ? "Yes" : "No",
+            poItem.item?.receiving_inspection === 1 ? "Yes" : "No",
           to_received_qty: 0.0,
           received_qty: parseFloat(
             (poItem.ordered_qty - (poItem.received_qty || 0)).toFixed(3)
@@ -260,12 +287,12 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
           base_received_qty: parseFloat(
             (poItem.ordered_qty - (poItem.received_qty || 0)).toFixed(3)
           ),
-          item_uom: poItem.item_uom,
+          item_uom: poItem.item_uom || null,
           location_id: defaultBinLocationID,
           item_batch_no:
-            poItem.item.item_batch_management === 0
+            poItem.item?.item_batch_management === 0
               ? "-"
-              : poItem.item.batch_number_genaration ===
+              : poItem.item?.batch_number_genaration ===
                 "According To System Settings"
               ? "Auto-generated batch number"
               : "",
@@ -277,11 +304,11 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
           line_po_id: poItem.purchase_order.id,
           unit_price: poItem.unit_price,
           total_price: poItem.total_price,
-          item_costing_method: poItem.item.material_costing_method,
+          item_costing_method: poItem.item?.material_costing_method || null,
           line_remark_1: poItem.line_remark_1,
           line_remark_2: poItem.line_remark_2,
           po_line_item_id: poItem.purchase_order_line_id,
-          item_category_id: poItem.item.item_category,
+          item_category_id: poItem.item?.item_category || null,
         };
 
         console.log("poItem.item", poItem.item);
@@ -290,7 +317,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
         const poItemAltUOM = JSON.parse(poItem.alt_uom);
         console.log("poItemAltUOM", poItemAltUOM);
 
-        const isAltUOM = poItemAltUOM.find(
+        const isAltUOM = poItemAltUOM?.find(
           (conv) => conv.alt_uom_id === poItem.item_uom
         );
 
@@ -328,7 +355,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
           );
         }
 
-        if (poItem.item.serial_number_management === 1) {
+        if (poItem.item?.serial_number_management === 1) {
           this.display("table_gr.select_serial_number");
           this.disabled("table_gr.received_qty", true);
           this.disabled("table_gr.base_received_qty", true);
@@ -367,6 +394,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
     table_gr: [...existingGR, ...tableGR],
     purchase_order_number: purchaseOrderNumber.join(", "),
     po_id: poId,
+    reference_type: referenceType,
   });
 
   setTimeout(async () => {
