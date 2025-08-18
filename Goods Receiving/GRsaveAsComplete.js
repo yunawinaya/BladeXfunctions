@@ -911,6 +911,405 @@ const addInventory = async (
     }
   };
 
+  const addSerialNumberInventory = async (
+    data,
+    item,
+    inventoryMovementId,
+    organizationId,
+    plantId
+  ) => {
+    try {
+      console.log(
+        `Processing serial number inventory for item ${item.item_id}`
+      );
+
+      // Parse the serial number data
+      if (!item.serial_number_data) {
+        console.log(`No serial number data found for item ${item.item_id}`);
+        return;
+      }
+
+      let serialNumberData;
+      try {
+        serialNumberData = JSON.parse(item.serial_number_data);
+      } catch (parseError) {
+        console.error(
+          `Error parsing serial number data for item ${item.item_id}:`,
+          parseError
+        );
+        return;
+      }
+
+      const tableSerialNumber = serialNumberData.table_serial_number || [];
+      const serialQuantity = serialNumberData.serial_number_qty || 0;
+      const isAuto = serialNumberData.is_auto;
+
+      // Get item data for UOM and other details
+      const itemRes = await db
+        .collection("Item")
+        .where({ id: item.item_id })
+        .get();
+      if (!itemRes.data || !itemRes.data.length) {
+        console.error(`Item not found: ${item.item_id}`);
+        return;
+      }
+      const itemData = itemRes.data[0];
+
+      // Get UOM details
+      let altQty = roundQty(parseFloat(item.received_qty));
+      let baseQty = altQty;
+      let altUOM = item.item_uom;
+      let baseUOM = itemData.based_uom;
+
+      // UOM Conversion
+      if (
+        Array.isArray(itemData.table_uom_conversion) &&
+        itemData.table_uom_conversion.length > 0
+      ) {
+        const uomConversion = itemData.table_uom_conversion.find(
+          (conv) => conv.alt_uom_id === altUOM
+        );
+
+        if (uomConversion) {
+          baseQty = roundQty(altQty * uomConversion.base_qty);
+          console.log(
+            `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM} for serial processing`
+          );
+        }
+      }
+
+      // Calculate base quantity per serial number
+      const baseQtyPerSerial =
+        serialQuantity > 0 ? baseQty / serialQuantity : 0;
+
+      // Get batch_id if item has batch
+      let batchId = null;
+      if (item.item_batch_no && item.item_batch_no !== "-") {
+        try {
+          const batchResponse = await db
+            .collection("batch")
+            .where({
+              batch_number: item.item_batch_no,
+              material_id: item.item_id,
+              organization_id: organizationId,
+            })
+            .get();
+
+          if (batchResponse.data && batchResponse.data.length > 0) {
+            batchId = batchResponse.data[0].id;
+            console.log(
+              `Found batch_id: ${batchId} for batch number: ${item.item_batch_no}`
+            );
+          }
+        } catch (batchError) {
+          console.warn(
+            `Could not find batch_id for batch number: ${item.item_batch_no}`,
+            batchError
+          );
+        }
+      }
+
+      // Prepare arrays for batch operations
+      const serialRecordsToInsert = [];
+      const invSerialMovementRecordsToInsert = [];
+      const serialBalanceRecordsToInsert = [];
+      const updatedTableSerialNumber = [];
+      let generatedCount = 0;
+      let currentRunningNumber = null;
+      let serialPrefix = "";
+
+      // Get serial configuration if auto-generation is needed
+      if (isAuto === 1) {
+        const needsGeneration = tableSerialNumber.some(
+          (serial) =>
+            serial.system_serial_number === "Auto generated serial number"
+        );
+
+        if (needsGeneration) {
+          const resSerialConfig = await db
+            .collection("serial_level_config")
+            .where({ organization_id: organizationId })
+            .get();
+
+          if (
+            !resSerialConfig ||
+            !resSerialConfig.data ||
+            resSerialConfig.data.length === 0
+          ) {
+            console.error(
+              `No serial configuration found for organization: ${organizationId}`
+            );
+            throw new Error(
+              `Serial number configuration not found for organization ${organizationId}`
+            );
+          }
+
+          const serialConfigData = resSerialConfig.data[0];
+          currentRunningNumber = serialConfigData.serial_running_number;
+          serialPrefix = serialConfigData.serial_prefix
+            ? `${serialConfigData.serial_prefix}-`
+            : "";
+        }
+      }
+
+      // Setup inventory category quantities for serial balance
+      let block_qty = 0,
+        reserved_qty = 0,
+        unrestricted_qty = 0,
+        qualityinsp_qty = 0,
+        intransit_qty = 0;
+
+      if (item.inv_category === "Blocked") {
+        block_qty = baseQtyPerSerial;
+      } else if (item.inv_category === "Reserved") {
+        reserved_qty = baseQtyPerSerial;
+      } else if (item.inv_category === "Unrestricted") {
+        unrestricted_qty = baseQtyPerSerial;
+      } else if (item.inv_category === "Quality Inspection") {
+        qualityinsp_qty = baseQtyPerSerial;
+      } else if (item.inv_category === "In Transit") {
+        intransit_qty = baseQtyPerSerial;
+      } else {
+        unrestricted_qty = baseQtyPerSerial;
+      }
+
+      const balance_quantity =
+        block_qty +
+        reserved_qty +
+        unrestricted_qty +
+        qualityinsp_qty +
+        intransit_qty;
+
+      // Process all serial numbers and prepare batch insert data
+      for (const serialItem of tableSerialNumber) {
+        let finalSystemSerialNumber = serialItem.system_serial_number;
+
+        // Generate new serial number if needed
+        if (finalSystemSerialNumber === "Auto generated serial number") {
+          finalSystemSerialNumber =
+            serialPrefix +
+            String(currentRunningNumber + generatedCount).padStart(10, "0");
+          generatedCount++;
+          console.log(
+            `Generated serial number: ${finalSystemSerialNumber} for item ${item.item_id}`
+          );
+        }
+
+        // Update the table data
+        updatedTableSerialNumber.push({
+          ...serialItem,
+          system_serial_number: finalSystemSerialNumber,
+        });
+
+        // Prepare database records (only if we have a valid serial number)
+        if (
+          finalSystemSerialNumber &&
+          finalSystemSerialNumber !== "" &&
+          finalSystemSerialNumber !== "Auto generated serial number"
+        ) {
+          // 1. Prepare serial_number record
+          const serialNumberRecord = {
+            system_serial_number: finalSystemSerialNumber,
+            supplier_serial_number: serialItem.supplier_serial_number || "",
+            material_id: item.item_id,
+            batch_id: batchId,
+            bin_location: item.location_id,
+            plant_id: plantId,
+            organization_id: organizationId,
+            transaction_no: data.gr_no,
+            parent_trx_no: item.line_po_no || "",
+          };
+
+          serialRecordsToInsert.push(serialNumberRecord);
+
+          // 2. Prepare inv_serial_movement record
+          const invSerialMovementRecord = {
+            inventory_movement_id: inventoryMovementId,
+            serial_number: finalSystemSerialNumber,
+            batch_id: batchId,
+            base_qty: roundQty(baseQtyPerSerial),
+            base_uom: baseUOM,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+
+          invSerialMovementRecordsToInsert.push(invSerialMovementRecord);
+
+          // 3. Prepare item_serial_balance record
+          const serialBalanceRecord = {
+            material_id: item.item_id,
+            material_uom: baseUOM,
+            serial_number: finalSystemSerialNumber,
+            batch_id: batchId,
+            plant_id: plantId,
+            bin_location_id: item.location_id,
+            unrestricted_qty: roundQty(unrestricted_qty),
+            block_qty: roundQty(block_qty),
+            reserved_qty: roundQty(reserved_qty),
+            qualityinsp_qty: roundQty(qualityinsp_qty),
+            intransit_qty: roundQty(intransit_qty),
+            balance_quantity: roundQty(balance_quantity),
+            organization_id: organizationId,
+          };
+
+          serialBalanceRecordsToInsert.push(serialBalanceRecord);
+        }
+      }
+
+      // Batch insert all serial number records
+      if (serialRecordsToInsert.length > 0) {
+        try {
+          console.log(
+            `Batch inserting ${serialRecordsToInsert.length} serial number records for item ${item.item_id}`
+          );
+          await db.collection("serial_number").batchAdd(serialRecordsToInsert);
+          console.log(
+            `Successfully batch inserted ${serialRecordsToInsert.length} serial number records`
+          );
+        } catch (batchError) {
+          console.error(
+            `Error in batch insert of serial number records:`,
+            batchError
+          );
+
+          // Fallback: try inserting one by one
+          console.log("Falling back to individual serial number inserts...");
+          for (const record of serialRecordsToInsert) {
+            try {
+              await db.collection("serial_number").add(record);
+            } catch (individualError) {
+              console.error(
+                `Failed to insert serial number ${record.system_serial_number}:`,
+                individualError
+              );
+            }
+          }
+        }
+      }
+
+      // Batch insert all inventory serial movement records
+      if (invSerialMovementRecordsToInsert.length > 0) {
+        try {
+          console.log(
+            `Batch inserting ${invSerialMovementRecordsToInsert.length} inventory serial movement records for item ${item.item_id}`
+          );
+          await db
+            .collection("inv_serial_movement")
+            .batchAdd(invSerialMovementRecordsToInsert);
+          console.log(
+            `Successfully batch inserted ${invSerialMovementRecordsToInsert.length} inventory serial movement records`
+          );
+        } catch (batchError) {
+          console.error(
+            `Error in batch insert of inventory serial movement records:`,
+            batchError
+          );
+
+          // Fallback: try inserting one by one
+          console.log(
+            "Falling back to individual inventory serial movement inserts..."
+          );
+          for (const record of invSerialMovementRecordsToInsert) {
+            try {
+              await db.collection("inv_serial_movement").add(record);
+            } catch (individualError) {
+              console.error(
+                `Failed to insert inventory serial movement for ${record.serial_number}:`,
+                individualError
+              );
+            }
+          }
+        }
+      }
+
+      // Batch insert all serial balance records
+      if (serialBalanceRecordsToInsert.length > 0) {
+        try {
+          console.log(
+            `Batch inserting ${serialBalanceRecordsToInsert.length} serial balance records for item ${item.item_id}`
+          );
+          await db
+            .collection("item_serial_balance")
+            .batchAdd(serialBalanceRecordsToInsert);
+          console.log(
+            `Successfully batch inserted ${serialBalanceRecordsToInsert.length} serial balance records`
+          );
+        } catch (batchError) {
+          console.error(
+            `Error in batch insert of serial balance records:`,
+            batchError
+          );
+
+          // Fallback: try inserting one by one
+          console.log("Falling back to individual serial balance inserts...");
+          for (const record of serialBalanceRecordsToInsert) {
+            try {
+              await db.collection("item_serial_balance").add(record);
+            } catch (individualError) {
+              console.error(
+                `Failed to insert serial balance for ${record.serial_number}:`,
+                individualError
+              );
+            }
+          }
+        }
+      }
+
+      // Update the serial configuration running number (only if we generated new numbers)
+      if (generatedCount > 0 && currentRunningNumber !== null) {
+        try {
+          await db
+            .collection("serial_level_config")
+            .where({ organization_id: organizationId })
+            .update({
+              serial_running_number: currentRunningNumber + generatedCount,
+            });
+
+          console.log(
+            `Updated serial running number to ${
+              currentRunningNumber + generatedCount
+            } after generating ${generatedCount} serial numbers`
+          );
+        } catch (configUpdateError) {
+          console.error(
+            `Error updating serial configuration:`,
+            configUpdateError
+          );
+          // Don't throw here as the serial numbers are already created
+        }
+      }
+
+      // Update the item's serial number data in the main data structure
+      const updatedSerialNumberData = {
+        ...serialNumberData,
+        table_serial_number: updatedTableSerialNumber,
+      };
+
+      // Update the item in data.table_gr
+      const itemIndex = data.table_gr.findIndex((grItem) => grItem === item);
+      if (itemIndex !== -1) {
+        data.table_gr[itemIndex].serial_number_data = JSON.stringify(
+          updatedSerialNumberData
+        );
+      }
+
+      console.log(`Successfully processed serial number inventory for item ${item.item_id}: 
+        - Generated ${generatedCount} new serial numbers
+        - Total processed: ${updatedTableSerialNumber.length} serial numbers
+        - Batch inserted: ${serialRecordsToInsert.length} serial_number records
+        - Batch inserted: ${invSerialMovementRecordsToInsert.length} inv_serial_movement records
+        - Batch inserted: ${serialBalanceRecordsToInsert.length} item_serial_balance records`);
+    } catch (error) {
+      console.error(
+        `Error processing serial number inventory for item ${item.item_id}:`,
+        error
+      );
+      throw new Error(
+        `Failed to process serial number inventory for item ${item.item_id}: ${error.message}`
+      );
+    }
+  };
+
   const unitPriceArray = [];
   const totalPriceArray = [];
 
@@ -1033,6 +1432,38 @@ const addInventory = async (
 
       await db.collection("inventory_movement").add(inventoryMovementData);
 
+      if (item.is_serialized_item === 1 && item.is_serial_allocated === 1) {
+        const inventoryMovementId = await db
+          .collection("inventory_movement")
+          .where({
+            transaction_type: "GRN",
+            trx_no: data.gr_no,
+            parent_trx_no: item.line_po_no,
+            movement: "IN",
+            item_id: item.item_id,
+            plant_id: plantId,
+            organization_id: organizationId,
+            bin_location_id: item.location_id,
+            base_qty: roundQty(baseQty),
+          })
+          .get()
+          .then((res) => {
+            return res.data[0].id;
+          });
+
+        await addSerialNumberInventory(
+          data,
+          item,
+          inventoryMovementId,
+          organizationId,
+          plantId
+        );
+
+        console.log(
+          `Created inventory movement with ID: ${inventoryMovementId} for item ${item.item_id}`
+        );
+      }
+
       await updateOnOrderPurchaseOrder(
         item,
         baseQty,
@@ -1068,6 +1499,9 @@ const addInventory = async (
       } else {
         unrestricted_qty = receivedQty;
       }
+
+      const isSerializedItem =
+        item.is_serialized_item === 1 && item.is_serial_allocated === 1;
 
       let batchId = null;
 
@@ -1111,115 +1545,9 @@ const addInventory = async (
 
           batchId = batchResult[0].id;
 
-          // Create new balance record
-          balance_quantity =
-            block_qty +
-            reserved_qty +
-            unrestricted_qty +
-            qualityinsp_qty +
-            intransit_qty;
-
-          const newBalanceData = {
-            material_id: item.item_id,
-            location_id: item.location_id,
-            batch_id: batchId,
-            block_qty: block_qty,
-            reserved_qty: reserved_qty,
-            unrestricted_qty: unrestricted_qty,
-            qualityinsp_qty: qualityinsp_qty,
-            intransit_qty: intransit_qty,
-            balance_quantity: balance_quantity,
-            plant_id: plantId,
-            organization_id: organizationId,
-          };
-
-          await db.collection("item_batch_balance").add(newBalanceData);
-          console.log("Successfully added item_batch_balance record");
-
-          if (costingMethod === "First In First Out") {
-            await processFifoForBatch(item, baseQty, batchId);
-          } else if (costingMethod === "Weighted Average") {
-            await processWeightedAverageForBatch(item, baseQty, batchId);
-          }
-
-          console.log(
-            `Successfully completed processing for batch item ${item.item_id}`
-          );
-        } catch (error) {
-          console.error(`Error in batch processing: ${error.message}`);
-          continue;
-        }
-      } else {
-        // Non-batch item processing with async/await
-        try {
-          // Get current item balance records
-          const balanceResponse = await db
-            .collection("item_balance")
-            .where(itemBalanceParams)
-            .get();
-
-          const hasExistingBalance =
-            balanceResponse.data &&
-            Array.isArray(balanceResponse.data) &&
-            balanceResponse.data.length > 0;
-
-          console.log(
-            `Item ${item.item_id}: Found existing balance: ${hasExistingBalance}`
-          );
-
-          const existingDoc = hasExistingBalance
-            ? balanceResponse.data[0]
-            : null;
-
-          let balance_quantity;
-
-          if (existingDoc && existingDoc.id) {
-            // Update existing balance
-            console.log(
-              `Updating existing balance for item ${item.item_id} at location ${item.location_id}`
-            );
-
-            const updatedBlockQty = roundQty(
-              parseFloat(existingDoc.block_qty || 0) + block_qty
-            );
-            const updatedReservedQty = roundQty(
-              parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
-            );
-            const updatedUnrestrictedQty = roundQty(
-              parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
-            );
-            const updatedQualityInspQty = roundQty(
-              parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
-            );
-            const updatedIntransitQty = roundQty(
-              parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
-            );
-
-            balance_quantity =
-              updatedBlockQty +
-              updatedReservedQty +
-              updatedUnrestrictedQty +
-              updatedQualityInspQty +
-              updatedIntransitQty;
-
-            await db.collection("item_balance").doc(existingDoc.id).update({
-              block_qty: updatedBlockQty,
-              reserved_qty: updatedReservedQty,
-              unrestricted_qty: updatedUnrestrictedQty,
-              qualityinsp_qty: updatedQualityInspQty,
-              intransit_qty: updatedIntransitQty,
-              balance_quantity: balance_quantity,
-            });
-
-            console.log(
-              `Updated balance for item ${item.item_id}: ${balance_quantity}`
-            );
-          } else {
+          // Only create item_batch_balance for NON-serialized items
+          if (!isSerializedItem) {
             // Create new balance record
-            console.log(
-              `Creating new balance for item ${item.item_id} at location ${item.location_id}`
-            );
-
             balance_quantity =
               block_qty +
               reserved_qty +
@@ -1230,6 +1558,7 @@ const addInventory = async (
             const newBalanceData = {
               material_id: item.item_id,
               location_id: item.location_id,
+              batch_id: batchId,
               block_qty: block_qty,
               reserved_qty: reserved_qty,
               unrestricted_qty: unrestricted_qty,
@@ -1240,20 +1569,146 @@ const addInventory = async (
               organization_id: organizationId,
             };
 
-            await db.collection("item_balance").add(newBalanceData);
+            await db.collection("item_batch_balance").add(newBalanceData);
             console.log(
-              `Created new balance for item ${item.item_id}: ${balance_quantity}`
+              "Successfully added item_batch_balance record for non-serialized item"
+            );
+          } else {
+            console.log(
+              "Skipped item_batch_balance creation for serialized item"
             );
           }
 
-          // Process costing method
+          // Always process costing methods (FIFO/WA) regardless of serialization
+          if (costingMethod === "First In First Out") {
+            await processFifoForBatch(item, baseQty, batchId);
+          } else if (costingMethod === "Weighted Average") {
+            await processWeightedAverageForBatch(item, baseQty, batchId);
+          }
+
+          console.log(
+            `Successfully completed processing for batch item ${item.item_id}${
+              isSerializedItem ? " (serialized)" : ""
+            }`
+          );
+        } catch (error) {
+          console.error(`Error in batch processing: ${error.message}`);
+          continue;
+        }
+      } else {
+        // Non-batch item processing with async/await
+        try {
+          // Only process item_balance for NON-serialized items
+          if (!isSerializedItem) {
+            // Get current item balance records
+            const balanceResponse = await db
+              .collection("item_balance")
+              .where(itemBalanceParams)
+              .get();
+
+            const hasExistingBalance =
+              balanceResponse.data &&
+              Array.isArray(balanceResponse.data) &&
+              balanceResponse.data.length > 0;
+
+            console.log(
+              `Item ${item.item_id}: Found existing balance: ${hasExistingBalance}`
+            );
+
+            const existingDoc = hasExistingBalance
+              ? balanceResponse.data[0]
+              : null;
+
+            let balance_quantity;
+
+            if (existingDoc && existingDoc.id) {
+              // Update existing balance
+              console.log(
+                `Updating existing balance for item ${item.item_id} at location ${item.location_id}`
+              );
+
+              const updatedBlockQty = roundQty(
+                parseFloat(existingDoc.block_qty || 0) + block_qty
+              );
+              const updatedReservedQty = roundQty(
+                parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
+              );
+              const updatedUnrestrictedQty = roundQty(
+                parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
+              );
+              const updatedQualityInspQty = roundQty(
+                parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
+              );
+              const updatedIntransitQty = roundQty(
+                parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
+              );
+
+              balance_quantity =
+                updatedBlockQty +
+                updatedReservedQty +
+                updatedUnrestrictedQty +
+                updatedQualityInspQty +
+                updatedIntransitQty;
+
+              await db.collection("item_balance").doc(existingDoc.id).update({
+                block_qty: updatedBlockQty,
+                reserved_qty: updatedReservedQty,
+                unrestricted_qty: updatedUnrestrictedQty,
+                qualityinsp_qty: updatedQualityInspQty,
+                intransit_qty: updatedIntransitQty,
+                balance_quantity: balance_quantity,
+              });
+
+              console.log(
+                `Updated balance for item ${item.item_id}: ${balance_quantity}`
+              );
+            } else {
+              // Create new balance record
+              console.log(
+                `Creating new balance for item ${item.item_id} at location ${item.location_id}`
+              );
+
+              balance_quantity =
+                block_qty +
+                reserved_qty +
+                unrestricted_qty +
+                qualityinsp_qty +
+                intransit_qty;
+
+              const newBalanceData = {
+                material_id: item.item_id,
+                location_id: item.location_id,
+                block_qty: block_qty,
+                reserved_qty: reserved_qty,
+                unrestricted_qty: unrestricted_qty,
+                qualityinsp_qty: qualityinsp_qty,
+                intransit_qty: intransit_qty,
+                balance_quantity: balance_quantity,
+                plant_id: plantId,
+                organization_id: organizationId,
+              };
+
+              await db.collection("item_balance").add(newBalanceData);
+              console.log(
+                `Created new balance for item ${item.item_id}: ${balance_quantity}`
+              );
+            }
+          } else {
+            console.log("Skipped item_balance creation for serialized item");
+          }
+
+          // Always process costing methods (FIFO/WA) regardless of serialization
           if (costingMethod === "First In First Out") {
             await processFifoForNonBatch(item, baseQty);
           } else if (costingMethod === "Weighted Average") {
             await processWeightedAverageForNonBatch(item, baseQty);
           }
 
-          console.log(`Successfully processed non-batch item ${item.item_id}`);
+          console.log(
+            `Successfully processed non-batch item ${item.item_id}${
+              isSerializedItem ? " (serialized)" : ""
+            }`
+          );
         } catch (nonBatchError) {
           console.error(
             `Error processing non-batch item: ${nonBatchError.message}`
@@ -1755,18 +2210,7 @@ const addEntry = async (organizationId, entry, putAwaySetupData) => {
 
     const processedTableGr = [];
     for (const item of entry.table_gr) {
-      let processedItem = await processRow(item, organizationId);
-
-      if (
-        processedItem.is_serialized_item === 1 &&
-        processedItem.is_serial_allocated === 1
-      ) {
-        processedItem = await processSerialNumber(
-          processedItem,
-          organizationId
-        );
-      }
-
+      const processedItem = await processRow(item, organizationId);
       processedTableGr.push(processedItem);
     }
     entry.table_gr = processedTableGr;
@@ -1842,142 +2286,6 @@ const processRow = async (item, organizationId) => {
   }
 };
 
-const processSerialNumber = async (item, organizationId) => {
-  try {
-    // Parse the serial number data
-    if (!item.serial_number_data) {
-      console.log(`No serial number data found for item ${item.item_id}`);
-      return item;
-    }
-
-    let serialNumberData;
-    try {
-      serialNumberData = JSON.parse(item.serial_number_data);
-    } catch (parseError) {
-      console.error(
-        `Error parsing serial number data for item ${item.item_id}:`,
-        parseError
-      );
-      return item;
-    }
-
-    const tableSerialNumber = serialNumberData.table_serial_number || [];
-    const isAuto = serialNumberData.is_auto;
-
-    // If not auto-generated, return as is
-    if (isAuto !== 1) {
-      console.log(
-        `Item ${item.item_id} is not set to auto-generate serial numbers`
-      );
-      return item;
-    }
-
-    // Check if we need to generate serial numbers
-    const needsGeneration = tableSerialNumber.some(
-      (serial) => serial.system_serial_number === "Auto generated serial number"
-    );
-
-    if (!needsGeneration) {
-      console.log(`Item ${item.item_id} serial numbers already generated`);
-      return item;
-    }
-
-    // Get serial level configuration
-    const resSerialConfig = await db
-      .collection("serial_level_config")
-      .where({ organization_id: organizationId })
-      .get();
-
-    if (
-      !resSerialConfig ||
-      !resSerialConfig.data ||
-      resSerialConfig.data.length === 0
-    ) {
-      console.error(
-        `No serial configuration found for organization: ${organizationId}`
-      );
-      throw new Error(
-        `Serial number configuration not found for organization ${organizationId}`
-      );
-    }
-
-    const serialConfigData = resSerialConfig.data[0];
-    let currentRunningNumber = serialConfigData.serial_running_number;
-
-    const serialPrefix = serialConfigData.serial_prefix
-      ? `${serialConfigData.serial_prefix}-`
-      : "";
-
-    // Generate serial numbers for items that need them
-    const updatedTableSerialNumber = [];
-    let generatedCount = 0;
-
-    for (const serialItem of tableSerialNumber) {
-      if (serialItem.system_serial_number === "Auto generated serial number") {
-        // Generate new serial number
-        const generatedSerialNo =
-          serialPrefix +
-          String(currentRunningNumber + generatedCount).padStart(10, "0");
-
-        updatedTableSerialNumber.push({
-          ...serialItem,
-          system_serial_number: generatedSerialNo,
-        });
-
-        generatedCount++;
-        console.log(
-          `Generated serial number: ${generatedSerialNo} for item ${item.item_id}`
-        );
-      } else {
-        // Keep existing serial number
-        updatedTableSerialNumber.push(serialItem);
-      }
-    }
-
-    // Update the serial configuration running number
-    if (generatedCount > 0) {
-      await db
-        .collection("serial_level_config")
-        .where({ id: serialConfigData.id })
-        .update({
-          serial_running_number: currentRunningNumber + generatedCount,
-        });
-
-      console.log(
-        `Updated serial running number to ${
-          currentRunningNumber + generatedCount
-        } after generating ${generatedCount} serial numbers`
-      );
-    }
-
-    // Update the serial number data
-    const updatedSerialNumberData = {
-      ...serialNumberData,
-      table_serial_number: updatedTableSerialNumber,
-    };
-
-    // Update the item with new serial number data
-    const updatedItem = {
-      ...item,
-      serial_number_data: JSON.stringify(updatedSerialNumberData),
-    };
-
-    console.log(
-      `Successfully processed serial numbers for item ${item.item_id}: generated ${generatedCount} new serial numbers`
-    );
-
-    return updatedItem;
-  } catch (error) {
-    console.error(
-      `Error processing serial numbers for item ${item.item_id}:`,
-      error
-    );
-    throw new Error(
-      `Failed to process serial numbers for item ${item.item_id}: ${error.message}`
-    );
-  }
-};
-
 const findFieldMessage = (obj) => {
   // Base case: if current object has the structure we want
   if (obj && typeof obj === "object") {
@@ -2027,18 +2335,7 @@ const updateEntry = async (
 
     const processedTableGr = [];
     for (const item of entry.table_gr) {
-      let processedItem = await processRow(item, organizationId);
-
-      if (
-        processedItem.is_serialized_item === 1 &&
-        processedItem.is_serial_allocated === 1
-      ) {
-        processedItem = await processSerialNumber(
-          processedItem,
-          organizationId
-        );
-      }
-
+      const processedItem = await processRow(item, organizationId);
       processedTableGr.push(processedItem);
     }
     entry.table_gr = processedTableGr;
