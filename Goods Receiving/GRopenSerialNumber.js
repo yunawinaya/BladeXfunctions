@@ -20,6 +20,11 @@
       return;
     }
 
+    if (lineItemData.is_serialized_item === 0) {
+      this.$message.error("Item is not a serialized item");
+      return;
+    }
+
     console.log("Processing line item data:", lineItemData);
 
     // Extract and validate required fields

@@ -740,7 +740,6 @@ const addInventory = async (
         insp_lot_created_on: new Date().toISOString().split("T")[0],
         plant_id: data.plant_id,
         organization_id: data.organization_id,
-        lot_created_by: data.gr_received_by,
         inspector_name: this.getVarGlobal("nickname"),
         receiving_insp_status: "Created",
         inspection_pass_fail: "0 / 0",
@@ -769,7 +768,7 @@ const addInventory = async (
       };
 
       await db.collection("basic_inspection_lot").add(inspectionData);
-    } catch (error) {
+    } catch {
       throw new Error("Error creating inspection lot.");
     }
   };
@@ -907,7 +906,7 @@ const addInventory = async (
           }
         );
       }
-    } catch (error) {
+    } catch {
       throw new Error("Error creating putaway.");
     }
   };
@@ -1445,8 +1444,10 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
         for (const po of updatedPoItems) {
           if (po.received_qty > 0) {
             partiallyReceivedItems++;
+            po.line_status = "Processing";
             if (po.received_qty >= po.quantity) {
               fullyReceivedItems++;
+              po.line_status = "Completed";
             }
           }
         }
@@ -1583,7 +1584,7 @@ const validateForm = (data, requiredFields) => {
 
     // Handle non-array fields (unchanged)
     if (!field.isArray) {
-      if (validateField(value, field)) {
+      if (validateField(value)) {
         missingFields.push(field.label);
       }
       return;
@@ -1605,7 +1606,7 @@ const validateForm = (data, requiredFields) => {
       value.forEach((item, index) => {
         field.arrayFields.forEach((subField) => {
           const subValue = item[subField.name];
-          if (validateField(subValue, subField)) {
+          if (validateField(subValue)) {
             missingFields.push(
               `${subField.label} (in ${field.label} #${index + 1})`
             );
@@ -1618,7 +1619,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, field) => {
+const validateField = (value) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (Array.isArray(value)) return value.length === 0;
@@ -1754,7 +1755,18 @@ const addEntry = async (organizationId, entry, putAwaySetupData) => {
 
     const processedTableGr = [];
     for (const item of entry.table_gr) {
-      const processedItem = await processRow(item, organizationId);
+      let processedItem = await processRow(item, organizationId);
+
+      if (
+        processedItem.is_serialized_item === 1 &&
+        processedItem.is_serial_allocated === 1
+      ) {
+        processedItem = await processSerialNumber(
+          processedItem,
+          organizationId
+        );
+      }
+
       processedTableGr.push(processedItem);
     }
     entry.table_gr = processedTableGr;
@@ -1830,6 +1842,142 @@ const processRow = async (item, organizationId) => {
   }
 };
 
+const processSerialNumber = async (item, organizationId) => {
+  try {
+    // Parse the serial number data
+    if (!item.serial_number_data) {
+      console.log(`No serial number data found for item ${item.item_id}`);
+      return item;
+    }
+
+    let serialNumberData;
+    try {
+      serialNumberData = JSON.parse(item.serial_number_data);
+    } catch (parseError) {
+      console.error(
+        `Error parsing serial number data for item ${item.item_id}:`,
+        parseError
+      );
+      return item;
+    }
+
+    const tableSerialNumber = serialNumberData.table_serial_number || [];
+    const isAuto = serialNumberData.is_auto;
+
+    // If not auto-generated, return as is
+    if (isAuto !== 1) {
+      console.log(
+        `Item ${item.item_id} is not set to auto-generate serial numbers`
+      );
+      return item;
+    }
+
+    // Check if we need to generate serial numbers
+    const needsGeneration = tableSerialNumber.some(
+      (serial) => serial.system_serial_number === "Auto generated serial number"
+    );
+
+    if (!needsGeneration) {
+      console.log(`Item ${item.item_id} serial numbers already generated`);
+      return item;
+    }
+
+    // Get serial level configuration
+    const resSerialConfig = await db
+      .collection("serial_level_config")
+      .where({ organization_id: organizationId })
+      .get();
+
+    if (
+      !resSerialConfig ||
+      !resSerialConfig.data ||
+      resSerialConfig.data.length === 0
+    ) {
+      console.error(
+        `No serial configuration found for organization: ${organizationId}`
+      );
+      throw new Error(
+        `Serial number configuration not found for organization ${organizationId}`
+      );
+    }
+
+    const serialConfigData = resSerialConfig.data[0];
+    let currentRunningNumber = serialConfigData.serial_running_number;
+
+    const serialPrefix = serialConfigData.serial_prefix
+      ? `${serialConfigData.serial_prefix}-`
+      : "";
+
+    // Generate serial numbers for items that need them
+    const updatedTableSerialNumber = [];
+    let generatedCount = 0;
+
+    for (const serialItem of tableSerialNumber) {
+      if (serialItem.system_serial_number === "Auto generated serial number") {
+        // Generate new serial number
+        const generatedSerialNo =
+          serialPrefix +
+          String(currentRunningNumber + generatedCount).padStart(10, "0");
+
+        updatedTableSerialNumber.push({
+          ...serialItem,
+          system_serial_number: generatedSerialNo,
+        });
+
+        generatedCount++;
+        console.log(
+          `Generated serial number: ${generatedSerialNo} for item ${item.item_id}`
+        );
+      } else {
+        // Keep existing serial number
+        updatedTableSerialNumber.push(serialItem);
+      }
+    }
+
+    // Update the serial configuration running number
+    if (generatedCount > 0) {
+      await db
+        .collection("serial_level_config")
+        .where({ id: serialConfigData.id })
+        .update({
+          serial_running_number: currentRunningNumber + generatedCount,
+        });
+
+      console.log(
+        `Updated serial running number to ${
+          currentRunningNumber + generatedCount
+        } after generating ${generatedCount} serial numbers`
+      );
+    }
+
+    // Update the serial number data
+    const updatedSerialNumberData = {
+      ...serialNumberData,
+      table_serial_number: updatedTableSerialNumber,
+    };
+
+    // Update the item with new serial number data
+    const updatedItem = {
+      ...item,
+      serial_number_data: JSON.stringify(updatedSerialNumberData),
+    };
+
+    console.log(
+      `Successfully processed serial numbers for item ${item.item_id}: generated ${generatedCount} new serial numbers`
+    );
+
+    return updatedItem;
+  } catch (error) {
+    console.error(
+      `Error processing serial numbers for item ${item.item_id}:`,
+      error
+    );
+    throw new Error(
+      `Failed to process serial numbers for item ${item.item_id}: ${error.message}`
+    );
+  }
+};
+
 const findFieldMessage = (obj) => {
   // Base case: if current object has the structure we want
   if (obj && typeof obj === "object") {
@@ -1879,7 +2027,18 @@ const updateEntry = async (
 
     const processedTableGr = [];
     for (const item of entry.table_gr) {
-      const processedItem = await processRow(item, organizationId);
+      let processedItem = await processRow(item, organizationId);
+
+      if (
+        processedItem.is_serialized_item === 1 &&
+        processedItem.is_serial_allocated === 1
+      ) {
+        processedItem = await processSerialNumber(
+          processedItem,
+          organizationId
+        );
+      }
+
       processedTableGr.push(processedItem);
     }
     entry.table_gr = processedTableGr;
@@ -1981,11 +2140,56 @@ const fillbackHeaderFields = async (entry) => {
   try {
     for (const [index, grLineItem] of entry.table_gr.entries()) {
       grLineItem.supplier_id = entry.supplier_name || null;
+      grLineItem.organization_id = entry.organization_id;
+      grLineItem.plant_id = entry.plant_id || null;
+      grLineItem.billing_state_id = entry.billing_address_state || null;
+      grLineItem.billing_country_id = entry.billing_address_country || null;
+      grLineItem.shipping_state_id = entry.shipping_address_state || null;
+      grLineItem.shipping_country_id = entry.shipping_address_country || null;
+      grLineItem.assigned_to = entry.assigned_to || null;
+      grLineItem.line_index = index + 1;
     }
     return entry.table_gr;
-  } catch (error) {
+  } catch {
     throw new Error("Error processing goods receiving.");
   }
+};
+
+// Validate serial number allocation for serialized items
+const validateSerialNumberAllocation = async (tableGR) => {
+  const serializedItemsNotAllocated = [];
+
+  for (const [index, item] of tableGR.entries()) {
+    // Check if item is serialized but not allocated
+    if (item.is_serialized_item === 1 && item.is_serial_allocated !== 1) {
+      // Get item details for better error message
+      let itemIdentifier =
+        item.item_name ||
+        item.item_code ||
+        item.item_id ||
+        `Item at row ${index + 1}`;
+      serializedItemsNotAllocated.push({
+        index: index + 1,
+        identifier: itemIdentifier,
+        item_id: item.item_id,
+      });
+    }
+  }
+
+  if (serializedItemsNotAllocated.length > 0) {
+    const itemsList = serializedItemsNotAllocated
+      .map((item) => `• Row ${item.index}: ${item.identifier}`)
+      .join("\n");
+
+    throw new Error(
+      `Serial number allocation is required for the following serialized items:\n\n${itemsList}\n\nPlease allocate serial numbers for all serialized items before saving.`
+    );
+  }
+
+  console.log(
+    "Serial number allocation validation passed for all serialized items"
+  );
+  return true;
 };
 
 (async () => {
@@ -2010,7 +2214,7 @@ const fillbackHeaderFields = async (entry) => {
       },
     ];
 
-    for (const [index, item] of data.table_gr.entries()) {
+    for (const [index] of data.table_gr.entries()) {
       await this.validate(
         `table_gr.${index}.received_qty`,
         `table_gr.${index}.item_batch_no`
@@ -2160,6 +2364,11 @@ const fillbackHeaderFields = async (entry) => {
           "All Received Quantity must not be 0. Please add at lease one item with received quantity > 0."
         );
       }
+
+      console.log(
+        "Validating serial number allocation for serialized items..."
+      );
+      await validateSerialNumberAllocation(entry.table_gr);
 
       await checkCompletedPO(entry.po_id);
       await fillbackHeaderFields(entry);

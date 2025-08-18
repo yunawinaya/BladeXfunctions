@@ -1,6 +1,12 @@
 (async () => {
   try {
     const dialogData = this.getValue("dialog_serial_number");
+    const uomConversion = this.getValue(
+      `table_gr.${dialogData.row_index}.uom_conversion`
+    );
+    const baseOrderedQty = this.getValue(
+      `table_gr.${dialogData.row_index}.base_ordered_qty`
+    );
 
     console.log("Original dialogData:", dialogData);
 
@@ -96,10 +102,29 @@
         JSON.stringify(mappedData),
     });
 
+    let receivedQty = dialogData.new_rows;
+    if (uomConversion > 0) {
+      receivedQty = dialogData.new_rows / uomConversion;
+    }
+
+    const toReceivedQty = parseFloat(
+      (baseOrderedQty - dialogData.new_rows).toFixed(3)
+    );
+
+    console.log("toReceivedQty", toReceivedQty);
+
     await this.setData({
       [`table_gr.${dialogData.row_index}.base_received_qty`]:
         dialogData.new_rows,
+      [`table_gr.${dialogData.row_index}.received_qty`]: receivedQty,
+      [`table_gr.${dialogData.row_index}.to_received_qty`]: toReceivedQty,
     });
+
+    if (dialogData.new_rows > 0) {
+      this.setData({
+        [`table_gr.${dialogData.row_index}.is_serial_allocated`]: 1,
+      });
+    }
 
     // Close the dialog
     this.closeDialog("dialog_serial_number");
