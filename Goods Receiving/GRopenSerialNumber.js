@@ -1,303 +1,166 @@
 (async () => {
-  const data = this.getValues();
-  const lineItemData = arguments[0]?.row;
-  const rowIndex = arguments[0]?.rowIndex;
+  try {
+    // Input validation
+    const args = arguments[0];
+    if (!args) {
+      console.error("No arguments provided");
+      return;
+    }
 
-  console.log("lineItemData", lineItemData);
+    const { row: lineItemData, rowIndex } = args;
 
-  const materialId = lineItemData.item_id;
-  const altQty = lineItemData.ordered_qty;
-  const altUOM = lineItemData.ordered_qty_uom;
-  const baseQty = lineItemData.base_ordered_qty;
-  const baseUOM = lineItemData.base_ordered_qty_uom;
-  const plantId = data.plant_id;
+    // Validate required data
+    if (!lineItemData) {
+      console.error("Line item data is missing");
+      return;
+    }
 
-  const toReceiveQty = parseFloat(lineItemData.to_received_qty) || 0;
+    if (rowIndex === undefined || rowIndex === null) {
+      console.error("Row index is missing");
+      return;
+    }
 
-  const totalQty = `0/${toReceiveQty}`;
+    console.log("Processing line item data:", lineItemData);
 
-  const serialNumberData = lineItemData.serial_number_data;
+    // Extract and validate required fields
+    const materialId = lineItemData.item_id;
+    const baseQty = lineItemData.base_received_qty;
+    const baseUOMid = lineItemData.base_received_qty_uom;
+    const serialNumberDataRaw = lineItemData.serial_number_data;
 
-  db.collection("Item")
-    .where({
-      id: materialId,
-    })
-    .get()
-    .then((response) => {
-      console.log("response item", response);
+    // Validate required fields
+    if (!materialId) {
+      console.error("Material ID is missing");
+      return;
+    }
+
+    if (baseQty === undefined || baseQty === null || baseQty < 0) {
+      console.error("Invalid base quantity:", baseQty);
+      return;
+    }
+
+    if (!baseUOMid) {
+      console.warn("Base UOM ID is missing, using empty string");
+    }
+
+    // Parse serial number data with error handling
+    let serialNumberData = [];
+    if (serialNumberDataRaw) {
+      try {
+        const parsed = JSON.parse(serialNumberDataRaw);
+        serialNumberData = Array.isArray(parsed) ? parsed : [];
+      } catch (parseError) {
+        console.error("Error parsing serial number data:", parseError);
+        console.warn("Using empty array for serial number data");
+      }
+    }
+
+    // Validate database connection
+    if (typeof db === "undefined" || !db.collection) {
+      console.error("Database connection is not available");
+      return;
+    }
+
+    // Fetch item data with improved error handling
+    try {
+      const response = await db
+        .collection("Item")
+        .where({
+          id: materialId,
+        })
+        .get();
+
+      console.log("Database response:", response);
+
+      // Validate response structure
+      if (!response || !response.data || !Array.isArray(response.data)) {
+        console.error("Invalid response structure from database");
+        return;
+      }
+
+      if (response.data.length === 0) {
+        console.error(`No item found with ID: ${materialId}`);
+        return;
+      }
+
       const itemData = response.data[0];
 
-      this.setData({
-        [`dialog_serial_number.item_code`]: itemData.material_code,
-        [`dialog_serial_number.item_name`]: itemData.material_name,
-        [`dialog_serial_number.row_index`]: rowIndex,
-        [`dialog_serial_number.total_quantity_uom`]: baseUOM,
-        [`dialog_serial_number.total_quantity`]: totalQty,
-      });
-
-      this.setData({
-        [`gd_item_balance.table_item_balance`]: [],
-      });
-
-      const convertBaseToAlt = (baseQty, itemData, altUOM) => {
-        if (
-          !Array.isArray(itemData.table_uom_conversion) ||
-          itemData.table_uom_conversion.length === 0 ||
-          !altUOM
-        ) {
-          return baseQty;
-        }
-
-        const uomConversion = itemData.table_uom_conversion.find(
-          (conv) => conv.alt_uom_id === altUOM
-        );
-
-        if (!uomConversion || !uomConversion.base_qty) {
-          return baseQty;
-        }
-
-        return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
-      };
-
-      const processItemBalanceData = (itemBalanceData) => {
-        return itemBalanceData.map((record) => {
-          const processedRecord = { ...record };
-
-          if (altUOM !== baseUOM) {
-            if (processedRecord.block_qty) {
-              processedRecord.block_qty = convertBaseToAlt(
-                processedRecord.block_qty,
-                itemData,
-                altUOM
-              );
-            }
-
-            if (processedRecord.reserved_qty) {
-              processedRecord.reserved_qty = convertBaseToAlt(
-                processedRecord.reserved_qty,
-                itemData,
-                altUOM
-              );
-            }
-
-            if (processedRecord.unrestricted_qty) {
-              processedRecord.unrestricted_qty = convertBaseToAlt(
-                processedRecord.unrestricted_qty,
-                itemData,
-                altUOM
-              );
-            }
-
-            if (processedRecord.qualityinsp_qty) {
-              processedRecord.qualityinsp_qty = convertBaseToAlt(
-                processedRecord.qualityinsp_qty,
-                itemData,
-                altUOM
-              );
-            }
-
-            if (processedRecord.intransit_qty) {
-              processedRecord.intransit_qty = convertBaseToAlt(
-                processedRecord.intransit_qty,
-                itemData,
-                altUOM
-              );
-            }
-
-            if (processedRecord.balance_quantity) {
-              processedRecord.balance_quantity = convertBaseToAlt(
-                processedRecord.balance_quantity,
-                itemData,
-                altUOM
-              );
-            }
-          }
-
-          return processedRecord;
-        });
-      };
-
-      const mergeWithTempData = (freshDbData, tempDataArray) => {
-        if (!tempDataArray || tempDataArray.length === 0) {
-          console.log("No temp data to merge, using fresh DB data");
-          return freshDbData;
-        }
-
-        console.log("Merging fresh DB data with existing temp data");
-
-        const tempDataMap = new Map();
-        tempDataArray.forEach((tempItem) => {
-          const key =
-            itemData.item_batch_management === 1
-              ? `${tempItem.location_id}-${tempItem.batch_id || "no_batch"}`
-              : `${tempItem.location_id}`;
-          tempDataMap.set(key, tempItem);
-        });
-
-        const mergedData = freshDbData.map((dbItem) => {
-          const key =
-            itemData.item_batch_management === 1
-              ? `${dbItem.location_id}-${dbItem.batch_id || "no_batch"}`
-              : `${dbItem.location_id}`;
-
-          const tempItem = tempDataMap.get(key);
-
-          if (tempItem) {
-            console.log(
-              `Merging data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, temp gd_quantity=${tempItem.gd_quantity}`
-            );
-            return {
-              ...dbItem,
-              gd_quantity: tempItem.gd_quantity,
-              remarks: tempItem.remarks || dbItem.remarks,
-            };
-          } else {
-            return {
-              ...dbItem,
-              gd_quantity: 0,
-            };
-          }
-        });
-
-        tempDataArray.forEach((tempItem) => {
-          const key =
-            itemData.item_batch_management === 1
-              ? `${tempItem.location_id}-${tempItem.batch_id || "no_batch"}`
-              : `${tempItem.location_id}`;
-
-          const existsInDb = freshDbData.some((dbItem) => {
-            const dbKey =
-              itemData.item_batch_management === 1
-                ? `${dbItem.location_id}-${dbItem.batch_id || "no_batch"}`
-                : `${dbItem.location_id}`;
-            return dbKey === key;
-          });
-
-          if (!existsInDb) {
-            console.log(`Adding temp-only data for ${key}`);
-            mergedData.push(tempItem);
-          }
-        });
-
-        return mergedData;
-      };
-
-      const filterZeroQuantityRecords = (data) => {
-        return data.filter((record) => {
-          // Check if any of the quantity fields have a value greater than 0
-          const hasQuantity =
-            (record.block_qty && record.block_qty > 0) ||
-            (record.reserved_qty && record.reserved_qty > 0) ||
-            (record.unrestricted_qty && record.unrestricted_qty > 0) ||
-            (record.qualityinsp_qty && record.qualityinsp_qty > 0) ||
-            (record.intransit_qty && record.intransit_qty > 0) ||
-            (record.balance_quantity && record.balance_quantity > 0);
-
-          return hasQuantity;
-        });
-      };
-
-      if (itemData.item_batch_management === 1) {
-        this.display("gd_item_balance.table_item_balance.batch_id");
-
-        db.collection("item_batch_balance")
-          .where({
-            material_id: materialId,
-            plant_id: plantId,
-          })
-          .get()
-          .then((response) => {
-            console.log("response item_batch_balance", response);
-            let freshDbData = response.data || [];
-
-            const processedFreshData = processItemBalanceData(freshDbData);
-
-            let tempDataArray = [];
-            if (tempQtyData) {
-              try {
-                tempDataArray = JSON.parse(tempQtyData);
-                console.log("Parsed temp data:", tempDataArray);
-              } catch (error) {
-                console.error("Error parsing temp_qty_data:", error);
-                tempDataArray = [];
-              }
-            }
-
-            const finalData = mergeWithTempData(
-              processedFreshData,
-              tempDataArray
-            );
-
-            // Filter out records with all zero quantities
-            const filteredData = filterZeroQuantityRecords(finalData);
-
-            console.log("Final filtered data:", filteredData);
-
-            this.setData({
-              [`gd_item_balance.table_item_balance`]: filteredData,
-            });
-          })
-          .catch((error) => {
-            console.error("Error fetching item batch balance data:", error);
-          });
-      } else {
-        this.hide("gd_item_balance.table_item_balance.batch_id");
-
-        db.collection("item_balance")
-          .where({
-            material_id: materialId,
-            plant_id: plantId,
-          })
-          .get()
-          .then((response) => {
-            console.log("response item_balance", response);
-            let freshDbData = response.data || [];
-
-            const processedFreshData = processItemBalanceData(freshDbData);
-
-            let tempDataArray = [];
-            if (tempQtyData) {
-              try {
-                tempDataArray = JSON.parse(tempQtyData);
-                console.log("Parsed temp data:", tempDataArray);
-              } catch (error) {
-                console.error("Error parsing temp_qty_data:", error);
-                tempDataArray = [];
-              }
-            }
-
-            const finalData = mergeWithTempData(
-              processedFreshData,
-              tempDataArray
-            );
-
-            // Filter out records with all zero quantities
-            const filteredData = filterZeroQuantityRecords(finalData);
-
-            console.log("Final filtered data:", filteredData);
-
-            this.setData({
-              [`gd_item_balance.table_item_balance`]: filteredData,
-            });
-          })
-          .catch((error) => {
-            console.error("Error fetching item balance data:", error);
-          });
+      // Validate item data structure
+      if (!itemData) {
+        console.error("Item data is null or undefined");
+        return;
       }
-    })
-    .catch((error) => {
-      console.error("Error fetching item data:", error);
-    });
 
-  window.validationState = {};
+      // Validate this context
+      if (typeof this.setData !== "function") {
+        console.error("setData method is not available in current context");
+        return;
+      }
 
-  setTimeout(() => {
-    const currentData = this.getValues();
-    const rowCount =
-      currentData.gd_item_balance?.table_item_balance?.length || 0;
-    for (let i = 0; i < rowCount; i++) {
-      window.validationState[i] = true;
+      const baseUOM = await db
+        .collection("unit_of_measurement")
+        .where({ id: baseUOMid })
+        .get()
+        .then((res) => {
+          return res.data[0].uom_name;
+        });
+
+      const isSNAutoGenerated =
+        itemData.serial_no_generate_rule === "According To System Settings";
+
+      // Set dialog data with validated values
+      const dialogData = {
+        [`dialog_serial_number.item_id`]: itemData.id || materialId,
+        [`dialog_serial_number.item_code`]: itemData.material_code || "",
+        [`dialog_serial_number.item_name`]: itemData.material_name || "",
+        [`dialog_serial_number.row_index`]: rowIndex,
+        [`dialog_serial_number.serial_number_qty`]: 0,
+        [`dialog_serial_number.is_auto`]: isSNAutoGenerated ? 1 : 0,
+        [`dialog_serial_number.is_single`]: itemData.is_single_unit_serial,
+        [`dialog_serial_number.total_quantity_uom_id`]: baseUOMid || "",
+        [`dialog_serial_number.total_quantity_uom`]: baseUOM || "",
+        [`dialog_serial_number.total_quantity`]: baseQty,
+      };
+
+      if (itemData.item_image) {
+        dialogData[`dialog_serial_number.item_image_url`] = itemData.item_image;
+        console.log("itemData.item_image", itemData.item_image);
+        await this.display("dialog_serial_number.item_image");
+      }
+
+      // Set serial number data if available
+      if (serialNumberData.length > 0) {
+        dialogData[`dialog_serial_number.table_serial_number`] =
+          serialNumberData;
+      }
+
+      await this.setData(dialogData);
+      this.openDialog("dialog_serial_number");
+
+      console.log("Dialog data set successfully");
+    } catch (dbError) {
+      console.error("Database operation failed:", dbError);
+
+      // Optional: Set minimal data even if DB fetch fails
+      if (typeof this.setData === "function") {
+        await this.setData({
+          [`dialog_serial_number.item_id`]: materialId,
+          [`dialog_serial_number.row_index`]: rowIndex,
+          [`dialog_serial_number.serial_number_qty`]: 0,
+          [`dialog_serial_number.total_quantity_uom`]: baseUOM || "",
+          [`dialog_serial_number.total_quantity`]: baseQty,
+          [`dialog_serial_number.table_serial_number`]: serialNumberData,
+        });
+        this.openDialog("dialog_serial_number");
+        console.log("Set minimal dialog data due to database error");
+      }
     }
-    console.log(`Initialized validation state for ${rowCount} rows`);
-  }, 100);
+  } catch (error) {
+    console.error("Unexpected error in serial number handler:", error);
+
+    // Log stack trace for debugging
+    if (error.stack) {
+      console.error("Stack trace:", error.stack);
+    }
+  }
 })();

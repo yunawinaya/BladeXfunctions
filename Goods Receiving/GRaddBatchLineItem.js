@@ -154,7 +154,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
             base_ordered_qty: poItem.quantity,
             base_ordered_qty_uom: poItem.quantity_uom,
             base_item_uom: poItem.quantity_uom,
-            to_received_qty_uom: poItem.quantity_uom,
+            base_received_qty_uom: poItem.quantity_uom,
             inspection_required:
               itemData.receiving_inspection === 1 ? "Yes" : "No",
             to_received_qty: 0.0,
@@ -197,7 +197,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
               "table_gr.ordered_qty_uom",
               "table_gr.base_ordered_qty",
               "table_gr.base_ordered_qty_uom",
-              "table_gr.to_received_qty_uom",
+              "table_gr.base_received_qty_uom",
               "table_gr.base_received_qty",
               "table_gr.base_item_uom",
             ]);
@@ -208,19 +208,28 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
               poItem.quantity_uom
             );
 
+            let baseReceivedQty = poItem.received_qty;
+            if (poItem.received_qty > 0) {
+              baseReceivedQty = convertAltToBase(
+                poItem.received_qty,
+                itemData,
+                poItem.quantity_uom
+              );
+            }
+
             newTableGrRecord.base_ordered_qty = baseQty;
             newTableGrRecord.base_ordered_qty_uom = itemData.based_uom;
-            newTableGrRecord.to_received_qty_uom = itemData.based_uom;
+            newTableGrRecord.base_received_qty_uom = itemData.based_uom;
             newTableGrRecord.base_item_uom = itemData.based_uom;
+            newTableGrRecord.base_received_qty = parseFloat(
+              (baseQty - baseReceivedQty || 0).toFixed(3)
+            );
           }
 
           if (itemData.serial_number_management === 1) {
             this.display("table_gr.select_serial_number");
             this.disabled("table_gr.received_qty", true);
             this.disabled("table_gr.base_received_qty", true);
-
-            newTableGrRecord.received_qty = 0;
-            newTableGrRecord.base_received_qty = 0;
           }
 
           tableGR.push(newTableGrRecord);
@@ -241,7 +250,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
           base_ordered_qty: poItem.ordered_qty,
           base_ordered_qty_uom: poItem.item_uom,
           base_item_uom: poItem.item_uom,
-          to_received_qty_uom: poItem.item_uom,
+          base_received_qty_uom: poItem.item_uom,
           inspection_required:
             poItem.item.receiving_inspection === 1 ? "Yes" : "No",
           to_received_qty: 0.0,
@@ -275,7 +284,13 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
           item_category_id: poItem.item.item_category,
         };
 
-        const isAltUOM = poItem.item.table_uom_conversion.find(
+        console.log("poItem.item", poItem.item);
+        console.log("poItem", poItem);
+
+        const poItemAltUOM = JSON.parse(poItem.alt_uom);
+        console.log("poItemAltUOM", poItemAltUOM);
+
+        const isAltUOM = poItemAltUOM.find(
           (conv) => conv.alt_uom_id === poItem.item_uom
         );
 
@@ -284,7 +299,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
             "table_gr.ordered_qty_uom",
             "table_gr.base_ordered_qty",
             "table_gr.base_ordered_qty_uom",
-            "table_gr.to_received_qty_uom",
+            "table_gr.base_received_qty_uom",
             "table_gr.base_received_qty",
             "table_gr.base_item_uom",
           ]);
@@ -295,19 +310,28 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
             poItem.item_uom
           );
 
+          let baseReceivedQty = poItem.received_qty;
+          if (poItem.received_qty > 0) {
+            baseReceivedQty = convertAltToBase(
+              poItem.received_qty,
+              poItem.item,
+              poItem.item_uom
+            );
+          }
+
           newTableGrRecord.base_ordered_qty = baseQty;
           newTableGrRecord.base_ordered_qty_uom = poItem.item.based_uom;
-          newTableGrRecord.to_received_qty_uom = poItem.item.based_uom;
+          newTableGrRecord.base_received_qty_uom = poItem.item.based_uom;
           newTableGrRecord.base_item_uom = poItem.item.based_uom;
+          newTableGrRecord.base_received_qty = parseFloat(
+            (baseQty - baseReceivedQty || 0).toFixed(3)
+          );
         }
 
         if (poItem.item.serial_number_management === 1) {
           this.display("table_gr.select_serial_number");
           this.disabled("table_gr.received_qty", true);
           this.disabled("table_gr.base_received_qty", true);
-
-          newTableGrRecord.received_qty = 0;
-          newTableGrRecord.base_received_qty = 0;
         }
 
         tableGR.push(newTableGrRecord);
