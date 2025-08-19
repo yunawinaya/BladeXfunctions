@@ -216,6 +216,9 @@
 
     // Update data
     this.setData({
+      [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
+      [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+        orderedQty - totalDeliveredQty,
       [`table_gd.${rowIndex}.view_stock`]: summary,
       [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
     });
