@@ -1547,7 +1547,10 @@ const updateSalesOrderStatus = async (salesOrderId, tableGD) => {
 
       const filteredSO = soItems
         .map((item, index) => ({ ...item, originalIndex: index }))
-        .filter((item) => item.item_name !== "" || item.so_desc !== "");
+        .filter((item) => item.item_name !== "" || item.so_desc !== "")
+        .filter((item) =>
+          filteredGD.some((gd) => gd.so_line_item_id === item.id)
+        );
 
       // Create a map to sum delivered quantities for each item
       let totalItems = soItems.length;
@@ -1585,10 +1588,12 @@ const updateSalesOrderStatus = async (salesOrderId, tableGD) => {
         // Count items with ANY delivered quantity as "partially delivered"
         if (totalDeliveredQty > 0) {
           partiallyDeliveredItems++;
+          updatedSoItems[originalIndex].line_status = "Processing";
 
           // Count fully delivered items separately
           if (totalDeliveredQty >= orderedQty) {
             fullyDeliveredItems++;
+            updatedSoItems[originalIndex].line_status = "Completed";
           }
         }
       });
@@ -2651,6 +2656,51 @@ const checkCompletedSO = async (so_id) => {
   return true;
 };
 
+const fillbackHeaderFields = async (gd) => {
+  try {
+    for (const [index, gdLineItem] of gd.table_gd.entries()) {
+      gdLineItem.customer_id = gd.customer_name || null;
+      gdLineItem.organization_id = gd.organization_id;
+      gdLineItem.plant_id = gd.plant_id || null;
+      gdLineItem.billing_state_id = gd.billing_address_state || null;
+      gdLineItem.billing_country_id = gd.billing_address_country || null;
+      gdLineItem.shipping_state_id = gd.shipping_address_state || null;
+      gdLineItem.shipping_country_id = gd.shipping_address_country || null;
+      gdLineItem.assigned_to = gd.assigned_to || null;
+      gdLineItem.line_index = index + 1;
+    }
+    return gd.table_gd;
+  } catch {
+    throw new Error("Error processing goods delivery.");
+  }
+};
+
+const checkQuantitiesBySoId = async (tableGD) => {
+  // Step 1: Group by so_id and sum quantities
+  const totalsBySoId = tableGD.reduce((acc, item) => {
+    const { line_so_no, gd_qty } = item;
+    acc[line_so_no] = (acc[line_so_no] || 0) + gd_qty;
+    return acc;
+  }, {});
+
+  // Step 2: Check for so_ids with total quantity of 0
+  const errors = [];
+  const results = Object.entries(totalsBySoId).map(
+    ([line_so_no, totalQuantity]) => {
+      if (totalQuantity === 0) {
+        errors.push(line_so_no);
+      }
+      return { line_so_no, totalQuantity };
+    }
+  );
+
+  // Step 3: Return results and errors
+  return {
+    totals: results,
+    errors: errors.length > 0 ? errors : null,
+  };
+};
+
 // Main execution wrapped in an async IIFE
 (async () => {
   // Prevent duplicate processing
@@ -2793,7 +2843,6 @@ const checkCompletedSO = async (so_id) => {
     const {
       picking_status,
       credit_limit_status,
-      fake_so_id,
       so_id,
       so_no,
       gd_billing_address,
@@ -2867,6 +2916,7 @@ const checkCompletedSO = async (so_id) => {
       overdue_inv_total_amount,
       is_accurate,
       gd_total,
+      reference_type,
     } = data;
 
     // Prepare goods delivery object
@@ -2874,7 +2924,6 @@ const checkCompletedSO = async (so_id) => {
       gd_status: targetStatus,
       picking_status,
       credit_limit_status,
-      fake_so_id,
       so_id,
       so_no,
       gd_billing_address,
@@ -2948,6 +2997,7 @@ const checkCompletedSO = async (so_id) => {
       overdue_inv_total_amount,
       is_accurate,
       gd_total: parseFloat(gd_total.toFixed(3)),
+      reference_type,
     };
 
     // Clean up undefined/null values
@@ -2956,6 +3006,27 @@ const checkCompletedSO = async (so_id) => {
         delete gd[key];
       }
     });
+
+    const result = await checkQuantitiesBySoId(gd.table_gd);
+
+    if (result.errors) {
+      throw new Error(
+        `Total quantity for SO Number ${result.errors.join(
+          ", "
+        )} is 0. Please delete the item with related SO or deliver at least one item with quantity > 0.`
+      );
+    }
+    const latestGD = gd.table_gd.filter((item) => item.gd_qty > 0);
+
+    gd.table_gd = latestGD;
+
+    if (gd.table_gd.length === 0) {
+      throw new Error(
+        "All Delivered Quantity must not be 0. Please add at lease one item with delivered quantity > 0."
+      );
+    }
+
+    await fillbackHeaderFields(gd);
 
     // Check picking requirements with proper parameters
     const pickingCheck = await checkPickingStatus(gd, page_status, gdStatus);
