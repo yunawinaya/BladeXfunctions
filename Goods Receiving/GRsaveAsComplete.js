@@ -1142,7 +1142,7 @@ const addInventory = async (
             serial_number: finalSystemSerialNumber,
             batch_id: batchId,
             plant_id: plantId,
-            bin_location_id: item.location_id,
+            location_id: item.location_id,
             unrestricted_qty: roundQty(unrestricted_qty),
             block_qty: roundQty(block_qty),
             reserved_qty: roundQty(reserved_qty),
