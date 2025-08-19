@@ -1156,101 +1156,156 @@ const addInventory = async (
         }
       }
 
-      // Batch insert all serial number records
+      // Insert all serial number records using Promise.all for better performance
       if (serialRecordsToInsert.length > 0) {
         try {
           console.log(
-            `Batch inserting ${serialRecordsToInsert.length} serial number records for item ${item.item_id}`
+            `Inserting ${serialRecordsToInsert.length} serial number records for item ${item.item_id}`
           );
-          await db.collection("serial_number").batchAdd(serialRecordsToInsert);
+
+          const serialPromises = serialRecordsToInsert.map((record) =>
+            db.collection("serial_number").add(record)
+          );
+
+          await Promise.all(serialPromises);
+
           console.log(
-            `Successfully batch inserted ${serialRecordsToInsert.length} serial number records`
+            `Successfully inserted ${serialRecordsToInsert.length} serial number records`
           );
-        } catch (batchError) {
-          console.error(
-            `Error in batch insert of serial number records:`,
-            batchError
-          );
+        } catch (insertError) {
+          console.error(`Error inserting serial number records:`, insertError);
 
           // Fallback: try inserting one by one
           console.log("Falling back to individual serial number inserts...");
+          let successCount = 0;
+          let failCount = 0;
+
           for (const record of serialRecordsToInsert) {
             try {
               await db.collection("serial_number").add(record);
+              successCount++;
             } catch (individualError) {
               console.error(
                 `Failed to insert serial number ${record.system_serial_number}:`,
                 individualError
               );
+              failCount++;
             }
+          }
+
+          console.log(
+            `Serial number fallback completed: ${successCount} successful, ${failCount} failed`
+          );
+
+          if (failCount > 0) {
+            throw new Error(
+              `Failed to insert ${failCount} out of ${serialRecordsToInsert.length} serial number records`
+            );
           }
         }
       }
 
-      // Batch insert all inventory serial movement records
+      // Insert all inventory serial movement records using Promise.all
       if (invSerialMovementRecordsToInsert.length > 0) {
         try {
           console.log(
-            `Batch inserting ${invSerialMovementRecordsToInsert.length} inventory serial movement records for item ${item.item_id}`
+            `Inserting ${invSerialMovementRecordsToInsert.length} inventory serial movement records for item ${item.item_id}`
           );
-          await db
-            .collection("inv_serial_movement")
-            .batchAdd(invSerialMovementRecordsToInsert);
+
+          const movementPromises = invSerialMovementRecordsToInsert.map(
+            (record) => db.collection("inv_serial_movement").add(record)
+          );
+
+          await Promise.all(movementPromises);
+
           console.log(
-            `Successfully batch inserted ${invSerialMovementRecordsToInsert.length} inventory serial movement records`
+            `Successfully inserted ${invSerialMovementRecordsToInsert.length} inventory serial movement records`
           );
-        } catch (batchError) {
+        } catch (insertError) {
           console.error(
-            `Error in batch insert of inventory serial movement records:`,
-            batchError
+            `Error inserting inventory serial movement records:`,
+            insertError
           );
 
           // Fallback: try inserting one by one
           console.log(
             "Falling back to individual inventory serial movement inserts..."
           );
+          let successCount = 0;
+          let failCount = 0;
+
           for (const record of invSerialMovementRecordsToInsert) {
             try {
               await db.collection("inv_serial_movement").add(record);
+              successCount++;
             } catch (individualError) {
               console.error(
                 `Failed to insert inventory serial movement for ${record.serial_number}:`,
                 individualError
               );
+              failCount++;
             }
+          }
+
+          console.log(
+            `Inventory serial movement fallback completed: ${successCount} successful, ${failCount} failed`
+          );
+
+          if (failCount > 0) {
+            console.warn(
+              `Failed to insert ${failCount} out of ${invSerialMovementRecordsToInsert.length} inventory serial movement records`
+            );
+            // Don't throw error here as serial numbers are already created
           }
         }
       }
 
-      // Batch insert all serial balance records
+      // Insert all serial balance records using Promise.all
       if (serialBalanceRecordsToInsert.length > 0) {
         try {
           console.log(
-            `Batch inserting ${serialBalanceRecordsToInsert.length} serial balance records for item ${item.item_id}`
+            `Inserting ${serialBalanceRecordsToInsert.length} serial balance records for item ${item.item_id}`
           );
-          await db
-            .collection("item_serial_balance")
-            .batchAdd(serialBalanceRecordsToInsert);
+
+          const balancePromises = serialBalanceRecordsToInsert.map((record) =>
+            db.collection("item_serial_balance").add(record)
+          );
+
+          await Promise.all(balancePromises);
+
           console.log(
-            `Successfully batch inserted ${serialBalanceRecordsToInsert.length} serial balance records`
+            `Successfully inserted ${serialBalanceRecordsToInsert.length} serial balance records`
           );
-        } catch (batchError) {
-          console.error(
-            `Error in batch insert of serial balance records:`,
-            batchError
-          );
+        } catch (insertError) {
+          console.error(`Error inserting serial balance records:`, insertError);
 
           // Fallback: try inserting one by one
           console.log("Falling back to individual serial balance inserts...");
+          let successCount = 0;
+          let failCount = 0;
+
           for (const record of serialBalanceRecordsToInsert) {
             try {
               await db.collection("item_serial_balance").add(record);
+              successCount++;
             } catch (individualError) {
               console.error(
                 `Failed to insert serial balance for ${record.serial_number}:`,
                 individualError
               );
+              failCount++;
             }
+          }
+
+          console.log(
+            `Serial balance fallback completed: ${successCount} successful, ${failCount} failed`
+          );
+
+          if (failCount > 0) {
+            console.warn(
+              `Failed to insert ${failCount} out of ${serialBalanceRecordsToInsert.length} serial balance records`
+            );
+            // Don't throw error here as serial numbers are already created
           }
         }
       }
@@ -1296,9 +1351,9 @@ const addInventory = async (
       console.log(`Successfully processed serial number inventory for item ${item.item_id}: 
         - Generated ${generatedCount} new serial numbers
         - Total processed: ${updatedTableSerialNumber.length} serial numbers
-        - Batch inserted: ${serialRecordsToInsert.length} serial_number records
-        - Batch inserted: ${invSerialMovementRecordsToInsert.length} inv_serial_movement records
-        - Batch inserted: ${serialBalanceRecordsToInsert.length} item_serial_balance records`);
+        - Inserted: ${serialRecordsToInsert.length} serial_number records
+        - Inserted: ${invSerialMovementRecordsToInsert.length} inv_serial_movement records
+        - Inserted: ${serialBalanceRecordsToInsert.length} item_serial_balance records`);
     } catch (error) {
       console.error(
         `Error processing serial number inventory for item ${item.item_id}:`,
