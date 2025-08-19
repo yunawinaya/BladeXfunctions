@@ -11,6 +11,7 @@
   const itemCode = data.table_gd[rowIndex].material_id;
   const itemDesc = data.table_gd[rowIndex].gd_material_desc;
   const plantId = data.plant_id;
+  const organizationId = data.organization_id;
 
   // Calculate undelivered quantity
   const undeliveredQty = orderedQty - initialDeliveredQty;
@@ -89,16 +90,146 @@
     const itemData = itemResult.data[0];
     const uomName = await getUOMData(uomId);
 
+    // 🔧 NEW: Check if item is serialized
+    const isSerializedItem = itemData.serial_number_management === 1;
+    const isBatchManagedItem = itemData.item_batch_management === 1;
+
     console.log(
       `Row ${rowIndex}: Checking manual allocation for material ${itemCode}, quantity ${quantity}`
+    );
+    console.log(
+      `Item type - Serialized: ${isSerializedItem}, Batch: ${isBatchManagedItem}`
     );
 
     let balanceData = null;
     let binLocation = null;
     let batchData = null;
+    let serialData = null;
 
-    // Handle batch-managed items
-    if (itemData.item_batch_management === 1) {
+    // 🔧 NEW: Handle serialized items
+    if (isSerializedItem) {
+      console.log(`Row ${rowIndex}: Processing serialized item`);
+
+      // For serialized items, we need to check if there's exactly one serial available
+      const serialBalanceQuery = {
+        material_id: itemData.id,
+        plant_id: plantId,
+        organization_id: organizationId,
+      };
+
+      // Add batch filter if item also has batch management
+      if (isBatchManagedItem) {
+        // Get batch data first
+        const batchResult = await db
+          .collection("batch")
+          .where({
+            material_id: itemData.id,
+            is_deleted: 0,
+            plant_id: plantId,
+          })
+          .get();
+
+        if (!batchResult?.data?.length) {
+          console.error(
+            `Row ${rowIndex}: No batches found for serialized item`
+          );
+          return;
+        }
+
+        if (batchResult.data.length !== 1) {
+          console.warn(
+            `Row ${rowIndex}: Manual picking requires exactly one batch for serialized item, found: ${batchResult.data.length}`
+          );
+          return;
+        }
+
+        batchData = batchResult.data[0];
+        serialBalanceQuery.batch_id = batchData.id;
+      }
+
+      // Get serial balance data
+      const serialBalanceResult = await db
+        .collection("item_serial_balance")
+        .where(serialBalanceQuery)
+        .get();
+
+      if (!serialBalanceResult?.data?.length) {
+        console.error(`Row ${rowIndex}: No serial balance found`);
+        return;
+      }
+
+      // For manual allocation, we can only handle when there's exactly the required quantity available
+      const availableSerials = serialBalanceResult.data.filter(
+        (serial) => parseFloat(serial.unrestricted_qty || 0) > 0
+      );
+
+      if (availableSerials.length < quantity) {
+        console.error(
+          `Row ${rowIndex}: Not enough serialized items available. Required: ${quantity}, Available: ${availableSerials.length}`
+        );
+        return;
+      }
+
+      if (quantity !== 1) {
+        console.warn(
+          `Row ${rowIndex}: Manual allocation for serialized items typically requires quantity of 1, but ${quantity} requested`
+        );
+        // For now, let's not auto-allocate if quantity > 1 for serialized items
+        // User should use the allocation dialog instead
+        this.setData({
+          [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
+          [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+            orderedQty - totalDeliveredQty,
+          [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog for serialized items with quantity > 1`,
+          [`table_gd.${rowIndex}.temp_qty_data`]: "[]", // Clear any existing temp data
+        });
+        return;
+      }
+
+      // Take the first available serial
+      serialData = availableSerials[0];
+
+      // Create temporary data for serialized item
+      const temporaryData = {
+        material_id: itemCode,
+        serial_number: serialData.serial_number,
+        unrestricted_qty: serialData.unrestricted_qty,
+        reserved_qty: serialData.reserved_qty,
+        plant_id: plantId,
+        organization_id: organizationId,
+        is_deleted: 0,
+        gd_quantity: quantity,
+      };
+
+      // Add batch information if applicable
+      if (batchData) {
+        temporaryData.batch_id = batchData.id;
+      }
+
+      // For serialized items, we don't need location_id in the traditional sense
+      // as the serial number is the primary identifier
+      let summary = `Total: ${quantity} ${uomName}\n\nDETAILS:\n1. Serial: ${serialData.serial_number}`;
+      if (batchData) {
+        summary += `\n   [Batch: ${batchData.batch_number}]`;
+      }
+
+      // Update data
+      this.setData({
+        [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
+        [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+          orderedQty - totalDeliveredQty,
+        [`table_gd.${rowIndex}.view_stock`]: summary,
+        [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
+      });
+
+      console.log(
+        `Row ${rowIndex}: Manual allocation completed for serialized item: ${serialData.serial_number}`
+      );
+      return;
+    }
+
+    // 🔧 EXISTING: Handle batch-managed items (non-serialized)
+    if (isBatchManagedItem) {
       // Get batch data
       const batchResult = await db
         .collection("batch")
@@ -130,6 +261,7 @@
           material_id: itemData.id,
           batch_id: batchData.id,
           plant_id: plantId,
+          organization_id: organizationId,
           is_deleted: 0,
         })
         .get();
@@ -147,13 +279,14 @@
       }
 
       balanceData = batchBalanceResult.data[0];
-    } else if (itemData.item_batch_management === 0) {
-      // Handle non-batch-managed items
+    } else {
+      // 🔧 EXISTING: Handle non-batch-managed items (non-serialized)
       const itemBalanceResult = await db
         .collection("item_balance")
         .where({
           plant_id: plantId,
           material_id: itemCode,
+          organization_id: organizationId,
           is_deleted: 0,
         })
         .get();
@@ -171,64 +304,61 @@
       }
 
       balanceData = itemBalanceResult.data[0];
-    } else {
-      console.error(
-        `Row ${rowIndex}: Invalid item batch management value: ${itemData.item_batch_management}`
+    }
+
+    // Get bin location details (for non-serialized items)
+    if (balanceData) {
+      const binDetails = await getBinLocationDetails(balanceData.location_id);
+      if (!binDetails) {
+        console.error(`Row ${rowIndex}: Could not get bin location details`);
+        return;
+      }
+
+      binLocation = binDetails.bin_location_combine;
+
+      // Create temporary data
+      const temporaryData = {
+        material_id: itemCode,
+        location_id: balanceData.location_id,
+        block_qty: balanceData.block_qty,
+        reserved_qty: balanceData.reserved_qty,
+        unrestricted_qty: balanceData.unrestricted_qty,
+        qualityinsp_qty: balanceData.qualityinsp_qty,
+        intransit_qty: balanceData.intransit_qty,
+        balance_quantity: balanceData.balance_quantity,
+        plant_id: plantId,
+        organization_id: balanceData.organization_id,
+        is_deleted: 0,
+        gd_quantity: quantity,
+      };
+
+      // Add batch information for batch-managed items
+      if (batchData) {
+        temporaryData.batch_id = batchData.id;
+      }
+
+      // Create summary
+      let summary = `Total: ${quantity} ${uomName}\n\nDETAILS:\n1. ${binLocation}: ${quantity} ${uomName}`;
+      if (batchData) {
+        summary += `\n[Batch: ${batchData.batch_number}]`;
+      }
+
+      // Update data
+      this.setData({
+        [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
+        [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+          orderedQty - totalDeliveredQty,
+        [`table_gd.${rowIndex}.view_stock`]: summary,
+        [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
+      });
+
+      console.log(`Row ${rowIndex}: Manual allocation completed successfully`);
+      console.log(
+        `Row ${rowIndex}: Allocated ${quantity} from ${binLocation}${
+          batchData ? ` [${batchData.batch_number}]` : ""
+        }`
       );
-      return;
     }
-
-    // Get bin location details
-    const binDetails = await getBinLocationDetails(balanceData.location_id);
-    if (!binDetails) {
-      console.error(`Row ${rowIndex}: Could not get bin location details`);
-      return;
-    }
-
-    binLocation = binDetails.bin_location_combine;
-
-    // Create temporary data
-    const temporaryData = {
-      material_id: itemCode,
-      location_id: balanceData.location_id,
-      block_qty: balanceData.block_qty,
-      reserved_qty: balanceData.reserved_qty,
-      unrestricted_qty: balanceData.unrestricted_qty,
-      qualityinsp_qty: balanceData.qualityinsp_qty,
-      intransit_qty: balanceData.intransit_qty,
-      balance_quantity: balanceData.balance_quantity,
-      plant_id: plantId,
-      organization_id: balanceData.organization_id,
-      is_deleted: 0,
-      gd_quantity: quantity,
-    };
-
-    // Add batch information for batch-managed items
-    if (batchData) {
-      temporaryData.batch_id = batchData.id;
-    }
-
-    // Create summary
-    let summary = `Total: ${quantity} ${uomName}\n\nDETAILS:\n1. ${binLocation}: ${quantity} ${uomName}`;
-    if (batchData) {
-      summary += `\n[${batchData.batch_number}]`;
-    }
-
-    // Update data
-    this.setData({
-      [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-      [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-        orderedQty - totalDeliveredQty,
-      [`table_gd.${rowIndex}.view_stock`]: summary,
-      [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
-    });
-
-    console.log(`Row ${rowIndex}: Manual allocation completed successfully`);
-    console.log(
-      `Row ${rowIndex}: Allocated ${quantity} from ${binLocation}${
-        batchData ? ` [${batchData.batch_number}]` : ""
-      }`
-    );
   } catch (error) {
     console.error(
       `Row ${rowIndex}: Error processing manual allocation:`,

@@ -10,6 +10,8 @@ const plantId = data.plant_id;
 
 const tempQtyData = lineItemData.temp_qty_data;
 
+this.hide("gd_item_balance.table_item_balance.serial_number");
+
 db.collection("Item")
   .where({
     id: materialId,
@@ -119,18 +121,50 @@ db.collection("Item")
 
       const tempDataMap = new Map();
       tempDataArray.forEach((tempItem) => {
-        const key =
-          itemData.item_batch_management === 1
-            ? `${tempItem.location_id}-${tempItem.batch_id || "no_batch"}`
-            : `${tempItem.location_id}`;
+        let key;
+        if (itemData.serial_number_management === 1) {
+          this.display("gd_item_balance.table_item_balance.serial_number");
+
+          // For serialized items, always use serial number as primary key
+          // Include batch_id if item also has batch management
+          if (itemData.item_batch_management === 1) {
+            key = `${tempItem.location_id}-${
+              tempItem.serial_number || "no_serial"
+            }-${tempItem.batch_id || "no_batch"}`;
+          } else {
+            key = `${tempItem.location_id}-${
+              tempItem.serial_number || "no_serial"
+            }`;
+          }
+        } else if (itemData.item_batch_management === 1) {
+          // For batch items (non-serialized), use batch as key
+          key = `${tempItem.location_id}-${tempItem.batch_id || "no_batch"}`;
+        } else {
+          // For regular items, use only location
+          key = `${tempItem.location_id}`;
+        }
         tempDataMap.set(key, tempItem);
       });
 
       const mergedData = freshDbData.map((dbItem) => {
-        const key =
-          itemData.item_batch_management === 1
-            ? `${dbItem.location_id}-${dbItem.batch_id || "no_batch"}`
-            : `${dbItem.location_id}`;
+        let key;
+        if (itemData.serial_number_management === 1) {
+          // For serialized items, always use serial number as primary key
+          // Include batch_id if item also has batch management
+          if (itemData.item_batch_management === 1) {
+            key = `${dbItem.location_id}-${
+              dbItem.serial_number || "no_serial"
+            }-${dbItem.batch_id || "no_batch"}`;
+          } else {
+            key = `${dbItem.location_id}-${
+              dbItem.serial_number || "no_serial"
+            }`;
+          }
+        } else if (itemData.item_batch_management === 1) {
+          key = `${dbItem.location_id}-${dbItem.batch_id || "no_batch"}`;
+        } else {
+          key = `${dbItem.location_id}`;
+        }
 
         const tempItem = tempDataMap.get(key);
 
@@ -152,16 +186,44 @@ db.collection("Item")
       });
 
       tempDataArray.forEach((tempItem) => {
-        const key =
-          itemData.item_batch_management === 1
-            ? `${tempItem.location_id}-${tempItem.batch_id || "no_batch"}`
-            : `${tempItem.location_id}`;
+        let key;
+        if (itemData.serial_number_management === 1) {
+          // For serialized items, always use serial number as primary key
+          // Include batch_id if item also has batch management
+          if (itemData.item_batch_management === 1) {
+            key = `${tempItem.location_id}-${
+              tempItem.serial_number || "no_serial"
+            }-${tempItem.batch_id || "no_batch"}`;
+          } else {
+            key = `${tempItem.location_id}-${
+              tempItem.serial_number || "no_serial"
+            }`;
+          }
+        } else if (itemData.item_batch_management === 1) {
+          key = `${tempItem.location_id}-${tempItem.batch_id || "no_batch"}`;
+        } else {
+          key = `${tempItem.location_id}`;
+        }
 
         const existsInDb = freshDbData.some((dbItem) => {
-          const dbKey =
-            itemData.item_batch_management === 1
-              ? `${dbItem.location_id}-${dbItem.batch_id || "no_batch"}`
-              : `${dbItem.location_id}`;
+          let dbKey;
+          if (itemData.serial_number_management === 1) {
+            // For serialized items, always use serial number as primary key
+            // Include batch_id if item also has batch management
+            if (itemData.item_batch_management === 1) {
+              dbKey = `${dbItem.location_id}-${
+                dbItem.serial_number || "no_serial"
+              }-${dbItem.batch_id || "no_batch"}`;
+            } else {
+              dbKey = `${dbItem.location_id}-${
+                dbItem.serial_number || "no_serial"
+              }`;
+            }
+          } else if (itemData.item_batch_management === 1) {
+            dbKey = `${dbItem.location_id}-${dbItem.batch_id || "no_batch"}`;
+          } else {
+            dbKey = `${dbItem.location_id}`;
+          }
           return dbKey === key;
         });
 
@@ -176,7 +238,12 @@ db.collection("Item")
 
     const filterZeroQuantityRecords = (data) => {
       return data.filter((record) => {
-        // Check if any of the quantity fields have a value greater than 0
+        // For serialized items, quantity is typically 1 or 0, so check if item exists
+        if (itemData.serial_number_management === 1) {
+          return record.serial_number && record.serial_number.trim() !== "";
+        }
+
+        // For batch and regular items, check if any quantity fields have value > 0
         const hasQuantity =
           (record.block_qty && record.block_qty > 0) ||
           (record.reserved_qty && record.reserved_qty > 0) ||
@@ -189,8 +256,76 @@ db.collection("Item")
       });
     };
 
-    if (itemData.item_batch_management === 1) {
+    // Handle Serialized Items (takes priority over batch management)
+    if (itemData.serial_number_management === 1) {
+      console.log(
+        "Processing serialized item (may also have batch management)"
+      );
+
+      // Show serial number column
+      this.display("gd_item_balance.table_item_balance.serial_number");
+
+      // Show or hide batch column based on whether item also has batch management
+      if (itemData.item_batch_management === 1) {
+        this.display("gd_item_balance.table_item_balance.batch_id");
+        console.log(
+          "Serialized item with batch management - showing both serial and batch columns"
+        );
+      } else {
+        this.hide("gd_item_balance.table_item_balance.batch_id");
+        console.log(
+          "Serialized item without batch management - hiding batch column"
+        );
+      }
+
+      db.collection("item_serial_balance")
+        .where({
+          material_id: materialId,
+          plant_id: plantId,
+        })
+        .get()
+        .then((response) => {
+          console.log("response item_serial_balance", response);
+          let freshDbData = response.data || [];
+
+          const processedFreshData = processItemBalanceData(freshDbData);
+
+          let tempDataArray = [];
+          if (tempQtyData) {
+            try {
+              tempDataArray = JSON.parse(tempQtyData);
+              console.log("Parsed temp data:", tempDataArray);
+            } catch (error) {
+              console.error("Error parsing temp_qty_data:", error);
+              tempDataArray = [];
+            }
+          }
+
+          const finalData = mergeWithTempData(
+            processedFreshData,
+            tempDataArray
+          );
+
+          // Filter out records with no serial numbers
+          const filteredData = filterZeroQuantityRecords(finalData);
+
+          console.log("Final filtered serialized data:", filteredData);
+
+          this.setData({
+            [`gd_item_balance.table_item_balance`]: filteredData,
+          });
+        })
+        .catch((error) => {
+          console.error("Error fetching item serial balance data:", error);
+        });
+
+      // Handle Batch Items (only if not serialized)
+    } else if (itemData.item_batch_management === 1) {
+      console.log("Processing batch item (non-serialized)");
+
+      // Show batch column and hide serial number column
       this.display("gd_item_balance.table_item_balance.batch_id");
+      this.hide("gd_item_balance.table_item_balance.serial_number");
 
       db.collection("item_batch_balance")
         .where({
@@ -223,7 +358,7 @@ db.collection("Item")
           // Filter out records with all zero quantities
           const filteredData = filterZeroQuantityRecords(finalData);
 
-          console.log("Final filtered data:", filteredData);
+          console.log("Final filtered batch data:", filteredData);
 
           this.setData({
             [`gd_item_balance.table_item_balance`]: filteredData,
@@ -232,8 +367,14 @@ db.collection("Item")
         .catch((error) => {
           console.error("Error fetching item batch balance data:", error);
         });
+
+      // Handle Regular Items (no batch, no serial)
     } else {
+      console.log("Processing regular item (no batch, no serial)");
+
+      // Hide both batch and serial columns
       this.hide("gd_item_balance.table_item_balance.batch_id");
+      this.hide("gd_item_balance.table_item_balance.serial_number");
 
       db.collection("item_balance")
         .where({
@@ -266,7 +407,7 @@ db.collection("Item")
           // Filter out records with all zero quantities
           const filteredData = filterZeroQuantityRecords(finalData);
 
-          console.log("Final filtered data:", filteredData);
+          console.log("Final filtered regular data:", filteredData);
 
           this.setData({
             [`gd_item_balance.table_item_balance`]: filteredData,

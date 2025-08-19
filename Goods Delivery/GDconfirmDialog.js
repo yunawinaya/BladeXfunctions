@@ -3,6 +3,8 @@
   const temporaryData = data.gd_item_balance.table_item_balance;
   const rowIndex = data.gd_item_balance.row_index;
   const gdUOMid = data.gd_item_balance.material_uom;
+  const materialId = data.table_gd[rowIndex].material_id;
+
   const gdUOM = await db
     .collection("unit_of_measurement")
     .where({ id: gdUOMid })
@@ -11,9 +13,24 @@
       return res.data[0].uom_name;
     });
 
+  // Get item data to check if it's serialized
+  let isSerializedItem = false;
+  let isBatchManagedItem = false;
+
+  if (materialId) {
+    const resItem = await db.collection("Item").where({ id: materialId }).get();
+    if (resItem.data && resItem.data[0]) {
+      isSerializedItem = resItem.data[0].serial_number_management === 1;
+      isBatchManagedItem = resItem.data[0].item_batch_management === 1;
+    }
+  }
+
+  console.log(
+    `Item type: Serialized=${isSerializedItem}, Batch=${isBatchManagedItem}`
+  );
+
   // Re-validate all rows with quantities > 0 before confirming
   const gdStatus = data.gd_status;
-  const materialId = data.table_gd[rowIndex].material_id;
   const gd_order_quantity = parseFloat(
     data.table_gd[rowIndex].gd_order_quantity || 0
   );
@@ -56,23 +73,74 @@
       continue;
     }
 
-    // Check stock availability
-    const unrestricted_field = item.unrestricted_qty;
-    const reserved_field = item.reserved_qty;
+    // For serialized items, validate differently
+    if (isSerializedItem) {
+      // For serialized items, check if serial number exists and is valid
+      if (!item.serial_number || item.serial_number.trim() === "") {
+        console.log(`Row ${idx} validation failed: Serial number missing`);
+        alert(`Row ${idx + 1}: Serial number is required for serialized items`);
+        return;
+      }
 
-    if (
-      gdStatus === "Created" &&
-      reserved_field + unrestricted_field < quantity
-    ) {
-      console.log(`Row ${idx} validation failed: Quantity is not enough`);
-      alert(`Row ${idx + 1}: Quantity is not enough`);
-      return;
-    } else if (gdStatus !== "Created" && unrestricted_field < quantity) {
-      console.log(
-        `Row ${idx} validation failed: Unrestricted quantity is not enough`
-      );
-      alert(`Row ${idx + 1}: Unrestricted quantity is not enough`);
-      return;
+      // For serialized items, quantity should typically be 1 (whole units)
+      if (quantity !== Math.floor(quantity)) {
+        console.log(
+          `Row ${idx} validation failed: Serialized items must be whole units`
+        );
+        alert(
+          `Row ${idx + 1}: Serialized items must be delivered in whole units`
+        );
+        return;
+      }
+
+      // Check unrestricted quantity for serialized items
+      const unrestricted_field = item.unrestricted_qty;
+      if (gdStatus === "Created") {
+        // For Created status, allow more flexibility
+        if (unrestricted_field < quantity) {
+          console.log(
+            `Row ${idx} validation failed: Serial item not available`
+          );
+          alert(
+            `Row ${idx + 1}: Serial number ${
+              item.serial_number
+            } is not available`
+          );
+          return;
+        }
+      } else {
+        // For other statuses, check unrestricted quantity
+        if (unrestricted_field < quantity) {
+          console.log(
+            `Row ${idx} validation failed: Serial item unrestricted quantity insufficient`
+          );
+          alert(
+            `Row ${idx + 1}: Serial number ${
+              item.serial_number
+            } unrestricted quantity is insufficient`
+          );
+          return;
+        }
+      }
+    } else {
+      // For non-serialized items, use existing validation logic
+      const unrestricted_field = item.unrestricted_qty;
+      const reserved_field = item.reserved_qty;
+
+      if (
+        gdStatus === "Created" &&
+        reserved_field + unrestricted_field < quantity
+      ) {
+        console.log(`Row ${idx} validation failed: Quantity is not enough`);
+        alert(`Row ${idx + 1}: Quantity is not enough`);
+        return;
+      } else if (gdStatus !== "Created" && unrestricted_field < quantity) {
+        console.log(
+          `Row ${idx} validation failed: Unrestricted quantity is not enough`
+        );
+        alert(`Row ${idx + 1}: Unrestricted quantity is not enough`);
+        return;
+      }
     }
 
     console.log(`Row ${idx} validation: passed`);
@@ -168,6 +236,12 @@
 
     let summary = `Total: ${totalQty} ${gdUOM}\n\nDETAILS:\n`;
 
+    // 🐛 ADD DEBUGGING HERE
+    console.log("=== DEBUGGING SERIAL DISPLAY ===");
+    console.log("isSerializedItem:", isSerializedItem);
+    console.log("isBatchManagedItem:", isBatchManagedItem);
+    console.log("filteredData:", filteredData);
+
     const details = filteredData
       .map((item, index) => {
         const locationName = locationMap[item.location_id] || item.location_id;
@@ -175,16 +249,43 @@
 
         let itemDetail = `${index + 1}. ${locationName}: ${qty} ${gdUOM}`;
 
-        // Add batch info on a new line if batch exists
+        // 🐛 ADD MORE DEBUGGING
+        console.log(`Item ${index}:`, {
+          serial_number: item.serial_number,
+          batch_id: item.batch_id,
+          isSerializedItem: isSerializedItem,
+          hasSerial: !!item.serial_number,
+        });
+
+        // 🔧 IMPROVED SERIAL DISPLAY LOGIC
+        if (isSerializedItem) {
+          if (item.serial_number && item.serial_number.trim() !== "") {
+            itemDetail += ` [Serial: ${item.serial_number.trim()}]`;
+          } else {
+            itemDetail += ` [Serial: NOT SET]`;
+            console.warn(
+              `Row ${index + 1}: Serial number missing for serialized item`
+            );
+          }
+        }
+
+        // Add batch info if batch exists
         if (item.batch_id) {
           const batchName = batchMap[item.batch_id] || item.batch_id;
-          itemDetail += `\n[${batchName}]`;
+          if (isSerializedItem) {
+            // If we already added serial on same line, add batch on new line
+            itemDetail += `\n   [Batch: ${batchName}]`;
+          } else {
+            // For non-serialized items, add batch on new line as before
+            itemDetail += `\n[Batch: ${batchName}]`;
+          }
         }
 
         return itemDetail;
       })
       .join("\n");
 
+    console.log("=== END DEBUGGING ===");
     return summary + details;
   };
 
@@ -242,6 +343,10 @@
     [`table_gd.${rowIndex}.price_per_item`]: pricePerItem,
     error_message: "", // Clear any error message
   });
+
+  console.log(
+    `Updated row ${rowIndex} with serialized=${isSerializedItem}, batch=${isBatchManagedItem}`
+  );
 
   // Recalculate total from all rows
   let newTotal = 0;

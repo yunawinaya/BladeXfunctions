@@ -80,6 +80,14 @@ for (let i = 0; i < data.table_gd.length; i++) {
       return;
     }
 
+    // 🔧 NEW: Check if item is serialized
+    const isSerializedItem = itemData.serial_number_management === 1;
+    const isBatchManagedItem = itemData.item_batch_management === 1;
+
+    console.log(
+      `Item ${materialId} - Serialized: ${isSerializedItem}, Batch: ${isBatchManagedItem}`
+    );
+
     // Calculate order limit with tolerance
     let orderLimit = gdUndeliveredQty;
     if (itemData.over_delivery_tolerance > 0) {
@@ -98,7 +106,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
 
     // Check inventory availability based on GD status
     if (gdStatus === "Created") {
-      // For Created status: Check total available (unrestricted + reserved)
+      // For Created status: Check temp_qty_data from existing GD
       const resGD = await db
         .collection("goods_delivery")
         .where({ id: data.id })
@@ -114,19 +122,20 @@ for (let i = 0; i < data.table_gd.length; i++) {
         resGD.data[0].table_gd[index].temp_qty_data
       );
 
-      if (prevTempData.length === 1) {
-        const tempItem = prevTempData[0];
-        const unrestricted_qty = parseFloat(tempItem.unrestricted_qty || 0);
-        const reserved_qty = parseFloat(tempItem.reserved_qty || 0);
+      if (prevTempData.length >= 1) {
+        // For Created GD, sum up all available quantities from temp data
+        let totalAvailableQty = 0;
 
-        // CORRECTED: Total available = unrestricted + reserved
-        const totalAvailableQty = unrestricted_qty + reserved_qty;
+        prevTempData.forEach((tempItem) => {
+          const unrestricted_qty = parseFloat(tempItem.unrestricted_qty || 0);
+          const reserved_qty = parseFloat(tempItem.reserved_qty || 0);
+          totalAvailableQty += unrestricted_qty + reserved_qty;
+        });
 
         console.log(`Created GD validation for ${materialId}:`, {
-          unrestricted_qty,
-          reserved_qty,
           totalAvailableQty,
           currentItemQtyTotal,
+          isSerializedItem,
         });
 
         if (totalAvailableQty < currentItemQtyTotal) {
@@ -136,34 +145,42 @@ for (let i = 0; i < data.table_gd.length; i++) {
         }
       }
     } else {
-      // For other statuses (Draft, etc.): Check only unrestricted
+      // For other statuses (Draft, etc.): Check actual inventory balances
       let availableQty = 0;
 
-      if (itemData.item_batch_management === 0) {
-        // Non-batch managed items
-        const resItemBalance = await db
-          .collection("item_balance")
+      if (isSerializedItem) {
+        // 🔧 NEW: Handle serialized items
+        const resSerialBalance = await db
+          .collection("item_serial_balance")
           .where({
             plant_id: data.plant_id,
             material_id: materialId,
-            is_deleted: 0,
+            organization_id:
+              data.organization_id || this.getVarGlobal("deptParentId"),
           })
           .get();
 
-        if (resItemBalance?.data?.length > 0) {
-          // Sum up unrestricted quantities from all locations
-          availableQty = resItemBalance.data.reduce((total, balance) => {
+        if (resSerialBalance?.data?.length > 0) {
+          // Sum up unrestricted quantities from all serial numbers
+          availableQty = resSerialBalance.data.reduce((total, balance) => {
             return total + parseFloat(balance.unrestricted_qty || 0);
           }, 0);
         }
-      } else {
-        // Batch managed items
+
+        console.log(`Draft GD validation for SERIALIZED item ${materialId}:`, {
+          availableQty,
+          currentItemQtyTotal,
+          serialCount: resSerialBalance?.data?.length || 0,
+        });
+      } else if (isBatchManagedItem) {
+        // 🔧 EXISTING: Batch managed items
         const resItemBalance = await db
           .collection("item_batch_balance")
           .where({
             plant_id: data.plant_id,
             material_id: materialId,
-            is_deleted: 0,
+            organization_id:
+              data.organization_id || this.getVarGlobal("deptParentId"),
           })
           .get();
 
@@ -173,13 +190,37 @@ for (let i = 0; i < data.table_gd.length; i++) {
             return total + parseFloat(balance.unrestricted_qty || 0);
           }, 0);
         }
-      }
 
-      console.log(`Draft GD validation for ${materialId}:`, {
-        availableQty,
-        currentItemQtyTotal,
-        batchManaged: itemData.item_batch_management === 1,
-      });
+        console.log(`Draft GD validation for BATCH item ${materialId}:`, {
+          availableQty,
+          currentItemQtyTotal,
+          batchCount: resItemBalance?.data?.length || 0,
+        });
+      } else {
+        // 🔧 EXISTING: Non-batch managed items
+        const resItemBalance = await db
+          .collection("item_balance")
+          .where({
+            plant_id: data.plant_id,
+            material_id: materialId,
+            organization_id:
+              data.organization_id || this.getVarGlobal("deptParentId"),
+          })
+          .get();
+
+        if (resItemBalance?.data?.length > 0) {
+          // Sum up unrestricted quantities from all locations
+          availableQty = resItemBalance.data.reduce((total, balance) => {
+            return total + parseFloat(balance.unrestricted_qty || 0);
+          }, 0);
+        }
+
+        console.log(`Draft GD validation for REGULAR item ${materialId}:`, {
+          availableQty,
+          currentItemQtyTotal,
+          locationCount: resItemBalance?.data?.length || 0,
+        });
+      }
 
       if (availableQty < currentItemQtyTotal) {
         window.validationState[index] = false;
@@ -193,6 +234,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
       materialId,
       quantity,
       orderLimit,
+      isSerializedItem,
     });
     window.validationState[index] = true;
     callback();

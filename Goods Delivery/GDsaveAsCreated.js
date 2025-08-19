@@ -472,6 +472,58 @@ const handleExistingInventoryMovements = async (
     } else {
       console.log("No existing inventory movements found for this delivery");
     }
+
+    // Also handle existing inv_serial_movement records
+    const existingSerialMovements = await db
+      .collection("inv_serial_movement")
+      .where({
+        transaction_type: "GDL",
+        is_deleted: 0,
+      })
+      .get();
+
+    if (
+      existingSerialMovements.data &&
+      existingSerialMovements.data.length > 0
+    ) {
+      // Filter serial movements that belong to this delivery
+      const relevantSerialMovements = [];
+
+      for (const serialMovement of existingSerialMovements.data) {
+        if (serialMovement.inventory_movement_id) {
+          // Check if this serial movement belongs to our delivery
+          const inventoryMovement = await db
+            .collection("inventory_movement")
+            .where({ id: serialMovement.inventory_movement_id })
+            .get();
+
+          if (inventoryMovement.data && inventoryMovement.data.length > 0) {
+            const invMovement = inventoryMovement.data[0];
+            if (
+              invMovement.trx_no === deliveryNo &&
+              invMovement.transaction_type === "GDL"
+            ) {
+              relevantSerialMovements.push(serialMovement);
+            }
+          }
+        }
+      }
+
+      if (relevantSerialMovements.length > 0) {
+        console.log(
+          `Found ${relevantSerialMovements.length} existing serial movements to mark as deleted`
+        );
+
+        const serialUpdatePromises = relevantSerialMovements.map((movement) =>
+          db.collection("inv_serial_movement").doc(movement.id).update({
+            is_deleted: 1,
+          })
+        );
+
+        await Promise.all(serialUpdatePromises);
+        console.log("Successfully marked existing serial movements as deleted");
+      }
+    }
   } catch (error) {
     console.error("Error handling existing inventory movements:", error);
     throw error;
@@ -489,7 +541,9 @@ const reverseBalanceChanges = async (
     return;
   }
 
-  console.log("Reversing previous balance changes");
+  console.log(
+    "Reversing previous balance changes (including serialized items)"
+  );
   const items = data.table_gd;
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -523,64 +577,108 @@ const reverseBalanceChanges = async (
         continue;
       }
 
+      const isSerializedItem = itemData.serial_number_management === 1;
       const prevTempData = parseJsonSafely(item.prev_temp_qty_data);
 
       for (const prevTemp of prevTempData) {
-        const itemBalanceParams = {
-          material_id: item.material_id,
-          location_id: prevTemp.location_id,
-          plant_id: data.plant_id,
-          organization_id: organizationId,
-        };
+        // UOM Conversion for previous quantity
+        let prevBaseQty = roundQty(prevTemp.gd_quantity);
 
-        if (prevTemp.batch_id) {
-          itemBalanceParams.batch_id = prevTemp.batch_id;
+        if (
+          Array.isArray(itemData.table_uom_conversion) &&
+          itemData.table_uom_conversion.length > 0
+        ) {
+          const uomConversion = itemData.table_uom_conversion.find(
+            (conv) => conv.alt_uom_id === item.gd_order_uom_id
+          );
+
+          if (uomConversion) {
+            prevBaseQty = roundQty(prevBaseQty * uomConversion.base_qty);
+          }
         }
 
-        const balanceCollection = prevTemp.batch_id
-          ? "item_batch_balance"
-          : "item_balance";
+        if (isSerializedItem) {
+          // Handle serialized item balance reversal
+          const serialBalanceParams = {
+            material_id: item.material_id,
+            serial_number: prevTemp.serial_number,
+            plant_id: data.plant_id,
+            organization_id: organizationId,
+          };
 
-        const balanceQuery = await db
-          .collection(balanceCollection)
-          .where(itemBalanceParams)
-          .get();
-
-        if (balanceQuery.data && balanceQuery.data.length > 0) {
-          const existingDoc = balanceQuery.data[0];
-
-          // UOM Conversion for previous quantity
-          let prevBaseQty = roundQty(prevTemp.gd_quantity);
-
-          if (
-            Array.isArray(itemData.table_uom_conversion) &&
-            itemData.table_uom_conversion.length > 0
-          ) {
-            const uomConversion = itemData.table_uom_conversion.find(
-              (conv) => conv.alt_uom_id === item.gd_order_uom_id
-            );
-
-            if (uomConversion) {
-              prevBaseQty = roundQty(prevBaseQty * uomConversion.base_qty);
-            }
+          // Add batch_id if item has batch management
+          if (itemData.item_batch_management === 1 && prevTemp.batch_id) {
+            serialBalanceParams.batch_id = prevTemp.batch_id;
           }
 
-          // Reverse the previous changes: add back to unrestricted, subtract from reserved
-          await db
-            .collection(balanceCollection)
-            .doc(existingDoc.id)
-            .update({
-              unrestricted_qty: roundQty(
-                parseFloat(existingDoc.unrestricted_qty || 0) + prevBaseQty
-              ),
-              reserved_qty: roundQty(
-                parseFloat(existingDoc.reserved_qty || 0) - prevBaseQty
-              ),
-            });
+          const serialBalanceQuery = await db
+            .collection("item_serial_balance")
+            .where(serialBalanceParams)
+            .get();
 
-          console.log(
-            `Reversed balance for item ${item.material_id}, location ${prevTemp.location_id}`
-          );
+          if (serialBalanceQuery.data && serialBalanceQuery.data.length > 0) {
+            const existingSerialDoc = serialBalanceQuery.data[0];
+
+            // Reverse the previous changes: add back to unrestricted, subtract from reserved
+            await db
+              .collection("item_serial_balance")
+              .doc(existingSerialDoc.id)
+              .update({
+                unrestricted_qty: roundQty(
+                  parseFloat(existingSerialDoc.unrestricted_qty || 0) +
+                    prevBaseQty
+                ),
+                reserved_qty: roundQty(
+                  parseFloat(existingSerialDoc.reserved_qty || 0) - prevBaseQty
+                ),
+              });
+
+            console.log(
+              `Reversed serial balance for item ${item.material_id}, serial ${prevTemp.serial_number}`
+            );
+          }
+        } else {
+          // Handle non-serialized item balance reversal (existing logic)
+          const itemBalanceParams = {
+            material_id: item.material_id,
+            location_id: prevTemp.location_id,
+            plant_id: data.plant_id,
+            organization_id: organizationId,
+          };
+
+          if (prevTemp.batch_id) {
+            itemBalanceParams.batch_id = prevTemp.batch_id;
+          }
+
+          const balanceCollection = prevTemp.batch_id
+            ? "item_batch_balance"
+            : "item_balance";
+
+          const balanceQuery = await db
+            .collection(balanceCollection)
+            .where(itemBalanceParams)
+            .get();
+
+          if (balanceQuery.data && balanceQuery.data.length > 0) {
+            const existingDoc = balanceQuery.data[0];
+
+            // Reverse the previous changes: add back to unrestricted, subtract from reserved
+            await db
+              .collection(balanceCollection)
+              .doc(existingDoc.id)
+              .update({
+                unrestricted_qty: roundQty(
+                  parseFloat(existingDoc.unrestricted_qty || 0) + prevBaseQty
+                ),
+                reserved_qty: roundQty(
+                  parseFloat(existingDoc.reserved_qty || 0) - prevBaseQty
+                ),
+              });
+
+            console.log(
+              `Reversed balance for item ${item.material_id}, location ${prevTemp.location_id}`
+            );
+          }
         }
       }
     } catch (error) {
@@ -593,16 +691,14 @@ const reverseBalanceChanges = async (
   }
 };
 
-// New function to validate inventory availability before processing
+// Validate inventory availability
 const validateInventoryAvailability = async (data, organizationId) => {
-  console.log("Validating inventory availability");
-
   const items = data.table_gd;
   if (!Array.isArray(items) || items.length === 0) {
     return { isValid: true };
   }
 
-  // Create a map to track total required quantities by material/location/batch
+  // Create a map to track total required quantities by material/location/batch/serial
   const requiredQuantities = new Map();
 
   // First pass: Calculate total required quantities
@@ -612,7 +708,7 @@ const validateInventoryAvailability = async (data, organizationId) => {
     }
 
     try {
-      // Get item data to check stock control and UOM conversion
+      // Get item data to check stock control, serialization, and UOM conversion
       const itemRes = await db
         .collection("Item")
         .where({ id: item.material_id })
@@ -632,6 +728,8 @@ const validateInventoryAvailability = async (data, organizationId) => {
         continue;
       }
 
+      const isSerializedItem = itemData.serial_number_management === 1;
+      const isBatchManagedItem = itemData.item_batch_management === 1;
       const temporaryData = parseJsonSafely(item.temp_qty_data);
 
       for (const temp of temporaryData) {
@@ -651,10 +749,23 @@ const validateInventoryAvailability = async (data, organizationId) => {
           }
         }
 
-        // Create unique key for material/location/batch combination
-        const key = temp.batch_id
-          ? `${item.material_id}-${temp.location_id}-${temp.batch_id}`
-          : `${item.material_id}-${temp.location_id}`;
+        // Create unique key using pipe separator to avoid conflicts with hyphens in serial numbers
+        let key;
+        if (isSerializedItem) {
+          if (isBatchManagedItem && temp.batch_id) {
+            key = `${item.material_id}|${temp.location_id || "no-location"}|${
+              temp.batch_id
+            }|${temp.serial_number}`;
+          } else {
+            key = `${item.material_id}|${temp.location_id || "no-location"}|${
+              temp.serial_number
+            }`;
+          }
+        } else {
+          key = temp.batch_id
+            ? `${item.material_id}|${temp.location_id}|${temp.batch_id}`
+            : `${item.material_id}|${temp.location_id}`;
+        }
 
         // Add to required quantities
         const currentRequired = requiredQuantities.get(key) || 0;
@@ -671,74 +782,141 @@ const validateInventoryAvailability = async (data, organizationId) => {
 
   // Second pass: Check availability against current balances
   for (const [key, requiredQty] of requiredQuantities.entries()) {
-    const [materialId, locationId, batchId] = key.split("-");
+    const keyParts = key.split("|");
+    const materialId = keyParts[0];
+    const locationId = keyParts[1] !== "no-location" ? keyParts[1] : null;
+
+    let batchId, serialNumber;
+
+    // Determine if this is a serialized item key
+    const itemRes = await db.collection("Item").where({ id: materialId }).get();
+    if (!itemRes.data || !itemRes.data.length) {
+      continue;
+    }
+
+    const itemData = itemRes.data[0];
+    const isSerializedItem = itemData.serial_number_management === 1;
+    const isBatchManagedItem = itemData.item_batch_management === 1;
+
+    if (isSerializedItem) {
+      if (isBatchManagedItem) {
+        // serialized + batch: materialId|locationId|batchId|serialNumber
+        batchId = keyParts[2] !== "undefined" ? keyParts[2] : null;
+        serialNumber = keyParts[3];
+      } else {
+        // serialized only: materialId|locationId|serialNumber
+        serialNumber = keyParts[2];
+        batchId = null;
+      }
+    } else {
+      // non-serialized: materialId|locationId|batchId (or no batchId)
+      batchId = keyParts[2] !== "undefined" ? keyParts[2] : null;
+      serialNumber = null;
+    }
 
     try {
-      const itemBalanceParams = {
+      let itemBalanceParams = {
         material_id: materialId,
-        location_id: locationId,
         plant_id: data.plant_id,
         organization_id: organizationId,
       };
 
-      if (batchId && batchId !== "undefined") {
-        itemBalanceParams.batch_id = batchId;
-      }
-
-      const balanceCollection =
-        batchId && batchId !== "undefined"
-          ? "item_batch_balance"
-          : "item_balance";
-
-      const balanceQuery = await db
-        .collection(balanceCollection)
-        .where(itemBalanceParams)
-        .get();
-
+      let balanceCollection;
       let availableQty = 0;
 
-      if (balanceQuery.data && balanceQuery.data.length > 0) {
-        const balance = balanceQuery.data[0];
-        availableQty = roundQty(parseFloat(balance.unrestricted_qty || 0));
+      if (isSerializedItem) {
+        // FOR SERIALIZED ITEMS: Check item_serial_balance
+        balanceCollection = "item_serial_balance";
+        itemBalanceParams.serial_number = serialNumber;
+
+        if (batchId) {
+          itemBalanceParams.batch_id = batchId;
+        }
+
+        const balanceQuery = await db
+          .collection(balanceCollection)
+          .where(itemBalanceParams)
+          .get();
+
+        if (balanceQuery.data && balanceQuery.data.length > 0) {
+          const balance = balanceQuery.data[0];
+
+          // For serialized items, use total available (unrestricted + reserved)
+          // since during GD creation, we move from unrestricted to reserved
+          const unrestrictedQty = parseFloat(balance.unrestricted_qty || 0);
+          const reservedQty = parseFloat(balance.reserved_qty || 0);
+          availableQty = roundQty(unrestrictedQty + reservedQty);
+        }
+      } else {
+        // FOR NON-SERIALIZED ITEMS: Use existing logic
+        if (locationId) {
+          itemBalanceParams.location_id = locationId;
+        }
+
+        if (batchId) {
+          itemBalanceParams.batch_id = batchId;
+          balanceCollection = "item_batch_balance";
+        } else {
+          balanceCollection = "item_balance";
+        }
+
+        const balanceQuery = await db
+          .collection(balanceCollection)
+          .where(itemBalanceParams)
+          .get();
+
+        if (balanceQuery.data && balanceQuery.data.length > 0) {
+          const balance = balanceQuery.data[0];
+          availableQty = roundQty(parseFloat(balance.unrestricted_qty || 0));
+        }
       }
 
+      // VALIDATION: Check if we have enough quantity
       if (availableQty < requiredQty) {
         // Get item name for better error message
-        const itemRes = await db
-          .collection("Item")
-          .where({ id: materialId })
-          .get();
+        const itemName = itemData.material_name || materialId;
 
-        const itemName =
-          itemRes.data && itemRes.data.length > 0
-            ? itemRes.data[0].material_name || materialId
-            : materialId;
-
-        const locationRes = await db
-          .collection("bin_location")
-          .where({ id: locationId })
-          .get();
-
-        const locationName =
-          locationRes.data && locationRes.data.length > 0
-            ? locationRes.data[0].bin_location_combine || locationId
-            : locationId;
-
-        let errorMsg = `Insufficient inventory for item "${itemName}" at location "${locationName}". `;
+        let errorMsg = `Insufficient inventory for item "${itemName}". `;
         errorMsg += `Required: ${requiredQty}, Available: ${availableQty}`;
 
-        if (batchId && batchId !== "undefined") {
-          const batchRes = await db
-            .collection("item_batch")
-            .where({ id: batchId })
-            .get();
+        if (isSerializedItem && serialNumber) {
+          errorMsg += `, Serial: "${serialNumber}"`;
+        }
 
-          const batchName =
-            batchRes.data && batchRes.data.length > 0
-              ? batchRes.data[0].batch_no || batchId
-              : batchId;
+        if (locationId && !isSerializedItem) {
+          try {
+            const locationRes = await db
+              .collection("bin_location")
+              .where({ id: locationId })
+              .get();
 
-          errorMsg += `, Batch: "${batchName}"`;
+            const locationName =
+              locationRes.data && locationRes.data.length > 0
+                ? locationRes.data[0].bin_location_combine || locationId
+                : locationId;
+
+            errorMsg += `, Location: "${locationName}"`;
+          } catch {
+            errorMsg += `, Location: "${locationId}"`;
+          }
+        }
+
+        if (batchId) {
+          try {
+            const batchRes = await db
+              .collection("batch")
+              .where({ id: batchId })
+              .get();
+
+            const batchName =
+              batchRes.data && batchRes.data.length > 0
+                ? batchRes.data[0].batch_number || batchId
+                : batchId;
+
+            errorMsg += `, Batch: "${batchName}"`;
+          } catch {
+            errorMsg += `, Batch: "${batchId}"`;
+          }
         }
 
         return {
@@ -747,9 +925,9 @@ const validateInventoryAvailability = async (data, organizationId) => {
           details: {
             materialId,
             itemName,
-            locationId,
-            locationName,
-            batchId: batchId !== "undefined" ? batchId : null,
+            locationId: locationId || null,
+            batchId: batchId || null,
+            serialNumber: serialNumber || null,
             requiredQty,
             availableQty,
           },
@@ -764,7 +942,6 @@ const validateInventoryAvailability = async (data, organizationId) => {
     }
   }
 
-  console.log("Inventory validation passed");
   return { isValid: true };
 };
 
@@ -870,6 +1047,12 @@ const processItemBalance = async (
     return;
   }
 
+  // Check if item is serialized
+  const isSerializedItem = itemData.serial_number_management === 1;
+  console.log(
+    `Processing item ${item.material_id}, serialized: ${isSerializedItem}`
+  );
+
   // Track created documents for potential rollback
   const createdDocs = [];
   const updatedDocs = [];
@@ -878,39 +1061,65 @@ const processItemBalance = async (
     for (let i = 0; i < temporaryData.length; i++) {
       const temp = temporaryData[i];
 
-      const itemBalanceParams = {
-        material_id: item.material_id,
-        location_id: temp.location_id,
-        plant_id: data.plant_id,
-        organization_id: organizationId,
-      };
+      // Different balance collection logic for serialized items
+      let itemBalanceParams;
+      let balanceCollection;
+      let hasExistingBalance = false;
+      let existingDoc = null;
 
-      if (temp.batch_id) {
-        itemBalanceParams.batch_id = temp.batch_id;
+      if (isSerializedItem) {
+        // For serialized items, use item_serial_balance
+        balanceCollection = "item_serial_balance";
+        itemBalanceParams = {
+          material_id: item.material_id,
+          serial_number: temp.serial_number,
+          plant_id: data.plant_id,
+          organization_id: organizationId,
+        };
+
+        // Add batch_id if item also has batch management
+        if (itemData.item_batch_management === 1 && temp.batch_id) {
+          itemBalanceParams.batch_id = temp.batch_id;
+        }
+
+        // Query for existing serial balance
+        const balanceQuery = await db
+          .collection(balanceCollection)
+          .where(itemBalanceParams)
+          .get();
+
+        hasExistingBalance = balanceQuery.data && balanceQuery.data.length > 0;
+        existingDoc = hasExistingBalance ? balanceQuery.data[0] : null;
+      } else {
+        // For non-serialized items, use existing logic
+        itemBalanceParams = {
+          material_id: item.material_id,
+          location_id: temp.location_id,
+          plant_id: data.plant_id,
+          organization_id: organizationId,
+        };
+
+        if (temp.batch_id) {
+          itemBalanceParams.batch_id = temp.batch_id;
+          balanceCollection = "item_batch_balance";
+        } else {
+          balanceCollection = "item_balance";
+        }
+
+        const balanceQuery = await db
+          .collection(balanceCollection)
+          .where(itemBalanceParams)
+          .get();
+
+        hasExistingBalance = balanceQuery.data && balanceQuery.data.length > 0;
+        existingDoc = hasExistingBalance ? balanceQuery.data[0] : null;
       }
-
-      const balanceCollection = temp.batch_id
-        ? "item_batch_balance"
-        : "item_balance";
-
-      const balanceQuery = await db
-        .collection(balanceCollection)
-        .where(itemBalanceParams)
-        .get();
-
-      const hasExistingBalance =
-        balanceQuery.data &&
-        Array.isArray(balanceQuery.data) &&
-        balanceQuery.data.length > 0;
-
-      const existingDoc = hasExistingBalance ? balanceQuery.data[0] : null;
 
       // UOM Conversion
       let altQty = roundQty(temp.gd_quantity);
       let baseQty = altQty;
       let altUOM = item.gd_order_uom_id;
       let baseUOM = itemData.based_uom;
-      let altWAQty = roundQty(item.gd_qty);
 
       if (
         Array.isArray(itemData.table_uom_conversion) &&
@@ -922,7 +1131,6 @@ const processItemBalance = async (
 
         if (uomConversion) {
           baseQty = roundQty(altQty * uomConversion.base_qty);
-          baseWAQty = roundQty(altWAQty * uomConversion.base_qty);
         }
       }
 
@@ -964,7 +1172,7 @@ const processItemBalance = async (
         totalPrice = roundPrice(fixedCostPrice * baseQty);
       }
 
-      // Create inventory movements
+      // Create base inventory movement data
       const baseInventoryMovement = {
         transaction_type: "GDL",
         trx_no: data.delivery_no,
@@ -983,6 +1191,11 @@ const processItemBalance = async (
         organization_id: data.organization_id,
         is_deleted: 0,
       };
+
+      // Add serial number for serialized items
+      if (isSerializedItem && temp.serial_number) {
+        baseInventoryMovement.serial_number = temp.serial_number;
+      }
 
       // Create OUT movement (from Unrestricted)
       const invMovementResultUNR = await db
@@ -1011,6 +1224,51 @@ const processItemBalance = async (
         collection: "inventory_movement",
         docId: invMovementResultRES.id,
       });
+
+      // Create inv_serial_movement for serialized items
+      if (isSerializedItem && temp.serial_number) {
+        // Create OUT serial movement
+        const invSerialMovementOUT = await db
+          .collection("inv_serial_movement")
+          .add({
+            inventory_movement_id: invMovementResultUNR.id,
+            serial_number: temp.serial_number,
+            batch_id: temp.batch_id || null,
+            base_qty: roundQty(baseQty),
+            base_uom: baseUOM,
+            plant_id: data.plant_id,
+            organization_id: organizationId,
+            movement_type: "OUT",
+            transaction_type: "GDL",
+            created_at: new Date().toISOString(),
+          });
+
+        createdDocs.push({
+          collection: "inv_serial_movement",
+          docId: invSerialMovementOUT.id,
+        });
+
+        // Create IN serial movement
+        const invSerialMovementIN = await db
+          .collection("inv_serial_movement")
+          .add({
+            inventory_movement_id: invMovementResultRES.id,
+            serial_number: temp.serial_number,
+            batch_id: temp.batch_id || null,
+            base_qty: roundQty(baseQty),
+            base_uom: baseUOM,
+            plant_id: data.plant_id,
+            organization_id: organizationId,
+            movement_type: "IN",
+            transaction_type: "GDL",
+            created_at: new Date().toISOString(),
+          });
+
+        createdDocs.push({
+          collection: "inv_serial_movement",
+          docId: invSerialMovementIN.id,
+        });
+      }
 
       // Update balances
       if (existingDoc && existingDoc.id) {
@@ -1406,7 +1664,7 @@ const createOrUpdatePicking = async (
               const existingTO = existingTOResponse.data[0];
               console.log(`Found existing Transfer Order: ${existingTO.to_id}`);
 
-              // Prepare updated picking items
+              // Prepare updated picking items (including serialized items)
               const updatedPickingItems = [];
               gdData.table_gd.forEach((item) => {
                 if (item.temp_qty_data && item.material_id) {
@@ -1416,7 +1674,7 @@ const createOrUpdatePicking = async (
                       const materialId =
                         tempItem.material_id || item.material_id;
 
-                      updatedPickingItems.push({
+                      const pickingItem = {
                         item_code: String(materialId),
                         item_name: item.material_name,
                         item_desc: item.gd_material_desc || "",
@@ -1428,7 +1686,16 @@ const createOrUpdatePicking = async (
                         source_bin: String(tempItem.location_id),
                         pending_process_qty: parseFloat(tempItem.gd_quantity),
                         line_status: "Open",
-                      });
+                      };
+
+                      // Add serial number for serialized items
+                      if (tempItem.serial_number) {
+                        pickingItem.serial_number = String(
+                          tempItem.serial_number
+                        );
+                      }
+
+                      updatedPickingItems.push(pickingItem);
                     });
                   } catch (error) {
                     console.error(
@@ -1459,7 +1726,7 @@ const createOrUpdatePicking = async (
                   throw error;
                 });
 
-              // Notification for new and old picking assignment
+              // Notification handling (existing code remains the same)
               if (existingTO.assigned_to && gdData.assigned_to) {
                 const oldAssigned = Array.isArray(existingTO.assigned_to)
                   ? existingTO.assigned_to
@@ -1580,13 +1847,13 @@ const createOrUpdatePicking = async (
           is_deleted: 0,
         };
 
-        // Process table items
+        // Process table items (including serialized items)
         gdData.table_gd.forEach((item) => {
           if (item.temp_qty_data && item.material_id) {
             try {
               const tempData = parseJsonSafely(item.temp_qty_data);
               tempData.forEach((tempItem) => {
-                transferOrder.table_picking_items.push({
+                const pickingItem = {
                   item_code: item.material_id,
                   item_name: item.material_name,
                   item_desc: item.gd_material_desc || "",
@@ -1602,7 +1869,14 @@ const createOrUpdatePicking = async (
                   source_bin: String(tempItem.location_id),
                   line_status: "Open",
                   so_no: item.line_so_no,
-                });
+                };
+
+                // Add serial number for serialized items
+                if (tempItem.serial_number) {
+                  pickingItem.serial_number = String(tempItem.serial_number);
+                }
+
+                transferOrder.table_picking_items.push(pickingItem);
               });
             } catch (error) {
               console.error(
@@ -1808,7 +2082,7 @@ const createOnReserveGoodsDelivery = async (organizationId, gdData) => {
         // Use line-level SO number, fallback to header SO
         const soNumber = gdLineItem.line_so_no || gdData.so_no;
 
-        reservedDataBatch.push({
+        const reservedRecord = {
           doc_type: "Good Delivery",
           parent_no: soNumber,
           doc_no: gdData.delivery_no,
@@ -1830,7 +2104,14 @@ const createOnReserveGoodsDelivery = async (organizationId, gdData) => {
           organization_id: organizationId,
           created_by: this.getVarGlobal("nickname"),
           created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
-        });
+        };
+
+        // Add serial number for serialized items
+        if (tempItem.serial_number) {
+          reservedRecord.serial_number = tempItem.serial_number;
+        }
+
+        reservedDataBatch.push(reservedRecord);
       }
     }
 
@@ -1840,7 +2121,9 @@ const createOnReserveGoodsDelivery = async (organizationId, gdData) => {
     );
 
     await Promise.all(createPromises);
-    console.log(`Created ${reservedDataBatch.length} reserved goods records`);
+    console.log(
+      `Created ${reservedDataBatch.length} reserved goods records (including serialized items)`
+    );
   } catch (error) {
     console.error("Error in createOnReserveGoodsDelivery:", error);
     throw error;
@@ -1864,14 +2147,15 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
       })
       .get();
 
-    // Prepare new data from current GD
+    // Prepare new data from current GD (including serialized items)
     const newReservedData = [];
     for (let i = 0; i < gdData.table_gd.length; i++) {
       const gdLineItem = gdData.table_gd[i];
       const temp_qty_data = parseJsonSafely(gdLineItem.temp_qty_data);
       for (let j = 0; j < temp_qty_data.length; j++) {
         const tempItem = temp_qty_data[j];
-        newReservedData.push({
+
+        const reservedRecord = {
           doc_type: "Good Delivery",
           parent_no: gdLineItem.line_so_no,
           doc_no: gdData.delivery_no,
@@ -1893,7 +2177,14 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
           organization_id: organizationId,
           updated_by: this.getVarGlobal("nickname"),
           updated_at: new Date().toISOString(),
-        });
+        };
+
+        // Add serial number for serialized items
+        if (tempItem.serial_number) {
+          reservedRecord.serial_number = tempItem.serial_number;
+        }
+
+        newReservedData.push(reservedRecord);
       }
     }
 
@@ -1951,7 +2242,9 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
       }
 
       await Promise.all(updatePromises);
-      console.log("Successfully updated existing reserved records");
+      console.log(
+        "Successfully updated existing reserved records (including serialized items)"
+      );
     } else {
       // No existing records, create new ones
       console.log("No existing records found, creating new ones");
