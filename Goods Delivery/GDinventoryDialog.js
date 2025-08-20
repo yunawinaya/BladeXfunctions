@@ -238,9 +238,30 @@ db.collection("Item")
 
     const filterZeroQuantityRecords = (data) => {
       return data.filter((record) => {
-        // For serialized items, quantity is typically 1 or 0, so check if item exists
+        // For serialized items, check both serial number existence AND quantity > 0
         if (itemData.serial_number_management === 1) {
-          return record.serial_number && record.serial_number.trim() !== "";
+          // First check if serial number exists and is not empty
+          const hasValidSerial =
+            record.serial_number && record.serial_number.trim() !== "";
+
+          if (!hasValidSerial) {
+            return false; // Exclude if no valid serial number
+          }
+
+          // Then check if any quantity fields have value > 0
+          const hasQuantity =
+            (record.block_qty && record.block_qty > 0) ||
+            (record.reserved_qty && record.reserved_qty > 0) ||
+            (record.unrestricted_qty && record.unrestricted_qty > 0) ||
+            (record.qualityinsp_qty && record.qualityinsp_qty > 0) ||
+            (record.intransit_qty && record.intransit_qty > 0) ||
+            (record.balance_quantity && record.balance_quantity > 0);
+
+          console.log(
+            `Serial ${record.serial_number}: hasQuantity=${hasQuantity}, unrestricted=${record.unrestricted_qty}, reserved=${record.reserved_qty}, balance=${record.balance_quantity}`
+          );
+
+          return hasQuantity; // Only include if both serial exists AND has quantity > 0
         }
 
         // For batch and regular items, check if any quantity fields have value > 0

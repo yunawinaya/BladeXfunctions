@@ -17,6 +17,13 @@
   const undeliveredQty = orderedQty - initialDeliveredQty;
   const totalDeliveredQty = quantity + initialDeliveredQty;
 
+  // 🔧 NEW: Check if there's existing temp_qty_data from allocation dialog
+  const existingTempData = data.table_gd[rowIndex].temp_qty_data;
+  const hasExistingAllocation =
+    existingTempData &&
+    existingTempData !== "[]" &&
+    existingTempData.trim() !== "";
+
   // Get UOM data
   const getUOMData = async (uomId) => {
     if (!uomId) return "";
@@ -100,15 +107,34 @@
     console.log(
       `Item type - Serialized: ${isSerializedItem}, Batch: ${isBatchManagedItem}`
     );
+    console.log(
+      `Row ${rowIndex}: Has existing allocation: ${hasExistingAllocation}`
+    );
 
     let balanceData = null;
     let binLocation = null;
     let batchData = null;
     let serialData = null;
 
-    // 🔧 NEW: Handle serialized items
+    // 🔧 UPDATED: Handle serialized items
     if (isSerializedItem) {
       console.log(`Row ${rowIndex}: Processing serialized item`);
+
+      // 🔧 NEW: If there's existing allocation data and quantity > 1, preserve it
+      if (hasExistingAllocation && quantity > 1) {
+        console.log(
+          `Row ${rowIndex}: Preserving existing allocation for serialized item with quantity ${quantity}`
+        );
+
+        // Just update the basic delivery quantities without touching temp_qty_data
+        this.setData({
+          [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
+          [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+            orderedQty - totalDeliveredQty,
+          // Keep existing view_stock and temp_qty_data unchanged
+        });
+        return;
+      }
 
       // For serialized items, we need to check if there's exactly one serial available
       const serialBalanceQuery = {
@@ -174,15 +200,23 @@
         console.warn(
           `Row ${rowIndex}: Manual allocation for serialized items typically requires quantity of 1, but ${quantity} requested`
         );
-        // For now, let's not auto-allocate if quantity > 1 for serialized items
-        // User should use the allocation dialog instead
-        this.setData({
-          [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-          [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-            orderedQty - totalDeliveredQty,
-          [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog for serialized items with quantity > 1`,
-          [`table_gd.${rowIndex}.temp_qty_data`]: "[]", // Clear any existing temp data
-        });
+        // 🔧 UPDATED: Only show the message if there's no existing allocation
+        if (!hasExistingAllocation) {
+          this.setData({
+            [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
+            [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+              orderedQty - totalDeliveredQty,
+            [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog for serialized items with quantity > 1`,
+            [`table_gd.${rowIndex}.temp_qty_data`]: "[]", // Clear any existing temp data
+          });
+        } else {
+          // If there's existing allocation, just update delivery quantities
+          this.setData({
+            [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
+            [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+              orderedQty - totalDeliveredQty,
+          });
+        }
         return;
       }
 

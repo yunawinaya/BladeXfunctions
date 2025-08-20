@@ -1718,23 +1718,45 @@ const processBalanceTable = async (
                 (doc) => doc.collection === "inventory_movement"
               );
 
+              console.log(
+                `Found ${outMovements.length} OUT movements to process for serial records`
+              );
+
               // For each movement, create individual inv_serial_movement records for EACH serial number
               for (const movement of outMovements) {
-                // Get the movement details
-                const movementDoc = await db
+                console.log(`Processing movement ID: ${movement.docId}`);
+
+                // Get the movement details using WHERE query instead of doc()
+                const movementQuery = await db
                   .collection("inventory_movement")
-                  .doc(movement.docId)
+                  .where({ id: movement.docId })
                   .get();
 
-                if (movementDoc.data && movementDoc.data.movement === "OUT") {
-                  const movementData = movementDoc.data;
+                if (
+                  movementQuery.data &&
+                  movementQuery.data.length > 0 &&
+                  movementQuery.data[0].movement === "OUT"
+                ) {
+                  const movementData = movementQuery.data[0];
                   console.log(
-                    `Processing movement ${movement.docId} with category: ${movementData.inventory_category}`
+                    `Movement ${movement.docId} confirmed as OUT movement with category: ${movementData.inventory_category}`
                   );
 
                   // Create one inv_serial_movement record for EACH serial number
-                  for (const temp of group.items) {
+                  for (
+                    let serialIndex = 0;
+                    serialIndex < group.items.length;
+                    serialIndex++
+                  ) {
+                    const temp = group.items[serialIndex];
+
                     if (temp.serial_number) {
+                      console.log(
+                        `Processing serial ${serialIndex + 1}/${
+                          group.items.length
+                        }: ${temp.serial_number}`
+                      );
+
                       // Calculate individual base qty for this serial
                       let individualBaseQty = roundQty(temp.gd_quantity);
                       if (uomConversion) {
@@ -1747,50 +1769,79 @@ const processBalanceTable = async (
                         `Creating inv_serial_movement for serial ${temp.serial_number}, individual qty: ${individualBaseQty}, movement: ${movement.docId}`
                       );
 
-                      await db.collection("inv_serial_movement").add({
-                        inventory_movement_id: movement.docId,
-                        serial_number: temp.serial_number,
-                        batch_id: temp.batch_id || null,
-                        base_qty: individualBaseQty, // Use individual quantity, not proportional
-                        base_uom: baseUOM,
-                        plant_id: plantId,
-                        organization_id: organizationId,
-                      });
-
-                      // Wait and get the created ID
-                      await new Promise((resolve) => setTimeout(resolve, 50));
-
-                      const serialMovementQuery = await db
-                        .collection("inv_serial_movement")
-                        .where({
+                      try {
+                        await db.collection("inv_serial_movement").add({
                           inventory_movement_id: movement.docId,
                           serial_number: temp.serial_number,
+                          batch_id: temp.batch_id || null,
+                          base_qty: individualBaseQty,
+                          base_uom: baseUOM,
                           plant_id: plantId,
                           organization_id: organizationId,
-                        })
-                        .get();
-
-                      if (
-                        serialMovementQuery.data &&
-                        serialMovementQuery.data.length > 0
-                      ) {
-                        const serialMovementId = serialMovementQuery.data[0].id;
-
-                        createdDocs.push({
-                          collection: "inv_serial_movement",
-                          docId: serialMovementId,
                         });
 
                         console.log(
-                          `Successfully created inv_serial_movement record for serial ${temp.serial_number}, ID: ${serialMovementId}`
+                          `✓ Successfully added inv_serial_movement for serial ${temp.serial_number}`
+                        );
+
+                        // Wait and get the created ID for tracking
+                        await new Promise((resolve) =>
+                          setTimeout(resolve, 100)
+                        );
+
+                        const serialMovementQuery = await db
+                          .collection("inv_serial_movement")
+                          .where({
+                            inventory_movement_id: movement.docId,
+                            serial_number: temp.serial_number,
+                            plant_id: plantId,
+                            organization_id: organizationId,
+                          })
+                          .get();
+
+                        if (
+                          serialMovementQuery.data &&
+                          serialMovementQuery.data.length > 0
+                        ) {
+                          const serialMovementId =
+                            serialMovementQuery.data[0].id;
+
+                          createdDocs.push({
+                            collection: "inv_serial_movement",
+                            docId: serialMovementId,
+                          });
+
+                          console.log(
+                            `✓ Successfully tracked inv_serial_movement record for serial ${temp.serial_number}, ID: ${serialMovementId}`
+                          );
+                        } else {
+                          console.error(
+                            `✗ Failed to find created inv_serial_movement record for serial ${temp.serial_number}`
+                          );
+                        }
+                      } catch (serialError) {
+                        console.error(
+                          `✗ Error creating inv_serial_movement for serial ${temp.serial_number}:`,
+                          serialError
                         );
                       }
+                    } else {
+                      console.warn(
+                        `Serial number missing for item at index ${serialIndex}`
+                      );
                     }
+                  }
+                } else {
+                  console.error(
+                    `Movement ${movement.docId} not found or not an OUT movement using WHERE query`
+                  );
+                  if (movementQuery.data) {
+                    console.error(`Movement query result:`, movementQuery.data);
                   }
                 }
               }
               console.log(
-                `Completed creating ${group.items.length} individual serial movement records for group ${groupKey}`
+                `Completed processing serial movement records for ${group.items.length} serials in group ${groupKey}`
               );
             }
 

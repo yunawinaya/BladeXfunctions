@@ -20,11 +20,6 @@
       return;
     }
 
-    if (lineItemData.is_serialized_item === 0) {
-      this.$message.error("Item is not a serialized item");
-      return;
-    }
-
     console.log("Processing line item data:", lineItemData);
 
     // Extract and validate required fields
@@ -101,6 +96,15 @@
       }
 
       const itemData = response.data[0];
+      console.log(
+        "Item data serial number management:",
+        itemData.serial_number_management
+      );
+
+      if (itemData.serial_number_management !== 1) {
+        this.$message.error("Item is not a serialized item");
+        return;
+      }
 
       // Validate item data structure
       if (!itemData) {
