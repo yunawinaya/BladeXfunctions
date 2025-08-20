@@ -994,7 +994,9 @@ const processBalanceTable = async (
   organizationId,
   gdStatus
 ) => {
-  console.log("Processing balance table (including serialized items)");
+  console.log(
+    "Processing balance table with grouped movements (including serialized items)"
+  );
   const items = data.table_gd;
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -1011,12 +1013,24 @@ const processBalanceTable = async (
     return parseFloat(parseFloat(value || 0).toFixed(4));
   };
 
+  // Helper function to safely parse JSON
+  const parseJsonSafely = (jsonString, defaultValue = []) => {
+    try {
+      return jsonString ? JSON.parse(jsonString) : defaultValue;
+    } catch (error) {
+      console.error("JSON parse error:", error);
+      return defaultValue;
+    }
+  };
+
   // Create a map to track consumed FIFO quantities during this transaction
   const consumedFIFOQty = new Map();
 
   for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
     const item = items[itemIndex];
     const updatedDocs = [];
+    const createdDocs = [];
+
     try {
       console.log(`Processing item ${itemIndex + 1}/${items.length}`);
 
@@ -1025,9 +1039,6 @@ const processBalanceTable = async (
         console.error(`Invalid item data for index ${itemIndex}:`, item);
         continue;
       }
-
-      // Track created or updated documents for potential rollback
-      const createdDocs = [];
 
       // First check if this item should be processed based on stock_control
       const itemRes = await db
@@ -1056,23 +1067,53 @@ const processBalanceTable = async (
         `Item ${item.material_id}: Serialized=${isSerializedItem}, Batch=${isBatchManagedItem}`
       );
 
-      const temporaryData = JSON.parse(item.temp_qty_data);
+      const temporaryData = parseJsonSafely(item.temp_qty_data);
       const prevTempData = isUpdate
-        ? JSON.parse(item.prev_temp_qty_data)
+        ? parseJsonSafely(item.prev_temp_qty_data)
         : null;
 
       if (
         temporaryData.length > 0 &&
         (!isUpdate || (prevTempData && prevTempData.length > 0))
       ) {
-        for (let i = 0; i < temporaryData.length; i++) {
-          const temp = temporaryData[i];
-          const prevTemp = isUpdate ? prevTempData[i] : null;
+        // GROUP temp_qty_data by location + batch combination for movement consolidation
+        const groupedTempData = new Map();
 
-          console.log("gdStatus", gdStatus);
+        for (const temp of temporaryData) {
+          // Create grouping key based on location and batch (if applicable)
+          let groupKey;
+          if (isBatchManagedItem && temp.batch_id) {
+            groupKey = `${temp.location_id}|${temp.batch_id}`;
+          } else {
+            groupKey = temp.location_id;
+          }
 
-          // UOM Conversion
-          let altQty = roundQty(temp.gd_quantity);
+          if (!groupedTempData.has(groupKey)) {
+            groupedTempData.set(groupKey, {
+              location_id: temp.location_id,
+              batch_id: temp.batch_id,
+              items: [],
+              totalQty: 0,
+            });
+          }
+
+          const group = groupedTempData.get(groupKey);
+          group.items.push(temp);
+          group.totalQty += parseFloat(temp.gd_quantity || 0);
+        }
+
+        console.log(
+          `Grouped ${temporaryData.length} items into ${groupedTempData.size} movement groups`
+        );
+
+        // Process each group to create consolidated movements
+        for (const [groupKey, group] of groupedTempData) {
+          console.log(
+            `Processing group: ${groupKey} with ${group.items.length} items, total qty: ${group.totalQty}`
+          );
+
+          // UOM Conversion for the group
+          let altQty = roundQty(group.totalQty);
           let baseQty = altQty;
           let altUOM = item.gd_order_uom_id;
           let baseUOM = itemData.based_uom;
@@ -1110,16 +1151,33 @@ const processBalanceTable = async (
             );
           }
 
-          // Calculate previous quantities for this specific GD
+          // Calculate previous quantities for this specific GD group
           let prevBaseQty = 0;
-          if (isUpdate && prevTemp) {
-            let prevAltQty = roundQty(prevTemp.gd_quantity);
-            prevBaseQty = prevAltQty;
+          if (isUpdate && prevTempData) {
+            // Find matching previous group quantities
+            for (const prevTemp of prevTempData) {
+              let prevGroupKey;
+              if (isBatchManagedItem && prevTemp.batch_id) {
+                prevGroupKey = `${prevTemp.location_id}|${prevTemp.batch_id}`;
+              } else {
+                prevGroupKey = prevTemp.location_id;
+              }
 
-            if (uomConversion) {
-              prevBaseQty = roundQty(prevAltQty * uomConversion.base_qty);
+              if (prevGroupKey === groupKey) {
+                let prevAltQty = roundQty(prevTemp.gd_quantity);
+                let currentPrevBaseQty = prevAltQty;
+
+                if (uomConversion) {
+                  currentPrevBaseQty = roundQty(
+                    prevAltQty * uomConversion.base_qty
+                  );
+                }
+                prevBaseQty += currentPrevBaseQty;
+              }
             }
-            console.log(`Previous quantity for this GD: ${prevBaseQty}`);
+            console.log(
+              `Previous quantity for this GD group ${groupKey}: ${prevBaseQty}`
+            );
           }
 
           const costingMethod = itemData.material_costing_method;
@@ -1129,8 +1187,8 @@ const processBalanceTable = async (
 
           if (costingMethod === "First In First Out") {
             // Define a key for tracking consumed FIFO quantities
-            const materialBatchKey = temp.batch_id
-              ? `${item.material_id}-${temp.batch_id}`
+            const materialBatchKey = group.batch_id
+              ? `${item.material_id}-${group.batch_id}`
               : item.material_id;
 
             // Get previously consumed quantity (default to 0 if none)
@@ -1140,7 +1198,7 @@ const processBalanceTable = async (
             // Get unit price from latest FIFO sequence with awareness of consumed quantities
             const fifoCostPrice = await getLatestFIFOCostPrice(
               item.material_id,
-              temp.batch_id,
+              group.batch_id,
               baseQty,
               previouslyConsumedQty,
               plantId
@@ -1158,7 +1216,7 @@ const processBalanceTable = async (
             // Get unit price from WA cost price
             const waCostPrice = await getWeightedAverageCostPrice(
               item.material_id,
-              temp.batch_id,
+              group.batch_id,
               plantId
             );
             unitPrice = roundPrice(waCostPrice);
@@ -1184,30 +1242,17 @@ const processBalanceTable = async (
           let existingDoc = null;
 
           if (isSerializedItem) {
-            // For serialized items, use item_serial_balance
-            balanceCollection = "item_serial_balance";
-            itemBalanceParams.serial_number = temp.serial_number;
-
-            if (isBatchManagedItem && temp.batch_id) {
-              itemBalanceParams.batch_id = temp.batch_id;
-            }
-
-            const balanceQuery = await db
-              .collection(balanceCollection)
-              .where(itemBalanceParams)
-              .get();
-
-            hasExistingBalance =
-              balanceQuery.data &&
-              Array.isArray(balanceQuery.data) &&
-              balanceQuery.data.length > 0;
-            existingDoc = hasExistingBalance ? balanceQuery.data[0] : null;
+            // For serialized items, we'll process balance updates individually
+            // but create consolidated movements
+            console.log(
+              `Processing serialized item group with ${group.items.length} serials`
+            );
           } else {
-            // For non-serialized items, use existing logic
-            itemBalanceParams.location_id = temp.location_id;
+            // For non-serialized items, use location-based balance
+            itemBalanceParams.location_id = group.location_id;
 
-            if (temp.batch_id) {
-              itemBalanceParams.batch_id = temp.batch_id;
+            if (group.batch_id) {
+              itemBalanceParams.batch_id = group.batch_id;
               balanceCollection = "item_batch_balance";
             } else {
               balanceCollection = "item_balance";
@@ -1225,33 +1270,56 @@ const processBalanceTable = async (
             existingDoc = hasExistingBalance ? balanceQuery.data[0] : null;
           }
 
-          // Create inventory movement data with serial number for serialized items
+          // Create base inventory movement data (CONSOLIDATED)
           const baseInventoryMovement = {
             transaction_type: "GDL",
             trx_no: data.delivery_no,
             parent_trx_no: item.line_so_no,
             unit_price: unitPrice,
             total_price: totalPrice,
-            quantity: altQty,
+            quantity: altQty, // CONSOLIDATED quantity
             item_id: item.material_id,
             uom_id: altUOM,
-            base_qty: baseQty,
+            base_qty: baseQty, // CONSOLIDATED base quantity
             base_uom_id: baseUOM,
-            bin_location_id: temp.location_id,
-            batch_number_id: temp.batch_id || null,
+            bin_location_id: group.location_id,
+            batch_number_id: group.batch_id || null,
             costing_method_id: item.item_costing_method,
             plant_id: plantId,
             organization_id: organizationId,
             is_deleted: 0,
           };
 
-          // Add serial number for serialized items
-          if (isSerializedItem && temp.serial_number) {
-            baseInventoryMovement.serial_number = temp.serial_number;
+          // Handle balance logic for serialized vs non-serialized items
+          if (isSerializedItem) {
+            // For serialized items, get balance info from first serial in group for movement logic
+            const firstSerial = group.items[0];
+            const serialBalanceParams = {
+              material_id: item.material_id,
+              serial_number: firstSerial.serial_number,
+              plant_id: plantId,
+              organization_id: organizationId,
+            };
+
+            if (isBatchManagedItem && firstSerial.batch_id) {
+              serialBalanceParams.batch_id = firstSerial.batch_id;
+            }
+
+            const serialBalanceQuery = await db
+              .collection("item_serial_balance")
+              .where(serialBalanceParams)
+              .get();
+
+            // Use the first serial's balance as reference for movement logic
+            hasExistingBalance =
+              serialBalanceQuery.data && serialBalanceQuery.data.length > 0;
+            existingDoc = hasExistingBalance
+              ? serialBalanceQuery.data[0]
+              : null;
           }
 
           if (existingDoc && existingDoc.id) {
-            // Get current balance quantities
+            // Get current balance quantities (from representative document)
             let currentUnrestrictedQty = roundQty(
               parseFloat(existingDoc.unrestricted_qty || 0)
             );
@@ -1263,8 +1331,10 @@ const processBalanceTable = async (
               : roundQty(parseFloat(existingDoc.balance_quantity || 0));
 
             console.log(
-              `Current inventory for ${item.material_id}${
-                isSerializedItem ? ` (Serial: ${temp.serial_number})` : ""
+              `Current inventory for group ${groupKey}${
+                isSerializedItem
+                  ? ` (Reference Serial: ${group.items[0].serial_number})`
+                  : ""
               }:`
             );
             console.log(`  Unrestricted: ${currentUnrestrictedQty}`);
@@ -1275,7 +1345,7 @@ const processBalanceTable = async (
             if (gdStatus === "Created") {
               // For Created status, we need to move OUT from Reserved
               console.log(
-                `Processing Created status - moving ${baseQty} OUT from Reserved`
+                `Processing Created status - moving ${baseQty} OUT from Reserved for group ${groupKey}`
               );
 
               // For edit mode, we can only use the reserved quantity that this GD previously created
@@ -1286,14 +1356,16 @@ const processBalanceTable = async (
                   currentReservedQty,
                   prevBaseQty
                 );
-                console.log(`This GD previously reserved: ${prevBaseQty}`);
+                console.log(
+                  `This GD previously reserved for group ${groupKey}: ${prevBaseQty}`
+                );
                 console.log(
                   `Available reserved for this GD: ${availableReservedForThisGD}`
                 );
               }
 
               if (availableReservedForThisGD >= baseQty) {
-                // Sufficient reserved quantity from this GD - move all from Reserved
+                // Sufficient reserved quantity from this GD - create single OUT movement from Reserved
                 console.log(
                   `Sufficient reserved quantity for this GD (${availableReservedForThisGD}) for ${baseQty}`
                 );
@@ -1304,14 +1376,41 @@ const processBalanceTable = async (
                   inventory_category: "Reserved",
                 };
 
-                const invMovementResult = await db
+                await db
                   .collection("inventory_movement")
                   .add(inventoryMovementData);
 
-                createdDocs.push({
-                  collection: "inventory_movement",
-                  docId: invMovementResult.id,
-                });
+                // Wait and fetch the created movement ID
+                await new Promise((resolve) => setTimeout(resolve, 100));
+
+                const movementQuery = await db
+                  .collection("inventory_movement")
+                  .where({
+                    transaction_type: "GDL",
+                    trx_no: data.delivery_no,
+                    parent_trx_no: item.line_so_no,
+                    movement: "OUT",
+                    inventory_category: "Reserved",
+                    item_id: item.material_id,
+                    bin_location_id: group.location_id,
+                    base_qty: baseQty,
+                    plant_id: plantId,
+                    organization_id: organizationId,
+                  })
+                  .get();
+
+                if (movementQuery.data && movementQuery.data.length > 0) {
+                  const movementId = movementQuery.data[0].id;
+
+                  createdDocs.push({
+                    collection: "inventory_movement",
+                    docId: movementId,
+                  });
+
+                  console.log(
+                    `Created consolidated OUT movement from Reserved for group ${groupKey}: ${baseQty}, ID: ${movementId}`
+                  );
+                }
               } else {
                 // Insufficient reserved quantity for this GD - split between Reserved and Unrestricted
                 const reservedQtyToMove = availableReservedForThisGD;
@@ -1320,7 +1419,7 @@ const processBalanceTable = async (
                 );
 
                 console.log(
-                  `Insufficient reserved quantity for this GD. Splitting:`
+                  `Insufficient reserved quantity for this GD. Splitting group ${groupKey}:`
                 );
                 console.log(
                   `  OUT ${reservedQtyToMove} from Reserved (from this GD's allocation)`
@@ -1347,14 +1446,44 @@ const processBalanceTable = async (
                     base_qty: reservedQtyToMove,
                   };
 
-                  const reservedMovementResult = await db
+                  await db
                     .collection("inventory_movement")
                     .add(reservedMovementData);
 
-                  createdDocs.push({
-                    collection: "inventory_movement",
-                    docId: reservedMovementResult.id,
-                  });
+                  // Wait and fetch the reserved movement ID
+                  await new Promise((resolve) => setTimeout(resolve, 100));
+
+                  const reservedMovementQuery = await db
+                    .collection("inventory_movement")
+                    .where({
+                      transaction_type: "GDL",
+                      trx_no: data.delivery_no,
+                      parent_trx_no: item.line_so_no,
+                      movement: "OUT",
+                      inventory_category: "Reserved",
+                      item_id: item.material_id,
+                      bin_location_id: group.location_id,
+                      base_qty: reservedQtyToMove,
+                      plant_id: plantId,
+                      organization_id: organizationId,
+                    })
+                    .get();
+
+                  if (
+                    reservedMovementQuery.data &&
+                    reservedMovementQuery.data.length > 0
+                  ) {
+                    const reservedMovementId = reservedMovementQuery.data[0].id;
+
+                    createdDocs.push({
+                      collection: "inventory_movement",
+                      docId: reservedMovementId,
+                    });
+
+                    console.log(
+                      `Created consolidated OUT movement from Reserved for group ${groupKey}: ${reservedQtyToMove}, ID: ${reservedMovementId}`
+                    );
+                  }
                 }
 
                 if (unrestrictedQtyToMove > 0) {
@@ -1375,18 +1504,49 @@ const processBalanceTable = async (
                     base_qty: unrestrictedQtyToMove,
                   };
 
-                  const unrestrictedMovementResult = await db
+                  await db
                     .collection("inventory_movement")
                     .add(unrestrictedMovementData);
 
-                  createdDocs.push({
-                    collection: "inventory_movement",
-                    docId: unrestrictedMovementResult.id,
-                  });
+                  // Wait and fetch the unrestricted movement ID
+                  await new Promise((resolve) => setTimeout(resolve, 100));
+
+                  const unrestrictedMovementQuery = await db
+                    .collection("inventory_movement")
+                    .where({
+                      transaction_type: "GDL",
+                      trx_no: data.delivery_no,
+                      parent_trx_no: item.line_so_no,
+                      movement: "OUT",
+                      inventory_category: "Unrestricted",
+                      item_id: item.material_id,
+                      bin_location_id: group.location_id,
+                      base_qty: unrestrictedQtyToMove,
+                      plant_id: plantId,
+                      organization_id: organizationId,
+                    })
+                    .get();
+
+                  if (
+                    unrestrictedMovementQuery.data &&
+                    unrestrictedMovementQuery.data.length > 0
+                  ) {
+                    const unrestrictedMovementId =
+                      unrestrictedMovementQuery.data[0].id;
+
+                    createdDocs.push({
+                      collection: "inventory_movement",
+                      docId: unrestrictedMovementId,
+                    });
+
+                    console.log(
+                      `Created consolidated OUT movement from Unrestricted for group ${groupKey}: ${unrestrictedQtyToMove}, ID: ${unrestrictedMovementId}`
+                    );
+                  }
                 }
               }
 
-              // ADDED: Handle unused reserved quantities
+              // ADDED: Handle unused reserved quantities for the group
               if (isUpdate && prevBaseQty > 0) {
                 const deliveredQty = baseQty;
                 const originalReservedQty = prevBaseQty;
@@ -1394,14 +1554,16 @@ const processBalanceTable = async (
                   originalReservedQty - deliveredQty
                 );
 
-                console.log(`Checking for unused reservations:`);
+                console.log(
+                  `Checking for unused reservations for group ${groupKey}:`
+                );
                 console.log(`  Originally reserved: ${originalReservedQty}`);
                 console.log(`  Actually delivered: ${deliveredQty}`);
                 console.log(`  Unused reserved: ${unusedReservedQty}`);
 
                 if (unusedReservedQty > 0) {
                   console.log(
-                    `Releasing ${unusedReservedQty} unused reserved quantity back to unrestricted`
+                    `Releasing ${unusedReservedQty} unused reserved quantity back to unrestricted for group ${groupKey}`
                   );
 
                   // Calculate alternative UOM for unused quantity
@@ -1429,117 +1591,77 @@ const processBalanceTable = async (
                   };
 
                   // Add the release movements
-                  const releaseMovementResult = await db
+                  await db
                     .collection("inventory_movement")
                     .add(releaseReservedMovementData);
+                  await new Promise((resolve) => setTimeout(resolve, 100));
 
-                  createdDocs.push({
-                    collection: "inventory_movement",
-                    docId: releaseMovementResult.id,
-                  });
+                  const releaseMovementQuery = await db
+                    .collection("inventory_movement")
+                    .where({
+                      transaction_type: "GDL",
+                      trx_no: data.delivery_no,
+                      parent_trx_no: item.line_so_no,
+                      movement: "OUT",
+                      inventory_category: "Reserved",
+                      item_id: item.material_id,
+                      bin_location_id: group.location_id,
+                      base_qty: unusedReservedQty,
+                      plant_id: plantId,
+                      organization_id: organizationId,
+                    })
+                    .get();
 
-                  const returnMovementResult = await db
+                  if (
+                    releaseMovementQuery.data &&
+                    releaseMovementQuery.data.length > 0
+                  ) {
+                    createdDocs.push({
+                      collection: "inventory_movement",
+                      docId: releaseMovementQuery.data[0].id,
+                    });
+                  }
+
+                  await db
                     .collection("inventory_movement")
                     .add(returnUnrestrictedMovementData);
+                  await new Promise((resolve) => setTimeout(resolve, 100));
 
-                  createdDocs.push({
-                    collection: "inventory_movement",
-                    docId: returnMovementResult.id,
-                  });
-                }
-              }
+                  const returnMovementQuery = await db
+                    .collection("inventory_movement")
+                    .where({
+                      transaction_type: "GDL",
+                      trx_no: data.delivery_no,
+                      parent_trx_no: item.line_so_no,
+                      movement: "IN",
+                      inventory_category: "Unrestricted",
+                      item_id: item.material_id,
+                      bin_location_id: group.location_id,
+                      base_qty: unusedReservedQty,
+                      plant_id: plantId,
+                      organization_id: organizationId,
+                    })
+                    .get();
 
-              // Update balance quantities for Completed status
-              let finalUnrestrictedQty = currentUnrestrictedQty;
-              let finalReservedQty = currentReservedQty;
-              let finalBalanceQty = currentBalanceQty;
-
-              // Calculate how much was reserved by this GD and how much can be used
-              let thisGDReservedQty = prevBaseQty; // What this GD previously reserved
-              if (!isUpdate) {
-                thisGDReservedQty = 0; // New GD, no previous reservation
-              }
-
-              console.log(`This GD previously reserved: ${thisGDReservedQty}`);
-              console.log(`Current total reserved: ${currentReservedQty}`);
-              console.log(`Need to deliver: ${baseQty}`);
-
-              // Apply the smart deduction logic - use the same logic as movement creation
-              if (availableReservedForThisGD >= baseQty) {
-                // All quantity can come from Reserved
-                console.log(`All ${baseQty} coming from Reserved`);
-                finalReservedQty = roundQty(finalReservedQty - baseQty);
-
-                // ADDED: If there are unused reservations, release them to unrestricted
-                if (isUpdate && prevBaseQty > 0) {
-                  const unusedReservedQty = roundQty(prevBaseQty - baseQty);
-                  if (unusedReservedQty > 0) {
-                    console.log(
-                      `Releasing ${unusedReservedQty} unused reserved to unrestricted`
-                    );
-                    finalReservedQty = roundQty(
-                      finalReservedQty - unusedReservedQty
-                    );
-                    finalUnrestrictedQty = roundQty(
-                      finalUnrestrictedQty + unusedReservedQty
-                    );
+                  if (
+                    returnMovementQuery.data &&
+                    returnMovementQuery.data.length > 0
+                  ) {
+                    createdDocs.push({
+                      collection: "inventory_movement",
+                      docId: returnMovementQuery.data[0].id,
+                    });
                   }
+
+                  console.log(
+                    `Created unused reserved release movements for group ${groupKey}: ${unusedReservedQty}`
+                  );
                 }
-              } else {
-                // Split between Reserved and Unrestricted
-                const reservedDeduction = availableReservedForThisGD;
-                const unrestrictedDeduction = roundQty(
-                  baseQty - reservedDeduction
-                );
-
-                console.log(
-                  `Splitting: ${reservedDeduction} from Reserved, ${unrestrictedDeduction} from Unrestricted`
-                );
-
-                finalReservedQty = roundQty(
-                  finalReservedQty - reservedDeduction
-                );
-                finalUnrestrictedQty = roundQty(
-                  finalUnrestrictedQty - unrestrictedDeduction
-                );
               }
-
-              finalBalanceQty = roundQty(finalBalanceQty - baseQty);
-
-              console.log(`Final quantities after Completed processing:`);
-              console.log(`  Unrestricted: ${finalUnrestrictedQty}`);
-              console.log(`  Reserved: ${finalReservedQty}`);
-              console.log(`  Total Balance: ${finalBalanceQty}`);
-
-              updatedDocs.push({
-                collection: balanceCollection,
-                docId: existingDoc.id,
-                originalData: {
-                  unrestricted_qty: currentUnrestrictedQty,
-                  reserved_qty: currentReservedQty,
-                  balance_quantity: currentBalanceQty,
-                },
-              });
-
-              // Update balance based on item type
-              const updateData = {
-                unrestricted_qty: finalUnrestrictedQty,
-                reserved_qty: finalReservedQty,
-              };
-
-              // For non-serialized items, also update balance_quantity
-              if (!isSerializedItem) {
-                updateData.balance_quantity = finalBalanceQty;
-              }
-
-              await db
-                .collection(balanceCollection)
-                .doc(existingDoc.id)
-                .update(updateData);
             } else {
               // For non-Created status (Unrestricted movement)
               console.log(
-                `Processing ${gdStatus} status - moving ${baseQty} OUT from Unrestricted`
+                `Processing ${gdStatus} status - moving ${baseQty} OUT from Unrestricted for group ${groupKey}`
               );
 
               const inventoryMovementData = {
@@ -1548,24 +1670,359 @@ const processBalanceTable = async (
                 inventory_category: "Unrestricted",
               };
 
-              const invMovementResult = await db
+              await db
                 .collection("inventory_movement")
                 .add(inventoryMovementData);
 
-              createdDocs.push({
-                collection: "inventory_movement",
-                docId: invMovementResult.id,
-              });
+              // Wait and fetch the created movement ID
+              await new Promise((resolve) => setTimeout(resolve, 100));
 
-              // Update balance quantities for non-Created status
+              const movementQuery = await db
+                .collection("inventory_movement")
+                .where({
+                  transaction_type: "GDL",
+                  trx_no: data.delivery_no,
+                  parent_trx_no: item.line_so_no,
+                  movement: "OUT",
+                  inventory_category: "Unrestricted",
+                  item_id: item.material_id,
+                  bin_location_id: group.location_id,
+                  base_qty: baseQty,
+                  plant_id: plantId,
+                  organization_id: organizationId,
+                })
+                .get();
+
+              if (movementQuery.data && movementQuery.data.length > 0) {
+                const movementId = movementQuery.data[0].id;
+
+                createdDocs.push({
+                  collection: "inventory_movement",
+                  docId: movementId,
+                });
+
+                console.log(
+                  `Created consolidated OUT movement from Unrestricted for group ${groupKey}: ${baseQty}, ID: ${movementId}`
+                );
+              }
+            }
+
+            // Create INDIVIDUAL inv_serial_movement records for each serial in the group
+            if (isSerializedItem) {
+              console.log(
+                `Creating inv_serial_movement records for ${group.items.length} serialized items`
+              );
+
+              // Find the inventory movement records we just created that are OUT movements
+              const outMovements = createdDocs.filter(
+                (doc) => doc.collection === "inventory_movement"
+              );
+
+              // For each movement, create individual inv_serial_movement records for EACH serial number
+              for (const movement of outMovements) {
+                // Get the movement details
+                const movementDoc = await db
+                  .collection("inventory_movement")
+                  .doc(movement.docId)
+                  .get();
+
+                if (movementDoc.data && movementDoc.data.movement === "OUT") {
+                  const movementData = movementDoc.data;
+                  console.log(
+                    `Processing movement ${movement.docId} with category: ${movementData.inventory_category}`
+                  );
+
+                  // Create one inv_serial_movement record for EACH serial number
+                  for (const temp of group.items) {
+                    if (temp.serial_number) {
+                      // Calculate individual base qty for this serial
+                      let individualBaseQty = roundQty(temp.gd_quantity);
+                      if (uomConversion) {
+                        individualBaseQty = roundQty(
+                          individualBaseQty * uomConversion.base_qty
+                        );
+                      }
+
+                      console.log(
+                        `Creating inv_serial_movement for serial ${temp.serial_number}, individual qty: ${individualBaseQty}, movement: ${movement.docId}`
+                      );
+
+                      await db.collection("inv_serial_movement").add({
+                        inventory_movement_id: movement.docId,
+                        serial_number: temp.serial_number,
+                        batch_id: temp.batch_id || null,
+                        base_qty: individualBaseQty, // Use individual quantity, not proportional
+                        base_uom: baseUOM,
+                        plant_id: plantId,
+                        organization_id: organizationId,
+                      });
+
+                      // Wait and get the created ID
+                      await new Promise((resolve) => setTimeout(resolve, 50));
+
+                      const serialMovementQuery = await db
+                        .collection("inv_serial_movement")
+                        .where({
+                          inventory_movement_id: movement.docId,
+                          serial_number: temp.serial_number,
+                          plant_id: plantId,
+                          organization_id: organizationId,
+                        })
+                        .get();
+
+                      if (
+                        serialMovementQuery.data &&
+                        serialMovementQuery.data.length > 0
+                      ) {
+                        const serialMovementId = serialMovementQuery.data[0].id;
+
+                        createdDocs.push({
+                          collection: "inv_serial_movement",
+                          docId: serialMovementId,
+                        });
+
+                        console.log(
+                          `Successfully created inv_serial_movement record for serial ${temp.serial_number}, ID: ${serialMovementId}`
+                        );
+                      }
+                    }
+                  }
+                }
+              }
+              console.log(
+                `Completed creating ${group.items.length} individual serial movement records for group ${groupKey}`
+              );
+            }
+
+            // Update balances
+            if (isSerializedItem) {
+              // For serialized items, update each serial balance individually
+              for (const temp of group.items) {
+                if (temp.serial_number) {
+                  let serialBalanceParams = {
+                    material_id: item.material_id,
+                    serial_number: temp.serial_number,
+                    plant_id: plantId,
+                    organization_id: organizationId,
+                  };
+
+                  if (isBatchManagedItem && temp.batch_id) {
+                    serialBalanceParams.batch_id = temp.batch_id;
+                  }
+
+                  const serialBalanceQuery = await db
+                    .collection("item_serial_balance")
+                    .where(serialBalanceParams)
+                    .get();
+
+                  if (
+                    serialBalanceQuery.data &&
+                    serialBalanceQuery.data.length > 0
+                  ) {
+                    const serialDoc = serialBalanceQuery.data[0];
+
+                    // Calculate individual base qty for this serial
+                    let individualBaseQty = roundQty(temp.gd_quantity);
+                    if (uomConversion) {
+                      individualBaseQty = roundQty(
+                        individualBaseQty * uomConversion.base_qty
+                      );
+                    }
+
+                    // Get current balance quantities
+                    let currentUnrestrictedQty = roundQty(
+                      parseFloat(serialDoc.unrestricted_qty || 0)
+                    );
+                    let currentReservedQty = roundQty(
+                      parseFloat(serialDoc.reserved_qty || 0)
+                    );
+
+                    // Store original data for rollback
+                    const originalData = {
+                      unrestricted_qty: currentUnrestrictedQty,
+                      reserved_qty: currentReservedQty,
+                    };
+
+                    // Update balance quantities based on GD status
+                    let finalUnrestrictedQty = currentUnrestrictedQty;
+                    let finalReservedQty = currentReservedQty;
+
+                    if (gdStatus === "Created") {
+                      // For Created status, we need to determine how much comes from reserved vs unrestricted
+                      // This logic should mirror the group-level movement logic
+
+                      // Get the total available reserved for this GD (from the group reference)
+                      const totalGroupReserved = roundQty(
+                        parseFloat(existingDoc.reserved_qty || 0)
+                      );
+                      let availableReservedForThisGD = totalGroupReserved;
+
+                      if (isUpdate && prevBaseQty > 0) {
+                        availableReservedForThisGD = Math.min(
+                          totalGroupReserved,
+                          prevBaseQty
+                        );
+                      }
+
+                      if (availableReservedForThisGD >= baseQty) {
+                        // All quantity comes from reserved - just decrease reserved
+                        finalReservedQty = roundQty(
+                          currentReservedQty - individualBaseQty
+                        );
+                      } else {
+                        // Split proportionally between reserved and unrestricted
+                        const reservedPortion = roundQty(
+                          (availableReservedForThisGD / baseQty) *
+                            individualBaseQty
+                        );
+                        const unrestrictedPortion = roundQty(
+                          individualBaseQty - reservedPortion
+                        );
+
+                        finalReservedQty = roundQty(
+                          currentReservedQty - reservedPortion
+                        );
+                        finalUnrestrictedQty = roundQty(
+                          currentUnrestrictedQty - unrestrictedPortion
+                        );
+                      }
+
+                      // Handle unused reserved quantities in update mode
+                      if (isUpdate && prevBaseQty > 0) {
+                        const originalReservedForThisSerial = roundQty(
+                          (individualBaseQty / baseQty) * prevBaseQty
+                        );
+                        const unusedReservedQty = roundQty(
+                          originalReservedForThisSerial - individualBaseQty
+                        );
+
+                        if (unusedReservedQty > 0) {
+                          // Release unused reserved back to unrestricted
+                          finalReservedQty = roundQty(
+                            finalReservedQty - unusedReservedQty
+                          );
+                          finalUnrestrictedQty = roundQty(
+                            finalUnrestrictedQty + unusedReservedQty
+                          );
+                        }
+                      }
+                    } else {
+                      // For Completed status, decrease unrestricted quantity
+                      finalUnrestrictedQty = roundQty(
+                        currentUnrestrictedQty - individualBaseQty
+                      );
+                    }
+
+                    // Prepare update data
+                    const updateData = {
+                      unrestricted_qty: finalUnrestrictedQty,
+                      reserved_qty: finalReservedQty,
+                    };
+
+                    // Add balance_quantity if it exists in the table structure
+                    if (serialDoc.hasOwnProperty("balance_quantity")) {
+                      originalData.balance_quantity = roundQty(
+                        parseFloat(serialDoc.balance_quantity || 0)
+                      );
+                      updateData.balance_quantity = roundQty(
+                        finalUnrestrictedQty + finalReservedQty
+                      );
+                    }
+
+                    // Track for rollback
+                    updatedDocs.push({
+                      collection: "item_serial_balance",
+                      docId: serialDoc.id,
+                      originalData: originalData,
+                    });
+
+                    // Perform the update
+                    await db
+                      .collection("item_serial_balance")
+                      .doc(serialDoc.id)
+                      .update(updateData);
+
+                    console.log(
+                      `Updated serial balance for ${temp.serial_number}: ` +
+                        `Unrestricted=${finalUnrestrictedQty}, Reserved=${finalReservedQty}` +
+                        (updateData.balance_quantity
+                          ? `, Balance=${updateData.balance_quantity}`
+                          : "")
+                    );
+                  } else {
+                    console.warn(
+                      `No serial balance found for serial: ${temp.serial_number}`
+                    );
+                  }
+                }
+              }
+            } else if (existingDoc && existingDoc.id) {
+              // For non-serialized items, update the consolidated balance
+              let currentUnrestrictedQty = roundQty(
+                parseFloat(existingDoc.unrestricted_qty || 0)
+              );
+              let currentReservedQty = roundQty(
+                parseFloat(existingDoc.reserved_qty || 0)
+              );
+              let currentBalanceQty = roundQty(
+                parseFloat(existingDoc.balance_quantity || 0)
+              );
+
+              // Update balance quantities based on GD status
               let finalUnrestrictedQty = currentUnrestrictedQty;
               let finalReservedQty = currentReservedQty;
               let finalBalanceQty = currentBalanceQty;
 
-              finalUnrestrictedQty = roundQty(finalUnrestrictedQty - baseQty);
+              if (gdStatus === "Created") {
+                // Apply the smart deduction logic
+                let availableReservedForThisGD = currentReservedQty;
+                if (isUpdate && prevBaseQty > 0) {
+                  availableReservedForThisGD = Math.min(
+                    currentReservedQty,
+                    prevBaseQty
+                  );
+                }
+
+                if (availableReservedForThisGD >= baseQty) {
+                  // All quantity can come from Reserved
+                  finalReservedQty = roundQty(finalReservedQty - baseQty);
+
+                  // Handle unused reservations
+                  if (isUpdate && prevBaseQty > 0) {
+                    const unusedReservedQty = roundQty(prevBaseQty - baseQty);
+                    if (unusedReservedQty > 0) {
+                      finalReservedQty = roundQty(
+                        finalReservedQty - unusedReservedQty
+                      );
+                      finalUnrestrictedQty = roundQty(
+                        finalUnrestrictedQty + unusedReservedQty
+                      );
+                    }
+                  }
+                } else {
+                  // Split between Reserved and Unrestricted
+                  const reservedDeduction = availableReservedForThisGD;
+                  const unrestrictedDeduction = roundQty(
+                    baseQty - reservedDeduction
+                  );
+
+                  finalReservedQty = roundQty(
+                    finalReservedQty - reservedDeduction
+                  );
+                  finalUnrestrictedQty = roundQty(
+                    finalUnrestrictedQty - unrestrictedDeduction
+                  );
+                }
+              } else {
+                // For non-Created status, decrease unrestricted
+                finalUnrestrictedQty = roundQty(finalUnrestrictedQty - baseQty);
+              }
+
               finalBalanceQty = roundQty(finalBalanceQty - baseQty);
 
-              console.log(`Final quantities after ${gdStatus} processing:`);
+              console.log(
+                `Final quantities after ${gdStatus} processing for group ${groupKey}:`
+              );
               console.log(`  Unrestricted: ${finalUnrestrictedQty}`);
               console.log(`  Reserved: ${finalReservedQty}`);
               console.log(`  Total Balance: ${finalBalanceQty}`);
@@ -1580,78 +2037,40 @@ const processBalanceTable = async (
                 },
               });
 
-              // Update balance based on item type
-              const updateData = {
-                unrestricted_qty: finalUnrestrictedQty,
-                reserved_qty: finalReservedQty,
-              };
-
-              // For non-serialized items, also update balance_quantity
-              if (!isSerializedItem) {
-                updateData.balance_quantity = finalBalanceQty;
-              }
-
               await db
                 .collection(balanceCollection)
                 .doc(existingDoc.id)
-                .update(updateData);
-            }
+                .update({
+                  unrestricted_qty: finalUnrestrictedQty,
+                  reserved_qty: finalReservedQty,
+                  balance_quantity: finalBalanceQty,
+                });
 
-            // Create inv_serial_movement for serialized items
-            if (isSerializedItem && temp.serial_number) {
-              // Find the inventory movement records we just created
-              const outMovements = createdDocs.filter(
-                (doc) => doc.collection === "inventory_movement"
-              );
-
-              for (const movement of outMovements) {
-                // Get the movement details to determine if it's OUT from Reserved or Unrestricted
-                const movementDoc = await db
-                  .collection("inventory_movement")
-                  .doc(movement.docId)
-                  .get();
-                if (movementDoc.data && movementDoc.data.movement === "OUT") {
-                  const invSerialMovement = await db
-                    .collection("inv_serial_movement")
-                    .add({
-                      inventory_movement_id: movement.docId,
-                      serial_number: temp.serial_number,
-                      batch_id: temp.batch_id || null,
-                      base_qty: roundQty(movementDoc.data.base_qty),
-                      base_uom: baseUOM,
-                      plant_id: plantId,
-                      organization_id: organizationId,
-                      movement_type: "OUT",
-                      transaction_type: "GDL",
-                      created_at: new Date().toISOString(),
-                    });
-
-                  createdDocs.push({
-                    collection: "inv_serial_movement",
-                    docId: invSerialMovement.id,
-                  });
-                }
-              }
+              console.log(`Updated balance for group ${groupKey}`);
             }
           }
 
-          // Update costing method inventories
+          // Update costing method inventories (use total group quantity)
           if (costingMethod === "First In First Out") {
             await updateFIFOInventory(
               item.material_id,
               baseQty,
-              temp.batch_id,
+              group.batch_id,
               plantId
             );
           } else if (costingMethod === "Weighted Average") {
             await updateWeightedAverage(
               item,
-              temp.batch_id,
+              group.batch_id,
               baseWAQty,
               plantId
             );
           }
         }
+
+        console.log(
+          `Successfully processed ${groupedTempData.size} consolidated movement groups for item ${item.material_id}`
+        );
       }
     } catch (error) {
       console.error(`Error processing item ${item.material_id}:`, error);
