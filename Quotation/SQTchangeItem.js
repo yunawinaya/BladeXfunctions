@@ -62,6 +62,7 @@ const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
 const fetchUnrestrictedQty = async (
   itemId,
   item_batch_management,
+  item_serial_management,
   stock_control,
   plantId,
   organizationId
@@ -69,7 +70,29 @@ const fetchUnrestrictedQty = async (
   try {
     let totalUnrestrictedQtyBase = 0;
 
-    if (item_batch_management === 1 && stock_control !== 0) {
+    if (item_serial_management === 1) {
+      const resSerialBalance = await db
+        .collection("item_serial_balance")
+        .where({
+          material_id: itemId,
+          ...(plantId !== organizationId ? { plant_id: plantId || null } : {}),
+          organization_id: organizationId,
+        })
+        .get();
+
+      if (resSerialBalance && resSerialBalance.data.length > 0) {
+        const serialBalanceData = resSerialBalance.data;
+
+        totalUnrestrictedQtyBase = serialBalanceData.reduce(
+          (sum, balance) => sum + (balance.unrestricted_qty || 0),
+          0
+        );
+      }
+    } else if (
+      serial_number_management === 0 &&
+      item_batch_management === 1 &&
+      stock_control !== 0
+    ) {
       const resBatchBalance = await db
         .collection("item_batch_balance")
         .where({
@@ -87,7 +110,11 @@ const fetchUnrestrictedQty = async (
           0
         );
       }
-    } else if (item_batch_management === 0 && stock_control !== 0) {
+    } else if (
+      serial_number_management === 0 &&
+      item_batch_management === 0 &&
+      stock_control !== 0
+    ) {
       const resBalance = await db
         .collection("item_balance")
         .where({
@@ -141,6 +168,7 @@ const fetchUnrestrictedQty = async (
       table_uom_conversion,
       mat_sales_tax_id,
       item_batch_management,
+      serial_number_management,
       stock_control,
       item_category,
     } = arguments[0].fieldModel.item;
@@ -185,6 +213,7 @@ const fetchUnrestrictedQty = async (
     const initialQty = await fetchUnrestrictedQty(
       arguments[0].value,
       item_batch_management,
+      serial_number_management,
       stock_control,
       plantId,
       organizationId
@@ -245,6 +274,7 @@ const fetchUnrestrictedQty = async (
         const initialQty = await fetchUnrestrictedQty(
           arguments[0].value,
           itemData.item_batch_management,
+          itemData.serial_number_management,
           itemData.stock_control,
           plantId,
           organizationId
