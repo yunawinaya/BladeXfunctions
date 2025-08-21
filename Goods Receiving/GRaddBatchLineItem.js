@@ -264,8 +264,6 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
 
           if (itemData?.serial_number_management === 1) {
             this.display("table_gr.select_serial_number");
-            this.disabled("table_gr.received_qty", true);
-            this.disabled("table_gr.base_received_qty", true);
 
             newTableGrRecord.is_serialized_item = 1;
           }
@@ -328,7 +326,12 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
         console.log("poItem", poItem);
 
         let poItemAltUOM = JSON.parse(poItem.alt_uom);
-        poItemAltUOM = poItemAltUOM.isArray ? [poItemAltUOM] : poItemAltUOM;
+        if (typeof poItemAltUOM === "string") {
+          poItemAltUOM = JSON.parse(poItemAltUOM);
+        }
+        poItemAltUOM = Array.isArray(poItemAltUOM)
+          ? poItemAltUOM
+          : [poItemAltUOM];
         console.log("poItemAltUOM", poItemAltUOM);
 
         const isAltUOM = poItemAltUOM?.find(
@@ -376,8 +379,6 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
 
         if (poItem.item?.serial_number_management === 1) {
           this.display("table_gr.select_serial_number");
-          this.disabled("table_gr.received_qty", true);
-          this.disabled("table_gr.base_received_qty", true);
 
           newTableGrRecord.is_serialized_item = 1;
         }
@@ -416,6 +417,19 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
     purchase_order_number: purchaseOrderNumber.join(", "),
     po_id: poId,
     reference_type: referenceType,
+  });
+
+  tableGR.forEach((gr, index) => {
+    const rowIndex = existingGR.length + index;
+
+    if (gr.is_serialized_item === 1) {
+      this.disabled(`table_gr.${rowIndex}.received_qty`, true);
+      this.disabled(`table_gr.${rowIndex}.base_received_qty`, true);
+    } else {
+      this.disabled(`table_gr.${rowIndex}.select_serial_number`, true);
+      this.disabled(`table_gr.${rowIndex}.received_qty`, false);
+      this.disabled(`table_gr.${rowIndex}.base_received_qty`, false);
+    }
   });
 
   setTimeout(async () => {

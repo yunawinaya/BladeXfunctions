@@ -916,7 +916,8 @@ const addInventory = async (
     item,
     inventoryMovementId,
     organizationId,
-    plantId
+    plantId,
+    batchId = null // Add batchId as optional parameter
   ) => {
     try {
       console.log(
@@ -982,9 +983,10 @@ const addInventory = async (
       const baseQtyPerSerial =
         serialQuantity > 0 ? baseQty / serialQuantity : 0;
 
-      // Get batch_id if item has batch
-      let batchId = null;
-      if (item.item_batch_no && item.item_batch_no !== "-") {
+      // Use the passed batchId if available, otherwise try to fetch it
+      let finalBatchId = batchId;
+
+      if (!finalBatchId && item.item_batch_no && item.item_batch_no !== "-") {
         try {
           const batchResponse = await db
             .collection("batch")
@@ -996,9 +998,9 @@ const addInventory = async (
             .get();
 
           if (batchResponse.data && batchResponse.data.length > 0) {
-            batchId = batchResponse.data[0].id;
+            finalBatchId = batchResponse.data[0].id;
             console.log(
-              `Found batch_id: ${batchId} for batch number: ${item.item_batch_no}`
+              `Found batch_id: ${finalBatchId} for batch number: ${item.item_batch_no}`
             );
           }
         } catch (batchError) {
@@ -1009,10 +1011,7 @@ const addInventory = async (
         }
       }
 
-      // Prepare arrays for batch operations (keeping original structure for fallback)
-      const serialRecordsToInsert = [];
-      const invSerialMovementRecordsToInsert = [];
-      const serialBalanceRecordsToInsert = [];
+      // Prepare arrays for serial number processing
       const updatedTableSerialNumber = [];
       let generatedCount = 0;
       let currentRunningNumber = null;
@@ -1112,60 +1111,12 @@ const addInventory = async (
           system_serial_number: finalSystemSerialNumber,
         });
 
-        // Prepare database records for fallback batch processing
+        // Process this serial number record sequentially
         if (
           finalSystemSerialNumber &&
           finalSystemSerialNumber !== "" &&
           finalSystemSerialNumber !== "Auto generated serial number"
         ) {
-          // 1. Prepare serial_number record
-          const serialNumberRecord = {
-            system_serial_number: finalSystemSerialNumber,
-            supplier_serial_number: serialItem.supplier_serial_number || "",
-            material_id: item.item_id,
-            batch_id: batchId,
-            bin_location: item.location_id,
-            plant_id: plantId,
-            organization_id: organizationId,
-            transaction_no: data.gr_no,
-            parent_trx_no: item.line_po_no || "",
-          };
-
-          serialRecordsToInsert.push(serialNumberRecord);
-
-          // 2. Prepare inv_serial_movement record
-          const invSerialMovementRecord = {
-            inventory_movement_id: inventoryMovementId,
-            serial_number: finalSystemSerialNumber,
-            batch_id: batchId,
-            base_qty: roundQty(baseQtyPerSerial),
-            base_uom: baseUOM,
-            plant_id: plantId,
-            organization_id: organizationId,
-          };
-
-          invSerialMovementRecordsToInsert.push(invSerialMovementRecord);
-
-          // 3. Prepare item_serial_balance record
-          const serialBalanceRecord = {
-            material_id: item.item_id,
-            material_uom: baseUOM,
-            serial_number: finalSystemSerialNumber,
-            batch_id: batchId,
-            plant_id: plantId,
-            location_id: item.location_id,
-            unrestricted_qty: roundQty(unrestricted_qty),
-            block_qty: roundQty(block_qty),
-            reserved_qty: roundQty(reserved_qty),
-            qualityinsp_qty: roundQty(qualityinsp_qty),
-            intransit_qty: roundQty(intransit_qty),
-            balance_quantity: roundQty(balance_quantity),
-            organization_id: organizationId,
-          };
-
-          serialBalanceRecordsToInsert.push(serialBalanceRecord);
-
-          // Process this serial number record sequentially
           try {
             console.log(
               `Processing serial number ${serialIndex + 1}/${
@@ -1173,11 +1124,34 @@ const addInventory = async (
               }: ${finalSystemSerialNumber}`
             );
 
-            // Insert records one by one to maintain order
+            // 1. Insert serial_number record
+            const serialNumberRecord = {
+              system_serial_number: finalSystemSerialNumber,
+              supplier_serial_number: serialItem.supplier_serial_number || "",
+              material_id: item.item_id,
+              batch_id: finalBatchId,
+              bin_location: item.location_id,
+              plant_id: plantId,
+              organization_id: organizationId,
+              transaction_no: data.gr_no,
+              parent_trx_no: item.line_po_no || "",
+            };
+
             await db.collection("serial_number").add(serialNumberRecord);
             console.log(
               `✓ Inserted serial_number record for ${finalSystemSerialNumber}`
             );
+
+            // 2. Insert inv_serial_movement record
+            const invSerialMovementRecord = {
+              inventory_movement_id: inventoryMovementId,
+              serial_number: finalSystemSerialNumber,
+              batch_id: finalBatchId,
+              base_qty: roundQty(baseQtyPerSerial),
+              base_uom: baseUOM,
+              plant_id: plantId,
+              organization_id: organizationId,
+            };
 
             await db
               .collection("inv_serial_movement")
@@ -1185,6 +1159,23 @@ const addInventory = async (
             console.log(
               `✓ Inserted inv_serial_movement record for ${finalSystemSerialNumber}`
             );
+
+            // 3. Insert item_serial_balance record
+            const serialBalanceRecord = {
+              material_id: item.item_id,
+              material_uom: baseUOM,
+              serial_number: finalSystemSerialNumber,
+              batch_id: finalBatchId,
+              plant_id: plantId,
+              location_id: item.location_id,
+              unrestricted_qty: roundQty(unrestricted_qty),
+              block_qty: roundQty(block_qty),
+              reserved_qty: roundQty(reserved_qty),
+              qualityinsp_qty: roundQty(qualityinsp_qty),
+              intransit_qty: roundQty(intransit_qty),
+              balance_quantity: roundQty(balance_quantity),
+              organization_id: organizationId,
+            };
 
             await db.collection("item_serial_balance").add(serialBalanceRecord);
             console.log(
@@ -1197,103 +1188,7 @@ const addInventory = async (
               }):`,
               insertError
             );
-
-            // If sequential processing fails, fall back to batch processing for remaining records
-            console.log(
-              "Sequential processing failed, falling back to batch processing for remaining records..."
-            );
-
-            // Process remaining records using the original batch method
-            const remainingSerialRecords =
-              serialRecordsToInsert.slice(serialIndex);
-            const remainingMovementRecords =
-              invSerialMovementRecordsToInsert.slice(serialIndex);
-            const remainingBalanceRecords =
-              serialBalanceRecordsToInsert.slice(serialIndex);
-
-            if (remainingSerialRecords.length > 0) {
-              try {
-                const serialPromises = remainingSerialRecords.map((record) =>
-                  db.collection("serial_number").add(record)
-                );
-                await Promise.all(serialPromises);
-                console.log(
-                  `Batch inserted ${remainingSerialRecords.length} remaining serial_number records`
-                );
-              } catch (batchError) {
-                console.error(
-                  `Batch insert failed for serial_number records:`,
-                  batchError
-                );
-                // Continue with individual fallback
-                for (const record of remainingSerialRecords) {
-                  try {
-                    await db.collection("serial_number").add(record);
-                  } catch (individualError) {
-                    console.error(
-                      `Failed to insert serial number ${record.system_serial_number}:`,
-                      individualError
-                    );
-                  }
-                }
-              }
-            }
-
-            if (remainingMovementRecords.length > 0) {
-              try {
-                const movementPromises = remainingMovementRecords.map(
-                  (record) => db.collection("inv_serial_movement").add(record)
-                );
-                await Promise.all(movementPromises);
-                console.log(
-                  `Batch inserted ${remainingMovementRecords.length} remaining inv_serial_movement records`
-                );
-              } catch (batchError) {
-                console.error(
-                  `Batch insert failed for inv_serial_movement records:`,
-                  batchError
-                );
-                for (const record of remainingMovementRecords) {
-                  try {
-                    await db.collection("inv_serial_movement").add(record);
-                  } catch (individualError) {
-                    console.error(
-                      `Failed to insert inventory movement for ${record.serial_number}:`,
-                      individualError
-                    );
-                  }
-                }
-              }
-            }
-
-            if (remainingBalanceRecords.length > 0) {
-              try {
-                const balancePromises = remainingBalanceRecords.map((record) =>
-                  db.collection("item_serial_balance").add(record)
-                );
-                await Promise.all(balancePromises);
-                console.log(
-                  `Batch inserted ${remainingBalanceRecords.length} remaining item_serial_balance records`
-                );
-              } catch (batchError) {
-                console.error(
-                  `Batch insert failed for item_serial_balance records:`,
-                  batchError
-                );
-                for (const record of remainingBalanceRecords) {
-                  try {
-                    await db.collection("item_serial_balance").add(record);
-                  } catch (individualError) {
-                    console.error(
-                      `Failed to insert serial balance for ${record.serial_number}:`,
-                      individualError
-                    );
-                  }
-                }
-              }
-            }
-
-            break; // Exit the sequential processing loop
+            throw insertError;
           }
         }
       }
@@ -1343,9 +1238,7 @@ const addInventory = async (
       console.log(`Successfully processed serial number inventory for item ${item.item_id}: 
         - Generated ${generatedCount} new serial numbers
         - Total processed: ${updatedTableSerialNumber.length} serial numbers
-        - Inserted: ${serialRecordsToInsert.length} serial_number records
-        - Inserted: ${invSerialMovementRecordsToInsert.length} inv_serial_movement records
-        - Inserted: ${serialBalanceRecordsToInsert.length} item_serial_balance records`);
+        - All records inserted sequentially`);
     } catch (error) {
       console.error(
         `Error processing serial number inventory for item ${item.item_id}:`,
@@ -1479,38 +1372,6 @@ const addInventory = async (
 
       await db.collection("inventory_movement").add(inventoryMovementData);
 
-      if (item.is_serialized_item === 1 && item.is_serial_allocated === 1) {
-        const inventoryMovementId = await db
-          .collection("inventory_movement")
-          .where({
-            transaction_type: "GRN",
-            trx_no: data.gr_no,
-            parent_trx_no: item.line_po_no,
-            movement: "IN",
-            item_id: item.item_id,
-            plant_id: plantId,
-            organization_id: organizationId,
-            bin_location_id: item.location_id,
-            base_qty: roundQty(baseQty),
-          })
-          .get()
-          .then((res) => {
-            return res.data[0].id;
-          });
-
-        await addSerialNumberInventory(
-          data,
-          item,
-          inventoryMovementId,
-          organizationId,
-          plantId
-        );
-
-        console.log(
-          `Created inventory movement with ID: ${inventoryMovementId} for item ${item.item_id}`
-        );
-      }
-
       await updateOnOrderPurchaseOrder(
         item,
         baseQty,
@@ -1565,37 +1426,93 @@ const addInventory = async (
             organization_id: organizationId,
           };
 
-          await db.collection("batch").add(batchData);
+          // Create the batch and get the response
+          const batchResponse = await db.collection("batch").add(batchData);
 
-          // Wait to ensure the batch is created before querying
-          await new Promise((resolve) => setTimeout(resolve, 300));
+          // Get the batch_id from the add response if available
+          let batchId = batchResponse?.id || null;
 
-          const response = await db
-            .collection("batch")
-            .where({
-              batch_number: item.item_batch_no,
-              material_id: item.item_id,
-              transaction_no: data.gr_no,
-              parent_transaction_no: item.line_po_no,
-            })
-            .get();
+          // If we don't get the ID from the response, query for it with retries
+          if (!batchId) {
+            let retryCount = 0;
+            const maxRetries = 5;
+            const retryDelay = 500; // Start with 500ms delay
 
-          const batchResult = response.data;
-          if (
-            !batchResult ||
-            !Array.isArray(batchResult) ||
-            !batchResult.length
-          ) {
-            console.error("Batch not found after creation");
-            continue;
+            while (!batchId && retryCount < maxRetries) {
+              await new Promise((resolve) =>
+                setTimeout(resolve, retryDelay * (retryCount + 1))
+              );
+
+              const response = await db
+                .collection("batch")
+                .where({
+                  batch_number: item.item_batch_no,
+                  material_id: item.item_id,
+                  transaction_no: data.gr_no,
+                  parent_transaction_no: item.line_po_no,
+                  organization_id: organizationId,
+                })
+                .get();
+
+              if (response.data && response.data.length > 0) {
+                batchId = response.data[0].id;
+                console.log(
+                  `Found batch_id: ${batchId} after ${retryCount + 1} retries`
+                );
+              }
+
+              retryCount++;
+            }
+
+            if (!batchId) {
+              console.error("Failed to get batch_id after maximum retries");
+              throw new Error(
+                `Failed to create or retrieve batch for ${item.item_batch_no}`
+              );
+            }
+          } else {
+            console.log(`Got batch_id from response: ${batchId}`);
           }
 
-          batchId = batchResult[0].id;
+          // Now process serial numbers if this is a serialized item
+          if (item.is_serialized_item === 1 && item.is_serial_allocated === 1) {
+            const inventoryMovementId = await db
+              .collection("inventory_movement")
+              .where({
+                transaction_type: "GRN",
+                trx_no: data.gr_no,
+                parent_trx_no: item.line_po_no,
+                movement: "IN",
+                item_id: item.item_id,
+                plant_id: plantId,
+                organization_id: organizationId,
+                bin_location_id: item.location_id,
+                base_qty: roundQty(baseQty),
+              })
+              .get()
+              .then((res) => {
+                return res.data[0]?.id;
+              });
+
+            // Pass the batchId directly to avoid re-querying
+            await addSerialNumberInventory(
+              data,
+              item,
+              inventoryMovementId,
+              organizationId,
+              plantId,
+              batchId // Pass the batchId as a parameter
+            );
+
+            console.log(
+              `Created inventory movement with ID: ${inventoryMovementId} for serialized batch item ${item.item_id}`
+            );
+          }
 
           // Only create item_batch_balance for NON-serialized items
           if (!isSerializedItem) {
             // Create new balance record
-            balance_quantity =
+            const balance_quantity =
               block_qty +
               reserved_qty +
               unrestricted_qty +
@@ -1618,11 +1535,11 @@ const addInventory = async (
 
             await db.collection("item_batch_balance").add(newBalanceData);
             console.log(
-              "Successfully added item_batch_balance record for non-serialized item"
+              "Successfully added item_batch_balance record for non-serialized batch item"
             );
           } else {
             console.log(
-              "Skipped item_batch_balance creation for serialized item"
+              "Skipped item_batch_balance creation for serialized batch item"
             );
           }
 
@@ -1636,15 +1553,51 @@ const addInventory = async (
           console.log(
             `Successfully completed processing for batch item ${item.item_id}${
               isSerializedItem ? " (serialized)" : ""
-            }`
+            } with batch_id: ${batchId}`
           );
         } catch (error) {
           console.error(`Error in batch processing: ${error.message}`);
+          // Continue to next item instead of breaking the loop
           continue;
         }
       } else {
         // Non-batch item processing with async/await
         try {
+          // Process serial numbers for non-batch serialized items FIRST
+          if (item.is_serialized_item === 1 && item.is_serial_allocated === 1) {
+            const inventoryMovementId = await db
+              .collection("inventory_movement")
+              .where({
+                transaction_type: "GRN",
+                trx_no: data.gr_no,
+                parent_trx_no: item.line_po_no,
+                movement: "IN",
+                item_id: item.item_id,
+                plant_id: plantId,
+                organization_id: organizationId,
+                bin_location_id: item.location_id,
+                base_qty: roundQty(baseQty),
+              })
+              .get()
+              .then((res) => {
+                return res.data[0]?.id;
+              });
+
+            // Pass null as batchId since this is non-batch
+            await addSerialNumberInventory(
+              data,
+              item,
+              inventoryMovementId,
+              organizationId,
+              plantId,
+              null // No batchId for non-batch items
+            );
+
+            console.log(
+              `Created inventory movement with ID: ${inventoryMovementId} for serialized non-batch item ${item.item_id}`
+            );
+          }
+
           // Only process item_balance for NON-serialized items
           if (!isSerializedItem) {
             // Get current item balance records
