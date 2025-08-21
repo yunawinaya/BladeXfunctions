@@ -16,6 +16,9 @@ const resetData = async (rowIndex) => {
     [`table_sqt.${rowIndex}.sqt_brand_id`]: "",
     [`table_sqt.${rowIndex}.sqt_packaging_id`]: "",
     [`table_sqt.${rowIndex}.total_price`]: 0,
+    [`table_sqt.${rowIndex}.item_category_id`]: "",
+    [`table_sqt.${rowIndex}.unrestricted_qty`]: 0,
+    [`table_sqt.${rowIndex}.base_unrestricted_qty`]: 0,
   });
 };
 
@@ -71,7 +74,7 @@ const fetchUnrestrictedQty = async (
         .collection("item_batch_balance")
         .where({
           material_id: itemId,
-          plant_id: plantId,
+          ...(plantId !== organizationId ? { plant_id: plantId || null } : {}),
           organization_id: organizationId,
         })
         .get();
@@ -89,7 +92,7 @@ const fetchUnrestrictedQty = async (
         .collection("item_balance")
         .where({
           material_id: itemId,
-          plant_id: plantId,
+          ...(plantId !== organizationId ? { plant_id: plantId || null } : {}),
           organization_id: organizationId,
         })
         .get();
@@ -113,8 +116,12 @@ const fetchUnrestrictedQty = async (
 };
 
 (async () => {
-  const rowIndex = arguments[0].rowIndex;
-  const sqtItem = arguments[0].sqtItem;
+  let rowIndex = arguments[0].rowIndex;
+
+  if (arguments[0].index) {
+    rowIndex = arguments[0].index;
+  }
+  const sqtItem = arguments[0].sqtItem || null;
   const plantId = this.getValue("sqt_plant");
 
   let organizationId = this.getVarGlobal("deptParentId");
@@ -124,6 +131,7 @@ const fetchUnrestrictedQty = async (
 
   if (arguments[0].fieldModel && !sqtItem) {
     await resetData(rowIndex);
+    console.log(arguments[0]);
     const {
       material_desc,
       material_name,
@@ -134,6 +142,7 @@ const fetchUnrestrictedQty = async (
       mat_sales_tax_id,
       item_batch_management,
       stock_control,
+      item_category,
     } = arguments[0].fieldModel.item;
     const altUoms = table_uom_conversion.map((data) => data.alt_uom_id);
     let uomOptions = [];
@@ -144,6 +153,7 @@ const fetchUnrestrictedQty = async (
       [`table_sqt.${rowIndex}.sqt_desc`]: material_desc,
       [`table_sqt.${rowIndex}.material_name`]: material_name,
       [`table_sqt.${rowIndex}.unit_price`]: sales_unit_price,
+      [`table_sqt.${rowIndex}.item_category_id`]: item_category,
     });
 
     if (mat_sales_tax_id) {
@@ -188,8 +198,12 @@ const fetchUnrestrictedQty = async (
       );
       await this.setData({
         [`table_sqt.${rowIndex}.sqt_order_uom_id`]: sales_default_uom,
-        [`table_sqt.${rowIndex}.unrestricted_qty`]: finalQty,
-        [`table_sqt.${rowIndex}.base_unrestricted_qty`]: initialQty,
+        [`table_sqt.${rowIndex}.unrestricted_qty`]: parseFloat(
+          finalQty.toFixed(4)
+        ),
+        [`table_sqt.${rowIndex}.base_unrestricted_qty`]: parseFloat(
+          initialQty.toFixed(4)
+        ),
       });
     } else {
       const finalQty = await convertBaseToAlt(
@@ -199,8 +213,12 @@ const fetchUnrestrictedQty = async (
       );
       await this.setData({
         [`table_sqt.${rowIndex}.sqt_order_uom_id`]: based_uom,
-        [`table_sqt.${rowIndex}.unrestricted_qty`]: finalQty,
-        [`table_sqt.${rowIndex}.base_unrestricted_qty`]: initialQty,
+        [`table_sqt.${rowIndex}.unrestricted_qty`]: parseFloat(
+          finalQty.toFixed(4)
+        ),
+        [`table_sqt.${rowIndex}.base_unrestricted_qty`]: parseFloat(
+          initialQty.toFixed(4)
+        ),
       });
     }
   } else if (sqtItem) {
@@ -223,6 +241,28 @@ const fetchUnrestrictedQty = async (
 
         const resUOM = await fetchUomData(itemUOM);
         uomOptions.push(...resUOM);
+
+        const initialQty = await fetchUnrestrictedQty(
+          arguments[0].value,
+          itemData.item_batch_management,
+          itemData.stock_control,
+          plantId,
+          organizationId
+        );
+
+        const finalQty = await convertBaseToAlt(
+          initialQty,
+          itemData.table_uom_conversion,
+          sqtItem.sqt_order_uom_id
+        );
+        await this.setData({
+          [`table_sqt.${rowIndex}.unrestricted_qty`]: parseFloat(
+            finalQty.toFixed(4)
+          ),
+          [`table_sqt.${rowIndex}.base_unrestricted_qty`]: parseFloat(
+            initialQty.toFixed(4)
+          ),
+        });
       }
     } else if (!sqtItem.material_id && sqtItem.sqt_desc !== "") {
       const resUOM = await db.collection("unit_of_measurement").get();

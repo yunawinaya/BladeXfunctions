@@ -63,6 +63,61 @@
         );
         return;
       }
+
+      // Check if serial numbers already exist in database
+      console.log("Checking serial numbers against database...");
+
+      // Create array of promises to check each serial number
+      const databaseCheckPromises = serialNumbers.map(
+        async (serialNumber, index) => {
+          try {
+            const { data } = await db
+              .collection("serial_number")
+              .where({ system_serial_number: serialNumber })
+              .get();
+
+            return {
+              serialNumber,
+              index,
+              exists: data.length > 0,
+              data: data,
+            };
+          } catch (error) {
+            console.error(
+              `Error checking serial number ${serialNumber}:`,
+              error
+            );
+            throw new Error(
+              `Database check failed for serial number: ${serialNumber}`
+            );
+          }
+        }
+      );
+
+      // Wait for all database checks to complete
+      const checkResults = await Promise.all(databaseCheckPromises);
+
+      // Find existing serial numbers
+      const existingSerialNumbers = checkResults.filter(
+        (result) => result.exists
+      );
+
+      if (existingSerialNumbers.length > 0) {
+        console.error("Existing serial numbers found:", existingSerialNumbers);
+
+        const existingNumbers = existingSerialNumbers.map(
+          (result) => result.serialNumber
+        );
+
+        this.$message.error(
+          `The following serial numbers already exist in the database: ${existingNumbers.join(
+            ", "
+          )}. Please use different serial numbers.`
+        );
+        return;
+      }
+
+      console.log("All serial numbers are unique in database");
     }
 
     // Map to extract only useful data

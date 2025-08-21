@@ -1290,32 +1290,114 @@ const processBalanceTable = async (
             is_deleted: 0,
           };
 
+          let totalGroupUnrestricted = 0;
+          let totalGroupReserved = 0;
+          let serialBalances = [];
+
           // Handle balance logic for serialized vs non-serialized items
           if (isSerializedItem) {
-            // For serialized items, get balance info from first serial in group for movement logic
-            const firstSerial = group.items[0];
-            const serialBalanceParams = {
-              material_id: item.material_id,
-              serial_number: firstSerial.serial_number,
-              plant_id: plantId,
-              organization_id: organizationId,
-            };
+            // For serialized items, we need to calculate group totals instead of using first serial's balance
+            console.log(
+              `Processing serialized item group with ${group.items.length} serials individually for balance calculations`
+            );
 
-            if (isBatchManagedItem && firstSerial.batch_id) {
-              serialBalanceParams.batch_id = firstSerial.batch_id;
+            for (const temp of group.items) {
+              if (temp.serial_number) {
+                const serialBalanceParams = {
+                  material_id: item.material_id,
+                  serial_number: temp.serial_number,
+                  plant_id: plantId,
+                  organization_id: organizationId,
+                };
+
+                if (isBatchManagedItem && temp.batch_id) {
+                  serialBalanceParams.batch_id = temp.batch_id;
+                }
+
+                try {
+                  const serialBalanceQuery = await db
+                    .collection("item_serial_balance")
+                    .where(serialBalanceParams)
+                    .get();
+
+                  if (
+                    serialBalanceQuery.data &&
+                    serialBalanceQuery.data.length > 0
+                  ) {
+                    const balance = serialBalanceQuery.data[0];
+                    const unrestrictedQty = roundQty(
+                      parseFloat(balance.unrestricted_qty || 0)
+                    );
+                    const reservedQty = roundQty(
+                      parseFloat(balance.reserved_qty || 0)
+                    );
+
+                    totalGroupUnrestricted += unrestrictedQty;
+                    totalGroupReserved += reservedQty;
+
+                    serialBalances.push({
+                      serial: temp.serial_number,
+                      balance: balance,
+                      unrestricted: unrestrictedQty,
+                      reserved: reservedQty,
+                      individualQty: roundQty(temp.gd_quantity),
+                      individualBaseQty: uomConversion
+                        ? roundQty(temp.gd_quantity * uomConversion.base_qty)
+                        : roundQty(temp.gd_quantity),
+                    });
+
+                    console.log(
+                      `Serial ${temp.serial_number}: Unrestricted=${unrestrictedQty}, Reserved=${reservedQty}`
+                    );
+                  } else {
+                    console.warn(
+                      `No balance found for serial: ${temp.serial_number}`
+                    );
+                  }
+                } catch (balanceError) {
+                  console.error(
+                    `Error fetching balance for serial ${temp.serial_number}:`,
+                    balanceError
+                  );
+                  throw balanceError;
+                }
+              }
             }
 
-            const serialBalanceQuery = await db
-              .collection("item_serial_balance")
-              .where(serialBalanceParams)
+            console.log(
+              `Group ${groupKey} totals: Unrestricted=${totalGroupUnrestricted}, Reserved=${totalGroupReserved}, Required=${baseQty}`
+            );
+
+            // Use group totals for movement logic decisions instead of single serial balance
+            hasExistingBalance = serialBalances.length > 0;
+            existingDoc = hasExistingBalance
+              ? {
+                  unrestricted_qty: totalGroupUnrestricted,
+                  reserved_qty: totalGroupReserved,
+                  id: "group_total", // Dummy ID for group processing
+                }
+              : null;
+          } else {
+            // Keep your existing non-serialized logic unchanged
+            itemBalanceParams.location_id = group.location_id;
+
+            if (group.batch_id) {
+              itemBalanceParams.batch_id = group.batch_id;
+              balanceCollection = "item_batch_balance";
+            } else {
+              balanceCollection = "item_balance";
+            }
+
+            const balanceQuery = await db
+              .collection(balanceCollection)
+              .where(itemBalanceParams)
               .get();
 
-            // Use the first serial's balance as reference for movement logic
             hasExistingBalance =
-              serialBalanceQuery.data && serialBalanceQuery.data.length > 0;
-            existingDoc = hasExistingBalance
-              ? serialBalanceQuery.data[0]
-              : null;
+              balanceQuery.data &&
+              Array.isArray(balanceQuery.data) &&
+              balanceQuery.data.length > 0;
+            existingDoc = hasExistingBalance ? balanceQuery.data[0] : null;
           }
 
           if (existingDoc && existingDoc.id) {
@@ -1847,164 +1929,136 @@ const processBalanceTable = async (
 
             // Update balances
             if (isSerializedItem) {
-              // For serialized items, update each serial balance individually
-              for (const temp of group.items) {
-                if (temp.serial_number) {
-                  let serialBalanceParams = {
-                    material_id: item.material_id,
-                    serial_number: temp.serial_number,
-                    plant_id: plantId,
-                    organization_id: organizationId,
-                  };
+              // For serialized items, we need to distribute the deduction proportionally across each serial
+              let remainingToDeduct = baseQty;
+              let remainingReservedToDeduct = 0;
+              let remainingUnrestrictedToDeduct = 0;
 
-                  if (isBatchManagedItem && temp.batch_id) {
-                    serialBalanceParams.batch_id = temp.batch_id;
-                  }
+              if (gdStatus === "Created") {
+                // Determine how much comes from reserved vs unrestricted based on our movement logic
+                let availableReservedForThisGD = totalGroupReserved;
+                if (isUpdate && prevBaseQty > 0) {
+                  availableReservedForThisGD = Math.min(
+                    totalGroupReserved,
+                    prevBaseQty
+                  );
+                }
 
-                  const serialBalanceQuery = await db
+                if (availableReservedForThisGD >= baseQty) {
+                  // All from reserved
+                  remainingReservedToDeduct = baseQty;
+                  remainingUnrestrictedToDeduct = 0;
+                } else {
+                  // Split between reserved and unrestricted
+                  remainingReservedToDeduct = availableReservedForThisGD;
+                  remainingUnrestrictedToDeduct = roundQty(
+                    baseQty - availableReservedForThisGD
+                  );
+                }
+              } else {
+                // For Completed status, deduct from unrestricted first, then reserved if needed
+                if (totalGroupUnrestricted >= baseQty) {
+                  remainingUnrestrictedToDeduct = baseQty;
+                  remainingReservedToDeduct = 0;
+                } else {
+                  remainingUnrestrictedToDeduct = totalGroupUnrestricted;
+                  remainingReservedToDeduct = roundQty(
+                    baseQty - totalGroupUnrestricted
+                  );
+                }
+              }
+
+              console.log(
+                `Distributing deduction across serials: Reserved=${remainingReservedToDeduct}, Unrestricted=${remainingUnrestrictedToDeduct}`
+              );
+
+              // Process each serial balance individually with proper distribution
+              for (const serialBalance of serialBalances) {
+                if (remainingToDeduct <= 0) break;
+
+                const serialDoc = serialBalance.balance;
+                const currentSerialUnrestricted = serialBalance.unrestricted;
+                const currentSerialReserved = serialBalance.reserved;
+                const individualBaseQty = serialBalance.individualBaseQty;
+
+                // Calculate how much to deduct from this serial (proportional to its individual quantity)
+                const serialDeductionRatio = individualBaseQty / baseQty;
+                const serialReservedDeduction = roundQty(
+                  remainingReservedToDeduct * serialDeductionRatio
+                );
+                const serialUnrestrictedDeduction = roundQty(
+                  remainingUnrestrictedToDeduct * serialDeductionRatio
+                );
+
+                let finalSerialUnrestricted = roundQty(
+                  currentSerialUnrestricted - serialUnrestrictedDeduction
+                );
+                let finalSerialReserved = roundQty(
+                  currentSerialReserved - serialReservedDeduction
+                );
+
+                // Safety checks to prevent negative values
+                if (finalSerialUnrestricted < 0) {
+                  console.warn(
+                    `Serial ${serialBalance.serial}: Unrestricted would be negative (${finalSerialUnrestricted}), setting to 0`
+                  );
+                  finalSerialUnrestricted = 0;
+                }
+                if (finalSerialReserved < 0) {
+                  console.warn(
+                    `Serial ${serialBalance.serial}: Reserved would be negative (${finalSerialReserved}), setting to 0`
+                  );
+                  finalSerialReserved = 0;
+                }
+
+                const originalData = {
+                  unrestricted_qty: currentSerialUnrestricted,
+                  reserved_qty: currentSerialReserved,
+                };
+
+                const updateData = {
+                  unrestricted_qty: finalSerialUnrestricted,
+                  reserved_qty: finalSerialReserved,
+                };
+
+                if (serialDoc.hasOwnProperty("balance_quantity")) {
+                  originalData.balance_quantity = roundQty(
+                    currentSerialUnrestricted + currentSerialReserved
+                  );
+                  updateData.balance_quantity = roundQty(
+                    finalSerialUnrestricted + finalSerialReserved
+                  );
+                }
+
+                updatedDocs.push({
+                  collection: "item_serial_balance",
+                  docId: serialDoc.id,
+                  originalData: originalData,
+                });
+
+                try {
+                  await db
                     .collection("item_serial_balance")
-                    .where(serialBalanceParams)
-                    .get();
+                    .doc(serialDoc.id)
+                    .update(updateData);
 
-                  if (
-                    serialBalanceQuery.data &&
-                    serialBalanceQuery.data.length > 0
-                  ) {
-                    const serialDoc = serialBalanceQuery.data[0];
+                  console.log(
+                    `Updated serial balance for ${serialBalance.serial}: ` +
+                      `Unrestricted=${finalSerialUnrestricted}, Reserved=${finalSerialReserved}` +
+                      (updateData.balance_quantity
+                        ? `, Balance=${updateData.balance_quantity}`
+                        : "")
+                  );
 
-                    // Calculate individual base qty for this serial
-                    let individualBaseQty = roundQty(temp.gd_quantity);
-                    if (uomConversion) {
-                      individualBaseQty = roundQty(
-                        individualBaseQty * uomConversion.base_qty
-                      );
-                    }
-
-                    // Get current balance quantities
-                    let currentUnrestrictedQty = roundQty(
-                      parseFloat(serialDoc.unrestricted_qty || 0)
-                    );
-                    let currentReservedQty = roundQty(
-                      parseFloat(serialDoc.reserved_qty || 0)
-                    );
-
-                    // Store original data for rollback
-                    const originalData = {
-                      unrestricted_qty: currentUnrestrictedQty,
-                      reserved_qty: currentReservedQty,
-                    };
-
-                    // Update balance quantities based on GD status
-                    let finalUnrestrictedQty = currentUnrestrictedQty;
-                    let finalReservedQty = currentReservedQty;
-
-                    if (gdStatus === "Created") {
-                      // For Created status, we need to determine how much comes from reserved vs unrestricted
-                      // This logic should mirror the group-level movement logic
-
-                      // Get the total available reserved for this GD (from the group reference)
-                      const totalGroupReserved = roundQty(
-                        parseFloat(existingDoc.reserved_qty || 0)
-                      );
-                      let availableReservedForThisGD = totalGroupReserved;
-
-                      if (isUpdate && prevBaseQty > 0) {
-                        availableReservedForThisGD = Math.min(
-                          totalGroupReserved,
-                          prevBaseQty
-                        );
-                      }
-
-                      if (availableReservedForThisGD >= baseQty) {
-                        // All quantity comes from reserved - just decrease reserved
-                        finalReservedQty = roundQty(
-                          currentReservedQty - individualBaseQty
-                        );
-                      } else {
-                        // Split proportionally between reserved and unrestricted
-                        const reservedPortion = roundQty(
-                          (availableReservedForThisGD / baseQty) *
-                            individualBaseQty
-                        );
-                        const unrestrictedPortion = roundQty(
-                          individualBaseQty - reservedPortion
-                        );
-
-                        finalReservedQty = roundQty(
-                          currentReservedQty - reservedPortion
-                        );
-                        finalUnrestrictedQty = roundQty(
-                          currentUnrestrictedQty - unrestrictedPortion
-                        );
-                      }
-
-                      // Handle unused reserved quantities in update mode
-                      if (isUpdate && prevBaseQty > 0) {
-                        const originalReservedForThisSerial = roundQty(
-                          (individualBaseQty / baseQty) * prevBaseQty
-                        );
-                        const unusedReservedQty = roundQty(
-                          originalReservedForThisSerial - individualBaseQty
-                        );
-
-                        if (unusedReservedQty > 0) {
-                          // Release unused reserved back to unrestricted
-                          finalReservedQty = roundQty(
-                            finalReservedQty - unusedReservedQty
-                          );
-                          finalUnrestrictedQty = roundQty(
-                            finalUnrestrictedQty + unusedReservedQty
-                          );
-                        }
-                      }
-                    } else {
-                      // For Completed status, decrease unrestricted quantity
-                      finalUnrestrictedQty = roundQty(
-                        currentUnrestrictedQty - individualBaseQty
-                      );
-                    }
-
-                    // Prepare update data
-                    const updateData = {
-                      unrestricted_qty: finalUnrestrictedQty,
-                      reserved_qty: finalReservedQty,
-                    };
-
-                    // Add balance_quantity if it exists in the table structure
-                    if (serialDoc.hasOwnProperty("balance_quantity")) {
-                      originalData.balance_quantity = roundQty(
-                        parseFloat(serialDoc.balance_quantity || 0)
-                      );
-                      updateData.balance_quantity = roundQty(
-                        finalUnrestrictedQty + finalReservedQty
-                      );
-                    }
-
-                    // Track for rollback
-                    updatedDocs.push({
-                      collection: "item_serial_balance",
-                      docId: serialDoc.id,
-                      originalData: originalData,
-                    });
-
-                    // Perform the update
-                    await db
-                      .collection("item_serial_balance")
-                      .doc(serialDoc.id)
-                      .update(updateData);
-
-                    console.log(
-                      `Updated serial balance for ${temp.serial_number}: ` +
-                        `Unrestricted=${finalUnrestrictedQty}, Reserved=${finalReservedQty}` +
-                        (updateData.balance_quantity
-                          ? `, Balance=${updateData.balance_quantity}`
-                          : "")
-                    );
-                  } else {
-                    console.warn(
-                      `No serial balance found for serial: ${temp.serial_number}`
-                    );
-                  }
+                  remainingToDeduct = roundQty(
+                    remainingToDeduct - individualBaseQty
+                  );
+                } catch (serialBalanceError) {
+                  console.error(
+                    `Error updating serial balance for ${serialBalance.serial}:`,
+                    serialBalanceError
+                  );
+                  throw serialBalanceError;
                 }
               }
             } else if (existingDoc && existingDoc.id) {
