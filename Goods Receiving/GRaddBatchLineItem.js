@@ -76,16 +76,16 @@ const processData = async (
   }
 };
 
-const convertAltToBase = (altQty, itemData, altUOM) => {
+const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
   if (
-    !Array.isArray(itemData.table_uom_conversion) ||
-    itemData.table_uom_conversion.length === 0 ||
+    !Array.isArray(uomConversionTable) ||
+    uomConversionTable.length === 0 ||
     !altUOM
   ) {
     return altQty;
   }
 
-  const uomConversion = itemData.table_uom_conversion.find(
+  const uomConversion = uomConversionTable.find(
     (conv) => conv.alt_uom_id === altUOM
   );
 
@@ -185,6 +185,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
             inspection_required:
               itemData?.receiving_inspection === 1 ? "Yes" : "No",
             to_received_qty: 0,
+            to_received_qty_uom: poItem.quantity_uom || null,
             received_qty: parseFloat(
               (poItem.quantity - (poItem.received_qty || 0)).toFixed(3)
             ),
@@ -237,7 +238,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
 
             const baseQty = convertAltToBase(
               poItem.quantity,
-              itemData,
+              itemData.table_uom_conversion,
               poItem.quantity_uom
             );
 
@@ -245,7 +246,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
             if (poItem.received_qty > 0) {
               baseReceivedQty = convertAltToBase(
                 poItem.received_qty,
-                itemData,
+                itemData.table_uom_conversion,
                 poItem.quantity_uom
               );
             }
@@ -291,6 +292,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
           inspection_required:
             poItem.item?.receiving_inspection === 1 ? "Yes" : "No",
           to_received_qty: 0,
+          to_received_qty_uom: poItem.item_uom || null,
           received_qty: parseFloat(
             (poItem.ordered_qty - (poItem.received_qty || 0)).toFixed(3)
           ),
@@ -325,12 +327,15 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
         console.log("poItem.item", poItem.item);
         console.log("poItem", poItem);
 
-        const poItemAltUOM = JSON.parse(poItem.alt_uom);
+        let poItemAltUOM = JSON.parse(poItem.alt_uom);
+        poItemAltUOM = poItemAltUOM.isArray ? [poItemAltUOM] : poItemAltUOM;
         console.log("poItemAltUOM", poItemAltUOM);
 
         const isAltUOM = poItemAltUOM?.find(
           (conv) => conv.alt_uom_id === poItem.item_uom
         );
+
+        console.log("isAltUOM", isAltUOM);
 
         if (isAltUOM) {
           this.display([
@@ -343,13 +348,9 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
             "table_gr.base_item_uom",
           ]);
 
-          const uomConversion = poItem.item.table_uom_conversion.find(
-            (conv) => conv.alt_uom_id === poItem.item_uom
-          );
-
           const baseQty = convertAltToBase(
             poItem.ordered_qty,
-            poItem.item,
+            poItemAltUOM,
             poItem.item_uom
           );
 
@@ -357,7 +358,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
           if (poItem.received_qty > 0) {
             baseReceivedQty = convertAltToBase(
               poItem.received_qty,
-              poItem.item,
+              poItemAltUOM,
               poItem.item_uom
             );
           }
@@ -370,7 +371,7 @@ const convertAltToBase = (altQty, itemData, altUOM) => {
           newTableGrRecord.base_received_qty = parseFloat(
             (baseQty - baseReceivedQty || 0).toFixed(3)
           );
-          newTableGrRecord.uom_conversion = uomConversion.base_qty;
+          newTableGrRecord.uom_conversion = isAltUOM.base_qty;
         }
 
         if (poItem.item?.serial_number_management === 1) {
