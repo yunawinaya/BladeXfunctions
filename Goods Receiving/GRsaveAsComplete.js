@@ -1370,8 +1370,6 @@ const addInventory = async (
         organization_id: organizationId,
       };
 
-      await db.collection("inventory_movement").add(inventoryMovementData);
-
       await updateOnOrderPurchaseOrder(
         item,
         baseQty,
@@ -1474,6 +1472,16 @@ const addInventory = async (
             console.log(`Got batch_id from response: ${batchId}`);
           }
 
+          inventoryMovementData.batch_number_id = batchId;
+          await db
+            .collection("inventory_movement")
+            .add(inventoryMovementData)
+            .then((res) => {
+              console.log(
+                `Created inventory movement with ID: ${res.id} for batch item ${item.item_id}`
+              );
+            });
+
           // Now process serial numbers if this is a serialized item
           if (item.is_serialized_item === 1 && item.is_serial_allocated === 1) {
             const inventoryMovementId = await db
@@ -1562,6 +1570,15 @@ const addInventory = async (
         }
       } else {
         // Non-batch item processing with async/await
+        await db
+          .collection("inventory_movement")
+          .add(inventoryMovementData)
+          .then((res) => {
+            console.log(
+              `Created inventory movement with ID: ${res.id} for non-batch item ${item.item_id}`
+            );
+          });
+
         try {
           // Process serial numbers for non-batch serialized items FIRST
           if (item.is_serialized_item === 1 && item.is_serial_allocated === 1) {
