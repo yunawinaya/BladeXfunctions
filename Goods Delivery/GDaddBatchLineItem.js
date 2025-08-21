@@ -311,8 +311,8 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
         if (itemData.serial_number_management === 1) {
           console.log(`Handling insufficient serialized item: ${materialId}`);
 
-          // Distribute available serial numbers to items
-          let remainingSerialCount = balanceData.length; // Each serial balance record represents one unit
+          // For serialized items, convert all quantities to base UOM
+          let remainingSerialCount = balanceData.length; // Each serial balance record represents one unit in base UOM
 
           items.forEach((item) => {
             const index = item.originalIndex;
@@ -320,38 +320,84 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
             const deliveredQty = item.deliveredQtyFromSource;
             const undeliveredQty = orderedQty - deliveredQty;
 
-            let availableQtyAlt = 0;
-            if (remainingSerialCount > 0 && undeliveredQty > 0) {
-              // For serialized items, allocate whole units only
-              const requiredUnits = Math.floor(undeliveredQty);
-              availableQtyAlt = Math.min(remainingSerialCount, requiredUnits);
-              remainingSerialCount -= availableQtyAlt;
+            // Convert ALL quantities to base UOM for serialized items
+            const orderedQtyBase = convertToBaseUOM(
+              orderedQty,
+              item.altUOM,
+              itemData
+            );
+            const deliveredQtyBase = convertToBaseUOM(
+              deliveredQty,
+              item.altUOM,
+              itemData
+            );
+            const undeliveredQtyBase = convertToBaseUOM(
+              undeliveredQty,
+              item.altUOM,
+              itemData
+            );
+
+            let availableQtyBase = 0;
+            if (remainingSerialCount > 0 && undeliveredQtyBase > 0) {
+              // For serialized items, allocate whole units only in base UOM
+              const requiredUnitsBase = Math.floor(undeliveredQtyBase);
+              availableQtyBase = Math.min(
+                remainingSerialCount,
+                requiredUnitsBase
+              );
+              remainingSerialCount -= availableQtyBase;
             }
 
-            // Update insufficient dialog data
+            // Update insufficient dialog data (ALL in base UOM for serialized items)
             this.setData({
               [`dialog_insufficient.table_insufficient.${index}.undelivered_qty`]:
-                undeliveredQty,
+                undeliveredQtyBase,
               [`dialog_insufficient.table_insufficient.${index}.available_qty`]:
-                availableQtyAlt,
+                availableQtyBase,
               [`dialog_insufficient.table_insufficient.${index}.shortfall_qty`]:
-                undeliveredQty - availableQtyAlt,
+                undeliveredQtyBase - availableQtyBase,
+            });
+
+            // Set basic item data with base UOM quantities and UOM
+            this.setData({
+              [`table_gd.${index}.material_id`]: materialId,
+              [`table_gd.${index}.material_name`]: item.itemName,
+              [`table_gd.${index}.gd_material_desc`]:
+                item.sourceItem.so_desc || "",
+              [`table_gd.${index}.gd_order_quantity`]: orderedQtyBase, // Base UOM
+              [`table_gd.${index}.gd_delivered_qty`]: deliveredQtyBase, // Base UOM
+              [`table_gd.${index}.gd_initial_delivered_qty`]: deliveredQtyBase, // Base UOM
+              [`table_gd.${index}.gd_order_uom_id`]: itemData.based_uom, // Base UOM
+              [`table_gd.${index}.good_delivery_uom_id`]: itemData.based_uom, // Base UOM
+              [`table_gd.${index}.more_desc`]: item.sourceItem.more_desc || "",
+              [`table_gd.${index}.line_remark_1`]:
+                item.sourceItem.line_remark_1 || "",
+              [`table_gd.${index}.line_remark_2`]:
+                item.sourceItem.line_remark_2 || "",
+              [`table_gd.${index}.base_uom_id`]: itemData.based_uom || "",
+              [`table_gd.${index}.unit_price`]:
+                item.sourceItem.so_item_price || 0,
+              [`table_gd.${index}.total_price`]: item.sourceItem.so_amount || 0,
+              [`table_gd.${index}.item_costing_method`]:
+                itemData.material_costing_method,
+              [`dialog_insufficient.table_insufficient.${index}.material_id`]:
+                materialId,
+              [`dialog_insufficient.table_insufficient.${index}.order_quantity`]:
+                orderedQtyBase, // Base UOM
             });
 
             if (pickingMode === "Manual") {
-              // Manual mode: Set available quantity for manual selection
+              // Manual mode: Set available quantity in base UOM
               this.setData({
                 [`table_gd.${index}.gd_qty`]:
-                  balanceData.length === 1 ? availableQtyAlt : 0,
+                  balanceData.length === 1 ? availableQtyBase : 0,
               });
               console.log(
-                `Manual picking mode (serialized): gd_qty set to ${
-                  availableQtyAlt > 0 ? availableQtyAlt : 0
-                } for row ${index}`
+                `Manual picking mode (serialized): gd_qty set to ${availableQtyBase} ${itemData.based_uom} for row ${index}`
               );
             } else {
               // Auto mode: Check allocation eligibility for serialized items
-              const allocationCondition1 = availableQtyAlt > 0;
+              const allocationCondition1 = availableQtyBase > 0;
               const allocationCondition2 = balanceData.length === 1;
               const allocationCondition3 = ["FIXED BIN", "RANDOM"].includes(
                 defaultStrategy
@@ -369,22 +415,23 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
                   allocationCondition6);
 
               if (isEligibleForAllocation) {
+                // Set gd_qty in base UOM
                 this.setData({
-                  [`table_gd.${index}.gd_qty`]: availableQtyAlt,
+                  [`table_gd.${index}.gd_qty`]: availableQtyBase,
                 });
 
-                // Add to allocation queue
+                // Add to allocation queue with base UOM quantity
                 if (materialId) {
                   itemsForAllocation.push({
                     materialId,
                     rowIndex: index,
-                    quantity: availableQtyAlt,
+                    quantity: availableQtyBase, // Base UOM quantity
                     plantId,
-                    uomId: item.altUOM,
+                    uomId: itemData.based_uom, // Base UOM
                     isSerializedItem: true,
                   });
                   console.log(
-                    `Auto mode (serialized): Added to allocation queue: row ${index}, material ${materialId}, qty ${availableQtyAlt}`
+                    `Auto mode (serialized): Added to allocation queue: row ${index}, material ${materialId}, qty ${availableQtyBase} ${itemData.based_uom}`
                   );
                 }
               } else {
@@ -532,59 +579,139 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
               [`table_gd.${index}.gd_qty`]: 0,
             });
           } else {
-            if (pickingMode === "Manual") {
-              // Manual mode: Don't set gd_qty, let user manually select
-              this.setData({
-                [`table_gd.${index}.gd_qty`]:
-                  balanceData.length === 1 ? undeliveredQty : 0,
-              });
-              console.log(
-                `Manual picking mode: gd_qty set to ${
-                  balanceData.length === 1 ? undeliveredQty : 0
-                } for row ${index} - user must manually select stock`
+            // For serialized items, convert all quantities to base UOM
+            if (itemData.serial_number_management === 1) {
+              const orderedQtyBase = convertToBaseUOM(
+                orderedQty,
+                item.altUOM,
+                itemData
               );
-            } else {
-              // Auto mode: Set gd_qty and check for allocation eligibility
+              const deliveredQtyBase = convertToBaseUOM(
+                deliveredQty,
+                item.altUOM,
+                itemData
+              );
+              const undeliveredQtyBase = convertToBaseUOM(
+                undeliveredQty,
+                item.altUOM,
+                itemData
+              );
+
+              // Set basic item data with base UOM quantities and UOM
               this.setData({
-                [`table_gd.${index}.gd_qty`]: undeliveredQty,
+                [`table_gd.${index}.material_id`]: materialId,
+                [`table_gd.${index}.material_name`]: item.itemName,
+                [`table_gd.${index}.gd_material_desc`]:
+                  item.sourceItem.so_desc || "",
+                [`table_gd.${index}.gd_order_quantity`]: orderedQtyBase, // Base UOM
+                [`table_gd.${index}.gd_delivered_qty`]: deliveredQtyBase, // Base UOM
+                [`table_gd.${index}.gd_initial_delivered_qty`]:
+                  deliveredQtyBase, // Base UOM
+                [`table_gd.${index}.gd_order_uom_id`]: itemData.based_uom, // Base UOM
+                [`table_gd.${index}.good_delivery_uom_id`]: itemData.based_uom, // Base UOM
+                [`table_gd.${index}.more_desc`]:
+                  item.sourceItem.more_desc || "",
+                [`table_gd.${index}.line_remark_1`]:
+                  item.sourceItem.line_remark_1 || "",
+                [`table_gd.${index}.line_remark_2`]:
+                  item.sourceItem.line_remark_2 || "",
+                [`table_gd.${index}.base_uom_id`]: itemData.based_uom || "",
+                [`table_gd.${index}.unit_price`]:
+                  item.sourceItem.so_item_price || 0,
+                [`table_gd.${index}.total_price`]:
+                  item.sourceItem.so_amount || 0,
+                [`table_gd.${index}.item_costing_method`]:
+                  itemData.material_costing_method,
               });
 
-              // Add to allocation queue if eligible
-              const allocationCondition1 = materialId;
-              const allocationCondition2 = balanceData.length === 1;
-              const allocationCondition3 = ["FIXED BIN", "RANDOM"].includes(
-                defaultStrategy
-              );
-              const allocationCondition4 = ["FIXED BIN", "RANDOM"].includes(
-                fallbackStrategy
-              );
-              const allocationCondition5 = pickingMode === "Auto";
-              const allocationCondition6 =
-                allocationCondition3 && allocationCondition4;
-              const isEligibleForAllocation =
-                allocationCondition1 &&
-                (allocationCondition2 ||
-                  allocationCondition5 ||
-                  allocationCondition6);
-
-              if (isEligibleForAllocation) {
-                itemsForAllocation.push({
-                  materialId,
-                  rowIndex: index,
-                  quantity: undeliveredQty,
-                  plantId,
-                  uomId: item.altUOM,
-                  isSerializedItem: itemData.serial_number_management === 1,
+              if (pickingMode === "Manual") {
+                // Manual mode: Set quantity in base UOM
+                this.setData({
+                  [`table_gd.${index}.gd_qty`]:
+                    balanceData.length === 1 ? undeliveredQtyBase : 0,
                 });
                 console.log(
-                  `Auto mode: Added to allocation queue (sufficient): row ${index}, material ${materialId}, qty ${undeliveredQty}, serialized=${
-                    itemData.serial_number_management === 1
-                  }`
+                  `Manual picking mode (serialized): gd_qty set to ${
+                    balanceData.length === 1 ? undeliveredQtyBase : 0
+                  } ${itemData.based_uom} for row ${index}`
                 );
               } else {
-                console.log(
-                  `Auto mode: NOT eligible for allocation (sufficient): row ${index}, material ${materialId}`
+                // Auto mode: Set gd_qty in base UOM and check for allocation eligibility
+                this.setData({
+                  [`table_gd.${index}.gd_qty`]: undeliveredQtyBase,
+                });
+
+                // Add to allocation queue if eligible
+                const allocationCondition1 = materialId;
+                const allocationCondition2 = balanceData.length === 1;
+                const allocationCondition3 = ["FIXED BIN", "RANDOM"].includes(
+                  defaultStrategy
                 );
+                const allocationCondition4 = ["FIXED BIN", "RANDOM"].includes(
+                  fallbackStrategy
+                );
+                const allocationCondition5 = pickingMode === "Auto";
+                const allocationCondition6 =
+                  allocationCondition3 && allocationCondition4;
+                const isEligibleForAllocation =
+                  allocationCondition1 &&
+                  (allocationCondition2 ||
+                    allocationCondition5 ||
+                    allocationCondition6);
+
+                if (isEligibleForAllocation) {
+                  itemsForAllocation.push({
+                    materialId,
+                    rowIndex: index,
+                    quantity: undeliveredQtyBase, // Base UOM quantity
+                    plantId,
+                    uomId: itemData.based_uom, // Base UOM
+                    isSerializedItem: true,
+                  });
+                  console.log(
+                    `Auto mode (serialized): Added to allocation queue (sufficient): row ${index}, material ${materialId}, qty ${undeliveredQtyBase} ${itemData.based_uom}`
+                  );
+                }
+              }
+            } else {
+              // Non-serialized items keep original logic
+              if (pickingMode === "Manual") {
+                this.setData({
+                  [`table_gd.${index}.gd_qty`]:
+                    balanceData.length === 1 ? undeliveredQty : 0,
+                });
+              } else {
+                this.setData({
+                  [`table_gd.${index}.gd_qty`]: undeliveredQty,
+                });
+
+                const allocationCondition1 = materialId;
+                const allocationCondition2 = balanceData.length === 1;
+                const allocationCondition3 = ["FIXED BIN", "RANDOM"].includes(
+                  defaultStrategy
+                );
+                const allocationCondition4 = ["FIXED BIN", "RANDOM"].includes(
+                  fallbackStrategy
+                );
+                const allocationCondition5 = pickingMode === "Auto";
+                const allocationCondition6 =
+                  allocationCondition3 && allocationCondition4;
+                const isEligibleForAllocation =
+                  allocationCondition1 &&
+                  (allocationCondition2 ||
+                    allocationCondition5 ||
+                    allocationCondition6);
+
+                if (isEligibleForAllocation) {
+                  itemsForAllocation.push({
+                    materialId,
+                    rowIndex: index,
+                    quantity: undeliveredQty,
+                    plantId,
+                    uomId: item.altUOM,
+                    isSerializedItem: false,
+                  });
+                }
               }
             }
           }
@@ -630,6 +757,23 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
 
   console.log("All allocations completed sequentially");
   return insufficientItems;
+};
+
+// Helper function to convert quantity from alt UOM to base UOM
+const convertToBaseUOM = (quantity, altUOM, itemData) => {
+  if (!altUOM || altUOM === itemData.based_uom) {
+    return quantity;
+  }
+
+  const uomConversion = itemData.table_uom_conversion?.find(
+    (conv) => conv.alt_uom_id === altUOM
+  );
+
+  if (uomConversion && uomConversion.base_qty) {
+    return quantity * uomConversion.base_qty;
+  }
+
+  return quantity;
 };
 
 const performAutomaticAllocation = async (
@@ -1425,6 +1569,84 @@ if (!window.globalAllocationTracker) {
   window.globalAllocationTracker = new Map();
 }
 
+const createTableGdWithBaseUOM = async (allItems) => {
+  const processedItems = [];
+
+  for (const item of allItems) {
+    // Check if item is serialized
+    let itemData = null;
+    if (item.itemId) {
+      try {
+        const res = await db
+          .collection("Item")
+          .where({ id: item.itemId })
+          .get();
+        itemData = res.data?.[0];
+      } catch (error) {
+        console.error(`Error fetching item data for ${item.itemId}:`, error);
+      }
+    }
+
+    // If serialized, convert to base UOM
+    if (itemData?.serial_number_management === 1) {
+      const orderedQtyBase = convertToBaseUOM(
+        item.orderedQty,
+        item.altUOM,
+        itemData
+      );
+      const deliveredQtyBase = convertToBaseUOM(
+        item.deliveredQtyFromSource,
+        item.altUOM,
+        itemData
+      );
+
+      processedItems.push({
+        material_id: item.itemId || "",
+        material_name: item.itemName || "",
+        gd_material_desc: item.itemDesc || "",
+        gd_order_quantity: orderedQtyBase, // Base UOM
+        gd_delivered_qty: deliveredQtyBase, // Base UOM
+        gd_undelivered_qty: orderedQtyBase - deliveredQtyBase, // Base UOM
+        gd_order_uom_id: itemData.based_uom, // Base UOM
+        good_delivery_uom_id: itemData.based_uom, // Base UOM
+        unit_price: item.sourceItem.so_item_price || 0,
+        total_price: item.sourceItem.so_amount || 0,
+        more_desc: item.sourceItem.more_desc || "",
+        line_remark_1: item.sourceItem.line_remark_1 || "",
+        line_remark_2: item.sourceItem.line_remark_2 || "",
+        line_so_no: item.so_no,
+        line_so_id: item.original_so_id,
+        so_line_item_id: item.so_line_item_id,
+        item_category_id: item.item_category_id,
+        base_uom_id: itemData.based_uom,
+      });
+    } else {
+      // Non-serialized items keep original UOM
+      processedItems.push({
+        material_id: item.itemId || "",
+        material_name: item.itemName || "",
+        gd_material_desc: item.itemDesc || "",
+        gd_order_quantity: item.orderedQty,
+        gd_delivered_qty: item.deliveredQtyFromSource,
+        gd_undelivered_qty: item.orderedQty - item.sourceItem.delivered_qty,
+        gd_order_uom_id: item.altUOM,
+        good_delivery_uom_id: item.altUOM,
+        unit_price: item.sourceItem.so_item_price || 0,
+        total_price: item.sourceItem.so_amount || 0,
+        more_desc: item.sourceItem.more_desc || "",
+        line_remark_1: item.sourceItem.line_remark_1 || "",
+        line_remark_2: item.sourceItem.line_remark_2 || "",
+        line_so_no: item.so_no,
+        line_so_id: item.original_so_id,
+        so_line_item_id: item.so_line_item_id,
+        item_category_id: item.item_category_id,
+      });
+    }
+  }
+
+  return processedItems;
+};
+
 (async () => {
   const referenceType = this.getValue(`dialog_select_item.reference_type`);
   const previousReferenceType = this.getValue("reference_type");
@@ -1528,24 +1750,7 @@ if (!window.globalAllocationTracker) {
       break;
   }
 
-  let newTableGd = allItems.map((item) => ({
-    material_id: item.itemId || "",
-    material_name: item.itemName || "",
-    gd_material_desc: item.itemDesc || "",
-    gd_order_quantity: item.orderedQty,
-    gd_delivered_qty: item.deliveredQtyFromSource,
-    gd_undelivered_qty: item.orderedQty - item.sourceItem.delivered_qty,
-    gd_order_uom_id: item.altUOM,
-    unit_price: item.sourceItem.so_item_price || 0,
-    total_price: item.sourceItem.so_amount || 0,
-    more_desc: item.sourceItem.more_desc || "",
-    line_remark_1: item.sourceItem.line_remark_1 || "",
-    line_remark_2: item.sourceItem.line_remark_2 || "",
-    line_so_no: item.so_no,
-    line_so_id: item.original_so_id,
-    so_line_item_id: item.so_line_item_id,
-    item_category_id: item.item_category_id,
-  }));
+  let newTableGd = await createTableGdWithBaseUOM(allItems);
 
   newTableGd = newTableGd.filter(
     (gd) =>

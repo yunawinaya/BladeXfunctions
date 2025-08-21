@@ -182,10 +182,7 @@ class StockAdjuster {
         allData.is_production_order === 1
       ) {
         for (const sm of subformData) {
-          if (
-            sm.total_quantity < sm.requested_qty ||
-            sm.total_quantity > sm.requested_qty
-          ) {
+          if (sm.total_quantity !== sm.requested_qty) {
             throw new Error(
               "Total quantity is not equal to requested quantity."
             );
@@ -284,8 +281,8 @@ class StockAdjuster {
             .get();
           const balanceData = balanceResponse.data[0];
 
-          const categoryField =
-            this.categoryMap[balance.category || subformData.category];
+          // const categoryField =
+          //   this.categoryMap[balance.category || subformData.category];
           // if (!categoryField && movementType != 'Inventory Category Transfer Posting') {
           //     throw new Error(`Invalid category: ${balance.category || 'Unrestricted'}`);
           // }
@@ -299,11 +296,11 @@ class StockAdjuster {
             );
           }
 
-          const currentQty = balanceData[categoryField] || 0;
-          const requestedQty =
-            balance.quantity_converted > 0
-              ? balance.quantity_converted
-              : balance.sm_quantity;
+          // const currentQty = balanceData[categoryField] || 0;
+          // const requestedQty =
+          //   balance.quantity_converted > 0
+          //     ? balance.quantity_converted
+          //     : balance.sm_quantity;
 
           // if (movementType === 'Miscellaneous Issue' ||
           //     movementType === 'Disposal/Scrap' ||
@@ -2015,7 +2012,7 @@ class StockAdjuster {
           }
         }
       }
-    } catch (error) {
+    } catch {
       throw error;
     }
   }
@@ -2441,6 +2438,20 @@ const updateItemTransactionDate = async (entry) => {
   }
 };
 
+const fillbackHeaderFields = async (allData) => {
+  try {
+    for (const [index, smLineItem] of allData.stock_movement.entries()) {
+      smLineItem.organization_id = allData.organization_id;
+      smLineItem.issuing_plant = allData.issuing_operation_faci || null;
+      smLineItem.receiving_plant = allData.receiving_operation_faci || null;
+      smLineItem.line_index = index + 1;
+    }
+    return allData.stock_movement;
+  } catch {
+    throw new Error("Error processing Stock Movement.");
+  }
+};
+
 // Add this at the bottom of your Save as Completed button handler
 const self = this;
 const allData = self.getValues();
@@ -2461,6 +2472,8 @@ const processStockMovements = async () => {
 
     // Wait for all processRow calls to complete
     allData.stock_movement = processedTableSM;
+
+    allData.stock_movement = await fillbackHeaderFields(allData);
 
     console.log("this.getVarGlobal", this.getVarGlobal("deptParentId"));
     self.showLoading();
