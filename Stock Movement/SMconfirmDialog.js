@@ -28,6 +28,19 @@
       return res.data[0]?.uom_name || "";
     });
 
+  // Get item data to check for serial/batch management
+  const materialId = allData.stock_movement[rowIndex].item_selection;
+  let itemData = null;
+  try {
+    const itemResponse = await db
+      .collection("Item")
+      .where({ id: materialId })
+      .get();
+    itemData = itemResponse.data[0];
+  } catch (error) {
+    console.error("Error fetching item data:", error);
+  }
+
   const totalSmQuantity = temporaryData
     .filter((item) => (item.sm_quantity || 0) > 0)
     .reduce((sum, item) => {
@@ -271,10 +284,24 @@
             index + 1
           }. ${locationName}: ${qty} ${gdUOM} (${categoryAbbr})`;
 
-          // Add batch info on a new line if batch exists
+          // Add serial number info if item is serialized
+          if (itemData?.serial_number_management === 1 && item.serial_number) {
+            itemDetail += `\nSerial: ${item.serial_number}`;
+          }
+
+          // Add batch info if batch exists
           if (item.batch_id) {
             const batchName = batchMap[item.batch_id] || item.batch_id;
-            itemDetail += `\n[${batchName}]`;
+            itemDetail += `\n${
+              itemData?.serial_number_management === 1 ? "Batch: " : "["
+            }${batchName}${
+              itemData?.serial_number_management === 1 ? "" : "]"
+            }`;
+          }
+
+          // Add remarks if they exist
+          if (item.remarks && item.remarks.trim() !== "") {
+            itemDetail += `\nRemarks: ${item.remarks}`;
           }
 
           return itemDetail;
@@ -287,7 +314,9 @@
     const formattedString = await formatFilteredData(temporaryData);
     console.log("📋 Formatted string:", formattedString);
 
-    const textareaContent = JSON.stringify(temporaryData);
+    const textareaContent = JSON.stringify(
+      temporaryData.filter((tempData) => tempData.sm_quantity > 0)
+    );
 
     this.setData({
       [`stock_movement.${rowIndex}.temp_qty_data`]: textareaContent,

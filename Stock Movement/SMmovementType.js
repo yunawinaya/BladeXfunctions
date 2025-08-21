@@ -16,6 +16,7 @@ const CONFIG = {
       "stock_movement.batch_id",
       "stock_movement.category",
       "stock_movement.stock_summary",
+      "stock_movement.select_serial_number",
       "movement_reason",
       "delivery_method",
       "receiving_operation_faci",
@@ -42,6 +43,7 @@ const CONFIG = {
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.location_id",
+      "stock_movement.select_serial_number",
       "is_production_order",
       "stock_movement.to_recv_qty",
       "stock_movement.batch_id",
@@ -54,6 +56,7 @@ const CONFIG = {
       "stock_movement.received_quantity_uom",
       "stock_movement.unit_price",
       "stock_movement.amount",
+      "stock_movement.select_serial_number",
       "stock_movement.to_recv_qty",
       "stock_movement.batch_id",
     ],
@@ -66,6 +69,7 @@ const CONFIG = {
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.location_id",
+      "stock_movement.select_serial_number",
       "is_production_order",
       "stock_movement.to_recv_qty",
       "stock_movement.batch_id",
@@ -91,6 +95,7 @@ const CONFIG = {
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.location_id",
+      "stock_movement.select_serial_number",
       "is_production_order",
       "stock_movement.to_recv_qty",
       "stock_movement.batch_id",
@@ -105,6 +110,7 @@ const CONFIG = {
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.location_id",
+      "stock_movement.select_serial_number",
       "is_production_order",
       "stock_movement.to_recv_qty",
       "stock_movement.batch_id",
@@ -130,6 +136,7 @@ const CONFIG = {
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.location_id",
+      "stock_movement.select_serial_number",
       "stock_movement.to_recv_qty",
       "stock_movement.batch_id",
     ],
@@ -352,6 +359,7 @@ const configureButtons = (movementType, pageStatus, stockMovementStatus) => {
     pageStatus === "Edit" &&
     CONFIG.buttonConfig.Edit[stockMovementStatus]?.[movementType]
   ) {
+    console.log("JN");
     this.display(CONFIG.buttonConfig.Edit[stockMovementStatus][movementType]);
   } else if (
     pageStatus === "Edit" &&
