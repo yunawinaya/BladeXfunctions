@@ -16,7 +16,6 @@ const CONFIG = {
       "stock_movement.batch_id",
       "stock_movement.category",
       "stock_movement.stock_summary",
-      "stock_movement.select_serial_number",
       "movement_reason",
       "delivery_method",
       "receiving_operation_faci",

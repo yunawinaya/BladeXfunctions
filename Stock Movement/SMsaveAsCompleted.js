@@ -31,6 +31,234 @@ class StockAdjuster {
     }
   }
 
+  async addSerialNumberInventoryForSM(
+    data,
+    item,
+    inventoryMovementId,
+    organizationId,
+    plantId,
+    batchId = null
+  ) {
+    try {
+      console.log(
+        `Processing serial number inventory for SM item ${item.item_selection}`
+      );
+
+      if (!item.serial_number_data) {
+        console.log(
+          `No serial number data found for item ${item.item_selection}`
+        );
+        return;
+      }
+
+      let serialNumberData;
+      try {
+        serialNumberData = JSON.parse(item.serial_number_data);
+      } catch (parseError) {
+        console.error(
+          `Error parsing serial number data for item ${item.item_selection}:`,
+          parseError
+        );
+        return;
+      }
+
+      const tableSerialNumber = serialNumberData.table_serial_number || [];
+      const serialQuantity = serialNumberData.serial_number_qty || 0;
+      const isAuto = serialNumberData.is_auto;
+
+      // Get item data for UOM
+      const itemRes = await this.db
+        .collection("Item")
+        .where({ id: item.item_selection })
+        .get();
+      if (!itemRes.data || !itemRes.data.length) {
+        console.error(`Item not found: ${item.item_selection}`);
+        return;
+      }
+      const itemData = itemRes.data[0];
+
+      // For SM, we work with base quantity directly
+      let baseQty = this.roundQty(
+        parseFloat(item.quantity_converted || item.received_quantity || 0)
+      );
+      let baseUOM = itemData.based_uom;
+
+      // Calculate base quantity per serial number
+      const baseQtyPerSerial =
+        serialQuantity > 0 ? baseQty / serialQuantity : 0;
+
+      // Use the passed batchId if available
+      let finalBatchId = batchId;
+
+      // Setup inventory category quantities for serial balance
+      let block_qty = 0,
+        reserved_qty = 0,
+        unrestricted_qty = 0,
+        qualityinsp_qty = 0,
+        intransit_qty = 0;
+
+      const category = item.category || "Unrestricted";
+      if (category === "Blocked") {
+        block_qty = baseQtyPerSerial;
+      } else if (category === "Reserved") {
+        reserved_qty = baseQtyPerSerial;
+      } else if (category === "Unrestricted") {
+        unrestricted_qty = baseQtyPerSerial;
+      } else if (category === "Quality Inspection") {
+        qualityinsp_qty = baseQtyPerSerial;
+      } else if (category === "In Transit") {
+        intransit_qty = baseQtyPerSerial;
+      } else {
+        unrestricted_qty = baseQtyPerSerial;
+      }
+
+      const balance_quantity =
+        block_qty +
+        reserved_qty +
+        unrestricted_qty +
+        qualityinsp_qty +
+        intransit_qty;
+
+      // Process serial number generation if needed
+      const updatedTableSerialNumber = [];
+      let generatedCount = 0;
+      let currentRunningNumber = null;
+      let serialPrefix = "";
+
+      if (isAuto === 1) {
+        const needsGeneration = tableSerialNumber.some(
+          (serial) =>
+            serial.system_serial_number === "Auto generated serial number"
+        );
+
+        if (needsGeneration) {
+          const resSerialConfig = await this.db
+            .collection("serial_level_config")
+            .where({ organization_id: organizationId })
+            .get();
+
+          if (
+            !resSerialConfig ||
+            !resSerialConfig.data ||
+            resSerialConfig.data.length === 0
+          ) {
+            throw new Error(
+              `Serial number configuration not found for organization ${organizationId}`
+            );
+          }
+
+          const serialConfigData = resSerialConfig.data[0];
+          currentRunningNumber = serialConfigData.serial_running_number;
+          serialPrefix = serialConfigData.serial_prefix
+            ? `${serialConfigData.serial_prefix}-`
+            : "";
+        }
+      }
+
+      // Process all serial numbers sequentially
+      for (
+        let serialIndex = 0;
+        serialIndex < tableSerialNumber.length;
+        serialIndex++
+      ) {
+        const serialItem = tableSerialNumber[serialIndex];
+        let finalSystemSerialNumber = serialItem.system_serial_number;
+
+        // Generate new serial number if needed
+        if (finalSystemSerialNumber === "Auto generated serial number") {
+          finalSystemSerialNumber =
+            serialPrefix +
+            String(currentRunningNumber + generatedCount).padStart(10, "0");
+          generatedCount++;
+        }
+
+        updatedTableSerialNumber.push({
+          ...serialItem,
+          system_serial_number: finalSystemSerialNumber,
+        });
+
+        if (
+          finalSystemSerialNumber &&
+          finalSystemSerialNumber !== "" &&
+          finalSystemSerialNumber !== "Auto generated serial number"
+        ) {
+          // 1. Insert serial_number record
+          const serialNumberRecord = {
+            system_serial_number: finalSystemSerialNumber,
+            supplier_serial_number: serialItem.supplier_serial_number || "",
+            material_id: item.item_selection,
+            batch_id: finalBatchId,
+            bin_location: item.location_id,
+            plant_id: plantId,
+            organization_id: organizationId,
+            transaction_no: data.stock_movement_no,
+            parent_trx_no: "",
+          };
+
+          await this.db.collection("serial_number").add(serialNumberRecord);
+
+          // 2. Insert inv_serial_movement record
+          const invSerialMovementRecord = {
+            inventory_movement_id: inventoryMovementId,
+            serial_number: finalSystemSerialNumber,
+            batch_id: finalBatchId,
+            base_qty: this.roundQty(baseQtyPerSerial),
+            base_uom: baseUOM,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+
+          await this.db
+            .collection("inv_serial_movement")
+            .add(invSerialMovementRecord);
+
+          // 3. Insert item_serial_balance record
+          const serialBalanceRecord = {
+            material_id: item.item_selection,
+            material_uom: baseUOM,
+            serial_number: finalSystemSerialNumber,
+            batch_id: finalBatchId,
+            plant_id: plantId,
+            location_id: item.location_id,
+            unrestricted_qty: this.roundQty(unrestricted_qty),
+            block_qty: this.roundQty(block_qty),
+            reserved_qty: this.roundQty(reserved_qty),
+            qualityinsp_qty: this.roundQty(qualityinsp_qty),
+            intransit_qty: this.roundQty(intransit_qty),
+            balance_quantity: this.roundQty(balance_quantity),
+            organization_id: organizationId,
+          };
+
+          await this.db
+            .collection("item_serial_balance")
+            .add(serialBalanceRecord);
+        }
+      }
+
+      // Update serial configuration if we generated new numbers
+      if (generatedCount > 0 && currentRunningNumber !== null) {
+        await this.db
+          .collection("serial_level_config")
+          .where({ organization_id: organizationId })
+          .update({
+            serial_running_number: currentRunningNumber + generatedCount,
+          });
+      }
+
+      console.log(
+        `Successfully processed serial number inventory for SM item ${item.item_selection}`
+      );
+    } catch (error) {
+      console.error(
+        `Error processing serial number inventory for SM item ${item.item_selection}:`,
+        error
+      );
+      throw new Error(
+        `Failed to process serial number inventory for SM item ${item.item_selection}: ${error.message}`
+      );
+    }
+  }
+
   async updateProductionOrder(
     allData,
     subformData,
@@ -504,7 +732,7 @@ class StockAdjuster {
             has_record: 1,
           });
       } catch (error) {
-        this.$message.error(error);
+        console.error(error);
       }
     };
 
@@ -557,7 +785,7 @@ class StockAdjuster {
       }
 
       if (!isUnique) {
-        this.$message.error(
+        console.error(
           "Could not generate a unique Stock Movement number after maximum attempts"
         );
       }
@@ -771,7 +999,7 @@ class StockAdjuster {
         item.received_quantity > 0
       ) {
         try {
-          await this.updateQuantities(
+          const result = await this.updateQuantities(
             materialData,
             movementType,
             {},
@@ -779,10 +1007,13 @@ class StockAdjuster {
             item,
             organizationId
           );
+
+          const batchId = result?.batchId || null;
+
           await this.recordInventoryMovement(
             materialData,
             movementType,
-            { sm_quantity: item.received_quantity },
+            { sm_quantity: item.received_quantity, batch_id: batchId },
             allData,
             item,
             organizationId,
@@ -893,6 +1124,14 @@ class StockAdjuster {
         organizationId
       );
       console.log("Obtained batchId:", batchId);
+      if (
+        subformData.is_serialized_item === 1 &&
+        subformData.is_serial_allocated === 1
+      ) {
+        console.log(
+          "Processing serial numbers for batch item in Miscellaneous Receipt"
+        );
+      }
     } else if (materialData.item_batch_management == "1" && balance.batch_id) {
       batchId = balance.batch_id;
     }
@@ -994,28 +1233,50 @@ class StockAdjuster {
 
     if (!balanceData) {
       console.log("Creating new balance record");
-      await this.db.collection(collectionName).add(updateData);
+
+      const isSerializedItem =
+        subformData.is_serialized_item === 1 &&
+        subformData.is_serial_allocated === 1;
+
+      if (!isSerializedItem) {
+        await this.db.collection(collectionName).add(updateData);
+      } else {
+        console.log(
+          "Skipped balance creation for serialized item - handled by serial balance"
+        );
+      }
     } else {
       console.log("Updating existing balance record");
-      const updateFields = {
-        balance_quantity: parseFloat(updateData.balance_quantity.toFixed(3)),
-        unrestricted_qty: parseFloat(updateData.unrestricted_qty.toFixed(3)),
-        qualityinsp_qty: parseFloat(updateData.qualityinsp_qty.toFixed(3)),
-        block_qty: parseFloat(updateData.block_qty.toFixed(3)),
-        reserved_qty: parseFloat(updateData.reserved_qty.toFixed(3)),
-        update_time: updateData.update_time,
-        update_user: updateData.update_user,
-        plant_id: updateData.plant_id,
-      };
 
-      if (materialData.item_batch_management == "1") {
-        updateFields.batch_id = updateData.batch_id;
+      const isSerializedItem =
+        subformData.is_serialized_item === 1 &&
+        subformData.is_serial_allocated === 1;
+
+      if (!isSerializedItem) {
+        const updateFields = {
+          balance_quantity: parseFloat(updateData.balance_quantity.toFixed(3)),
+          unrestricted_qty: parseFloat(updateData.unrestricted_qty.toFixed(3)),
+          qualityinsp_qty: parseFloat(updateData.qualityinsp_qty.toFixed(3)),
+          block_qty: parseFloat(updateData.block_qty.toFixed(3)),
+          reserved_qty: parseFloat(updateData.reserved_qty.toFixed(3)),
+          update_time: updateData.update_time,
+          update_user: updateData.update_user,
+          plant_id: updateData.plant_id,
+        };
+
+        if (materialData.item_batch_management == "1") {
+          updateFields.batch_id = updateData.batch_id;
+        }
+
+        await this.db
+          .collection(collectionName)
+          .doc(balanceData.id)
+          .update(updateFields);
+      } else {
+        console.log(
+          "Skipped balance update for serialized item - handled by serial balance"
+        );
       }
-
-      await this.db
-        .collection(collectionName)
-        .doc(balanceData.id)
-        .update(updateFields);
     }
 
     if (
@@ -1053,7 +1314,7 @@ class StockAdjuster {
       );
     }
 
-    return weightedAverageCost;
+    return { weightedAverageCost, batchId };
   }
 
   async updateReceivingLocation(
@@ -1795,8 +2056,10 @@ class StockAdjuster {
       uom_id: effectiveUom,
       base_qty: formattedConvertedQty,
       base_uom_id: materialData.based_uom,
+
       batch_number_id:
         materialData.item_batch_management == "1" ? balance.batch_id : null,
+
       costing_method_id: materialData.material_costing_method,
       plant_id: allData.issuing_operation_faci,
       created_at: new Date(),
@@ -1861,7 +2124,55 @@ class StockAdjuster {
               ? baseMovementData.batch_number_id
               : null,
         };
-        return await this.db.collection("inventory_movement").add(inData);
+
+        await this.db.collection("inventory_movement").add(inData);
+
+        if (
+          subformData.is_serialized_item === 1 &&
+          subformData.is_serial_allocated === 1
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+
+          const inventoryMovementQuery = await this.db
+            .collection("inventory_movement")
+            .where({
+              trx_no: allData.stock_movement_no,
+              item_id: materialData.id,
+              movement: "IN",
+              transaction_type: "SM",
+              ...(materialData.item_batch_management == "1" &&
+              baseMovementData.batch_number_id
+                ? { batch_number_id: baseMovementData.batch_number_id }
+                : {}),
+            })
+            .get();
+
+          if (
+            !inventoryMovementQuery.data ||
+            inventoryMovementQuery.data.length === 0
+          ) {
+            throw new Error(
+              "Inventory movement record was created but could not be retrieved"
+            );
+          }
+
+          const inventoryMovementRecord = inventoryMovementQuery.data.sort(
+            (a, b) => new Date(b.created_date) - new Date(a.created_date)
+          )[0];
+
+          const inventoryMovementId = inventoryMovementRecord.id;
+
+          await this.addSerialNumberInventoryForSM(
+            allData,
+            subformData,
+            inventoryMovementId,
+            organizationId,
+            allData.issuing_operation_faci,
+            baseMovementData.batch_number_id
+          );
+        }
+
+        return { success: true, type: "miscellaneous_receipt" };
 
       case "Inventory Category Transfer Posting":
         const outMovementICT = {
@@ -2306,6 +2617,14 @@ class StockAdjuster {
         }
       }
 
+      // Step 7: Validate serial number allocation for Miscellaneous Receipt
+      if (allData.movement_type === "Miscellaneous Receipt") {
+        console.log(
+          "🔍 Validating serial number allocation for serialized items..."
+        );
+        this.validateSerialNumberAllocation(allData.stock_movement);
+      }
+
       console.log("⭐ Validation successful - all checks passed");
       return true;
     } catch (error) {
@@ -2313,6 +2632,37 @@ class StockAdjuster {
       console.error("Full error object:", error);
       throw error;
     }
+  }
+
+  async validateSerialNumberAllocation(subformData) {
+    const serializedItemsNotAllocated = [];
+
+    for (const [index, item] of subformData.entries()) {
+      if (item.is_serialized_item === 1 && item.is_serial_allocated !== 1) {
+        let itemIdentifier =
+          item.item_name ||
+          item.item_code ||
+          item.item_selection ||
+          `Item at row ${index + 1}`;
+        serializedItemsNotAllocated.push({
+          index: index + 1,
+          identifier: itemIdentifier,
+          item_id: item.item_selection,
+        });
+      }
+    }
+
+    if (serializedItemsNotAllocated.length > 0) {
+      const itemsList = serializedItemsNotAllocated
+        .map((item) => `• Row ${item.index}: ${item.identifier}`)
+        .join("\n");
+
+      throw new Error(
+        `Serial number allocation is required for the following serialized items:\n\n${itemsList}\n\nPlease allocate serial numbers for all serialized items before saving.`
+      );
+    }
+
+    return true;
   }
 }
 
@@ -2474,6 +2824,14 @@ const processStockMovements = async () => {
     allData.stock_movement = processedTableSM;
 
     allData.stock_movement = await fillbackHeaderFields(allData);
+
+    if (allData.movement_type === "Miscellaneous Receipt") {
+      console.log(
+        "Validating serial number allocation for serialized items..."
+      );
+      const adjuster = new StockAdjuster(db);
+      adjuster.validateSerialNumberAllocation(allData.stock_movement);
+    }
 
     console.log("this.getVarGlobal", this.getVarGlobal("deptParentId"));
     self.showLoading();

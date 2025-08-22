@@ -31,38 +31,122 @@ class StockAdjuster {
     }
   }
 
-  async updateProductionOrder(allData, subformData, balanceIndex) {
+  async updateProductionOrder(
+    allData,
+    subformData,
+    balanceIndex,
+    productionOrderData
+  ) {
     if (allData.is_production_order !== 1 || !allData.production_order_id) {
       return; // Skip if not a production order or no production order ID
     }
 
-    // const tableMatConfirmation = subformData.map((item) => ({
-    //   material_id: item.item_selection,
-    //   material_required_qty: item.total_quantity || item.received_quantity || 0,
-    //   bin_location_id: item.location_id,
-    // }));
-    console.log("Table Mat Confirmation", balanceIndex);
-    try {
-      const productionOrderResponse = await this.db
-        .collection("production_order")
-        .where({ id: allData.production_order_id })
+    let tableMatConfirmation = [];
+
+    const previousTableMatConfirmation =
+      productionOrderData.table_mat_confirmation.map((item) => ({
+        ...item,
+      }));
+
+    for (const [index, item] of previousTableMatConfirmation.entries()) {
+      //get material data
+      const resItem = await this.db
+        .collection("Item")
+        .doc(item.material_id)
         .get();
 
+      if (!resItem || resItem.data.length === 0) return;
+
+      const materialData = resItem.data[0];
+
+      // if item no batch, table mat confirmation remain the same
       if (
-        !productionOrderResponse.data ||
-        productionOrderResponse.data.length === 0
+        !materialData.item_batch_management ||
+        materialData.item_batch_management === 0
       ) {
-        throw new Error(
-          `Production order ${allData.production_order_id} not found`
-        );
+        const matConfirmationData = {
+          material_id: item.material_id,
+          material_name: item.material_name,
+          material_desc: item.material_desc,
+          material_category: item.material_category,
+          material_uom: item.material_uom,
+          item_process_id: item.item_process_id,
+          bin_location_id: item.bin_location_id,
+          material_required_qty: item.material_required_qty,
+          material_actual_qty: item.material_actual_qty,
+          item_remarks: item.item_remarks,
+        };
+
+        tableMatConfirmation.push(matConfirmationData);
+        continue;
       }
-      const productionOrderId = productionOrderResponse.data[0].id;
+      // if item has batch, map the data to table mat confirmation
+      else {
+        let tempDataParsed;
+        const subFormItem = subformData[index];
+        try {
+          const tempData = subFormItem.temp_qty_data;
+          if (!tempData) {
+            console.warn(
+              `No temp_qty_data found for item ${subFormItem.item_selection}`
+            );
+            tempDataParsed = [];
+          } else {
+            tempDataParsed = JSON.parse(tempData);
+            tempDataParsed = tempDataParsed.filter(
+              (tempData) => tempData.sm_quantity > 0
+            );
+          }
+        } catch (parseError) {
+          console.error(
+            `Error parsing temp_qty_data for item ${item.item_selection}:`,
+            parseError
+          );
+          tempDataParsed = [];
+        }
+
+        console.log("tempDataParsed", tempDataParsed);
+
+        let balancesToProcess =
+          allData.balance_index?.filter(
+            (balance) =>
+              balance.sm_quantity &&
+              balance.sm_quantity > 0 &&
+              tempDataParsed.some(
+                (tempData) =>
+                  tempData.material_id === balance.material_id &&
+                  tempData.balance_id === balance.balance_id
+              )
+          ) || [];
+
+        for (const balance of balancesToProcess) {
+          const matConfirmationData = {
+            material_id: item.material_id,
+            material_name: item.material_name,
+            material_desc: item.material_desc,
+            material_category: item.material_category,
+            material_uom: item.material_uom,
+            item_process_id: item.item_process_id,
+            bin_location_id: item.bin_location_id,
+            material_required_qty: balance.sm_quantity,
+            material_actual_qty: balance.sm_quantity,
+            item_remarks: item.item_remarks,
+            batch_id: balance.batch_id,
+          };
+
+          tableMatConfirmation.push(matConfirmationData);
+        }
+      }
+    }
+
+    try {
       await this.db
         .collection("production_order")
-        .doc(productionOrderId)
+        .doc(productionOrderData.id)
         .update({
           balance_index: balanceIndex || [],
           production_order_status: "In Progress",
+          table_mat_confirmation: tableMatConfirmation,
           update_time: new Date().toISOString(),
         });
 
@@ -92,6 +176,19 @@ class StockAdjuster {
       let quantityConverted = item.received_quantity || 0;
       let selected_uom = materialData.based_uom; // Default to base UOM
       let unitPriceConverted = item.unit_price || 0;
+
+      if (
+        movementType === "Location Transfer" &&
+        allData.is_production_order === 1
+      ) {
+        for (const sm of subformData) {
+          if (sm.total_quantity !== sm.requested_qty) {
+            throw new Error(
+              "Total quantity is not equal to requested quantity."
+            );
+          }
+        }
+      }
 
       if (
         movementType === "Miscellaneous Receipt" &&
@@ -144,7 +241,10 @@ class StockAdjuster {
         }
 
         const balancesToProcess = allData.balance_index.filter(
-          (balance) => balance.sm_quantity && balance.sm_quantity > 0
+          (balance) =>
+            balance.sm_quantity &&
+            balance.sm_quantity > 0 &&
+            balance.material_id === item.item_selection
         );
 
         if (balancesToProcess.length === 0) {
@@ -181,11 +281,14 @@ class StockAdjuster {
             .get();
           const balanceData = balanceResponse.data[0];
 
-          const categoryField =
-            this.categoryMap[balance.category || subformData.category];
+          // const categoryField =
+          //   this.categoryMap[balance.category || subformData.category];
           // if (!categoryField && movementType != 'Inventory Category Transfer Posting') {
           //     throw new Error(`Invalid category: ${balance.category || 'Unrestricted'}`);
           // }
+
+          console.log("balancesToProcess", balancesToProcess);
+          console.log("current processing balance", balance);
 
           if (!balanceData) {
             throw new Error(
@@ -193,11 +296,11 @@ class StockAdjuster {
             );
           }
 
-          const currentQty = balanceData[categoryField] || 0;
-          const requestedQty =
-            balance.quantity_converted > 0
-              ? balance.quantity_converted
-              : balance.sm_quantity;
+          // const currentQty = balanceData[categoryField] || 0;
+          // const requestedQty =
+          //   balance.quantity_converted > 0
+          //     ? balance.quantity_converted
+          //     : balance.sm_quantity;
 
           // if (movementType === 'Miscellaneous Issue' ||
           //     movementType === 'Disposal/Scrap' ||
@@ -245,7 +348,26 @@ class StockAdjuster {
       movementType === "Location Transfer" &&
       allData.is_production_order === 1
     ) {
-      await this.updateProductionOrder(allData, subformData, balanceIndex);
+      const resProductionOrder = await this.db
+        .collection("production_order")
+        .doc(allData.production_order_id)
+        .get();
+
+      if (!resProductionOrder || resProductionOrder.data.length === 0) return;
+
+      const productionOrderData = resProductionOrder.data[0];
+
+      await this.updateProductionOrder(
+        allData,
+        subformData,
+        balanceIndex,
+        productionOrderData
+      );
+      await this.updateOnReservedTable(
+        allData,
+        subformData,
+        productionOrderData
+      );
     }
 
     const updates = [];
@@ -277,241 +399,239 @@ class StockAdjuster {
     movementType,
     organizationId
   ) {
-    try {
-      const table_item_balance = allData.sm_item_balance?.table_item_balance;
+    const table_item_balance = allData.sm_item_balance?.table_item_balance;
 
-      let postedStatus = "";
+    let postedStatus = "";
 
-      if (
-        (movementType === "Miscellaneous Issue" ||
-          movementType === "Miscellaneous Receipt" ||
-          movementType === "Disposal/Scrap") &&
-        allData.acc_integration_type !== "No Accounting Integration"
-      ) {
-        postedStatus = "Pending Post";
-      } else {
-        postedStatus = "";
-      }
+    if (
+      (movementType === "Miscellaneous Issue" ||
+        movementType === "Miscellaneous Receipt" ||
+        movementType === "Disposal/Scrap") &&
+      allData.acc_integration_type !== "No Accounting Integration"
+    ) {
+      postedStatus = "Pending Post";
+    } else {
+      postedStatus = "";
+    }
 
-      const stockMovementData = {
-        stock_movement_no: allData.stock_movement_no,
-        movement_type: allData.movement_type,
-        movement_type_id: allData.movement_type_id,
-        movement_reason: allData.movement_reason || null,
-        issued_by: allData.issued_by,
-        issue_date: allData.issue_date,
-        issuing_operation_faci: allData.issuing_operation_faci,
-        stock_movement: subformData,
-        sm_item_balance: allData.sm_item_balance,
-        table_item_balance: table_item_balance,
-        remarks: allData.remarks,
-        delivery_method: allData.delivery_method,
+    const stockMovementData = {
+      stock_movement_no: allData.stock_movement_no,
+      movement_type: allData.movement_type,
+      movement_type_id: allData.movement_type_id,
+      movement_reason: allData.movement_reason || null,
+      issued_by: allData.issued_by,
+      issue_date: allData.issue_date,
+      issuing_operation_faci: allData.issuing_operation_faci,
+      stock_movement: subformData,
+      sm_item_balance: allData.sm_item_balance,
+      table_item_balance: table_item_balance,
+      remarks: allData.remarks,
+      delivery_method: allData.delivery_method,
 
-        cp_driver_name: allData.cp_driver_name,
-        cp_ic_no: allData.cp_ic_no,
-        cp_driver_contact_no: allData.cp_driver_contact_no,
-        cp_vehicle_number: allData.cp_vehicle_number,
-        cp_pickup_date: allData.cp_pickup_date,
-        cp_validity_collection: allData.cp_validity_collection,
-        cs_courier_company: allData.cs_courier_company,
-        cs_shipping_date: allData.cs_shipping_date,
-        cs_tracking_number: allData.cs_tracking_number,
-        cs_est_arrival_date: allData.cs_est_arrival_date,
-        cs_freight_charges: allData.cs_freight_charges,
-        ct_driver_name: allData.ct_driver_name,
-        ct_driver_contact_no: allData.ct_driver_contact_no,
-        ct_ic_no: allData.ct_ic_no,
-        ct_vehicle_number: allData.ct_vehicle_number,
-        ct_est_delivery_date: allData.ct_est_delivery_date,
-        ct_delivery_cost: allData.ct_delivery_cost,
-        ss_shipping_company: allData.ss_shipping_company,
-        ss_shipping_date: allData.ss_shipping_date,
-        ss_freight_charges: allData.ss_freight_charges,
-        ss_shipping_method: allData.ss_shipping_method,
-        ss_est_arrival_date: allData.ss_est_arrival_date,
-        ss_tracking_number: allData.ss_tracking_number,
-        tpt_vehicle_number: allData.tpt_vehicle_number,
-        tpt_transport_name: allData.tpt_transport_name,
-        tpt_ic_no: allData.tpt_ic_no,
-        tpt_driver_contact_no: allData.tpt_driver_contact_no,
+      cp_driver_name: allData.cp_driver_name,
+      cp_ic_no: allData.cp_ic_no,
+      cp_driver_contact_no: allData.cp_driver_contact_no,
+      cp_vehicle_number: allData.cp_vehicle_number,
+      cp_pickup_date: allData.cp_pickup_date,
+      cp_validity_collection: allData.cp_validity_collection,
+      cs_courier_company: allData.cs_courier_company,
+      cs_shipping_date: allData.cs_shipping_date,
+      cs_tracking_number: allData.cs_tracking_number,
+      cs_est_arrival_date: allData.cs_est_arrival_date,
+      cs_freight_charges: allData.cs_freight_charges,
+      ct_driver_name: allData.ct_driver_name,
+      ct_driver_contact_no: allData.ct_driver_contact_no,
+      ct_ic_no: allData.ct_ic_no,
+      ct_vehicle_number: allData.ct_vehicle_number,
+      ct_est_delivery_date: allData.ct_est_delivery_date,
+      ct_delivery_cost: allData.ct_delivery_cost,
+      ss_shipping_company: allData.ss_shipping_company,
+      ss_shipping_date: allData.ss_shipping_date,
+      ss_freight_charges: allData.ss_freight_charges,
+      ss_shipping_method: allData.ss_shipping_method,
+      ss_est_arrival_date: allData.ss_est_arrival_date,
+      ss_tracking_number: allData.ss_tracking_number,
+      tpt_vehicle_number: allData.tpt_vehicle_number,
+      tpt_transport_name: allData.tpt_transport_name,
+      tpt_ic_no: allData.tpt_ic_no,
+      tpt_driver_contact_no: allData.tpt_driver_contact_no,
 
-        balance_index: allData.balance_index,
-        organization_id: organizationId,
-        posted_status: postedStatus,
-        reference_documents: allData.reference_documents,
-      };
+      balance_index: allData.balance_index,
+      organization_id: organizationId,
+      posted_status: postedStatus,
+      reference_documents: allData.reference_documents,
 
-      const page_status = allData.page_status;
-      const stockMovementNo = allData.id;
+      is_production_order: allData.is_production_order,
+      production_order_id: allData.production_order_id,
+    };
 
-      let result;
+    const page_status = allData.page_status ? allData.page_status : null;
+    const stockMovementNo = allData.id;
 
-      const getPrefixData = async (organizationId, movementType) => {
-        const prefixEntry = await db
+    const getPrefixData = async (organizationId, movementType) => {
+      const prefixEntry = await db
+        .collection("prefix_configuration")
+        .where({
+          document_types: "Stock Movement",
+          is_deleted: 0,
+          organization_id: organizationId,
+          is_active: 1,
+          movement_type: movementType,
+        })
+        .get();
+
+      const prefixData = await prefixEntry.data[0];
+
+      return prefixData;
+    };
+
+    const updatePrefix = async (
+      organizationId,
+      runningNumber,
+      movementType
+    ) => {
+      try {
+        await db
           .collection("prefix_configuration")
           .where({
             document_types: "Stock Movement",
             is_deleted: 0,
             organization_id: organizationId,
-            is_active: 1,
             movement_type: movementType,
           })
-          .get();
+          .update({
+            running_number: parseInt(runningNumber) + 1,
+            has_record: 1,
+          });
+      } catch (error) {
+        console.error(error);
+      }
+    };
 
-        const prefixData = await prefixEntry.data[0];
+    const generatePrefix = (runNumber, now, prefixData) => {
+      let generated = prefixData.current_prefix_config;
+      generated = generated.replace("prefix", prefixData.prefix_value);
+      generated = generated.replace("suffix", prefixData.suffix_value);
+      generated = generated.replace(
+        "month",
+        String(now.getMonth() + 1).padStart(2, "0")
+      );
+      generated = generated.replace(
+        "day",
+        String(now.getDate()).padStart(2, "0")
+      );
+      generated = generated.replace("year", now.getFullYear());
+      generated = generated.replace(
+        "running_number",
+        String(runNumber).padStart(prefixData.padding_zeroes, "0")
+      );
+      return generated;
+    };
 
-        return prefixData;
-      };
+    const checkUniqueness = async (generatedPrefix, organizationId) => {
+      const existingDoc = await db
+        .collection("stock_movement")
+        .where({
+          stock_movement_no: generatedPrefix,
+          organization_id: organizationId,
+        })
+        .get();
+      return existingDoc.data[0] ? false : true;
+    };
 
-      const updatePrefix = async (
-        organizationId,
-        runningNumber,
-        movementType
-      ) => {
-        try {
-          await db
-            .collection("prefix_configuration")
-            .where({
-              document_types: "Stock Movement",
-              is_deleted: 0,
-              organization_id: organizationId,
-              movement_type: movementType,
-            })
-            .update({
-              running_number: parseInt(runningNumber) + 1,
-              has_record: 1,
-            });
-        } catch (error) {
-          this.$message.error(error);
-        }
-      };
+    const findUniquePrefix = async (prefixData, organizationId) => {
+      const now = new Date();
+      let prefixToShow;
+      let runningNumber = prefixData.running_number;
+      let isUnique = false;
+      let maxAttempts = 10;
+      let attempts = 0;
 
-      const generatePrefix = (runNumber, now, prefixData) => {
-        let generated = prefixData.current_prefix_config;
-        generated = generated.replace("prefix", prefixData.prefix_value);
-        generated = generated.replace("suffix", prefixData.suffix_value);
-        generated = generated.replace(
-          "month",
-          String(now.getMonth() + 1).padStart(2, "0")
-        );
-        generated = generated.replace(
-          "day",
-          String(now.getDate()).padStart(2, "0")
-        );
-        generated = generated.replace("year", now.getFullYear());
-        generated = generated.replace(
-          "running_number",
-          String(runNumber).padStart(prefixData.padding_zeroes, "0")
-        );
-        return generated;
-      };
-
-      const checkUniqueness = async (generatedPrefix, organizationId) => {
-        const existingDoc = await db
-          .collection("stock_movement")
-          .where({
-            stock_movement_no: generatedPrefix,
-            organization_id: organizationId,
-          })
-          .get();
-        return existingDoc.data[0] ? false : true;
-      };
-
-      const findUniquePrefix = async (prefixData, organizationId) => {
-        const now = new Date();
-        let prefixToShow;
-        let runningNumber = prefixData.running_number;
-        let isUnique = false;
-        let maxAttempts = 10;
-        let attempts = 0;
-
-        while (!isUnique && attempts < maxAttempts) {
-          attempts++;
-          prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-          isUnique = await checkUniqueness(prefixToShow, organizationId);
-          if (!isUnique) {
-            runningNumber++;
-          }
-        }
-
+      while (!isUnique && attempts < maxAttempts) {
+        attempts++;
+        prefixToShow = await generatePrefix(runningNumber, now, prefixData);
+        isUnique = await checkUniqueness(prefixToShow, organizationId);
         if (!isUnique) {
-          this.$message.error(
-            "Could not generate a unique Stock Movement number after maximum attempts"
-          );
+          runningNumber++;
         }
+      }
 
-        return { prefixToShow, runningNumber };
-      };
+      if (!isUnique) {
+        console.error(
+          "Could not generate a unique Stock Movement number after maximum attempts"
+        );
+      }
 
-      if (page_status === "Add") {
-        const prefixData = await getPrefixData(organizationId, movementType);
+      return { prefixToShow, runningNumber };
+    };
 
-        if (prefixData.length !== 0) {
-          const { prefixToShow, runningNumber } = await findUniquePrefix(
-            prefixData,
-            organizationId
-          );
+    if (page_status === "Add") {
+      const prefixData = await getPrefixData(organizationId, movementType);
 
-          await updatePrefix(organizationId, runningNumber, movementType);
+      if (prefixData.length !== 0) {
+        const { prefixToShow, runningNumber } = await findUniquePrefix(
+          prefixData,
+          organizationId
+        );
 
-          stockMovementData.stock_movement_no = prefixToShow;
-          allData.stock_movement_no = prefixToShow;
+        await updatePrefix(organizationId, runningNumber, movementType);
+
+        stockMovementData.stock_movement_no = prefixToShow;
+        allData.stock_movement_no = prefixToShow;
+      }
+      const result = await this.db.collection("stock_movement").add({
+        stock_movement_status: "Completed",
+        ...stockMovementData,
+      });
+
+      this.runWorkflow(
+        "1921755711809626113",
+        { stock_movement_no: stockMovementData.stock_movement_no },
+        (res) => {
+          console.log("Workflow success:", res);
+        },
+        (err) => {
+          console.error("Workflow error:", err);
         }
+      );
+    } else if (page_status === "Edit") {
+      if (!stockMovementNo) {
+        throw new Error("Stock movement number is required for editing");
+      }
 
-        result = await this.db.collection("stock_movement").add({
+      const prefixData = await getPrefixData(organizationId, movementType);
+
+      if (prefixData.length !== 0) {
+        const { prefixToShow, runningNumber } = await findUniquePrefix(
+          prefixData,
+          organizationId
+        );
+
+        await updatePrefix(organizationId, runningNumber, movementType);
+
+        stockMovementData.stock_movement_no = prefixToShow;
+        allData.stock_movement_no = prefixToShow;
+      }
+
+      const result = await this.db
+        .collection("stock_movement")
+        .doc(stockMovementNo)
+        .update({
           stock_movement_status: "Completed",
           ...stockMovementData,
         });
 
-        this.runWorkflow(
-          "1921755711809626113",
-          { stock_movement_no: stockMovementData.stock_movement_no },
-          (res) => {
-            console.log("Workflow success:", res);
-          },
-          (err) => {
-            console.error("Workflow error:", err);
-          }
-        );
-      } else if (page_status === "Edit") {
-        if (!stockMovementNo) {
-          throw new Error("Stock movement number is required for editing");
+      await this.runWorkflow(
+        "1921755711809626113",
+        { stock_movement_no: stockMovementData.stock_movement_no },
+        (res) => {
+          console.log("Workflow success:", res);
+        },
+        (err) => {
+          console.error("Workflow error:", err);
         }
-
-        const prefixData = await getPrefixData(organizationId, movementType);
-
-        if (prefixData.length !== 0) {
-          const { prefixToShow, runningNumber } = await findUniquePrefix(
-            prefixData,
-            organizationId
-          );
-
-          await updatePrefix(organizationId, runningNumber, movementType);
-
-          stockMovementData.stock_movement_no = prefixToShow;
-          allData.stock_movement_no = prefixToShow;
-        }
-        result = await this.db
-          .collection("stock_movement")
-          .doc(stockMovementNo)
-          .update({
-            stock_movement_status: "Completed",
-            ...stockMovementData,
-          });
-
-        this.runWorkflow(
-          "1921755711809626113",
-          { stock_movement_no: stockMovementData.stock_movement_no },
-          (res) => {
-            console.log("Workflow success:", res);
-          },
-          (err) => {
-            console.error("Workflow error:", err);
-          }
-        );
-      }
-    } catch (error) {
-      console.error("Error in updateStockMovementTable:", error);
+      );
+      console.log("Stock Movement Updated:", result);
     }
   }
 
@@ -616,7 +736,8 @@ class StockAdjuster {
               balance,
               allData,
               item,
-              organizationId
+              organizationId,
+              balancesToProcess
             );
 
             updates.push({
@@ -664,7 +785,8 @@ class StockAdjuster {
             { sm_quantity: item.received_quantity },
             allData,
             item,
-            organizationId
+            organizationId,
+            balancesToProcess
           );
 
           updates.push({
@@ -704,11 +826,9 @@ class StockAdjuster {
           { key: "value" },
           (res) => {
             console.log("Workflow success", res);
-            this.$message.success("Stock Movement posted successfully.");
           },
           (err) => {
             console.error("Workflow error", err);
-            this.$message.error(err);
           }
         );
       } else if (
@@ -716,14 +836,12 @@ class StockAdjuster {
         organizationId &&
         organizationId !== ""
       ) {
-        this.$message.success("Post Stock Movement successfully");
         console.log("Calling AutoCount workflow");
       } else if (
         accIntegrationType === "No Accounting Integration" &&
         organizationId &&
         organizationId !== ""
       ) {
-        this.$message.success("Post Stock Movement successfully");
         console.log("Not calling workflow");
       } else {
         throw new Error();
@@ -915,11 +1033,11 @@ class StockAdjuster {
     } else {
       console.log("Updating existing balance record");
       const updateFields = {
-        balance_quantity: updateData.balance_quantity,
-        unrestricted_qty: updateData.unrestricted_qty,
-        qualityinsp_qty: updateData.qualityinsp_qty,
-        block_qty: updateData.block_qty,
-        reserved_qty: updateData.reserved_qty,
+        balance_quantity: parseFloat(updateData.balance_quantity.toFixed(3)),
+        unrestricted_qty: parseFloat(updateData.unrestricted_qty.toFixed(3)),
+        qualityinsp_qty: parseFloat(updateData.qualityinsp_qty.toFixed(3)),
+        block_qty: parseFloat(updateData.block_qty.toFixed(3)),
+        reserved_qty: parseFloat(updateData.reserved_qty.toFixed(3)),
         update_time: updateData.update_time,
         update_user: updateData.update_user,
         plant_id: updateData.plant_id,
@@ -1045,12 +1163,19 @@ class StockAdjuster {
           organization_id: organizationId,
         };
 
-    const categoryField =
+    let categoryField =
       movementType === "Location Transfer"
         ? this.categoryMap[balance.category || "Unrestricted"]
         : movementType === "Miscellaneous Receipt"
         ? this.categoryMap[subformData.category || "Unrestricted"]
         : this.categoryMap[balance.category || "Unrestricted"];
+
+    if (
+      movementType === "Location Transfer" &&
+      allData.is_production_order === 1
+    ) {
+      categoryField = this.categoryMap["Reserved"];
+    }
 
     updateData.balance_quantity =
       (updateData.balance_quantity || 0) + qtyChangeValue;
@@ -1068,11 +1193,11 @@ class StockAdjuster {
       );
     } else {
       const updateFields = {
-        balance_quantity: updateData.balance_quantity,
-        unrestricted_qty: updateData.unrestricted_qty,
-        qualityinsp_qty: updateData.qualityinsp_qty,
-        block_qty: updateData.block_qty,
-        reserved_qty: updateData.reserved_qty,
+        balance_quantity: parseFloat(updateData.balance_quantity.toFixed(3)),
+        unrestricted_qty: parseFloat(updateData.unrestricted_qty.toFixed(3)),
+        qualityinsp_qty: parseFloat(updateData.qualityinsp_qty.toFixed(3)),
+        block_qty: parseFloat(updateData.block_qty.toFixed(3)),
+        reserved_qty: parseFloat(updateData.reserved_qty.toFixed(3)),
         update_time: updateData.update_time,
         update_user: updateData.update_user,
         plant_id: updateData.plant_id,
@@ -1092,13 +1217,6 @@ class StockAdjuster {
         `Updated existing ${collectionName} record for batch ${balance.batch_id} at location ${receivingLocationId}`
       );
     }
-  }
-
-  async updatePendingReceive(materialId, receivedQty, allData) {
-    const pendingRecQuery = await this.db
-      .collection("stock_movement")
-      .where({ stock_movement_no: allData.stock_movement_no })
-      .get();
   }
 
   async createBatch(
@@ -1725,6 +1843,7 @@ class StockAdjuster {
     switch (movementType) {
       case "Location Transfer":
         let productionOrderNo = null;
+        let category = null;
         if (allData.is_production_order === 1) {
           const productionOrder = await this.db
             .collection("production_order")
@@ -1734,6 +1853,7 @@ class StockAdjuster {
             .get();
           productionOrderNo =
             productionOrder.data[0]?.production_order_no || null;
+          category = "Reserved";
           console.log("Production Order No:", productionOrderNo);
         }
         const outMovement = {
@@ -1748,7 +1868,7 @@ class StockAdjuster {
           movement: "IN",
           bin_location_id: subformData.location_id,
           parent_trx_no: productionOrderNo,
-          inventory_category: balance.category || "Unrestricted",
+          inventory_category: category || balance.category,
         };
         const [outResult, inResult] = await Promise.all([
           this.db.collection("inventory_movement").add(outMovement),
@@ -1813,6 +1933,125 @@ class StockAdjuster {
     }
   }
 
+  async updateOnReservedTable(allData, subformData, productionOrderData) {
+    try {
+      for (const [index, item] of subformData.entries()) {
+        if (!item.item_selection || item.item_selection === "") {
+          console.log(
+            `Skipping item ${item.item_selection} due to no item_selection`
+          );
+          return;
+        }
+
+        //get material data
+        const resItem = await this.db
+          .collection("Item")
+          .doc(item.item_selection)
+          .get();
+
+        if (!resItem || resItem.data.length === 0) return;
+
+        const materialData = resItem.data[0];
+
+        // process item without batch
+        if (
+          !materialData.item_batch_management ||
+          materialData.item_batch_management === 0
+        ) {
+          this.db.collection("on_reserved_gd").add({
+            doc_type: "Location Transfer",
+            parent_no: productionOrderData.production_order_no,
+            doc_no: allData.stock_movement_no,
+            material_id: item.item_selection,
+            item_name: materialData.material_name,
+            item_desc: materialData.material_desc || "",
+            batch_id: null,
+            bin_location: item.location_id,
+            item_uom: item.quantity_uom,
+            line_no: index + 1,
+            reserved_qty: item.total_quantity,
+            delivered_qty: 0,
+            open_qty: item.total_quantity,
+            reserved_date: new Date()
+              .toISOString()
+              .slice(0, 19)
+              .replace("T", " "),
+            plant_id: allData.issuing_operation_faci,
+            organization_id: allData.organization_id,
+            created_by: this.getVarGlobal("nickname"),
+            created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+          });
+        } else {
+          let tempDataParsed;
+          try {
+            const tempData = item.temp_qty_data;
+            if (!tempData) {
+              console.warn(
+                `No temp_qty_data found for item ${item.item_selection}`
+              );
+              tempDataParsed = [];
+            } else {
+              tempDataParsed = JSON.parse(tempData);
+              tempDataParsed = tempDataParsed.filter(
+                (tempData) => tempData.sm_quantity > 0
+              );
+            }
+          } catch (parseError) {
+            console.error(
+              `Error parsing temp_qty_data for item ${item.item_selection}:`,
+              parseError
+            );
+            tempDataParsed = [];
+          }
+
+          console.log("tempDataParsed", tempDataParsed);
+
+          let balancesToProcess =
+            allData.balance_index?.filter(
+              (balance) =>
+                balance.sm_quantity &&
+                balance.sm_quantity > 0 &&
+                tempDataParsed.some(
+                  (tempData) =>
+                    tempData.material_id === balance.material_id &&
+                    tempData.balance_id === balance.balance_id
+                )
+            ) || [];
+          for (const balance of balancesToProcess) {
+            this.db.collection("on_reserved_gd").add({
+              doc_type: "Location Transfer",
+              parent_no: productionOrderData.production_order_no,
+              doc_no: allData.stock_movement_no,
+              material_id: balance.material_id,
+              item_name: materialData.material_name,
+              item_desc: materialData.material_desc || "",
+              batch_id: balance.batch_id || null,
+              bin_location: item.location_id,
+              item_uom: item.quantity_uom,
+              line_no: index + 1,
+              reserved_qty: balance.sm_quantity,
+              delivered_qty: 0,
+              open_qty: balance.sm_quantity,
+              reserved_date: new Date()
+                .toISOString()
+                .slice(0, 19)
+                .replace("T", " "),
+              plant_id: allData.issuing_operation_faci,
+              organization_id: allData.organization_id,
+              created_by: this.getVarGlobal("nickname"),
+              created_at: new Date()
+                .toISOString()
+                .slice(0, 19)
+                .replace("T", " "),
+            });
+          }
+        }
+      }
+    } catch {
+      throw error;
+    }
+  }
+
   async preCheckQuantitiesAndCosting(allData, context) {
     try {
       console.log("Starting preCheckQuantitiesAndCosting with data:", allData);
@@ -1827,7 +2066,6 @@ class StockAdjuster {
         ];
         this.validateRequiredFields(allData, requiredTopLevelFields);
       } catch (error) {
-        // Show required fields error as an alert
         if (context && context.parentGenerateForm) {
           context.parentGenerateForm.$alert(
             error.message,
@@ -1840,7 +2078,7 @@ class StockAdjuster {
         } else {
           alert(error.message);
         }
-        throw error; // Stop further processing
+        throw error;
       }
 
       // Step 2: Get movement type details
@@ -1852,141 +2090,251 @@ class StockAdjuster {
         throw new Error("Stock movement items are required");
       }
 
+      console.log("📋 Stock movement items:", subformData);
+      console.log("📋 Stock movement items length:", subformData.length);
+
+      // Log each item's material_id and location_id
+      subformData.forEach((item, index) => {
+        console.log(
+          `📦 Item ${index + 1}: material_id=${
+            item.item_selection
+          }, location_id=${item.location_id}`
+        );
+      });
+
+      if (
+        movementType === "Miscellaneous Receipt" ||
+        movementType === "Location Transfer"
+      ) {
+        for (let i = 0; i < subformData.length; i++) {
+          const item = subformData[i];
+          if (!item.location_id) {
+            throw new Error(
+              `Location ID is required for item ${i + 1} in stock movement`
+            );
+          }
+        }
+      }
+
       // Step 4: Perform item validations and quantity checks
       await this.preValidateItems(subformData, movementType, allData);
 
-      // Step 5: Check quantities and costing records for deduction movements
-      for (const item of subformData) {
-        const materialResponse = await this.db
-          .collection("Item")
-          .where({ id: item.item_selection })
-          .get();
-        const materialData = materialResponse.data[0];
-        if (!materialData) {
-          throw new Error(`Material not found: ${item.item_selection}`);
-        }
-        if (!materialData.based_uom) {
-          throw new Error(
-            `Base UOM is missing for item ${item.item_selection}`
-          );
-        }
+      // Step 5: ENHANCED LOGIC - Aggregate quantities by location and material for deduction movements
+      if (
+        ["Miscellaneous Issue", "Disposal/Scrap", "Location Transfer"].includes(
+          movementType
+        )
+      ) {
+        console.log("🔍 Starting quantity aggregation for deduction movements");
+
+        // Get all balance indices to process
+        console.log("🔍 Raw balance_index:", allData.balance_index);
+        console.log(
+          "🔍 Balance_index length:",
+          allData.balance_index?.length || 0
+        );
+
         const balancesToProcess =
           allData.balance_index?.filter(
             (balance) => balance.sm_quantity && balance.sm_quantity > 0
           ) || [];
 
-        if (
-          [
-            "Miscellaneous Issue",
-            "Disposal/Scrap",
-            "Location Transfer",
-          ].includes(movementType)
-        ) {
-          for (const balance of balancesToProcess) {
-            const collectionName =
-              materialData.item_batch_management == "1"
-                ? "item_batch_balance"
-                : "item_balance";
-            const balanceResponse = await this.db
-              .collection(collectionName)
-              .where({
-                material_id: materialData.id,
-                location_id: balance.location_id,
-              })
-              .get();
-            const balanceData = balanceResponse.data[0];
+        console.log("📊 Balances to process:", balancesToProcess);
+        console.log("📊 Balances to process length:", balancesToProcess.length);
 
-            // if (!balanceData) {
-            //     throw new Error(`No existing balance found for item ${item.item_selection} at location ${balance.location_id}`);
-            // }
+        if (balancesToProcess.length === 0) {
+          console.log("⚠️ No balances to process - skipping aggregation");
+          return true;
+        }
 
-            const categoryField =
-              movementType === "Location Transfer"
-                ? this.categoryMap[balance.category || "Unrestricted"]
-                : this.categoryMap[
-                    balance.category || subformData.category || "Unrestricted"
-                  ];
-            const currentQty = balanceData[categoryField] || 0;
-            const requestedQty =
-              balance.quantity_converted || balance.sm_quantity;
+        // Create a map to track total requested quantities per location/material/category combination
+        const locationQuantityMap = new Map();
 
-            if (currentQty < requestedQty) {
+        // Process all balance indices to aggregate quantities
+        for (const balance of balancesToProcess) {
+          // Create a unique key for each combination
+          const materialId = balance.material_id || "";
+          const locationId = balance.location_id || "";
+          const batchId = balance.batch_id || "";
+          const category = balance.category || "Unrestricted";
+
+          // Use a more reliable key format
+          const key = `${materialId}|${locationId}|${category}|${batchId}`;
+          const requestedQty =
+            balance.quantity_converted || balance.sm_quantity || 0;
+
+          console.log(
+            `📝 Processing balance - Material: ${materialId}, Location: ${locationId}, Category: ${category}, Qty: ${requestedQty}`
+          );
+
+          if (locationQuantityMap.has(key)) {
+            const existingQty = locationQuantityMap.get(key);
+            const newTotal = existingQty + requestedQty;
+            locationQuantityMap.set(key, newTotal);
+            console.log(
+              `📈 Updated aggregated quantity for ${key}: ${existingQty} + ${requestedQty} = ${newTotal}`
+            );
+          } else {
+            locationQuantityMap.set(key, requestedQty);
+            console.log(`📌 New entry for ${key}: ${requestedQty}`);
+          }
+        }
+
+        console.log(
+          "🗺️ Final locationQuantityMap:",
+          Array.from(locationQuantityMap.entries())
+        );
+
+        // Now check each aggregated quantity against available balance
+        for (const [key, totalRequestedQty] of locationQuantityMap.entries()) {
+          console.log(
+            `🔍 Checking aggregated quantity for key: ${key}, total requested: ${totalRequestedQty}`
+          );
+
+          const [materialId, locationId, category, batchId] = key.split("|");
+
+          // Get material data
+          const materialResponse = await this.db
+            .collection("Item")
+            .where({ id: materialId })
+            .get();
+          const materialData = materialResponse.data[0];
+
+          if (!materialData) {
+            throw new Error(`Material not found: ${materialId}`);
+          }
+
+          if (!materialData.based_uom) {
+            throw new Error(`Base UOM is missing for item ${materialId}`);
+          }
+
+          // Get current balance
+          const collectionName =
+            materialData.item_batch_management == "1"
+              ? "item_batch_balance"
+              : "item_balance";
+
+          console.log(
+            `🔍 Querying ${collectionName} for material: ${materialId}, location: ${locationId}`
+          );
+
+          const balanceResponse = await this.db
+            .collection(collectionName)
+            .where({
+              material_id: materialId,
+              location_id: locationId,
+              ...(collectionName === "item_batch_balance"
+                ? { batch_id: batchId || null }
+                : {}),
+            })
+            .get();
+
+          const balanceData = balanceResponse.data[0];
+
+          if (!balanceData) {
+            throw new Error(
+              `No existing balance found for item ${materialId} at location ${locationId}`
+            );
+          }
+
+          const categoryField = this.categoryMap[category];
+          const currentQty = balanceData[categoryField] || 0;
+
+          console.log(
+            `📊 Current quantity in ${category}: ${currentQty}, Total requested: ${totalRequestedQty}`
+          );
+
+          // Check if total requested quantity exceeds available quantity
+          if (currentQty < totalRequestedQty) {
+            const errorMessage = `Insufficient quantity in ${category} for item ${materialData.material_name}. Available: ${currentQty}, Total Requested: ${totalRequestedQty}`;
+            console.error(`❌ ${errorMessage}`);
+            throw new Error(errorMessage);
+          }
+
+          console.log(
+            `✅ Sufficient quantity available for ${materialId} at ${locationId}`
+          );
+
+          // Step 6: Check costing records for deduction movements
+          if (
+            ["Miscellaneous Issue", "Disposal/Scrap"].includes(movementType)
+          ) {
+            const costingMethod = materialData.material_costing_method;
+            if (!costingMethod) {
               throw new Error(
-                `Insufficient quantity in ${
-                  balance.category || "Unrestricted"
-                } for item ${item.item_selection} at location ${
-                  balance.location_id
-                }. Available: ${currentQty}, Requested: ${requestedQty}`
+                `Costing method not defined for item ${materialId}`
               );
             }
 
-            // Step 6: Check costing records for deduction
-            if (
-              ["Miscellaneous Issue", "Disposal/Scrap"].includes(movementType)
-            ) {
-              const costingMethod = materialData.material_costing_method;
-              if (!costingMethod) {
+            if (costingMethod === "Weighted Average") {
+              // Find any balance with this material and location to get batch_id if needed
+              const sampleBalance = balancesToProcess.find(
+                (b) =>
+                  b.material_id === materialId && b.location_id === locationId
+              );
+
+              const waQuery =
+                materialData.item_batch_management == "1" &&
+                sampleBalance?.batch_id
+                  ? this.db.collection("wa_costing_method").where({
+                      material_id: materialId,
+                      batch_id: sampleBalance.batch_id,
+                      plant_id: allData.issuing_operation_faci,
+                    })
+                  : this.db.collection("wa_costing_method").where({
+                      material_id: materialId,
+                      plant_id: allData.issuing_operation_faci,
+                    });
+
+              const waResponse = await waQuery.get();
+              if (!waResponse.data || waResponse.data.length === 0) {
                 throw new Error(
-                  `Costing method not defined for item ${item.item_selection}`
+                  `No costing record found for deduction for item ${materialId} (Weighted Average)`
                 );
               }
 
-              if (costingMethod === "Weighted Average") {
-                const waQuery =
-                  materialData.item_batch_management == "1" && balance.batch_id
-                    ? this.db.collection("wa_costing_method").where({
-                        material_id: materialData.id,
-                        batch_id: balance.batch_id,
-                        plant_id: allData.issuing_operation_faci,
-                      })
-                    : this.db.collection("wa_costing_method").where({
-                        material_id: materialData.id,
-                        plant_id: allData.issuing_operation_faci,
-                      });
-
-                const waResponse = await waQuery.get();
-                if (!waResponse.data || waResponse.data.length === 0) {
-                  throw new Error(
-                    `No costing record found for deduction for item ${item.item_selection} (Weighted Average)`
-                  );
-                }
-
-                const waData = waResponse.data[0];
-                if ((waData.wa_quantity || 0) < requestedQty) {
-                  throw new Error(
-                    `Insufficient WA quantity for item ${item.item_selection}. Available: ${waData.wa_quantity}, Requested: ${requestedQty}`
-                  );
-                }
-              } else if (costingMethod === "First In First Out") {
-                const fifoQuery =
-                  materialData.item_batch_management == "1" && balance.batch_id
-                    ? this.db.collection("fifo_costing_history").where({
-                        material_id: materialData.id,
-                        batch_id: balance.batch_id,
-                        plant_id: allData.issuing_operation_faci,
-                      })
-                    : this.db.collection("fifo_costing_history").where({
-                        material_id: materialData.id,
-                        plant_id: allData.issuing_operation_faci,
-                      });
-
-                const fifoResponse = await fifoQuery.get();
-                if (!fifoResponse.data || fifoResponse.data.length === 0) {
-                  throw new Error(
-                    `No costing record found for deduction for item ${item.item_selection} (FIFO)`
-                  );
-                }
-
-                const fifoData = fifoResponse.data;
-                const totalAvailable = fifoData.reduce(
-                  (sum, record) => sum + (record.fifo_available_quantity || 0),
-                  0
+              const waData = waResponse.data[0];
+              if ((waData.wa_quantity || 0) < totalRequestedQty) {
+                throw new Error(
+                  `Insufficient WA quantity for item ${materialId}. Available: ${waData.wa_quantity}, Total Requested: ${totalRequestedQty}`
                 );
-                if (totalAvailable < requestedQty) {
-                  throw new Error(
-                    `Insufficient FIFO quantity for item ${item.item_selection}. Available: ${totalAvailable}, Requested: ${requestedQty}`
-                  );
-                }
+              }
+            } else if (costingMethod === "First In First Out") {
+              // Find any balance with this material and location to get batch_id if needed
+              const sampleBalance = balancesToProcess.find(
+                (b) =>
+                  b.material_id === materialId && b.location_id === locationId
+              );
+
+              const fifoQuery =
+                materialData.item_batch_management == "1" &&
+                sampleBalance?.batch_id
+                  ? this.db.collection("fifo_costing_history").where({
+                      material_id: materialId,
+                      batch_id: sampleBalance.batch_id,
+                      plant_id: allData.issuing_operation_faci,
+                    })
+                  : this.db.collection("fifo_costing_history").where({
+                      material_id: materialId,
+                      plant_id: allData.issuing_operation_faci,
+                    });
+
+              const fifoResponse = await fifoQuery.get();
+              if (!fifoResponse.data || fifoResponse.data.length === 0) {
+                throw new Error(
+                  `No costing record found for deduction for item ${materialId} (FIFO)`
+                );
+              }
+
+              const fifoData = fifoResponse.data;
+              const totalAvailable = fifoData.reduce(
+                (sum, record) => sum + (record.fifo_available_quantity || 0),
+                0
+              );
+              if (totalAvailable < totalRequestedQty) {
+                throw new Error(
+                  `Insufficient FIFO quantity for item ${materialId}. Available: ${totalAvailable}, Total Requested: ${totalRequestedQty}`
+                );
               }
             }
           }
@@ -1996,21 +2344,8 @@ class StockAdjuster {
       console.log("⭐ Validation successful - all checks passed");
       return true;
     } catch (error) {
-      // Step 8: Handle errors (excluding required fields, which are handled above)
-      console.error("Error in preCheckQuantitiesAndCosting:", error.message);
-      // if (error.message.includes('Please fill in all required fields')) {
-      //     // Skip popup for required fields errors, as they are already handled as alerts
-      //     throw error;
-      // }
-      if (context && context.parentGenerateForm) {
-        context.parentGenerateForm.$alert(error.message, "Validation Error", {
-          confirmButtonText: "OK",
-          type: "error",
-        });
-      } else {
-        alert(error.message);
-      }
-      console.error("❌ Validation failed with error:", error.message);
+      console.error("❌ Error in preCheckQuantitiesAndCosting:", error.message);
+      console.error("Full error object:", error);
       throw error;
     }
   }
@@ -2023,18 +2358,11 @@ async function processFormData(db, formData, context, organizationId) {
 
   if (context) {
     adjuster.getParamsVariables = context.getParamsVariables.bind(context);
+    adjuster.getVarGlobal = context.getVarGlobal.bind(context);
     //adjuster.getParamsVariables = this.getParamsVariables('page_status');
     adjuster.parentGenerateForm = context.parentGenerateForm;
-    adjuster.runWorkflow = context.runWorkflow.bind(context);
+    adjuster.runWorkflow = context.runWorkflow.bind(context); // Bind the original context
   }
-
-  const closeDialog = () => {
-    if (context.parentGenerateForm) {
-      context.parentGenerateForm.$refs.SuPageDialogRef.hide();
-      context.parentGenerateForm.refresh();
-      context.hideLoading();
-    }
-  };
 
   try {
     console.log("🔍 About to run validation checks");
@@ -2053,8 +2381,6 @@ async function processFormData(db, formData, context, organizationId) {
   } catch (error) {
     console.error("❌ Error in processFormData:", error.message);
     throw error;
-  } finally {
-    closeDialog();
   }
 }
 
@@ -2137,7 +2463,8 @@ const updateItemTransactionDate = async (entry) => {
           .update({ last_transaction_date: date });
       } catch (error) {
         throw new Error(
-          `Cannot update last transaction date for item #${index + 1}.`
+          `Cannot update last transaction date for item #${index + 1}.`,
+          error
         );
       }
     }
@@ -2155,7 +2482,7 @@ const fillbackHeaderFields = async (allData) => {
       smLineItem.line_index = index + 1;
     }
     return allData.stock_movement;
-  } catch (error) {
+  } catch {
     throw new Error("Error processing Stock Movement.");
   }
 };
@@ -2164,7 +2491,6 @@ const fillbackHeaderFields = async (allData) => {
 const self = this;
 const allData = self.getValues();
 let organizationId = this.getVarGlobal("deptParentId");
-console.log("organization id", organizationId);
 if (organizationId === "0") {
   organizationId = this.getVarSystem("deptIds").split(",")[0];
 }
@@ -2199,32 +2525,42 @@ const processStockMovements = async () => {
     if (allData.page_status === "Add") {
       console.log("New stock movement created:", results);
       self.hideLoading();
-      self.$message.success("Stock movement created successfully");
       await updateItemTransactionDate(allData);
+      self.$message.success("Stock movement created successfully");
       self.parentGenerateForm.$refs.SuPageDialogRef.hide();
       self.parentGenerateForm.refresh();
     } else if (allData.page_status === "Edit") {
       console.log("Stock movement updated:", results);
       self.hideLoading();
-      self.$message.success("Stock movement updated successfully");
       await updateItemTransactionDate(allData);
+      self.$message.success("Stock movement updated successfully");
       self.parentGenerateForm.$refs.SuPageDialogRef.hide();
       self.parentGenerateForm.refresh();
     }
   } catch (error) {
     self.hideLoading();
 
-    // Try to get message from standard locations first
     let errorMessage = "";
 
     if (error && typeof error === "object") {
-      errorMessage = findFieldMessage(error) || "An error occurred";
-    } else {
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.field) {
+        errorMessage = error.field;
+      } else {
+        const foundMessage = findFieldMessage(error);
+        errorMessage = foundMessage || "An error occurred";
+      }
+    } else if (typeof error === "string") {
       errorMessage = error;
+    } else {
+      errorMessage = "An unknown error occurred";
     }
 
+    console.error("Full error object:", error);
+    console.error("Extracted error message:", errorMessage);
+
     self.$message.error(errorMessage);
-    console.error(errorMessage);
   }
 };
 
