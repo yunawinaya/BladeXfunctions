@@ -24,18 +24,12 @@
 
     // Extract and validate required fields
     const materialId = lineItemData.item_selection;
-    const baseQty = lineItemData.received_quantity;
     const baseUOMid = lineItemData.received_quantity_uom;
     const serialNumberDataRaw = lineItemData.serial_number_data;
 
     // Validate required fields
     if (!materialId) {
       console.error("Material ID is missing");
-      return;
-    }
-
-    if (baseQty === undefined || baseQty === null || baseQty < 0) {
-      this.$message.error("Please input received quantity");
       return;
     }
 
@@ -160,10 +154,8 @@
             existingSerialData.total_quantity_uom_id || baseUOMid || "",
           [`dialog_serial_number.total_quantity_uom`]:
             existingSerialData.total_quantity_uom || baseUOM || "",
-          [`dialog_serial_number.total_quantity`]:
-            existingSerialData.total_quantity || baseQty,
           [`dialog_serial_number.total_qty_display`]:
-            existingSerialData.total_qty_display || `0 / ${baseQty}`,
+            existingSerialData.total_qty_display || 0,
           [`dialog_serial_number.new_rows`]: existingSerialData.new_rows || 0,
           [`dialog_serial_number.table_serial_number`]: serialNumberTableData,
         };
@@ -192,7 +184,6 @@
           [`dialog_serial_number.is_single`]: itemData.is_single_unit_serial,
           [`dialog_serial_number.total_quantity_uom_id`]: baseUOMid || "",
           [`dialog_serial_number.total_quantity_uom`]: baseUOM || "",
-          [`dialog_serial_number.total_quantity`]: baseQty,
           [`dialog_serial_number.new_rows`]: 0,
           [`dialog_serial_number.table_serial_number`]: [],
         };
@@ -229,7 +220,6 @@
             existingSerialData?.serial_number_qty || 0,
           [`dialog_serial_number.total_quantity_uom`]:
             existingSerialData?.total_quantity_uom || "",
-          [`dialog_serial_number.total_quantity`]: baseQty,
           [`dialog_serial_number.table_serial_number`]: serialNumberTableData,
         };
 

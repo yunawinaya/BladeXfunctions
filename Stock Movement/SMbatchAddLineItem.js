@@ -144,10 +144,15 @@ const handleSerialNumberManagement = async (
         `stock_movement.${rowIndex}.select_serial_number`,
         false
       );
+      await this.disabled(`stock_movement.${rowIndex}.received_quantity`, true);
     } else {
       await this.disabled(
         `stock_movement.${rowIndex}.select_serial_number`,
         true
+      );
+      await this.disabled(
+        `stock_movement.${rowIndex}.received_quantity`,
+        false
       );
     }
   }

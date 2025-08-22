@@ -9,8 +9,10 @@
         sm.is_serialized_item === 1
       ) {
         this.disabled(`stock_movement.${index}.select_serial_number`, false);
+        this.disabled(`stock_movement.${index}.received_quantity`, true);
       } else {
         this.disabled(`stock_movement.${index}.select_serial_number`, true);
+        this.disabled(`stock_movement.${index}.received_quantity`, false);
       }
     });
   }, 100);

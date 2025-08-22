@@ -125,7 +125,6 @@
 
       // Quantity Information
       serial_number_qty: dialogData.serial_number_qty,
-      total_quantity: dialogData.total_quantity,
       total_quantity_uom: dialogData.total_quantity_uom,
       total_quantity_uom_id: dialogData.total_quantity_uom_id,
       total_qty_display: dialogData.total_qty_display,

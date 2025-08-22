@@ -116,6 +116,7 @@ const handleSerialNumberManagement = async (
       `stock_movement.${rowIndex}.select_serial_number`,
       false
     );
+    await this.disabled(`stock_movement.${rowIndex}.received_quantity`, true);
   } else {
     await this.setData({
       [`stock_movement.${rowIndex}.is_serialized_item`]: 0,
@@ -124,6 +125,7 @@ const handleSerialNumberManagement = async (
       `stock_movement.${rowIndex}.select_serial_number`,
       true
     );
+    await this.disabled(`stock_movement.${rowIndex}.received_quantity`, false);
   }
 };
 
