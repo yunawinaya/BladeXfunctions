@@ -2146,6 +2146,20 @@ const updateItemTransactionDate = async (entry) => {
   }
 };
 
+const fillbackHeaderFields = async (allData) => {
+  try {
+    for (const [index, smLineItem] of allData.stock_movement.entries()) {
+      smLineItem.organization_id = allData.organization_id;
+      smLineItem.issuing_plant = allData.issuing_operation_faci || null;
+      smLineItem.receiving_plant = allData.receiving_operation_faci || null;
+      smLineItem.line_index = index + 1;
+    }
+    return allData.stock_movement;
+  } catch (error) {
+    throw new Error("Error processing Stock Movement.");
+  }
+};
+
 // Add this at the bottom of your Save as Completed button handler
 const self = this;
 const allData = self.getValues();
@@ -2167,6 +2181,8 @@ const processStockMovements = async () => {
 
     // Wait for all processRow calls to complete
     allData.stock_movement = processedTableSM;
+
+    allData.stock_movement = await fillbackHeaderFields(allData);
 
     console.log("this.getVarGlobal", this.getVarGlobal("deptParentId"));
     self.showLoading();
