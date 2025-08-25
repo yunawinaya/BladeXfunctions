@@ -476,47 +476,51 @@ const handleExistingInventoryMovements = async (
     }
 
     // Also handle existing inv_serial_movement records
-    const existingSerialMovements = await db
-      .collection("inv_serial_movement")
-      .where({
-        plant_id: plantId,
-        is_deleted: 0,
-      })
-      .get();
+    // Use the existing movement IDs to directly query serial movements
+    if (existingMovements.data && existingMovements.data.length > 0) {
+      const inventoryMovementIds = existingMovements.data.map(
+        (movement) => movement.id
+      );
 
-    if (
-      existingSerialMovements.data &&
-      existingSerialMovements.data.length > 0
-    ) {
-      // Filter serial movements that belong to this delivery
-      const relevantSerialMovements = [];
+      console.log(
+        `Querying serial movements for ${inventoryMovementIds.length} inventory movement IDs`
+      );
 
-      for (const serialMovement of existingSerialMovements.data) {
-        if (serialMovement.inventory_movement_id) {
-          // Check if this serial movement belongs to our delivery
-          const inventoryMovement = await db
-            .collection("inventory_movement")
-            .where({ id: serialMovement.inventory_movement_id })
-            .get();
+      // Query serial movements for each inventory movement ID
+      const serialMovementPromises = inventoryMovementIds.map(
+        async (movementId) => {
+          try {
+            const result = await db
+              .collection("inv_serial_movement")
+              .where({
+                inventory_movement_id: movementId,
+                plant_id: plantId,
+                is_deleted: 0,
+              })
+              .get();
 
-          if (inventoryMovement.data && inventoryMovement.data.length > 0) {
-            const invMovement = inventoryMovement.data[0];
-            if (
-              invMovement.trx_no === deliveryNo &&
-              invMovement.transaction_type === "GDL"
-            ) {
-              relevantSerialMovements.push(serialMovement);
-            }
+            return result.data || [];
+          } catch (error) {
+            console.error(
+              `Error fetching serial movements for movement ID ${movementId}:`,
+              error
+            );
+            return [];
           }
         }
-      }
+      );
 
-      if (relevantSerialMovements.length > 0) {
+      const serialMovementResults = await Promise.all(serialMovementPromises);
+
+      // Flatten all serial movements from all queries
+      const allSerialMovements = serialMovementResults.flat();
+
+      if (allSerialMovements.length > 0) {
         console.log(
-          `Found ${relevantSerialMovements.length} existing serial movements to mark as deleted`
+          `Found ${allSerialMovements.length} existing serial movements to mark as deleted`
         );
 
-        const serialUpdatePromises = relevantSerialMovements.map((movement) =>
+        const serialUpdatePromises = allSerialMovements.map((movement) =>
           db.collection("inv_serial_movement").doc(movement.id).update({
             is_deleted: 1,
           })
@@ -524,6 +528,8 @@ const handleExistingInventoryMovements = async (
 
         await Promise.all(serialUpdatePromises);
         console.log("Successfully marked existing serial movements as deleted");
+      } else {
+        console.log("No existing serial movements found for this delivery");
       }
     }
   } catch (error) {
