@@ -428,6 +428,7 @@ const findUniquePrefix = async (
 
 // NEW FUNCTION: Handle existing inventory movements for updates
 const handleExistingInventoryMovements = async (
+  plantId,
   deliveryNo,
   isUpdate = false
 ) => {
@@ -447,6 +448,7 @@ const handleExistingInventoryMovements = async (
     const existingMovements = await db
       .collection("inventory_movement")
       .where({
+        plant_id: plantId,
         transaction_type: "GDL",
         trx_no: deliveryNo,
         is_deleted: 0,
@@ -477,7 +479,7 @@ const handleExistingInventoryMovements = async (
     const existingSerialMovements = await db
       .collection("inv_serial_movement")
       .where({
-        transaction_type: "GDL",
+        plant_id: plantId,
         is_deleted: 0,
       })
       .get();
@@ -957,7 +959,11 @@ const processBalanceTableWithValidation = async (
 
   // STEP 1: Handle existing inventory movements and reverse balance changes for updates
   if (isUpdate && gdStatus === "Created") {
-    await handleExistingInventoryMovements(oldDeliveryNo, isUpdate);
+    await handleExistingInventoryMovements(
+      data.plant_id,
+      oldDeliveryNo,
+      isUpdate
+    );
     await reverseBalanceChanges(data, isUpdate, organizationId);
   }
 
