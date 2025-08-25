@@ -87,7 +87,10 @@ const mergeWithTempData = (freshDbData, tempDataArray, itemData) => {
           tempItem.serial_number || "no_serial"
         }`;
       }
-    } else if (itemData.item_batch_management === 1) {
+    } else if (
+      itemData.serial_number_management === 0 &&
+      itemData.item_batch_management === 1
+    ) {
       // For batch items (non-serialized), use batch as key
       key = `${tempItem.location_id || "no_location"}-${
         tempItem.batch_id || "no_batch"
@@ -113,7 +116,10 @@ const mergeWithTempData = (freshDbData, tempDataArray, itemData) => {
           dbItem.serial_number || "no_serial"
         }`;
       }
-    } else if (itemData.item_batch_management === 1) {
+    } else if (
+      itemData.serial_number_management === 0 &&
+      itemData.item_batch_management === 1
+    ) {
       key = `${dbItem.location_id || "no_location"}-${
         dbItem.batch_id || "no_batch"
       }`;
@@ -127,13 +133,25 @@ const mergeWithTempData = (freshDbData, tempDataArray, itemData) => {
       console.log(
         `Merging data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, temp data merged`
       );
+
+      // Merge all relevant fields from temp data, preserving temp modifications
       return {
-        ...dbItem,
-        // Merge any additional temp data fields as needed
+        ...dbItem, // Start with DB data as base
+        ...tempItem, // Override with temp data (this preserves all temp modifications)
+        // Ensure critical DB fields are not overwritten if they shouldn't be
+        id: dbItem.id, // Keep original DB id
+        balance_id: dbItem.id, // Keep balance_id reference to original
+        // Preserve temp-specific fields that don't exist in DB
+        fm_key: tempItem.fm_key,
+        category: tempItem.category,
+        sm_quantity: tempItem.sm_quantity,
         remarks: tempItem.remarks || dbItem.remarks,
       };
     } else {
-      return dbItem;
+      return {
+        ...dbItem,
+        balance_id: dbItem.id, // Ensure balance_id is set for non-temp items
+      };
     }
   });
 
@@ -152,7 +170,10 @@ const mergeWithTempData = (freshDbData, tempDataArray, itemData) => {
           tempItem.serial_number || "no_serial"
         }`;
       }
-    } else if (itemData.item_batch_management === 1) {
+    } else if (
+      itemData.serial_number_management === 0 &&
+      itemData.item_batch_management === 1
+    ) {
       key = `${tempItem.location_id || "no_location"}-${
         tempItem.batch_id || "no_batch"
       }`;
@@ -174,7 +195,10 @@ const mergeWithTempData = (freshDbData, tempDataArray, itemData) => {
             dbItem.serial_number || "no_serial"
           }`;
         }
-      } else if (itemData.item_batch_management === 1) {
+      } else if (
+        itemData.serial_number_management === 0 &&
+        itemData.item_batch_management === 1
+      ) {
         dbKey = `${dbItem.location_id || "no_location"}-${
           dbItem.batch_id || "no_batch"
         }`;
@@ -186,7 +210,10 @@ const mergeWithTempData = (freshDbData, tempDataArray, itemData) => {
 
     if (!existsInDb) {
       console.log(`Adding temp-only data for ${key}`);
-      mergedData.push(tempItem);
+      mergedData.push({
+        ...tempItem,
+        balance_id: tempItem.balance_id || tempItem.id, // Ensure balance_id exists
+      });
     }
   });
 
