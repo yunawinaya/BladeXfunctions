@@ -71,8 +71,25 @@ class ReceivingIOFTProcessor {
 
     // Step 2: Process the items for receiving
     const processedItems = [];
-    if (allData.stock_movement && allData.stock_movement.length > 0) {
-      for (const item of allData.stock_movement) {
+    if (
+      receivingIOFT.stock_movement &&
+      receivingIOFT.stock_movement.length > 0
+    ) {
+      const processedTableSM = [];
+      for (const [index, item] of receivingIOFT.stock_movement.entries()) {
+        await self.validate(`stock_movement.${index}.batch_id`);
+
+        const processedItem = await this.processRow(item, organizationId);
+        processedTableSM.push(processedItem);
+        console.log("processedItem", processedItem);
+      }
+
+      console.log("processedTableSM", processedTableSM);
+
+      // Wait for all processRow calls to complete
+      receivingIOFT.stock_movement = processedTableSM;
+
+      for (const item of receivingIOFT.stock_movement) {
         try {
           // Fetch material data
           const materialResponse = await this.db
@@ -130,6 +147,8 @@ class ReceivingIOFTProcessor {
             materialData,
             balances: validBalances,
           });
+
+          console.log("processedItems", processedItems);
         } catch (error) {
           errors.push(
             `Error processing item ${item.item_selection}: ${error.message}`
@@ -228,6 +247,39 @@ class ReceivingIOFTProcessor {
     });
   }
 
+  async processRow(item, organizationId) {
+    if (item.batch_id === "Auto-generated batch number") {
+      const resBatchConfig = await this.db
+        .collection("batch_level_config")
+        .where({ organization_id: organizationId })
+        .get();
+
+      if (resBatchConfig && resBatchConfig.data.length > 0) {
+        const batchConfigData = resBatchConfig.data[0];
+
+        let batchPrefix = batchConfigData.batch_prefix || "";
+        if (batchPrefix) batchPrefix += "-";
+
+        const generatedBatchNo =
+          batchPrefix +
+          String(batchConfigData.batch_running_number).padStart(10, "0");
+
+        item.batch_id = generatedBatchNo;
+        console.log("batch id", generatedBatchNo);
+        await this.db
+          .collection("batch_level_config")
+          .where({ id: batchConfigData.id })
+          .update({
+            batch_running_number: batchConfigData.batch_running_number + 1,
+          });
+
+        return item;
+      }
+    } else {
+      return item;
+    }
+  }
+
   async updateRelatedTables(
     receivingIOFTId,
     issuingIOFTId,
@@ -273,7 +325,40 @@ class ReceivingIOFTProcessor {
           remainingQuantity
         );
 
+        let batchId = "";
+
         if (quantityFromThisBalance <= 0) continue;
+
+        if (materialData.item_batch_management === 1) {
+          const batchData = {
+            batch_number: item.batch_id,
+            material_id: item.item_selection,
+            initial_quantity: this.roundQty(quantityFromThisBalance),
+            transaction_no: receivingIOFT.stock_movement_no,
+            parent_transaction_no: issuingIOFT.stock_movement_no,
+            plant_id: receivingIOFT.issuing_operation_faci,
+            organization_id: organizationId,
+          };
+
+          await this.db.collection("batch").add(batchData);
+          await new Promise((resolve) => setTimeout(resolve, 300));
+
+          const response = await this.db
+            .collection("batch")
+            .where({
+              batch_number: item.batch_id,
+              material_id: item.item_selection,
+              transaction_no: receivingIOFT.stock_movement_no,
+              parent_transaction_no: issuingIOFT.stock_movement_no,
+            })
+            .get();
+
+          const batchResult = response.data;
+
+          batchId = batchResult[0].id;
+        }
+
+        console.log("batchId", batchId);
 
         try {
           // 1. Update issuing plant balance (decrease in-transit)
@@ -292,7 +377,8 @@ class ReceivingIOFTProcessor {
             quantityFromThisBalance,
             item.category || "Unrestricted",
             item.unit_price,
-            organizationId
+            organizationId,
+            batchId
           );
           results.balanceUpdates.receiving.push(receivingBalanceUpdate);
 
@@ -311,7 +397,8 @@ class ReceivingIOFTProcessor {
             item.received_quantity_uom,
             materialData,
             organizationId,
-            item.temp_qty_data
+            item.temp_qty_data,
+            batchId
           );
           results.inventoryMovements.issuing.push(
             inventoryMovements.issuingMovement
@@ -353,8 +440,10 @@ class ReceivingIOFTProcessor {
 
     // Update receiving IOFT status to Completed
     try {
+      console.log("receiving ioft", receivingIOFT.stock_movement);
       await this.db.collection("stock_movement").doc(receivingIOFTId).update({
         stock_movement_status: "Completed",
+        stock_movement: receivingIOFT.stock_movement,
         update_time: new Date().toISOString(),
       });
 
@@ -477,7 +566,8 @@ class ReceivingIOFTProcessor {
     quantity,
     category = "Unrestricted",
     unitPrice,
-    organizationId
+    organizationId,
+    batchId
   ) {
     let materialData;
     try {
@@ -514,6 +604,7 @@ class ReceivingIOFTProcessor {
       const balanceQuery = {
         material_id: materialId,
         plant_id: plantId,
+        ...(isBatchManaged && { batch_id: batchId }),
       };
 
       if (locationId) {
@@ -567,6 +658,7 @@ class ReceivingIOFTProcessor {
       const newBalanceData = {
         material_id: materialId,
         plant_id: plantId,
+        batch_id: batchId,
         location_id: locationId,
         balance_quantity: formattedQuantity,
         unrestricted_qty: 0,
@@ -714,17 +806,12 @@ class ReceivingIOFTProcessor {
     uom,
     materialData,
     organizationId,
-    tempQtyData
+    tempQtyData,
+    batchId
   ) {
     const formattedQuantity = this.roundQty(quantity);
     const formattedUnitPrice = this.roundPrice(unitPrice || 0);
     const totalPrice = this.roundPrice(formattedUnitPrice * formattedQuantity);
-
-    // Determine batch management for receiving
-    const isBatchManaged =
-      materialData.item_batch_management == "1" ||
-      materialData.item_isbatch_managed == "1";
-    const batchId = isBatchManaged ? materialData.id : null;
 
     // Use the material's UOM if not specified
     const itemUom = uom || materialData.based_uom || materialData.uom_id;
@@ -1149,6 +1236,9 @@ const self = this;
 this.showLoading();
 
 let organizationId = this.getVarGlobal("deptParentId");
+if (organizationId === "0") {
+  organizationId = this.getVarSystem("deptIds").split(",")[0];
+}
 console.log("organization id", organizationId);
 if (organizationId === "0") {
   organizationId = this.getVarSystem("deptIds").split(",")[0];
