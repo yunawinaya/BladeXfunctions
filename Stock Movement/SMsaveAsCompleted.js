@@ -3363,6 +3363,31 @@ class StockAdjuster {
       // Step 4: Perform item validations and quantity checks
       await this.preValidateItems(subformData, movementType, allData);
 
+      // Step 4.5: NEW - Validate serial number uniqueness for all movement types with serialized items
+      console.log(
+        "🔍 Validating serial number uniqueness for serialized items..."
+      );
+
+      // Check if any item has serial number data
+      const hasSerializedItems = subformData.some(
+        (item) =>
+          item.is_serialized_item === 1 ||
+          (item.serial_number_data && item.serial_number_data.trim() !== "")
+      );
+
+      if (hasSerializedItems) {
+        try {
+          await this.validateSerialNumberUniqueness(subformData);
+          console.log("✅ Serial number uniqueness validation passed");
+        } catch (serialError) {
+          console.error(
+            "❌ Serial number uniqueness validation failed:",
+            serialError.message
+          );
+          throw serialError;
+        }
+      }
+
       // Step 5: ENHANCED LOGIC - Aggregate quantities by location and material for deduction movements
       if (
         ["Miscellaneous Issue", "Disposal/Scrap", "Location Transfer"].includes(
@@ -3478,7 +3503,7 @@ class StockAdjuster {
                 material_id: materialId,
                 serial_number: balance.serial_number,
                 plant_id: allData.issuing_operation_faci,
-                organization_id: organizationId,
+                organization_id: allData.organization_id,
               };
 
               if (balance.batch_id && balance.batch_id !== "undefined") {
@@ -3665,7 +3690,7 @@ class StockAdjuster {
         console.log(
           "🔍 Validating serial number allocation for serialized items..."
         );
-        this.validateSerialNumberAllocation(allData.stock_movement);
+        await this.validateSerialNumberAllocation(allData.stock_movement);
       }
 
       console.log("⭐ Validation successful - all checks passed");
@@ -3677,9 +3702,116 @@ class StockAdjuster {
     }
   }
 
+  async validateSerialNumberUniqueness(subformData) {
+    const serialNumbersInCurrentTransaction = new Set();
+    const duplicateSerials = [];
+    const existingSerials = [];
+
+    for (const [index, item] of subformData.entries()) {
+      if (!item.serial_number_data) continue;
+
+      let serialNumberData;
+      try {
+        serialNumberData = JSON.parse(item.serial_number_data);
+      } catch (parseError) {
+        console.error(
+          `Error parsing serial number data for item ${item.item_selection}:`,
+          parseError
+        );
+        continue;
+      }
+
+      const tableSerialNumber = serialNumberData.table_serial_number || [];
+
+      // Check each serial number in this item
+      for (const serialItem of tableSerialNumber) {
+        const serialNumber = serialItem.system_serial_number;
+
+        // Skip auto-generated placeholders as they will be generated uniquely
+        if (serialNumber === "Auto generated serial number") {
+          continue;
+        }
+
+        if (!serialNumber || serialNumber.trim() === "") {
+          continue;
+        }
+
+        const trimmedSerial = serialNumber.trim();
+
+        // Check for duplicates within the current transaction
+        if (serialNumbersInCurrentTransaction.has(trimmedSerial)) {
+          duplicateSerials.push({
+            serialNumber: trimmedSerial,
+            itemIndex: index + 1,
+            itemName:
+              item.item_name || item.item_selection || `Item ${index + 1}`,
+          });
+        } else {
+          serialNumbersInCurrentTransaction.add(trimmedSerial);
+        }
+
+        // Check if serial number already exists in the database
+        try {
+          const existingSerialQuery = await this.db
+            .collection("serial_number")
+            .where({ system_serial_number: trimmedSerial })
+            .get();
+
+          if (existingSerialQuery.data && existingSerialQuery.data.length > 0) {
+            const existingRecord = existingSerialQuery.data[0];
+            existingSerials.push({
+              serialNumber: trimmedSerial,
+              itemIndex: index + 1,
+              itemName:
+                item.item_name || item.item_selection || `Item ${index + 1}`,
+              existingMaterialId: existingRecord.material_id,
+              existingTransactionNo: existingRecord.transaction_no,
+            });
+          }
+        } catch (dbError) {
+          console.error(
+            `Error checking existing serial number ${trimmedSerial}:`,
+            dbError
+          );
+          // Continue validation even if DB check fails
+        }
+      }
+    }
+
+    // Report duplicate serial numbers within current transaction
+    if (duplicateSerials.length > 0) {
+      const duplicateList = duplicateSerials
+        .map(
+          (dup) => `• Serial Number "${dup.serialNumber}" in ${dup.itemName}`
+        )
+        .join("\n");
+
+      throw new Error(
+        `Duplicate serial numbers found within this transaction:\n\n${duplicateList}\n\nEach serial number must be unique across all items in the transaction.`
+      );
+    }
+
+    // Report serial numbers that already exist in database
+    if (existingSerials.length > 0) {
+      const existingList = existingSerials
+        .map(
+          (existing) =>
+            `• Serial Number "${existing.serialNumber}" in ${existing.itemName}\n  (Already exists for Material ID: ${existing.existingMaterialId}, Transaction: ${existing.existingTransactionNo})`
+        )
+        .join("\n");
+
+      throw new Error(
+        `Serial numbers already exist in the system:\n\n${existingList}\n\nPlease use different serial numbers as each serial number must be globally unique.`
+      );
+    }
+
+    return true;
+  }
+
   async validateSerialNumberAllocation(subformData) {
     const serializedItemsNotAllocated = [];
 
+    // First, check for serial number allocation
     for (const [index, item] of subformData.entries()) {
       if (item.is_serialized_item === 1 && item.is_serial_allocated !== 1) {
         let itemIdentifier =
@@ -3704,6 +3836,9 @@ class StockAdjuster {
         `Serial number allocation is required for the following serialized items:\n\n${itemsList}\n\nPlease allocate serial numbers for all serialized items before saving.`
       );
     }
+
+    // Then, check for serial number uniqueness
+    await this.validateSerialNumberUniqueness(subformData);
 
     return true;
   }
@@ -3868,12 +4003,27 @@ const processStockMovements = async () => {
 
     allData.stock_movement = await fillbackHeaderFields(allData);
 
+    // Universal serial number validation for all movement types with serialized items
+    const adjuster = new StockAdjuster(db);
+    const hasSerializedItems = allData.stock_movement.some(
+      (item) =>
+        item.is_serialized_item === 1 ||
+        (item.serial_number_data && item.serial_number_data.trim() !== "")
+    );
+
+    if (hasSerializedItems) {
+      console.log(
+        "Validating serial number uniqueness for serialized items..."
+      );
+      await adjuster.validateSerialNumberUniqueness(allData.stock_movement);
+    }
+
+    // Specific validation for Miscellaneous Receipt
     if (allData.movement_type === "Miscellaneous Receipt") {
       console.log(
-        "Validating serial number allocation for serialized items..."
+        "Validating serial number allocation for Miscellaneous Receipt..."
       );
-      const adjuster = new StockAdjuster(db);
-      adjuster.validateSerialNumberAllocation(allData.stock_movement);
+      await adjuster.validateSerialNumberAllocation(allData.stock_movement);
     }
 
     console.log("this.getVarGlobal", this.getVarGlobal("deptParentId"));
