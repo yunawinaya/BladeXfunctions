@@ -214,6 +214,28 @@
       }
 
       await this.setData(dialogData);
+
+      if (
+        dialogData[`dialog_serial_number.table_serial_number`] &&
+        dialogData[`dialog_serial_number.table_serial_number`].length > 0 &&
+        dialogData[`dialog_serial_number.is_auto`] === 1
+      ) {
+        await this.disabled(
+          "dialog_serial_number.table_serial_number.system_serial_number",
+          true
+        );
+      }
+
+      if (
+        dialogData[`dialog_serial_number.table_serial_number`] &&
+        dialogData[`dialog_serial_number.table_serial_number`].length > 0 &&
+        dialogData[`dialog_serial_number.is_single`] === 1
+      ) {
+        await this.disabled(
+          "dialog_serial_number.table_serial_number.serial_quantity",
+          true
+        );
+      }
       this.openDialog("dialog_serial_number");
 
       console.log("Dialog data set successfully:", dialogData);

@@ -1,9 +1,96 @@
+const validateForm = (data, requiredFields) => {
+  const missingFields = [];
+
+  requiredFields.forEach((field) => {
+    const value = data[field.name];
+
+    // Handle non-array fields (unchanged)
+    if (!field.isArray) {
+      if (validateField(value, field)) {
+        missingFields.push(field.label);
+      }
+      return;
+    }
+
+    // Handle array fields
+    if (!Array.isArray(value)) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    if (value.length === 0) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    // Check each item in the array
+    if (field.arrayType === "object" && field.arrayFields) {
+      value.forEach((item, index) => {
+        field.arrayFields.forEach((subField) => {
+          const subValue = item[subField.name];
+          if (validateField(subValue, subField)) {
+            missingFields.push(
+              `${subField.label} (in ${field.label} #${index + 1})`
+            );
+          }
+        });
+      });
+    }
+  });
+
+  return missingFields;
+};
+
+const validateField = (value, field) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return !value;
+};
+
+const fillbackHeaderFields = async (entry) => {
+  try {
+    for (const [index, smLineItem] of entry.stock_movement.entries()) {
+      smLineItem.organization_id = entry.organization_id;
+      smLineItem.issuing_plant = entry.issuing_operation_faci || null;
+      smLineItem.receiving_plant = entry.receiving_operation_faci || null;
+      smLineItem.line_index = index + 1;
+    }
+    return entry.stock_movement;
+  } catch (error) {
+    throw new Error("Error processing Stock Movement.");
+  }
+};
+
 (async () => {
   try {
     this.showLoading();
 
     // Get all data at once
     const formData = this.getValues();
+
+    const requiredFields = [
+      { name: "issuing_operation_faci", label: "Plant" },
+      { name: "issue_date", label: "Issue Date" },
+      { name: "movement_type", label: "Movement Type" },
+      { name: "receiving_operation_faci", label: "Receiving Plant" },
+      {
+        name: "stock_movement",
+        label: "Stock Movement Items",
+        isArray: true,
+        arrayType: "object",
+        arrayFields: [],
+      },
+    ];
+
+    const missingFields = await validateForm(formData, requiredFields);
+
+    if (missingFields.length > 0) {
+      this.hideLoading();
+      this.$message.error(`Missing fields: ${missingFields.join(", ")}`);
+      return;
+    }
 
     const {
       id: stockMovementId,
@@ -122,6 +209,8 @@
       material_name,
       row_index,
     };
+
+    entry.stock_movement = await fillbackHeaderFields(entry);
 
     // Helper function to close dialog
     const closeDialog = () => {

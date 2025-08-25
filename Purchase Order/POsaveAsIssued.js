@@ -353,9 +353,20 @@ const checkExistingGoodsReceiving = async () => {
     .collection("goods_receiving")
     .filter([
       {
-        prop: "purchase_order_id",
-        operator: "in",
-        value: poID,
+        type: "branch",
+        operator: "all",
+        children: [
+          {
+            prop: "po_id",
+            operator: "in",
+            value: poID,
+          },
+          {
+            prop: "gr_status",
+            operator: "equal",
+            value: "Draft",
+          },
+        ],
       },
     ])
     .get();
@@ -373,9 +384,20 @@ const checkExistingPurchaseInvoice = async () => {
     .collection("purchase_invoice")
     .filter([
       {
-        prop: "purchase_order_id",
-        operator: "in",
-        value: poID,
+        type: "branch",
+        operator: "all",
+        children: [
+          {
+            prop: "po_id",
+            operator: "in",
+            value: poID,
+          },
+          {
+            prop: "pi_status",
+            operator: "equal",
+            value: "Draft",
+          },
+        ],
       },
     ])
     .get();
@@ -400,6 +422,7 @@ const addEntry = async (organizationId, entry) => {
       entry.purchase_order_no = prefixToShow;
     }
 
+    console.log(this.getValue("po_status"));
     await db.collection("purchase_order").add(entry);
     await addOnPO(entry);
 
@@ -464,25 +487,6 @@ const updateEntry = async (organizationId, entry, purchaseOrderId) => {
   }
 };
 
-const validateQuantity = async (tablePO) => {
-  const quantityFailValFields = [];
-  const itemFailValFields = [];
-
-  tablePO.forEach((item, index) => {
-    if (item.item_id || item.item_desc) {
-      if (item.quantity <= 0) {
-        quantityFailValFields.push(`${item.item_name || item.item_desc}`);
-      }
-    } else {
-      if (item.quantity > 0) {
-        itemFailValFields.push(index + 1);
-      }
-    }
-  });
-
-  return { quantityFailValFields, itemFailValFields };
-};
-
 const findFieldMessage = (obj) => {
   // Base case: if current object has the structure we want
   if (obj && typeof obj === "object") {
@@ -505,6 +509,8 @@ const findFieldMessage = (obj) => {
         if (found) return found;
       }
     }
+
+    return obj.toString();
   }
   return null;
 };
@@ -550,10 +556,56 @@ const fillbackHeaderFields = async (entry) => {
       poLineItem.shipping_country_id = entry.shipping_address_country || null;
       poLineItem.preq_id = entry.preq_id || null;
       poLineItem.line_index = index + 1;
+      poLineItem.organization_id = entry.organization_id;
+      poLineItem.line_status = entry.po_status;
+      poLineItem.po_created_by = this.getVarGlobal("nickname");
     }
     return entry.table_po;
   } catch (error) {
     throw new Error("Error processing purchase order.");
+  }
+};
+
+const validateQuantity = async (tablePO) => {
+  const quantityFailValFields = [];
+  const itemFailValFields = [];
+
+  tablePO.forEach((item, index) => {
+    if (item.item_id || item.item_desc) {
+      if (item.quantity <= 0) {
+        quantityFailValFields.push(`${item.item_name || item.item_desc}`);
+      }
+    } else {
+      if (item.quantity > 0) {
+        itemFailValFields.push(index + 1);
+      }
+    }
+  });
+
+  return { quantityFailValFields, itemFailValFields };
+};
+
+const deleteRelatedGR = async (existingGR) => {
+  try {
+    for (const gr of existingGR) {
+      await db.collection("goods_receiving").doc(gr.id).update({
+        is_deleted: 1,
+      });
+    }
+  } catch (error) {
+    throw new Error("Error in deleting associated goods receiving.");
+  }
+};
+
+const deleteRelatedPI = async (existingPI) => {
+  try {
+    for (const pi of existingPI) {
+      await db.collection("purchase_invoice").doc(pi.id).update({
+        is_deleted: 1,
+      });
+    }
+  } catch (error) {
+    throw new Error("Error in deleting associated purchase invoice.");
   }
 };
 
@@ -579,11 +631,43 @@ const fillbackHeaderFields = async (entry) => {
     );
     await this.validate("purchase_order_no");
 
-    if (
-      missingFields.length === 0 &&
-      quantityFailValFields.length === 0 &&
-      itemFailValFields.length === 0
-    ) {
+    if (missingFields.length > 0) {
+      this.hideLoading();
+      throw new Error(`Validation errors: ${missingFields.join(", ")}`);
+    } else {
+      if (quantityFailValFields.length > 0 || itemFailValFields.length > 0) {
+        this.hideLoading();
+        await this.$confirm(
+          `${
+            quantityFailValFields.length > 0
+              ? "The following items have quantity less than or equal to zero: " +
+                quantityFailValFields.join(", ") +
+                "<br><br>"
+              : ""
+          }
+          ${
+            itemFailValFields.length > 0
+              ? "The following items have quantity but missing item code / item description: Line " +
+                itemFailValFields.join(", Line ") +
+                "<br><br>"
+              : ""
+          }
+          <strong>If you proceed, these items will be removed from your order. Do you want to continue?</strong>`,
+          "Line Item Validation Failed",
+          {
+            confirmButtonText: "Proceed",
+            cancelButtonText: "Cancel",
+            type: "error",
+            dangerouslyUseHTMLString: true,
+          }
+        ).catch(() => {
+          console.log("User clicked Cancel or closed the dialog");
+          this.hideLoading();
+          throw new Error("Saving purchase order cancelled.");
+        });
+      }
+
+      this.showLoading();
       const page_status = this.getValue("page_status");
 
       let organizationId = this.getVarGlobal("deptParentId");
@@ -735,22 +819,42 @@ const fillbackHeaderFields = async (entry) => {
 
           if (existingGR.length > 0 || existingPI.length > 0) {
             this.hideLoading();
-            this.openDialog("auto_delete_dialog");
+            await this.$confirm(
+              `${
+                existingGR.length > 0
+                  ? "The purchase order has existing goods receiving records in draft status. Proceeding will delete all associated goods receiving records.<br><br>"
+                  : ""
+              }
+                ${
+                  existingPI.length > 0
+                    ? "The purchase order has existing purchase invoice records in draft status. Proceeding will delete all associated purchase invoice records.<br><br>"
+                    : ""
+                }
+                <strong>Do you wish to continue?</strong>`,
+              `Existing ${
+                existingGR.length && existingPI.length > 0
+                  ? "GR and PI"
+                  : existingGR.length > 0
+                  ? "GR"
+                  : existingPI.length > 0
+                  ? "PI"
+                  : ""
+              } detected`,
+              {
+                confirmButtonText: "Proceed",
+                cancelButtonText: "Cancel",
+                type: "error",
+                dangerouslyUseHTMLString: true,
+              }
+            ).catch(() => {
+              console.log("User clicked Cancel or closed the dialog");
+              this.hideLoading();
+              throw new Error("Saving purchase order cancelled.");
+            });
 
-            if (existingGR.length > 0 && existingPI.length === 0) {
-              this.display("auto_delete_dialog.text_gr");
-              this.hide("auto_delete_dialog.text_pi");
-            } else if (existingGR.length === 0 && existingPI.length > 0) {
-              this.display("auto_delete_dialog.text_pi");
-              this.hide("auto_delete_dialog.text_gr");
-            } else {
-              this.display([
-                "auto_delete_dialog.text_pi",
-                "auto_delete_dialog.text_gr",
-              ]);
-            }
-
-            return;
+            this.showLoading();
+            await deleteRelatedGR(existingGR);
+            await deleteRelatedPI(existingPI);
           }
         }
         await updateEntry(organizationId, entry, purchaseOrderId);
@@ -758,40 +862,6 @@ const fillbackHeaderFields = async (entry) => {
 
       await updateItemTransactionDate(entry);
       await closeDialog();
-    } else if (missingFields.length > 0) {
-      this.hideLoading();
-      this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
-    } else if (
-      quantityFailValFields.length > 0 ||
-      itemFailValFields.length > 0
-    ) {
-      this.hideLoading();
-      await this.openDialog("confirm_dialog");
-      this.setData({
-        [`confirm_dialog.quantity_message`]: "",
-        [`confirm_dialog.item_missing_message`]: "",
-      });
-      if (quantityFailValFields.length > 0) {
-        await this.display(`confirm_dialog.quantity_message`);
-        this.setData({
-          [`confirm_dialog.quantity_message`]: `The following items have quantity less than or equal to zero: ${quantityFailValFields.join(
-            `, `
-          )}`,
-        });
-      } else {
-        await this.hide(`confirm_dialog.quantity_message`);
-      }
-
-      if (itemFailValFields.length > 0) {
-        await this.display(`confirm_dialog.item_missing_message`);
-        this.setData({
-          [`confirm_dialog.item_missing_message`]: `The following items have quantity but missing item code / item description: Line ${itemFailValFields.join(
-            `, Line `
-          )}`,
-        });
-      } else {
-        await this.hide(`confirm_dialog.item_missing_message`);
-      }
     }
   } catch (error) {
     this.hideLoading();
@@ -801,10 +871,10 @@ const fillbackHeaderFields = async (entry) => {
     if (error && typeof error === "object") {
       errorMessage = findFieldMessage(error) || "An error occurred";
     } else {
-      errorMessage = error;
+      errorMessage = error.toString();
     }
 
     this.$message.error(errorMessage);
-    console.error(errorMessage);
+    console.error(error);
   }
 })();

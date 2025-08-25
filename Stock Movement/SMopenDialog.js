@@ -88,7 +88,7 @@ const mergeWithTempData = (freshDbData, tempDataArray, itemData) => {
         }`;
       }
     } else if (
-      itemData.serial_number_management === 0 &&
+      itemData.serial_number_management !== 1 &&
       itemData.item_batch_management === 1
     ) {
       // For batch items (non-serialized), use batch as key
@@ -117,7 +117,7 @@ const mergeWithTempData = (freshDbData, tempDataArray, itemData) => {
         }`;
       }
     } else if (
-      itemData.serial_number_management === 0 &&
+      itemData.serial_number_management !== 1 &&
       itemData.item_batch_management === 1
     ) {
       key = `${dbItem.location_id || "no_location"}-${
@@ -171,7 +171,7 @@ const mergeWithTempData = (freshDbData, tempDataArray, itemData) => {
         }`;
       }
     } else if (
-      itemData.serial_number_management === 0 &&
+      itemData.serial_number_management !== 1 &&
       itemData.item_batch_management === 1
     ) {
       key = `${tempItem.location_id || "no_location"}-${
@@ -196,7 +196,7 @@ const mergeWithTempData = (freshDbData, tempDataArray, itemData) => {
           }`;
         }
       } else if (
-        itemData.serial_number_management === 0 &&
+        itemData.serial_number_management !== 1 &&
         itemData.item_batch_management === 1
       ) {
         dbKey = `${dbItem.location_id || "no_location"}-${

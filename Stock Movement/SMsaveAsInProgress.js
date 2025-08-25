@@ -79,6 +79,7 @@ class StockAdjuster {
             type: "error",
           }
         );
+        self.hideLoading();
       } else {
         alert(errorMessage);
       }
@@ -909,7 +910,7 @@ class StockAdjuster {
         issuing_operation_faci: receivingPlantId,
         movement_id: stockMovementId,
         reference_documents: allData.reference_documents,
-        stock_movement: allData.stock_movement.map((item) => {
+        stock_movement: allData.stock_movement.map((item, index) => {
           const material = materialsMap[item.item_selection];
           if (!material) {
             throw new Error(
@@ -931,6 +932,17 @@ class StockAdjuster {
             location_id: binLocationId,
             category: balanceInfo.category,
             temp_qty_data: item.temp_qty_data,
+            batch_id:
+              material.item_batch_management === 1
+                ? material.batch_number_genaration ===
+                  "According To System Settings"
+                  ? "Auto-generated batch number"
+                  : "-"
+                : "",
+            organization_id: allData.organization_id,
+            issuing_plant: allData.issuing_operation_faci || null,
+            receiving_plant: allData.receiving_operation_faci || null,
+            line_index: index + 1,
           };
         }),
         issue_date: allData.issue_date,

@@ -3497,9 +3497,12 @@ class StockAdjuster {
       // Step 5: ENHANCED LOGIC - Aggregate quantities by location and material for deduction movements
       // + INTEGRATED Serial Number Quantity Validation for Deduction Movements
       if (
-        ["Miscellaneous Issue", "Disposal/Scrap", "Location Transfer"].includes(
-          movementType
-        )
+        [
+          "Miscellaneous Issue",
+          "Disposal/Scrap",
+          "Location Transfer",
+          "Inventory Category Transfer Posting",
+        ].includes(movementType)
       ) {
         console.log("🔍 Starting quantity aggregation for deduction movements");
 
@@ -3530,13 +3533,33 @@ class StockAdjuster {
         for (const balance of balancesToProcess) {
           // Track serial number usage for validation
           if (balance.serial_number) {
+            // For category transfer, validate against the source category (category_from)
+            let categoryToValidate;
+            if (movementType === "Inventory Category Transfer Posting") {
+              categoryToValidate = balance.category_from || "Unrestricted";
+            } else {
+              categoryToValidate = balance.category || "Unrestricted";
+            }
+
             const serialKey = `${balance.material_id}|${
               balance.serial_number
-            }|${balance.location_id}|${balance.category || "Unrestricted"}|${
+            }|${balance.location_id}|${categoryToValidate}|${
               balance.batch_id || ""
             }`;
             const requestedQty =
               balance.quantity_converted || balance.sm_quantity || 0;
+
+            console.log(
+              `📝 Processing serial request - Material: ${
+                balance.material_id
+              }, Serial: ${balance.serial_number}, Location: ${
+                balance.location_id
+              }, Category: ${categoryToValidate}, Requested: ${requestedQty}${
+                movementType === "Inventory Category Transfer Posting"
+                  ? ` (Transfer: ${balance.category_from} → ${balance.category_to})`
+                  : ""
+              }`
+            );
 
             if (serialRequestMap.has(serialKey)) {
               const existingRequest = serialRequestMap.get(serialKey);
@@ -3545,20 +3568,30 @@ class StockAdjuster {
                 itemIndex: balance.item_index || "Unknown",
                 requestedQty: requestedQty,
                 balance_id: balance.balance_id || balance.id,
+                ...(movementType === "Inventory Category Transfer Posting" && {
+                  categoryFrom: balance.category_from,
+                  categoryTo: balance.category_to,
+                }),
               });
             } else {
               serialRequestMap.set(serialKey, {
                 materialId: balance.material_id,
                 serialNumber: balance.serial_number,
                 locationId: balance.location_id,
-                category: balance.category || "Unrestricted",
+                category: categoryToValidate,
                 batchId: balance.batch_id || null,
                 totalRequestedQty: requestedQty,
+                movementType: movementType,
                 occurrences: [
                   {
                     itemIndex: balance.item_index || "Unknown",
                     requestedQty: requestedQty,
                     balance_id: balance.balance_id || balance.id,
+                    ...(movementType ===
+                      "Inventory Category Transfer Posting" && {
+                      categoryFrom: balance.category_from,
+                      categoryTo: balance.category_to,
+                    }),
                   },
                 ],
               });
@@ -3575,7 +3608,14 @@ class StockAdjuster {
           const materialId = balance.material_id || "";
           const locationId = balance.location_id || "";
           const batchId = balance.batch_id || "";
-          const category = balance.category || "Unrestricted";
+
+          // For category transfer, use category_from for validation
+          let category;
+          if (movementType === "Inventory Category Transfer Posting") {
+            category = balance.category_from || "Unrestricted";
+          } else {
+            category = balance.category || "Unrestricted";
+          }
 
           // Use a more reliable key format
           const key = `${materialId}|${locationId}|${category}|${batchId}`;
@@ -3583,7 +3623,11 @@ class StockAdjuster {
             balance.quantity_converted || balance.sm_quantity || 0;
 
           console.log(
-            `📝 Processing balance - Material: ${materialId}, Location: ${locationId}, Category: ${category}, Qty: ${requestedQty}`
+            `📝 Processing balance - Material: ${materialId}, Location: ${locationId}, Category: ${category}, Qty: ${requestedQty}${
+              movementType === "Inventory Category Transfer Posting"
+                ? ` (Source category for transfer)`
+                : ""
+            }`
           );
 
           if (locationQuantityMap.has(key)) {
@@ -3695,38 +3739,88 @@ class StockAdjuster {
               const requestedQtyForThisSerial = balance.sm_quantity || 0;
 
               if (serialCategoryQty < requestedQtyForThisSerial) {
-                throw new Error(
-                  `Insufficient quantity in ${category} for serial ${
+                let errorMessage;
+                if (movementType === "Inventory Category Transfer Posting") {
+                  errorMessage = `Insufficient quantity in source category "${category}" for serial ${
                     balance.serial_number
-                  } of item ${materialData.material_name || materialId}. ` +
-                    `Available: ${serialCategoryQty}, Requested: ${requestedQtyForThisSerial}`
-                );
+                  } of item ${
+                    materialData.material_name || materialId
+                  }. Available: ${serialCategoryQty}, Requested: ${requestedQtyForThisSerial} (Transfer: ${
+                    balance.category_from
+                  } → ${balance.category_to})`;
+                } else {
+                  errorMessage = `Insufficient quantity in ${category} for serial ${
+                    balance.serial_number
+                  } of item ${
+                    materialData.material_name || materialId
+                  }. Available: ${serialCategoryQty}, Requested: ${requestedQtyForThisSerial}`;
+                }
+                throw new Error(errorMessage);
               }
 
               // INTEGRATED: Check if this serial number is being used multiple times
-              const serialKey = `${materialId}|${
-                balance.serial_number
-              }|${locationId}|${category}|${balance.batch_id || ""}`;
+              let validationCategory = category;
+              let serialKey;
+
+              if (movementType === "Inventory Category Transfer Posting") {
+                validationCategory = balance.category_from || "Unrestricted";
+                serialKey = `${materialId}|${
+                  balance.serial_number
+                }|${locationId}|${validationCategory}|${
+                  balance.batch_id || ""
+                }`;
+              } else {
+                serialKey = `${materialId}|${
+                  balance.serial_number
+                }|${locationId}|${category}|${balance.batch_id || ""}`;
+              }
+
               const serialRequest = serialRequestMap.get(serialKey);
 
               if (
                 serialRequest &&
                 serialRequest.totalRequestedQty > serialCategoryQty
               ) {
-                const itemDetails = serialRequest.occurrences
-                  .map(
-                    (occ) => `Item ${occ.itemIndex} (Qty: ${occ.requestedQty})`
-                  )
-                  .join(", ");
+                let itemDetails;
+                let errorMessage;
 
-                const errorMessage =
-                  `Insufficient quantity for serial number "${
-                    serialRequest.serialNumber
-                  }" of item "${materialData.material_name || materialId}".\n` +
-                  `Available: ${serialCategoryQty} in ${category} category\n` +
-                  `Total Requested: ${serialRequest.totalRequestedQty}\n` +
-                  `Used in: ${itemDetails}\n` +
-                  `Each serial number can only be used once per transaction or until its quantity is exhausted.`;
+                if (movementType === "Inventory Category Transfer Posting") {
+                  itemDetails = serialRequest.occurrences
+                    .map(
+                      (occ) =>
+                        `Item ${occ.itemIndex} (Qty: ${occ.requestedQty}, ${occ.categoryFrom} → ${occ.categoryTo})`
+                    )
+                    .join(", ");
+
+                  errorMessage =
+                    `Insufficient quantity for category transfer of serial number "${
+                      serialRequest.serialNumber
+                    }" of item "${
+                      materialData.material_name || materialId
+                    }".\n` +
+                    `Available in source category "${validationCategory}": ${serialCategoryQty}\n` +
+                    `Total Requested: ${serialRequest.totalRequestedQty}\n` +
+                    `Used in: ${itemDetails}\n` +
+                    `Each serial number can only be transferred once per transaction or until its quantity is exhausted.`;
+                } else {
+                  itemDetails = serialRequest.occurrences
+                    .map(
+                      (occ) =>
+                        `Item ${occ.itemIndex} (Qty: ${occ.requestedQty})`
+                    )
+                    .join(", ");
+
+                  errorMessage =
+                    `Insufficient quantity for serial number "${
+                      serialRequest.serialNumber
+                    }" of item "${
+                      materialData.material_name || materialId
+                    }".\n` +
+                    `Available: ${serialCategoryQty} in ${category} category\n` +
+                    `Total Requested: ${serialRequest.totalRequestedQty}\n` +
+                    `Used in: ${itemDetails}\n` +
+                    `Each serial number can only be used once per transaction or until its quantity is exhausted.`;
+                }
 
                 serialValidationErrors.push(errorMessage);
               }
@@ -3785,7 +3879,12 @@ class StockAdjuster {
 
             // Check if total requested quantity exceeds available quantity
             if (currentQty < totalRequestedQty) {
-              const errorMessage = `Insufficient quantity in ${category} for item ${materialData.material_name}. Available: ${currentQty}, Total Requested: ${totalRequestedQty}`;
+              let errorMessage;
+              if (movementType === "Inventory Category Transfer Posting") {
+                errorMessage = `Insufficient quantity in source category "${category}" for item ${materialData.material_name}. Available: ${currentQty}, Total Requested: ${totalRequestedQty}`;
+              } else {
+                errorMessage = `Insufficient quantity in ${category} for item ${materialData.material_name}. Available: ${currentQty}, Total Requested: ${totalRequestedQty}`;
+              }
               console.error(`❌ ${errorMessage}`);
               throw new Error(errorMessage);
             }
@@ -3796,6 +3895,7 @@ class StockAdjuster {
           }
 
           // Step 6: Check costing records for deduction movements
+          // Note: Category Transfer doesn't need costing validation as it's just moving between categories
           if (
             ["Miscellaneous Issue", "Disposal/Scrap"].includes(movementType)
           ) {

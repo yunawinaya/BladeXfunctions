@@ -91,7 +91,7 @@ const fetchUnrestrictedQty = async (
         );
       }
     } else if (
-      serial_number_management === 0 &&
+      serial_number_management !== 1 &&
       item_batch_management === 1 &&
       stock_control !== 0
     ) {
@@ -113,8 +113,8 @@ const fetchUnrestrictedQty = async (
         );
       }
     } else if (
-      serial_number_management === 0 &&
-      item_batch_management === 0 &&
+      serial_number_management !== 1 &&
+      item_batch_management !== 1 &&
       stock_control !== 0
     ) {
       const resBalance = await db

@@ -110,23 +110,14 @@ const isViewMode = async () => {
     "button_save_as_draft",
     "button_save_as_comp",
     "button_completed",
-    "purchase_order_id",
-    "fake_purchase_order_id",
-    "fake_item_id",
-    "item_id",
   ]);
-
-  this.display(["purchase_order_number"]);
-  if (grType === "Item") this.display(["item_code"]);
 };
 
 const disabledEditField = async (status) => {
   if (status !== "Draft") {
-    this.disabled(
+    await this.disabled(
       [
         "gr_status",
-        "purchase_order_id",
-        "fake_purchase_order_id",
         "organization_id",
         "purchase_order_number",
         "gr_billing_name",
@@ -165,20 +156,16 @@ const disabledEditField = async (status) => {
       true
     );
 
-    this.hide([
+    await this.hide([
       "link_billing_address",
       "link_shipping_address",
       "button_save_as_draft",
       "button_save_as_comp",
-      "purchase_order_id",
-      "fake_purchase_order_id",
       "button_completed",
     ]);
 
-    this.display(["purchase_order_number"]);
-
     if (status === "Received") {
-      this.display(["button_completed"]);
+      await this.display(["button_completed"]);
     }
   } else {
     const data = this.getValues();
@@ -189,13 +176,18 @@ const disabledEditField = async (status) => {
           gr.item_batch_no !== "Auto-generated batch number" &&
           gr.item_batch_no !== "-"
         ) {
-          this.disabled([`table_gr.${index}.item_batch_no`], false);
+          await this.disabled([`table_gr.${index}.item_batch_no`], false);
         }
       }
+      if (gr.is_serialized_item === 1) {
+        console.log("enable serialized item, index:", index);
+        await this.display(["table_gr.select_serial_number"]);
+        await this.disabled([`table_gr.${index}.select_serial_number`], false);
+      } else {
+        await this.disabled([`table_gr.${index}.select_serial_number`], true);
+      }
     });
-    this.disabled("reference_doc", false);
-    this.hide("fake_purchase_order_id");
-    this.display("purchase_order_id");
+    await this.disabled("reference_doc", false);
   }
 };
 
@@ -211,9 +203,10 @@ const setPlant = async (organizationId) => {
 
     if (!resPlant && resPlant.data.length === 0) {
       plantId = deptId;
+      this.triggerEvent("onChange_plant");
     } else {
       plantId = "";
-      this.disabled(["fake_purchase_order_id"], true);
+      this.disabled(["table_gr"], true);
     }
   } else {
     plantId = deptId;
@@ -222,42 +215,8 @@ const setPlant = async (organizationId) => {
   this.setData({
     organization_id: organizationId,
     plant_id: plantId,
-    gr_type: "Document",
     gr_received_by: this.getVarGlobal("nickname"),
   });
-};
-
-const displayGrType = async (status) => {
-  const grType = this.getValue("gr_type");
-  const supplierId = this.getValue("supplier_name");
-
-  if (grType === "Document") {
-    this.hide(["fake_item_id", "item_id"]);
-    if (!supplierId && status !== "Received") {
-      this.display("fake_purchase_order_id");
-      this.disabled("fake_purchase_order_id", false);
-      this.hide("purchase_order_id");
-    } else if (supplierId && status !== "Received") {
-      this.display("purchase_order_id");
-      this.hide("fake_purchase_order_id");
-    } else {
-      this.hide(["fake_purchase_order_id", "purchase_order_id"]);
-      this.display("purchase_order_number");
-    }
-  } else if (grType === "Item") {
-    this.hide(["fake_purchase_order_id", "purchase_order_id"]);
-    this.display(["purchase_order_number", "item_code"]);
-    if (!supplierId && status !== "Received") {
-      this.display("fake_item_id");
-      this.hide("item_id");
-    } else if (supplierId && status !== "Received") {
-      this.display("item_id");
-      this.hide("fake_item_id");
-    } else {
-      this.hide(["fake_item_id", "item_id"]);
-      this.display(["purchase_order_number", "item_code"]);
-    }
-  }
 };
 
 (async () => {
@@ -296,10 +255,9 @@ const displayGrType = async (status) => {
         await disabledEditField(status);
         await displayAddress();
         await showStatusHTML(status);
-        await displayGrType(status);
 
         if (status === "Draft") {
-          this.disabled("gr_type", !this.getValue("plant_id"));
+          this.triggerEvent("onChange_plant");
           this.hide("button_completed");
         }
         break;
