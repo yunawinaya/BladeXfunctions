@@ -31,6 +31,102 @@ class StockAdjuster {
     }
   }
 
+  // Add this missing method to the StockAdjuster class
+
+  async transferSerialBalanceCategory(
+    materialId,
+    serialNumber,
+    batchId,
+    locationId,
+    categoryFrom,
+    categoryTo,
+    qtyChange,
+    plantId,
+    organizationId
+  ) {
+    try {
+      console.log(
+        `Transferring serial balance category for ${serialNumber}: ${categoryFrom} → ${categoryTo}, Qty: ${qtyChange}`
+      );
+
+      const serialBalanceParams = {
+        material_id: materialId,
+        serial_number: serialNumber,
+        plant_id: plantId,
+        organization_id: organizationId,
+      };
+
+      if (batchId) {
+        serialBalanceParams.batch_id = batchId;
+      }
+
+      if (locationId) {
+        serialBalanceParams.location_id = locationId;
+      }
+
+      const serialBalanceQuery = await this.db
+        .collection("item_serial_balance")
+        .where(serialBalanceParams)
+        .get();
+
+      if (!serialBalanceQuery.data || serialBalanceQuery.data.length === 0) {
+        throw new Error(
+          `No serial balance found for serial number: ${serialNumber}`
+        );
+      }
+
+      const existingBalance = serialBalanceQuery.data[0];
+
+      // Get category field mappings
+      const fromCategoryField =
+        this.categoryMap[categoryFrom] || "unrestricted_qty";
+      const toCategoryField =
+        this.categoryMap[categoryTo] || "unrestricted_qty";
+
+      const currentFromQty = this.roundQty(
+        parseFloat(existingBalance[fromCategoryField] || 0)
+      );
+      const currentToQty = this.roundQty(
+        parseFloat(existingBalance[toCategoryField] || 0)
+      );
+
+      // Validate sufficient quantity in source category
+      if (currentFromQty < qtyChange) {
+        throw new Error(
+          `Insufficient ${categoryFrom} quantity for serial ${serialNumber}. Available: ${currentFromQty}, Requested: ${qtyChange}`
+        );
+      }
+
+      // Calculate new quantities
+      const newFromQty = this.roundQty(currentFromQty - qtyChange);
+      const newToQty = this.roundQty(currentToQty + qtyChange);
+
+      // Update the serial balance record
+      const updateData = {
+        [fromCategoryField]: newFromQty,
+        [toCategoryField]: newToQty,
+        update_time: new Date().toISOString(),
+      };
+
+      await this.db
+        .collection("item_serial_balance")
+        .doc(existingBalance.id)
+        .update(updateData);
+
+      console.log(
+        `Updated serial balance category transfer for ${serialNumber}: ${categoryFrom}=${newFromQty}, ${categoryTo}=${newToQty}`
+      );
+
+      return true;
+    } catch (error) {
+      console.error(
+        `Error transferring serial balance category for ${serialNumber}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
   async addSerialNumberInventoryForSMDeduction(
     data,
     item,
@@ -434,6 +530,7 @@ class StockAdjuster {
         parseFloat(balance.quantity_converted || balance.sm_quantity || 0)
       );
 
+      // Create serial movement record for the OUT movement
       await this.createSerialMovementRecord(
         inventoryMovementId,
         balance.serial_number,
@@ -444,6 +541,7 @@ class StockAdjuster {
         organizationId
       );
 
+      // Update the serial balance (transfer from one category to another)
       await this.transferSerialBalanceCategory(
         item.item_selection,
         balance.serial_number,
@@ -3034,8 +3132,11 @@ class StockAdjuster {
             })
             .get();
 
+          // Process OUT movement - this will handle the serial balance update
           if (outMovementQueryICT.data && outMovementQueryICT.data.length > 0) {
-            const outMovementIdICT = outMovementQueryICT.data[0].id;
+            const outMovementIdICT = outMovementQueryICT.data.sort(
+              (a, b) => new Date(b.created_at) - new Date(a.created_at)
+            )[0].id;
 
             await this.addSerialNumberInventoryForCategoryTransfer(
               allData,
@@ -3047,9 +3148,13 @@ class StockAdjuster {
             );
           }
 
+          // Process IN movement - create serial movement record
           if (inMovementQueryICT.data && inMovementQueryICT.data.length > 0) {
-            const inMovementIdICT = inMovementQueryICT.data[0].id;
+            const inMovementIdICT = inMovementQueryICT.data.sort(
+              (a, b) => new Date(b.created_at) - new Date(a.created_at)
+            )[0].id;
 
+            // Create serial movement record for IN movement
             await this.createSerialMovementRecord(
               inMovementIdICT,
               balance.serial_number,
@@ -3296,6 +3401,7 @@ class StockAdjuster {
     }
   }
 
+  // Updated preCheckQuantitiesAndCosting with integrated serial number quantity validation
   async preCheckQuantitiesAndCosting(allData, context) {
     try {
       console.log("Starting preCheckQuantitiesAndCosting with data:", allData);
@@ -3363,7 +3469,7 @@ class StockAdjuster {
       // Step 4: Perform item validations and quantity checks
       await this.preValidateItems(subformData, movementType, allData);
 
-      // Step 4.5: NEW - Validate serial number uniqueness for all movement types with serialized items
+      // Step 4.5: Validate serial number uniqueness for all movement types with serialized items
       console.log(
         "🔍 Validating serial number uniqueness for serialized items..."
       );
@@ -3389,6 +3495,7 @@ class StockAdjuster {
       }
 
       // Step 5: ENHANCED LOGIC - Aggregate quantities by location and material for deduction movements
+      // + INTEGRATED Serial Number Quantity Validation for Deduction Movements
       if (
         ["Miscellaneous Issue", "Disposal/Scrap", "Location Transfer"].includes(
           movementType
@@ -3414,6 +3521,49 @@ class StockAdjuster {
         if (balancesToProcess.length === 0) {
           console.log("⚠️ No balances to process - skipping aggregation");
           return true;
+        }
+
+        // INTEGRATED: Serial Number Quantity Validation for Deduction
+        // Group requested quantities by serial number for validation
+        const serialRequestMap = new Map();
+
+        for (const balance of balancesToProcess) {
+          // Track serial number usage for validation
+          if (balance.serial_number) {
+            const serialKey = `${balance.material_id}|${
+              balance.serial_number
+            }|${balance.location_id}|${balance.category || "Unrestricted"}|${
+              balance.batch_id || ""
+            }`;
+            const requestedQty =
+              balance.quantity_converted || balance.sm_quantity || 0;
+
+            if (serialRequestMap.has(serialKey)) {
+              const existingRequest = serialRequestMap.get(serialKey);
+              existingRequest.totalRequestedQty += requestedQty;
+              existingRequest.occurrences.push({
+                itemIndex: balance.item_index || "Unknown",
+                requestedQty: requestedQty,
+                balance_id: balance.balance_id || balance.id,
+              });
+            } else {
+              serialRequestMap.set(serialKey, {
+                materialId: balance.material_id,
+                serialNumber: balance.serial_number,
+                locationId: balance.location_id,
+                category: balance.category || "Unrestricted",
+                batchId: balance.batch_id || null,
+                totalRequestedQty: requestedQty,
+                occurrences: [
+                  {
+                    itemIndex: balance.item_index || "Unknown",
+                    requestedQty: requestedQty,
+                    balance_id: balance.balance_id || balance.id,
+                  },
+                ],
+              });
+            }
+          }
         }
 
         // Create a map to track total requested quantities per location/material/category combination
@@ -3488,6 +3638,13 @@ class StockAdjuster {
               `Checking serialized item balance for material: ${materialId}`
             );
 
+            // INTEGRATED: Validate serial number quantities during balance checking
+            console.log(
+              "🔍 Validating serial number quantities for deduction movements..."
+            );
+
+            const serialValidationErrors = [];
+
             // For serialized items, we need to check each serial number in the balance_index
             const serialBalancesToCheck =
               allData.balance_index?.filter(
@@ -3545,6 +3702,45 @@ class StockAdjuster {
                     `Available: ${serialCategoryQty}, Requested: ${requestedQtyForThisSerial}`
                 );
               }
+
+              // INTEGRATED: Check if this serial number is being used multiple times
+              const serialKey = `${materialId}|${
+                balance.serial_number
+              }|${locationId}|${category}|${balance.batch_id || ""}`;
+              const serialRequest = serialRequestMap.get(serialKey);
+
+              if (
+                serialRequest &&
+                serialRequest.totalRequestedQty > serialCategoryQty
+              ) {
+                const itemDetails = serialRequest.occurrences
+                  .map(
+                    (occ) => `Item ${occ.itemIndex} (Qty: ${occ.requestedQty})`
+                  )
+                  .join(", ");
+
+                const errorMessage =
+                  `Insufficient quantity for serial number "${
+                    serialRequest.serialNumber
+                  }" of item "${materialData.material_name || materialId}".\n` +
+                  `Available: ${serialCategoryQty} in ${category} category\n` +
+                  `Total Requested: ${serialRequest.totalRequestedQty}\n` +
+                  `Used in: ${itemDetails}\n` +
+                  `Each serial number can only be used once per transaction or until its quantity is exhausted.`;
+
+                serialValidationErrors.push(errorMessage);
+              }
+            }
+
+            // Throw consolidated serial validation errors if any
+            if (serialValidationErrors.length > 0) {
+              const consolidatedError =
+                "Serial number quantity validation failed:\n\n" +
+                serialValidationErrors
+                  .map((error, index) => `${index + 1}. ${error}`)
+                  .join("\n\n");
+
+              throw new Error(consolidatedError);
             }
 
             console.log(
