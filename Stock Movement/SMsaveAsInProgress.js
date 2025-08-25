@@ -402,27 +402,67 @@ class StockAdjuster {
           );
           continue;
         }
+      }
 
-        try {
-          const inventoryMovement = await this.recordInventoryMovement(
-            balance.material_id,
-            balance.sm_quantity,
-            balance.category,
-            balance.location_id,
+      try {
+        const materialResponse = await this.db
+          .collection("Item")
+          .where({ id: itemDetails.item_selection })
+          .get();
+        const materialData = materialResponse.data[0];
+
+        if (!materialData) {
+          throw new Error(
+            `Material not found for ID: ${itemDetails.item_selection}`
+          );
+        }
+
+        const isSerializedItem = materialData.serial_number_management === 1;
+
+        if (isSerializedItem && balances.length > 0) {
+          console.log(
+            `🎯 Processing serialized item ${itemDetails.item_selection} with ${balances.length} serial numbers for GROUPED inventory movements`
+          );
+
+          // Create ONE grouped inventory movement for all serials of this material
+          const groupedInventoryMovement = await this.recordInventoryMovement(
+            itemDetails.item_selection,
+            itemDetails.total_quantity,
+            balances[0].category,
+            balances[0].location_id,
             stockMovementIssuingPlantId,
             stockMovementReceivingPlantId,
             stockMovementNumber,
-            balance.batch_id,
+            balances[0].batch_id,
             organizationId,
-            balance.serial_number // Pass serial number
+            null,
+            balances
           );
-          results.inventoryMovements.push(inventoryMovement);
-        } catch (err) {
-          errors.push(
-            `Failed to record inventory movement for item ${balance.material_id}: ${err.message}`
-          );
-          continue;
+
+          results.inventoryMovements.push(groupedInventoryMovement);
+        } else {
+          // For non-serialized items, process individually (existing logic)
+          for (const balance of balances) {
+            const inventoryMovement = await this.recordInventoryMovement(
+              balance.material_id,
+              balance.sm_quantity,
+              balance.category,
+              balance.location_id,
+              stockMovementIssuingPlantId,
+              stockMovementReceivingPlantId,
+              stockMovementNumber,
+              balance.batch_id,
+              organizationId,
+              balance.serial_number
+            );
+            results.inventoryMovements.push(inventoryMovement);
+          }
         }
+      } catch (err) {
+        errors.push(
+          `Failed to record inventory movement for item ${itemDetails.item_selection}: ${err.message}`
+        );
+        continue;
       }
     }
 
@@ -464,7 +504,6 @@ class StockAdjuster {
           results.stockMovementUpdates.issuing = updatedResponse.data[0];
         }
 
-        // Verify the update went through
         console.log(
           "Updated document data:",
           results.stockMovementUpdates.issuing
@@ -788,6 +827,172 @@ class StockAdjuster {
     return this.roundPrice(result[0].purchase_unit_price || 0);
   }
 
+  async createGroupedInventoryMovement(
+    materialData,
+    totalQuantity,
+    category,
+    locationId,
+    stockMovementIssuingPlantId,
+    stockMovementReceivingPlantId,
+    stockMovementNumber,
+    batchId,
+    organizationId,
+    serialBalances // Array of all serial balances in this group
+  ) {
+    // Get unit price based on costing method
+    let unitPrice;
+
+    if (materialData.material_costing_method === "First In First Out") {
+      const fifoCostPrice = await this.getLatestFIFOCostPrice(
+        materialData,
+        batchId
+      );
+      unitPrice = fifoCostPrice;
+    } else if (materialData.material_costing_method === "Weighted Average") {
+      const waCostPrice = await this.getWeightedAverageCostPrice(
+        materialData,
+        batchId
+      );
+      unitPrice = waCostPrice;
+    } else if (materialData.material_costing_method === "Fixed Cost") {
+      const fixedCostPrice = await this.getFixedCostPrice(materialData.id);
+      unitPrice = fixedCostPrice;
+    } else {
+      throw new Error(
+        `Unsupported costing method: ${materialData.material_costing_method}`
+      );
+    }
+
+    const formattedTotalQuantity = this.roundQty(totalQuantity);
+    const formattedUnitPrice = this.roundPrice(unitPrice || 0);
+
+    const isBatchManaged =
+      materialData.item_batch_management == "1" ||
+      materialData.item_isbatch_managed == "1";
+
+    // Create OUT movement for the group
+    const outMovement = {
+      transaction_type: "SM",
+      trx_no: stockMovementNumber,
+      movement: "OUT",
+      inventory_category: category,
+      parent_trx_no: null,
+      unit_price: formattedUnitPrice,
+      total_price: this.roundPrice(formattedUnitPrice * formattedTotalQuantity),
+      quantity: formattedTotalQuantity,
+      item_id: materialData.id,
+      uom_id: materialData.based_uom,
+      base_qty: formattedTotalQuantity,
+      base_uom_id: materialData.based_uom,
+      bin_location_id: locationId,
+      batch_number_id: isBatchManaged ? batchId : null,
+      costing_method_id: materialData.material_costing_method,
+      organization_id: organizationId,
+      plant_id: stockMovementIssuingPlantId,
+      created_at: new Date(),
+    };
+
+    // Create IN movement for the group
+    const inMovement = {
+      transaction_type: "SM",
+      trx_no: stockMovementNumber,
+      parent_trx_no: null,
+      movement: "IN",
+      unit_price: formattedUnitPrice,
+      total_price: this.roundPrice(formattedUnitPrice * formattedTotalQuantity),
+      quantity: formattedTotalQuantity,
+      item_id: materialData.id,
+      inventory_category: "In Transit",
+      uom_id: materialData.based_uom,
+      base_qty: formattedTotalQuantity,
+      base_uom_id: materialData.based_uom,
+      bin_location_id: locationId,
+      batch_number_id: isBatchManaged ? batchId : null,
+      costing_method_id: materialData.material_costing_method,
+      created_at: new Date(),
+      plant_id: stockMovementIssuingPlantId,
+      organization_id: organizationId,
+    };
+
+    try {
+      // Create the grouped inventory movements
+      const [outResult, inResult] = await Promise.all([
+        this.db.collection("inventory_movement").add(outMovement),
+        this.db.collection("inventory_movement").add(inMovement),
+      ]);
+
+      console.log(
+        `✅ Created grouped inventory movements for ${serialBalances.length} serial numbers`
+      );
+
+      // Wait for inventory movement records to be created
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Get the actual inventory movement IDs
+      const outMovementId = outResult.data?.[0]?.id || outResult.id;
+      const inMovementId = inResult.data?.[0]?.id || inResult.id;
+
+      // Create serial movement records for each serial number in the group
+      const serialPromises = [];
+
+      for (const serialBalance of serialBalances) {
+        if (serialBalance.serial_number) {
+          const serialQuantity = this.roundQty(serialBalance.sm_quantity || 0);
+
+          // Create serial movement for OUT
+          if (outMovementId) {
+            serialPromises.push(
+              this.createSerialMovementRecord(
+                outMovementId,
+                serialBalance.serial_number,
+                serialBalance.batch_id || batchId,
+                serialQuantity,
+                materialData.based_uom,
+                stockMovementIssuingPlantId,
+                organizationId
+              )
+            );
+          }
+
+          // Create serial movement for IN
+          if (inMovementId) {
+            serialPromises.push(
+              this.createSerialMovementRecord(
+                inMovementId,
+                serialBalance.serial_number,
+                serialBalance.batch_id || batchId,
+                serialQuantity,
+                materialData.based_uom,
+                stockMovementIssuingPlantId,
+                organizationId
+              )
+            );
+          }
+        }
+      }
+
+      // Wait for all serial movement records to be created
+      await Promise.all(serialPromises);
+
+      console.log(
+        `✅ Created ${serialPromises.length} serial movement records for group`
+      );
+
+      return {
+        out: outResult.data?.[0] || outResult,
+        in: inResult.data?.[0] || inResult,
+        serialMovements: serialPromises.length,
+        groupedSerials: serialBalances
+          .map((b) => b.serial_number)
+          .filter(Boolean),
+      };
+    } catch (err) {
+      throw new Error(
+        `Failed to create grouped inventory movement: ${err.message}`
+      );
+    }
+  }
+
   async recordInventoryMovement(
     materialId,
     smQuantity,
@@ -798,7 +1003,8 @@ class StockAdjuster {
     stockMovementNumber,
     batchId,
     organizationId,
-    serialNumber = null // Add serial number parameter
+    serialNumber = null,
+    allBalances = [] // NEW: Array of all balances for this material (for grouping)
   ) {
     let materialData;
     try {
@@ -821,24 +1027,108 @@ class StockAdjuster {
 
     const isSerializedItem = materialData.serial_number_management === 1;
 
+    // NEW: GROUP SERIALIZED ITEMS BEFORE CREATING INVENTORY MOVEMENTS
+    if (isSerializedItem && allBalances && allBalances.length > 0) {
+      console.log(
+        `🔍 Grouping ${allBalances.length} serialized balances for inventory movements`
+      );
+
+      // Group balances by location, batch, and category (same logic as SM code)
+      const groupedBalances = new Map();
+
+      for (const balance of allBalances) {
+        const groupKey = `${balance.location_id || "null"}_${
+          balance.batch_id || "null"
+        }_${balance.category || "Unrestricted"}`;
+
+        if (groupedBalances.has(groupKey)) {
+          const existingGroup = groupedBalances.get(groupKey);
+          existingGroup.balances.push(balance);
+          existingGroup.totalQty += balance.sm_quantity || 0;
+        } else {
+          groupedBalances.set(groupKey, {
+            balances: [balance],
+            totalQty: balance.sm_quantity || 0,
+            combinedBalance: {
+              ...balance,
+              sm_quantity: balance.sm_quantity || 0,
+              serial_balances: [balance],
+            },
+          });
+        }
+      }
+
+      // Update the combined balance quantities and serial_balances array
+      for (const group of groupedBalances.values()) {
+        group.combinedBalance.sm_quantity = group.totalQty;
+        group.combinedBalance.serial_balances = group.balances;
+      }
+
+      console.log(
+        `📦 Grouped ${allBalances.length} serial balances into ${groupedBalances.size} inventory movements for material ${materialId}`
+      );
+
+      // Create inventory movements for each group
+      const allResults = [];
+
+      for (const [groupKey, group] of groupedBalances.entries()) {
+        const [groupLocationId, groupBatchId, groupCategory] =
+          groupKey.split("_");
+        const actualLocationId =
+          groupLocationId === "null" ? null : groupLocationId;
+        const actualBatchId = groupBatchId === "null" ? null : groupBatchId;
+        const actualCategory = groupCategory || "Unrestricted";
+
+        console.log(
+          `🎯 Creating inventory movement for group: Location(${actualLocationId}), Batch(${actualBatchId}), Category(${actualCategory}), Qty(${group.totalQty})`
+        );
+
+        // Create grouped inventory movement
+        const groupResult = await this.createGroupedInventoryMovement(
+          materialData,
+          group.totalQty,
+          actualCategory,
+          actualLocationId,
+          stockMovementIssuingPlantId,
+          stockMovementReceivingPlantId,
+          stockMovementNumber,
+          actualBatchId,
+          organizationId,
+          group.balances // Pass all balances in this group for serial processing
+        );
+
+        allResults.push({
+          groupKey: groupKey,
+          totalQty: group.totalQty,
+          serialCount: group.balances.length,
+          result: groupResult,
+        });
+      }
+
+      return {
+        type: "grouped_serialized",
+        groups: allResults,
+        totalGroups: groupedBalances.size,
+        totalSerials: allBalances.length,
+      };
+    }
+
+    // EXISTING: Non-serialized or single balance processing
     let unitPrice;
 
     if (materialData.material_costing_method === "First In First Out") {
-      // Get unit price from latest FIFO sequence
       const fifoCostPrice = await this.getLatestFIFOCostPrice(
         materialData,
         batchId
       );
       unitPrice = fifoCostPrice;
     } else if (materialData.material_costing_method === "Weighted Average") {
-      // Get unit price from WA cost price
       const waCostPrice = await this.getWeightedAverageCostPrice(
         materialData,
         batchId
       );
       unitPrice = waCostPrice;
     } else if (materialData.material_costing_method === "Fixed Cost") {
-      // Get unit price from Fixed Cost
       const fixedCostPrice = await this.getFixedCostPrice(materialData.id);
       unitPrice = fixedCostPrice;
     } else {
@@ -896,16 +1186,14 @@ class StockAdjuster {
         this.db.collection("inventory_movement").add(inMovement),
       ]);
 
-      // Handle serialized items
+      // Handle single serialized item
       if (isSerializedItem && serialNumber) {
         console.log(
-          `Processing serialized item movement for serial: ${serialNumber}`
+          `Processing single serialized item movement for serial: ${serialNumber}`
         );
 
-        // Wait a bit for the inventory movement records to be fully created
         await new Promise((resolve) => setTimeout(resolve, 300));
 
-        // Get the actual inventory movement IDs
         const outMovementId = outResult.data?.[0]?.id || outResult.id;
         const inMovementId = inResult.data?.[0]?.id || inResult.id;
 
@@ -1132,30 +1420,27 @@ class StockAdjuster {
 
       await findUniquePrefix(runningNumber, organizationId);
 
-      const baseUOM = await db
-        .collection("unit_of_measurement")
-        .where({ id: material.based_uom })
-        .get()
-        .then((res) => {
-          return res.data[0].uom_name;
-        });
-
-      const receivingIOFT = {
-        stock_movement_status: "Created",
-        stock_movement_no: newPrefix,
-        movement_type: movementTypeReceiving,
-        movement_type_id: movementTypeId,
-        issuing_operation_faci: receivingPlantId,
-        movement_id: stockMovementId,
-        reference_documents: allData.reference_documents,
-        balance_index: allData.balance_index, // Include balance_index for serialized items
-        stock_movement: allData.stock_movement.map((item, index) => {
+      // Process stock_movement items with Promise.all instead of map with async
+      const processedStockMovementItems = await Promise.all(
+        allData.stock_movement.map(async (item, index) => {
           const material = materialsMap[item.item_selection];
           if (!material) {
             throw new Error(
               `Material with ID ${item.item_selection} not found`
             );
           }
+
+          const baseUOM = await db
+            .collection("unit_of_measurement")
+            .where({ id: material.based_uom })
+            .get()
+            .then((res) => {
+              return res.data[0].uom_name;
+            })
+            .catch((err) => {
+              console.error("Error getting base UOM:", err);
+              return "";
+            });
 
           // Use item-specific balance info
           const balanceInfo = balanceInfoMap[item.item_selection];
@@ -1182,11 +1467,13 @@ class StockAdjuster {
             is_serialized_item: material.serial_number_management === 1 ? 1 : 0,
             is_serial_allocated:
               material.serial_number_management === 1 &&
+              balanceInfo.serial_numbers &&
               balanceInfo.serial_numbers.length > 0
                 ? 1
                 : 0,
             serial_number_data:
               material.serial_number_management === 1 &&
+              balanceInfo.serial_numbers &&
               balanceInfo.serial_numbers.length > 0
                 ? JSON.stringify({
                     row_index: index,
@@ -1218,7 +1505,20 @@ class StockAdjuster {
             receiving_plant: allData.receiving_operation_faci || null,
             line_index: index + 1,
           };
-        }),
+        })
+      );
+
+      // Now create the receiving IOFT with the processed items
+      const receivingIOFT = {
+        stock_movement_status: "Created",
+        stock_movement_no: newPrefix,
+        movement_type: movementTypeReceiving,
+        movement_type_id: movementTypeId,
+        issuing_operation_faci: receivingPlantId,
+        movement_id: stockMovementId,
+        reference_documents: allData.reference_documents,
+        balance_index: allData.balance_index, // Include balance_index for serialized items
+        stock_movement: processedStockMovementItems, // Use the processed items
         issue_date: allData.issue_date,
         issued_by: allData.issued_by,
         remarks: allData.remarks,
