@@ -30,13 +30,27 @@
       });
     console.log("gdUOM:", gdUOM); // Log resolved UOM
 
+    // Get item data to check for serial/batch management
+    const materialId = allData.sa_item_balance.material_id;
+    let itemData = null;
+    try {
+      const itemResponse = await db
+        .collection("Item")
+        .where({ material_code: materialId })
+        .get();
+      itemData = itemResponse.data[0];
+      console.log("itemData for serial/batch management:", itemData); // Log item data
+    } catch (error) {
+      console.error("Error fetching item data:", error);
+    }
+
     let isValid = true; // Flag to track validation status
     console.log("Initial isValid:", isValid); // Log initial isValid
 
     // Filter out items with quantity 0 and sum up sa_quantity values
     const totalSaQuantity = temporaryData
       .filter((item) => {
-        const isValidItem = (item.sa_quantity || 0) > 0;
+        const isValidItem = item.sa_quantity && item.sa_quantity > 0;
         console.log("Filtering item:", item, "isValidItem:", isValidItem); // Log each filtered item
         return isValidItem;
       })
@@ -106,12 +120,12 @@
     console.log("Total SA quantity:", totalSaQuantity); // Already present
     console.log("isValid after reduce:", isValid); // Log isValid after reduce
 
-    const formatFilteredData = async (temporaryData) => {
+    const formatFilteredData = async (temporaryData, itemData) => {
       try {
         console.log("Starting formatFilteredData"); // Log function start
         // Filter data to only include items with quantity > 0
         const filteredData = temporaryData.filter(
-          (item) => (item.sa_quantity || 0) > 0
+          (item) => item.sa_quantity && item.sa_quantity > 0
         );
         console.log("filteredData:", filteredData); // Log filtered data
 
@@ -236,13 +250,36 @@
               index + 1
             }. ${locationName}: ${qty} ${gdUOM} (${categoryAbbr})`;
 
+            // Add serial number info if item is serialized (following SMconfirmDialog pattern)
+            if (
+              itemData?.serial_number_management === 1 &&
+              item.serial_number
+            ) {
+              itemDetail += `\nSerial: ${item.serial_number}`;
+              console.log("Serial info:", {
+                serial_number: item.serial_number,
+              }); // Log serial info
+            }
+
+            // Add batch info if batch exists (following SMconfirmDialog pattern)
             if (item.batch_id) {
               const batchName = batchMap[item.batch_id] || item.batch_id;
               console.log("Batch info:", {
                 batch_id: item.batch_id,
                 batchName,
               }); // Log batch info
-              itemDetail += `\n[${batchName}]`;
+
+              // Conditional format based on serialization (like SMconfirmDialog)
+              itemDetail += `\n${
+                itemData?.serial_number_management === 1 ? "Batch: " : "["
+              }${batchName}${
+                itemData?.serial_number_management === 1 ? "" : "]"
+              }`;
+            }
+
+            // Add remarks if they exist (following SMconfirmDialog pattern)
+            if (item.remarks && item.remarks.trim() !== "") {
+              itemDetail += `\nRemarks: ${item.remarks}`;
             }
 
             return itemDetail;
@@ -257,24 +294,30 @@
       }
     };
 
-    const formattedString = await formatFilteredData(temporaryData);
+    const formattedString = await formatFilteredData(temporaryData, itemData);
     console.log("📋 Formatted string:", formattedString); // Already present
+
+    // Filter temporaryData to only include items with sa_quantity > 0 for saving
+    const filteredDataForSave = temporaryData.filter(
+      (item) => item.sa_quantity && item.sa_quantity > 0
+    );
+    console.log("Filtered data for saving:", filteredDataForSave); // Log filtered data for save
 
     // Only update data and close dialog if all validations pass
     if (isValid) {
       console.log("isValid before setData:", isValid); // Log isValid before setData
       console.log("Data to set:", {
         total_quantity: totalSaQuantity,
-        balance_index: JSON.stringify(temporaryData),
+        balance_index: JSON.stringify(filteredDataForSave),
         adj_summary: formattedString,
-        table_index: temporaryData,
+        table_index: filteredDataForSave,
       }); // Log data to be set
       this.setData({
         [`stock_adjustment.${rowIndex}.total_quantity`]: totalSaQuantity,
         [`stock_adjustment.${rowIndex}.balance_index`]:
-          JSON.stringify(temporaryData),
+          JSON.stringify(filteredDataForSave),
         [`stock_adjustment.${rowIndex}.adj_summary`]: formattedString,
-        [`dialog_index.table_index`]: temporaryData,
+        [`dialog_index.table_index`]: filteredDataForSave,
       });
 
       this.display(`stock_adjustment.${rowIndex}.unit_price`);

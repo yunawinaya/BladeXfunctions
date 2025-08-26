@@ -52,6 +52,167 @@ const filterZeroQuantityRecords = (data, itemData) => {
   });
 };
 
+const mergeWithSavedData = (freshDbData, savedDataArray, itemData) => {
+  if (!savedDataArray || savedDataArray.length === 0) {
+    console.log("No saved data to merge, using fresh DB data");
+    return freshDbData;
+  }
+
+  console.log("Merging fresh DB data with existing saved data");
+
+  const savedDataMap = new Map();
+  savedDataArray.forEach((savedItem) => {
+    let key;
+    if (itemData && itemData.serial_number_management === 1) {
+      // For serialized items, always use serial number as primary key
+      // Include batch_id if item also has batch management
+      if (itemData.item_batch_management === 1) {
+        key = `${savedItem.location_id || "no_location"}-${
+          savedItem.serial_number || "no_serial"
+        }-${savedItem.batch_id || "no_batch"}`;
+      } else {
+        key = `${savedItem.location_id || "no_location"}-${
+          savedItem.serial_number || "no_serial"
+        }`;
+      }
+    } else if (
+      itemData &&
+      itemData.serial_number_management !== 1 &&
+      itemData.item_batch_management === 1
+    ) {
+      // For batch items (non-serialized), use batch as key
+      key = `${savedItem.location_id || "no_location"}-${
+        savedItem.batch_id || "no_batch"
+      }`;
+    } else {
+      // For regular items, use only location or balance_id
+      key = `${savedItem.location_id || savedItem.balance_id || "no_key"}`;
+    }
+    savedDataMap.set(key, savedItem);
+  });
+
+  const mergedData = freshDbData.map((dbItem) => {
+    let key;
+    if (itemData && itemData.serial_number_management === 1) {
+      // For serialized items, always use serial number as primary key
+      // Include batch_id if item also has batch management
+      if (itemData.item_batch_management === 1) {
+        key = `${dbItem.location_id || "no_location"}-${
+          dbItem.serial_number || "no_serial"
+        }-${dbItem.batch_id || "no_batch"}`;
+      } else {
+        key = `${dbItem.location_id || "no_location"}-${
+          dbItem.serial_number || "no_serial"
+        }`;
+      }
+    } else if (
+      itemData &&
+      itemData.serial_number_management !== 1 &&
+      itemData.item_batch_management === 1
+    ) {
+      key = `${dbItem.location_id || "no_location"}-${
+        dbItem.batch_id || "no_batch"
+      }`;
+    } else {
+      key = `${dbItem.location_id || dbItem.balance_id || "no_key"}`;
+    }
+
+    const savedItem = savedDataMap.get(key);
+
+    if (savedItem) {
+      console.log(
+        `Merging saved data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, saved data merged`
+      );
+
+      // Merge all relevant fields from saved data, preserving saved modifications
+      return {
+        ...dbItem, // Start with DB data as base
+        ...savedItem, // Override with saved data (this preserves all saved modifications)
+        // Ensure critical DB fields are not overwritten if they shouldn't be
+        id: dbItem.id, // Keep original DB id
+        balance_id: dbItem.id, // Keep balance_id reference to original
+        // Preserve saved-specific fields that don't exist in DB
+        fm_key: savedItem.fm_key,
+        category: savedItem.category,
+        sa_quantity: savedItem.sa_quantity,
+        movement_type: savedItem.movement_type,
+        remarks: savedItem.remarks || dbItem.remarks,
+      };
+    } else {
+      return {
+        ...dbItem,
+        balance_id: dbItem.id, // Ensure balance_id is set for non-saved items
+      };
+    }
+  });
+
+  // Add saved-only records that don't exist in DB (shouldn't normally happen for SA)
+  savedDataArray.forEach((savedItem) => {
+    let key;
+    if (itemData && itemData.serial_number_management === 1) {
+      // For serialized items, always use serial number as primary key
+      // Include batch_id if item also has batch management
+      if (itemData.item_batch_management === 1) {
+        key = `${savedItem.location_id || "no_location"}-${
+          savedItem.serial_number || "no_serial"
+        }-${savedItem.batch_id || "no_batch"}`;
+      } else {
+        key = `${savedItem.location_id || "no_location"}-${
+          savedItem.serial_number || "no_serial"
+        }`;
+      }
+    } else if (
+      itemData &&
+      itemData.serial_number_management !== 1 &&
+      itemData.item_batch_management === 1
+    ) {
+      key = `${savedItem.location_id || "no_location"}-${
+        savedItem.batch_id || "no_batch"
+      }`;
+    } else {
+      key = `${savedItem.location_id || savedItem.balance_id || "no_key"}`;
+    }
+
+    const existsInDb = freshDbData.some((dbItem) => {
+      let dbKey;
+      if (itemData && itemData.serial_number_management === 1) {
+        // For serialized items, always use serial number as primary key
+        // Include batch_id if item also has batch management
+        if (itemData.item_batch_management === 1) {
+          dbKey = `${dbItem.location_id || "no_location"}-${
+            dbItem.serial_number || "no_serial"
+          }-${dbItem.batch_id || "no_batch"}`;
+        } else {
+          dbKey = `${dbItem.location_id || "no_location"}-${
+            dbItem.serial_number || "no_serial"
+          }`;
+        }
+      } else if (
+        itemData &&
+        itemData.serial_number_management !== 1 &&
+        itemData.item_batch_management === 1
+      ) {
+        dbKey = `${dbItem.location_id || "no_location"}-${
+          dbItem.batch_id || "no_batch"
+        }`;
+      } else {
+        dbKey = `${dbItem.location_id || dbItem.balance_id || "no_key"}`;
+      }
+      return dbKey === key;
+    });
+
+    if (!existsInDb) {
+      console.log(`Adding saved-only data for ${key}`);
+      mergedData.push({
+        ...savedItem,
+        balance_id: savedItem.balance_id || savedItem.id, // Ensure balance_id exists
+      });
+    }
+  });
+
+  return mergedData;
+};
+
 // Proceed with original queries if no tempQtyData
 if (materialId) {
   db.collection("Item")
@@ -127,7 +288,11 @@ if (materialId) {
             let finalData = mappedData;
 
             if (previousBalanceData && previousBalanceData.length > 0) {
-              finalData = previousBalanceData;
+              finalData = mergeWithSavedData(
+                mappedData,
+                previousBalanceData,
+                itemData
+              );
             }
 
             const filteredData = filterZeroQuantityRecords(finalData, itemData);
@@ -187,7 +352,11 @@ if (materialId) {
             let finalData = mappedData;
 
             if (previousBalanceData && previousBalanceData.length > 0) {
-              finalData = previousBalanceData;
+              finalData = mergeWithSavedData(
+                mappedData,
+                previousBalanceData,
+                itemData
+              );
             }
 
             const filteredData = filterZeroQuantityRecords(finalData, itemData);
@@ -247,7 +416,11 @@ if (materialId) {
             let finalData = mappedData;
 
             if (previousBalanceData && previousBalanceData.length > 0) {
-              finalData = previousBalanceData;
+              finalData = mergeWithSavedData(
+                mappedData,
+                previousBalanceData,
+                itemData
+              );
             }
 
             const filteredData = filterZeroQuantityRecords(finalData, itemData);
