@@ -387,13 +387,13 @@ const updateInventory = async (data, plantId, organizationId) => {
             await db.collection("inventory_movement").add({
               transaction_type: "PRT",
               trx_no: data.purchase_return_no,
-              parent_trx_no: item.gr_number,
+              parent_trx_no: item.gr_number || data.po_no_display,
               movement: "OUT",
               unit_price: unitPrice,
               total_price: totalPrice,
               quantity: altQty,
               item_id: item.material_id,
-              inventory_category: item.inv_category,
+              inventory_category: temp.inventory_category,
               uom_id: altUOM,
               base_qty: baseQty,
               base_uom_id: baseUOM,
@@ -603,7 +603,7 @@ const validateForm = (data, requiredFields) => {
     }
 
     // Check each item in the array
-    if (field.arrayType === "object" && field.arrayFields) {
+    if (field.arrayType === "object" && field.arrayFields && value.length > 0) {
       value.forEach((item, index) => {
         field.arrayFields.forEach((subField) => {
           const subValue = item[subField.name];
@@ -623,6 +623,7 @@ const validateForm = (data, requiredFields) => {
 const validateField = (value, field) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "number") return value <= 0;
   if (Array.isArray(value)) return value.length === 0;
   if (typeof value === "object") return Object.keys(value).length === 0;
   return !value;
@@ -676,15 +677,18 @@ const generatePrefix = (runNumber, now, prefixData) => {
   return generated;
 };
 
-const checkUniqueness = async (generatedPrefix) => {
+const checkUniqueness = async (generatedPrefix, organizationId) => {
   const existingDoc = await db
     .collection("purchase_return_head")
-    .where({ purchase_return_no: generatedPrefix })
+    .where({
+      purchase_return_no: generatedPrefix,
+      organization_id: organizationId,
+    })
     .get();
   return existingDoc.data[0] ? false : true;
 };
 
-const findUniquePrefix = async (prefixData) => {
+const findUniquePrefix = async (prefixData, organizationId) => {
   const now = new Date();
   let prefixToShow;
   let runningNumber = prefixData.running_number;
@@ -695,47 +699,169 @@ const findUniquePrefix = async (prefixData) => {
   while (!isUnique && attempts < maxAttempts) {
     attempts++;
     prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow);
+    isUnique = await checkUniqueness(prefixToShow, organizationId);
     if (!isUnique) {
       runningNumber++;
     }
   }
 
   if (!isUnique) {
-    this.$message.error(
-      "Could not generate a unique Purchase Returns number after maximum attempts"
+    throw new Error(
+      "Could not generate a unique Purchase Return number after maximum attempts"
     );
   }
-
   return { prefixToShow, runningNumber };
+};
+
+const updateGRandPOStatus = async (entry) => {
+  const grIDs = Array.isArray(entry.gr_id) ? entry.gr_id : [entry.gr_id];
+
+  try {
+    const updateGRPromises = grIDs.map(async (grID) => {
+      const filteredPRT = entry.table_prt.filter((item) => item.gr_id === grID);
+      console.log(`Filtered PRT for GR ${grID}: `, filteredPRT);
+
+      const resGR = await db
+        .collection("goods_receiving")
+        .where({ id: grID })
+        .get();
+
+      if (!resGR.data || resGR.data.length === 0) {
+        throw new Error(`Goods Receiving with ID ${grID} not found.`);
+      }
+
+      const grData = resGR.data[0];
+      const grItems = grData.table_gr || [];
+
+      console.log(`GR Items for GR ${grID}:`, grItems);
+      const filteredGR = grItems
+        .map((item, index) => ({ ...item, original_index: index }))
+        .filter((item) =>
+          filteredPRT.some((prt) => prt.gr_line_id === item.id)
+        );
+
+      console.log(`Filtered GR items for GR ${grID}:`, filteredGR);
+      let totalItems = grItems.length;
+      let partiallyReturnedItem = 0;
+      let fullyReturnedItem = 0;
+
+      const updatedGRItems = grItems.map((item) => ({ ...item }));
+
+      for (const [index, item] of filteredGR.entries()) {
+        console.log(`Processing item ${index + 1}/${filteredGR.length}:`, item);
+        const originalIndex = item.original_index;
+        const receivedQty = item.received_qty || 0;
+        const returnQty = parseFloat(filteredPRT[index]?.return_quantity || 0);
+
+        const currentReturnedQty = parseFloat(
+          updatedGRItems[originalIndex].return_quantity || 0
+        );
+        const totalReturnedQty = roundQty(currentReturnedQty + returnQty);
+
+        console.log(
+          `Processing GR item ${item.id} - Received: ${receivedQty}, Return: ${returnQty}, Current Returned: ${currentReturnedQty}, Total Returned: ${totalReturnedQty}`
+        );
+
+        updatedGRItems[originalIndex].return_quantity = totalReturnedQty;
+      }
+
+      for (const item of updatedGRItems) {
+        if (item.return_quantity > 0) {
+          partiallyReturnedItem++;
+          if (item.return_quantity >= item.received_qty) {
+            fullyReturnedItem++;
+          }
+        }
+      }
+
+      console.log(
+        `Total items: ${totalItems}, Partially returned: ${partiallyReturnedItem}, Fully returned: ${fullyReturnedItem}`
+      );
+
+      let allItemReturned = fullyReturnedItem === totalItems;
+      let someItemReturned = partiallyReturnedItem > 0;
+
+      await db
+        .collection("goods_receiving")
+        .doc(grID)
+        .update({
+          table_gr: updatedGRItems,
+          return_status: allItemReturned
+            ? "Fully Returned"
+            : someItemReturned
+            ? "Partially Returned"
+            : "",
+        });
+    });
+
+    await Promise.all(updateGRPromises);
+
+    const resPOLineData = await Promise.all(
+      entry.table_prt.map((item) =>
+        db.collection("purchase_order_2ukyuanr_sub").doc(item.po_line_id).get()
+      )
+    );
+
+    console.log("Purchase Order Line Data:", resPOLineData);
+    const poLineData = resPOLineData.map((res) => res.data[0]);
+
+    console.log("PO Line Data:", poLineData);
+
+    const updatedPOLineData = poLineData.map((item) => ({ ...item }));
+
+    poLineData.forEach((item, index) => {
+      updatedPOLineData[index].return_quantity += parseFloat(
+        entry.table_prt[index]?.return_quantity || 0
+      );
+    });
+
+    console.log("Updated PO Line Data:", updatedPOLineData);
+    await Promise.all(
+      updatedPOLineData.map((item) => {
+        db.collection("purchase_order_2ukyuanr_sub").doc(item.id).update({
+          return_quantity: item.return_quantity,
+        });
+      })
+    );
+  } catch (error) {
+    console.error("Error updating GR and PO status:", error);
+    throw error;
+  }
 };
 
 const addEntry = async (organizationId, entry) => {
   try {
     const prefixData = await getPrefixData(organizationId);
-    if (prefixData.length !== 0) {
-      await updatePrefix(organizationId, prefixData.running_number);
-      await db
-        .collection("purchase_return_head")
-        .add(entry)
-        .then(() => {
-          this.runWorkflow(
-            "1917415391491338241",
-            { purchase_return_no: entry.purchase_return_no },
-            async (res) => {
-              console.log("成功结果：", res);
-            },
-            (err) => {
-              alert();
-              console.error("失败结果：", err);
-              closeDialog();
-            }
-          );
-        });
-      await updateInventory(entry, entry.plant, organizationId);
-      this.$message.success("Add successfully");
-      closeDialog();
+
+    if (prefixData !== null) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData,
+        organizationId
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      entry.purchase_return_no = prefixToShow;
     }
+    await db.collection("purchase_return_head").add(entry);
+    await updateInventory(entry, entry.plant, organizationId);
+    await updateGRandPOStatus(entry);
+
+    this.runWorkflow(
+      "1917415391491338241",
+      { purchase_return_no: entry.purchase_return_no },
+      async (res) => {
+        console.log("成功结果：", res);
+      },
+      (err) => {
+        console.error("失败结果：", err);
+        closeDialog();
+        throw new Error("An error occurred.");
+      }
+    );
+
+    this.$message.success("Add successfully");
+    await closeDialog();
   } catch (error) {
     this.$message.error(error);
   }
@@ -745,39 +871,156 @@ const updateEntry = async (organizationId, entry, purchaseReturnId) => {
   try {
     const prefixData = await getPrefixData(organizationId);
 
-    if (prefixData.length !== 0) {
+    if (prefixData !== null) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData
+        prefixData,
+        organizationId
       );
 
       await updatePrefix(organizationId, runningNumber);
 
       entry.purchase_return_no = prefixToShow;
-      await db
-        .collection("purchase_return_head")
-        .doc(purchaseReturnId)
-        .update(entry)
-        .then(() => {
-          this.runWorkflow(
-            "1917415391491338241",
-            { purchase_return_no: entry.purchase_return_no },
-            async (res) => {
-              console.log("成功结果：", res);
-            },
-            (err) => {
-              alert();
-              console.error("失败结果：", err);
-              closeDialog();
-            }
-          );
-        });
-      await updateInventory(entry, entry.plant, organizationId);
-      this.$message.success("Update successfully");
-      await closeDialog();
     }
+    await db
+      .collection("purchase_return_head")
+      .doc(purchaseReturnId)
+      .update(entry);
+    await updateInventory(entry, entry.plant, organizationId);
+    await updateGRandPOStatus(entry);
+
+    this.runWorkflow(
+      "1917415391491338241",
+      { purchase_return_no: entry.purchase_return_no },
+      async (res) => {
+        console.log("成功结果：", res);
+      },
+      (err) => {
+        console.error("失败结果：", err);
+        closeDialog();
+        throw new Error("An error occurred.");
+      }
+    );
+    this.$message.success("Update successfully");
+    await closeDialog();
   } catch (error) {
     this.$message.error(error);
   }
+};
+
+const findFieldMessage = (obj) => {
+  // Base case: if current object has the structure we want
+  if (obj && typeof obj === "object") {
+    if (obj.field && obj.message) {
+      return obj.message;
+    }
+
+    // Check array elements
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = findFieldMessage(item);
+        if (found) return found;
+      }
+    }
+
+    // Check all object properties
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const found = findFieldMessage(obj[key]);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
+};
+
+const fillbackHeaderFields = async (entry) => {
+  try {
+    for (const [index, prtLineItem] of entry.table_prt.entries()) {
+      prtLineItem.supplier_id = entry.supplier_id || null;
+      prtLineItem.plant_id = entry.plant || null;
+      prtLineItem.billing_state_id = entry.billing_address_state || null;
+      prtLineItem.billing_country_id = entry.billing_address_country || null;
+      prtLineItem.shipping_state_id = entry.shipping_address_state || null;
+      prtLineItem.shipping_country_id = entry.shipping_address_country || null;
+      prtLineItem.line_index = index + 1;
+    }
+    return entry.table_prt;
+  } catch (error) {
+    throw new Error("Error processing purchase return.");
+  }
+};
+
+const processPRTLineItem = async (entry) => {
+  const totalQuantity = entry.table_prt.reduce((sum, item) => {
+    const { return_quantity } = item;
+    return sum + (return_quantity || 0); // Handle null/undefined received_qty
+  }, 0);
+
+  if (totalQuantity === 0) {
+    throw new Error("Total return quantity is 0.");
+  }
+
+  const zeroQtyArray = [];
+  for (const [index, prt] of entry.table_prt.entries()) {
+    if (prt.return_quantity <= 0) {
+      zeroQtyArray.push(`#${index + 1}`);
+    }
+  }
+
+  if (zeroQtyArray.length > 0) {
+    this.$confirm(
+      `Line${zeroQtyArray.length > 1 ? "s" : ""} ${zeroQtyArray.join(", ")} ha${
+        zeroQtyArray.length > 1 ? "ve" : "s"
+      } a zero return quantity, which may prevent processing.\nIf you proceed, it will delete the row with 0 return quantity. \nWould you like to proceed?`,
+      "Zero Return Quantity Detected",
+      {
+        confirmButtonText: "OK",
+        cancelButtonText: "Cancel",
+        type: "warning",
+        dangerouslyUseHTMLString: false,
+      }
+    )
+      .then(async () => {
+        console.log("User clicked OK");
+        entry.table_prt = entry.table_prt.filter(
+          (item) => item.return_quantity > 0
+        );
+        for (const prt of entry.table_prt) {
+          let poID = [];
+          let grID = [];
+          let purchaseOrderNumber = [];
+          let goodsReceivingNumber = [];
+
+          grID.push(prt.gr_id);
+          goodsReceivingNumber.push(prt.gr_number);
+
+          poID.push(prt.po_id);
+          purchaseOrderNumber.push(prt.po_number);
+        }
+
+        poID = [...new Set(poID)];
+        grID = [...new Set(grID)];
+        purchaseOrderNumber = [...new Set(purchaseOrderNumber)];
+        goodsReceivingNumber = [...new Set(goodsReceivingNumber)];
+
+        entry.po_id = poID;
+        entry.gr_id = grID;
+        entry.po_no_display = purchaseOrderNumber.join(", ");
+        entry.gr_no_display = goodsReceivingNumber.join(", ");
+
+        return entry;
+      })
+      .catch(() => {
+        // Function to execute when the user clicks "Cancel" or closes the dialog
+        console.log("User clicked Cancel or closed the dialog");
+        this.hideLoading();
+        throw new Error("Saving purchase return cancelled.");
+        // Add your logic to stop or handle cancellation here
+        // Example: this.stopFunction();
+      });
+  }
+
+  return entry;
 };
 
 (async () => {
@@ -787,18 +1030,18 @@ const updateEntry = async (organizationId, entry, purchaseReturnId) => {
 
     const requiredFields = [
       { name: "purchase_return_no", label: "Return ID" },
-      { name: "purchase_order_id", label: "PO Number" },
-      { name: "goods_receiving_id", label: "Good Receiving  Number" },
+      { name: "plant", label: "Plant" },
       {
         name: "table_prt",
         label: "PRT Items",
         isArray: true,
         arrayType: "object",
-        arrayFields: [{ name: "return_condition", label: "Condition" }],
+        arrayFields: [],
       },
     ];
 
     const missingFields = await validateForm(data, requiredFields);
+    await this.validate("purchase_return_no");
 
     if (missingFields.length === 0) {
       const page_status = this.getValue("page_status");
@@ -810,37 +1053,50 @@ const updateEntry = async (organizationId, entry, purchaseReturnId) => {
 
       const {
         purchase_return_no,
-        purchase_order_id,
-        goods_receiving_id,
-        gr_ids,
+        po_id,
+        gr_id,
+        po_no_display,
+        gr_no_display,
         supplier_id,
-        prt_billing_name,
-        prt_billing_cp,
         prt_billing_address,
         prt_shipping_address,
         gr_date,
         plant,
         organization_id,
         purchase_return_date,
-        input_hvxpruem,
+        return_by,
         return_delivery_method,
         purchase_return_ref,
         shipping_details,
         reason_for_return,
+        pr_note,
+        remark,
+        reference_type,
+
         driver_name,
         vehicle_no,
+        cp_ic_no,
         driver_contact,
         pickup_date,
+
         courier_company,
         shipping_date,
         estimated_arrival,
         shipping_method,
         freight_charge,
+
         driver_name2,
+        ct_ic_no,
         driver_contact_no2,
         estimated_arrival2,
         vehicle_no2,
         delivery_cost,
+
+        tpt_vehicle_number,
+        tpt_transport_name,
+        tpt_ic_no,
+        tpt_driver_contact_no,
+
         table_prt,
         billing_address_line_1,
         billing_address_line_2,
@@ -858,42 +1114,61 @@ const updateEntry = async (organizationId, entry, purchaseReturnId) => {
         shipping_address_state,
         shipping_address_country,
         shipping_postal_code,
+        billing_address_name,
+        billing_address_phone,
+        billing_attention,
+        shipping_address_name,
+        shipping_address_phone,
+        shipping_attention,
       } = data;
 
       const entry = {
         purchase_return_status: "Issued",
         purchase_return_no,
-        purchase_order_id,
-        goods_receiving_id,
-        gr_ids,
+        po_id,
+        gr_id,
+        po_no_display,
+        gr_no_display,
         supplier_id,
-        prt_billing_name,
-        prt_billing_cp,
         prt_billing_address,
         prt_shipping_address,
         gr_date,
         plant,
         organization_id,
         purchase_return_date,
-        input_hvxpruem,
+        return_by,
         return_delivery_method,
         purchase_return_ref,
         shipping_details,
         reason_for_return,
+        pr_note,
+        remark,
+        reference_type,
+
         driver_name,
         vehicle_no,
+        cp_ic_no,
         driver_contact,
         pickup_date,
+
         courier_company,
         shipping_date,
         estimated_arrival,
         shipping_method,
         freight_charge,
+
         driver_name2,
+        ct_ic_no,
         driver_contact_no2,
         estimated_arrival2,
         vehicle_no2,
         delivery_cost,
+
+        tpt_vehicle_number,
+        tpt_transport_name,
+        tpt_ic_no,
+        tpt_driver_contact_no,
+
         table_prt,
         billing_address_line_1,
         billing_address_line_2,
@@ -911,13 +1186,22 @@ const updateEntry = async (organizationId, entry, purchaseReturnId) => {
         shipping_address_state,
         shipping_address_country,
         shipping_postal_code,
+        billing_address_name,
+        billing_address_phone,
+        billing_attention,
+        shipping_address_name,
+        shipping_address_phone,
+        shipping_attention,
       };
 
+      const latestPRT = await processPRTLineItem(entry);
+      latestPRT.table_prt = await fillbackHeaderFields(latestPRT);
+
       if (page_status === "Add") {
-        await addEntry(organizationId, entry);
+        await addEntry(organizationId, latestPRT);
       } else if (page_status === "Edit") {
         const goodsReceivingId = this.getValue("id");
-        await updateEntry(organizationId, entry, goodsReceivingId);
+        await updateEntry(organizationId, latestPRT, goodsReceivingId);
       }
     } else {
       this.hideLoading();
@@ -925,6 +1209,16 @@ const updateEntry = async (organizationId, entry, purchaseReturnId) => {
     }
   } catch (error) {
     this.hideLoading();
-    this.$message.error(error);
+
+    let errorMessage = "";
+
+    if (error && typeof error === "object") {
+      errorMessage = findFieldMessage(error) || "An error occurred";
+    } else {
+      errorMessage = error;
+    }
+
+    this.$message.error(errorMessage);
+    console.error(errorMessage);
   }
 })();

@@ -2,7 +2,7 @@
   const data = this.getValues();
   const temporaryData = data.confirm_inventory.table_item_balance;
   const rowIndex = data.confirm_inventory.row_index;
-  const returnQty = data.confirm_inventory.return_quantity;
+  const returnQty = data.confirm_inventory.received_qty;
 
   // Get UOM information (you'll need to add this based on your data structure)
   const materialUOMid = data.confirm_inventory.material_uom; // Adjust field name as needed
@@ -28,7 +28,7 @@
   }
 
   let totalReturnQty = temporaryData.reduce(
-    (sum, item) => sum + (item.return_quantity || 0),
+    (sum, item) => sum + (item.return_quantity || item.prt_quantity || 0),
     0
   );
 
@@ -36,12 +36,10 @@
     this.$message.error("Total return quantity cannot exceed return quantity.");
     return;
   } else {
-    const filteredData = temporaryData.filter(
-      (item) =>
-        item.return_quantity !== null &&
-        item.return_quantity !== undefined &&
-        item.return_quantity !== 0
-    );
+    const filteredData = temporaryData.filter((item) => {
+      const qty = item.return_quantity || item.prt_quantity || 0;
+      return qty !== null && qty !== undefined && qty !== 0;
+    });
 
     const formatFilteredData = async (filteredData) => {
       // Get unique location IDs
@@ -123,7 +121,7 @@
       }, {});
 
       const totalQty = filteredData.reduce(
-        (sum, item) => sum + (item.return_quantity || 0),
+        (sum, item) => sum + (item.return_quantity || item.prt_quantity || 0),
         0
       );
 
@@ -133,21 +131,33 @@
         .map((item, index) => {
           const locationName =
             locationMap[item.location_id] || item.location_id;
-          const qty = item.return_quantity || 0;
+          const qty = item.return_quantity || item.prt_quantity || 0;
 
           const categoryAbbr =
             categoryMap[item.inventory_category] ||
+            categoryMap[item.category] ||
             item.inventory_category ||
+            item.category ||
             "";
 
           let itemDetail = `${
             index + 1
           }. ${locationName}: ${qty} ${gdUOM} (${categoryAbbr})`;
 
+          // Add serial number info if it exists (for serialized items)
+          if (item.serial_number) {
+            itemDetail += `\n[Serial: ${item.serial_number}]`;
+          }
+
           // Add batch info on a new line if batch exists
           if (item.batch_id) {
             const batchName = batchMap[item.batch_id] || item.batch_id;
             itemDetail += `\n[${batchName}]`;
+          }
+
+          // Add remarks if available
+          if (item.remarks && item.remarks.trim() !== "") {
+            itemDetail += `\n[Remarks: ${item.remarks.trim()}]`;
           }
 
           return itemDetail;
@@ -176,7 +186,7 @@
     console.log("Row index:", rowIndex);
 
     const totalCategoryQuantity = temporaryData.reduce(
-      (sum, item) => sum + (item.return_quantity || 0),
+      (sum, item) => sum + (item.return_quantity || item.prt_quantity || 0),
       0
     );
     console.log("Total category quantity:", totalCategoryQuantity);
