@@ -89,7 +89,11 @@ class ReceivingIOFTProcessor {
       // Wait for all processRow calls to complete
       receivingIOFT.stock_movement = processedTableSM;
 
+      console.log("receivingIOFT.balance_index:", receivingIOFT.balance_index);
+
       for (const item of receivingIOFT.stock_movement) {
+        console.log("Processing stock_movement item:", item);
+
         try {
           // Fetch material data
           const materialResponse = await this.db
@@ -103,42 +107,138 @@ class ReceivingIOFTProcessor {
           }
 
           const materialData = materialResponse.data[0];
+          console.log("Material data:", materialData);
 
           // Check if the material has sufficient in-transit quantity
           const isBatchManaged =
             materialData.item_batch_management == "1" ||
             materialData.item_isbatch_managed == "1";
 
+          const isSerializedItem = materialData.serial_number_management === 1;
+
           const collectionName = isBatchManaged
             ? "item_batch_balance"
             : "item_balance";
 
-          // Find the balance at the issuing plant with in-transit quantity
-          const balanceResponse = await this.db
-            .collection(collectionName)
-            .where({
-              material_id: item.item_selection,
-              plant_id: issuingIOFT.issuing_operation_faci,
-            })
-            .get();
+          // Handle serialized vs non-serialized items differently
+          let validBalances = [];
 
-          if (!balanceResponse.data || balanceResponse.data.length === 0) {
-            errors.push(
-              `No balance found for material ${item.item_selection} at issuing plant`
+          if (isSerializedItem) {
+            // For serialized items, validate using item_serial_balance and balance_index
+            console.log(`Processing serialized item: ${item.item_selection}`);
+            console.log(
+              `Available balance_index:`,
+              receivingIOFT.balance_index
             );
-            continue;
-          }
 
-          // Collect all balances with in-transit quantity
-          const validBalances = balanceResponse.data.filter(
-            (balance) => (balance.intransit_qty || 0) > 0
-          );
+            // Get balance_index for this item from receiving IOFT
+            const itemBalanceIndex = receivingIOFT.balance_index
+              ? receivingIOFT.balance_index.filter(
+                  (balance) => balance.material_id === item.item_selection
+                )
+              : [];
 
-          if (validBalances.length === 0) {
-            errors.push(
-              `No in-transit quantity available for material ${item.item_selection}`
+            console.log(
+              `Filtered balance_index for item ${item.item_selection}:`,
+              itemBalanceIndex
             );
-            continue;
+
+            if (itemBalanceIndex.length === 0) {
+              errors.push(
+                `No serial balance index found for serialized item ${item.item_selection}`
+              );
+              continue;
+            }
+
+            // Validate each serial number has sufficient in-transit quantity
+            for (const balanceIndex of itemBalanceIndex) {
+              if (!balanceIndex.serial_number) {
+                errors.push(
+                  `Serial number is required for serialized item ${item.item_selection}`
+                );
+                continue;
+              }
+
+              const serialBalanceParams = {
+                material_id: item.item_selection,
+                serial_number: balanceIndex.serial_number,
+                plant_id: issuingIOFT.issuing_operation_faci,
+                organization_id: organizationId,
+              };
+
+              if (balanceIndex.batch_id) {
+                serialBalanceParams.batch_id = balanceIndex.batch_id;
+              }
+              if (balanceIndex.location_id) {
+                serialBalanceParams.location_id = balanceIndex.location_id;
+              }
+
+              const serialBalanceResponse = await this.db
+                .collection("item_serial_balance")
+                .where(serialBalanceParams)
+                .get();
+
+              if (
+                !serialBalanceResponse.data ||
+                serialBalanceResponse.data.length === 0
+              ) {
+                errors.push(
+                  `No serial balance found for serial ${balanceIndex.serial_number} of item ${item.item_selection}`
+                );
+                continue;
+              }
+
+              const serialBalance = serialBalanceResponse.data[0];
+              const intransitQty = serialBalance.intransit_qty || 0;
+
+              if (intransitQty < (balanceIndex.sm_quantity || 1)) {
+                errors.push(
+                  `Insufficient intransit quantity for serial ${
+                    balanceIndex.serial_number
+                  } of item ${
+                    item.item_selection
+                  }. Available: ${intransitQty}, Requested: ${
+                    balanceIndex.sm_quantity || 1
+                  }`
+                );
+                continue;
+              }
+
+              // Add to valid balances with additional serial info
+              validBalances.push({
+                ...serialBalance,
+                balance_index: balanceIndex,
+                is_serialized: true,
+              });
+            }
+          } else {
+            // For non-serialized items, use existing logic
+            const balanceResponse = await this.db
+              .collection(collectionName)
+              .where({
+                material_id: item.item_selection,
+                plant_id: issuingIOFT.issuing_operation_faci,
+              })
+              .get();
+
+            if (!balanceResponse.data || balanceResponse.data.length === 0) {
+              errors.push(
+                `No balance found for material ${item.item_selection} at issuing plant`
+              );
+              continue;
+            }
+
+            // Collect all balances with in-transit quantity
+            validBalances = balanceResponse.data.filter(
+              (balance) => (balance.intransit_qty || 0) > 0
+            );
+
+            if (validBalances.length === 0) {
+              errors.push(
+                `No in-transit quantity available for material ${item.item_selection}`
+              );
+              continue;
+            }
           }
 
           // Add to processed items
@@ -315,126 +415,308 @@ class ReceivingIOFTProcessor {
       const quantityToReceive = Number(item.total_quantity);
       let remainingQuantity = quantityToReceive;
 
-      // Process against each balance until the full quantity is covered
-      for (const balance of balances) {
-        if (remainingQuantity <= 0) break;
+      // Check if this is a serialized item
+      const isSerializedItem = materialData.serial_number_management === 1;
 
-        const availableInTransit = Number(balance.intransit_qty || 0);
-        const quantityFromThisBalance = Math.min(
-          availableInTransit,
-          remainingQuantity
+      if (isSerializedItem) {
+        // For serialized items, group balances by location, batch, and category before processing
+        console.log(
+          `Grouping serialized balances for item: ${item.item_selection}`
         );
 
-        let batchId = "";
+        const groupedBalances = new Map();
 
-        if (quantityFromThisBalance <= 0) continue;
+        for (const balance of balances) {
+          console.log("Processing balance for grouping:", balance);
 
-        if (materialData.item_batch_management === 1) {
-          const batchData = {
-            batch_number: item.batch_id,
-            material_id: item.item_selection,
-            initial_quantity: this.roundQty(quantityFromThisBalance),
-            transaction_no: receivingIOFT.stock_movement_no,
-            parent_transaction_no: issuingIOFT.stock_movement_no,
-            plant_id: receivingIOFT.issuing_operation_faci,
-            organization_id: organizationId,
-          };
+          if (!balance.balance_index) {
+            console.error("Balance missing balance_index:", balance);
+            errors.push(
+              `Balance missing balance_index data for item ${item.item_selection}`
+            );
+            continue;
+          }
 
-          await this.db.collection("batch").add(batchData);
-          await new Promise((resolve) => setTimeout(resolve, 300));
+          const groupKey = `${balance.balance_index.location_id || "null"}_${
+            balance.balance_index.batch_id || "null"
+          }_${balance.balance_index.category || "Unrestricted"}`;
 
-          const response = await this.db
-            .collection("batch")
-            .where({
+          console.log("Generated groupKey:", groupKey);
+
+          if (groupedBalances.has(groupKey)) {
+            const existingGroup = groupedBalances.get(groupKey);
+            existingGroup.serialBalances.push(balance);
+            existingGroup.totalQty += Number(
+              balance.balance_index.sm_quantity || 1
+            );
+          } else {
+            groupedBalances.set(groupKey, {
+              serialBalances: [balance],
+              totalQty: Number(balance.balance_index.sm_quantity || 1),
+              location_id: balance.balance_index.location_id,
+              batch_id: balance.balance_index.batch_id,
+              category: balance.balance_index.category || "Unrestricted",
+              representativeBalance: balance,
+            });
+          }
+        }
+
+        console.log(
+          `Grouped ${balances.length} serial balances into ${groupedBalances.size} groups for item ${item.item_selection}`
+        );
+
+        // Process each group
+        for (const [groupKey, group] of groupedBalances.entries()) {
+          console.log(
+            `Processing group: ${groupKey} with ${group.serialBalances.length} serials, total qty: ${group.totalQty}`
+          );
+
+          let batchId = "";
+
+          // Handle batch creation if needed
+          if (materialData.item_batch_management === 1) {
+            const batchData = {
               batch_number: item.batch_id,
               material_id: item.item_selection,
+              initial_quantity: this.roundQty(group.totalQty),
               transaction_no: receivingIOFT.stock_movement_no,
               parent_transaction_no: issuingIOFT.stock_movement_no,
-            })
-            .get();
+              plant_id: receivingIOFT.issuing_operation_faci,
+              organization_id: organizationId,
+            };
 
-          const batchResult = response.data;
+            await this.db.collection("batch").add(batchData);
+            await new Promise((resolve) => setTimeout(resolve, 300));
 
-          batchId = batchResult[0].id;
+            const response = await this.db
+              .collection("batch")
+              .where({
+                batch_number: item.batch_id,
+                material_id: item.item_selection,
+                transaction_no: receivingIOFT.stock_movement_no,
+                parent_transaction_no: issuingIOFT.stock_movement_no,
+              })
+              .get();
+
+            const batchResult = response.data;
+            batchId = batchResult[0].id;
+          }
+
+          try {
+            // 1. Update issuing plant balances for all serials in this group
+            for (const balance of group.serialBalances) {
+              const quantityFromThisSerial = Number(
+                balance.balance_index.sm_quantity || 1
+              );
+
+              const issuingBalanceUpdate = await this.updateIssuingBalance(
+                balance.id,
+                materialData.id,
+                quantityFromThisSerial,
+                balance
+              );
+              results.balanceUpdates.issuing.push(issuingBalanceUpdate);
+            }
+
+            // 2. Create or update receiving plant balances for all serials in this group
+            for (const balance of group.serialBalances) {
+              const quantityFromThisSerial = Number(
+                balance.balance_index.sm_quantity || 1
+              );
+
+              const receivingBalanceUpdate = await this.updateReceivingBalance(
+                materialData.id,
+                receivingIOFT.issuing_operation_faci,
+                group.location_id || item.location_id,
+                quantityFromThisSerial,
+                group.category,
+                item.unit_price,
+                organizationId,
+                batchId,
+                balance.balance_index.serial_number
+              );
+              results.balanceUpdates.receiving.push(receivingBalanceUpdate);
+            }
+
+            // 3. Create ONE grouped inventory movement for this group
+            const groupedInventoryMovements =
+              await this.recordGroupedInventoryMovements(
+                materialData.id,
+                group.totalQty,
+                "In Transit", // Source category at issuing plant
+                group.category, // Target category at receiving plant
+                group.location_id || item.location_id,
+                issuingIOFT.stock_movement_no,
+                receivingIOFT.stock_movement_no,
+                issuingIOFT.issuing_operation_faci,
+                receivingIOFT.issuing_operation_faci,
+                item.unit_price,
+                item.received_quantity_uom,
+                materialData,
+                organizationId,
+                batchId,
+                group.serialBalances
+              );
+
+            results.inventoryMovements.issuing.push(
+              groupedInventoryMovements.issuingMovement
+            );
+            results.inventoryMovements.receiving.push(
+              groupedInventoryMovements.receivingMovement
+            );
+
+            // 4. Update costing records (use representative balance for costing)
+            const costingUpdates = await this.updateCosting(
+              materialData,
+              group.totalQty,
+              issuingIOFT.issuing_operation_faci,
+              receivingIOFT.issuing_operation_faci,
+              item.unit_price,
+              organizationId
+            );
+            results.costingUpdates.issuing.push(costingUpdates.issuingCosting);
+            results.costingUpdates.receiving.push(
+              costingUpdates.receivingCosting
+            );
+          } catch (error) {
+            errors.push(
+              `Error processing serialized group ${groupKey} for item ${materialData.id}: ${error.message}`
+            );
+          }
+        }
+      } else {
+        // Process non-serialized items with existing logic
+        for (const balance of balances) {
+          if (remainingQuantity <= 0) break;
+
+          const availableInTransit = Number(balance.intransit_qty || 0);
+          const quantityFromThisBalance = Math.min(
+            availableInTransit,
+            remainingQuantity
+          );
+
+          let batchId = "";
+
+          if (quantityFromThisBalance <= 0) continue;
+
+          if (materialData.item_batch_management === 1) {
+            const batchData = {
+              batch_number: item.batch_id,
+              material_id: item.item_selection,
+              initial_quantity: this.roundQty(quantityFromThisBalance),
+              transaction_no: receivingIOFT.stock_movement_no,
+              parent_transaction_no: issuingIOFT.stock_movement_no,
+              plant_id: receivingIOFT.issuing_operation_faci,
+              organization_id: organizationId,
+            };
+
+            await this.db.collection("batch").add(batchData);
+            await new Promise((resolve) => setTimeout(resolve, 300));
+
+            const response = await this.db
+              .collection("batch")
+              .where({
+                batch_number: item.batch_id,
+                material_id: item.item_selection,
+                transaction_no: receivingIOFT.stock_movement_no,
+                parent_transaction_no: issuingIOFT.stock_movement_no,
+              })
+              .get();
+
+            const batchResult = response.data;
+
+            batchId = batchResult[0].id;
+          }
+
+          console.log("batchId", batchId);
+
+          try {
+            // Check if this is a serialized item
+            const isSerializedItem =
+              materialData.serial_number_management === 1;
+
+            // 1. Update issuing plant balance (decrease in-transit)
+            const issuingBalanceUpdate = await this.updateIssuingBalance(
+              balance.id,
+              materialData.id,
+              quantityFromThisBalance,
+              balance.is_serialized ? balance : null
+            );
+            results.balanceUpdates.issuing.push(issuingBalanceUpdate);
+
+            // 2. Update or create receiving plant balance (increase unrestricted)
+            const receivingBalanceUpdate = await this.updateReceivingBalance(
+              materialData.id,
+              receivingIOFT.issuing_operation_faci, // This is the receiving plant ID
+              item.location_id || balance.location_id,
+              quantityFromThisBalance,
+              item.category || "Unrestricted",
+              item.unit_price,
+              organizationId,
+              batchId,
+              isSerializedItem && balance.balance_index
+                ? balance.balance_index.serial_number
+                : null
+            );
+            results.balanceUpdates.receiving.push(receivingBalanceUpdate);
+
+            // 3. Record inventory movements
+            const inventoryMovements = await this.recordInventoryMovements(
+              materialData.id,
+              quantityFromThisBalance,
+              "In Transit", // Source category at issuing plant
+              item.category || "Unrestricted", // Target category at receiving plant
+              item.location_id || balance.location_id,
+              issuingIOFT.stock_movement_no,
+              receivingIOFT.stock_movement_no,
+              issuingIOFT.issuing_operation_faci,
+              receivingIOFT.issuing_operation_faci,
+              item.unit_price,
+              item.received_quantity_uom,
+              materialData,
+              organizationId,
+              item.temp_qty_data,
+              batchId,
+              isSerializedItem && balance.balance_index
+                ? balance.balance_index.serial_number
+                : null
+            );
+            results.inventoryMovements.issuing.push(
+              inventoryMovements.issuingMovement
+            );
+            results.inventoryMovements.receiving.push(
+              inventoryMovements.receivingMovement
+            );
+
+            // 4. Update costing records
+            const costingUpdates = await this.updateCosting(
+              materialData,
+              quantityFromThisBalance,
+              issuingIOFT.issuing_operation_faci,
+              receivingIOFT.issuing_operation_faci,
+              item.unit_price,
+              organizationId
+            );
+            results.costingUpdates.issuing.push(costingUpdates.issuingCosting);
+            results.costingUpdates.receiving.push(
+              costingUpdates.receivingCosting
+            );
+
+            // Reduce remaining quantity
+            remainingQuantity -= quantityFromThisBalance;
+          } catch (error) {
+            errors.push(
+              `Error processing balance for item ${materialData.id}: ${error.message}`
+            );
+          }
         }
 
-        console.log("batchId", batchId);
-
-        try {
-          // 1. Update issuing plant balance (decrease in-transit)
-          const issuingBalanceUpdate = await this.updateIssuingBalance(
-            balance.id,
-            materialData.id,
-            quantityFromThisBalance
-          );
-          results.balanceUpdates.issuing.push(issuingBalanceUpdate);
-
-          // 2. Update or create receiving plant balance (increase unrestricted)
-          const receivingBalanceUpdate = await this.updateReceivingBalance(
-            materialData.id,
-            receivingIOFT.issuing_operation_faci, // This is the receiving plant ID
-            item.location_id || balance.location_id,
-            quantityFromThisBalance,
-            item.category || "Unrestricted",
-            item.unit_price,
-            organizationId,
-            batchId
-          );
-          results.balanceUpdates.receiving.push(receivingBalanceUpdate);
-
-          // 3. Record inventory movements
-          const inventoryMovements = await this.recordInventoryMovements(
-            materialData.id,
-            quantityFromThisBalance,
-            "In Transit", // Source category at issuing plant
-            item.category || "Unrestricted", // Target category at receiving plant
-            item.location_id || balance.location_id,
-            issuingIOFT.stock_movement_no,
-            receivingIOFT.stock_movement_no,
-            issuingIOFT.issuing_operation_faci,
-            receivingIOFT.issuing_operation_faci,
-            item.unit_price,
-            item.received_quantity_uom,
-            materialData,
-            organizationId,
-            item.temp_qty_data,
-            batchId
-          );
-          results.inventoryMovements.issuing.push(
-            inventoryMovements.issuingMovement
-          );
-          results.inventoryMovements.receiving.push(
-            inventoryMovements.receivingMovement
-          );
-
-          // 4. Update costing records
-          const costingUpdates = await this.updateCosting(
-            materialData,
-            quantityFromThisBalance,
-            issuingIOFT.issuing_operation_faci,
-            receivingIOFT.issuing_operation_faci,
-            item.unit_price,
-            organizationId
-          );
-          results.costingUpdates.issuing.push(costingUpdates.issuingCosting);
-          results.costingUpdates.receiving.push(
-            costingUpdates.receivingCosting
-          );
-
-          // Reduce remaining quantity
-          remainingQuantity -= quantityFromThisBalance;
-        } catch (error) {
+        // Check if all quantity was processed
+        if (remainingQuantity > 0) {
           errors.push(
-            `Error processing balance for item ${materialData.id}: ${error.message}`
+            `Could not process full quantity for item ${materialData.id}. Remaining: ${remainingQuantity}`
           );
         }
-      }
-
-      // Check if all quantity was processed
-      if (remainingQuantity > 0) {
-        errors.push(
-          `Could not process full quantity for item ${materialData.id}. Remaining: ${remainingQuantity}`
-        );
       }
     }
 
@@ -485,89 +767,11 @@ class ReceivingIOFTProcessor {
     return results;
   }
 
-  async updateIssuingBalance(balanceId, materialId, quantity) {
-    let materialData;
-    try {
-      const materialResponse = await this.db
-        .collection("Item")
-        .where({ id: materialId })
-        .get();
-      materialData = materialResponse.data[0];
-      if (!materialData) {
-        throw new Error(`Material not found for ID: ${materialId}`);
-      }
-    } catch (err) {
-      throw new Error(`Failed to fetch material: ${err.message}`);
-    }
-
-    // Determine the collection based on whether the material is batch managed
-    const isBatchManaged =
-      materialData.item_batch_management == "1" ||
-      materialData.item_isbatch_managed == "1";
-    const collectionName = isBatchManaged
-      ? "item_batch_balance"
-      : "item_balance";
-
-    // Fetch the current balance
-    let balanceData;
-    try {
-      const balanceResponse = await this.db
-        .collection(collectionName)
-        .where({ id: balanceId })
-        .get();
-      balanceData = balanceResponse.data[0];
-      if (!balanceData) {
-        throw new Error(`Balance not found for ID: ${balanceId}`);
-      }
-    } catch (err) {
-      throw new Error(`Failed to fetch balance: ${err.message}`);
-    }
-
-    const formattedQuantity = this.roundQty(quantity);
-
-    // Ensure we don't go below zero
-    const currentInTransit = this.roundQty(balanceData.intransit_qty || 0);
-    if (currentInTransit < formattedQuantity) {
-      throw new Error(
-        `Insufficient in-transit quantity. Available: ${currentInTransit}, Requested: ${formattedQuantity}`
-      );
-    }
-
-    // Update balance - decrease in-transit quantity
-    const updateData = {
-      intransit_qty: this.roundQty(currentInTransit - formattedQuantity),
-      balance_quantity: this.roundQty(
-        (balanceData.balance_quantity || 0) - formattedQuantity
-      ),
-      update_time: new Date().toISOString(),
-    };
-
-    try {
-      await this.db
-        .collection(collectionName)
-        .doc(balanceId)
-        .update(updateData);
-    } catch (err) {
-      throw new Error(`Failed to update issuing balance: ${err.message}`);
-    }
-
-    return {
-      balanceId,
-      materialId,
-      quantityReduced: formattedQuantity,
-      ...updateData,
-    };
-  }
-
-  async updateReceivingBalance(
+  async updateIssuingBalance(
+    balanceId,
     materialId,
-    plantId,
-    locationId,
     quantity,
-    category = "Unrestricted",
-    unitPrice,
-    organizationId,
-    batchId
+    balanceInfo = null
   ) {
     let materialData;
     try {
@@ -583,13 +787,136 @@ class ReceivingIOFTProcessor {
       throw new Error(`Failed to fetch material: ${err.message}`);
     }
 
-    // Determine the collection based on whether the material is batch managed
+    const isSerializedItem = materialData.serial_number_management === 1;
+    const formattedQuantity = this.roundQty(quantity);
+
+    // Handle serialized items differently
+    if (isSerializedItem && balanceInfo && balanceInfo.is_serialized) {
+      // For serialized items, update item_serial_balance
+      const serialBalance = balanceInfo;
+      const currentInTransit = this.roundQty(serialBalance.intransit_qty || 0);
+
+      if (currentInTransit < formattedQuantity) {
+        throw new Error(
+          `Insufficient in-transit quantity for serial ${serialBalance.balance_index.serial_number}. Available: ${currentInTransit}, Requested: ${formattedQuantity}`
+        );
+      }
+
+      const updateData = {
+        intransit_qty: this.roundQty(currentInTransit - formattedQuantity),
+        balance_quantity: this.roundQty(
+          (serialBalance.balance_quantity || 0) - formattedQuantity
+        ),
+        update_time: new Date().toISOString(),
+      };
+
+      try {
+        await this.db
+          .collection("item_serial_balance")
+          .doc(serialBalance.id)
+          .update(updateData);
+      } catch (err) {
+        throw new Error(
+          `Failed to update issuing serial balance: ${err.message}`
+        );
+      }
+
+      return {
+        balanceId: serialBalance.id,
+        materialId,
+        serialNumber: serialBalance.balance_index.serial_number,
+        quantityReduced: formattedQuantity,
+        ...updateData,
+      };
+    } else {
+      // For non-serialized items, use existing logic
+      const isBatchManaged =
+        materialData.item_batch_management == "1" ||
+        materialData.item_isbatch_managed == "1";
+      const collectionName = isBatchManaged
+        ? "item_batch_balance"
+        : "item_balance";
+
+      // Fetch the current balance
+      let balanceData;
+      try {
+        const balanceResponse = await this.db
+          .collection(collectionName)
+          .where({ id: balanceId })
+          .get();
+        balanceData = balanceResponse.data[0];
+        if (!balanceData) {
+          throw new Error(`Balance not found for ID: ${balanceId}`);
+        }
+      } catch (err) {
+        throw new Error(`Failed to fetch balance: ${err.message}`);
+      }
+
+      // Ensure we don't go below zero
+      const currentInTransit = this.roundQty(balanceData.intransit_qty || 0);
+      if (currentInTransit < formattedQuantity) {
+        throw new Error(
+          `Insufficient in-transit quantity. Available: ${currentInTransit}, Requested: ${formattedQuantity}`
+        );
+      }
+
+      // Update balance - decrease in-transit quantity
+      const updateData = {
+        intransit_qty: this.roundQty(currentInTransit - formattedQuantity),
+        balance_quantity: this.roundQty(
+          (balanceData.balance_quantity || 0) - formattedQuantity
+        ),
+        update_time: new Date().toISOString(),
+      };
+
+      try {
+        await this.db
+          .collection(collectionName)
+          .doc(balanceId)
+          .update(updateData);
+      } catch (err) {
+        throw new Error(`Failed to update issuing balance: ${err.message}`);
+      }
+
+      return {
+        balanceId,
+        materialId,
+        quantityReduced: formattedQuantity,
+        ...updateData,
+      };
+    }
+  }
+
+  async updateReceivingBalance(
+    materialId,
+    plantId,
+    locationId,
+    quantity,
+    category = "Unrestricted",
+    unitPrice,
+    organizationId,
+    batchId,
+    serialNumber = null
+  ) {
+    let materialData;
+    try {
+      const materialResponse = await this.db
+        .collection("Item")
+        .where({ id: materialId })
+        .get();
+      materialData = materialResponse.data[0];
+      if (!materialData) {
+        throw new Error(`Material not found for ID: ${materialId}`);
+      }
+    } catch (err) {
+      throw new Error(`Failed to fetch material: ${err.message}`);
+    }
+
+    // Determine the collection and logic based on whether the material is serialized
+    const isSerializedItem = materialData.serial_number_management === 1;
     const isBatchManaged =
       materialData.item_batch_management == "1" ||
       materialData.item_isbatch_managed == "1";
-    const collectionName = isBatchManaged
-      ? "item_batch_balance"
-      : "item_balance";
 
     const categoryField = this.categoryMap[category];
     if (!categoryField) {
@@ -598,95 +925,218 @@ class ReceivingIOFTProcessor {
 
     const formattedQuantity = this.roundQty(quantity);
 
-    // Check if the balance already exists
-    let balanceData;
-    try {
-      const balanceQuery = {
+    // Handle serialized items differently
+    if (isSerializedItem && serialNumber) {
+      // For serialized items, update or create item_serial_balance
+      const serialBalanceQuery = {
         material_id: materialId,
+        serial_number: serialNumber,
         plant_id: plantId,
-        ...(isBatchManaged && { batch_id: batchId }),
-      };
-
-      if (locationId) {
-        balanceQuery.location_id = locationId;
-      }
-
-      const balanceResponse = await this.db
-        .collection(collectionName)
-        .where(balanceQuery)
-        .get();
-
-      if (balanceResponse.data && balanceResponse.data.length > 0) {
-        balanceData = balanceResponse.data[0];
-      }
-    } catch (err) {
-      throw new Error(`Failed to fetch receiving balance: ${err.message}`);
-    }
-
-    // If balance exists, update it
-    if (balanceData) {
-      const currentCategoryQty = this.roundQty(balanceData[categoryField] || 0);
-      const currentBalanceQty = this.roundQty(
-        balanceData.balance_quantity || 0
-      );
-
-      const updateData = {
-        [categoryField]: this.roundQty(currentCategoryQty + formattedQuantity),
-        balance_quantity: this.roundQty(currentBalanceQty + formattedQuantity),
-        update_time: new Date().toISOString(),
-      };
-
-      try {
-        await this.db
-          .collection(collectionName)
-          .doc(balanceData.id)
-          .update(updateData);
-
-        return {
-          balanceId: balanceData.id,
-          materialId,
-          quantityAdded: formattedQuantity,
-          ...updateData,
-        };
-      } catch (err) {
-        throw new Error(`Failed to update receiving balance: ${err.message}`);
-      }
-    }
-    // If balance doesn't exist, create a new one
-    else {
-      // Initialize all category fields to 0
-      const newBalanceData = {
-        material_id: materialId,
-        plant_id: plantId,
-        batch_id: batchId,
-        location_id: locationId,
-        balance_quantity: formattedQuantity,
-        unrestricted_qty: 0,
-        qualityinsp_qty: 0,
-        block_qty: 0,
-        reserved_qty: 0,
-        intransit_qty: 0,
-        create_time: new Date().toISOString(),
-        update_time: new Date().toISOString(),
         organization_id: organizationId,
       };
 
-      // Set the specific category quantity
-      newBalanceData[categoryField] = formattedQuantity;
+      if (locationId) {
+        serialBalanceQuery.location_id = locationId;
+      }
+      if (batchId) {
+        serialBalanceQuery.batch_id = batchId;
+      }
 
+      let serialBalanceData;
       try {
-        const response = await this.db
-          .collection(collectionName)
-          .add(newBalanceData);
+        const serialBalanceResponse = await this.db
+          .collection("item_serial_balance")
+          .where(serialBalanceQuery)
+          .get();
 
-        return {
-          balanceId: response.data[0].id,
-          materialId,
-          quantityAdded: formattedQuantity,
-          ...newBalanceData,
-        };
+        if (
+          serialBalanceResponse.data &&
+          serialBalanceResponse.data.length > 0
+        ) {
+          serialBalanceData = serialBalanceResponse.data[0];
+        }
       } catch (err) {
-        throw new Error(`Failed to create receiving balance: ${err.message}`);
+        throw new Error(
+          `Failed to fetch receiving serial balance: ${err.message}`
+        );
+      }
+
+      // Update or create serial balance
+      if (serialBalanceData) {
+        const currentCategoryQty = this.roundQty(
+          serialBalanceData[categoryField] || 0
+        );
+
+        const updateData = {
+          [categoryField]: this.roundQty(
+            currentCategoryQty + formattedQuantity
+          ),
+          balance_quantity: this.roundQty(
+            (serialBalanceData.balance_quantity || 0) + formattedQuantity
+          ),
+          update_time: new Date().toISOString(),
+        };
+
+        try {
+          await this.db
+            .collection("item_serial_balance")
+            .doc(serialBalanceData.id)
+            .update(updateData);
+
+          return {
+            balanceId: serialBalanceData.id,
+            materialId,
+            serialNumber,
+            quantityAdded: formattedQuantity,
+            ...updateData,
+          };
+        } catch (err) {
+          throw new Error(
+            `Failed to update receiving serial balance: ${err.message}`
+          );
+        }
+      } else {
+        // Create new serial balance
+        const newSerialBalanceData = {
+          material_id: materialId,
+          serial_number: serialNumber,
+          plant_id: plantId,
+          batch_id: batchId,
+          location_id: locationId,
+          balance_quantity: formattedQuantity,
+          unrestricted_qty: 0,
+          qualityinsp_qty: 0,
+          block_qty: 0,
+          reserved_qty: 0,
+          intransit_qty: 0,
+          create_time: new Date().toISOString(),
+          update_time: new Date().toISOString(),
+          organization_id: organizationId,
+        };
+
+        // Set the specific category quantity
+        newSerialBalanceData[categoryField] = formattedQuantity;
+
+        try {
+          const response = await this.db
+            .collection("item_serial_balance")
+            .add(newSerialBalanceData);
+
+          return {
+            balanceId: response.data[0].id,
+            materialId,
+            serialNumber,
+            quantityAdded: formattedQuantity,
+            ...newSerialBalanceData,
+          };
+        } catch (err) {
+          throw new Error(
+            `Failed to create receiving serial balance: ${err.message}`
+          );
+        }
+      }
+    } else {
+      // For non-serialized items, use existing logic
+      const collectionName = isBatchManaged
+        ? "item_batch_balance"
+        : "item_balance";
+
+      // Check if the balance already exists
+      let balanceData;
+      try {
+        const balanceQuery = {
+          material_id: materialId,
+          plant_id: plantId,
+          ...(isBatchManaged && { batch_id: batchId }),
+        };
+
+        if (locationId) {
+          balanceQuery.location_id = locationId;
+        }
+
+        const balanceResponse = await this.db
+          .collection(collectionName)
+          .where(balanceQuery)
+          .get();
+
+        if (balanceResponse.data && balanceResponse.data.length > 0) {
+          balanceData = balanceResponse.data[0];
+        }
+      } catch (err) {
+        throw new Error(`Failed to fetch receiving balance: ${err.message}`);
+      }
+
+      // If balance exists, update it
+      if (balanceData) {
+        const currentCategoryQty = this.roundQty(
+          balanceData[categoryField] || 0
+        );
+        const currentBalanceQty = this.roundQty(
+          balanceData.balance_quantity || 0
+        );
+
+        const updateData = {
+          [categoryField]: this.roundQty(
+            currentCategoryQty + formattedQuantity
+          ),
+          balance_quantity: this.roundQty(
+            currentBalanceQty + formattedQuantity
+          ),
+          update_time: new Date().toISOString(),
+        };
+
+        try {
+          await this.db
+            .collection(collectionName)
+            .doc(balanceData.id)
+            .update(updateData);
+
+          return {
+            balanceId: balanceData.id,
+            materialId,
+            quantityAdded: formattedQuantity,
+            ...updateData,
+          };
+        } catch (err) {
+          throw new Error(`Failed to update receiving balance: ${err.message}`);
+        }
+      }
+      // If balance doesn't exist, create a new one
+      else {
+        // Initialize all category fields to 0
+        const newBalanceData = {
+          material_id: materialId,
+          plant_id: plantId,
+          batch_id: batchId,
+          location_id: locationId,
+          balance_quantity: formattedQuantity,
+          unrestricted_qty: 0,
+          qualityinsp_qty: 0,
+          block_qty: 0,
+          reserved_qty: 0,
+          intransit_qty: 0,
+          create_time: new Date().toISOString(),
+          update_time: new Date().toISOString(),
+          organization_id: organizationId,
+        };
+
+        // Set the specific category quantity
+        newBalanceData[categoryField] = formattedQuantity;
+
+        try {
+          const response = await this.db
+            .collection(collectionName)
+            .add(newBalanceData);
+
+          return {
+            balanceId: response.data[0].id,
+            materialId,
+            quantityAdded: formattedQuantity,
+            ...newBalanceData,
+          };
+        } catch (err) {
+          throw new Error(`Failed to create receiving balance: ${err.message}`);
+        }
       }
     }
   }
@@ -807,7 +1257,8 @@ class ReceivingIOFTProcessor {
     materialData,
     organizationId,
     tempQtyData,
-    batchId
+    batchId,
+    serialNumber = null
   ) {
     const formattedQuantity = this.roundQty(quantity);
     const formattedUnitPrice = this.roundPrice(unitPrice || 0);
@@ -936,9 +1387,46 @@ class ReceivingIOFTProcessor {
         .collection("inventory_movement")
         .add(receivingMovement);
 
+      // For serialized items, create serial movement records
+      const isSerializedItem = materialData.serial_number_management === 1;
+      if (isSerializedItem && serialNumber) {
+        console.log(
+          `Creating serial movement records for serial: ${serialNumber}`
+        );
+
+        // Wait a bit for inventory movements to be created
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        // Create serial movement for issuing movements
+        for (let i = 0; i < issuingResults.length; i++) {
+          const issuingMovementId = issuingResults[i].data[0].id;
+          await this.createSerialMovementRecord(
+            issuingMovementId,
+            serialNumber,
+            batchId,
+            issuingMovementData[i].quantity,
+            issuingMovementData[i].base_uom_id,
+            issuingPlantId,
+            organizationId
+          );
+        }
+
+        // Create serial movement for receiving movement
+        const receivingMovementId = receivingResult.data[0].id;
+        await this.createSerialMovementRecord(
+          receivingMovementId,
+          serialNumber,
+          batchId,
+          formattedQuantity,
+          itemUom,
+          receivingPlantId,
+          organizationId
+        );
+      }
+
       // Return properly structured results
       return {
-        issuingMovements: issuingResults.map((result, index) => ({
+        issuingMovement: issuingResults.map((result, index) => ({
           id: result.data[0].id,
           ...issuingMovementData[index],
         })),
@@ -950,6 +1438,196 @@ class ReceivingIOFTProcessor {
     } catch (err) {
       throw new Error(`Failed to record inventory movements: ${err.message}`);
     }
+  }
+
+  // Method to record grouped inventory movements for serialized items
+  async recordGroupedInventoryMovements(
+    materialId,
+    totalQuantity,
+    sourceCategory,
+    targetCategory,
+    locationId,
+    issuingStockMovementNo,
+    receivingStockMovementNo,
+    issuingPlantId,
+    receivingPlantId,
+    unitPrice,
+    uom,
+    materialData,
+    organizationId,
+    batchId,
+    serialBalances
+  ) {
+    const formattedTotalQuantity = this.roundQty(totalQuantity);
+    const formattedUnitPrice = this.roundPrice(unitPrice || 0);
+    const totalPrice = this.roundPrice(
+      formattedUnitPrice * formattedTotalQuantity
+    );
+
+    // Use the material's UOM if not specified
+    const itemUom = uom || materialData.based_uom || materialData.uom_id;
+    const isBatchManaged =
+      materialData.item_batch_management == "1" ||
+      materialData.item_isbatch_managed == "1";
+
+    // Create grouped OUT movement (one record for all serials in this group)
+    const outMovement = {
+      transaction_type: "SM",
+      trx_no: issuingStockMovementNo,
+      movement: "OUT",
+      inventory_category: sourceCategory,
+      parent_trx_no: null,
+      unit_price: formattedUnitPrice,
+      total_price: totalPrice,
+      quantity: formattedTotalQuantity,
+      item_id: materialId,
+      uom_id: itemUom,
+      base_qty: formattedTotalQuantity,
+      base_uom_id: itemUom,
+      bin_location_id: locationId,
+      batch_number_id: isBatchManaged ? batchId : null,
+      costing_method_id: materialData.material_costing_method,
+      organization_id: organizationId,
+      plant_id: issuingPlantId,
+      created_at: new Date(),
+    };
+
+    // Create grouped IN movement (one record for all serials in this group)
+    const inMovement = {
+      transaction_type: "SM",
+      trx_no: receivingStockMovementNo,
+      parent_trx_no: issuingStockMovementNo || null,
+      movement: "IN",
+      unit_price: formattedUnitPrice,
+      total_price: totalPrice,
+      quantity: formattedTotalQuantity,
+      item_id: materialId,
+      inventory_category: targetCategory,
+      uom_id: itemUom,
+      base_qty: formattedTotalQuantity,
+      base_uom_id: itemUom,
+      bin_location_id: locationId,
+      batch_number_id: isBatchManaged ? batchId : null,
+      costing_method_id: materialData.material_costing_method,
+      created_at: new Date(),
+      plant_id: receivingPlantId,
+      organization_id: organizationId,
+    };
+
+    try {
+      // Create the grouped inventory movements
+      const [outResult, inResult] = await Promise.all([
+        this.db.collection("inventory_movement").add(outMovement),
+        this.db.collection("inventory_movement").add(inMovement),
+      ]);
+
+      console.log(
+        `✅ Created grouped inventory movements for ${serialBalances.length} serial numbers`
+      );
+
+      // Wait for inventory movement records to be created
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Get the actual inventory movement IDs
+      const outMovementId = outResult.data?.[0]?.id || outResult.id;
+      const inMovementId = inResult.data?.[0]?.id || inResult.id;
+
+      // Create serial movement records for each serial number in the group
+      const serialPromises = [];
+
+      for (const serialBalance of serialBalances) {
+        if (
+          serialBalance.balance_index &&
+          serialBalance.balance_index.serial_number
+        ) {
+          const serialQuantity = this.roundQty(
+            serialBalance.balance_index.sm_quantity || 1
+          );
+
+          // Create serial movement for OUT
+          if (outMovementId) {
+            serialPromises.push(
+              this.createSerialMovementRecord(
+                outMovementId,
+                serialBalance.balance_index.serial_number,
+                serialBalance.balance_index.batch_id || batchId,
+                serialQuantity,
+                itemUom,
+                issuingPlantId,
+                organizationId
+              )
+            );
+          }
+
+          // Create serial movement for IN
+          if (inMovementId) {
+            serialPromises.push(
+              this.createSerialMovementRecord(
+                inMovementId,
+                serialBalance.balance_index.serial_number,
+                serialBalance.balance_index.batch_id || batchId,
+                serialQuantity,
+                itemUom,
+                receivingPlantId,
+                organizationId
+              )
+            );
+          }
+        }
+      }
+
+      // Wait for all serial movement records to be created
+      await Promise.all(serialPromises);
+
+      console.log(
+        `✅ Created ${serialPromises.length} serial movement records for group`
+      );
+
+      return {
+        issuingMovement: {
+          id: outResult.data?.[0]?.id || outResult.id,
+          ...outMovement,
+        },
+        receivingMovement: {
+          id: inResult.data?.[0]?.id || inResult.id,
+          ...inMovement,
+        },
+        serialMovements: serialPromises.length,
+        groupedSerials: serialBalances
+          .map((b) => b.balance_index?.serial_number)
+          .filter(Boolean),
+      };
+    } catch (err) {
+      throw new Error(
+        `Failed to create grouped inventory movement: ${err.message}`
+      );
+    }
+  }
+
+  // Add method to create serial movement record
+  async createSerialMovementRecord(
+    inventoryMovementId,
+    serialNumber,
+    batchId,
+    baseQty,
+    baseUOM,
+    plantId,
+    organizationId
+  ) {
+    const invSerialMovementRecord = {
+      inventory_movement_id: inventoryMovementId,
+      serial_number: serialNumber,
+      batch_id: batchId || null,
+      base_qty: this.roundQty(baseQty),
+      base_uom: baseUOM,
+      plant_id: plantId,
+      organization_id: organizationId,
+    };
+
+    await this.db
+      .collection("inv_serial_movement")
+      .add(invSerialMovementRecord);
+    console.log(`Created inv_serial_movement for serial: ${serialNumber}`);
   }
 
   async updateCosting(

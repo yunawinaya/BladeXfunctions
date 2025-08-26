@@ -1461,8 +1461,8 @@ class StockAdjuster {
                 ? material.batch_number_genaration ===
                   "According To System Settings"
                   ? "Auto-generated batch number"
-                  : "-"
-                : "",
+                  : item.batch_id
+                : "-",
             // Add serialized item support
             is_serialized_item: material.serial_number_management === 1 ? 1 : 0,
             is_serial_allocated:
