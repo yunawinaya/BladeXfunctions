@@ -1,7 +1,3 @@
-const page_status = this.getValue("page_status");
-const self = this;
-const stockAdjustmentId = this.getValue("id");
-
 // For quantities - 3 decimal places
 const roundQty = (value) => {
   return parseFloat(parseFloat(value || 0).toFixed(3));
@@ -13,9 +9,9 @@ const roundPrice = (value) => {
 };
 
 const closeDialog = () => {
-  if (self.parentGenerateForm) {
-    self.parentGenerateForm.$refs.SuPageDialogRef.hide();
-    self.parentGenerateForm.refresh();
+  if (this.parentGenerateForm) {
+    this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+    this.parentGenerateForm.refresh();
     this.hideLoading();
   }
 };
@@ -187,7 +183,7 @@ const getFixedCostPrice = async (materialId) => {
 };
 
 const updateInventory = (allData) => {
-  const subformData = allData.subform_dus1f9ob;
+  const subformData = allData.stock_adjustment;
   const plant_id = allData.plant_id;
   const organization_id = allData.organization_id;
   const adjustment_type = allData.adjustment_type;
@@ -195,6 +191,8 @@ const updateInventory = (allData) => {
 
   subformData.forEach((item) => {
     console.log("Processing item:", item.total_quantity);
+
+    const balanceIndexData = JSON.parse(item.balance_index);
 
     db.collection("Item")
       .where({
@@ -460,17 +458,27 @@ const updateInventory = (allData) => {
               ? "item_batch_balance"
               : "item_balance";
 
+          const balanceQueryCondition =
+            materialData.item_batch_management == "1" && balance.batch_id
+              ? {
+                  material_id: materialData.id,
+                  location_id: balance.location_id,
+                  batch_id: balance.batch_id,
+                }
+              : {
+                  material_id: materialData.id,
+                  location_id: balance.location_id,
+                };
+
           await logTableState(
             collectionName,
-            { material_id: materialData.id, location_id: balance.location_id },
+            balanceQueryCondition,
             `Before balance update for material ${materialData.id}, location ${balance.location_id}`
           );
 
-          const balanceQuery = db.collection(collectionName).where({
-            material_id: materialData.id,
-            location_id: balance.location_id,
-            plant_id: plant_id,
-          });
+          const balanceQuery = db
+            .collection(collectionName)
+            .where(balanceQueryCondition);
 
           let balanceData = null;
           const response = await balanceQuery.get();
@@ -480,6 +488,7 @@ const updateInventory = (allData) => {
             const initialData = {
               material_id: materialData.id,
               location_id: balance.location_id,
+              batch_id: balance.batch_id || "",
               balance_quantity: 0,
               unrestricted_qty: 0,
               reserved_qty: 0,
@@ -492,11 +501,7 @@ const updateInventory = (allData) => {
 
             await logTableState(
               collectionName,
-              {
-                material_id: materialData.id,
-                location_id: balance.location_id,
-              },
-              `After adding new balance record for material ${materialData.id}, location ${balance.location_id}`
+              balanceQueryCondition`After adding new balance record for material ${materialData.id}, location ${balance.location_id}`
             );
 
             const newResponse = await balanceQuery.get();
@@ -524,15 +529,12 @@ const updateInventory = (allData) => {
 
           await db
             .collection(collectionName)
-            .where({
-              material_id: materialData.id,
-              location_id: balance.location_id,
-            })
+            .where(balanceQueryCondition)
             .update(updateData);
 
           await logTableState(
             collectionName,
-            { material_id: materialData.id, location_id: balance.location_id },
+            balanceQueryCondition,
             `After balance update for material ${materialData.id}, location ${balance.location_id}`
           );
 
@@ -622,14 +624,14 @@ const updateInventory = (allData) => {
         if (adjustment_type === "Write Off") {
           // For Write Off, assume unit_price is consistent across balance_index entries
           const balanceUnitPrice =
-            item.balance_index && item.balance_index.length > 0
+            balanceIndexData && balanceIndexData.length > 0
               ? item.unit_price || materialData.purchase_unit_price || 0
               : materialData.purchase_unit_price || 0;
 
           return updateQuantities(-item.total_quantity, balanceUnitPrice)
             .then(() => {
-              if (item.balance_index && Array.isArray(item.balance_index)) {
-                return item.balance_index
+              if (balanceIndexData && Array.isArray(balanceIndexData)) {
+                return balanceIndexData
                   .filter((balance) => balance.sa_quantity > 0)
                   .reduce((promise, balance) => {
                     return promise.then(() => {
@@ -655,8 +657,8 @@ const updateInventory = (allData) => {
           let totalInCost = 0;
           let totalInQuantity = 0;
 
-          if (item.balance_index && Array.isArray(item.balance_index)) {
-            item.balance_index.forEach((balance) => {
+          if (balanceIndexData && Array.isArray(balanceIndexData)) {
+            balanceIndexData.forEach((balance) => {
               if (balance.movement_type === "In") {
                 netQuantityChange += balance.sa_quantity;
                 totalInCost += (item.unit_price || 0) * balance.sa_quantity;
@@ -675,8 +677,8 @@ const updateInventory = (allData) => {
 
           return updateQuantities(netQuantityChange, balanceUnitPrice)
             .then(() => {
-              if (item.balance_index && Array.isArray(item.balance_index)) {
-                return item.balance_index
+              if (balanceIndexData && Array.isArray(balanceIndexData)) {
+                return balanceIndexData
                   .filter((balance) => balance.sa_quantity > 0)
                   .reduce((promise, balance) => {
                     return promise.then(() => {
@@ -714,7 +716,7 @@ async function preCheckQuantitiesAndCosting(allData, context) {
     console.log("Starting preCheckQuantitiesAndCosting with data:", allData);
 
     // Step 3: Perform item validations and quantity checks
-    for (const item of allData.subform_dus1f9ob) {
+    for (const item of allData.stock_adjustment) {
       // Fetch material data
       const materialResponse = await db
         .collection("Item")
@@ -730,8 +732,10 @@ async function preCheckQuantitiesAndCosting(allData, context) {
         );
       }
 
+      const balanceIndexData = JSON.parse(item.balance_index);
+
       const balancesToProcess =
-        item.balance_index?.filter(
+        balanceIndexData?.filter(
           (balance) => balance.sa_quantity && balance.sa_quantity > 0
         ) || [];
 
@@ -871,277 +875,367 @@ async function preCheckQuantitiesAndCosting(allData, context) {
   }
 }
 
-if (page_status === "Add") {
-  this.showLoading();
-  let organizationId = this.getVarGlobal("deptParentId");
-  if (organizationId === "0") {
-    organizationId = this.getVarSystem("deptIds").split(",")[0];
-  }
+const validateForm = (data, requiredFields) => {
+  const missingFields = [];
 
-  self
-    .getData()
-    .then((allData) => {
-      // Pre-check quantities and costing
-      preCheckQuantitiesAndCosting(allData, self)
-        .then(() => {
-          console.log("allData", allData);
-          const tableIndex = allData.dialog_index?.table_index;
-          const adjustedBy = allData.adjusted_by || "system";
-          const {
-            organization_id,
-            adjustment_date,
-            adjustment_type,
-            plant_id,
-            adjustment_no,
-            adjustment_remarks,
-            reference_documents,
-            subform_dus1f9ob,
-          } = allData;
+  requiredFields.forEach((field) => {
+    const value = data[field.name];
 
-          const sa = {
-            stock_adjustment_status: "Completed",
-            posted_status: "Pending Post",
-            organization_id,
-            adjustment_no,
-            adjustment_date,
-            adjustment_type,
-            adjusted_by: adjustedBy,
-            plant_id,
-            adjustment_remarks,
-            reference_documents,
-            subform_dus1f9ob,
-            table_index: tableIndex,
-          };
+    // Handle non-array fields (unchanged)
+    if (!field.isArray) {
+      if (validateField(value, field)) {
+        missingFields.push(field.label);
+      }
+      return;
+    }
 
-          return db
-            .collection("stock_adjustment")
-            .add(sa)
-            .then(() => {
-              updateInventory(sa);
-            });
-        })
-        .then(() => {
-          this.runWorkflow(
-            "1909088441531375617",
-            { key: "value" },
-            (res) => {
-              console.log("成功结果：", res);
-            },
-            (err) => {
-              console.error("失败结果：", err);
-            }
-          );
-        })
-        .then(() => {
-          return db
-            .collection("prefix_configuration")
-            .where({
-              document_types: "Stock Adjustment",
-              is_deleted: 0,
-              organization_id: organizationId,
-              is_active: 1,
-            })
-            .get()
-            .then((prefixEntry) => {
-              if (prefixEntry.data.length === 0) return;
-              else {
-                const data = prefixEntry.data[0];
-                return db
-                  .collection("prefix_configuration")
-                  .where({
-                    document_types: "Stock Adjustment",
-                    is_deleted: 0,
-                    organization_id: organizationId,
-                  })
-                  .update({
-                    running_number: parseInt(data.running_number) + 1,
-                    has_record: 1,
-                  });
-              }
-            });
-        })
-        .then(() => {
-          closeDialog();
-        })
-        .catch((error) => {
-          console.error("Error in stock adjustment:", error);
-          // Error already handled in preCheckQuantitiesAndCosting
+    // Handle array fields
+    if (!Array.isArray(value)) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    if (value.length === 0) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    // Check each item in the array
+    if (field.arrayType === "object" && field.arrayFields && value.length > 0) {
+      value.forEach((item, index) => {
+        field.arrayFields.forEach((subField) => {
+          const subValue = item[subField.name];
+          if (validateField(subValue, subField)) {
+            missingFields.push(
+              `${subField.label} (in ${field.label} #${index + 1})`
+            );
+          }
         });
-    })
-    .catch((error) => {
-      self.$alert(error, "Error", {
-        confirmButtonText: "OK",
-        type: "error",
       });
-    });
-} else if (page_status === "Edit") {
-  this.showLoading();
-  let organizationId = this.getVarGlobal("deptParentId");
-  if (organizationId === "0") {
-    organizationId = this.getVarSystem("deptIds").split(",")[0];
-  }
-  this.getData().then((allData) => {
-    // Pre-check quantities and costing
-    preCheckQuantitiesAndCosting(allData, self)
-      .then(() => {
-        const tableIndex = allData.dialog_index?.table_index;
-        const adjustedBy = allData.adjusted_by || "system";
-        const {
-          adjustment_no,
-          organization_id,
-          adjustment_date,
-          adjustment_type,
-          plant_id,
-          adjustment_remarks,
-          reference_documents,
-          subform_dus1f9ob,
-          balance_index,
-        } = allData;
-
-        const sa = {
-          stock_adjustment_status: "Completed",
-          posted_status: "Pending Post",
-          organization_id,
-          adjustment_no,
-          adjustment_date,
-          adjustment_type,
-          adjusted_by: adjustedBy,
-          plant_id,
-          adjustment_remarks,
-          reference_documents,
-          subform_dus1f9ob,
-          table_index: tableIndex,
-          balance_index,
-        };
-
-        const prefixEntry = db
-          .collection("prefix_configuration")
-          .where({
-            document_types: "Stock Adjustment",
-            is_deleted: 0,
-            organization_id: organizationId,
-            is_active: 1,
-          })
-          .get()
-          .then((prefixEntry) => {
-            if (prefixEntry.data.length > 0) {
-              const prefixData = prefixEntry.data[0];
-              const now = new Date();
-              let prefixToShow;
-              let runningNumber = prefixData.running_number;
-              let isUnique = false;
-              let maxAttempts = 10;
-              let attempts = 0;
-
-              const generatePrefix = (runNumber) => {
-                let generated = prefixData.current_prefix_config;
-                generated = generated.replace(
-                  "prefix",
-                  prefixData.prefix_value
-                );
-                generated = generated.replace(
-                  "suffix",
-                  prefixData.suffix_value
-                );
-                generated = generated.replace(
-                  "month",
-                  String(now.getMonth() + 1).padStart(2, "0")
-                );
-                generated = generated.replace(
-                  "day",
-                  String(now.getDate()).padStart(2, "0")
-                );
-                generated = generated.replace("year", now.getFullYear());
-                generated = generated.replace(
-                  "running_number",
-                  String(runNumber).padStart(prefixData.padding_zeroes, "0")
-                );
-                return generated;
-              };
-
-              const checkUniqueness = async (generatedPrefix) => {
-                const existingDoc = await db
-                  .collection("stock_adjustment")
-                  .where({ adjustment_no: generatedPrefix })
-                  .get();
-                return existingDoc.data[0] ? false : true;
-              };
-
-              const findUniquePrefix = async () => {
-                while (!isUnique && attempts < maxAttempts) {
-                  attempts++;
-                  prefixToShow = generatePrefix(runningNumber);
-                  isUnique = await checkUniqueness(prefixToShow);
-                  if (!isUnique) {
-                    runningNumber++;
-                  }
-                }
-
-                if (!isUnique) {
-                  throw new Error(
-                    "Could not generate a unique Stock Adjustment number after maximum attempts"
-                  );
-                } else {
-                  sa.adjustment_no = prefixToShow;
-                  db.collection("stock_adjustment")
-                    .doc(stockAdjustmentId)
-                    .update(sa)
-                    .then(() => {
-                      updateInventory(sa);
-                    });
-                  db.collection("prefix_configuration")
-                    .where({
-                      document_types: "Stock Adjustment",
-                      is_deleted: 0,
-                      organization_id: organizationId,
-                    })
-                    .update({
-                      running_number: parseInt(runningNumber) + 1,
-                      has_record: 1,
-                    });
-                }
-              };
-
-              findUniquePrefix();
-            } else {
-              db.collection("stock_adjustment")
-                .doc(stockAdjustmentId)
-                .update(sa)
-                .then(() => {
-                  updateInventory(sa);
-                });
-            }
-          })
-          .then(() => {
-            this.runWorkflow(
-              "1909088441531375617",
-              { key: "value" },
-              (res) => {
-                console.log("成功结果：", res);
-              },
-              (err) => {
-                console.error("失败结果：", err);
-              }
-            );
-          })
-          .then(() => {
-            closeDialog();
-          })
-          .catch((error) => {
-            console.error("Error updating stock adjustment:", error);
-            self.$alert(
-              "Please fill in all required fields marked with (*) before submitting.",
-              "Error",
-              {
-                confirmButtonText: "OK",
-                type: "error",
-              }
-            );
-          });
-      })
-      .catch((error) => {
-        // Error already handled in preCheckQuantitiesAndCosting
-        console.error("Error in pre-check:", error);
-      });
+    }
   });
-}
+
+  return missingFields;
+};
+
+const validateField = (value, field) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "number") return value <= 0;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return !value;
+};
+
+const getPrefixData = async (organizationId) => {
+  const prefixEntry = await db
+    .collection("prefix_configuration")
+    .where({
+      document_types: "Stock Adjustment",
+      is_deleted: 0,
+      organization_id: organizationId,
+      is_active: 1,
+    })
+    .get();
+
+  const prefixData = await prefixEntry.data[0];
+
+  return prefixData;
+};
+
+const updatePrefix = async (organizationId, runningNumber) => {
+  try {
+    await db
+      .collection("prefix_configuration")
+      .where({
+        document_types: "Stock Adjustment",
+        is_deleted: 0,
+        organization_id: organizationId,
+      })
+      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
+  } catch (error) {
+    this.$message.error(error);
+  }
+};
+
+const generatePrefix = (runNumber, now, prefixData) => {
+  let generated = prefixData.current_prefix_config;
+  generated = generated.replace("prefix", prefixData.prefix_value);
+  generated = generated.replace("suffix", prefixData.suffix_value);
+  generated = generated.replace(
+    "month",
+    String(now.getMonth() + 1).padStart(2, "0")
+  );
+  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
+  generated = generated.replace("year", now.getFullYear());
+  generated = generated.replace(
+    "running_number",
+    String(runNumber).padStart(prefixData.padding_zeroes, "0")
+  );
+  return generated;
+};
+
+const checkUniqueness = async (generatedPrefix) => {
+  const existingDoc = await db
+    .collection("stock_adjustment")
+    .where({ adjustment_no: generatedPrefix })
+    .get();
+  return existingDoc.data[0] ? false : true;
+};
+
+const findUniquePrefix = async (prefixData) => {
+  const now = new Date();
+  let prefixToShow;
+  let runningNumber = prefixData.running_number;
+  let isUnique = false;
+  let maxAttempts = 10;
+  let attempts = 0;
+
+  while (!isUnique && attempts < maxAttempts) {
+    attempts++;
+    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
+    isUnique = await checkUniqueness(prefixToShow);
+    if (!isUnique) {
+      runningNumber++;
+    }
+  }
+
+  if (!isUnique) {
+    this.$message.error(
+      "Could not generate a unique Stock Adjustment number after maximum attempts"
+    );
+  }
+
+  return { prefixToShow, runningNumber };
+};
+
+const addEntry = async (organizationId, sa, self) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+
+    if (prefixData !== null) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      sa.adjustment_no = prefixToShow;
+    }
+
+    await preCheckQuantitiesAndCosting(sa, self);
+    await db.collection("stock_adjustment").add(sa);
+    await updateInventory(sa);
+
+    await this.runWorkflow(
+      "1922123385857220609",
+      { adjustment_no: sa.adjustment_no },
+      async (res) => {
+        console.log("成功结果：", res);
+      },
+      (err) => {
+        console.error("失败结果：", err);
+        closeDialog();
+      }
+    );
+
+    const accIntegrationType = this.getValue("acc_integration_type");
+
+    if (
+      accIntegrationType === "SQL Accounting" &&
+      organizationId &&
+      organizationId !== ""
+    ) {
+      console.log("Calling SQL Accounting workflow");
+
+      this.runWorkflow(
+        "1909088441531375617",
+        { key: "value" },
+        (res) => {
+          this.$message.success("Add Stock Adjustment successfully");
+          closeDialog();
+        },
+        (err) => {
+          this.hideLoading();
+          this.$message.error("Post PI Failed: ", err);
+        }
+      );
+    } else if (
+      accIntegrationType === "AutoCount Accounting" &&
+      organizationId &&
+      organizationId !== ""
+    ) {
+      this.$message.success("Add Stock Adjustment successfully");
+      await closeDialog();
+      console.log("Calling AutoCount workflow");
+    } else if (
+      accIntegrationType === "No Accounting Integration" &&
+      organizationId &&
+      organizationId !== ""
+    ) {
+      this.$message.success("Add Stock Adjustment successfully");
+      await closeDialog();
+      console.log("Not calling workflow");
+    } else {
+      await closeDialog();
+    }
+    this.$message.success("Add successfully");
+    closeDialog();
+  } catch (error) {
+    this.$message.error(error);
+  }
+};
+
+const updateEntry = async (organizationId, sa, self, stockAdjustmentId) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+
+    if (prefixData.length !== 0) {
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
+        prefixData
+      );
+
+      await updatePrefix(organizationId, runningNumber);
+
+      sa.adjustment_no = prefixToShow;
+    }
+
+    await preCheckQuantitiesAndCosting(sa, self);
+    await db.collection("stock_adjustment").doc(stockAdjustmentId).update(sa);
+    await updateInventory(sa);
+    await this.runWorkflow(
+      "1922123385857220609",
+      { adjustment_no: sa.adjustment_no },
+      async (res) => {
+        console.log("成功结果：", res);
+      },
+      (err) => {
+        console.error("失败结果：", err);
+        closeDialog();
+      }
+    );
+
+    const accIntegrationType = this.getValue("acc_integration_type");
+
+    if (
+      accIntegrationType === "SQL Accounting" &&
+      organizationId &&
+      organizationId !== ""
+    ) {
+      console.log("Calling SQL Accounting workflow");
+
+      this.runWorkflow(
+        "1909088441531375617",
+        { key: "value" },
+        (res) => {
+          this.$message.success("Update Stock Adjustment successfully");
+          closeDialog();
+        },
+        (err) => {
+          this.hideLoading();
+          this.$message.error("Post PI Failed: ", err);
+        }
+      );
+    } else if (
+      accIntegrationType === "AutoCount Accounting" &&
+      organizationId &&
+      organizationId !== ""
+    ) {
+      this.$message.success("Update Stock Adjustment successfully");
+      await closeDialog();
+      console.log("Calling AutoCount workflow");
+    } else if (
+      accIntegrationType === "No Accounting Integration" &&
+      organizationId &&
+      organizationId !== ""
+    ) {
+      this.$message.success("Update Stock Adjustment successfully");
+      await closeDialog();
+      console.log("Not calling workflow");
+    } else {
+      await closeDialog();
+    }
+    this.$message.success("Update successfully");
+    await closeDialog();
+  } catch (error) {
+    this.$message.error(error);
+  }
+};
+
+const fillbackHeaderFields = async (sa) => {
+  try {
+    for (const [index, saLineItem] of sa.stock_adjustment.entries()) {
+      saLineItem.plant_id = sa.plant_id || null;
+      saLineItem.line_index = index + 1;
+    }
+    return sa.stock_adjustment;
+  } catch (error) {
+    throw new Error("Error processing Stock Adjustment.");
+  }
+};
+
+(async () => {
+  try {
+    this.showLoading();
+    const data = this.getValues();
+    const page_status = this.getValue("page_status");
+    const self = this;
+    const stockAdjustmentId = this.getValue("id");
+    const requiredFields = [
+      { name: "adjustment_date", label: "Adjustment Date" },
+      { name: "adjustment_type", label: "Adjustment Type" },
+      { name: "plant_id", label: "Plant" },
+      {
+        name: "stock_adjustment",
+        label: "Stock Adjustment Details",
+        isArray: true,
+        arrayType: "object",
+        arrayFields: [],
+      },
+    ];
+
+    const missingFields = await validateForm(data, requiredFields);
+    if (missingFields.length === 0) {
+      const {
+        organization_id,
+        adjustment_date,
+        adjustment_type,
+        plant_id,
+        adjusted_by,
+        adjustment_no,
+        adjustment_remarks,
+        reference_documents,
+        stock_adjustment,
+        table_index,
+      } = data;
+
+      const sa = {
+        stock_adjustment_status: "Completed",
+        posted_status: "Pending Post",
+        organization_id,
+        adjustment_no,
+        adjustment_date,
+        adjustment_type,
+        adjusted_by,
+        plant_id,
+        adjustment_remarks,
+        reference_documents,
+        stock_adjustment,
+        table_index,
+      };
+
+      sa.stock_adjustment = await fillbackHeaderFields(sa);
+
+      if (page_status === "Add") {
+        await addEntry(organization_id, sa, self);
+      } else if (page_status === "Edit") {
+        await updateEntry(organization_id, sa, self, stockAdjustmentId);
+      }
+    } else {
+      this.hideLoading();
+      this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
+    }
+  } catch (error) {
+    this.$message.error(error);
+  }
+})();
