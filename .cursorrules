@@ -1,0 +1,51 @@
+# Scratchpad
+
+## Current Task: Fix inventory dialog temp_qty_data missing location_id
+
+### Problem Analysis:
+
+- When opening inventory dialog after confirming selections, previous records are not correctly reflected
+- The temp_qty_data JSON string is missing location_id field
+- Example temp_qty_data: [{"material_id":"1959902300548952066","serial_number":"SN-0000000283","unrestricted_qty":1,"reserved_qty":0,"plant_id":"1123598813738675202","organization_id":"1123598813738675201","is_deleted":0,"gd_quantity":1}]
+- Missing: location_id, batch_id (if applicable)
+
+### Plan:
+
+[X] Analyze GDconfirmDialog.js to see where temp_qty_data is created
+[X] Identify missing fields in the stored data structure
+[ ] Update the data structure to include location_id and other necessary fields
+[ ] Test the fix
+
+### Root Cause Found:
+
+The temp_qty_data is created in GDconfirmDialog.js line 306 using JSON.stringify(filteredData). The filteredData comes from temporaryData which is from gd_item_balance.table_item_balance. However, the MAIN issue is that when users confirm the inventory dialog, the gd_qty field gets updated, which triggers GDgdQty.js. This code can overwrite the temp_qty_data that was carefully set by the inventory dialog, causing the loss of location_id and other critical fields.
+
+### Analysis:
+
+- temporaryData comes from data.gd_item_balance.table_item_balance (line 3)
+- This should be the inventory balance data that includes location_id
+- The example shows temp_qty_data missing location_id, batch_id
+- Need to ensure the inventory dialog preserves all necessary fields when saving
+
+### Solution Implemented:
+
+[X] Added comprehensive debug logging to both GDconfirmDialog.js and GDinventoryDialog.js
+[X] Enhanced the filteredData creation in GDconfirmDialog.js to ensure all required fields are preserved
+[X] The fix ensures location_id, batch_id, and serial_number are always included in temp_qty_data
+[X] **CRITICAL FIX**: Modified GDgdQty.js to preserve inventory dialog allocations instead of overwriting them
+
+### Fix Details:
+
+- Enhanced the data filtering process to preserve essential fields
+- Added fallback field name mapping (location_id, locationId, bin_location_id)
+- Added validation and warnings for missing critical fields
+- **CRITICAL**: Added detection in GDgdQty.js to identify inventory dialog allocations (by checking for location_id)
+- **CRITICAL**: Modified GDgdQty.js to preserve existing temp_qty_data when it comes from inventory dialog
+- This ensures the mergeWithTempData function in GDinventoryDialog.js can properly match records
+
+### Testing Required:
+
+[ ] Test serialized items: confirm location_id and serial_number are preserved
+[ ] Test batch items: confirm location_id and batch_id are preserved  
+[ ] Test regular items: confirm location_id is preserved
+[ ] Verify reopening dialog shows correct previous records
