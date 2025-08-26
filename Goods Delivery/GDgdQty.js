@@ -24,25 +24,6 @@
     existingTempData !== "[]" &&
     existingTempData.trim() !== "";
 
-  // 🔧 NEW: Check if existing allocation has location_id (indicates it came from inventory dialog)
-  let hasInventoryDialogAllocation = false;
-  if (hasExistingAllocation) {
-    try {
-      const parsedTempData = JSON.parse(existingTempData);
-      hasInventoryDialogAllocation =
-        Array.isArray(parsedTempData) &&
-        parsedTempData.some((item) => item.location_id);
-      console.log(
-        `Row ${rowIndex}: Has inventory dialog allocation: ${hasInventoryDialogAllocation}`
-      );
-    } catch (error) {
-      console.error(
-        `Row ${rowIndex}: Error parsing existing temp data:`,
-        error
-      );
-    }
-  }
-
   // Get UOM data
   const getUOMData = async (uomId) => {
     if (!uomId) return "";
@@ -80,19 +61,6 @@
       return null;
     }
   };
-
-  // 🔧 NEW: If there's an inventory dialog allocation, preserve it and only update basic fields
-  if (hasInventoryDialogAllocation) {
-    console.log(`Row ${rowIndex}: Preserving inventory dialog allocation data`);
-
-    // Only update the delivery quantities, don't touch temp_qty_data or view_stock
-    this.setData({
-      [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-      [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-        orderedQty - totalDeliveredQty,
-    });
-    return;
-  }
 
   // Process non-item code case
   if (!itemCode && itemDesc) {
@@ -259,8 +227,13 @@
       const temporaryData = {
         material_id: itemCode,
         serial_number: serialData.serial_number,
+        location_id: serialData.location_id,
         unrestricted_qty: serialData.unrestricted_qty,
         reserved_qty: serialData.reserved_qty,
+        qualityinsp_qty: serialData.qualityinsp_qty,
+        intransit_qty: serialData.intransit_qty,
+        block_qty: serialData.block_qty,
+        balance_quantity: serialData.balance_quantity,
         plant_id: plantId,
         organization_id: organizationId,
         is_deleted: 0,
