@@ -928,9 +928,46 @@ class StockAdjuster {
       // Wait for inventory movement records to be created
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      // Get the actual inventory movement IDs
-      const outMovementId = outResult.data?.[0]?.id || outResult.id;
-      const inMovementId = inResult.data?.[0]?.id || inResult.id;
+      // Fetch the actual inventory movement IDs
+      const outMovementId = await this.db
+        .collection("inventory_movement")
+        .where({
+          transaction_type: "SM",
+          trx_no: stockMovementNumber,
+          movement: "OUT",
+          inventory_category: category,
+          item_id: materialData.id,
+          bin_location_id: locationId,
+          base_qty: formattedTotalQuantity,
+          plant_id: stockMovementIssuingPlantId,
+          organization_id: organizationId,
+        })
+        .get()
+        .then((res) => res.data[0].id)
+        .catch((err) => {
+          console.error(`Error fetching out movement ID: ${err.message}`);
+          return null;
+        });
+
+      const inMovementId = await this.db
+        .collection("inventory_movement")
+        .where({
+          transaction_type: "SM",
+          trx_no: stockMovementNumber,
+          movement: "IN",
+          inventory_category: "In Transit",
+          item_id: materialData.id,
+          bin_location_id: locationId,
+          base_qty: formattedTotalQuantity,
+          plant_id: stockMovementIssuingPlantId,
+          organization_id: organizationId,
+        })
+        .get()
+        .then((res) => res.data[0].id)
+        .catch((err) => {
+          console.error(`Error fetching in movement ID: ${err.message}`);
+          return null;
+        });
 
       // Create serial movement records for each serial number in the group
       const serialPromises = [];
@@ -1194,8 +1231,45 @@ class StockAdjuster {
 
         await new Promise((resolve) => setTimeout(resolve, 300));
 
-        const outMovementId = outResult.data?.[0]?.id || outResult.id;
-        const inMovementId = inResult.data?.[0]?.id || inResult.id;
+        const outMovementId = await this.db
+          .collection("inventory_movement")
+          .where({
+            transaction_type: "SM",
+            trx_no: stockMovementNumber,
+            movement: "OUT",
+            inventory_category: category,
+            item_id: materialId,
+            bin_location_id: locationId,
+            base_qty: formattedSmQuantity,
+            plant_id: stockMovementIssuingPlantId,
+            organization_id: organizationId,
+          })
+          .get()
+          .then((res) => res.data[0].id)
+          .catch((err) => {
+            console.error(`Error fetching out movement ID: ${err.message}`);
+            return null;
+          });
+
+        const inMovementId = await this.db
+          .collection("inventory_movement")
+          .where({
+            transaction_type: "SM",
+            trx_no: stockMovementNumber,
+            movement: "IN",
+            inventory_category: "In Transit",
+            item_id: materialId,
+            bin_location_id: locationId,
+            base_qty: formattedSmQuantity,
+            plant_id: stockMovementIssuingPlantId,
+            organization_id: organizationId,
+          })
+          .get()
+          .then((res) => res.data[0].id)
+          .catch((err) => {
+            console.error(`Error fetching in movement ID: ${err.message}`);
+            return null;
+          });
 
         if (outMovementId) {
           await this.createSerialMovementRecord(
