@@ -1,4 +1,3 @@
-// Helper functions
 const showStatusHTML = (status) => {
   switch (status) {
     case "Draft":
@@ -33,11 +32,15 @@ const generatePrefix = (prefixData) => {
   return generated;
 };
 
-const checkUniqueness = async (generatedPrefix) => {
+const checkUniqueness = async (generatedPrefix, organizationId) => {
   try {
     const existingDoc = await db
       .collection("stock_adjustment")
-      .where({ adjustment_no: generatedPrefix })
+      .where({
+        adjustment_no: generatedPrefix,
+        organization_id: organizationId,
+        is_deleted: 0,
+      })
       .get();
     return !existingDoc.data || existingDoc.data.length === 0;
   } catch (error) {
@@ -46,7 +49,7 @@ const checkUniqueness = async (generatedPrefix) => {
   }
 };
 
-const findUniquePrefix = async (prefixData) => {
+const findUniquePrefix = async (prefixData, organizationId) => {
   let prefixToShow;
   let runningNumber = prefixData.running_number || 1;
   let isUnique = false;
@@ -59,7 +62,7 @@ const findUniquePrefix = async (prefixData) => {
       ...prefixData,
       running_number: runningNumber,
     });
-    isUnique = await checkUniqueness(prefixToShow);
+    isUnique = await checkUniqueness(prefixToShow, organizationId);
     if (!isUnique) {
       runningNumber++;
     }
@@ -94,10 +97,95 @@ const checkPrefixConfiguration = async (organizationId) => {
   }
 };
 
-// Main execution function
+const checkAccIntegrationType = async (organizationId) => {
+  if (organizationId) {
+    const resAI = await db
+      .collection("accounting_integration")
+      .where({ organization_id: organizationId })
+      .get();
+
+    if (resAI && resAI.data.length > 0) {
+      const aiData = resAI.data[0];
+
+      this.setData({ acc_integration_type: aiData.acc_integration_type });
+      if (aiData.acc_integration_type === "No Accounting Integration") {
+        this.hide(["button_completed_posted", "button_posted"]);
+      }
+    }
+  }
+};
+
+const setPrefix = async (organizationId) => {
+  const prefixData = await checkPrefixConfiguration(organizationId);
+  let newPrefix = "";
+
+  if (prefixData) {
+    if (prefixData.is_active === 1) {
+      const { prefixToShow } = await findUniquePrefix(
+        prefixData,
+        organizationId
+      );
+      newPrefix = prefixToShow;
+      this.disabled(["adjustment_no"], true);
+    } else if (prefixData.is_active === 0) {
+      this.disabled(["adjustment_no"], false);
+    }
+    this.setData({ adjustment_no: newPrefix });
+  }
+};
+
+const disabledEditField = async (stockAdjustmentStatus) => {
+  if (stockAdjustmentStatus === "Draft") {
+    this.hide("button_posted");
+    this.hide("stock_adjustment.readjust_link");
+    this.hide("stock_adjustment.view_link");
+  } else {
+    this.disabled(
+      [
+        "stock_adjustment_status",
+        "adjustment_no",
+        "adjustment_date",
+        "adjustment_type",
+        "adjusted_by",
+        "plant_id",
+        "stock_adjustment",
+        "adjustment_remarks",
+        "table_item_balance",
+        "reference_documents",
+        "stock_adjustment.adjustment_reason",
+        "stock_adjustment.adjustment_remarks",
+        "stock_adjustment.material_id",
+        "stock_adjustment.total_quantity",
+      ],
+      true
+    );
+    this.hide([
+      "stock_adjustment.link_adjust_stock",
+      "stock_adjustment.view_link",
+    ]);
+
+    if (stockAdjustmentStatus === "Fully Posted") {
+      this.hide([
+        "button_posted",
+        "button_save_as_draft",
+        "button_completed",
+        "button_completed_posted",
+      ]);
+    } else {
+      this.display(["button_posted"]);
+      this.hide([
+        "button_save_as_draft",
+        "button_completed",
+        "button_completed_posted",
+      ]);
+    }
+  }
+};
+
 (async () => {
   try {
     let pageStatus = "";
+    const data = this.getValues();
 
     // Determine page status
     if (this.isAdd) pageStatus = "Add";
@@ -106,7 +194,6 @@ const checkPrefixConfiguration = async (organizationId) => {
     else if (this.isCopy) pageStatus = "Clone";
     else throw new Error("Invalid page state");
 
-    // Set page status in data
     this.setData({ page_status: pageStatus });
 
     // Get organization ID
@@ -115,159 +202,57 @@ const checkPrefixConfiguration = async (organizationId) => {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
-    if (pageStatus !== "Add") {
-      // Handle Edit/View/Clone modes
-      const stockAdjustmentId = this.getValue("id");
+    switch (pageStatus) {
+      case "Add":
+        this.display(["draft_status"]);
+        this.hide([
+          "stock_adjustment.view_link",
+          "stock_adjustment.readjust_link",
+          "stock_adjustment.readjust_link",
+          "button_posted",
+        ]);
 
-      const resSA = await db
-        .collection("stock_adjustment")
-        .where({ id: stockAdjustmentId })
-        .get();
+        this.setData({
+          adjustment_date: new Date().toISOString().split("T")[0],
+          adjusted_by: this.getVarGlobal("nickname"),
+          organization_id: organizationId,
+        });
 
-      if (resSA.data && resSA.data.length > 0) {
-        const stockAdjustment = resSA.data[0];
-        const {
-          stock_adjustment_status,
-          adjustment_no,
-          organization_id,
-          adjustment_date,
-          adjustment_type,
-          adjusted_by,
-          plant_id,
-          adjustment_remarks,
-          reference_documents,
-          subform_dus1f9ob,
-          table_index,
-        } = stockAdjustment;
+        this.disabled(["adjustment_type", "stock_adjustment"], true);
 
-        const sa = {
-          stock_adjustment_status,
-          adjustment_no,
-          organization_id,
-          adjustment_date,
-          adjustment_type,
-          adjusted_by,
-          plant_id,
-          adjustment_remarks,
-          reference_documents,
-          subform_dus1f9ob,
-          table_index,
-        };
+        await checkAccIntegrationType(organizationId);
+        await setPrefix(organizationId);
+        break;
 
-        // Set data for all modes
-        await this.setData(sa);
-
-        // Show appropriate status UI
-        showStatusHTML(stock_adjustment_status);
-
-        if (pageStatus === "Edit") {
-          // Handle Edit mode
-          if (stock_adjustment_status === "Draft") {
-            this.hide("button_posted");
-            this.hide("subform_dus1f9ob.link_adjust_stock");
-            this.hide("subform_dus1f9ob.view_link");
-            this.hide("subform_dus1f9ob.balance_index");
-          }
-
-          // Check if prefix is active
-          const prefixConfig = await checkPrefixConfiguration(organizationId);
-          if (prefixConfig && prefixConfig.is_active === 0) {
-            this.disabled(["adjustment_no"], false);
-          }
-        } else if (pageStatus === "View") {
-          // Handle View mode: disable all fields
-          this.disabled(
-            [
-              "stock_adjustment_status",
-              "adjustment_no",
-              "adjustment_date",
-              "adjustment_type",
-              "adjusted_by",
-              "plant_id",
-              "adjustment_remarks",
-              "table_item_balance",
-              "reference_documents",
-              "subform_dus1f9ob.adjustment_reason",
-              "subform_dus1f9ob.adjustment_remarks",
-              "subform_dus1f9ob.divider_tiqnndpq",
-              "subform_dus1f9ob.material_id",
-              "subform_dus1f9ob.total_quantity",
-            ],
-            true
-          );
-
-          if (adjustment_type === "Write Off") {
-            this.hide("subform_dus1f9ob.unit_price");
-          }
-
-          // Hide add button for subform
-          setTimeout(() => {
-            const addButton = document.querySelector(
-              ".form-subform-action .el-button--primary"
-            );
-            if (addButton) {
-              addButton.style.display = "none";
-            }
-          }, 500);
-
-          this.disabled(["subform_dus1f9ob.view_link"], false);
-          this.hide("subform_dus1f9ob.link_adjust_stock");
-          this.hide("subform_dus1f9ob.readjust_link");
-
-          // Show/hide buttons based on status
-          if (stock_adjustment_status === "Completed") {
-            this.hide([
-              "button_save_as_draft",
-              "button_completed",
-              "button_completed_posted",
-            ]);
-          } else {
-            this.hide([
-              "button_save_as_draft",
-              "button_completed",
-              "button_posted",
-              "button_completed_posted",
-            ]);
-          }
-        }
-      } else {
-        throw new Error(
-          `Stock Adjustment with ID ${stockAdjustmentId} not found`
-        );
-      }
-    } else {
-      // Handle Add mode
-      this.display(["draft_status"]);
-      this.hide("subform_dus1f9ob.view_link");
-      this.hide("subform_dus1f9ob.readjust_link");
-      this.hide("subform_dus1f9ob.balance_index");
-      this.hide("button_posted");
-      this.reset();
-
-      try {
-        // Get prefix configuration
-        const prefixData = await checkPrefixConfiguration(organizationId);
-
-        if (prefixData) {
-          if (prefixData.is_active === 0) {
-            this.disabled(["adjustment_no"], false);
-          } else {
-            // Generate unique prefix
-            const { prefixToShow, runningNumber } = await findUniquePrefix(
-              prefixData
-            );
-            await this.setData({ adjustment_no: prefixToShow });
-            this.disabled(["adjustment_no"], true);
-          }
-        } else {
-          console.warn("No prefix configuration found for Stock Adjustment");
+      case "Edit":
+        // Check if prefix is active
+        const prefixConfig = await checkPrefixConfiguration(organizationId);
+        if (prefixConfig && prefixConfig.is_active === 0) {
           this.disabled(["adjustment_no"], false);
+        } else if (prefixConfig && prefixConfig.is_active === 1) {
+          this.disabled(["adjustment_no"], true);
         }
-      } catch (error) {
-        console.error("Error generating prefix:", error);
-        this.$message.error(`Error generating prefix: ${error.message}`);
-        this.disabled(["adjustment_no"], false);
-      }
+
+        await showStatusHTML(data.stock_adjustment_status);
+        await disabledEditField(data.stock_adjustment_status);
+        await checkAccIntegrationType(organizationId);
+        break;
+
+      case "View":
+        if (data.adjustment_type === "Write Off") {
+          this.hide("stock_adjustment.unit_price");
+        }
+
+        this.hide([
+          "stock_adjustment.link_adjust_stock",
+          "stock_adjustment.readjust_link",
+          "button_save_as_draft",
+          "button_completed",
+          "button_completed_posted",
+          "button_posted",
+        ]);
+
+        await showStatusHTML(data.stock_adjustment_status);
     }
   } catch (error) {
     console.error(error);
