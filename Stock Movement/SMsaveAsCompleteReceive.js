@@ -1383,9 +1383,7 @@ class ReceivingIOFTProcessor {
         )
       );
 
-      const receivingResult = await this.db
-        .collection("inventory_movement")
-        .add(receivingMovement);
+      await this.db.collection("inventory_movement").add(receivingMovement);
 
       // For serialized items, create serial movement records
       const isSerializedItem = materialData.serial_number_management === 1;
@@ -1399,39 +1397,125 @@ class ReceivingIOFTProcessor {
 
         // Create serial movement for issuing movements
         for (let i = 0; i < issuingResults.length; i++) {
-          const issuingMovementId = issuingResults[i].data[0].id;
-          await this.createSerialMovementRecord(
-            issuingMovementId,
-            serialNumber,
-            batchId,
-            issuingMovementData[i].quantity,
-            issuingMovementData[i].base_uom_id,
-            issuingPlantId,
-            organizationId
-          );
+          // Query to get the actual issuing movement ID
+          const issuingMovementQuery = await this.db
+            .collection("inventory_movement")
+            .where({
+              transaction_type: "SM",
+              trx_no: issuingStockMovementNo,
+              movement: "OUT",
+              inventory_category: sourceCategory,
+              item_id: issuingMovementData[i].item_id,
+              bin_location_id: issuingMovementData[i].bin_location_id,
+              base_qty: issuingMovementData[i].base_qty,
+              plant_id: issuingPlantId,
+              organization_id: organizationId,
+            })
+            .get();
+
+          if (
+            issuingMovementQuery.data &&
+            issuingMovementQuery.data.length > 0
+          ) {
+            const issuingMovementId = issuingMovementQuery.data[0].id;
+            await this.createSerialMovementRecord(
+              issuingMovementId,
+              serialNumber,
+              batchId,
+              issuingMovementData[i].quantity,
+              issuingMovementData[i].base_uom_id,
+              issuingPlantId,
+              organizationId
+            );
+          } else {
+            console.error(`Failed to retrieve issuing movement ${i}`);
+          }
         }
 
-        // Create serial movement for receiving movement
-        const receivingMovementId = receivingResult.data[0].id;
-        await this.createSerialMovementRecord(
-          receivingMovementId,
-          serialNumber,
-          batchId,
-          formattedQuantity,
-          itemUom,
-          receivingPlantId,
-          organizationId
-        );
+        // Query to get the actual receiving movement ID
+        const receivingMovementQuery = await this.db
+          .collection("inventory_movement")
+          .where({
+            transaction_type: "SM",
+            trx_no: receivingStockMovementNo,
+            movement: "IN",
+            inventory_category: targetCategory,
+            item_id: materialId,
+            bin_location_id: locationId,
+            base_qty: formattedQuantity,
+            plant_id: receivingPlantId,
+            organization_id: organizationId,
+          })
+          .get();
+
+        if (
+          receivingMovementQuery.data &&
+          receivingMovementQuery.data.length > 0
+        ) {
+          const receivingMovementId = receivingMovementQuery.data[0].id;
+          await this.createSerialMovementRecord(
+            receivingMovementId,
+            serialNumber,
+            batchId,
+            formattedQuantity,
+            itemUom,
+            receivingPlantId,
+            organizationId
+          );
+        } else {
+          console.error("Failed to retrieve receiving movement");
+        }
       }
 
-      // Return properly structured results
+      // Return properly structured results with queried IDs
+      const issuingMovements = [];
+      for (let i = 0; i < issuingMovementData.length; i++) {
+        const issuingQuery = await this.db
+          .collection("inventory_movement")
+          .where({
+            transaction_type: "SM",
+            trx_no: issuingStockMovementNo,
+            movement: "OUT",
+            inventory_category: sourceCategory,
+            item_id: issuingMovementData[i].item_id,
+            bin_location_id: issuingMovementData[i].bin_location_id,
+            base_qty: issuingMovementData[i].base_qty,
+            plant_id: issuingPlantId,
+            organization_id: organizationId,
+          })
+          .get();
+
+        issuingMovements.push({
+          id:
+            issuingQuery.data && issuingQuery.data.length > 0
+              ? issuingQuery.data[0].id
+              : null,
+          ...issuingMovementData[i],
+        });
+      }
+
+      const receivingQuery = await this.db
+        .collection("inventory_movement")
+        .where({
+          transaction_type: "SM",
+          trx_no: receivingStockMovementNo,
+          movement: "IN",
+          inventory_category: targetCategory,
+          item_id: materialId,
+          bin_location_id: locationId,
+          base_qty: formattedQuantity,
+          plant_id: receivingPlantId,
+          organization_id: organizationId,
+        })
+        .get();
+
       return {
-        issuingMovement: issuingResults.map((result, index) => ({
-          id: result.data[0].id,
-          ...issuingMovementData[index],
-        })),
+        issuingMovement: issuingMovements,
         receivingMovement: {
-          id: receivingResult.data[0].id,
+          id:
+            receivingQuery.data && receivingQuery.data.length > 0
+              ? receivingQuery.data[0].id
+              : null,
           ...receivingMovement,
         },
       };
@@ -1528,9 +1612,47 @@ class ReceivingIOFTProcessor {
       // Wait for inventory movement records to be created
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      // Get the actual inventory movement IDs
-      const outMovementId = outResult.data?.[0]?.id || outResult.id;
-      const inMovementId = inResult.data?.[0]?.id || inResult.id;
+      // Query to get the actual OUT movement ID
+      const outMovementQuery = await this.db
+        .collection("inventory_movement")
+        .where({
+          transaction_type: "SM",
+          trx_no: issuingStockMovementNo,
+          movement: "OUT",
+          inventory_category: sourceCategory,
+          item_id: materialId,
+          bin_location_id: locationId,
+          base_qty: formattedTotalQuantity,
+          plant_id: issuingPlantId,
+          organization_id: organizationId,
+        })
+        .get();
+
+      const outMovementId =
+        outMovementQuery.data && outMovementQuery.data.length > 0
+          ? outMovementQuery.data[0].id
+          : null;
+
+      // Query to get the actual IN movement ID
+      const inMovementQuery = await this.db
+        .collection("inventory_movement")
+        .where({
+          transaction_type: "SM",
+          trx_no: receivingStockMovementNo,
+          movement: "IN",
+          inventory_category: targetCategory,
+          item_id: materialId,
+          bin_location_id: locationId,
+          base_qty: formattedTotalQuantity,
+          plant_id: receivingPlantId,
+          organization_id: organizationId,
+        })
+        .get();
+
+      const inMovementId =
+        inMovementQuery.data && inMovementQuery.data.length > 0
+          ? inMovementQuery.data[0].id
+          : null;
 
       // Create serial movement records for each serial number in the group
       const serialPromises = [];
@@ -1585,11 +1707,11 @@ class ReceivingIOFTProcessor {
 
       return {
         issuingMovement: {
-          id: outResult.data?.[0]?.id || outResult.id,
+          id: outMovementId,
           ...outMovement,
         },
         receivingMovement: {
-          id: inResult.data?.[0]?.id || inResult.id,
+          id: inMovementId,
           ...inMovement,
         },
         serialMovements: serialPromises.length,

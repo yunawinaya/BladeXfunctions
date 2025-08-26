@@ -463,22 +463,48 @@ const processSerializedItemAdjustment = async (
         organization_id: organization_id,
       };
 
-      const invMovementResult = await db
+      await db
         .collection("inventory_movement")
         .add(inventoryMovementData);
-      console.log(`Consolidated inventory movement created for group ${groupKey}:`, invMovementResult.id);
+      console.log(`Consolidated inventory movement created for group ${groupKey}`);
 
-      // Step 4: Create individual serial movement records for each serial in this group
-      for (const serialInfo of group.serial_numbers) {
-        await createSerialMovementRecord(
-          invMovementResult.id,
-          serialInfo.serial_number,
-          group.batch_id,
-          serialInfo.quantity,
-          materialData.based_uom,
-          plant_id,
-          organization_id
-        );
+      // Wait and fetch the created movement ID
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const movementQuery = await db
+        .collection("inventory_movement")
+        .where({
+          transaction_type: "SA",
+          trx_no: allData.adjustment_no,
+          movement: movementType,
+          inventory_category: group.category,
+          item_id: item.material_id,
+          bin_location_id: group.location_id,
+          base_qty: roundQty(group.total_quantity),
+          plant_id: plant_id,
+          organization_id: organization_id,
+        })
+        .get();
+
+      if (movementQuery.data && movementQuery.data.length > 0) {
+        const movementId = movementQuery.data[0].id;
+        console.log(`Retrieved inventory movement ID: ${movementId}`);
+
+        // Step 4: Create individual serial movement records for each serial in this group
+        for (const serialInfo of group.serial_numbers) {
+          await createSerialMovementRecord(
+            movementId,
+            serialInfo.serial_number,
+            group.batch_id,
+            serialInfo.quantity,
+            materialData.based_uom,
+            plant_id,
+            organization_id
+          );
+        }
+      } else {
+        console.error(`Failed to retrieve inventory movement for group ${groupKey}`);
+        throw new Error(`Failed to retrieve inventory movement for group ${groupKey}`);
       }
 
       console.log(`Created ${group.serial_numbers.length} serial movement records for group ${groupKey}`);
@@ -934,26 +960,51 @@ const updateInventory = (allData) => {
             organization_id: organization_id,
           };
 
-          const invMovementResult = await db
+          await db
             .collection("inventory_movement")
             .add(inventoryMovementData);
-          console.log("Inventory movement recorded:", invMovementResult.id);
+          console.log("Inventory movement recorded");
 
-          // Create serial movement record if item is serialized and has serial number
-          if (isSerializedItem(materialData) && balance.serial_number) {
-            try {
-              await createSerialMovementRecord(
-                invMovementResult.id,
-                balance.serial_number,
-                materialData.item_batch_management == "1" ? balance.batch_id : null,
-                balance.sa_quantity,
-                materialData.based_uom,
-                plant_id,
-                organization_id
-              );
-            } catch (serialError) {
-              console.error(`Error creating serial movement for ${balance.serial_number}:`, serialError);
+          // Wait and fetch the created movement ID
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          const singleMovementQuery = await db
+            .collection("inventory_movement")
+            .where({
+              transaction_type: "SA",
+              trx_no: allData.adjustment_no,
+              movement: movementType,
+              inventory_category: balance.category,
+              item_id: item.material_id,
+              bin_location_id: balance.location_id,
+              base_qty: roundQty(balance.sa_quantity),
+              plant_id: plant_id,
+              organization_id: organization_id,
+            })
+            .get();
+
+          if (singleMovementQuery.data && singleMovementQuery.data.length > 0) {
+            const singleMovementId = singleMovementQuery.data[0].id;
+            console.log(`Retrieved single inventory movement ID: ${singleMovementId}`);
+
+            // Create serial movement record if item is serialized and has serial number
+            if (isSerializedItem(materialData) && balance.serial_number) {
+              try {
+                await createSerialMovementRecord(
+                  singleMovementId,
+                  balance.serial_number,
+                  materialData.item_batch_management == "1" ? balance.batch_id : null,
+                  balance.sa_quantity,
+                  materialData.based_uom,
+                  plant_id,
+                  organization_id
+                );
+              } catch (serialError) {
+                console.error(`Error creating serial movement for ${balance.serial_number}:`, serialError);
+              }
             }
+          } else {
+            console.error("Failed to retrieve single inventory movement");
           }
 
           await logTableState(
