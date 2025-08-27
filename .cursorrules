@@ -49,3 +49,63 @@ The temp_qty_data is created in GDconfirmDialog.js line 306 using JSON.stringify
 [ ] Test batch items: confirm location_id and batch_id are preserved  
 [ ] Test regular items: confirm location_id is preserved
 [ ] Verify reopening dialog shows correct previous records
+
+## Current Task: Fix Stock Adjustment WA/FIFO updates for serialized items
+
+### Problem Analysis:
+
+- When processing serialized items in Stock Adjustment, the system was not updating WA (Weighted Average) and FIFO costing records
+- The `processSerializedItemAdjustment` function was handling serial balance updates and inventory movements but skipping costing method updates
+- Regular (non-serialized) items were calling `updateQuantities()` which handles WA/FIFO updates, but serialized items were bypassing this
+
+### Solution Implemented:
+
+[X] Identified the root cause: serialized items skip the `updateQuantities()` function call
+[X] Modified `processSerializedItemAdjustment` to calculate net quantity changes for costing
+[X] Added costing method updates for serialized items by calling `updateQuantities()`
+[X] Enhanced `updateQuantities()` function to accept parameters for reuse in serialized item context
+[X] Updated all references within `updateQuantities()` to use the passed parameters
+
+### Fix Details:
+
+- Added calculation of net quantity change in `processSerializedItemAdjustment`
+- Added logic to calculate weighted average unit price for "In" movements
+- Modified `updateQuantities` to accept additional parameters (materialDataParam, itemParam, plantIdParam, organizationIdParam)
+- Updated all internal references to use current parameters instead of scope variables
+- Added proper error handling and logging for serialized item costing updates
+
+### Testing Required:
+
+[ ] Test serialized items with Write Off: verify WA/FIFO records are properly decreased
+[ ] Test serialized items with Stock Count (In): verify WA/FIFO records are properly increased
+[ ] Test serialized items with Stock Count (Out): verify WA/FIFO records are properly decreased
+[ ] Test both batch-managed and non-batch serialized items
+
+## Current Task: Fix Purchase Return WA/FIFO updates for serialized items
+
+### Problem Analysis:
+
+- When processing serialized items in Purchase Return, the system was not updating WA (Weighted Average) and FIFO costing records
+- The `processSerializedItemReturn` function was handling serial balance updates and inventory movements but skipping costing method updates
+- Regular (non-serialized) items were calling `updateFIFOInventory()` and `updateWeightedAverage()` which handle WA/FIFO updates, but serialized items were bypassing this
+
+### Solution Implemented:
+
+[X] Identified the root cause: serialized items skip the costing update function calls
+[X] Modified `processSerializedItemReturn` to calculate total return quantities for costing
+[X] Added costing method updates for serialized items by calling existing `updateFIFOInventory()` and `updateWeightedAverage()` functions
+[X] Added proper error handling and logging for serialized item costing updates
+
+### Fix Details:
+
+- Added calculation of total return quantity in `processSerializedItemReturn`
+- Added logic to call appropriate costing method updates based on material costing method
+- Reused existing `updateFIFOInventory()` and `updateWeightedAverage()` functions for consistency
+- Added proper error handling and logging for serialized item costing updates
+
+### Testing Required:
+
+[ ] Test serialized items with Purchase Return: verify WA/FIFO records are properly decreased
+[ ] Test both batch-managed and non-batch serialized items in Purchase Return
+[ ] Verify inventory movements are still created correctly
+[ ] Verify serial balances are still updated correctly
