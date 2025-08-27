@@ -384,12 +384,15 @@ class StockAdjuster {
           organizationId
         );
 
+        // For production orders, items should go to Reserved category at destination
+        const destinationCategory = data.is_production_order === 1 ? "Reserved" : (balance.category || "Unrestricted");
+        
         await this.createOrUpdateReceivingSerialBalance(
           item.item_selection,
           balance.serial_number,
           balance.batch_id,
           receivingLocationId,
-          balance.category || "Unrestricted",
+          destinationCategory,
           baseQtyPerBalance,
           plantId,
           organizationId,
@@ -901,10 +904,14 @@ class StockAdjuster {
 
       const materialData = resItem.data[0];
 
-      // if item no batch, table mat confirmation remain the same
+      // Check if item is serialized
+      const isSerializedItem = materialData.serial_number_management === 1;
+
+      // if item no batch and not serialized, table mat confirmation remain the same
       if (
-        !materialData.item_batch_management ||
-        materialData.item_batch_management === 0
+        (!materialData.item_batch_management ||
+          materialData.item_batch_management === 0) &&
+        !isSerializedItem
       ) {
         const matConfirmationData = {
           material_id: item.material_id,
@@ -922,7 +929,7 @@ class StockAdjuster {
         tableMatConfirmation.push(matConfirmationData);
         continue;
       }
-      // if item has batch, map the data to table mat confirmation
+      // if item has batch or is serialized, process individual balances
       else {
         let tempDataParsed;
         const subFormItem = subformData[index];
@@ -962,21 +969,65 @@ class StockAdjuster {
           ) || [];
 
         for (const balance of balancesToProcess) {
-          const matConfirmationData = {
-            material_id: item.material_id,
-            material_name: item.material_name,
-            material_desc: item.material_desc,
-            material_category: item.material_category,
-            material_uom: item.material_uom,
-            item_process_id: item.item_process_id,
-            bin_location_id: item.bin_location_id,
-            material_required_qty: balance.sm_quantity,
-            material_actual_qty: balance.sm_quantity,
-            item_remarks: item.item_remarks,
-            batch_id: balance.batch_id,
-          };
+          // Handle serialized items - create one record per serial number
+          if (isSerializedItem && balance.serial_number) {
+            const matConfirmationData = {
+              material_id: item.material_id,
+              material_name: item.material_name,
+              material_desc: item.material_desc,
+              material_category: item.material_category,
+              material_uom: item.material_uom,
+              item_process_id: item.item_process_id,
+              bin_location_id: item.bin_location_id,
+              material_required_qty: 1, // Serialized items always have qty = 1
+              material_actual_qty: 1, // Serialized items always have qty = 1
+              item_remarks: item.item_remarks,
+              batch_id: balance.batch_id,
+              serial_number: balance.serial_number,
+            };
 
-          tableMatConfirmation.push(matConfirmationData);
+            tableMatConfirmation.push(matConfirmationData);
+          }
+          // Handle regular batch items (non-serialized)
+          else if (!isSerializedItem) {
+            const matConfirmationData = {
+              material_id: item.material_id,
+              material_name: item.material_name,
+              material_desc: item.material_desc,
+              material_category: item.material_category,
+              material_uom: item.material_uom,
+              item_process_id: item.item_process_id,
+              bin_location_id: item.bin_location_id,
+              material_required_qty: balance.sm_quantity,
+              material_actual_qty: balance.sm_quantity,
+              item_remarks: item.item_remarks,
+              batch_id: balance.batch_id,
+            };
+
+            tableMatConfirmation.push(matConfirmationData);
+          }
+          // Handle serialized items without serial numbers (shouldn't happen but safety check)
+          else if (isSerializedItem && !balance.serial_number) {
+            console.warn(
+              `Serialized item ${item.material_id} has no serial number in balance record`
+            );
+            // Still create record but with quantity from balance
+            const matConfirmationData = {
+              material_id: item.material_id,
+              material_name: item.material_name,
+              material_desc: item.material_desc,
+              material_category: item.material_category,
+              material_uom: item.material_uom,
+              item_process_id: item.item_process_id,
+              bin_location_id: item.bin_location_id,
+              material_required_qty: balance.sm_quantity,
+              material_actual_qty: balance.sm_quantity,
+              item_remarks: item.item_remarks,
+              batch_id: balance.batch_id,
+            };
+
+            tableMatConfirmation.push(matConfirmationData);
+          }
         }
       }
     }
