@@ -28,7 +28,6 @@ const showStatusHTML = (status) => {
 
 const hideCompletionTab = () => {
   setTimeout(() => {
-    const dialog = document.querySelector('.el-drawer[role="dialog"]');
     const tabSelector =
       '.el-drawer[role="dialog"] .el-tabs__item.is-top#tab-completion_details[tabindex="-1"][aria-selected="false"]';
     const tab = document.querySelector(tabSelector);
@@ -354,6 +353,25 @@ const getPrefixConfiguration = async (organizationId) => {
                         break;
                     }
                   }
+
+                  if (itemData.serial_number_management === 1) {
+                    this.display("select_serial_number");
+                  }
+                }
+
+                const tableMatConfirmation = this.getValue(
+                  "table_mat_confirmation"
+                );
+
+                if (tableMatConfirmation.length > 0) {
+                  for (const matConfirmation of tableMatConfirmation) {
+                    if (
+                      matConfirmation.serial_number !== "" &&
+                      matConfirmation.serial_number !== null
+                    ) {
+                      this.display("table_mat_confirmation.serial_number");
+                    }
+                  }
                 }
               } else {
                 this.disabled(
@@ -484,7 +502,7 @@ const getPrefixConfiguration = async (organizationId) => {
             this.disabled(["production_order_no"], false);
           } else {
             // Generate unique prefix
-            const { prefixToShow, runningNumber } = await findUniquePrefix(
+            const { prefixToShow } = await findUniquePrefix(
               prefixData,
               organizationId
             );
