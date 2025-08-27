@@ -3,7 +3,6 @@ const lineItemData = arguments[0]?.row;
 const rowIndex = arguments[0]?.rowIndex;
 const adjustment_type = allData.adjustment_type;
 const materialId = lineItemData.material_id;
-const isSingleSerial = lineItemData.is_single_serial;
 const plantId = allData.plant_id;
 
 console.log("materialId", materialId);
@@ -247,6 +246,9 @@ if (materialId) {
 
         // Show serial number column
         this.display("sa_item_balance.table_item_balance.serial_number");
+        this.setData({
+          [`sa_item_balance.is_serialized`]: 1,
+        });
 
         // Show or hide batch column based on whether item also has batch management
         if (itemData.item_batch_management === 1) {
@@ -302,12 +304,19 @@ if (materialId) {
               [`sa_item_balance.table_item_balance`]: filteredData,
             });
 
-            if (isSingleSerial === 1) {
+            if (adjustment_type === "Write Off") {
               this.setData({
                 [`sa_item_balance.table_item_balance.movement_type`]: "Out",
               });
               this.hide("sa_item_balance.table_item_balance.movement_type");
             } else {
+              this.setData({
+                [`sa_item_balance.table_item_balance.movement_type`]: "Out",
+              });
+              this.disabled(
+                [`sa_item_balance.table_item_balance.movement_type`],
+                true
+              );
               this.display([
                 `sa_item_balance.table_item_balance.movement_type`,
               ]);
