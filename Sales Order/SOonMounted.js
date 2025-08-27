@@ -101,8 +101,13 @@ const showStatusHTML = async (status) => {
 
 const displayCurrency = async () => {
   const currencyCode = this.getValue("so_currency");
-
-  if (currencyCode !== "----" && currencyCode !== "MYR") {
+  console.log("currencyCode", currencyCode);
+  if (
+    currencyCode !== "----" &&
+    currencyCode !== "MYR" &&
+    currencyCode !== "" &&
+    currencyCode
+  ) {
     this.display([
       "exchange_rate",
       "exchange_rate_myr",
@@ -171,6 +176,9 @@ const disabledField = async (status) => {
         "so_total_tax",
         "so_total",
         "so_remarks",
+        "so_remarks2",
+        "so_remarks3",
+        "cust_po",
         "so_tnc",
         "so_payment_details",
         "billing_address_line_1",
@@ -296,20 +304,18 @@ const checkAccIntegrationType = async (organizationId) => {
 };
 
 const cloneResetQuantity = async (status) => {
-  if (status === "Processing" || status === "Completed") {
-    const tableSO = this.getValue("table_so");
+  const tableSO = this.getValue("table_so");
 
-    for (const so of tableSO) {
-      so.delivered_qty = 0;
-      so.return_qty = 0;
-      so.invoice_qty = 0;
-      so.posted_qty = 0;
-      so.production_qty = 0;
-      so.production_status = "";
-    }
-
-    this.setData({ table_so: tableSO });
+  for (const so of tableSO) {
+    so.delivered_qty = 0;
+    so.return_qty = 0;
+    so.invoice_qty = 0;
+    so.posted_qty = 0;
+    so.production_qty = 0;
+    so.production_status = "";
   }
+
+  this.setData({ table_so: tableSO });
 };
 
 const setPlant = (organizationId, pageStatus) => {
@@ -317,6 +323,7 @@ const setPlant = (organizationId, pageStatus) => {
 
   if (currentDept === organizationId) {
     this.disabled("plant_name", false);
+    this.disabled("table_so", true);
   } else {
     this.disabled("plant_name", true);
 
@@ -380,7 +387,6 @@ const setPlant = (organizationId, pageStatus) => {
         await showStatusHTML(status);
         await displayCurrency();
         await displayTax();
-        await setPlant(organizationId, pageStatus);
         await displayDeliveryMethod();
         if (this.getValue("sqt_no")) {
           this.display("sqt_no");
