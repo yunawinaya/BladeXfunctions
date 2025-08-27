@@ -7,7 +7,7 @@ const showStatusHTML = (status) => {
       break;
     case "Issued":
       this.display(["issued_status"]);
-      this.hide(["button_draft"]);
+      this.hide(["button_draft", "button_issued", "button_complete"]);
       break;
     case "In Progress":
       this.display(["processing_status"]);
@@ -15,6 +15,10 @@ const showStatusHTML = (status) => {
       break;
     case "Completed":
       this.display(["completed_status"]);
+      this.hide(["button_draft", "button_issued", "button_complete"]);
+      break;
+    case "Cancelled":
+      this.display(["cancel_status"]);
       this.hide(["button_draft", "button_issued", "button_complete"]);
       break;
     default:
@@ -49,7 +53,7 @@ const hideCompletionTab = () => {
       inactiveTab.setAttribute("aria-disabled", "true");
       inactiveTab.classList.add("is-disabled");
     }
-  }, 100); // Small delay to ensure DOM is ready
+  }, 10); // Small delay to ensure DOM is ready
 };
 
 const generatePrefix = (prefixData) => {
@@ -70,11 +74,14 @@ const generatePrefix = (prefixData) => {
   return generated;
 };
 
-const checkUniqueness = async (generatedPrefix) => {
+const checkUniqueness = async (generatedPrefix, organizationId) => {
   try {
     const existingDoc = await db
       .collection("production_order")
-      .where({ production_order_no: generatedPrefix })
+      .where({
+        production_order_no: generatedPrefix,
+        organization_id: organizationId,
+      })
       .get();
     return !existingDoc.data || existingDoc.data.length === 0;
   } catch (error) {
@@ -83,7 +90,7 @@ const checkUniqueness = async (generatedPrefix) => {
   }
 };
 
-const findUniquePrefix = async (prefixData) => {
+const findUniquePrefix = async (prefixData, organizationId) => {
   let prefixToShow;
   let runningNumber = prefixData.running_number || 1;
   let isUnique = false;
@@ -94,9 +101,8 @@ const findUniquePrefix = async (prefixData) => {
     attempts++;
     prefixToShow = generatePrefix({
       ...prefixData,
-      running_number: runningNumber,
     });
-    isUnique = await checkUniqueness(prefixToShow);
+    isUnique = await checkUniqueness(prefixToShow, organizationId);
     if (!isUnique) {
       runningNumber++;
     }
@@ -111,12 +117,16 @@ const findUniquePrefix = async (prefixData) => {
   return { prefixToShow, runningNumber };
 };
 
-const getPrefixConfiguration = async () => {
+const getPrefixConfiguration = async (organizationId) => {
   try {
     const prefixEntry = await db
       .collection("prefix_configuration")
-      .where({ document_types: "Production Order" })
+      .where({
+        document_types: "Production Order",
+        organization_id: organizationId,
+      })
       .get();
+    console.log("prefixEntry", prefixEntry.data);
 
     return prefixEntry.data && prefixEntry.data.length > 0
       ? prefixEntry.data[0]
@@ -131,6 +141,11 @@ const getPrefixConfiguration = async () => {
 (async () => {
   try {
     let pageStatus = "";
+
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
+    }
 
     // Determine page status
     if (this.isAdd) pageStatus = "Add";
@@ -154,6 +169,10 @@ const getPrefixConfiguration = async () => {
         }
         this.display(["table_process_route"]);
         this.display(["card_bom"]);
+
+        if (this.getValue("plan_type") === "Make to Order") {
+          this.display("card_prodorder_so");
+        }
 
         const productionOrderId = this.getValue("id");
 
@@ -254,51 +273,137 @@ const getPrefixConfiguration = async () => {
             production_order_status !== "In Progress"
           ) {
             hideCompletionTab();
+          } else {
+            if (production_order_status === "In Progress") {
+              this.disabled("bom_id", true);
+              if (plan_type === "Make to Stock") {
+                this.disabled("yield_qty", false);
+              }
+            }
+
+            if (plan_type === "Make to Order") {
+              this.display("table_sales_order.production_qty");
+            }
           }
 
           if (pageStatus === "Edit") {
-            // Disable specific fields for Edit mode
-            this.disabled(
-              [
-                "production_order_no",
-                "production_order_name",
-                "plant_id",
-                "plan_type",
-                "material_id",
-                "priority",
-                "planned_qty",
-                "planned_qty_uom",
-                "lead_time",
-                "table_sales_order",
-                "process_source",
-                "process_route_no",
-                "process_route_name",
-                "table_process_route",
-                "create_user",
-                "create_dept",
-                "create_time",
-                "update_user",
-                "update_time",
-                "is_deleted",
-                "tenant_id",
-                "table_bom",
-              ],
-              true
-            );
+            if (production_order_status !== "Draft") {
+              if (production_order_status === "In Progress") {
+                this.disabled(
+                  [
+                    "production_order_no",
+                    "production_order_name",
+                    "plant_id",
+                    "plan_type",
+                    "material_id",
+                    "priority",
+                    "planned_qty",
+                    "planned_qty_uom",
+                    "lead_time",
+                    "process_source",
+                    "process_route_no",
+                    "process_route_name",
+                    "table_process_route",
+                    "create_user",
+                    "create_dept",
+                    "create_time",
+                    "update_user",
+                    "update_time",
+                    "is_deleted",
+                    "tenant_id",
+                    "table_bom",
+                    "bom_id",
+                    "table_sales_order.sales_order_id",
+                    "table_sales_order.customer_name",
+                    "table_sales_order.so_quantity",
+                    "table_sales_order.so_expected_ship_date",
+                    "table_mat_confirmation.material_id",
+                    "table_mat_confirmation.material_name",
+                    "table_mat_confirmation.material_category",
+                    "table_mat_confirmation.material_required_qty",
+                    "table_mat_confirmation.material_required_qty",
+                    "table_mat_confirmation.item_process_id",
+                    "table_mat_confirmation.bin_location_id",
+                  ],
+                  true
+                );
 
-            this.disabled(
-              [
-                "table_mat_confirmation.material_id",
-                "table_mat_confirmation.material_name",
-                "table_mat_confirmation.material_category",
-                "table_mat_confirmation.material_required_qty",
-                "table_mat_confirmation.material_required_qty",
-                "table_mat_confirmation.item_process_id",
-                "table_mat_confirmation.bin_location_id",
-              ],
-              true
-            );
+                const itemId = this.getValue("material_id");
+                const resItem = await db
+                  .collection("Item")
+                  .where({ id: itemId })
+                  .get();
+
+                if (resItem && resItem.data.length > 0) {
+                  const itemData = resItem.data[0];
+
+                  if (itemData.item_batch_management) {
+                    this.display("batch_id");
+
+                    switch (itemData.batch_number_genaration) {
+                      case "According To System Settings":
+                        this.setData({
+                          batch_id: "Auto-generated batch number",
+                        });
+                        this.disabled("batch_id", true);
+
+                        break;
+
+                      case "Manual Input":
+                        this.disabled("batch_id", false);
+                        break;
+                    }
+                  }
+                }
+              } else {
+                this.disabled(
+                  [
+                    "production_order_no",
+                    "production_order_name",
+                    "plant_id",
+                    "plan_type",
+                    "material_id",
+                    "priority",
+                    "planned_qty",
+                    "category",
+                    "planned_qty_uom",
+                    "lead_time",
+                    "table_sales_order",
+                    "process_source",
+                    "process_route_no",
+                    "process_route_name",
+                    "table_process_route",
+                    "create_user",
+                    "create_dept",
+                    "create_time",
+                    "update_user",
+                    "update_time",
+                    "is_deleted",
+                    "tenant_id",
+                    "table_bom",
+                    "actual_execute_date",
+                    "execute_completion_date",
+                    "completion_remarks",
+                    "yield_qty",
+                    "target_bin_location",
+                    "table_mat_confirmation",
+                    "batch_id",
+                    "bom_id",
+                  ],
+                  true
+                );
+              }
+            }
+            // Disable specific fields for Edit mode
           } else if (pageStatus === "View") {
+            const batch = this.getValue("batch_id");
+
+            if (
+              (batch && batch !== "") ||
+              production_order_status === "In Progress"
+            ) {
+              this.display("batch_id");
+            }
             // Disable all fields for View mode
             this.disabled(
               [
@@ -329,9 +434,9 @@ const getPrefixConfiguration = async () => {
                 "execute_completion_date",
                 "completion_remarks",
                 "yield_qty",
+                "batch_id",
                 "target_bin_location",
                 "table_mat_confirmation",
-                "batch_id",
               ],
               true
             );
@@ -371,7 +476,8 @@ const getPrefixConfiguration = async () => {
 
       try {
         // Get prefix configuration
-        const prefixData = await getPrefixConfiguration();
+        const prefixData = await getPrefixConfiguration(organizationId);
+        console.log("prefixData", prefixData);
 
         if (prefixData) {
           if (prefixData.is_active === 0) {
@@ -379,7 +485,8 @@ const getPrefixConfiguration = async () => {
           } else {
             // Generate unique prefix
             const { prefixToShow, runningNumber } = await findUniquePrefix(
-              prefixData
+              prefixData,
+              organizationId
             );
             await this.setData({ production_order_no: prefixToShow });
             this.disabled(["production_order_no"], true);
