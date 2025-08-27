@@ -105,6 +105,10 @@ const createEntry = (data) => ({
   completion_remarks: data.completion_remarks,
   yield_qty: data.yield_qty,
   target_bin_location: data.target_bin_location,
+  serial_number_data: data.serial_number_data,
+  is_serialized_item: data.is_serialized_item,
+  is_single: data.is_single,
+  is_auto: data.is_auto,
   table_mat_confirmation: data.table_bom
     ? data.table_bom.map((item) => ({
         material_id: item.material_id,
