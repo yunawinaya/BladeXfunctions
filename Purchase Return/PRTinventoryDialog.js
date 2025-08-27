@@ -43,7 +43,7 @@
   // Process item balance data with UOM conversion
   const processItemBalanceData = (itemBalanceData, itemData, altUOM) => {
     const baseUOM = itemData.based_uom;
-    
+
     return itemBalanceData.map((record) => {
       const processedRecord = { ...record };
 
@@ -141,13 +141,11 @@
         // For serialized items, always use serial number as primary key
         // Include batch_id if item also has batch management
         if (itemData.item_batch_management === 1) {
-          key = `${dbItem.location_id}-${
-            dbItem.serial_number || "no_serial"
-          }-${dbItem.batch_id || "no_batch"}`;
-        } else {
-          key = `${dbItem.location_id}-${
-            dbItem.serial_number || "no_serial"
+          key = `${dbItem.location_id}-${dbItem.serial_number || "no_serial"}-${
+            dbItem.batch_id || "no_batch"
           }`;
+        } else {
+          key = `${dbItem.location_id}-${dbItem.serial_number || "no_serial"}`;
         }
       } else if (itemData.item_batch_management === 1) {
         key = `${dbItem.location_id}-${dbItem.batch_id || "no_batch"}`;
@@ -159,17 +157,19 @@
 
       if (tempItem) {
         console.log(
-          `Merging data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, temp prt_quantity=${tempItem.prt_quantity}`
+          `Merging data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, temp return_quantity=${tempItem.return_quantity}`
         );
         return {
           ...dbItem,
-          prt_quantity: tempItem.prt_quantity,
+          return_quantity: tempItem.return_quantity,
+          inventory_category: tempItem.inventory_category,
+          category_balance: tempItem.category_balance,
           remarks: tempItem.remarks || dbItem.remarks,
         };
       } else {
         return {
           ...dbItem,
-          prt_quantity: 0,
+          return_quantity: 0,
         };
       }
     });
@@ -268,7 +268,6 @@
     });
   };
 
-
   db.collection("Item")
     .where({ id: materialId })
     .get()
@@ -361,7 +360,7 @@
             console.error("Error fetching item serial balance data:", error);
           });
 
-      // Handle Batch Items (only if not serialized)
+        // Handle Batch Items (only if not serialized)
       } else if (itemData.item_batch_management === 1) {
         console.log("Processing batch item (non-serialized)");
 
@@ -403,9 +402,10 @@
             );
 
             // Filter out records with all zero quantities and exclude current batch
-            const filteredData = filterZeroQuantityRecords(finalData, itemData).filter(
-              (item) => item.batch_id !== batchId
-            );
+            const filteredData = filterZeroQuantityRecords(
+              finalData,
+              itemData
+            ).filter((item) => item.batch_id !== batchId);
 
             console.log("Final filtered batch data:", filteredData);
 
@@ -417,7 +417,7 @@
             console.error("Error fetching item batch balance data:", error);
           });
 
-      // Handle Regular Items (no batch, no serial)
+        // Handle Regular Items (no batch, no serial)
       } else {
         console.log("Processing regular item (no batch, no serial)");
 
@@ -477,10 +477,11 @@
     });
 
   window.validationState = {};
-  
+
   setTimeout(() => {
     const currentData = this.getValues();
-    const rowCount = currentData.confirm_inventory?.table_item_balance?.length || 0;
+    const rowCount =
+      currentData.confirm_inventory?.table_item_balance?.length || 0;
     for (let i = 0; i < rowCount; i++) {
       window.validationState[i] = true;
     }
