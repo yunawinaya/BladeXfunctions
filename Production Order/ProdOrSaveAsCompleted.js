@@ -171,6 +171,9 @@ const createStockMovement = async (
             ? item.batch_id || null
             : null,
         stock_summary: stockSummary || "",
+        organization_id: organizationId,
+        issuing_plant: stockMovementData.plant_id || null,
+        line_index: index + 1,
       };
     });
 

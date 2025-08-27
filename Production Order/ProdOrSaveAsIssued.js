@@ -3,13 +3,16 @@ const createStockMovement = async (stockMovementData, organizationId, db) => {
     // Map table_bom to balance_index and stock_movement
     const tableBom = stockMovementData.table_bom || [];
 
-    const stockMovementItems = tableBom.map((item) => ({
+    const stockMovementItems = tableBom.map((item, index) => ({
       item_selection: item.material_id,
       item_name: item.material_name,
       item_desc: item.material_desc,
       requested_qty: item.material_quantity,
       location_id: item.bin_location_id,
       quantity_uom: item.material_uom,
+      organization_id: organizationId,
+      issuing_plant: stockMovementData.plant_id || null,
+      line_index: index + 1,
     }));
 
     const issued_by = await this.getVarGlobal("nickname");
