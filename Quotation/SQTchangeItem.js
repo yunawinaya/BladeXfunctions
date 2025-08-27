@@ -89,9 +89,9 @@ const fetchUnrestrictedQty = async (
         );
       }
     } else if (
-      serial_number_management !== 1 &&
+      (serial_number_management !== 1 || !serial_number_management) &&
       item_batch_management === 1 &&
-      stock_control !== 0
+      (stock_control !== 0 || stock_control)
     ) {
       const resBatchBalance = await db
         .collection("item_batch_balance")
@@ -111,9 +111,9 @@ const fetchUnrestrictedQty = async (
         );
       }
     } else if (
-      serial_number_management !== 1 &&
-      item_batch_management !== 1 &&
-      stock_control !== 0
+      (serial_number_management !== 1 || !serial_number_management) &&
+      (item_batch_management !== 1 || !item_batch_management) &&
+      (stock_control !== 0 || stock_control)
     ) {
       const resBalance = await db
         .collection("item_balance")

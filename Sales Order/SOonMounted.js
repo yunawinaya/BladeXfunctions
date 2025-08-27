@@ -333,6 +333,118 @@ const setPlant = (organizationId, pageStatus) => {
   }
 };
 
+const fetchUnrestrictedQty = async () => {
+  try {
+    console.log("fetchUnrestrictedQty");
+    const tableSO = this.getValue("table_so");
+    const plantId = this.getValue("plant_name");
+    const organizationId = this.getValue("organization_id");
+
+    console.log("tableSO", tableSO);
+
+    if (tableSO.length > 0) {
+      for (const [index, so] of tableSO.entries()) {
+        const itemId = so.item_name;
+
+        let totalUnrestrictedQtyBase = 0;
+
+        let item_batch_management = 0;
+        let serial_number_management = 0;
+        let stock_control = 0;
+
+        await db
+          .collection("Item")
+          .where({ id: itemId })
+          .get()
+          .then((res) => {
+            const itemData = res.data[0];
+            item_batch_management = itemData.item_batch_management;
+            serial_number_management = itemData.serial_number_management;
+            stock_control = itemData.stock_control;
+          });
+
+        if (serial_number_management === 1) {
+          const resSerialBalance = await db
+            .collection("item_serial_balance")
+            .where({
+              material_id: itemId,
+              ...(plantId !== organizationId
+                ? { plant_id: plantId || null }
+                : {}),
+              organization_id: organizationId,
+            })
+            .get();
+
+          if (resSerialBalance && resSerialBalance.data.length > 0) {
+            const serialBalanceData = resSerialBalance.data;
+
+            totalUnrestrictedQtyBase = serialBalanceData.reduce(
+              (sum, balance) => sum + (balance.unrestricted_qty || 0),
+              0
+            );
+          }
+        } else if (
+          (serial_number_management !== 1 || !serial_number_management) &&
+          item_batch_management === 1 &&
+          (stock_control !== 0 || stock_control)
+        ) {
+          const resBatchBalance = await db
+            .collection("item_batch_balance")
+            .where({
+              material_id: itemId,
+              ...(plantId !== organizationId
+                ? { plant_id: plantId || null }
+                : {}),
+              organization_id: organizationId,
+            })
+            .get();
+
+          if (resBatchBalance && resBatchBalance.data.length > 0) {
+            const batchBalanceData = resBatchBalance.data;
+
+            totalUnrestrictedQtyBase = batchBalanceData.reduce(
+              (sum, balance) => sum + (balance.unrestricted_qty || 0),
+              0
+            );
+          }
+        } else if (
+          (serial_number_management !== 1 || !serial_number_management) &&
+          (item_batch_management !== 1 || !item_batch_management) &&
+          (stock_control !== 0 || stock_control)
+        ) {
+          const resBalance = await db
+            .collection("item_balance")
+            .where({
+              material_id: itemId,
+              ...(plantId !== organizationId
+                ? { plant_id: plantId || null }
+                : {}),
+              organization_id: organizationId,
+            })
+            .get();
+
+          if (resBalance && resBalance.data.length > 0) {
+            const balanceData = resBalance.data;
+
+            totalUnrestrictedQtyBase = balanceData.reduce(
+              (sum, balance) => sum + (balance.unrestricted_qty || 0),
+              0
+            );
+          }
+        } else {
+          totalUnrestrictedQtyBase = 0;
+        }
+
+        this.setData({
+          [`table_so.${index}.unrestricted_qty`]: totalUnrestrictedQtyBase,
+        });
+      }
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 (async () => {
   try {
     const status = await this.getValue("so_status");
@@ -407,6 +519,7 @@ const setPlant = (organizationId, pageStatus) => {
         await displayCurrency();
         await displayTax();
         await displayDeliveryMethod();
+        await fetchUnrestrictedQty();
         break;
 
       case "View":
