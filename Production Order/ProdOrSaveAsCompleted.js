@@ -282,7 +282,6 @@ const createStockMovement = async (
   }
 };
 
-const page_status = this.getValue("page_status");
 const self = this;
 const productionOrderId = this.getValue("id");
 const allData = self.getValues();
@@ -431,24 +430,55 @@ const preCheckMaterialQuantities = async (data) => {
 
       const matItem = matItemQuery.data[0];
       const matBatchManagement = matItem.item_batch_management;
-      const matCollectionName =
-        matBatchManagement === 1 ? "item_batch_balance" : "item_balance";
-
-      // Check total available quantity
-      const balanceQuery = await db
-        .collection(matCollectionName)
-        .where({
-          material_id: mat.material_id,
-          plant_id: data.plant_id,
-          location_id: mat.bin_location_id,
-        })
-        .get();
+      const isSerializedItem = matItem.serial_number_management === 1;
 
       let totalAvailable = 0;
-      if (balanceQuery.data && balanceQuery.data.length > 0) {
-        balanceQuery.data.forEach((balance) => {
-          totalAvailable += balance.reserved_qty || 0;
-        });
+
+      if (isSerializedItem && mat.serial_number) {
+        // For serialized items, check item_serial_balance
+        const serialBalanceParams = {
+          material_id: mat.material_id,
+          serial_number: mat.serial_number,
+          plant_id: data.plant_id,
+          organization_id: data.organization_id,
+        };
+
+        if (matBatchManagement === 1 && mat.batch_id) {
+          serialBalanceParams.batch_id = mat.batch_id;
+        }
+
+        if (mat.bin_location_id) {
+          serialBalanceParams.location_id = mat.bin_location_id;
+        }
+
+        const serialBalanceQuery = await db
+          .collection("item_serial_balance")
+          .where(serialBalanceParams)
+          .get();
+
+        if (serialBalanceQuery.data && serialBalanceQuery.data.length > 0) {
+          const serialBalance = serialBalanceQuery.data[0];
+          totalAvailable = serialBalance.reserved_qty || 0;
+        }
+      } else {
+        // For non-serialized items, use existing logic
+        const matCollectionName =
+          matBatchManagement === 1 ? "item_batch_balance" : "item_balance";
+
+        const balanceQuery = await db
+          .collection(matCollectionName)
+          .where({
+            material_id: mat.material_id,
+            plant_id: data.plant_id,
+            location_id: mat.bin_location_id,
+          })
+          .get();
+
+        if (balanceQuery.data && balanceQuery.data.length > 0) {
+          balanceQuery.data.forEach((balance) => {
+            totalAvailable += balance.reserved_qty || 0;
+          });
+        }
       }
 
       if (totalAvailable < mat.material_actual_qty) {
@@ -818,6 +848,387 @@ const createBalanceIndexForStockMovement = (materials) => {
   }));
 };
 
+// Helper functions for serial number processing
+const roundQty = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(3));
+};
+
+const createSerialMovementRecord = async (inventoryMovementId, serialNumber, batchId, baseQty, baseUOM, plantId, organizationId) => {
+  const invSerialMovementRecord = {
+    inventory_movement_id: inventoryMovementId,
+    serial_number: serialNumber,
+    batch_id: batchId || null,
+    base_qty: roundQty(baseQty),
+    base_uom: baseUOM,
+    plant_id: plantId,
+    organization_id: organizationId,
+  };
+
+  await db.collection("inv_serial_movement").add(invSerialMovementRecord);
+  console.log(`Created inv_serial_movement for serial: ${serialNumber}`);
+};
+
+const updateSerialBalance = async (materialId, serialNumber, batchId, locationId, category, qtyChange, plantId, organizationId) => {
+  const categoryMap = {
+    Unrestricted: "unrestricted_qty",
+    "Quality Inspection": "qualityinsp_qty", 
+    Blocked: "block_qty",
+    Reserved: "reserved_qty",
+    "In Transit": "intransit_qty",
+  };
+
+  const serialBalanceParams = {
+    material_id: materialId,
+    serial_number: serialNumber,
+    plant_id: plantId,
+    organization_id: organizationId,
+  };
+
+  if (batchId) {
+    serialBalanceParams.batch_id = batchId;
+  }
+
+  if (locationId) {
+    serialBalanceParams.location_id = locationId;
+  }
+
+  const serialBalanceQuery = await db
+    .collection("item_serial_balance")
+    .where(serialBalanceParams)
+    .get();
+
+  if (!serialBalanceQuery.data || serialBalanceQuery.data.length === 0) {
+    throw new Error(`No serial balance found for serial number: ${serialNumber}`);
+  }
+
+  const existingBalance = serialBalanceQuery.data[0];
+  const categoryField = categoryMap[category] || "unrestricted_qty";
+
+  const currentCategoryQty = roundQty(parseFloat(existingBalance[categoryField] || 0));
+  const currentBalanceQty = roundQty(parseFloat(existingBalance.balance_quantity || 0));
+
+  const newCategoryQty = roundQty(currentCategoryQty + qtyChange);
+  const newBalanceQty = roundQty(currentBalanceQty + qtyChange);
+
+  if (newCategoryQty < 0) {
+    throw new Error(`Insufficient ${category} quantity for serial ${serialNumber}. Available: ${currentCategoryQty}, Requested: ${Math.abs(qtyChange)}`);
+  }
+
+  if (newBalanceQty < 0) {
+    throw new Error(`Insufficient total quantity for serial ${serialNumber}. Available: ${currentBalanceQty}, Requested: ${Math.abs(qtyChange)}`);
+  }
+
+  const updateData = {
+    [categoryField]: newCategoryQty,
+    balance_quantity: newBalanceQty,
+    update_time: new Date().toISOString(),
+  };
+
+  // Note: unused quantity processing moved to ICTP function
+
+  await db.collection("item_serial_balance").doc(existingBalance.id).update(updateData);
+  console.log(`Updated serial balance for ${serialNumber}: ${category}=${newCategoryQty}, Balance=${newBalanceQty}`);
+};
+
+const createOrUpdateReceivingSerialBalance = async (materialId, serialNumber, batchId, locationId, category, qtyChange, plantId, organizationId, materialUom) => {
+  const categoryMap = {
+    Unrestricted: "unrestricted_qty", 
+    "Quality Inspection": "qualityinsp_qty",
+    Blocked: "block_qty", 
+    Reserved: "reserved_qty",
+    "In Transit": "intransit_qty",
+  };
+
+  const serialBalanceParams = {
+    material_id: materialId,
+    serial_number: serialNumber,
+    location_id: locationId,
+    plant_id: plantId,
+    organization_id: organizationId,
+  };
+
+  if (batchId) {
+    serialBalanceParams.batch_id = batchId;
+  }
+
+  const serialBalanceQuery = await db
+    .collection("item_serial_balance")
+    .where(serialBalanceParams)
+    .get();
+
+  const categoryField = categoryMap[category] || "unrestricted_qty";
+
+  if (serialBalanceQuery.data && serialBalanceQuery.data.length > 0) {
+    const existingBalance = serialBalanceQuery.data[0];
+    const currentCategoryQty = roundQty(parseFloat(existingBalance[categoryField] || 0));
+    const currentBalanceQty = roundQty(parseFloat(existingBalance.balance_quantity || 0));
+
+    const newCategoryQty = roundQty(currentCategoryQty + qtyChange);
+    const newBalanceQty = roundQty(currentBalanceQty + qtyChange);
+
+    const updateData = {
+      [categoryField]: newCategoryQty,
+      balance_quantity: newBalanceQty,
+      update_time: new Date().toISOString(),
+    };
+
+    await db.collection("item_serial_balance").doc(existingBalance.id).update(updateData);
+    console.log(`Updated existing serial balance for ${serialNumber} at location ${locationId}`);
+  } else {
+    const serialBalanceRecord = {
+      material_id: materialId,
+      material_uom: materialUom,
+      serial_number: serialNumber,
+      batch_id: batchId || null,
+      plant_id: plantId,
+      location_id: locationId,
+      unrestricted_qty: category === "Unrestricted" ? roundQty(qtyChange) : 0,
+      block_qty: category === "Blocked" ? roundQty(qtyChange) : 0,
+      reserved_qty: category === "Reserved" ? roundQty(qtyChange) : 0,
+      qualityinsp_qty: category === "Quality Inspection" ? roundQty(qtyChange) : 0,
+      intransit_qty: category === "In Transit" ? roundQty(qtyChange) : 0,
+      balance_quantity: roundQty(qtyChange),
+      organization_id: organizationId,
+      create_time: new Date().toISOString(),
+      update_time: new Date().toISOString(),
+    };
+
+    await db.collection("item_serial_balance").add(serialBalanceRecord);
+    console.log(`Created new serial balance for ${serialNumber} at location ${locationId}`);
+  }
+};
+
+const processSerializedItemForGoodIssue = async (mat, matItem, plantId, organizationId, movementId, productionOrderNo, stockMovementGINo) => {
+  console.log(`Processing serialized item for Good Issue: ${mat.material_id}, serial: ${mat.serial_number}`);
+
+  // Create serial movement record
+  await createSerialMovementRecord(
+    movementId, 
+    mat.serial_number,
+    mat.batch_id,
+    mat.material_actual_qty,
+    matItem.based_uom,
+    plantId,
+    organizationId
+  );
+
+  // Update serial balance (deduct consumption from reserved)
+  await updateSerialBalance(
+    mat.material_id,
+    mat.serial_number,
+    mat.batch_id,
+    mat.bin_location_id,
+    "Reserved",
+    -mat.material_actual_qty,
+    plantId,
+    organizationId
+  );
+
+  // Note: unused quantity inventory movements handled in ICTP function
+
+  // Update on_reserved_gd table (same as non-serialized items)
+  const resOnReserve = await db
+    .collection("on_reserved_gd")
+    .where({
+      parent_no: productionOrderNo,
+      organization_id: organizationId,
+      is_deleted: 0,
+      material_id: mat.material_id,
+      ...(matItem.item_batch_management === 1 ? { batch_id: mat.batch_id } : {}),
+      bin_location: mat.bin_location_id,
+    })
+    .get();
+
+  if (!resOnReserve || resOnReserve.data.length === 0) {
+    throw new Error(`Error fetching on reserve table for serialized item ${mat.material_id}, serial: ${mat.serial_number}`);
+  }
+
+  const onReserveData = resOnReserve.data[0];
+
+  await db.collection("on_reserved_gd").doc(onReserveData.id).update({
+    delivered_qty: mat.material_required_qty,
+    open_qty: 0,
+    doc_no: stockMovementGINo,
+  });
+
+  console.log(`Successfully processed serialized item Good Issue for ${mat.serial_number}`);
+};
+
+const processSerializedItemForProductionReceipt = async (data, plantId, organizationId, movementId, stockMovementNo, producedBatchId) => {
+  console.log(`Processing serialized item for Production Receipt: ${data.material_id}`);
+  
+  if (!data.serial_number_data) {
+    console.log(`No serial number data found for Production Receipt item ${data.material_id}`);
+    return;
+  }
+
+  let serialNumberData;
+  try {
+    serialNumberData = JSON.parse(data.serial_number_data);
+  } catch (parseError) {
+    console.error(`Error parsing serial number data for Production Receipt item ${data.material_id}:`, parseError);
+    return;
+  }
+
+  const tableSerialNumber = serialNumberData.table_serial_number || [];
+  const serialQuantity = serialNumberData.serial_number_qty || 0;
+  const isAuto = serialNumberData.is_auto;
+
+  // Validate manual serial numbers when is_auto = 0
+  if (isAuto === 0) {
+    const emptySerials = tableSerialNumber.filter(
+      (serial) => !serial.system_serial_number || serial.system_serial_number.trim() === ""
+    );
+    
+    if (emptySerials.length > 0) {
+      throw new Error(
+        `Manual serial number entry required: ${emptySerials.length} serial number(s) are empty. Please provide all serial numbers before completing the production order.`
+      );
+    }
+  }
+
+  // Validate mixed manual/auto serial numbers (some auto, some manual)
+  const manualSerials = tableSerialNumber.filter(
+    (serial) => serial.system_serial_number && 
+               serial.system_serial_number.trim() !== "" && 
+               serial.system_serial_number !== "Auto generated serial number"
+  );
+  
+  const emptyManualSerials = tableSerialNumber.filter(
+    (serial) => !serial.system_serial_number || 
+               (serial.system_serial_number.trim() === "" && serial.system_serial_number !== "Auto generated serial number")
+  );
+
+  if (emptyManualSerials.length > 0) {
+    throw new Error(
+      `Serial number validation failed: ${emptyManualSerials.length} serial number(s) are empty. Please provide all required serial numbers.`
+    );
+  }
+
+  // Check for duplicate serial numbers
+  const allSerialNumbers = manualSerials.map(s => s.system_serial_number.trim());
+  const duplicates = allSerialNumbers.filter((serial, index) => allSerialNumbers.indexOf(serial) !== index);
+  
+  if (duplicates.length > 0) {
+    throw new Error(
+      `Duplicate serial numbers detected: ${[...new Set(duplicates)].join(", ")}. Each serial number must be unique.`
+    );
+  }
+
+  // Get item data for UOM
+  const itemRes = await db.collection("Item").where({ id: data.material_id }).get();
+  if (!itemRes.data || !itemRes.data.length) {
+    console.error(`Item not found: ${data.material_id}`);
+    return;
+  }
+  const itemData = itemRes.data[0];
+
+  let baseQty = roundQty(parseFloat(data.yield_qty || 0));
+  let baseUOM = itemData.based_uom;
+
+  // Calculate base quantity per serial number
+  const baseQtyPerSerial = serialQuantity > 0 ? baseQty / serialQuantity : 0;
+
+  // Process serial number generation if needed
+  const updatedTableSerialNumber = [];
+  let generatedCount = 0;
+  let currentRunningNumber = null;
+  let serialPrefix = "";
+
+  if (isAuto === 1) {
+    const needsGeneration = tableSerialNumber.some(
+      (serial) => serial.system_serial_number === "Auto generated serial number"
+    );
+
+    if (needsGeneration) {
+      const resSerialConfig = await db
+        .collection("serial_level_config")
+        .where({ organization_id: organizationId })
+        .get();
+
+      if (!resSerialConfig || !resSerialConfig.data || resSerialConfig.data.length === 0) {
+        throw new Error(`Serial number configuration not found for organization ${organizationId}`);
+      }
+
+      const serialConfigData = resSerialConfig.data[0];
+      currentRunningNumber = serialConfigData.serial_running_number;
+      serialPrefix = serialConfigData.serial_prefix ? `${serialConfigData.serial_prefix}-` : "";
+    }
+  }
+
+  // Process all serial numbers sequentially
+  for (let serialIndex = 0; serialIndex < tableSerialNumber.length; serialIndex++) {
+    const serialItem = tableSerialNumber[serialIndex];
+    let finalSystemSerialNumber = serialItem.system_serial_number;
+
+    // Generate new serial number if needed
+    if (finalSystemSerialNumber === "Auto generated serial number") {
+      finalSystemSerialNumber = serialPrefix + String(currentRunningNumber + generatedCount).padStart(10, "0");
+      generatedCount++;
+    }
+
+    updatedTableSerialNumber.push({
+      ...serialItem,
+      system_serial_number: finalSystemSerialNumber,
+    });
+
+    if (finalSystemSerialNumber && finalSystemSerialNumber !== "" && finalSystemSerialNumber !== "Auto generated serial number") {
+      // 1. Insert serial_number record
+      const serialNumberRecord = {
+        system_serial_number: finalSystemSerialNumber,
+        supplier_serial_number: serialItem.supplier_serial_number || "",
+        material_id: data.material_id,
+        batch_id: producedBatchId,
+        bin_location: data.target_bin_location,
+        plant_id: plantId,
+        organization_id: organizationId,
+        transaction_no: stockMovementNo,
+        parent_trx_no: "",
+        create_time: new Date().toISOString(),
+        update_time: new Date().toISOString(),
+      };
+
+      await db.collection("serial_number").add(serialNumberRecord);
+
+      // 2. Insert inv_serial_movement record
+      await createSerialMovementRecord(
+        movementId,
+        finalSystemSerialNumber,
+        producedBatchId,
+        baseQtyPerSerial,
+        baseUOM,
+        plantId,
+        organizationId
+      );
+
+      // 3. Create serial balance record
+      await createOrUpdateReceivingSerialBalance(
+        data.material_id,
+        finalSystemSerialNumber,
+        producedBatchId,
+        data.target_bin_location,
+        data.category || "Unrestricted",
+        baseQtyPerSerial,
+        plantId,
+        organizationId,
+        baseUOM
+      );
+    }
+  }
+
+  // Update serial configuration if we generated new numbers
+  if (generatedCount > 0 && currentRunningNumber !== null) {
+    await db
+      .collection("serial_level_config")
+      .where({ organization_id: organizationId })
+      .update({
+        serial_running_number: currentRunningNumber + generatedCount,
+      });
+  }
+
+  console.log(`Successfully processed serialized item Production Receipt for ${data.material_id}`);
+};
+
 const handleInventoryBalanceAndMovement = async (
   data,
   productionOrderNo,
@@ -827,15 +1238,12 @@ const handleInventoryBalanceAndMovement = async (
   try {
     let totalInputCost = 0;
 
-    // Process consumed items (table_mat_confirmation)
+    // Group serialized and non-serialized items for inventory movement processing
+    const serializedItems = [];
+    const nonSerializedItems = [];
+    
+    // Separate items by type
     for (const mat of data.table_mat_confirmation) {
-      console.log(
-        "Processing consumed material_id:",
-        mat.material_id,
-        "Quantity:",
-        mat.material_actual_qty
-      );
-
       const matItemQuery = await db
         .collection("Item")
         .where({ id: mat.material_id, is_deleted: 0 })
@@ -845,6 +1253,113 @@ const handleInventoryBalanceAndMovement = async (
       }
 
       const matItem = matItemQuery.data[0];
+      const isSerializedItem = matItem.serial_number_management === 1;
+
+      if (isSerializedItem && mat.serial_number) {
+        // Process all serialized items (including zero qty to handle reserved->unrestricted transfer)
+        serializedItems.push({ mat, matItem });
+      } else {
+        // Process all non-serialized items (including zero qty to handle reserved->unrestricted transfer)
+        nonSerializedItems.push({ mat, matItem });
+      }
+    }
+
+    // Process serialized items - group by material_id, batch_id, and bin_location_id for inventory movement
+    const serializedGroups = new Map();
+    
+    for (const { mat, matItem } of serializedItems) {
+      const groupKey = `${mat.material_id}_${mat.batch_id || 'null'}_${mat.bin_location_id || 'null'}`;
+      
+      if (!serializedGroups.has(groupKey)) {
+        serializedGroups.set(groupKey, {
+          material_id: mat.material_id,
+          matItem: matItem,
+          items: [],
+          totalQty: 0,
+          totalCost: 0,
+          bin_location_id: mat.bin_location_id,
+          batch_id: mat.batch_id,
+        });
+      }
+      
+      const group = serializedGroups.get(groupKey);
+      group.items.push(mat);
+      group.totalQty += mat.material_actual_qty;
+    }
+
+    // Process each serialized group
+    for (const group of serializedGroups.values()) {
+      console.log(`Processing serialized item group for Good Issue: ${group.material_id}, items: ${group.items.length}`);
+      
+      let groupTotalCost = 0;
+      
+      // Calculate costing for the group
+      for (const mat of group.items) {
+        const { totalPrice } = await calculateCostingAndUpdateTables(
+          mat,
+          group.matItem,
+          null, // No balance data needed for serialized items
+          data.plant_id,
+          db,
+          "SM",
+          stockMovementGINo,
+          productionOrderNo
+        );
+        groupTotalCost += totalPrice;
+      }
+
+      totalInputCost += groupTotalCost;
+
+      // Create single inventory movement record for this group
+      const giMovement = {
+        transaction_type: "SM",
+        trx_no: stockMovementGINo,
+        parent_trx_no: productionOrderNo,
+        movement: "OUT",
+        unit_price: group.totalQty > 0 ? groupTotalCost / group.totalQty : 0,
+        total_price: groupTotalCost,
+        quantity: group.totalQty,
+        item_id: group.material_id,
+        inventory_category: "Reserved",
+        uom_id: group.matItem.based_uom,
+        base_qty: group.totalQty,
+        base_uom_id: group.matItem.based_uom,
+        bin_location_id: group.bin_location_id,
+        batch_number_id: group.matItem.item_batch_management === 1 ? group.batch_id || null : null,
+        costing_method_id: group.matItem.material_costing_method,
+        created_at: new Date().toISOString(),
+        plant_id: data.plant_id,
+        organization_id: organizationId,
+        update_time: new Date().toISOString(),
+        is_deleted: 0,
+      };
+
+      const giMovementResult = await db.collection("inventory_movement").add(giMovement);
+      console.log(`Created GI inventory movement for serialized item group ${group.material_id} with ID: ${giMovementResult.id}`);
+
+      // Process individual serial numbers in this group
+      for (const mat of group.items) {
+        await processSerializedItemForGoodIssue(
+          mat,
+          group.matItem,
+          data.plant_id,
+          organizationId,
+          giMovementResult.id,
+          productionOrderNo,
+          stockMovementGINo
+        );
+      }
+    }
+
+    // Process non-serialized items (existing logic)
+    for (const { mat, matItem } of nonSerializedItems) {
+      console.log(
+        "Processing consumed material_id:",
+        mat.material_id,
+        "Quantity:",
+        mat.material_actual_qty
+      );
+
       const matBatchManagement = matItem.item_batch_management;
       const matCollectionName =
         matBatchManagement === 1 ? "item_batch_balance" : "item_balance";
@@ -898,21 +1413,20 @@ const handleInventoryBalanceAndMovement = async (
             );
           }
 
-          const { unitPrice, totalPrice } =
-            await calculateCostingAndUpdateTables(
-              {
-                ...mat,
-                material_actual_qty: qtyToDeduct,
-                batch_id: batch.batch_id,
-              },
-              matItem,
-              matBalance,
-              data.plant_id,
-              db,
-              "SM",
-              stockMovementGINo,
-              productionOrderNo
-            );
+          const { totalPrice } = await calculateCostingAndUpdateTables(
+            {
+              ...mat,
+              material_actual_qty: qtyToDeduct,
+              batch_id: batch.batch_id,
+            },
+            matItem,
+            matBalance,
+            data.plant_id,
+            db,
+            "SM",
+            stockMovementGINo,
+            productionOrderNo
+          );
 
           totalInputCost += totalPrice;
 
@@ -924,15 +1438,10 @@ const handleInventoryBalanceAndMovement = async (
             ),
             reserved_qty: parseFloat(
               (
-                (matBalance.reserved_qty || 0) - mat.material_required_qty
+                (matBalance.reserved_qty || 0) - mat.material_actual_qty
               ).toFixed(3)
             ),
-            unrestricted_qty: parseFloat(
-              (
-                (matBalance.unrestricted_qty || 0) +
-                (mat.material_required_qty - mat.material_actual_qty)
-              ).toFixed(3)
-            ),
+            // Note: unused quantity return handled in ICTP function
             update_time: new Date().toISOString(),
           };
 
@@ -985,21 +1494,20 @@ const handleInventoryBalanceAndMovement = async (
               );
             }
 
-            const { unitPrice, totalPrice } =
-              await calculateCostingAndUpdateTables(
-                {
-                  ...mat,
-                  material_actual_qty: qtyToDeduct,
-                  batch_id: matBalance.batch_id,
-                },
-                matItem,
-                matBalance,
-                data.plant_id,
-                db,
-                "SM",
-                stockMovementGINo,
-                productionOrderNo
-              );
+            const { totalPrice } = await calculateCostingAndUpdateTables(
+              {
+                ...mat,
+                material_actual_qty: qtyToDeduct,
+                batch_id: matBalance.batch_id,
+              },
+              matItem,
+              matBalance,
+              data.plant_id,
+              db,
+              "SM",
+              stockMovementGINo,
+              productionOrderNo
+            );
 
             totalInputCost += totalPrice;
 
@@ -1085,7 +1593,7 @@ const handleInventoryBalanceAndMovement = async (
           );
         }
 
-        const { unitPrice, totalPrice } = await calculateCostingAndUpdateTables(
+        const { totalPrice } = await calculateCostingAndUpdateTables(
           mat,
           matItem,
           matBalance,
@@ -1160,6 +1668,7 @@ const handleInventoryBalanceAndMovement = async (
 
     const item = itemQuery.data[0];
     const item_batch_management = item.item_batch_management;
+    const isSerializedItem = item.serial_number_management === 1;
     const collectionName =
       item_batch_management === 1 ? "item_batch_balance" : "item_balance";
     let producedBatchId = data.batch_id;
@@ -1287,6 +1796,19 @@ const handleInventoryBalanceAndMovement = async (
       `Inventory movement record created for produced item with ID: ${movementResult.id}`
     );
 
+    // Handle serialized items for Production Receipt
+    if (isSerializedItem && data.serial_number_data) {
+      console.log(`Processing serialized item Production Receipt for ${data.material_id}`);
+      await processSerializedItemForProductionReceipt(
+        data,
+        data.plant_id,
+        organizationId,
+        movementResult.id,
+        stockMovementNo,
+        producedBatchId
+      );
+    }
+
     const resSM = await db
       .collection("stock_movement")
       .where({
@@ -1316,32 +1838,6 @@ const handleInventoryBalanceAndMovement = async (
     console.error("Error handling inventory balance and movement:", error);
     throw error;
   }
-};
-
-// Check if stock movements already exist for this production order
-const checkExistingStockMovements = async (productionOrderId, db) => {
-  const existingMovements = await db
-    .collection("stock_movement")
-    .where({
-      production_order_id: productionOrderId,
-      is_deleted: 0,
-    })
-    .get();
-
-  if (existingMovements.data && existingMovements.data.length > 0) {
-    const movements = existingMovements.data.reduce((acc, mov) => {
-      if (mov.movement_type === MOVEMENT_TYPES.PRODUCTION_RECEIPT) {
-        acc.pr = mov;
-      } else if (mov.movement_type === MOVEMENT_TYPES.GOODS_ISSUE) {
-        acc.gi = mov;
-      }
-      return acc;
-    }, {});
-
-    return movements;
-  }
-
-  return null;
 };
 
 const generateBatchNumber = async (batch_id, organizationId) => {
@@ -1398,7 +1894,7 @@ const updateItemTransactionDate = async (entry) => {
           .collection("Item")
           .doc(item)
           .update({ last_transaction_date: date });
-      } catch (error) {
+      } catch {
         throw new Error(
           `Cannot update last transaction date for item #${index + 1}.`
         );
@@ -1409,7 +1905,7 @@ const updateItemTransactionDate = async (entry) => {
   }
 };
 
-const createICTPStockMovement = async (allData, productionOrderNo) => {
+const createICTPStockMovement = async (allData) => {
   try {
     const unusedQuantity = allData.table_mat_confirmation.filter(
       (item) => item.material_required_qty - item.material_actual_qty > 0
@@ -1490,6 +1986,7 @@ const createICTPStockMovement = async (allData, productionOrderNo) => {
       return prefixToShow;
     };
 
+
     const convertUOM = async (materialData, mat) => {
       let baseQTY = 0;
       let matQTY = mat.material_required_qty - mat.material_actual_qty;
@@ -1517,65 +2014,168 @@ const createICTPStockMovement = async (allData, productionOrderNo) => {
         throw new Error("Error fetching item data when create ICTP.");
 
       const materialData = resItem.data[0];
+      const unusedQty = mat.material_required_qty - mat.material_actual_qty;
 
-      const baseQTY = await convertUOM(materialData, mat);
+      if (materialData.serial_number_management === 1) {
+        // For serialized items, create inventory movements and handle serial balance updates
+        const baseQTY = await convertUOM(materialData, mat);
 
-      const inventoryMovementOUTData = {
-        transaction_type: "SM",
-        trx_no: prefix,
-        parent_trx_no: productionOrderNo,
-        movement: "OUT",
-        unit_price: 0,
-        total_price: 0,
-        quantity: mat.material_required_qty - mat.material_actual_qty || 0,
-        item_id: mat.material_id,
-        inventory_category: "Reserved",
-        uom_id: mat.material_uom,
-        base_qty: baseQTY || 0,
-        base_uom_id: materialData.based_uom,
-        bin_location_id: mat.bin_location_id,
-        batch_number_id:
-          materialData.item_batch_management === "1"
-            ? mat.batch_id || null
-            : null,
-        costing_method_id: materialData.material_costing_method,
-        created_at: new Date().toISOString(),
-        plant_id: allData.plant_id,
-        organization_id: allData.organization_id,
-        update_time: new Date().toISOString(),
-        is_deleted: 0,
-      };
+        const inventoryMovementOUTData = {
+          transaction_type: "SM",
+          trx_no: prefix,
+          parent_trx_no: allData.production_order_no,
+          movement: "OUT",
+          unit_price: 0,
+          total_price: 0,
+          quantity: unusedQty,
+          item_id: mat.material_id,
+          inventory_category: "Reserved",
+          uom_id: mat.material_uom,
+          base_qty: baseQTY || 0,
+          base_uom_id: materialData.based_uom,
+          bin_location_id: mat.bin_location_id,
+          batch_number_id:
+            materialData.item_batch_management === "1"
+              ? mat.batch_id || null
+              : null,
+          costing_method_id: materialData.material_costing_method,
+          created_at: new Date().toISOString(),
+          plant_id: allData.plant_id,
+          organization_id: allData.organization_id,
+          update_time: new Date().toISOString(),
+          is_deleted: 0,
+        };
 
-      const inventoryMovementINData = {
-        transaction_type: "SM",
-        trx_no: prefix,
-        parent_trx_no: productionOrderNo,
-        movement: "IN",
-        unit_price: 0,
-        total_price: 0,
-        quantity: mat.material_required_qty - mat.material_actual_qty || 0,
-        item_id: mat.material_id,
-        inventory_category: "Unrestricted",
-        uom_id: mat.material_uom,
-        base_qty: baseQTY || 0,
-        base_uom_id: materialData.based_uom,
-        bin_location_id: mat.bin_location_id,
-        batch_number_id:
-          materialData.item_batch_management === "1"
-            ? mat.batch_id || null
-            : null,
-        costing_method_id: materialData.material_costing_method,
-        created_at: new Date().toISOString(),
-        plant_id: allData.plant_id,
-        organization_id: allData.organization_id,
-        update_time: new Date().toISOString(),
-        is_deleted: 0,
-      };
+        const inventoryMovementINData = {
+          transaction_type: "SM",
+          trx_no: prefix,
+          parent_trx_no: allData.production_order_no,
+          movement: "IN",
+          unit_price: 0,
+          total_price: 0,
+          quantity: unusedQty,
+          item_id: mat.material_id,
+          inventory_category: "Unrestricted",
+          uom_id: mat.material_uom,
+          base_qty: baseQTY || 0,
+          base_uom_id: materialData.based_uom,
+          bin_location_id: mat.bin_location_id,
+          batch_number_id:
+            materialData.item_batch_management === "1"
+              ? mat.batch_id || null
+              : null,
+          costing_method_id: materialData.material_costing_method,
+          created_at: new Date().toISOString(),
+          plant_id: allData.plant_id,
+          organization_id: allData.organization_id,
+          update_time: new Date().toISOString(),
+          is_deleted: 0,
+        };
 
-      await Promise.all([
-        db.collection("inventory_movement").add(inventoryMovementOUTData),
-        db.collection("inventory_movement").add(inventoryMovementINData),
-      ]);
+        const [, inMovement] = await Promise.all([
+          db.collection("inventory_movement").add(inventoryMovementOUTData),
+          db.collection("inventory_movement").add(inventoryMovementINData),
+        ]);
+
+        // Handle serialized item unused quantity return
+        if (mat.serial_number) {
+          // Create inv_serial_movement for unused quantity return
+          await createSerialMovementRecord(
+            inMovement.id,
+            mat.serial_number,
+            mat.batch_id,
+            unusedQty,
+            materialData.based_uom,
+            allData.plant_id,
+            allData.organization_id
+          );
+
+          // Update serial balance: Reserved -> Unrestricted
+          await updateSerialBalance(
+            mat.material_id,
+            mat.serial_number,
+            mat.batch_id,
+            mat.bin_location_id,
+            "Reserved",
+            -unusedQty,
+            allData.plant_id,
+            allData.organization_id
+          );
+
+          await updateSerialBalance(
+            mat.material_id,
+            mat.serial_number,
+            mat.batch_id,
+            mat.bin_location_id,
+            "Unrestricted",
+            unusedQty,
+            allData.plant_id,
+            allData.organization_id
+          );
+
+          console.log(`ICTP: Processed unused quantity return for serial ${mat.serial_number}: ${unusedQty}`);
+        }
+      } else {
+        // Non-serialized items
+        const baseQTY = await convertUOM(materialData, mat);
+
+        const inventoryMovementOUTData = {
+          transaction_type: "SM",
+          trx_no: prefix,
+          parent_trx_no: allData.production_order_no,
+          movement: "OUT",
+          unit_price: 0,
+          total_price: 0,
+          quantity: unusedQty,
+          item_id: mat.material_id,
+          inventory_category: "Reserved",
+          uom_id: mat.material_uom,
+          base_qty: baseQTY || 0,
+          base_uom_id: materialData.based_uom,
+          bin_location_id: mat.bin_location_id,
+          batch_number_id:
+            materialData.item_batch_management === "1"
+              ? mat.batch_id || null
+              : null,
+          costing_method_id: materialData.material_costing_method,
+          created_at: new Date().toISOString(),
+          plant_id: allData.plant_id,
+          organization_id: allData.organization_id,
+          update_time: new Date().toISOString(),
+          is_deleted: 0,
+        };
+
+        const inventoryMovementINData = {
+          transaction_type: "SM",
+          trx_no: prefix,
+          parent_trx_no: allData.production_order_no,
+          movement: "IN",
+          unit_price: 0,
+          total_price: 0,
+          quantity: unusedQty,
+          item_id: mat.material_id,
+          inventory_category: "Unrestricted",
+          uom_id: mat.material_uom,
+          base_qty: baseQTY || 0,
+          base_uom_id: materialData.based_uom,
+          bin_location_id: mat.bin_location_id,
+          batch_number_id:
+            materialData.item_batch_management === "1"
+              ? mat.batch_id || null
+              : null,
+          costing_method_id: materialData.material_costing_method,
+          created_at: new Date().toISOString(),
+          plant_id: allData.plant_id,
+          organization_id: allData.organization_id,
+          update_time: new Date().toISOString(),
+          is_deleted: 0,
+        };
+
+        await Promise.all([
+          db.collection("inventory_movement").add(inventoryMovementOUTData),
+          db.collection("inventory_movement").add(inventoryMovementINData),
+        ]);
+      }
 
       const resOnReserve = await db
         .collection("on_reserved_gd")
@@ -1762,7 +2362,7 @@ try {
     giStockMovementNo
   );
 
-  await createICTPStockMovement(allData, entry.production_order_no);
+  await createICTPStockMovement(allData);
 
   const soLineItem = entry.table_sales_order;
   const materialId = entry.material_id;
