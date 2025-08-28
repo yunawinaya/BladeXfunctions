@@ -521,7 +521,8 @@ const calculateCostingAndUpdateTables = async (
   db,
   transactionType,
   trxNo,
-  parentTrxNo
+  parentTrxNo,
+  skipInventoryMovement = false
 ) => {
   try {
     let unitPrice = 0;
@@ -627,41 +628,48 @@ const calculateCostingAndUpdateTables = async (
       totalPrice = unitPrice * mat.material_actual_qty;
     }
 
-    const movement = {
-      transaction_type: transactionType,
-      trx_no: trxNo,
-      parent_trx_no: parentTrxNo,
-      movement:
-        transactionType === "SM" && materialData.id === allData.material_id
-          ? "IN"
-          : "OUT",
-      unit_price: unitPrice,
-      total_price: totalPrice,
-      quantity: mat.material_actual_qty || 0,
-      item_id: materialData.id,
-      inventory_category: "Reserved",
-      uom_id: materialData.based_uom,
-      base_qty: mat.material_actual_qty || 0,
-      base_uom_id: materialData.based_uom,
-      bin_location_id: mat.bin_location_id,
-      batch_number_id:
-        materialData.item_batch_management === "1"
-          ? mat.batch_id || null
-          : null,
-      costing_method_id: materialData.material_costing_method,
-      created_at: new Date().toISOString(),
-      plant_id: allData.plant_id,
-      organization_id: organizationId,
-      update_time: new Date().toISOString(),
-      is_deleted: 0,
-    };
+    // Skip inventory movement creation if requested (for serialized items handled by grouping)
+    if (!skipInventoryMovement) {
+      const movement = {
+        transaction_type: transactionType,
+        trx_no: trxNo,
+        parent_trx_no: parentTrxNo,
+        movement:
+          transactionType === "SM" && materialData.id === allData.material_id
+            ? "IN"
+            : "OUT",
+        unit_price: unitPrice,
+        total_price: totalPrice,
+        quantity: mat.material_actual_qty || 0,
+        item_id: materialData.id,
+        inventory_category: "Reserved",
+        uom_id: materialData.based_uom,
+        base_qty: mat.material_actual_qty || 0,
+        base_uom_id: materialData.based_uom,
+        bin_location_id: mat.bin_location_id,
+        batch_number_id:
+          materialData.item_batch_management === "1"
+            ? mat.batch_id || null
+            : null,
+        costing_method_id: materialData.material_costing_method,
+        created_at: new Date().toISOString(),
+        plant_id: allData.plant_id,
+        organization_id: organizationId,
+        update_time: new Date().toISOString(),
+        is_deleted: 0,
+      };
 
-    const movementResult = await db
-      .collection("inventory_movement")
-      .add(movement);
-    console.log(
-      `Inventory movement record created with ID: ${movementResult.id}, unit_price: ${unitPrice}, total_price: ${totalPrice}`
-    );
+      const movementResult = await db
+        .collection("inventory_movement")
+        .add(movement);
+      console.log(
+        `Inventory movement record created with ID: ${movementResult.id}, unit_price: ${unitPrice}, total_price: ${totalPrice}`
+      );
+    } else {
+      console.log(
+        `Skipped inventory movement creation for serialized item, unit_price: ${unitPrice}, total_price: ${totalPrice}`
+      );
+    }
 
     return { unitPrice, totalPrice };
   } catch (error) {
@@ -853,7 +861,15 @@ const roundQty = (value) => {
   return parseFloat(parseFloat(value || 0).toFixed(3));
 };
 
-const createSerialMovementRecord = async (inventoryMovementId, serialNumber, batchId, baseQty, baseUOM, plantId, organizationId) => {
+const createSerialMovementRecord = async (
+  inventoryMovementId,
+  serialNumber,
+  batchId,
+  baseQty,
+  baseUOM,
+  plantId,
+  organizationId
+) => {
   const invSerialMovementRecord = {
     inventory_movement_id: inventoryMovementId,
     serial_number: serialNumber,
@@ -868,10 +884,19 @@ const createSerialMovementRecord = async (inventoryMovementId, serialNumber, bat
   console.log(`Created inv_serial_movement for serial: ${serialNumber}`);
 };
 
-const updateSerialBalance = async (materialId, serialNumber, batchId, locationId, category, qtyChange, plantId, organizationId) => {
+const updateSerialBalance = async (
+  materialId,
+  serialNumber,
+  batchId,
+  locationId,
+  category,
+  qtyChange,
+  plantId,
+  organizationId
+) => {
   const categoryMap = {
     Unrestricted: "unrestricted_qty",
-    "Quality Inspection": "qualityinsp_qty", 
+    "Quality Inspection": "qualityinsp_qty",
     Blocked: "block_qty",
     Reserved: "reserved_qty",
     "In Transit": "intransit_qty",
@@ -898,24 +923,38 @@ const updateSerialBalance = async (materialId, serialNumber, batchId, locationId
     .get();
 
   if (!serialBalanceQuery.data || serialBalanceQuery.data.length === 0) {
-    throw new Error(`No serial balance found for serial number: ${serialNumber}`);
+    throw new Error(
+      `No serial balance found for serial number: ${serialNumber}`
+    );
   }
 
   const existingBalance = serialBalanceQuery.data[0];
   const categoryField = categoryMap[category] || "unrestricted_qty";
 
-  const currentCategoryQty = roundQty(parseFloat(existingBalance[categoryField] || 0));
-  const currentBalanceQty = roundQty(parseFloat(existingBalance.balance_quantity || 0));
+  const currentCategoryQty = roundQty(
+    parseFloat(existingBalance[categoryField] || 0)
+  );
+  const currentBalanceQty = roundQty(
+    parseFloat(existingBalance.balance_quantity || 0)
+  );
 
   const newCategoryQty = roundQty(currentCategoryQty + qtyChange);
   const newBalanceQty = roundQty(currentBalanceQty + qtyChange);
 
   if (newCategoryQty < 0) {
-    throw new Error(`Insufficient ${category} quantity for serial ${serialNumber}. Available: ${currentCategoryQty}, Requested: ${Math.abs(qtyChange)}`);
+    throw new Error(
+      `Insufficient ${category} quantity for serial ${serialNumber}. Available: ${currentCategoryQty}, Requested: ${Math.abs(
+        qtyChange
+      )}`
+    );
   }
 
   if (newBalanceQty < 0) {
-    throw new Error(`Insufficient total quantity for serial ${serialNumber}. Available: ${currentBalanceQty}, Requested: ${Math.abs(qtyChange)}`);
+    throw new Error(
+      `Insufficient total quantity for serial ${serialNumber}. Available: ${currentBalanceQty}, Requested: ${Math.abs(
+        qtyChange
+      )}`
+    );
   }
 
   const updateData = {
@@ -926,15 +965,30 @@ const updateSerialBalance = async (materialId, serialNumber, batchId, locationId
 
   // Note: unused quantity processing moved to ICTP function
 
-  await db.collection("item_serial_balance").doc(existingBalance.id).update(updateData);
-  console.log(`Updated serial balance for ${serialNumber}: ${category}=${newCategoryQty}, Balance=${newBalanceQty}`);
+  await db
+    .collection("item_serial_balance")
+    .doc(existingBalance.id)
+    .update(updateData);
+  console.log(
+    `Updated serial balance for ${serialNumber}: ${category}=${newCategoryQty}, Balance=${newBalanceQty}`
+  );
 };
 
-const createOrUpdateReceivingSerialBalance = async (materialId, serialNumber, batchId, locationId, category, qtyChange, plantId, organizationId, materialUom) => {
+const createOrUpdateReceivingSerialBalance = async (
+  materialId,
+  serialNumber,
+  batchId,
+  locationId,
+  category,
+  qtyChange,
+  plantId,
+  organizationId,
+  materialUom
+) => {
   const categoryMap = {
-    Unrestricted: "unrestricted_qty", 
+    Unrestricted: "unrestricted_qty",
     "Quality Inspection": "qualityinsp_qty",
-    Blocked: "block_qty", 
+    Blocked: "block_qty",
     Reserved: "reserved_qty",
     "In Transit": "intransit_qty",
   };
@@ -960,8 +1014,12 @@ const createOrUpdateReceivingSerialBalance = async (materialId, serialNumber, ba
 
   if (serialBalanceQuery.data && serialBalanceQuery.data.length > 0) {
     const existingBalance = serialBalanceQuery.data[0];
-    const currentCategoryQty = roundQty(parseFloat(existingBalance[categoryField] || 0));
-    const currentBalanceQty = roundQty(parseFloat(existingBalance.balance_quantity || 0));
+    const currentCategoryQty = roundQty(
+      parseFloat(existingBalance[categoryField] || 0)
+    );
+    const currentBalanceQty = roundQty(
+      parseFloat(existingBalance.balance_quantity || 0)
+    );
 
     const newCategoryQty = roundQty(currentCategoryQty + qtyChange);
     const newBalanceQty = roundQty(currentBalanceQty + qtyChange);
@@ -972,8 +1030,13 @@ const createOrUpdateReceivingSerialBalance = async (materialId, serialNumber, ba
       update_time: new Date().toISOString(),
     };
 
-    await db.collection("item_serial_balance").doc(existingBalance.id).update(updateData);
-    console.log(`Updated existing serial balance for ${serialNumber} at location ${locationId}`);
+    await db
+      .collection("item_serial_balance")
+      .doc(existingBalance.id)
+      .update(updateData);
+    console.log(
+      `Updated existing serial balance for ${serialNumber} at location ${locationId}`
+    );
   } else {
     const serialBalanceRecord = {
       material_id: materialId,
@@ -985,7 +1048,8 @@ const createOrUpdateReceivingSerialBalance = async (materialId, serialNumber, ba
       unrestricted_qty: category === "Unrestricted" ? roundQty(qtyChange) : 0,
       block_qty: category === "Blocked" ? roundQty(qtyChange) : 0,
       reserved_qty: category === "Reserved" ? roundQty(qtyChange) : 0,
-      qualityinsp_qty: category === "Quality Inspection" ? roundQty(qtyChange) : 0,
+      qualityinsp_qty:
+        category === "Quality Inspection" ? roundQty(qtyChange) : 0,
       intransit_qty: category === "In Transit" ? roundQty(qtyChange) : 0,
       balance_quantity: roundQty(qtyChange),
       organization_id: organizationId,
@@ -994,16 +1058,28 @@ const createOrUpdateReceivingSerialBalance = async (materialId, serialNumber, ba
     };
 
     await db.collection("item_serial_balance").add(serialBalanceRecord);
-    console.log(`Created new serial balance for ${serialNumber} at location ${locationId}`);
+    console.log(
+      `Created new serial balance for ${serialNumber} at location ${locationId}`
+    );
   }
 };
 
-const processSerializedItemForGoodIssue = async (mat, matItem, plantId, organizationId, movementId, productionOrderNo, stockMovementGINo) => {
-  console.log(`Processing serialized item for Good Issue: ${mat.material_id}, serial: ${mat.serial_number}`);
+const processSerializedItemForGoodIssue = async (
+  mat,
+  matItem,
+  plantId,
+  organizationId,
+  movementId,
+  productionOrderNo,
+  stockMovementGINo
+) => {
+  console.log(
+    `Processing serialized item for Good Issue: ${mat.material_id}, serial: ${mat.serial_number}`
+  );
 
   // Create serial movement record
   await createSerialMovementRecord(
-    movementId, 
+    movementId,
     mat.serial_number,
     mat.batch_id,
     mat.material_actual_qty,
@@ -1034,13 +1110,17 @@ const processSerializedItemForGoodIssue = async (mat, matItem, plantId, organiza
       organization_id: organizationId,
       is_deleted: 0,
       material_id: mat.material_id,
-      ...(matItem.item_batch_management === 1 ? { batch_id: mat.batch_id } : {}),
+      ...(matItem.item_batch_management === 1
+        ? { batch_id: mat.batch_id }
+        : {}),
       bin_location: mat.bin_location_id,
     })
     .get();
 
   if (!resOnReserve || resOnReserve.data.length === 0) {
-    throw new Error(`Error fetching on reserve table for serialized item ${mat.material_id}, serial: ${mat.serial_number}`);
+    throw new Error(
+      `Error fetching on reserve table for serialized item ${mat.material_id}, serial: ${mat.serial_number}`
+    );
   }
 
   const onReserveData = resOnReserve.data[0];
@@ -1051,14 +1131,27 @@ const processSerializedItemForGoodIssue = async (mat, matItem, plantId, organiza
     doc_no: stockMovementGINo,
   });
 
-  console.log(`Successfully processed serialized item Good Issue for ${mat.serial_number}`);
+  console.log(
+    `Successfully processed serialized item Good Issue for ${mat.serial_number}`
+  );
 };
 
-const processSerializedItemForProductionReceipt = async (data, plantId, organizationId, movementId, stockMovementNo, producedBatchId) => {
-  console.log(`Processing serialized item for Production Receipt: ${data.material_id}`);
-  
+const processSerializedItemForProductionReceipt = async (
+  data,
+  plantId,
+  organizationId,
+  movementId,
+  stockMovementNo,
+  producedBatchId
+) => {
+  console.log(
+    `Processing serialized item for Production Receipt: ${data.material_id}`
+  );
+
   if (!data.serial_number_data) {
-    console.log(`No serial number data found for Production Receipt item ${data.material_id}`);
+    console.log(
+      `No serial number data found for Production Receipt item ${data.material_id}`
+    );
     return;
   }
 
@@ -1066,7 +1159,10 @@ const processSerializedItemForProductionReceipt = async (data, plantId, organiza
   try {
     serialNumberData = JSON.parse(data.serial_number_data);
   } catch (parseError) {
-    console.error(`Error parsing serial number data for Production Receipt item ${data.material_id}:`, parseError);
+    console.error(
+      `Error parsing serial number data for Production Receipt item ${data.material_id}:`,
+      parseError
+    );
     return;
   }
 
@@ -1077,9 +1173,11 @@ const processSerializedItemForProductionReceipt = async (data, plantId, organiza
   // Validate manual serial numbers when is_auto = 0
   if (isAuto === 0) {
     const emptySerials = tableSerialNumber.filter(
-      (serial) => !serial.system_serial_number || serial.system_serial_number.trim() === ""
+      (serial) =>
+        !serial.system_serial_number ||
+        serial.system_serial_number.trim() === ""
     );
-    
+
     if (emptySerials.length > 0) {
       throw new Error(
         `Manual serial number entry required: ${emptySerials.length} serial number(s) are empty. Please provide all serial numbers before completing the production order.`
@@ -1089,14 +1187,17 @@ const processSerializedItemForProductionReceipt = async (data, plantId, organiza
 
   // Validate mixed manual/auto serial numbers (some auto, some manual)
   const manualSerials = tableSerialNumber.filter(
-    (serial) => serial.system_serial_number && 
-               serial.system_serial_number.trim() !== "" && 
-               serial.system_serial_number !== "Auto generated serial number"
+    (serial) =>
+      serial.system_serial_number &&
+      serial.system_serial_number.trim() !== "" &&
+      serial.system_serial_number !== "Auto generated serial number"
   );
-  
+
   const emptyManualSerials = tableSerialNumber.filter(
-    (serial) => !serial.system_serial_number || 
-               (serial.system_serial_number.trim() === "" && serial.system_serial_number !== "Auto generated serial number")
+    (serial) =>
+      !serial.system_serial_number ||
+      (serial.system_serial_number.trim() === "" &&
+        serial.system_serial_number !== "Auto generated serial number")
   );
 
   if (emptyManualSerials.length > 0) {
@@ -1106,17 +1207,26 @@ const processSerializedItemForProductionReceipt = async (data, plantId, organiza
   }
 
   // Check for duplicate serial numbers
-  const allSerialNumbers = manualSerials.map(s => s.system_serial_number.trim());
-  const duplicates = allSerialNumbers.filter((serial, index) => allSerialNumbers.indexOf(serial) !== index);
-  
+  const allSerialNumbers = manualSerials.map((s) =>
+    s.system_serial_number.trim()
+  );
+  const duplicates = allSerialNumbers.filter(
+    (serial, index) => allSerialNumbers.indexOf(serial) !== index
+  );
+
   if (duplicates.length > 0) {
     throw new Error(
-      `Duplicate serial numbers detected: ${[...new Set(duplicates)].join(", ")}. Each serial number must be unique.`
+      `Duplicate serial numbers detected: ${[...new Set(duplicates)].join(
+        ", "
+      )}. Each serial number must be unique.`
     );
   }
 
   // Get item data for UOM
-  const itemRes = await db.collection("Item").where({ id: data.material_id }).get();
+  const itemRes = await db
+    .collection("Item")
+    .where({ id: data.material_id })
+    .get();
   if (!itemRes.data || !itemRes.data.length) {
     console.error(`Item not found: ${data.material_id}`);
     return;
@@ -1146,24 +1256,38 @@ const processSerializedItemForProductionReceipt = async (data, plantId, organiza
         .where({ organization_id: organizationId })
         .get();
 
-      if (!resSerialConfig || !resSerialConfig.data || resSerialConfig.data.length === 0) {
-        throw new Error(`Serial number configuration not found for organization ${organizationId}`);
+      if (
+        !resSerialConfig ||
+        !resSerialConfig.data ||
+        resSerialConfig.data.length === 0
+      ) {
+        throw new Error(
+          `Serial number configuration not found for organization ${organizationId}`
+        );
       }
 
       const serialConfigData = resSerialConfig.data[0];
       currentRunningNumber = serialConfigData.serial_running_number;
-      serialPrefix = serialConfigData.serial_prefix ? `${serialConfigData.serial_prefix}-` : "";
+      serialPrefix = serialConfigData.serial_prefix
+        ? `${serialConfigData.serial_prefix}-`
+        : "";
     }
   }
 
   // Process all serial numbers sequentially
-  for (let serialIndex = 0; serialIndex < tableSerialNumber.length; serialIndex++) {
+  for (
+    let serialIndex = 0;
+    serialIndex < tableSerialNumber.length;
+    serialIndex++
+  ) {
     const serialItem = tableSerialNumber[serialIndex];
     let finalSystemSerialNumber = serialItem.system_serial_number;
 
     // Generate new serial number if needed
     if (finalSystemSerialNumber === "Auto generated serial number") {
-      finalSystemSerialNumber = serialPrefix + String(currentRunningNumber + generatedCount).padStart(10, "0");
+      finalSystemSerialNumber =
+        serialPrefix +
+        String(currentRunningNumber + generatedCount).padStart(10, "0");
       generatedCount++;
     }
 
@@ -1172,7 +1296,11 @@ const processSerializedItemForProductionReceipt = async (data, plantId, organiza
       system_serial_number: finalSystemSerialNumber,
     });
 
-    if (finalSystemSerialNumber && finalSystemSerialNumber !== "" && finalSystemSerialNumber !== "Auto generated serial number") {
+    if (
+      finalSystemSerialNumber &&
+      finalSystemSerialNumber !== "" &&
+      finalSystemSerialNumber !== "Auto generated serial number"
+    ) {
       // 1. Insert serial_number record
       const serialNumberRecord = {
         system_serial_number: finalSystemSerialNumber,
@@ -1226,7 +1354,9 @@ const processSerializedItemForProductionReceipt = async (data, plantId, organiza
       });
   }
 
-  console.log(`Successfully processed serialized item Production Receipt for ${data.material_id}`);
+  console.log(
+    `Successfully processed serialized item Production Receipt for ${data.material_id}`
+  );
 };
 
 const handleInventoryBalanceAndMovement = async (
@@ -1241,7 +1371,7 @@ const handleInventoryBalanceAndMovement = async (
     // Group serialized and non-serialized items for inventory movement processing
     const serializedItems = [];
     const nonSerializedItems = [];
-    
+
     // Separate items by type
     for (const mat of data.table_mat_confirmation) {
       const matItemQuery = await db
@@ -1266,10 +1396,15 @@ const handleInventoryBalanceAndMovement = async (
 
     // Process serialized items - group by material_id, batch_id, and bin_location_id for inventory movement
     const serializedGroups = new Map();
-    
+
     for (const { mat, matItem } of serializedItems) {
-      const groupKey = `${mat.material_id}_${mat.batch_id || 'null'}_${mat.bin_location_id || 'null'}`;
-      
+      // Skip items with 0 actual quantity for inventory movement grouping
+      if (mat.material_actual_qty <= 0) continue;
+
+      const groupKey = `${mat.material_id}_${mat.batch_id || "null"}_${
+        mat.bin_location_id || "null"
+      }`;
+
       if (!serializedGroups.has(groupKey)) {
         serializedGroups.set(groupKey, {
           material_id: mat.material_id,
@@ -1281,7 +1416,7 @@ const handleInventoryBalanceAndMovement = async (
           batch_id: mat.batch_id,
         });
       }
-      
+
       const group = serializedGroups.get(groupKey);
       group.items.push(mat);
       group.totalQty += mat.material_actual_qty;
@@ -1289,11 +1424,13 @@ const handleInventoryBalanceAndMovement = async (
 
     // Process each serialized group
     for (const group of serializedGroups.values()) {
-      console.log(`Processing serialized item group for Good Issue: ${group.material_id}, items: ${group.items.length}`);
-      
+      console.log(
+        `Processing serialized item group for Good Issue: ${group.material_id}, items: ${group.items.length}`
+      );
+
       let groupTotalCost = 0;
-      
-      // Calculate costing for the group
+
+      // Calculate costing for the group (skip individual inventory movements)
       for (const mat of group.items) {
         const { totalPrice } = await calculateCostingAndUpdateTables(
           mat,
@@ -1303,7 +1440,8 @@ const handleInventoryBalanceAndMovement = async (
           db,
           "SM",
           stockMovementGINo,
-          productionOrderNo
+          productionOrderNo,
+          true // Skip inventory movement creation for serialized items
         );
         groupTotalCost += totalPrice;
       }
@@ -1325,7 +1463,10 @@ const handleInventoryBalanceAndMovement = async (
         base_qty: group.totalQty,
         base_uom_id: group.matItem.based_uom,
         bin_location_id: group.bin_location_id,
-        batch_number_id: group.matItem.item_batch_management === 1 ? group.batch_id || null : null,
+        batch_number_id:
+          group.matItem.item_batch_management === 1
+            ? group.batch_id || null
+            : null,
         costing_method_id: group.matItem.material_costing_method,
         created_at: new Date().toISOString(),
         plant_id: data.plant_id,
@@ -1334,20 +1475,46 @@ const handleInventoryBalanceAndMovement = async (
         is_deleted: 0,
       };
 
-      const giMovementResult = await db.collection("inventory_movement").add(giMovement);
-      console.log(`Created GI inventory movement for serialized item group ${group.material_id} with ID: ${giMovementResult.id}`);
+      await db.collection("inventory_movement").add(giMovement);
+      console.log(
+        `Created GI inventory movement for serialized item group ${group.material_id}`
+      );
 
-      // Process individual serial numbers in this group
-      for (const mat of group.items) {
-        await processSerializedItemForGoodIssue(
-          mat,
-          group.matItem,
-          data.plant_id,
-          organizationId,
-          giMovementResult.id,
-          productionOrderNo,
-          stockMovementGINo
-        );
+      // Small delay to ensure DB commit
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Fetch the inventory movement to get the actual ID
+      const giMovementQuery = await db
+        .collection("inventory_movement")
+        .where({
+          transaction_type: "SM",
+          trx_no: stockMovementGINo,
+          parent_trx_no: productionOrderNo,
+          movement: "OUT",
+          item_id: group.material_id,
+          inventory_category: "Reserved",
+          bin_location_id: group.bin_location_id,
+        })
+        .get();
+
+      if (giMovementQuery.data && giMovementQuery.data.length > 0) {
+        const giMovementId = giMovementQuery.data[0].id;
+        console.log(`Retrieved GI inventory movement ID: ${giMovementId}`);
+
+        // Process individual serial numbers in this group (filter out 0 quantities)
+        for (const mat of group.items.filter(
+          (item) => item.material_actual_qty > 0
+        )) {
+          await processSerializedItemForGoodIssue(
+            mat,
+            group.matItem,
+            data.plant_id,
+            organizationId,
+            giMovementId,
+            productionOrderNo,
+            stockMovementGINo
+          );
+        }
       }
     }
 
@@ -1789,24 +1956,47 @@ const handleInventoryBalanceAndMovement = async (
       is_deleted: 0,
     };
 
-    const movementResult = await db
-      .collection("inventory_movement")
-      .add(inMovement);
-    console.log(
-      `Inventory movement record created for produced item with ID: ${movementResult.id}`
-    );
+    await db.collection("inventory_movement").add(inMovement);
+    console.log(`Inventory movement record created for produced item`);
 
     // Handle serialized items for Production Receipt
     if (isSerializedItem && data.serial_number_data) {
-      console.log(`Processing serialized item Production Receipt for ${data.material_id}`);
-      await processSerializedItemForProductionReceipt(
-        data,
-        data.plant_id,
-        organizationId,
-        movementResult.id,
-        stockMovementNo,
-        producedBatchId
+      console.log(
+        `Processing serialized item Production Receipt for ${data.material_id}`
       );
+
+      // Small delay to ensure DB commit
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Fetch the inventory movement to get the actual ID
+      const movementQuery = await db
+        .collection("inventory_movement")
+        .where({
+          transaction_type: "SM",
+          trx_no: stockMovementNo,
+          parent_trx_no: productionOrderNo,
+          movement: "IN",
+          item_id: data.material_id,
+          inventory_category: data.category,
+          bin_location_id: data.target_bin_location,
+        })
+        .get();
+
+      if (movementQuery.data && movementQuery.data.length > 0) {
+        const movementId = movementQuery.data[0].id;
+        console.log(
+          `Retrieved Production Receipt inventory movement ID: ${movementId}`
+        );
+
+        await processSerializedItemForProductionReceipt(
+          data,
+          data.plant_id,
+          organizationId,
+          movementId,
+          stockMovementNo,
+          producedBatchId
+        );
+      }
     }
 
     const resSM = await db
@@ -1986,7 +2176,6 @@ const createICTPStockMovement = async (allData) => {
       return prefixToShow;
     };
 
-
     const convertUOM = async (materialData, mat) => {
       let baseQTY = 0;
       let matQTY = mat.material_required_qty - mat.material_actual_qty;
@@ -2072,23 +2261,44 @@ const createICTPStockMovement = async (allData) => {
           is_deleted: 0,
         };
 
-        const [, inMovement] = await Promise.all([
+        await Promise.all([
           db.collection("inventory_movement").add(inventoryMovementOUTData),
           db.collection("inventory_movement").add(inventoryMovementINData),
         ]);
 
         // Handle serialized item unused quantity return
-        if (mat.serial_number) {
-          // Create inv_serial_movement for unused quantity return
-          await createSerialMovementRecord(
-            inMovement.id,
-            mat.serial_number,
-            mat.batch_id,
-            unusedQty,
-            materialData.based_uom,
-            allData.plant_id,
-            allData.organization_id
-          );
+        if (mat.serial_number && unusedQty > 0) {
+          // Small delay to ensure DB commit
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          // Fetch the IN movement to get the actual ID
+          const inMovementQuery = await db
+            .collection("inventory_movement")
+            .where({
+              transaction_type: "SM",
+              trx_no: prefix,
+              parent_trx_no: allData.production_order_no,
+              movement: "IN",
+              item_id: mat.material_id,
+              inventory_category: "Unrestricted",
+              bin_location_id: mat.bin_location_id,
+            })
+            .get();
+
+          if (inMovementQuery.data && inMovementQuery.data.length > 0) {
+            const inMovementId = inMovementQuery.data[0].id;
+
+            // Create inv_serial_movement for unused quantity return
+            await createSerialMovementRecord(
+              inMovementId,
+              mat.serial_number,
+              mat.batch_id,
+              unusedQty,
+              materialData.based_uom,
+              allData.plant_id,
+              allData.organization_id
+            );
+          }
 
           // Update serial balance: Reserved -> Unrestricted
           await updateSerialBalance(
@@ -2113,7 +2323,9 @@ const createICTPStockMovement = async (allData) => {
             allData.organization_id
           );
 
-          console.log(`ICTP: Processed unused quantity return for serial ${mat.serial_number}: ${unusedQty}`);
+          console.log(
+            `ICTP: Processed unused quantity return for serial ${mat.serial_number}: ${unusedQty}`
+          );
         }
       } else {
         // Non-serialized items
