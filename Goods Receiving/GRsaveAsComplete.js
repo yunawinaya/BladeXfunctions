@@ -733,6 +733,90 @@ const addInventory = async (
         grId = resGR.data[0].id;
       }
 
+      let processedSerialNumberData = item.serial_number_data;
+
+      // Process serialized items by fetching actual generated serial numbers from database
+      if (item.is_serialized_item === 1 && item.serial_number_data) {
+        try {
+          const serialData = JSON.parse(item.serial_number_data);
+          
+          if (serialData.table_serial_number && serialData.table_serial_number.length > 0) {
+            // Check if we have "Auto generated serial number" placeholders
+            const hasPlaceholders = serialData.table_serial_number.some(
+              (serial) => serial.system_serial_number === "Auto generated serial number"
+            );
+
+            if (hasPlaceholders) {
+              // Fetch actual generated serial numbers from database
+              const serialNumbersFromDB = await db
+                .collection("serial_number")
+                .where({
+                  material_id: item.item_id,
+                  transaction_no: data.gr_no,
+                  organization_id: organizationId
+                })
+                .get();
+
+              if (serialNumbersFromDB && serialNumbersFromDB.data && serialNumbersFromDB.data.length > 0) {
+                // Use the actual generated serial numbers from database
+                const updatedTableSerialNumber = serialNumbersFromDB.data.map(
+                  (dbSerial) => ({
+                    system_serial_number: dbSerial.system_serial_number,
+                    supplier_serial_number: dbSerial.supplier_serial_number || "",
+                    passed: 0,
+                    fm_key: "" // fm_key not stored in serial_number collection
+                  })
+                );
+
+                const updatedSerialData = {
+                  ...serialData,
+                  table_serial_number: updatedTableSerialNumber,
+                };
+
+                processedSerialNumberData = JSON.stringify(updatedSerialData);
+              } else {
+                // Fallback: use original data but set passed: 0
+                const updatedTableSerialNumber = serialData.table_serial_number.map(
+                  (serialItem) => ({
+                    system_serial_number: serialItem.system_serial_number,
+                    supplier_serial_number: serialItem.supplier_serial_number || "",
+                    passed: 0,
+                    fm_key: serialItem.fm_key || ""
+                  })
+                );
+
+                const updatedSerialData = {
+                  ...serialData,
+                  table_serial_number: updatedTableSerialNumber,
+                };
+
+                processedSerialNumberData = JSON.stringify(updatedSerialData);
+              }
+            } else {
+              // No placeholders, use existing serial numbers but ensure passed: 0
+              const updatedTableSerialNumber = serialData.table_serial_number.map(
+                (serialItem) => ({
+                  system_serial_number: serialItem.system_serial_number,
+                  supplier_serial_number: serialItem.supplier_serial_number || "",
+                  passed: 0,
+                  fm_key: serialItem.fm_key || ""
+                })
+              );
+
+              const updatedSerialData = {
+                ...serialData,
+                table_serial_number: updatedTableSerialNumber,
+              };
+
+              processedSerialNumberData = JSON.stringify(updatedSerialData);
+            }
+          }
+        } catch (parseError) {
+          console.error("Error processing serial number data:", parseError);
+          // Keep original serial_number_data if parsing fails
+        }
+      }
+
       const inspectionData = {
         inspection_lot_no: inspPrefix,
         goods_receiving_no: grId,
@@ -764,6 +848,7 @@ const addInventory = async (
             location_id: item.location_id,
             unit_price: unitPrice,
             is_serialized_item: item.is_serialized_item,
+            serial_number_data: processedSerialNumberData,
           },
         ],
       };
