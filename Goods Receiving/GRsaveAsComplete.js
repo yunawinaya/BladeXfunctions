@@ -763,6 +763,7 @@ const addInventory = async (
             total_price: totalPrice,
             location_id: item.location_id,
             unit_price: unitPrice,
+            is_serialized_item: item.is_serialized_item,
           },
         ],
       };
@@ -2223,6 +2224,13 @@ const addEntry = async (organizationId, entry, putAwaySetupData) => {
       await updatePrefix(organizationId, runningNumber, "Goods Receiving");
 
       entry.gr_no = prefixToShow;
+    } else {
+      const isUnique = await checkUniqueness(entry.gr_no, organizationId);
+      if (!isUnique) {
+        throw new Error(
+          `GR Number "${entry.gr_no}" already exists. Please use a different number.`
+        );
+      }
     }
 
     const processedTableGr = [];
@@ -2325,6 +2333,8 @@ const findFieldMessage = (obj) => {
         if (found) return found;
       }
     }
+
+    return obj.toString();
   }
   return null;
 };
@@ -2348,6 +2358,13 @@ const updateEntry = async (
       await updatePrefix(organizationId, runningNumber, "Goods Receiving");
 
       entry.gr_no = prefixToShow;
+    } else {
+      const isUnique = await checkUniqueness(entry.gr_no, organizationId);
+      if (!isUnique) {
+        throw new Error(
+          `GR Number "${entry.gr_no}" already exists. Please use a different number.`
+        );
+      }
     }
 
     const processedTableGr = [];
@@ -2391,63 +2408,64 @@ const updateEntry = async (
   }
 };
 
-const checkQuantitiesByPoId = async (tableGR) => {
-  // Step 1: Group by po_id and sum quantities
-  const totalsByPoId = tableGR.reduce((acc, item) => {
-    const { line_po_no, received_qty } = item;
-    acc[line_po_no] = (acc[line_po_no] || 0) + received_qty;
-    return acc;
-  }, {});
+const fetchReceivedQuantity = async () => {
+  const tableGR = this.getValue("table_gr") || [];
 
-  // Step 2: Check for po_ids with total quantity of 0
-  const errors = [];
-  const results = Object.entries(totalsByPoId).map(
-    ([line_po_no, totalQuantity]) => {
-      if (totalQuantity === 0) {
-        errors.push(line_po_no);
-      }
-      return { line_po_no, totalQuantity };
-    }
+  const resPOLineData = await Promise.all(
+    tableGR.map((item) =>
+      db
+        .collection("purchase_order_2ukyuanr_sub")
+        .doc(item.po_line_item_id)
+        .get()
+    )
   );
 
-  // Step 3: Return results and errors
-  return {
-    totals: results,
-    errors: errors.length > 0 ? errors : null,
-  };
-};
+  const poLineItemData = resPOLineData.map((response) => response.data[0]);
 
-const checkCompletedPO = async (po_id) => {
-  for (const purchase_order_id of po_id) {
-    const resPO = await db
-      .collection("purchase_order")
-      .where({ id: purchase_order_id })
-      .get();
+  const resItem = await Promise.all(
+    tableGR
+      .filter((item) => item.item_id !== null && item.item_id !== undefined)
+      .map((item) => db.collection("Item").doc(item.item_id).get())
+  );
 
-    if (!resPO.data || !resPO.data.length) {
-      console.warn(`Purchase order ${purchase_order_id} not found`);
-      continue;
-    }
+  const itemData = resItem.map((response) => response.data[0]);
 
-    const poData = resPO.data[0];
+  const invalidReceivedQty = [];
 
-    const allItemsFullyReceived = poData.table_po.every((item) => {
-      const quantity = parseFloat(item.quantity || 0);
-      const receivedQty = parseFloat(item.received_qty || 0);
-
-      if (quantity <= 0) return true;
-
-      return receivedQty >= quantity;
-    });
-
-    if (allItemsFullyReceived) {
-      throw new Error(
-        `Purchase Order ${poData.purchase_order_no} is already fully received and cannot be processed further.`
-      );
+  for (const [index, item] of tableGR.entries()) {
+    const poLine = poLineItemData.find((po) => po.id === item.po_line_item_id);
+    const itemInfo = itemData.find((data) => data.id === item.item_id);
+    if (poLine) {
+      const tolerance = itemInfo ? itemInfo.over_receive_tolerance || 0 : 0;
+      const maxReceivableQty =
+        ((poLine.quantity || 0) - (poLine.received_qty || 0)) *
+        ((100 + tolerance) / 100);
+      if ((item.received_qty || 0) > maxReceivableQty) {
+        invalidReceivedQty.push(`#${index + 1}`);
+        this.setData({
+          [`table_gr.${index}.to_received_qty`]:
+            (poLine.quantity || 0) - (poLine.received_qty || 0),
+        });
+      }
     }
   }
 
-  return true;
+  if (invalidReceivedQty.length > 0) {
+    await this.$alert(
+      `Line${
+        invalidReceivedQty.length > 1 ? "s" : ""
+      } ${invalidReceivedQty.join(", ")} ha${
+        invalidReceivedQty.length > 1 ? "ve" : "s"
+      } an expected received quantity exceeding the maximum receivable quantity.`,
+      "Invalid Received Quantity",
+      {
+        confirmButtonText: "OK",
+        type: "error",
+      }
+    );
+
+    throw new Error("Invalid received quantity detected.");
+  }
 };
 
 const fillbackHeaderFields = async (entry) => {
@@ -2506,6 +2524,69 @@ const validateSerialNumberAllocation = async (tableGR) => {
   return true;
 };
 
+const processGRLineItem = async (entry) => {
+  const totalQuantity = entry.table_gr.reduce((sum, item) => {
+    const { received_qty } = item;
+    return sum + (received_qty || 0); // Handle null/undefined received_qty
+  }, 0);
+
+  if (totalQuantity === 0) {
+    throw new Error("Total return quantity is 0.");
+  }
+
+  const zeroQtyArray = [];
+  for (const [index, gr] of entry.table_gr.entries()) {
+    if (gr.received_qty <= 0) {
+      zeroQtyArray.push(`#${index + 1}`);
+    }
+  }
+
+  if (zeroQtyArray.length > 0) {
+    await this.$confirm(
+      `Line${zeroQtyArray.length > 1 ? "s" : ""} ${zeroQtyArray.join(", ")} ha${
+        zeroQtyArray.length > 1 ? "ve" : "s"
+      } a zero receive quantity, which may prevent processing.\nIf you proceed, it will delete the row with 0 receive quantity. \nWould you like to proceed?`,
+      "Zero Receive Quantity Detected",
+      {
+        confirmButtonText: "OK",
+        cancelButtonText: "Cancel",
+        type: "warning",
+        dangerouslyUseHTMLString: false,
+      }
+    )
+      .then(async () => {
+        console.log("User clicked OK");
+        entry.table_gr = entry.table_gr.filter((item) => item.received_qty > 0);
+
+        let poID = [];
+        let purchaseOrderNumber = [];
+
+        for (const gr of entry.table_gr) {
+          poID.push(gr.line_po_id);
+          purchaseOrderNumber.push(gr.line_po_no);
+        }
+
+        poID = [...new Set(poID)];
+        purchaseOrderNumber = [...new Set(purchaseOrderNumber)];
+
+        entry.po_id = poID;
+        entry.po_no_display = purchaseOrderNumber.join(", ");
+
+        return entry;
+      })
+      .catch(() => {
+        // Function to execute when the user clicks "Cancel" or closes the dialog
+        console.log("User clicked Cancel or closed the dialog");
+        this.hideLoading();
+        throw new Error("Saving goods receiving cancelled.");
+        // Add your logic to stop or handle cancellation here
+        // Example: this.stopFunction();
+      });
+  }
+
+  return entry;
+};
+
 (async () => {
   try {
     const data = this.getValues();
@@ -2534,8 +2615,6 @@ const validateSerialNumberAllocation = async (tableGR) => {
         `table_gr.${index}.item_batch_no`
       );
     }
-
-    await this.validate("gr_no");
 
     const resPutAwaySetup = await db
       .collection("putaway_setup")
@@ -2614,6 +2693,9 @@ const validateSerialNumberAllocation = async (tableGR) => {
         reference_doc,
         ref_no_1,
         ref_no_2,
+        gr_remark1,
+        gr_remark2,
+        gr_remark3,
       } = data;
       const entry = {
         gr_status: "Received",
@@ -2658,22 +2740,14 @@ const validateSerialNumberAllocation = async (tableGR) => {
         reference_doc,
         ref_no_1,
         ref_no_2,
+        gr_remark1,
+        gr_remark2,
+        gr_remark3,
       };
 
-      const result = await checkQuantitiesByPoId(entry.table_gr);
+      const latestGR = await processGRLineItem(entry);
 
-      if (result.errors) {
-        throw new Error(
-          `Total quantity for PO Number ${result.errors.join(
-            ", "
-          )} is 0. Please delete the item with related PO or receive at least one item with quantity > 0.`
-        );
-      }
-      const latestGR = entry.table_gr.filter((item) => item.received_qty > 0);
-
-      entry.table_gr = latestGR;
-
-      if (entry.table_gr.length === 0) {
+      if (latestGR.table_gr.length === 0) {
         throw new Error(
           "All Received Quantity must not be 0. Please add at lease one item with received quantity > 0."
         );
@@ -2682,18 +2756,18 @@ const validateSerialNumberAllocation = async (tableGR) => {
       console.log(
         "Validating serial number allocation for serialized items..."
       );
-      await validateSerialNumberAllocation(entry.table_gr);
+      await validateSerialNumberAllocation(latestGR.table_gr);
 
-      await checkCompletedPO(entry.po_id);
-      await fillbackHeaderFields(entry);
+      await fetchReceivedQuantity();
+      await fillbackHeaderFields(latestGR);
 
       if (page_status === "Add") {
-        await addEntry(organizationId, entry, putAwaySetupData);
+        await addEntry(organizationId, latestGR, putAwaySetupData);
       } else if (page_status === "Edit") {
         const goodsReceivingId = this.getValue("id");
         await updateEntry(
           organizationId,
-          entry,
+          latestGR,
           goodsReceivingId,
           putAwaySetupData
         );
