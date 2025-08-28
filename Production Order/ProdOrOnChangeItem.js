@@ -4,7 +4,6 @@ const main = async () => {
     const allData = self.getValues();
     const materialId = allData.material_id;
     const newValue = arguments[0]?.value;
-    const plantId = allData.plant_id;
     const pageStatus = this.getValue("page_status");
     const productionOrderId = this.getValue("id");
     const planType = allData.plan_type;
@@ -12,23 +11,16 @@ const main = async () => {
     const fieldModel = arguments[0]?.fieldModel || {};
     const {
       material_desc,
+      material_name,
       based_uom,
-      purchase_unit_price,
       table_uom_conversion,
-      mat_purchase_tax_id,
-      item_batch_management,
+      serial_number_management,
+      is_single_unit_serial,
+      serial_no_generate_rule,
     } = fieldModel.item || {};
 
     // Debug arguments[0]
     console.log("arguments[0]:", arguments[0]);
-
-    if (newValue) {
-      await self.setData({ planned_qty: 1 });
-      this.display(["card_process"]);
-    } else {
-      await self.setData({ planned_qty: 0 });
-      this.hide(["card_process"]);
-    }
 
     const fetchUoms = async () => {
       try {
@@ -108,60 +100,6 @@ const main = async () => {
       }
     };
 
-    // Function to fetch and filter sales orders
-    const fetchSalesOrders = async () => {
-      try {
-        // Only reset if table_sales_order is empty to avoid overwriting row-specific options
-        if (!self.getValues().table_sales_order?.length) {
-          self.setData({ "table_sales_order.sales_order_id": [] });
-        }
-        const response = await db
-          .collection("sales_order")
-          .where({ plant_name: plantId })
-          .get();
-        const salesOrderData = response.data || [];
-
-        // Deduplicate sales orders
-        const uniqueSalesOrders = Array.from(
-          new Map(salesOrderData.map((so) => [so.id, so])).values()
-        );
-
-        // Filter by materialId
-        const filteredSalesOrders = uniqueSalesOrders.filter((salesOrder) =>
-          salesOrder.table_so.some((item) => item.item_name === newValue)
-        );
-        console.log("Filtered Sales Orders:", filteredSalesOrders);
-
-        const fieldPath = "table_sales_order.sales_order_id";
-        const hasData = filteredSalesOrders.length > 0;
-        self.disabled([fieldPath], !hasData);
-
-        if (!hasData) {
-          const button = document.querySelector(
-            ".el-row .el-button.el-button--primary.el-button--small.is-link"
-          );
-          if (button) {
-            button.style.display = "none";
-            self.display(["utext_7bt2y1qa"], true);
-          }
-        } else {
-          document.querySelector(
-            ".el-row .el-button.el-button--primary.el-button--small.is-link"
-          ).style.display = "inline-block";
-          self.hide(["utext_7bt2y1qa"], true);
-        }
-
-        // Set options only for new rows or if not set by addrow.js
-        if (!self.getOptionData(fieldPath)?.length) {
-          self.setOptionData(fieldPath, filteredSalesOrders);
-        }
-      } catch (error) {
-        console.error("Error fetching sales orders:", error);
-        self.showError?.("Failed to load sales orders");
-        return [];
-      }
-    };
-
     // Function to reset form data
     const resetFormData = () => {
       self.setData({
@@ -170,6 +108,10 @@ const main = async () => {
         process_source: "",
         table_process_route: [],
         table_bom: [],
+        planned_qty_uom: "",
+        planned_qty: 0,
+        material_name: "",
+        material_desc: "",
       });
     };
 
@@ -219,6 +161,18 @@ const main = async () => {
         // console.log("Material ID changed:", { productionMaterialId, newValue });
         resetFormData();
         await fetchUoms();
+        if (newValue) {
+          await self.setData({
+            planned_qty: 1,
+            material_name: material_name,
+            material_desc: material_desc,
+          });
+          this.display(["card_process"]);
+        } else {
+          await self.setData({ planned_qty: 0 });
+          this.hide(["card_process"]);
+        }
+
         if (planType) {
           if (planType === "Make to Order") {
             this.display(["card_prodorder_so"], true);
@@ -245,14 +199,37 @@ const main = async () => {
     } else {
       // console.log("New production order");
       resetFormData();
-      await fetchUoms();
-      if (planType) {
-        if (planType === "Make to Order") {
-          //   await fetchSalesOrders();
-          this.display(["card_prodorder_so"], true);
-        } else {
-          this.hide(["card_prodorder_so"], true);
+      if (newValue) {
+        await self.setData({
+          planned_qty: 1,
+          material_name: material_name,
+          material_desc: material_desc,
+          process_source: "Custom Process",
+          is_serialized_item: serial_number_management,
+          is_single: is_single_unit_serial,
+          is_auto:
+            serial_no_generate_rule === "According To System Settings" ? 1 : 0,
+        });
+
+        this.triggerEvent("onChange_processSource", {
+          value: "Custom Process",
+        });
+        this.display(["card_process"]);
+      } else {
+        await self.setData({ planned_qty: 0 });
+        this.hide(["card_process"]);
+      }
+      if (materialId) {
+        await fetchUoms();
+        if (planType) {
+          if (planType === "Make to Order") {
+            //   await fetchSalesOrders();
+            this.display(["card_prodorder_so"], true);
+          } else {
+            this.hide(["card_prodorder_so"], true);
+          }
         }
+      } else {
       }
     }
   } catch (error) {

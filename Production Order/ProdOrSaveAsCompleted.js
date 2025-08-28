@@ -2196,6 +2196,212 @@ const createICTPStockMovement = async (allData) => {
       return baseQTY;
     };
 
+    // Process grouped serialized items for ICTP (similar to Good Issue grouping)
+    const processSerializedGroupsForICTP = async (
+      serializedGroups,
+      prefix,
+      allData
+    ) => {
+      for (const group of serializedGroups.values()) {
+        console.log(
+          `ICTP: Processing serialized item group: ${group.material_id}, items: ${group.items.length}, total qty: ${group.totalQty}`
+        );
+
+        const baseQTY = await convertUOM(group.materialData, {
+          material_uom: group.items[0].material_uom,
+          material_required_qty: group.totalQty,
+          material_actual_qty: 0,
+        });
+
+        // Create OUT movement for the group
+        const inventoryMovementOUTData = {
+          transaction_type: "SM",
+          trx_no: prefix,
+          parent_trx_no: allData.production_order_no,
+          movement: "OUT",
+          unit_price: 0,
+          total_price: 0,
+          quantity: group.totalQty,
+          item_id: group.material_id,
+          inventory_category: "Reserved",
+          uom_id: group.items[0].material_uom,
+          base_qty: baseQTY || 0,
+          base_uom_id: group.materialData.based_uom,
+          bin_location_id: group.bin_location_id,
+          batch_number_id:
+            group.materialData.item_batch_management === 1
+              ? group.batch_id || null
+              : null,
+          costing_method_id: group.materialData.material_costing_method,
+          created_at: new Date().toISOString(),
+          plant_id: allData.plant_id,
+          organization_id: allData.organization_id,
+          update_time: new Date().toISOString(),
+          is_deleted: 0,
+        };
+
+        // Create IN movement for the group
+        const inventoryMovementINData = {
+          transaction_type: "SM",
+          trx_no: prefix,
+          parent_trx_no: allData.production_order_no,
+          movement: "IN",
+          unit_price: 0,
+          total_price: 0,
+          quantity: group.totalQty,
+          item_id: group.material_id,
+          inventory_category: "Unrestricted",
+          uom_id: group.items[0].material_uom,
+          base_qty: baseQTY || 0,
+          base_uom_id: group.materialData.based_uom,
+          bin_location_id: group.bin_location_id,
+          batch_number_id:
+            group.materialData.item_batch_management === 1
+              ? group.batch_id || null
+              : null,
+          costing_method_id: group.materialData.material_costing_method,
+          created_at: new Date().toISOString(),
+          plant_id: allData.plant_id,
+          organization_id: allData.organization_id,
+          update_time: new Date().toISOString(),
+          is_deleted: 0,
+        };
+
+        await Promise.all([
+          db.collection("inventory_movement").add(inventoryMovementOUTData),
+          db.collection("inventory_movement").add(inventoryMovementINData),
+        ]);
+
+        // Small delay to ensure DB commit
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Fetch the OUT and IN movement IDs
+        const [outMovementQuery, inMovementQuery] = await Promise.all([
+          db
+            .collection("inventory_movement")
+            .where({
+              transaction_type: "SM",
+              trx_no: prefix,
+              parent_trx_no: allData.production_order_no,
+              movement: "OUT",
+              item_id: group.material_id,
+              inventory_category: "Reserved",
+              bin_location_id: group.bin_location_id,
+            })
+            .get(),
+          db
+            .collection("inventory_movement")
+            .where({
+              transaction_type: "SM",
+              trx_no: prefix,
+              parent_trx_no: allData.production_order_no,
+              movement: "IN",
+              item_id: group.material_id,
+              inventory_category: "Unrestricted",
+              bin_location_id: group.bin_location_id,
+            })
+            .get(),
+        ]);
+
+        if (
+          outMovementQuery.data &&
+          outMovementQuery.data.length > 0 &&
+          inMovementQuery.data &&
+          inMovementQuery.data.length > 0
+        ) {
+          const outMovementId = outMovementQuery.data[0].id;
+          const inMovementId = inMovementQuery.data[0].id;
+
+          console.log(
+            `ICTP: Retrieved movement IDs - OUT: ${outMovementId}, IN: ${inMovementId}`
+          );
+
+          // Process individual serial numbers in this group
+          for (const mat of group.items) {
+            const unusedQty =
+              mat.material_required_qty - mat.material_actual_qty;
+
+            if (mat.serial_number && unusedQty > 0) {
+              // Create inv_serial_movement for both OUT and IN movements
+              await Promise.all([
+                createSerialMovementRecord(
+                  outMovementId,
+                  mat.serial_number,
+                  mat.batch_id,
+                  unusedQty,
+                  group.materialData.based_uom,
+                  allData.plant_id,
+                  allData.organization_id
+                ),
+                createSerialMovementRecord(
+                  inMovementId,
+                  mat.serial_number,
+                  mat.batch_id,
+                  unusedQty,
+                  group.materialData.based_uom,
+                  allData.plant_id,
+                  allData.organization_id
+                ),
+              ]);
+
+              // Update serial balance: Reserved -> Unrestricted
+              await updateSerialBalance(
+                mat.material_id,
+                mat.serial_number,
+                mat.batch_id,
+                mat.bin_location_id,
+                "Reserved",
+                -unusedQty,
+                allData.plant_id,
+                allData.organization_id
+              );
+
+              await updateSerialBalance(
+                mat.material_id,
+                mat.serial_number,
+                mat.batch_id,
+                mat.bin_location_id,
+                "Unrestricted",
+                unusedQty,
+                allData.plant_id,
+                allData.organization_id
+              );
+
+              console.log(
+                `ICTP: Processed unused quantity return for serial ${mat.serial_number}: ${unusedQty}`
+              );
+            }
+          }
+        }
+
+        // Update on_reserved_gd records for this group
+        for (const mat of group.items) {
+          const resOnReserve = await db
+            .collection("on_reserved_gd")
+            .where({
+              parent_no: allData.production_order_no,
+              organization_id: allData.organization_id,
+              is_deleted: 0,
+              material_id: mat.material_id,
+              batch_id: mat.batch_id,
+              bin_location: mat.bin_location_id,
+            })
+            .get();
+
+          if (!resOnReserve || resOnReserve.data.length === 0)
+            throw new Error(
+              "Error fetching on reserve table for ICTP serialized item."
+            );
+
+          const onReserveData = resOnReserve.data[0];
+
+          await db.collection("on_reserved_gd").doc(onReserveData.id).update({
+            doc_no: prefix,
+          });
+        }
+      }
+    };
+
     const createInventoryMovement = async (mat, allData, prefix) => {
       const resItem = await db.collection("Item").doc(mat.material_id).get();
 
@@ -2205,189 +2411,65 @@ const createICTPStockMovement = async (allData) => {
       const materialData = resItem.data[0];
       const unusedQty = mat.material_required_qty - mat.material_actual_qty;
 
-      if (materialData.serial_number_management === 1) {
-        // For serialized items, create inventory movements and handle serial balance updates
-        const baseQTY = await convertUOM(materialData, mat);
+      // Non-serialized items (serialized items are handled separately in groups)
+      const baseQTY = await convertUOM(materialData, mat);
 
-        const inventoryMovementOUTData = {
-          transaction_type: "SM",
-          trx_no: prefix,
-          parent_trx_no: allData.production_order_no,
-          movement: "OUT",
-          unit_price: 0,
-          total_price: 0,
-          quantity: unusedQty,
-          item_id: mat.material_id,
-          inventory_category: "Reserved",
-          uom_id: mat.material_uom,
-          base_qty: baseQTY || 0,
-          base_uom_id: materialData.based_uom,
-          bin_location_id: mat.bin_location_id,
-          batch_number_id:
-            materialData.item_batch_management === "1"
-              ? mat.batch_id || null
-              : null,
-          costing_method_id: materialData.material_costing_method,
-          created_at: new Date().toISOString(),
-          plant_id: allData.plant_id,
-          organization_id: allData.organization_id,
-          update_time: new Date().toISOString(),
-          is_deleted: 0,
-        };
+      const inventoryMovementOUTData = {
+        transaction_type: "SM",
+        trx_no: prefix,
+        parent_trx_no: allData.production_order_no,
+        movement: "OUT",
+        unit_price: 0,
+        total_price: 0,
+        quantity: unusedQty,
+        item_id: mat.material_id,
+        inventory_category: "Reserved",
+        uom_id: mat.material_uom,
+        base_qty: baseQTY || 0,
+        base_uom_id: materialData.based_uom,
+        bin_location_id: mat.bin_location_id,
+        batch_number_id:
+          materialData.item_batch_management === "1"
+            ? mat.batch_id || null
+            : null,
+        costing_method_id: materialData.material_costing_method,
+        created_at: new Date().toISOString(),
+        plant_id: allData.plant_id,
+        organization_id: allData.organization_id,
+        update_time: new Date().toISOString(),
+        is_deleted: 0,
+      };
 
-        const inventoryMovementINData = {
-          transaction_type: "SM",
-          trx_no: prefix,
-          parent_trx_no: allData.production_order_no,
-          movement: "IN",
-          unit_price: 0,
-          total_price: 0,
-          quantity: unusedQty,
-          item_id: mat.material_id,
-          inventory_category: "Unrestricted",
-          uom_id: mat.material_uom,
-          base_qty: baseQTY || 0,
-          base_uom_id: materialData.based_uom,
-          bin_location_id: mat.bin_location_id,
-          batch_number_id:
-            materialData.item_batch_management === "1"
-              ? mat.batch_id || null
-              : null,
-          costing_method_id: materialData.material_costing_method,
-          created_at: new Date().toISOString(),
-          plant_id: allData.plant_id,
-          organization_id: allData.organization_id,
-          update_time: new Date().toISOString(),
-          is_deleted: 0,
-        };
+      const inventoryMovementINData = {
+        transaction_type: "SM",
+        trx_no: prefix,
+        parent_trx_no: allData.production_order_no,
+        movement: "IN",
+        unit_price: 0,
+        total_price: 0,
+        quantity: unusedQty,
+        item_id: mat.material_id,
+        inventory_category: "Unrestricted",
+        uom_id: mat.material_uom,
+        base_qty: baseQTY || 0,
+        base_uom_id: materialData.based_uom,
+        bin_location_id: mat.bin_location_id,
+        batch_number_id:
+          materialData.item_batch_management === "1"
+            ? mat.batch_id || null
+            : null,
+        costing_method_id: materialData.material_costing_method,
+        created_at: new Date().toISOString(),
+        plant_id: allData.plant_id,
+        organization_id: allData.organization_id,
+        update_time: new Date().toISOString(),
+        is_deleted: 0,
+      };
 
-        await Promise.all([
-          db.collection("inventory_movement").add(inventoryMovementOUTData),
-          db.collection("inventory_movement").add(inventoryMovementINData),
-        ]);
-
-        // Handle serialized item unused quantity return
-        if (mat.serial_number && unusedQty > 0) {
-          // Small delay to ensure DB commit
-          await new Promise((resolve) => setTimeout(resolve, 100));
-
-          // Fetch the IN movement to get the actual ID
-          const inMovementQuery = await db
-            .collection("inventory_movement")
-            .where({
-              transaction_type: "SM",
-              trx_no: prefix,
-              parent_trx_no: allData.production_order_no,
-              movement: "IN",
-              item_id: mat.material_id,
-              inventory_category: "Unrestricted",
-              bin_location_id: mat.bin_location_id,
-            })
-            .get();
-
-          if (inMovementQuery.data && inMovementQuery.data.length > 0) {
-            const inMovementId = inMovementQuery.data[0].id;
-
-            // Create inv_serial_movement for unused quantity return
-            await createSerialMovementRecord(
-              inMovementId,
-              mat.serial_number,
-              mat.batch_id,
-              unusedQty,
-              materialData.based_uom,
-              allData.plant_id,
-              allData.organization_id
-            );
-          }
-
-          // Update serial balance: Reserved -> Unrestricted
-          await updateSerialBalance(
-            mat.material_id,
-            mat.serial_number,
-            mat.batch_id,
-            mat.bin_location_id,
-            "Reserved",
-            -unusedQty,
-            allData.plant_id,
-            allData.organization_id
-          );
-
-          await updateSerialBalance(
-            mat.material_id,
-            mat.serial_number,
-            mat.batch_id,
-            mat.bin_location_id,
-            "Unrestricted",
-            unusedQty,
-            allData.plant_id,
-            allData.organization_id
-          );
-
-          console.log(
-            `ICTP: Processed unused quantity return for serial ${mat.serial_number}: ${unusedQty}`
-          );
-        }
-      } else {
-        // Non-serialized items
-        const baseQTY = await convertUOM(materialData, mat);
-
-        const inventoryMovementOUTData = {
-          transaction_type: "SM",
-          trx_no: prefix,
-          parent_trx_no: allData.production_order_no,
-          movement: "OUT",
-          unit_price: 0,
-          total_price: 0,
-          quantity: unusedQty,
-          item_id: mat.material_id,
-          inventory_category: "Reserved",
-          uom_id: mat.material_uom,
-          base_qty: baseQTY || 0,
-          base_uom_id: materialData.based_uom,
-          bin_location_id: mat.bin_location_id,
-          batch_number_id:
-            materialData.item_batch_management === "1"
-              ? mat.batch_id || null
-              : null,
-          costing_method_id: materialData.material_costing_method,
-          created_at: new Date().toISOString(),
-          plant_id: allData.plant_id,
-          organization_id: allData.organization_id,
-          update_time: new Date().toISOString(),
-          is_deleted: 0,
-        };
-
-        const inventoryMovementINData = {
-          transaction_type: "SM",
-          trx_no: prefix,
-          parent_trx_no: allData.production_order_no,
-          movement: "IN",
-          unit_price: 0,
-          total_price: 0,
-          quantity: unusedQty,
-          item_id: mat.material_id,
-          inventory_category: "Unrestricted",
-          uom_id: mat.material_uom,
-          base_qty: baseQTY || 0,
-          base_uom_id: materialData.based_uom,
-          bin_location_id: mat.bin_location_id,
-          batch_number_id:
-            materialData.item_batch_management === "1"
-              ? mat.batch_id || null
-              : null,
-          costing_method_id: materialData.material_costing_method,
-          created_at: new Date().toISOString(),
-          plant_id: allData.plant_id,
-          organization_id: allData.organization_id,
-          update_time: new Date().toISOString(),
-          is_deleted: 0,
-        };
-
-        await Promise.all([
-          db.collection("inventory_movement").add(inventoryMovementOUTData),
-          db.collection("inventory_movement").add(inventoryMovementINData),
-        ]);
-      }
+      await Promise.all([
+        db.collection("inventory_movement").add(inventoryMovementOUTData),
+        db.collection("inventory_movement").add(inventoryMovementINData),
+      ]);
 
       const resOnReserve = await db
         .collection("on_reserved_gd")
@@ -2414,8 +2496,61 @@ const createICTPStockMovement = async (allData) => {
     if (unusedQuantity.length > 0) {
       const ICTPPrefix = await generateICTPPrefix();
 
-      let stockMovementData = [];
+      // Separate serialized and non-serialized items, and group serialized items
+      const serializedGroups = new Map();
+      const nonSerializedItems = [];
+
       for (const mat of unusedQuantity) {
+        const matItemQuery = await db
+          .collection("Item")
+          .where({ id: mat.material_id, is_deleted: 0 })
+          .get();
+        if (!matItemQuery.data || matItemQuery.data.length === 0) {
+          throw new Error("Item not found for material_id: " + mat.material_id);
+        }
+
+        const matItem = matItemQuery.data[0];
+        const isSerializedItem = matItem.serial_number_management === 1;
+
+        if (isSerializedItem && mat.serial_number) {
+          // Group serialized items by material_id, batch_id, and bin_location_id
+          const groupKey = `${mat.material_id}_${mat.batch_id || "null"}_${
+            mat.bin_location_id || "null"
+          }`;
+
+          if (!serializedGroups.has(groupKey)) {
+            serializedGroups.set(groupKey, {
+              material_id: mat.material_id,
+              materialData: matItem,
+              items: [],
+              totalQty: 0,
+              bin_location_id: mat.bin_location_id,
+              batch_id: mat.batch_id,
+            });
+          }
+
+          const group = serializedGroups.get(groupKey);
+          group.items.push(mat);
+          group.totalQty += mat.material_required_qty - mat.material_actual_qty;
+        } else {
+          // Non-serialized items
+          nonSerializedItems.push(mat);
+        }
+      }
+
+      // Process serialized groups
+      if (serializedGroups.size > 0) {
+        await processSerializedGroupsForICTP(
+          serializedGroups,
+          ICTPPrefix,
+          allData
+        );
+      }
+
+      let stockMovementData = [];
+
+      // Process non-serialized items
+      for (const mat of nonSerializedItems) {
         let stockSummary = "";
 
         const resUOM = await db
@@ -2463,6 +2598,51 @@ const createICTPStockMovement = async (allData) => {
         stockMovementData.push(smLineItemData);
 
         await createInventoryMovement(mat, allData, ICTPPrefix);
+      }
+
+      // Add serialized group entries to stock movement data
+      for (const group of serializedGroups.values()) {
+        let stockSummary = "";
+
+        const resUOM = await db
+          .collection("unit_of_measurement")
+          .where({ id: group.items[0].material_uom })
+          .get();
+        const uomName = resUOM?.data[0] ? resUOM.data[0].uom_name : "";
+
+        const resBinLocation = await db
+          .collection("bin_location")
+          .where({ id: group.bin_location_id })
+          .get();
+        const binLocationName = resBinLocation?.data[0]
+          ? resBinLocation.data[0].bin_location_combine
+          : "";
+
+        const batchId = group.batch_id;
+
+        let batchNumber = "";
+        if (batchId) {
+          const resBatch = await db
+            .collection("batch")
+            .where({ id: batchId })
+            .get();
+          batchNumber = resBatch?.data[0]
+            ? `\n[${resBatch.data[0].batch_number}]`
+            : "";
+        }
+
+        stockSummary = `Total: ${group.totalQty} ${uomName}\n\nDETAILS:\n1. ${binLocationName}: ${group.totalQty} ${uomName} (RES -> UNR)${batchNumber}`;
+
+        const smLineItemData = {
+          item_selection: group.material_id,
+          item_name: group.items[0].material_name,
+          item_desc: group.items[0].material_desc,
+          quantity_uom: group.items[0].material_uom || "",
+          total_quantity: group.totalQty,
+          stock_summary: stockSummary || "",
+        };
+
+        stockMovementData.push(smLineItemData);
       }
 
       const ICTPData = {
