@@ -81,31 +81,34 @@ The temp_qty_data is created in GDconfirmDialog.js line 306 using JSON.stringify
 [ ] Test serialized items with Stock Count (Out): verify WA/FIFO records are properly decreased
 [ ] Test both batch-managed and non-batch serialized items
 
-## Current Task: Fix Purchase Return WA/FIFO updates for serialized items
+## Current Task: Fix ICTP inventory movement issues for serialized items
 
 ### Problem Analysis:
 
-- When processing serialized items in Purchase Return, the system was not updating WA (Weighted Average) and FIFO costing records
-- The `processSerializedItemReturn` function was handling serial balance updates and inventory movements but skipping costing method updates
-- Regular (non-serialized) items were calling `updateFIFOInventory()` and `updateWeightedAverage()` which handle WA/FIFO updates, but serialized items were bypassing this
+- In Production Order completion, ICTP (Inventory Category Transfer Posting) was not creating `inv_serial_movement` records for the OUT movement of serialized items
+- ICTP function processed serialized items individually instead of grouping them like the main Good Issue processing
+- Missing `inv_serial_movement` records for OUT movement meant incomplete audit trail for serialized item movements
 
 ### Solution Implemented:
 
-[X] Identified the root cause: serialized items skip the costing update function calls
-[X] Modified `processSerializedItemReturn` to calculate total return quantities for costing
-[X] Added costing method updates for serialized items by calling existing `updateFIFOInventory()` and `updateWeightedAverage()` functions
-[X] Added proper error handling and logging for serialized item costing updates
+[X] Fixed ICTP OUT movement to create inv_serial_movement records for serialized items
+[X] Ensured ICTP inventory movements are properly grouped for serialized items
+[X] Restructured ICTP function to separate serialized and non-serialized processing
+[X] Added proper grouping logic similar to Good Issue processing for consistency
 
 ### Fix Details:
 
-- Added calculation of total return quantity in `processSerializedItemReturn`
-- Added logic to call appropriate costing method updates based on material costing method
-- Reused existing `updateFIFOInventory()` and `updateWeightedAverage()` functions for consistency
-- Added proper error handling and logging for serialized item costing updates
+- **CRITICAL**: Added `inv_serial_movement` record creation for both OUT and IN movements in ICTP
+- **CRITICAL**: Implemented proper grouping for serialized items in ICTP based on material_id, batch_id, and bin_location_id
+- Added `processSerializedGroupsForICTP` function to handle grouped serialized item processing
+- Created single inventory movement records per group instead of individual records
+- Enhanced logging and error handling for ICTP serialized item processing
+- Maintained existing logic for non-serialized items
 
 ### Testing Required:
 
-[ ] Test serialized items with Purchase Return: verify WA/FIFO records are properly decreased
-[ ] Test both batch-managed and non-batch serialized items in Purchase Return
-[ ] Verify inventory movements are still created correctly
-[ ] Verify serial balances are still updated correctly
+[ ] Test serialized items with unused quantities in Production Order completion
+[ ] Verify ICTP creates both OUT and IN inv_serial_movement records for serialized items
+[ ] Verify inventory movement records are properly grouped for serialized items
+[ ] Test both batch-managed and non-batch serialized items in ICTP
+[ ] Verify serial balance updates (Reserved -> Unrestricted) work correctly

@@ -189,10 +189,11 @@ const isSerializedItem = (materialData) => {
 
 // Helper function to parse balance index for serial numbers
 const parseBalanceIndexForSerials = (balanceIndexData) => {
-  return balanceIndexData.filter(balance => 
-    balance.serial_number && 
-    balance.serial_number.trim() !== "" &&
-    balance.sa_quantity > 0
+  return balanceIndexData.filter(
+    (balance) =>
+      balance.serial_number &&
+      balance.serial_number.trim() !== "" &&
+      balance.sa_quantity > 0
   );
 };
 
@@ -208,7 +209,9 @@ const updateSerialBalance = async (
   organizationId
 ) => {
   try {
-    console.log(`Updating serial balance for ${serialNumber}: ${category} change ${qtyChange}`);
+    console.log(
+      `Updating serial balance for ${serialNumber}: ${category} change ${qtyChange}`
+    );
 
     const serialBalanceParams = {
       material_id: materialId,
@@ -231,7 +234,9 @@ const updateSerialBalance = async (
       .get();
 
     if (!serialBalanceQuery.data || serialBalanceQuery.data.length === 0) {
-      throw new Error(`No serial balance found for serial number: ${serialNumber}`);
+      throw new Error(
+        `No serial balance found for serial number: ${serialNumber}`
+      );
     }
 
     const existingBalance = serialBalanceQuery.data[0];
@@ -243,21 +248,29 @@ const updateSerialBalance = async (
     };
 
     const categoryField = categoryMap[category] || "unrestricted_qty";
-    const currentCategoryQty = roundQty(parseFloat(existingBalance[categoryField] || 0));
-    const currentBalanceQty = roundQty(parseFloat(existingBalance.balance_quantity || 0));
+    const currentCategoryQty = roundQty(
+      parseFloat(existingBalance[categoryField] || 0)
+    );
+    const currentBalanceQty = roundQty(
+      parseFloat(existingBalance.balance_quantity || 0)
+    );
 
     const newCategoryQty = roundQty(currentCategoryQty + qtyChange);
     const newBalanceQty = roundQty(currentBalanceQty + qtyChange);
 
     if (newCategoryQty < 0) {
       throw new Error(
-        `Insufficient ${category} quantity for serial ${serialNumber}. Available: ${currentCategoryQty}, Requested: ${Math.abs(qtyChange)}`
+        `Insufficient ${category} quantity for serial ${serialNumber}. Available: ${currentCategoryQty}, Requested: ${Math.abs(
+          qtyChange
+        )}`
       );
     }
 
     if (newBalanceQty < 0) {
       throw new Error(
-        `Insufficient total quantity for serial ${serialNumber}. Available: ${currentBalanceQty}, Requested: ${Math.abs(qtyChange)}`
+        `Insufficient total quantity for serial ${serialNumber}. Available: ${currentBalanceQty}, Requested: ${Math.abs(
+          qtyChange
+        )}`
       );
     }
 
@@ -267,7 +280,10 @@ const updateSerialBalance = async (
       updated_at: new Date(),
     };
 
-    await db.collection("item_serial_balance").doc(existingBalance.id).update(updateData);
+    await db
+      .collection("item_serial_balance")
+      .doc(existingBalance.id)
+      .update(updateData);
 
     console.log(
       `Updated serial balance for ${serialNumber}: ${category}=${newCategoryQty}, Balance=${newBalanceQty}`
@@ -304,10 +320,13 @@ const createSerialMovementRecord = async (
 
     await db.collection("inv_serial_movement").add(invSerialMovementRecord);
     console.log(`Created inv_serial_movement for serial: ${serialNumber}`);
-    
+
     return true;
   } catch (error) {
-    console.error(`Error creating serial movement record for ${serialNumber}:`, error);
+    console.error(
+      `Error creating serial movement record for ${serialNumber}:`,
+      error
+    );
     throw error;
   }
 };
@@ -322,29 +341,89 @@ const processSerializedItemAdjustment = async (
   organization_id,
   allData
 ) => {
-  console.log(`Processing serialized item ${item.material_id} with ${balanceIndexData.length} serial balances`);
+  console.log(
+    `Processing serialized item ${item.material_id} with ${balanceIndexData.length} serial balances`
+  );
 
   const serialBalances = parseBalanceIndexForSerials(balanceIndexData);
-  
+
   if (serialBalances.length === 0) {
-    console.log(`No serial numbers found for serialized item ${item.material_id}`);
+    console.log(
+      `No serial numbers found for serialized item ${item.material_id}`
+    );
     return;
+  }
+
+  // Calculate net quantity change for costing updates
+  let netQuantityChange = 0;
+  let totalInCost = 0;
+  let totalInQuantity = 0;
+
+  for (const balance of serialBalances) {
+    if (adjustment_type === "Write Off") {
+      netQuantityChange -= balance.sa_quantity; // Deduct quantity
+    } else if (adjustment_type === "Stock Count") {
+      if (balance.movement_type === "In") {
+        netQuantityChange += balance.sa_quantity; // Add quantity
+        totalInCost += (item.unit_price || 0) * balance.sa_quantity;
+        totalInQuantity += balance.sa_quantity;
+      } else if (balance.movement_type === "Out") {
+        netQuantityChange -= balance.sa_quantity; // Deduct quantity
+      }
+    }
+  }
+
+  console.log(
+    `Serialized item ${item.material_id} net quantity change: ${netQuantityChange}`
+  );
+
+  // Update costing methods (WA/FIFO) for serialized items
+  if (netQuantityChange !== 0) {
+    try {
+      // Calculate weighted average unit price for "In" movements
+      const balanceUnitPrice =
+        totalInQuantity > 0
+          ? totalInCost / totalInQuantity
+          : item.unit_price || materialData.purchase_unit_price || 0;
+
+      console.log(
+        `Updating costing for serialized item ${item.material_id}, quantity change: ${netQuantityChange}, unit price: ${balanceUnitPrice}`
+      );
+
+      await updateQuantities(
+        netQuantityChange,
+        balanceUnitPrice,
+        materialData,
+        item,
+        plant_id,
+        organization_id
+      );
+    } catch (error) {
+      console.error(
+        `Error updating costing for serialized item ${item.material_id}:`,
+        error
+      );
+      throw error;
+    }
   }
 
   // Step 1: Update individual serial balances
   for (const balance of serialBalances) {
     const serialNumber = balance.serial_number;
-    const batchId = materialData.item_batch_management == "1" ? balance.batch_id : null;
+    const batchId =
+      materialData.item_batch_management == "1" ? balance.batch_id : null;
     const locationId = balance.location_id;
     const category = balance.category || "Unrestricted";
     const saQuantity = balance.sa_quantity;
 
-    console.log(`Processing serial balance for ${serialNumber} with quantity ${saQuantity} in category ${category}`);
+    console.log(
+      `Processing serial balance for ${serialNumber} with quantity ${saQuantity} in category ${category}`
+    );
 
     try {
       // Determine quantity change based on adjustment type and movement type
       let qtyChange = 0;
-      
+
       if (adjustment_type === "Write Off") {
         qtyChange = -saQuantity; // Deduct quantity
       } else if (adjustment_type === "Stock Count") {
@@ -369,23 +448,29 @@ const processSerializedItemAdjustment = async (
         );
       }
     } catch (error) {
-      console.error(`Error processing serial balance for ${serialNumber}:`, error);
+      console.error(
+        `Error processing serial balance for ${serialNumber}:`,
+        error
+      );
       throw error;
     }
   }
 
   // Step 2: Group serial balances by location + batch + category + movement_type for consolidated inventory movements
   const groupedBalances = new Map();
-  
+
   for (const balance of serialBalances) {
-    const batchId = materialData.item_batch_management == "1" ? balance.batch_id : null;
+    const batchId =
+      materialData.item_batch_management == "1" ? balance.batch_id : null;
     const locationId = balance.location_id;
     const category = balance.category || "Unrestricted";
     const movementType = balance.movement_type || "Out"; // Default to Out for Write Off
-    
+
     // Create grouping key: location + batch + category + movement_type
-    const groupKey = `${locationId || "no-location"}|${batchId || "no-batch"}|${category}|${movementType}`;
-    
+    const groupKey = `${locationId || "no-location"}|${
+      batchId || "no-batch"
+    }|${category}|${movementType}`;
+
     if (!groupedBalances.has(groupKey)) {
       groupedBalances.set(groupKey, {
         location_id: locationId,
@@ -393,24 +478,28 @@ const processSerializedItemAdjustment = async (
         category: category,
         movement_type: movementType,
         total_quantity: 0,
-        serial_numbers: []
+        serial_numbers: [],
       });
     }
-    
+
     const group = groupedBalances.get(groupKey);
     group.total_quantity += balance.sa_quantity;
     group.serial_numbers.push({
       serial_number: balance.serial_number,
-      quantity: balance.sa_quantity
+      quantity: balance.sa_quantity,
     });
   }
 
-  console.log(`Grouped ${serialBalances.length} serial balances into ${groupedBalances.size} consolidated inventory movements`);
+  console.log(
+    `Grouped ${serialBalances.length} serial balances into ${groupedBalances.size} consolidated inventory movements`
+  );
 
   // Step 3: Create consolidated inventory movements for each group
   for (const [groupKey, group] of groupedBalances) {
-    console.log(`Creating consolidated inventory movement for group: ${groupKey}, total qty: ${group.total_quantity}`);
-    
+    console.log(
+      `Creating consolidated inventory movement for group: ${groupKey}, total qty: ${group.total_quantity}`
+    );
+
     try {
       // Calculate pricing based on costing method
       let unitPrice = roundPrice(item.unit_price || 0);
@@ -463,10 +552,10 @@ const processSerializedItemAdjustment = async (
         organization_id: organization_id,
       };
 
-      await db
-        .collection("inventory_movement")
-        .add(inventoryMovementData);
-      console.log(`Consolidated inventory movement created for group ${groupKey}`);
+      await db.collection("inventory_movement").add(inventoryMovementData);
+      console.log(
+        `Consolidated inventory movement created for group ${groupKey}`
+      );
 
       // Wait and fetch the created movement ID
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -503,19 +592,26 @@ const processSerializedItemAdjustment = async (
           );
         }
       } else {
-        console.error(`Failed to retrieve inventory movement for group ${groupKey}`);
-        throw new Error(`Failed to retrieve inventory movement for group ${groupKey}`);
+        console.error(
+          `Failed to retrieve inventory movement for group ${groupKey}`
+        );
+        throw new Error(
+          `Failed to retrieve inventory movement for group ${groupKey}`
+        );
       }
 
-      console.log(`Created ${group.serial_numbers.length} serial movement records for group ${groupKey}`);
-      
+      console.log(
+        `Created ${group.serial_numbers.length} serial movement records for group ${groupKey}`
+      );
     } catch (groupError) {
       console.error(`Error processing group ${groupKey}:`, groupError);
       throw groupError;
     }
   }
 
-  console.log(`Successfully processed ${serialBalances.length} serial balances in ${groupedBalances.size} consolidated movements for item ${item.material_id}`);
+  console.log(
+    `Successfully processed ${serialBalances.length} serial balances in ${groupedBalances.size} consolidated movements for item ${item.material_id}`
+  );
 };
 
 const updateInventory = (allData) => {
@@ -540,7 +636,9 @@ const updateInventory = (allData) => {
 
         // Check if item is serialized and handle accordingly
         if (isSerializedItem(materialData)) {
-          console.log(`Item ${item.material_id} is serialized, using serial balance processing`);
+          console.log(
+            `Item ${item.material_id} is serialized, using serial balance processing`
+          );
           try {
             await processSerializedItemAdjustment(
               item,
@@ -552,27 +650,46 @@ const updateInventory = (allData) => {
               allData
             );
           } catch (error) {
-            console.error(`Error processing serialized item ${item.material_id}:`, error);
+            console.error(
+              `Error processing serialized item ${item.material_id}:`,
+              error
+            );
           }
           return; // Skip regular balance processing for serialized items
         }
 
-        const updateQuantities = async (quantityChange, balanceUnitPrice) => {
+        const updateQuantities = async (
+          quantityChange,
+          balanceUnitPrice,
+          materialDataParam = null,
+          itemParam = null,
+          plantIdParam = null,
+          organizationIdParam = null
+        ) => {
           try {
-            if (!materialData?.id) {
+            // Use passed parameters or fallback to local scope variables
+            const currentMaterialData = materialDataParam || materialData;
+            const currentItem = itemParam || item;
+            const currentPlantId = plantIdParam || plant_id;
+            const currentOrganizationId =
+              organizationIdParam || organization_id;
+
+            if (!currentMaterialData?.id) {
               throw new Error("Invalid material data: material_id is missing");
             }
 
-            if (!materialData.material_costing_method) {
+            if (!currentMaterialData.material_costing_method) {
               throw new Error("Material costing method is not defined");
             }
 
-            const costingMethod = materialData.material_costing_method;
+            const costingMethod = currentMaterialData.material_costing_method;
 
             if (
-              !["Weighted Average", "First In First Out"].includes(
-                costingMethod
-              )
+              ![
+                "Weighted Average",
+                "First In First Out",
+                "Fixed Cost",
+              ].includes(costingMethod)
             ) {
               throw new Error(`Unsupported costing method: ${costingMethod}`);
             }
@@ -580,26 +697,29 @@ const updateInventory = (allData) => {
             const unitPrice =
               balanceUnitPrice !== undefined
                 ? roundPrice(balanceUnitPrice)
-                : roundPrice(materialData.purchase_unit_price || 0);
+                : roundPrice(currentMaterialData.purchase_unit_price || 0);
             const batchId =
-              materialData.item_batch_management == "1"
-                ? item.item_batch_no
+              currentMaterialData.item_batch_management == "1"
+                ? currentItem.item_batch_no
                 : null;
 
             if (costingMethod === "Weighted Average") {
               const waQueryConditions =
-                materialData.item_batch_management == "1" && batchId
+                currentMaterialData.item_batch_management == "1" && batchId
                   ? {
-                      material_id: materialData.id,
+                      material_id: currentMaterialData.id,
                       batch_id: batchId,
-                      plant_id: plant_id,
+                      plant_id: currentPlantId,
                     }
-                  : { material_id: materialData.id, plant_id: plant_id };
+                  : {
+                      material_id: currentMaterialData.id,
+                      plant_id: currentPlantId,
+                    };
 
               await logTableState(
                 "wa_costing_method",
                 waQueryConditions,
-                `Before WA update for material ${materialData.id}`
+                `Before WA update for material ${currentMaterialData.id}`
               );
 
               const waQuery = db
@@ -652,14 +772,14 @@ const updateInventory = (allData) => {
                 await logTableState(
                   "wa_costing_method",
                   waQueryConditions,
-                  `After WA update for material ${materialData.id}`
+                  `After WA update for material ${currentMaterialData.id}`
                 );
               } else if (quantityChange > 0) {
                 await db.collection("wa_costing_method").add({
-                  material_id: materialData.id,
+                  material_id: currentMaterialData.id,
                   batch_id: batchId || null,
-                  plant_id: plant_id,
-                  organization_id: organization_id,
+                  plant_id: currentPlantId,
+                  organization_id: currentOrganizationId,
                   wa_quantity: roundQty(quantityChange),
                   wa_cost_price: roundPrice(unitPrice),
                   created_at: new Date(),
@@ -668,21 +788,21 @@ const updateInventory = (allData) => {
                 await logTableState(
                   "wa_costing_method",
                   waQueryConditions,
-                  `After adding new WA record for material ${materialData.id}`
+                  `After adding new WA record for material ${currentMaterialData.id}`
                 );
               } else {
                 throw new Error("No WA costing record found for deduction");
               }
             } else if (costingMethod === "First In First Out") {
               const fifoQueryConditions =
-                materialData.item_batch_management == "1" && batchId
-                  ? { material_id: materialData.id, batch_id: batchId }
-                  : { material_id: materialData.id };
+                currentMaterialData.item_batch_management == "1" && batchId
+                  ? { material_id: currentMaterialData.id, batch_id: batchId }
+                  : { material_id: currentMaterialData.id };
 
               await logTableState(
                 "fifo_costing_history",
                 fifoQueryConditions,
-                `Before FIFO update for material ${materialData.id}`
+                `Before FIFO update for material ${currentMaterialData.id}`
               );
 
               const fifoQuery = db
@@ -703,10 +823,10 @@ const updateInventory = (allData) => {
 
               if (quantityChange > 0) {
                 await db.collection("fifo_costing_history").add({
-                  material_id: materialData.id,
+                  material_id: currentMaterialData.id,
                   batch_id: batchId || null,
-                  plant_id: plant_id,
-                  organization_id: organization_id,
+                  plant_id: currentPlantId,
+                  organization_id: currentOrganizationId,
                   fifo_initial_quantity: roundQty(quantityChange),
                   fifo_available_quantity: roundQty(quantityChange),
                   fifo_cost_price: roundPrice(unitPrice),
@@ -717,7 +837,7 @@ const updateInventory = (allData) => {
                 await logTableState(
                   "fifo_costing_history",
                   fifoQueryConditions,
-                  `After adding new FIFO record for material ${materialData.id}`
+                  `After adding new FIFO record for material ${currentMaterialData.id}`
                 );
               } else if (quantityChange < 0) {
                 let remainingReduction = roundQty(-quantityChange);
@@ -753,7 +873,7 @@ const updateInventory = (allData) => {
                   if (remainingReduction > 0) {
                     throw new Error(
                       `Insufficient FIFO quantity for material ${
-                        materialData.id
+                        currentMaterialData.id
                       }. Available: ${roundQty(
                         fifoData.reduce(
                           (sum, record) =>
@@ -767,11 +887,11 @@ const updateInventory = (allData) => {
                   await logTableState(
                     "fifo_costing_history",
                     fifoQueryConditions,
-                    `After FIFO update for material ${materialData.id}`
+                    `After FIFO update for material ${currentMaterialData.id}`
                   );
                 } else {
                   throw new Error(
-                    `No FIFO costing records found for deduction for material ${materialData.id}`
+                    `No FIFO costing records found for deduction for material ${currentMaterialData.id}`
                   );
                 }
               }
@@ -780,9 +900,9 @@ const updateInventory = (allData) => {
             console.error("Error in updateQuantities:", {
               message: error.message,
               stack: error.stack,
-              materialData,
+              materialData: currentMaterialData,
               quantityChange,
-              plant_id,
+              plant_id: currentPlantId,
               unitPrice,
               batchId,
             });
@@ -960,9 +1080,7 @@ const updateInventory = (allData) => {
             organization_id: organization_id,
           };
 
-          await db
-            .collection("inventory_movement")
-            .add(inventoryMovementData);
+          await db.collection("inventory_movement").add(inventoryMovementData);
           console.log("Inventory movement recorded");
 
           // Wait and fetch the created movement ID
@@ -985,7 +1103,9 @@ const updateInventory = (allData) => {
 
           if (singleMovementQuery.data && singleMovementQuery.data.length > 0) {
             const singleMovementId = singleMovementQuery.data[0].id;
-            console.log(`Retrieved single inventory movement ID: ${singleMovementId}`);
+            console.log(
+              `Retrieved single inventory movement ID: ${singleMovementId}`
+            );
 
             // Create serial movement record if item is serialized and has serial number
             if (isSerializedItem(materialData) && balance.serial_number) {
@@ -993,14 +1113,19 @@ const updateInventory = (allData) => {
                 await createSerialMovementRecord(
                   singleMovementId,
                   balance.serial_number,
-                  materialData.item_batch_management == "1" ? balance.batch_id : null,
+                  materialData.item_batch_management == "1"
+                    ? balance.batch_id
+                    : null,
                   balance.sa_quantity,
                   materialData.based_uom,
                   plant_id,
                   organization_id
                 );
               } catch (serialError) {
-                console.error(`Error creating serial movement for ${balance.serial_number}:`, serialError);
+                console.error(
+                  `Error creating serial movement for ${balance.serial_number}:`,
+                  serialError
+                );
               }
             }
           } else {
@@ -1176,7 +1301,10 @@ async function preCheckQuantitiesAndCosting(allData, context) {
               .where(serialBalanceParams)
               .get();
 
-            if (!serialBalanceQuery.data || serialBalanceQuery.data.length === 0) {
+            if (
+              !serialBalanceQuery.data ||
+              serialBalanceQuery.data.length === 0
+            ) {
               throw new Error(
                 `No existing serial balance found for item ${item.material_id}, serial ${balance.serial_number} at location ${balance.location_id}`
               );
@@ -1189,14 +1317,17 @@ async function preCheckQuantitiesAndCosting(allData, context) {
               "Quality Inspection": "qualityinsp_qty",
               Blocked: "block_qty",
             };
-            const categoryField = categoryMap[balance.category || "Unrestricted"];
+            const categoryField =
+              categoryMap[balance.category || "Unrestricted"];
             const currentQty = serialBalanceData[categoryField] || 0;
 
             if (currentQty < balance.sa_quantity) {
               throw new Error(
                 `Insufficient quantity in ${
                   balance.category || "Unrestricted"
-                } for serialized item ${item.material_id}, serial ${balance.serial_number} at location ${
+                } for serialized item ${item.material_id}, serial ${
+                  balance.serial_number
+                } at location ${
                   balance.location_id
                 }. Available: ${currentQty}, Requested: ${balance.sa_quantity}`
               );
@@ -1227,7 +1358,8 @@ async function preCheckQuantitiesAndCosting(allData, context) {
               "Quality Inspection": "qualityinsp_qty",
               Blocked: "block_qty",
             };
-            const categoryField = categoryMap[balance.category || "Unrestricted"];
+            const categoryField =
+              categoryMap[balance.category || "Unrestricted"];
             const currentQty = balanceData[categoryField] || 0;
 
             if (currentQty < balance.sa_quantity) {

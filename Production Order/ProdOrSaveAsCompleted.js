@@ -693,6 +693,108 @@ const updateOutputCosting = async (data, unitPrice, db) => {
     }
 
     const item = itemQuery.data[0];
+    const isSerializedItem = item.serial_number_management === 1;
+    
+    // Handle serialized items differently - they don't use regular balance tables
+    if (isSerializedItem) {
+      console.log(
+        `Processing costing update for serialized item ${data.material_id}`
+      );
+      
+      // For serialized items, update costing tables directly without balance dependency
+      // Use data.batch_id if available (passed from the calling function)
+      if (item.material_costing_method === "Weighted Average") {
+        console.log(`Processing WA costing for serialized item: material_id=${data.material_id}, batch_management=${item.item_batch_management}, batch_id=${data.batch_id}`);
+        
+        const waQuery = item.item_batch_management === 1 && data.batch_id
+          ? db.collection("wa_costing_method").where({
+              material_id: data.material_id,
+              batch_id: data.batch_id,
+              plant_id: data.plant_id,
+            })
+          : db.collection("wa_costing_method").where({
+              material_id: data.material_id,
+              plant_id: data.plant_id,
+            });
+
+        const waResult = await waQuery.get();
+        
+        if (!waResult.data || waResult.data.length === 0) {
+          // Create new WA costing record for serialized item
+          const newWaRecord = {
+            material_id: data.material_id,
+            plant_id: data.plant_id,
+            wa_quantity: data.yield_qty,
+            wa_cost_price: roundedUnitPrice,
+            update_time: new Date().toISOString(),
+            is_deleted: 0,
+            ...(item.item_batch_management === 1 ? { batch_id: data.batch_id || null } : {}),
+          };
+          const waResult = await db.collection("wa_costing_method").add(newWaRecord);
+          console.log(
+            `Created new WA costing record for serialized item ID: ${waResult.id}, wa_quantity: ${data.yield_qty}, wa_cost_price: ${roundedUnitPrice}`
+          );
+        } else {
+          // Update existing WA costing record
+          const waRecord = waResult.data[0];
+          const existingWaQuantity = waRecord.wa_quantity || 0;
+          const existingWaCost = waRecord.wa_cost_price || 0;
+          const newWaQuantity = existingWaQuantity + data.yield_qty;
+          const newWaCostPrice = Math.round(
+            ((existingWaQuantity * existingWaCost + data.yield_qty * roundedUnitPrice) / newWaQuantity) * 10000
+          ) / 10000;
+
+          await db.collection("wa_costing_method").doc(waRecord.id).update({
+            wa_quantity: newWaQuantity,
+            wa_cost_price: Number(newWaCostPrice),
+            update_time: new Date().toISOString(),
+          });
+          console.log(
+            `Updated WA costing record for serialized item ID: ${waRecord.id}, new wa_quantity: ${newWaQuantity}, new wa_cost_price: ${newWaCostPrice}`
+          );
+        }
+      } else if (item.material_costing_method === "First In First Out") {
+        console.log(`Processing FIFO costing for serialized item: material_id=${data.material_id}, batch_management=${item.item_batch_management}, batch_id=${data.batch_id}`);
+        
+        const fifoQuery = item.item_batch_management === 1 && data.batch_id
+          ? db.collection("fifo_costing_history").where({
+              material_id: data.material_id,
+              batch_id: data.batch_id,
+            })
+          : db.collection("fifo_costing_history").where({
+              material_id: data.material_id,
+            });
+
+        const fifoResponse = await fifoQuery.get();
+        let sequenceNumber = 1;
+        if (fifoResponse.data && Array.isArray(fifoResponse.data) && fifoResponse.data.length > 0) {
+          const existingSequences = fifoResponse.data.map((doc) => parseInt(doc.fifo_sequence || 0));
+          sequenceNumber = Math.max(...existingSequences, 0) + 1;
+        }
+
+        const newFifoRecord = {
+          material_id: data.material_id,
+          fifo_sequence: String(sequenceNumber),
+          fifo_available_quantity: data.yield_qty,
+          fifo_cost_price: roundedUnitPrice,
+          plant_id: data.plant_id,
+          fifo_initial_quantity: data.yield_qty,
+          organization_id: organizationId,
+          created_at: new Date().toISOString(),
+          update_time: new Date().toISOString(),
+          is_deleted: 0,
+          ...(item.item_batch_management === 1 ? { batch_id: data.batch_id || null } : {}),
+        };
+
+        const fifoResultAdd = await db.collection("fifo_costing_history").add(newFifoRecord);
+        console.log(
+          `Added new FIFO costing record for serialized item ID: ${fifoResultAdd.id}, sequence: ${sequenceNumber}, quantity: ${data.yield_qty}, cost_price: ${roundedUnitPrice}`
+        );
+      }
+      
+      return; // Exit early for serialized items
+    }
+
     const collectionName =
       item.item_batch_management === 1 ? "item_batch_balance" : "item_balance";
 
@@ -1311,7 +1413,7 @@ const processSerializedItemForProductionReceipt = async (
         plant_id: plantId,
         organization_id: organizationId,
         transaction_no: stockMovementNo,
-        parent_trx_no: "",
+        parent_trx_no: data.production_order_no,
         create_time: new Date().toISOString(),
         update_time: new Date().toISOString(),
       };
@@ -1841,6 +1943,8 @@ const handleInventoryBalanceAndMovement = async (
     let producedBatchId = data.batch_id;
 
     if (item_batch_management === 1) {
+      console.log(`Creating batch for ${isSerializedItem ? 'serialized' : 'non-serialized'} item: material_id=${data.material_id}, batch_number=${data.batch_id}`);
+      
       const batchData = {
         batch_number: data.batch_id || "",
         material_id: data.material_id,
@@ -1860,70 +1964,80 @@ const handleInventoryBalanceAndMovement = async (
       if (resBatch && resBatch.data.length > 0) {
         producedBatchId = await resBatch.data[0].id;
       }
-      console.log(`Created new batch record with ID: ${producedBatchId}`);
-    }
-
-    const categoryField = categoryMap[data.category];
-    if (!categoryField) {
-      throw new Error("Invalid category: " + data.category);
-    }
-
-    const balanceQuery = await db
-      .collection(collectionName)
-      .where({
-        material_id: data.material_id,
-        plant_id: data.plant_id,
-        location_id: data.target_bin_location,
-        ...(item_batch_management === 1
-          ? { batch_id: producedBatchId || null }
-          : {}),
-      })
-      .get();
-
-    if (!balanceQuery.data || balanceQuery.data.length === 0) {
-      const newBalanceData = {
-        material_id: data.material_id,
-        plant_id: data.plant_id,
-        location_id: data.target_bin_location,
-        balance_quantity: data.yield_qty || 0,
-        [categoryField]: data.yield_qty || 0,
-        unrestricted_qty:
-          data.category === "Unrestricted" ? data.yield_qty || 0 : 0,
-        qualityinsp_qty:
-          data.category === "Quality Inspection" ? data.yield_qty || 0 : 0,
-        block_qty: data.category === "Blocked" ? data.yield_qty || 0 : 0,
-        reserved_qty: data.category === "Reserved" ? data.yield_qty || 0 : 0,
-        intransit_qty: data.category === "In Transit" ? data.yield_qty || 0 : 0,
-        create_time: new Date().toISOString(),
-        update_time: new Date().toISOString(),
-        organization_id: organizationId,
-        ...(item_batch_management === 1
-          ? { batch_id: producedBatchId || null }
-          : {}),
-        is_deleted: 0,
-      };
-
-      const balanceResult = await db
-        .collection(collectionName)
-        .add(newBalanceData);
-      console.log(
-        `New balance record created in ${collectionName} with ID: ${balanceResult.id}`
-      );
+      console.log(`Created new batch record with ID: ${producedBatchId} for ${isSerializedItem ? 'serialized' : 'non-serialized'} item`);
     } else {
-      const existingBalance = balanceQuery.data[0];
-      const updatedQuantities = {
-        balance_quantity:
-          (existingBalance.balance_quantity || 0) + (data.yield_qty || 0),
-        [categoryField]:
-          (existingBalance[categoryField] || 0) + (data.yield_qty || 0),
-        update_time: new Date().toISOString(),
-      };
+      console.log(`No batch creation needed for ${isSerializedItem ? 'serialized' : 'non-serialized'} item: material_id=${data.material_id} (batch_management=${item_batch_management})`);
+    }
 
-      await db
+    // Skip regular balance updates for serialized items - they are handled in item_serial_balance
+    if (!isSerializedItem) {
+      const categoryField = categoryMap[data.category];
+      if (!categoryField) {
+        throw new Error("Invalid category: " + data.category);
+      }
+
+      const balanceQuery = await db
         .collection(collectionName)
-        .doc(existingBalance.id)
-        .update(updatedQuantities);
-      console.log(`Balance record updated for ID: ${existingBalance.id}`);
+        .where({
+          material_id: data.material_id,
+          plant_id: data.plant_id,
+          location_id: data.target_bin_location,
+          ...(item_batch_management === 1
+            ? { batch_id: producedBatchId || null }
+            : {}),
+        })
+        .get();
+
+      if (!balanceQuery.data || balanceQuery.data.length === 0) {
+        const newBalanceData = {
+          material_id: data.material_id,
+          plant_id: data.plant_id,
+          location_id: data.target_bin_location,
+          balance_quantity: data.yield_qty || 0,
+          [categoryField]: data.yield_qty || 0,
+          unrestricted_qty:
+            data.category === "Unrestricted" ? data.yield_qty || 0 : 0,
+          qualityinsp_qty:
+            data.category === "Quality Inspection" ? data.yield_qty || 0 : 0,
+          block_qty: data.category === "Blocked" ? data.yield_qty || 0 : 0,
+          reserved_qty: data.category === "Reserved" ? data.yield_qty || 0 : 0,
+          intransit_qty:
+            data.category === "In Transit" ? data.yield_qty || 0 : 0,
+          create_time: new Date().toISOString(),
+          update_time: new Date().toISOString(),
+          organization_id: organizationId,
+          ...(item_batch_management === 1
+            ? { batch_id: producedBatchId || null }
+            : {}),
+          is_deleted: 0,
+        };
+
+        const balanceResult = await db
+          .collection(collectionName)
+          .add(newBalanceData);
+        console.log(
+          `New balance record created in ${collectionName} with ID: ${balanceResult.id}`
+        );
+      } else {
+        const existingBalance = balanceQuery.data[0];
+        const updatedQuantities = {
+          balance_quantity:
+            (existingBalance.balance_quantity || 0) + (data.yield_qty || 0),
+          [categoryField]:
+            (existingBalance[categoryField] || 0) + (data.yield_qty || 0),
+          update_time: new Date().toISOString(),
+        };
+
+        await db
+          .collection(collectionName)
+          .doc(existingBalance.id)
+          .update(updatedQuantities);
+        console.log(`Balance record updated for ID: ${existingBalance.id}`);
+      }
+    } else {
+      console.log(
+        `Skipped regular balance update for serialized item ${data.material_id} - handled in item_serial_balance`
+      );
     }
 
     const outputUnitPrice =
@@ -2267,10 +2381,11 @@ const createICTPStockMovement = async (allData) => {
           is_deleted: 0,
         };
 
-        await Promise.all([
-          db.collection("inventory_movement").add(inventoryMovementOUTData),
-          db.collection("inventory_movement").add(inventoryMovementINData),
-        ]);
+        // Create OUT movement first (Good Issue - consume materials)
+        await db.collection("inventory_movement").add(inventoryMovementOUTData);
+        
+        // Then create IN movement (Production Receipt - produce output)
+        await db.collection("inventory_movement").add(inventoryMovementINData);
 
         // Small delay to ensure DB commit
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -2466,10 +2581,11 @@ const createICTPStockMovement = async (allData) => {
         is_deleted: 0,
       };
 
-      await Promise.all([
-        db.collection("inventory_movement").add(inventoryMovementOUTData),
-        db.collection("inventory_movement").add(inventoryMovementINData),
-      ]);
+      // Create OUT movement first (Good Issue - consume materials)
+      await db.collection("inventory_movement").add(inventoryMovementOUTData);
+      
+      // Then create IN movement (Production Receipt - produce output)
+      await db.collection("inventory_movement").add(inventoryMovementINData);
 
       const resOnReserve = await db
         .collection("on_reserved_gd")

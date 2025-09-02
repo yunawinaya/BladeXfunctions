@@ -354,6 +354,59 @@ const processSerializedItemAdjustment = async (
     return;
   }
 
+  // Calculate net quantity change for costing updates
+  let netQuantityChange = 0;
+  let totalInCost = 0;
+  let totalInQuantity = 0;
+
+  for (const balance of serialBalances) {
+    if (adjustment_type === "Write Off") {
+      netQuantityChange -= balance.sa_quantity; // Deduct quantity
+    } else if (adjustment_type === "Stock Count") {
+      if (balance.movement_type === "In") {
+        netQuantityChange += balance.sa_quantity; // Add quantity
+        totalInCost += (item.unit_price || 0) * balance.sa_quantity;
+        totalInQuantity += balance.sa_quantity;
+      } else if (balance.movement_type === "Out") {
+        netQuantityChange -= balance.sa_quantity; // Deduct quantity
+      }
+    }
+  }
+
+  console.log(
+    `Serialized item ${item.material_id} net quantity change: ${netQuantityChange}`
+  );
+
+  // Update costing methods (WA/FIFO) for serialized items
+  if (netQuantityChange !== 0) {
+    try {
+      // Calculate weighted average unit price for "In" movements
+      const balanceUnitPrice =
+        totalInQuantity > 0
+          ? totalInCost / totalInQuantity
+          : item.unit_price || materialData.purchase_unit_price || 0;
+
+      console.log(
+        `Updating costing for serialized item ${item.material_id}, quantity change: ${netQuantityChange}, unit price: ${balanceUnitPrice}`
+      );
+
+      await updateQuantities(
+        netQuantityChange,
+        balanceUnitPrice,
+        materialData,
+        item,
+        plant_id,
+        organization_id
+      );
+    } catch (error) {
+      console.error(
+        `Error updating costing for serialized item ${item.material_id}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
   // Step 1: Update individual serial balances
   for (const balance of serialBalances) {
     const serialNumber = balance.serial_number;
@@ -605,22 +658,38 @@ const updateInventory = (allData) => {
           return; // Skip regular balance processing for serialized items
         }
 
-        const updateQuantities = async (quantityChange, balanceUnitPrice) => {
+        const updateQuantities = async (
+          quantityChange,
+          balanceUnitPrice,
+          materialDataParam = null,
+          itemParam = null,
+          plantIdParam = null,
+          organizationIdParam = null
+        ) => {
           try {
-            if (!materialData?.id) {
+            // Use passed parameters or fallback to local scope variables
+            const currentMaterialData = materialDataParam || materialData;
+            const currentItem = itemParam || item;
+            const currentPlantId = plantIdParam || plant_id;
+            const currentOrganizationId =
+              organizationIdParam || organization_id;
+
+            if (!currentMaterialData?.id) {
               throw new Error("Invalid material data: material_id is missing");
             }
 
-            if (!materialData.material_costing_method) {
+            if (!currentMaterialData.material_costing_method) {
               throw new Error("Material costing method is not defined");
             }
 
-            const costingMethod = materialData.material_costing_method;
+            const costingMethod = currentMaterialData.material_costing_method;
 
             if (
-              !["Weighted Average", "First In First Out"].includes(
-                costingMethod
-              )
+              ![
+                "Weighted Average",
+                "First In First Out",
+                "Fixed Cost",
+              ].includes(costingMethod)
             ) {
               throw new Error(`Unsupported costing method: ${costingMethod}`);
             }
@@ -628,26 +697,29 @@ const updateInventory = (allData) => {
             const unitPrice =
               balanceUnitPrice !== undefined
                 ? roundPrice(balanceUnitPrice)
-                : roundPrice(materialData.purchase_unit_price || 0);
+                : roundPrice(currentMaterialData.purchase_unit_price || 0);
             const batchId =
-              materialData.item_batch_management == "1"
-                ? item.item_batch_no
+              currentMaterialData.item_batch_management == "1"
+                ? currentItem.item_batch_no
                 : null;
 
             if (costingMethod === "Weighted Average") {
               const waQueryConditions =
-                materialData.item_batch_management == "1" && batchId
+                currentMaterialData.item_batch_management == "1" && batchId
                   ? {
-                      material_id: materialData.id,
+                      material_id: currentMaterialData.id,
                       batch_id: batchId,
-                      plant_id: plant_id,
+                      plant_id: currentPlantId,
                     }
-                  : { material_id: materialData.id, plant_id: plant_id };
+                  : {
+                      material_id: currentMaterialData.id,
+                      plant_id: currentPlantId,
+                    };
 
               await logTableState(
                 "wa_costing_method",
                 waQueryConditions,
-                `Before WA update for material ${materialData.id}`
+                `Before WA update for material ${currentMaterialData.id}`
               );
 
               const waQuery = db
@@ -700,14 +772,14 @@ const updateInventory = (allData) => {
                 await logTableState(
                   "wa_costing_method",
                   waQueryConditions,
-                  `After WA update for material ${materialData.id}`
+                  `After WA update for material ${currentMaterialData.id}`
                 );
               } else if (quantityChange > 0) {
                 await db.collection("wa_costing_method").add({
-                  material_id: materialData.id,
+                  material_id: currentMaterialData.id,
                   batch_id: batchId || null,
-                  plant_id: plant_id,
-                  organization_id: organization_id,
+                  plant_id: currentPlantId,
+                  organization_id: currentOrganizationId,
                   wa_quantity: roundQty(quantityChange),
                   wa_cost_price: roundPrice(unitPrice),
                   created_at: new Date(),
@@ -716,21 +788,21 @@ const updateInventory = (allData) => {
                 await logTableState(
                   "wa_costing_method",
                   waQueryConditions,
-                  `After adding new WA record for material ${materialData.id}`
+                  `After adding new WA record for material ${currentMaterialData.id}`
                 );
               } else {
                 throw new Error("No WA costing record found for deduction");
               }
             } else if (costingMethod === "First In First Out") {
               const fifoQueryConditions =
-                materialData.item_batch_management == "1" && batchId
-                  ? { material_id: materialData.id, batch_id: batchId }
-                  : { material_id: materialData.id };
+                currentMaterialData.item_batch_management == "1" && batchId
+                  ? { material_id: currentMaterialData.id, batch_id: batchId }
+                  : { material_id: currentMaterialData.id };
 
               await logTableState(
                 "fifo_costing_history",
                 fifoQueryConditions,
-                `Before FIFO update for material ${materialData.id}`
+                `Before FIFO update for material ${currentMaterialData.id}`
               );
 
               const fifoQuery = db
@@ -751,10 +823,10 @@ const updateInventory = (allData) => {
 
               if (quantityChange > 0) {
                 await db.collection("fifo_costing_history").add({
-                  material_id: materialData.id,
+                  material_id: currentMaterialData.id,
                   batch_id: batchId || null,
-                  plant_id: plant_id,
-                  organization_id: organization_id,
+                  plant_id: currentPlantId,
+                  organization_id: currentOrganizationId,
                   fifo_initial_quantity: roundQty(quantityChange),
                   fifo_available_quantity: roundQty(quantityChange),
                   fifo_cost_price: roundPrice(unitPrice),
@@ -765,7 +837,7 @@ const updateInventory = (allData) => {
                 await logTableState(
                   "fifo_costing_history",
                   fifoQueryConditions,
-                  `After adding new FIFO record for material ${materialData.id}`
+                  `After adding new FIFO record for material ${currentMaterialData.id}`
                 );
               } else if (quantityChange < 0) {
                 let remainingReduction = roundQty(-quantityChange);
@@ -801,7 +873,7 @@ const updateInventory = (allData) => {
                   if (remainingReduction > 0) {
                     throw new Error(
                       `Insufficient FIFO quantity for material ${
-                        materialData.id
+                        currentMaterialData.id
                       }. Available: ${roundQty(
                         fifoData.reduce(
                           (sum, record) =>
@@ -815,11 +887,11 @@ const updateInventory = (allData) => {
                   await logTableState(
                     "fifo_costing_history",
                     fifoQueryConditions,
-                    `After FIFO update for material ${materialData.id}`
+                    `After FIFO update for material ${currentMaterialData.id}`
                   );
                 } else {
                   throw new Error(
-                    `No FIFO costing records found for deduction for material ${materialData.id}`
+                    `No FIFO costing records found for deduction for material ${currentMaterialData.id}`
                   );
                 }
               }
@@ -828,9 +900,9 @@ const updateInventory = (allData) => {
             console.error("Error in updateQuantities:", {
               message: error.message,
               stack: error.stack,
-              materialData,
+              materialData: currentMaterialData,
               quantityChange,
-              plant_id,
+              plant_id: currentPlantId,
               unitPrice,
               batchId,
             });

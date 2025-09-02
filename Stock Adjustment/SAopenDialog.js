@@ -246,6 +246,9 @@ if (materialId) {
 
         // Show serial number column
         this.display("sa_item_balance.table_item_balance.serial_number");
+        this.display("sa_item_balance.search_serial_number");
+        this.display("sa_item_balance.confirm_search");
+        this.display("sa_item_balance.reset_search");
         this.setData({
           [`sa_item_balance.is_serialized`]: 1,
         });
@@ -300,8 +303,17 @@ if (materialId) {
             const filteredData = filterZeroQuantityRecords(finalData, itemData);
             console.log("Final filtered serialized data:", filteredData);
 
+            filteredData.forEach((item) => {
+              item.movement_type = "Out";
+            });
+
             this.setData({
               [`sa_item_balance.table_item_balance`]: filteredData,
+            });
+
+            this.setData({
+              [`sa_item_balance.table_item_balance_raw`]:
+                JSON.stringify(filteredData),
             });
 
             if (adjustment_type === "Write Off") {

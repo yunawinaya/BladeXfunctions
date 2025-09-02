@@ -385,8 +385,11 @@ class StockAdjuster {
         );
 
         // For production orders, items should go to Reserved category at destination
-        const destinationCategory = data.is_production_order === 1 ? "Reserved" : (balance.category || "Unrestricted");
-        
+        const destinationCategory =
+          data.is_production_order === 1
+            ? "Reserved"
+            : balance.category || "Unrestricted";
+
         await this.createOrUpdateReceivingSerialBalance(
           item.item_selection,
           balance.serial_number,
@@ -1057,8 +1060,16 @@ class StockAdjuster {
       this.validateRequiredFields(
         item,
         ["item_selection"],
-        `for item ${item.item_selection || "unknown"}`
+        `for item ${item.item_name || "unknown"}`
       );
+
+      if (movementType === "Miscellaneous Receipt") {
+        this.validateRequiredFields(
+          item,
+          ["category"],
+          `for item ${item.item_name || "unknown"}`
+        );
+      }
 
       const materialResponse = await this.db
         .collection("Item")
@@ -2895,10 +2906,11 @@ class StockAdjuster {
           inventory_category: category || balance.category,
         };
 
-        const [outResult, inResult] = await Promise.all([
-          this.db.collection("inventory_movement").add(outMovement),
-          this.db.collection("inventory_movement").add(inMovement),
-        ]);
+        // Create OUT movement first (deduction from source)
+        const outResult = await this.db.collection("inventory_movement").add(outMovement);
+        
+        // Then create IN movement (addition to destination)
+        const inResult = await this.db.collection("inventory_movement").add(inMovement);
 
         // Handle serialized items for Location Transfer
         if (isSerializedItem) {
@@ -3148,10 +3160,11 @@ class StockAdjuster {
           bin_location_id: balance.location_id,
         };
 
-        const [outResultICT, inResultICT] = await Promise.all([
-          this.db.collection("inventory_movement").add(outMovementICT),
-          this.db.collection("inventory_movement").add(inMovementICT),
-        ]);
+        // Create OUT movement first (deduction from source category)
+        const outResultICT = await this.db.collection("inventory_movement").add(outMovementICT);
+        
+        // Then create IN movement (addition to target category)
+        const inResultICT = await this.db.collection("inventory_movement").add(inMovementICT);
 
         // Handle serialized items for Category Transfer
         if (isSerializedItem) {

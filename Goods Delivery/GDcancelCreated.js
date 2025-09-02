@@ -186,6 +186,7 @@ const id = this.getValue("goods_delivery_id");
                 }
 
                 const costingMethod = itemData.material_costing_method;
+                const isSerializedItem = itemData.serial_number_management === 1;
 
                 let unitPrice = item.unit_price;
                 let totalPrice = item.unit_price * altQty;
@@ -265,6 +266,153 @@ const id = this.getValue("goods_delivery_id");
                 await db
                   .collection("inventory_movement")
                   .add(inventoryMovementDataRES);
+
+                // Handle serialized items
+                if (isSerializedItem) {
+                  console.log(
+                    `Processing serialized item cancellation for ${item.material_id}, serial: ${temp.serial_number}`
+                  );
+
+                  if (!temp.serial_number) {
+                    console.error(
+                      `Serial number missing for serialized item ${item.material_id}`
+                    );
+                    continue;
+                  }
+
+                  // Update serial balance - move from reserved back to unrestricted
+                  const serialBalanceParams = {
+                    material_id: item.material_id,
+                    serial_number: temp.serial_number,
+                    plant_id: gdData.plant_id,
+                    organization_id: gdData.organization_id,
+                  };
+
+                  if (temp.batch_id) {
+                    serialBalanceParams.batch_id = temp.batch_id;
+                  }
+
+                  if (temp.location_id) {
+                    serialBalanceParams.location_id = temp.location_id;
+                  }
+
+                  const serialBalanceQuery = await db
+                    .collection("item_serial_balance")
+                    .where(serialBalanceParams)
+                    .get();
+
+                  if (
+                    serialBalanceQuery.data &&
+                    serialBalanceQuery.data.length > 0
+                  ) {
+                    const serialBalance = serialBalanceQuery.data[0];
+                    const currentUnrestricted = parseFloat(
+                      serialBalance.unrestricted_qty || 0
+                    );
+                    const currentReserved = parseFloat(
+                      serialBalance.reserved_qty || 0
+                    );
+
+                    // For cancellation, we expect quantity to be 1 for serialized items
+                    const cancelQty = 1;
+
+                    if (currentReserved >= cancelQty) {
+                      await db
+                        .collection("item_serial_balance")
+                        .doc(serialBalance.id)
+                        .update({
+                          unrestricted_qty: currentUnrestricted + cancelQty,
+                          reserved_qty: Math.max(0, currentReserved - cancelQty),
+                          updated_at: new Date(),
+                        });
+
+                      console.log(
+                        `Updated serial balance for ${temp.serial_number}: moved ${cancelQty} from reserved to unrestricted`
+                      );
+                    } else {
+                      console.warn(
+                        `Insufficient reserved quantity for serial ${temp.serial_number}. Available: ${currentReserved}, Requested: ${cancelQty}`
+                      );
+                    }
+
+                    // Create serial movement records for both movements
+                    try {
+                      // First get the movement IDs that were just created
+                      await new Promise((resolve) => setTimeout(resolve, 100));
+
+                      const movementQuery = await db
+                        .collection("inventory_movement")
+                        .where({
+                          transaction_type: "GDL",
+                          trx_no: gdData.delivery_no,
+                          item_id: item.material_id,
+                          bin_location_id: temp.location_id,
+                          base_qty: baseQty,
+                          plant_id: gdData.plant_id,
+                          organization_id: gdData.organization_id,
+                        })
+                        .get();
+
+                      if (movementQuery.data && movementQuery.data.length >= 2) {
+                        // Find the IN and OUT movements
+                        const inMovement = movementQuery.data.find(
+                          (mov) => mov.movement === "IN"
+                        );
+                        const outMovement = movementQuery.data.find(
+                          (mov) => mov.movement === "OUT"
+                        );
+
+                        if (inMovement) {
+                          await db.collection("inv_serial_movement").add({
+                            inventory_movement_id: inMovement.id,
+                            serial_number: temp.serial_number,
+                            batch_id: temp.batch_id || null,
+                            base_qty: 1,
+                            base_uom: baseUOM,
+                            plant_id: gdData.plant_id,
+                            organization_id: gdData.organization_id,
+                            created_at: new Date(),
+                          });
+                          console.log(
+                            `Created IN serial movement for ${temp.serial_number}`
+                          );
+                        }
+
+                        if (outMovement) {
+                          await db.collection("inv_serial_movement").add({
+                            inventory_movement_id: outMovement.id,
+                            serial_number: temp.serial_number,
+                            batch_id: temp.batch_id || null,
+                            base_qty: 1,
+                            base_uom: baseUOM,
+                            plant_id: gdData.plant_id,
+                            organization_id: gdData.organization_id,
+                            created_at: new Date(),
+                          });
+                          console.log(
+                            `Created OUT serial movement for ${temp.serial_number}`
+                          );
+                        }
+                      } else {
+                        console.warn(
+                          `Could not find movement records for serial item ${item.material_id}`
+                        );
+                      }
+                    } catch (serialError) {
+                      console.error(
+                        `Error creating serial movement records for ${temp.serial_number}:`,
+                        serialError
+                      );
+                    }
+                  } else {
+                    console.warn(
+                      `Serial balance not found for ${temp.serial_number}`
+                    );
+                  }
+
+                  // Skip regular balance processing for serialized items
+                  continue;
+                }
 
                 const itemBalanceParams = {
                   material_id: item.material_id,

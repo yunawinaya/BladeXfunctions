@@ -119,6 +119,8 @@
         };
       });
 
+      console.log("mappedBomData", mappedBomData);
+
       // Map process data to process route format
       const mappedProcessData = processList.map((item) => ({
         process_id: item.process_no,
@@ -127,6 +129,7 @@
       }));
 
       return {
+        bom_id: processData.bom_version,
         table_bom: mappedBomData,
         process_route_name: processData.process_route_name,
         table_process_route: mappedProcessData,
@@ -163,6 +166,15 @@
         console.log("Process route changed, fetching new data");
         const mappedData = await fetchAndMapProcessData(processId);
         await this.setData(mappedData);
+        setTimeout(async () => {
+          try {
+            await this.setData({
+              table_bom: mappedData.table_bom,
+            });
+          } catch (error) {
+            console.error("Error setting data:", error);
+          }
+        }, 500);
 
         const tableBOM = await this.getValue("table_bom");
 
@@ -215,11 +227,20 @@
   };
 
   // Helper function to handle new/create mode
-  const handleCreateMode = async (processId, plantId) => {
+  const handleCreateMode = async (processId) => {
     try {
       console.log("Creating new production order with process route");
       const mappedData = await fetchAndMapProcessData(processId);
       await this.setData(mappedData);
+      setTimeout(async () => {
+        try {
+          await this.setData({
+            table_bom: mappedData.table_bom,
+          });
+        } catch (error) {
+          console.error("Error setting data:", error);
+        }
+      }, 500);
 
       const tableBOM = await this.getValue("table_bom");
 
@@ -300,7 +321,7 @@
       await handleProductionOrderMode(productionOrderId, plantId, processId);
     } else {
       // Create/New mode
-      await handleCreateMode(processId, plantId);
+      await handleCreateMode(processId);
     }
 
     console.log("Production order processing completed successfully");

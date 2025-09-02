@@ -248,6 +248,9 @@ if (materialId) {
 
         // Show serial number column
         this.display("sm_item_balance.table_item_balance.serial_number");
+        this.display("sm_item_balance.search_serial_number");
+        this.display("sm_item_balance.confirm_search");
+        this.display("sm_item_balance.reset_search");
 
         // Show or hide batch column based on whether item also has batch management
         if (itemData.item_batch_management === 1) {
@@ -306,6 +309,10 @@ if (materialId) {
 
             this.setData({
               [`sm_item_balance.table_item_balance`]: filteredData,
+            });
+            this.setData({
+              [`sm_item_balance.table_item_balance_raw`]:
+                JSON.stringify(filteredData),
             });
           })
           .catch((error) => {

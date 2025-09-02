@@ -121,18 +121,8 @@
       console.log(`Row ${rowIndex}: Processing serialized item`);
 
       // 🔧 NEW: If there's existing allocation data and quantity > 1, preserve it
-      if (hasExistingAllocation && quantity > 1) {
-        console.log(
-          `Row ${rowIndex}: Preserving existing allocation for serialized item with quantity ${quantity}`
-        );
-
-        // Just update the basic delivery quantities without touching temp_qty_data
-        this.setData({
-          [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-          [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-            orderedQty - totalDeliveredQty,
-          // Keep existing view_stock and temp_qty_data unchanged
-        });
+      if (orderedQty > 1) {
+        console.log(`Row ${rowIndex}: Quantity > 1, skipping`);
         return;
       }
 
