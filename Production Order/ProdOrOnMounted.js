@@ -136,6 +136,20 @@ const getPrefixConfiguration = async (organizationId) => {
   }
 };
 
+const viewSerialNumber = async () => {
+  const table_mat_confirmation = this.getValue("table_mat_confirmation");
+  if (table_mat_confirmation.length > 0) {
+    for (const matConfirmation of table_mat_confirmation) {
+      if (
+        matConfirmation.serial_number !== "" &&
+        matConfirmation.serial_number !== null
+      ) {
+        await this.display("table_mat_confirmation.select_serial_number");
+      }
+    }
+  }
+};
+
 // Main execution function
 (async () => {
   try {
@@ -474,6 +488,8 @@ const getPrefixConfiguration = async (organizationId) => {
               ["button_draft", "button_issued", "button_complete"],
               true
             );
+
+            await viewSerialNumber();
           }
         } else {
           throw new Error(
