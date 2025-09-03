@@ -739,11 +739,15 @@ const addInventory = async (
       if (item.is_serialized_item === 1 && item.serial_number_data) {
         try {
           const serialData = JSON.parse(item.serial_number_data);
-          
-          if (serialData.table_serial_number && serialData.table_serial_number.length > 0) {
+
+          if (
+            serialData.table_serial_number &&
+            serialData.table_serial_number.length > 0
+          ) {
             // Check if we have "Auto generated serial number" placeholders
             const hasPlaceholders = serialData.table_serial_number.some(
-              (serial) => serial.system_serial_number === "Auto generated serial number"
+              (serial) =>
+                serial.system_serial_number === "Auto generated serial number"
             );
 
             if (hasPlaceholders) {
@@ -753,18 +757,23 @@ const addInventory = async (
                 .where({
                   material_id: item.item_id,
                   transaction_no: data.gr_no,
-                  organization_id: organizationId
+                  organization_id: organizationId,
                 })
                 .get();
 
-              if (serialNumbersFromDB && serialNumbersFromDB.data && serialNumbersFromDB.data.length > 0) {
+              if (
+                serialNumbersFromDB &&
+                serialNumbersFromDB.data &&
+                serialNumbersFromDB.data.length > 0
+              ) {
                 // Use the actual generated serial numbers from database
                 const updatedTableSerialNumber = serialNumbersFromDB.data.map(
                   (dbSerial) => ({
                     system_serial_number: dbSerial.system_serial_number,
-                    supplier_serial_number: dbSerial.supplier_serial_number || "",
+                    supplier_serial_number:
+                      dbSerial.supplier_serial_number || "",
                     passed: 0,
-                    fm_key: "" // fm_key not stored in serial_number collection
+                    fm_key: "", // fm_key not stored in serial_number collection
                   })
                 );
 
@@ -776,14 +785,14 @@ const addInventory = async (
                 processedSerialNumberData = JSON.stringify(updatedSerialData);
               } else {
                 // Fallback: use original data but set passed: 0
-                const updatedTableSerialNumber = serialData.table_serial_number.map(
-                  (serialItem) => ({
+                const updatedTableSerialNumber =
+                  serialData.table_serial_number.map((serialItem) => ({
                     system_serial_number: serialItem.system_serial_number,
-                    supplier_serial_number: serialItem.supplier_serial_number || "",
+                    supplier_serial_number:
+                      serialItem.supplier_serial_number || "",
                     passed: 0,
-                    fm_key: serialItem.fm_key || ""
-                  })
-                );
+                    fm_key: serialItem.fm_key || "",
+                  }));
 
                 const updatedSerialData = {
                   ...serialData,
@@ -794,14 +803,14 @@ const addInventory = async (
               }
             } else {
               // No placeholders, use existing serial numbers but ensure passed: 0
-              const updatedTableSerialNumber = serialData.table_serial_number.map(
-                (serialItem) => ({
+              const updatedTableSerialNumber =
+                serialData.table_serial_number.map((serialItem) => ({
                   system_serial_number: serialItem.system_serial_number,
-                  supplier_serial_number: serialItem.supplier_serial_number || "",
+                  supplier_serial_number:
+                    serialItem.supplier_serial_number || "",
                   passed: 0,
-                  fm_key: serialItem.fm_key || ""
-                })
-              );
+                  fm_key: serialItem.fm_key || "",
+                }));
 
               const updatedSerialData = {
                 ...serialData,
@@ -918,6 +927,19 @@ const addInventory = async (
           batchNo = resBatch?.data[0] || null;
         }
 
+        // Generate serialNumbers string for serialized items using actual generated serial numbers
+        let serialNumbers = "";
+        if (
+          item.is_serialized_item === 1 &&
+          item.generated_serial_numbers &&
+          Array.isArray(item.generated_serial_numbers)
+        ) {
+          serialNumbers = item.generated_serial_numbers.join(", ");
+          console.log(
+            `Using generated serial numbers for putaway item ${item.item_id}: ${serialNumbers}`
+          );
+        }
+
         const lineItemData = {
           line_index: index + 1,
           item_code: item.item_id,
@@ -942,6 +964,8 @@ const addInventory = async (
           parent_index: index,
           unit_price: unitPriceArray[index],
           total_price: totalPriceArray[index],
+          serial_numbers: serialNumbers,
+          is_serialized_item: item.is_serialized_item,
         };
 
         putAwayLineItemData.push(lineItemData);
@@ -1318,6 +1342,25 @@ const addInventory = async (
       if (itemIndex !== -1) {
         data.table_gr[itemIndex].serial_number_data = JSON.stringify(
           updatedSerialNumberData
+        );
+
+        // Store the generated serial numbers for putaway use
+        const generatedSerialNumbers = updatedTableSerialNumber
+          .map((serial) => serial.system_serial_number)
+          .filter(
+            (serial) =>
+              serial &&
+              serial !== "" &&
+              serial !== "Auto generated serial number"
+          );
+        data.table_gr[itemIndex].generated_serial_numbers =
+          generatedSerialNumbers;
+        console.log(
+          `Stored ${
+            generatedSerialNumbers.length
+          } generated serial numbers for putaway: [${generatedSerialNumbers.join(
+            ", "
+          )}]`
         );
       }
 

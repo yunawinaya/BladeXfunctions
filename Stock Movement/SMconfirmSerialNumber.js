@@ -28,6 +28,11 @@
       return;
     }
 
+    if (dialogData.table_serial_number.length === 0) {
+      this.$message.error("Fill in the serial number table before confirming");
+      return;
+    }
+
     // Additional validation for manual mode
     if (dialogData.is_auto === 0) {
       // Check if all system serial numbers are filled in manual mode

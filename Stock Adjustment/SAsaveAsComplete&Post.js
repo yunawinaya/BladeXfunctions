@@ -614,6 +614,241 @@ const processSerializedItemAdjustment = async (
   );
 };
 
+const updateQuantities = async (
+  quantityChange,
+  balanceUnitPrice,
+  materialDataParam = null,
+  itemParam = null,
+  plantIdParam = null,
+  organizationIdParam = null
+) => {
+  try {
+    // Use passed parameters or fallback to local scope variables
+    const currentMaterialData = materialDataParam || materialData;
+    const currentItem = itemParam || item;
+    const currentPlantId = plantIdParam || plant_id;
+    const currentOrganizationId = organizationIdParam || organization_id;
+
+    if (!currentMaterialData?.id) {
+      throw new Error("Invalid material data: material_id is missing");
+    }
+
+    if (!currentMaterialData.material_costing_method) {
+      throw new Error("Material costing method is not defined");
+    }
+
+    const costingMethod = currentMaterialData.material_costing_method;
+
+    if (
+      !["Weighted Average", "First In First Out", "Fixed Cost"].includes(
+        costingMethod
+      )
+    ) {
+      throw new Error(`Unsupported costing method: ${costingMethod}`);
+    }
+
+    const unitPrice =
+      balanceUnitPrice !== undefined
+        ? roundPrice(balanceUnitPrice)
+        : roundPrice(currentMaterialData.purchase_unit_price || 0);
+    const batchId =
+      currentMaterialData.item_batch_management == "1"
+        ? currentItem.item_batch_no
+        : null;
+
+    if (costingMethod === "Weighted Average") {
+      const waQueryConditions =
+        currentMaterialData.item_batch_management == "1" && batchId
+          ? {
+              material_id: currentMaterialData.id,
+              batch_id: batchId,
+              plant_id: currentPlantId,
+            }
+          : {
+              material_id: currentMaterialData.id,
+              plant_id: currentPlantId,
+            };
+
+      await logTableState(
+        "wa_costing_method",
+        waQueryConditions,
+        `Before WA update for material ${currentMaterialData.id}`
+      );
+
+      const waQuery = db
+        .collection("wa_costing_method")
+        .where(waQueryConditions);
+
+      const waResponse = await waQuery.get();
+      const waData = Array.isArray(waResponse?.data) ? waResponse.data : [];
+
+      if (waData.length > 0) {
+        const latestWa = waData.sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        )[0];
+        const currentQty = roundQty(latestWa.wa_quantity || 0);
+        const currentTotalCost =
+          roundPrice(latestWa.wa_cost_price || 0) * currentQty;
+
+        let newWaQuantity, newWaCostPrice;
+        if (quantityChange > 0) {
+          const addedCost = roundPrice(unitPrice * quantityChange);
+          newWaQuantity = roundQty(currentQty + quantityChange);
+          newWaCostPrice =
+            newWaQuantity > 0
+              ? roundPrice((currentTotalCost + addedCost) / newWaQuantity)
+              : 0;
+        } else {
+          newWaQuantity = roundQty(currentQty + quantityChange);
+          newWaCostPrice = latestWa.wa_cost_price
+            ? roundPrice(latestWa.wa_cost_price)
+            : 0;
+        }
+
+        if (newWaQuantity < 0) {
+          throw new Error("Insufficient WA quantity");
+        }
+
+        await db.collection("wa_costing_method").doc(latestWa.id).update({
+          wa_quantity: newWaQuantity,
+          wa_cost_price: newWaCostPrice,
+          updated_at: new Date(),
+        });
+
+        await logTableState(
+          "wa_costing_method",
+          waQueryConditions,
+          `After WA update for material ${currentMaterialData.id}`
+        );
+      } else if (quantityChange > 0) {
+        await db.collection("wa_costing_method").add({
+          material_id: currentMaterialData.id,
+          batch_id: batchId || null,
+          plant_id: currentPlantId,
+          organization_id: currentOrganizationId,
+          wa_quantity: roundQty(quantityChange),
+          wa_cost_price: roundPrice(unitPrice),
+          created_at: new Date(),
+        });
+
+        await logTableState(
+          "wa_costing_method",
+          waQueryConditions,
+          `After adding new WA record for material ${currentMaterialData.id}`
+        );
+      } else {
+        throw new Error("No WA costing record found for deduction");
+      }
+    } else if (costingMethod === "First In First Out") {
+      const fifoQueryConditions =
+        currentMaterialData.item_batch_management == "1" && batchId
+          ? { material_id: currentMaterialData.id, batch_id: batchId }
+          : { material_id: currentMaterialData.id };
+
+      await logTableState(
+        "fifo_costing_history",
+        fifoQueryConditions,
+        `Before FIFO update for material ${currentMaterialData.id}`
+      );
+
+      const fifoQuery = db
+        .collection("fifo_costing_history")
+        .where(fifoQueryConditions);
+
+      const fifoResponse = await fifoQuery.get();
+      const fifoData = Array.isArray(fifoResponse?.data)
+        ? fifoResponse.data
+        : [];
+      const lastSequence =
+        fifoData.length > 0
+          ? Math.max(...fifoData.map((record) => record.fifo_sequence || 0))
+          : 0;
+      const newSequence = lastSequence + 1;
+
+      if (quantityChange > 0) {
+        await db.collection("fifo_costing_history").add({
+          material_id: currentMaterialData.id,
+          batch_id: batchId || null,
+          plant_id: currentPlantId,
+          organization_id: currentOrganizationId,
+          fifo_initial_quantity: roundQty(quantityChange),
+          fifo_available_quantity: roundQty(quantityChange),
+          fifo_cost_price: roundPrice(unitPrice),
+          fifo_sequence: newSequence,
+          created_at: new Date(),
+        });
+
+        await logTableState(
+          "fifo_costing_history",
+          fifoQueryConditions,
+          `After adding new FIFO record for material ${currentMaterialData.id}`
+        );
+      } else if (quantityChange < 0) {
+        let remainingReduction = roundQty(-quantityChange);
+
+        if (fifoData.length > 0) {
+          // Sort by sequence (oldest first)
+          fifoData.sort((a, b) => a.fifo_sequence - b.fifo_sequence);
+
+          for (const fifoRecord of fifoData) {
+            if (remainingReduction <= 0) break;
+
+            const available = roundQty(fifoRecord.fifo_available_quantity || 0);
+            const reduction = roundQty(Math.min(available, remainingReduction));
+            const newAvailable = roundQty(available - reduction);
+
+            await db
+              .collection("fifo_costing_history")
+              .doc(fifoRecord.id)
+              .update({
+                fifo_available_quantity: newAvailable,
+                updated_at: new Date(),
+              });
+
+            remainingReduction = roundQty(remainingReduction - reduction);
+          }
+
+          if (remainingReduction > 0) {
+            throw new Error(
+              `Insufficient FIFO quantity for material ${
+                currentMaterialData.id
+              }. Available: ${roundQty(
+                fifoData.reduce(
+                  (sum, record) => sum + (record.fifo_available_quantity || 0),
+                  0
+                )
+              )}, Requested: ${roundQty(-quantityChange)}`
+            );
+          }
+
+          await logTableState(
+            "fifo_costing_history",
+            fifoQueryConditions,
+            `After FIFO update for material ${currentMaterialData.id}`
+          );
+        } else {
+          throw new Error(
+            `No FIFO costing records found for deduction for material ${currentMaterialData.id}`
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error in updateQuantities:", {
+      message: error.message,
+      stack: error.stack,
+      materialData: currentMaterialData,
+      quantityChange,
+      plant_id: currentPlantId,
+      unitPrice,
+      batchId,
+    });
+    throw new Error(
+      `Failed to update costing method: ${error.message || "Unknown error"}`
+    );
+  }
+};
+
 const updateInventory = (allData) => {
   const subformData = allData.stock_adjustment;
   const plant_id = allData.plant_id;
@@ -657,262 +892,6 @@ const updateInventory = (allData) => {
           }
           return; // Skip regular balance processing for serialized items
         }
-
-        const updateQuantities = async (
-          quantityChange,
-          balanceUnitPrice,
-          materialDataParam = null,
-          itemParam = null,
-          plantIdParam = null,
-          organizationIdParam = null
-        ) => {
-          try {
-            // Use passed parameters or fallback to local scope variables
-            const currentMaterialData = materialDataParam || materialData;
-            const currentItem = itemParam || item;
-            const currentPlantId = plantIdParam || plant_id;
-            const currentOrganizationId =
-              organizationIdParam || organization_id;
-
-            if (!currentMaterialData?.id) {
-              throw new Error("Invalid material data: material_id is missing");
-            }
-
-            if (!currentMaterialData.material_costing_method) {
-              throw new Error("Material costing method is not defined");
-            }
-
-            const costingMethod = currentMaterialData.material_costing_method;
-
-            if (
-              ![
-                "Weighted Average",
-                "First In First Out",
-                "Fixed Cost",
-              ].includes(costingMethod)
-            ) {
-              throw new Error(`Unsupported costing method: ${costingMethod}`);
-            }
-
-            const unitPrice =
-              balanceUnitPrice !== undefined
-                ? roundPrice(balanceUnitPrice)
-                : roundPrice(currentMaterialData.purchase_unit_price || 0);
-            const batchId =
-              currentMaterialData.item_batch_management == "1"
-                ? currentItem.item_batch_no
-                : null;
-
-            if (costingMethod === "Weighted Average") {
-              const waQueryConditions =
-                currentMaterialData.item_batch_management == "1" && batchId
-                  ? {
-                      material_id: currentMaterialData.id,
-                      batch_id: batchId,
-                      plant_id: currentPlantId,
-                    }
-                  : {
-                      material_id: currentMaterialData.id,
-                      plant_id: currentPlantId,
-                    };
-
-              await logTableState(
-                "wa_costing_method",
-                waQueryConditions,
-                `Before WA update for material ${currentMaterialData.id}`
-              );
-
-              const waQuery = db
-                .collection("wa_costing_method")
-                .where(waQueryConditions);
-
-              const waResponse = await waQuery.get();
-              const waData = Array.isArray(waResponse?.data)
-                ? waResponse.data
-                : [];
-
-              if (waData.length > 0) {
-                const latestWa = waData.sort(
-                  (a, b) => new Date(b.created_at) - new Date(a.created_at)
-                )[0];
-                const currentQty = roundQty(latestWa.wa_quantity || 0);
-                const currentTotalCost =
-                  roundPrice(latestWa.wa_cost_price || 0) * currentQty;
-
-                let newWaQuantity, newWaCostPrice;
-                if (quantityChange > 0) {
-                  const addedCost = roundPrice(unitPrice * quantityChange);
-                  newWaQuantity = roundQty(currentQty + quantityChange);
-                  newWaCostPrice =
-                    newWaQuantity > 0
-                      ? roundPrice(
-                          (currentTotalCost + addedCost) / newWaQuantity
-                        )
-                      : 0;
-                } else {
-                  newWaQuantity = roundQty(currentQty + quantityChange);
-                  newWaCostPrice = latestWa.wa_cost_price
-                    ? roundPrice(latestWa.wa_cost_price)
-                    : 0;
-                }
-
-                if (newWaQuantity < 0) {
-                  throw new Error("Insufficient WA quantity");
-                }
-
-                await db
-                  .collection("wa_costing_method")
-                  .doc(latestWa.id)
-                  .update({
-                    wa_quantity: newWaQuantity,
-                    wa_cost_price: newWaCostPrice,
-                    updated_at: new Date(),
-                  });
-
-                await logTableState(
-                  "wa_costing_method",
-                  waQueryConditions,
-                  `After WA update for material ${currentMaterialData.id}`
-                );
-              } else if (quantityChange > 0) {
-                await db.collection("wa_costing_method").add({
-                  material_id: currentMaterialData.id,
-                  batch_id: batchId || null,
-                  plant_id: currentPlantId,
-                  organization_id: currentOrganizationId,
-                  wa_quantity: roundQty(quantityChange),
-                  wa_cost_price: roundPrice(unitPrice),
-                  created_at: new Date(),
-                });
-
-                await logTableState(
-                  "wa_costing_method",
-                  waQueryConditions,
-                  `After adding new WA record for material ${currentMaterialData.id}`
-                );
-              } else {
-                throw new Error("No WA costing record found for deduction");
-              }
-            } else if (costingMethod === "First In First Out") {
-              const fifoQueryConditions =
-                currentMaterialData.item_batch_management == "1" && batchId
-                  ? { material_id: currentMaterialData.id, batch_id: batchId }
-                  : { material_id: currentMaterialData.id };
-
-              await logTableState(
-                "fifo_costing_history",
-                fifoQueryConditions,
-                `Before FIFO update for material ${currentMaterialData.id}`
-              );
-
-              const fifoQuery = db
-                .collection("fifo_costing_history")
-                .where(fifoQueryConditions);
-
-              const fifoResponse = await fifoQuery.get();
-              const fifoData = Array.isArray(fifoResponse?.data)
-                ? fifoResponse.data
-                : [];
-              const lastSequence =
-                fifoData.length > 0
-                  ? Math.max(
-                      ...fifoData.map((record) => record.fifo_sequence || 0)
-                    )
-                  : 0;
-              const newSequence = lastSequence + 1;
-
-              if (quantityChange > 0) {
-                await db.collection("fifo_costing_history").add({
-                  material_id: currentMaterialData.id,
-                  batch_id: batchId || null,
-                  plant_id: currentPlantId,
-                  organization_id: currentOrganizationId,
-                  fifo_initial_quantity: roundQty(quantityChange),
-                  fifo_available_quantity: roundQty(quantityChange),
-                  fifo_cost_price: roundPrice(unitPrice),
-                  fifo_sequence: newSequence,
-                  created_at: new Date(),
-                });
-
-                await logTableState(
-                  "fifo_costing_history",
-                  fifoQueryConditions,
-                  `After adding new FIFO record for material ${currentMaterialData.id}`
-                );
-              } else if (quantityChange < 0) {
-                let remainingReduction = roundQty(-quantityChange);
-
-                if (fifoData.length > 0) {
-                  // Sort by sequence (oldest first)
-                  fifoData.sort((a, b) => a.fifo_sequence - b.fifo_sequence);
-
-                  for (const fifoRecord of fifoData) {
-                    if (remainingReduction <= 0) break;
-
-                    const available = roundQty(
-                      fifoRecord.fifo_available_quantity || 0
-                    );
-                    const reduction = roundQty(
-                      Math.min(available, remainingReduction)
-                    );
-                    const newAvailable = roundQty(available - reduction);
-
-                    await db
-                      .collection("fifo_costing_history")
-                      .doc(fifoRecord.id)
-                      .update({
-                        fifo_available_quantity: newAvailable,
-                        updated_at: new Date(),
-                      });
-
-                    remainingReduction = roundQty(
-                      remainingReduction - reduction
-                    );
-                  }
-
-                  if (remainingReduction > 0) {
-                    throw new Error(
-                      `Insufficient FIFO quantity for material ${
-                        currentMaterialData.id
-                      }. Available: ${roundQty(
-                        fifoData.reduce(
-                          (sum, record) =>
-                            sum + (record.fifo_available_quantity || 0),
-                          0
-                        )
-                      )}, Requested: ${roundQty(-quantityChange)}`
-                    );
-                  }
-
-                  await logTableState(
-                    "fifo_costing_history",
-                    fifoQueryConditions,
-                    `After FIFO update for material ${currentMaterialData.id}`
-                  );
-                } else {
-                  throw new Error(
-                    `No FIFO costing records found for deduction for material ${currentMaterialData.id}`
-                  );
-                }
-              }
-            }
-          } catch (error) {
-            console.error("Error in updateQuantities:", {
-              message: error.message,
-              stack: error.stack,
-              materialData: currentMaterialData,
-              quantityChange,
-              plant_id: currentPlantId,
-              unitPrice,
-              batchId,
-            });
-            throw new Error(
-              `Failed to update costing method: ${
-                error.message || "Unknown error"
-              }`
-            );
-          }
-        };
 
         const updateBalance = async (balance) => {
           const categoryMap = {
@@ -1148,7 +1127,14 @@ const updateInventory = (allData) => {
               ? item.unit_price || materialData.purchase_unit_price || 0
               : materialData.purchase_unit_price || 0;
 
-          return updateQuantities(-item.total_quantity, balanceUnitPrice)
+          return updateQuantities(
+            -item.total_quantity,
+            balanceUnitPrice,
+            materialData,
+            item,
+            plant_id,
+            organization_id
+          )
             .then(() => {
               if (balanceIndexData && Array.isArray(balanceIndexData)) {
                 return balanceIndexData
@@ -1195,7 +1181,14 @@ const updateInventory = (allData) => {
               ? totalInCost / totalInQuantity
               : materialData.purchase_unit_price || 0;
 
-          return updateQuantities(netQuantityChange, balanceUnitPrice)
+          return updateQuantities(
+            netQuantityChange,
+            balanceUnitPrice,
+            materialData,
+            item,
+            plant_id,
+            organization_id
+          )
             .then(() => {
               if (balanceIndexData && Array.isArray(balanceIndexData)) {
                 return balanceIndexData
@@ -1786,6 +1779,8 @@ const fillbackHeaderFields = async (sa) => {
         adjusted_by,
         adjustment_no,
         adjustment_remarks,
+        adjustment_remarks2,
+        adjustment_remarks3,
         reference_documents,
         stock_adjustment,
         table_index,
@@ -1801,6 +1796,8 @@ const fillbackHeaderFields = async (sa) => {
         adjusted_by,
         plant_id,
         adjustment_remarks,
+        adjustment_remarks2,
+        adjustment_remarks3,
         reference_documents,
         stock_adjustment,
         table_index,

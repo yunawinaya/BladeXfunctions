@@ -346,6 +346,15 @@ if (materialId) {
         this.display("sa_item_balance.table_item_balance.batch_id");
         this.hide("sa_item_balance.table_item_balance.serial_number");
 
+        // Hide serial number column
+        this.hide("sa_item_balance.table_item_balance.serial_number");
+        this.hide("sa_item_balance.search_serial_number");
+        this.hide("sa_item_balance.confirm_search");
+        this.hide("sa_item_balance.reset_search");
+        this.setData({
+          [`sa_item_balance.is_serialized`]: 0,
+        });
+
         db.collection("item_batch_balance")
           .where({
             material_id: materialId,
@@ -409,6 +418,15 @@ if (materialId) {
         // Hide both batch and serial columns
         this.hide("sa_item_balance.table_item_balance.batch_id");
         this.hide("sa_item_balance.table_item_balance.serial_number");
+
+        // Hide serial number column
+        this.hide("sa_item_balance.table_item_balance.serial_number");
+        this.hide("sa_item_balance.search_serial_number");
+        this.hide("sa_item_balance.confirm_search");
+        this.hide("sa_item_balance.reset_search");
+        this.setData({
+          [`sa_item_balance.is_serialized`]: 0,
+        });
 
         db.collection("item_balance")
           .where({
