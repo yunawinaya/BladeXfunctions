@@ -33,7 +33,7 @@
     );
     for (let i = 0; i < noOfSplit; i++) {
       await this.setOptionData(
-        `split_dialog.table_split.${i}.serial_numbers`,
+        `split_dialog.table_split.${i}.select_serial_number`,
         serialNumbers
       );
     }

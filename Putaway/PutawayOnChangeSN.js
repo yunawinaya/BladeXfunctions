@@ -4,11 +4,17 @@
     const splitDialog = data.split_dialog;
     const tableSplit = splitDialog.table_split || [];
     const serialNumberDataRaw = splitDialog.serial_number_data || "";
-    const serialNumberData = serialNumberDataRaw.split(",");
+    console.log("serialNumberDataRaw", serialNumberDataRaw);
+    let serialNumberData = [];
+    if (!Array.isArray(serialNumberDataRaw)) {
+      serialNumberData = serialNumberDataRaw.split(",");
+    } else {
+      serialNumberData = serialNumberDataRaw;
+    }
 
     let selectedSerialNumber = [];
     for (const split of tableSplit) {
-      const serialNumbers = split.serial_numbers;
+      const serialNumbers = split.select_serial_number;
       if (serialNumbers && serialNumbers?.length > 0) {
         console.log("serialNumbers", serialNumbers);
         selectedSerialNumber.push(...serialNumbers);
@@ -24,7 +30,7 @@
 
     for (const [index] of tableSplit.entries()) {
       await this.setOptionData(
-        `split_dialog.table_split.${index}.serial_numbers`,
+        `split_dialog.table_split.${index}.select_serial_number`,
         availableSerialNumber
       );
     }

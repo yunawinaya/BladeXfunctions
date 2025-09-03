@@ -23,11 +23,11 @@
   }
 
   if (isSerializedItem === 1) {
-    await this.display("split_dialog.table_split.serial_numbers");
+    await this.display("split_dialog.table_split.select_serial_number");
     await this.setData({
       [`split_dialog.serial_number_data`]: putawayItem.serial_numbers,
     });
   } else {
-    await this.hide("split_dialog.table_split.serial_numbers");
+    await this.hide("split_dialog.table_split.select_serial_number");
   }
 })();
