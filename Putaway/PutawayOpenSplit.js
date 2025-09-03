@@ -30,4 +30,6 @@
   } else {
     await this.hide("split_dialog.table_split.select_serial_number");
   }
+
+  console.log("JN Debugging", this.getValue("table_putaway_item"));
 })();
