@@ -143,7 +143,7 @@ const validateForm = (data, requiredFields) => {
 
     // Handle non-array fields (unchanged)
     if (!field.isArray) {
-      if (validateField(value, field)) {
+      if (validateField(value)) {
         missingFields.push(field.label);
       }
       return;
@@ -165,7 +165,7 @@ const validateForm = (data, requiredFields) => {
       value.forEach((item, index) => {
         field.arrayFields.forEach((subField) => {
           const subValue = item[subField.name];
-          if (validateField(subValue, subField)) {
+          if (validateField(subValue)) {
             missingFields.push(
               `${subField.label} (in ${field.label} #${index + 1})`
             );
@@ -178,7 +178,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, field) => {
+const validateField = (value) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "number") return value <= 0;
@@ -249,7 +249,10 @@ const validateAndUpdateLineStatuses = (putawayItems) => {
   const itemStatusMap = new Map();
   for (let index = 0; index < updatedItems.length; index++) {
     const item = updatedItems[index];
-    if (item.is_split === "No") {
+    if (
+      item.parent_or_child === "Child" ||
+      (item.parent_or_child === "Parent" && item.is_split === "No")
+    ) {
       // Process child items or standalone items
       const status = updateItemStatus(item, index);
       itemStatusMap.set(item.item_code, status);
@@ -259,7 +262,7 @@ const validateAndUpdateLineStatuses = (putawayItems) => {
   // Process parent items
   for (let index = 0; index < updatedItems.length; index++) {
     const item = updatedItems[index];
-    if (item.is_split === "Yes") {
+    if (item.parent_or_child === "Parent" && item.is_split === "Yes") {
       // Check if all child items are completed
       const childItems = updatedItems.filter(
         (child) =>
@@ -305,6 +308,12 @@ const addEntry = async (organizationId, toData) => {
       toData.to_id = prefixToShow;
     }
 
+    for (const item of toData.table_putaway_item) {
+      if (item.select_serial_number) {
+        item.select_serial_number = null;
+      }
+    }
+
     // Add the record
     await db.collection("transfer_order_putaway").add(toData);
   } catch (error) {
@@ -326,6 +335,12 @@ const updateEntry = async (organizationId, toData, toId, originalToStatus) => {
 
         await updatePrefix(organizationId, runningNumber);
         toData.to_id = prefixToShow;
+      }
+    }
+
+    for (const item of toData.table_putaway_item) {
+      if (item.select_serial_number) {
+        item.select_serial_number = null;
       }
     }
 
@@ -392,7 +407,7 @@ const updateGoodsReceivingPutawayStatus = async (grId) => {
 const createPutawayRecords = async (toData, tablePutawayItem) => {
   const putawayRecords = [];
   for (const item of tablePutawayItem) {
-    if (item.is_split === "Yes") {
+    if (item.parent_or_child === "Parent" && item.is_split === "Yes") {
       continue;
     }
 
@@ -412,6 +427,21 @@ const createPutawayRecords = async (toData, tablePutawayItem) => {
         confirmed_by: this.getVarGlobal("nickname"),
         confirmed_at: new Date().toISOString().slice(0, 19).replace("T", " "),
       };
+
+      // Add serial numbers for serialized items
+      if (
+        item.is_serialized_item === 1 &&
+        item.select_serial_number &&
+        Array.isArray(item.select_serial_number)
+      ) {
+        const trimmedSerialNumbers = item.select_serial_number
+          .map((sn) => sn.trim())
+          .filter((sn) => sn !== "");
+        putawayRecord.serial_numbers = trimmedSerialNumbers.join(", ");
+        console.log(
+          `Added serial numbers to putaway record for ${item.item_code}: ${putawayRecord.serial_numbers}`
+        );
+      }
 
       putawayRecords.push(putawayRecord);
     }
@@ -465,8 +495,401 @@ const addInventoryMovementData = async (
     };
 
     await db.collection("inventory_movement").add(inventoryMovementData);
-  } catch (error) {
+  } catch {
     throw new Error("Error occurred in inventory movement.");
+  }
+};
+
+// Helper function to process serialized item movements with consolidation
+const processSerializedItemMovement = async (
+  data,
+  itemData,
+  matData,
+  movementType,
+  serialNumbers
+) => {
+  try {
+    console.log(
+      `Processing serialized item movement for ${matData.item_code}, movement: ${movementType} with ${serialNumbers.length} serials`
+    );
+
+    // Create CONSOLIDATED inventory movement for all serial numbers
+    const consolidatedQty = serialNumbers.length; // Each serial = 1 unit
+    const inventoryMovementData = {
+      transaction_type: "TO - PA",
+      trx_no: data.to_id,
+      inventory_category:
+        movementType === "OUT"
+          ? matData.source_inv_category
+          : matData.target_inv_category,
+      parent_trx_no: data.receiving_no,
+      movement: movementType,
+      unit_price: roundPrice(matData.unit_price),
+      total_price: roundPrice(matData.unit_price * consolidatedQty),
+      quantity: consolidatedQty, // Total quantity for all serials
+      base_qty: consolidatedQty, // Total base quantity
+      uom_id: matData.item_uom,
+      base_uom_id: itemData.based_uom,
+      item_id: matData.item_code,
+      bin_location_id:
+        movementType === "OUT" ? matData.source_bin : matData.target_location,
+      batch_number_id: matData.batch_no || "",
+      costing_method_id: itemData.material_costing_method,
+      plant_id: data.plant_id,
+      organization_id: data.organization_id,
+    };
+
+    await db.collection("inventory_movement").add(inventoryMovementData);
+    console.log(
+      `Created consolidated ${movementType} movement for ${consolidatedQty} serial numbers`
+    );
+
+    // Wait and fetch the created movement ID
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const movementQuery = await db
+      .collection("inventory_movement")
+      .where({
+        transaction_type: "TO - PA",
+        trx_no: data.to_id,
+        parent_trx_no: data.receiving_no,
+        movement: movementType,
+        inventory_category: inventoryMovementData.inventory_category,
+        item_id: matData.item_code,
+        bin_location_id: inventoryMovementData.bin_location_id,
+        base_qty: consolidatedQty,
+        plant_id: data.plant_id,
+        organization_id: data.organization_id,
+      })
+      .get();
+
+    if (movementQuery.data && movementQuery.data.length > 0) {
+      const movementId = movementQuery.data[0].id;
+      console.log(`Found consolidated movement ID: ${movementId}`);
+
+      // Create individual inv_serial_movement records for each serial number
+      console.log(
+        `Creating ${serialNumbers.length} inv_serial_movement records`
+      );
+
+      for (const serialNumber of serialNumbers) {
+        const trimmedSerialNumber = serialNumber.trim();
+        if (!trimmedSerialNumber) continue;
+
+        console.log(
+          `Creating inv_serial_movement for serial: ${trimmedSerialNumber}`
+        );
+
+        try {
+          await db.collection("inv_serial_movement").add({
+            inventory_movement_id: movementId,
+            serial_number: trimmedSerialNumber,
+            batch_id: matData.batch_no || null,
+            base_qty: 1, // Each serial number is 1 unit
+            base_uom: itemData.based_uom,
+            plant_id: data.plant_id,
+            organization_id: data.organization_id,
+          });
+
+          console.log(
+            `✓ Created inv_serial_movement for serial ${trimmedSerialNumber}`
+          );
+
+          // Process individual serial balance movement
+          await processSerialBalanceMovement(
+            matData,
+            itemData,
+            trimmedSerialNumber,
+            movementType,
+            data
+          );
+        } catch (serialError) {
+          console.error(
+            `Error creating inv_serial_movement for serial ${trimmedSerialNumber}:`,
+            serialError
+          );
+          throw serialError;
+        }
+      }
+
+      console.log(
+        `Successfully processed consolidated movement with ${serialNumbers.length} inv_serial_movement records`
+      );
+    } else {
+      throw new Error(
+        `Could not find created consolidated movement for ${movementType}`
+      );
+    }
+
+    console.log(
+      `Successfully processed serialized item ${matData.item_code} with ${serialNumbers.length} serial numbers`
+    );
+  } catch (error) {
+    console.error(`Error processing serialized item movement:`, error);
+    throw new Error(
+      `Error processing serialized item movement: ${error.message}`
+    );
+  }
+};
+
+// Helper function to process serial balance movements
+const processSerialBalanceMovement = async (
+  matData,
+  itemData,
+  serialNumber,
+  movementType,
+  data
+) => {
+  try {
+    const locationId =
+      movementType === "OUT" ? matData.source_bin : matData.target_location;
+    const inventoryCategory =
+      movementType === "OUT"
+        ? matData.source_inv_category
+        : matData.target_inv_category;
+
+    console.log(
+      `Processing serial balance for ${serialNumber}, movement: ${movementType}, location: ${locationId}`
+    );
+
+    if (movementType === "OUT") {
+      // Find and update existing serial balance for OUT movement
+      const serialBalanceParams = {
+        material_id: matData.item_code,
+        serial_number: serialNumber,
+        location_id: matData.source_bin,
+        plant_id: data.plant_id,
+        organization_id: data.organization_id,
+      };
+
+      if (matData.batch_no) {
+        serialBalanceParams.batch_id = matData.batch_no;
+      }
+
+      const existingSerialBalance = await db
+        .collection("item_serial_balance")
+        .where(serialBalanceParams)
+        .get();
+
+      if (existingSerialBalance.data && existingSerialBalance.data.length > 0) {
+        const serialBalance = existingSerialBalance.data[0];
+
+        // Get current quantities
+        const currentUnrestricted = parseFloat(
+          serialBalance.unrestricted_qty || 0
+        );
+        const currentReserved = parseFloat(serialBalance.reserved_qty || 0);
+        const currentQualityInsp = parseFloat(
+          serialBalance.qualityinsp_qty || 0
+        );
+        const currentBlocked = parseFloat(serialBalance.block_qty || 0);
+        const currentInTransit = parseFloat(serialBalance.intransit_qty || 0);
+
+        // Determine which quantity category to deduct from based on source inventory category
+        let newUnrestricted = currentUnrestricted;
+        let newReserved = currentReserved;
+        let newQualityInsp = currentQualityInsp;
+        let newBlocked = currentBlocked;
+        let newInTransit = currentInTransit;
+
+        const qtyToDeduct = 1; // Each serial is 1 unit
+
+        switch (matData.source_inv_category) {
+          case "Unrestricted":
+            newUnrestricted = Math.max(0, currentUnrestricted - qtyToDeduct);
+            break;
+          case "Reserved":
+            newReserved = Math.max(0, currentReserved - qtyToDeduct);
+            break;
+          case "Quality Inspection":
+            newQualityInsp = Math.max(0, currentQualityInsp - qtyToDeduct);
+            break;
+          case "Blocked":
+            newBlocked = Math.max(0, currentBlocked - qtyToDeduct);
+            break;
+          case "In Transit":
+            newInTransit = Math.max(0, currentInTransit - qtyToDeduct);
+            break;
+          default:
+            console.warn(
+              `Unknown source inventory category: ${matData.source_inv_category}, defaulting to Unrestricted`
+            );
+            newUnrestricted = Math.max(0, currentUnrestricted - qtyToDeduct);
+        }
+
+        const updateData = {
+          unrestricted_qty: newUnrestricted,
+          reserved_qty: newReserved,
+          qualityinsp_qty: newQualityInsp,
+          block_qty: newBlocked,
+          intransit_qty: newInTransit,
+          updated_at: new Date(),
+        };
+
+        // Calculate balance_quantity if it exists
+        if (serialBalance.hasOwnProperty("balance_quantity")) {
+          updateData.balance_quantity =
+            newUnrestricted +
+            newReserved +
+            newQualityInsp +
+            newBlocked +
+            newInTransit;
+        }
+
+        await db
+          .collection("item_serial_balance")
+          .doc(serialBalance.id)
+          .update(updateData);
+
+        console.log(
+          `Updated serial balance for OUT movement: ${serialNumber} - ` +
+            `${matData.source_inv_category}: ${qtyToDeduct} deducted from location ${matData.source_bin}`
+        );
+      } else {
+        console.warn(
+          `No existing serial balance found for OUT movement: ${serialNumber} at location ${matData.source_bin}`
+        );
+      }
+    } else if (movementType === "IN") {
+      // Check if serial balance already exists at target location
+      const serialBalanceParams = {
+        material_id: matData.item_code,
+        serial_number: serialNumber,
+        location_id: matData.target_location,
+        plant_id: data.plant_id,
+        organization_id: data.organization_id,
+      };
+
+      if (matData.batch_no) {
+        serialBalanceParams.batch_id = matData.batch_no;
+      }
+
+      const existingSerialBalance = await db
+        .collection("item_serial_balance")
+        .where(serialBalanceParams)
+        .get();
+
+      const qtyToAdd = 1; // Each serial is 1 unit
+
+      if (existingSerialBalance.data && existingSerialBalance.data.length > 0) {
+        // Update existing serial balance
+        const serialBalance = existingSerialBalance.data[0];
+
+        // Get current quantities
+        const currentUnrestricted = parseFloat(
+          serialBalance.unrestricted_qty || 0
+        );
+        const currentReserved = parseFloat(serialBalance.reserved_qty || 0);
+        const currentQualityInsp = parseFloat(
+          serialBalance.qualityinsp_qty || 0
+        );
+        const currentBlocked = parseFloat(serialBalance.block_qty || 0);
+        const currentInTransit = parseFloat(serialBalance.intransit_qty || 0);
+
+        // Determine which quantity category to add to based on target inventory category
+        let newUnrestricted = currentUnrestricted;
+        let newReserved = currentReserved;
+        let newQualityInsp = currentQualityInsp;
+        let newBlocked = currentBlocked;
+        let newInTransit = currentInTransit;
+
+        switch (matData.target_inv_category) {
+          case "Unrestricted":
+            newUnrestricted = currentUnrestricted + qtyToAdd;
+            break;
+          case "Reserved":
+            newReserved = currentReserved + qtyToAdd;
+            break;
+          case "Quality Inspection":
+            newQualityInsp = currentQualityInsp + qtyToAdd;
+            break;
+          case "Blocked":
+            newBlocked = currentBlocked + qtyToAdd;
+            break;
+          case "In Transit":
+            newInTransit = currentInTransit + qtyToAdd;
+            break;
+          default:
+            console.warn(
+              `Unknown target inventory category: ${matData.target_inv_category}, defaulting to Unrestricted`
+            );
+            newUnrestricted = currentUnrestricted + qtyToAdd;
+        }
+
+        const updateData = {
+          unrestricted_qty: newUnrestricted,
+          reserved_qty: newReserved,
+          qualityinsp_qty: newQualityInsp,
+          block_qty: newBlocked,
+          intransit_qty: newInTransit,
+          inventory_category: inventoryCategory,
+          updated_at: new Date(),
+        };
+
+        // Calculate balance_quantity if it exists
+        if (serialBalance.hasOwnProperty("balance_quantity")) {
+          updateData.balance_quantity =
+            newUnrestricted +
+            newReserved +
+            newQualityInsp +
+            newBlocked +
+            newInTransit;
+        }
+
+        await db
+          .collection("item_serial_balance")
+          .doc(serialBalance.id)
+          .update(updateData);
+
+        console.log(
+          `Updated existing serial balance for IN movement: ${serialNumber} - ` +
+            `${matData.target_inv_category}: ${qtyToAdd} added to location ${matData.target_location}`
+        );
+      } else {
+        // Create new serial balance record
+        const serialBalanceData = {
+          material_id: matData.item_code,
+          serial_number: serialNumber,
+          location_id: matData.target_location,
+          batch_id: matData.batch_no || null,
+          unrestricted_qty:
+            matData.target_inv_category === "Unrestricted" ? qtyToAdd : 0,
+          reserved_qty:
+            matData.target_inv_category === "Reserved" ? qtyToAdd : 0,
+          qualityinsp_qty:
+            matData.target_inv_category === "Quality Inspection" ? qtyToAdd : 0,
+          block_qty: matData.target_inv_category === "Blocked" ? qtyToAdd : 0,
+          intransit_qty:
+            matData.target_inv_category === "In Transit" ? qtyToAdd : 0,
+          inventory_category: inventoryCategory,
+          plant_id: data.plant_id,
+          organization_id: data.organization_id,
+          material_uom: itemData.based_uom,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+
+        // Calculate balance_quantity
+        serialBalanceData.balance_quantity =
+          serialBalanceData.unrestricted_qty +
+          serialBalanceData.reserved_qty +
+          serialBalanceData.qualityinsp_qty +
+          serialBalanceData.block_qty +
+          serialBalanceData.intransit_qty;
+
+        await db.collection("item_serial_balance").add(serialBalanceData);
+        console.log(
+          `Created new serial balance for IN movement: ${serialNumber} - ` +
+            `${matData.target_inv_category}: ${qtyToAdd} at location ${matData.target_location}`
+        );
+      }
+    }
+  } catch (error) {
+    console.error(
+      `Error processing serial balance movement for ${serialNumber}:`,
+      error
+    );
+    throw error;
   }
 };
 
@@ -677,124 +1100,182 @@ const processInventoryMovementandBalanceTable = async (
             if (resItem && resItem.data.length > 0) {
               const itemData = resItem.data[0];
               console.log("item", itemData);
-              await addInventoryMovementData(toData, "OUT", itemData, mat);
-              await addInventoryMovementData(toData, "IN", itemData, mat);
 
-              const baseQty = await convertUOM(mat.putaway_qty, itemData, mat);
+              // Check if this is a serialized item
+              const isSerializedItem =
+                mat.is_serialized_item === 1 &&
+                mat.select_serial_number &&
+                Array.isArray(mat.select_serial_number);
 
-              // Initialize category quantities
-              const outCategories = {
-                block_qty: mat.source_inv_category === "Blocked" ? baseQty : 0,
-                reserved_qty:
-                  mat.source_inv_category === "Reserved" ? baseQty : 0,
-                unrestricted_qty:
-                  mat.source_inv_category === "Unrestricted" ? baseQty : 0,
-                qualityinsp_qty:
-                  mat.source_inv_category === "Quality Inspection"
-                    ? baseQty
-                    : 0,
-                intransit_qty:
-                  mat.source_inv_category === "In Transit" ? baseQty : 0,
-              };
+              if (isSerializedItem) {
+                console.log(
+                  `Processing serialized item: ${mat.item_code} with ${mat.select_serial_number.length} serial numbers`
+                );
 
-              const inCategories = {
-                block_qty: mat.target_inv_category === "Blocked" ? baseQty : 0,
-                reserved_qty:
-                  mat.target_inv_category === "Reserved" ? baseQty : 0,
-                unrestricted_qty:
-                  mat.target_inv_category === "Unrestricted" ? baseQty : 0,
-                qualityinsp_qty:
-                  mat.target_inv_category === "Quality Inspection"
-                    ? baseQty
-                    : 0,
-                intransit_qty:
-                  mat.target_inv_category === "In Transit" ? baseQty : 0,
-              };
-              // OUT movement aggregation (source_bin)
-              const outKey =
-                itemData.item_batch_management === 1
-                  ? `${mat.item_code}_${mat.source_bin}_${
-                      mat.batch_no || "no_batch"
-                    }`
-                  : `${mat.item_code}_${mat.source_bin}`;
+                // Validate that putaway_qty matches serial number count
+                const trimmedSerialNumbers = mat.select_serial_number
+                  .map((sn) => sn.trim())
+                  .filter((sn) => sn !== "");
 
-              if (!balanceUpdates[outKey]) {
-                balanceUpdates[outKey] = {
-                  material_id: mat.item_code,
-                  location_id: mat.source_bin,
-                  batch_id: mat.batch_no || "",
-                  block_qty: 0,
-                  reserved_qty: 0,
-                  unrestricted_qty: 0,
-                  qualityinsp_qty: 0,
-                  intransit_qty: 0,
-                  movementType: "OUT",
-                  material_uom: itemData.based_uom,
-                  plant_id: toData.plant_id,
-                  organization_id: toData.organization_id,
-                };
+                if (trimmedSerialNumbers.length !== mat.putaway_qty) {
+                  console.warn(
+                    `Serial number count (${trimmedSerialNumbers.length}) doesn't match putaway quantity (${mat.putaway_qty}) for item ${mat.item_code}`
+                  );
+                }
+
+                // Process serialized item movements
+                await processSerializedItemMovement(
+                  toData,
+                  itemData,
+                  mat,
+                  "OUT",
+                  trimmedSerialNumbers
+                );
+                await processSerializedItemMovement(
+                  toData,
+                  itemData,
+                  mat,
+                  "IN",
+                  trimmedSerialNumbers
+                );
+
+                console.log(
+                  `Successfully processed serialized item ${
+                    mat.item_code
+                  } with serial numbers: [${trimmedSerialNumbers.join(", ")}]`
+                );
+              } else {
+                // Process non-serialized items as before
+                await addInventoryMovementData(toData, "OUT", itemData, mat);
+                await addInventoryMovementData(toData, "IN", itemData, mat);
               }
 
-              balanceUpdates[outKey].block_qty += outCategories.block_qty;
-              balanceUpdates[outKey].reserved_qty += outCategories.reserved_qty;
-              balanceUpdates[outKey].unrestricted_qty +=
-                outCategories.unrestricted_qty;
-              balanceUpdates[outKey].qualityinsp_qty +=
-                outCategories.qualityinsp_qty;
-              balanceUpdates[outKey].intransit_qty +=
-                outCategories.intransit_qty;
+              // Skip regular balance processing for serialized items as they are handled in serial balance
+              if (!isSerializedItem) {
+                const baseQty = await convertUOM(
+                  mat.putaway_qty,
+                  itemData,
+                  mat
+                );
 
-              console.log("Aggregated OUT quantities", {
-                key: outKey,
-                block_qty: balanceUpdates[outKey].block_qty,
-                reserved_qty: balanceUpdates[outKey].reserved_qty,
-                unrestricted_qty: balanceUpdates[outKey].unrestricted_qty,
-                qualityinsp_qty: balanceUpdates[outKey].qualityinsp_qty,
-                intransit_qty: balanceUpdates[outKey].intransit_qty,
-                inv_category: mat.source_inv_category,
-              });
-              // IN movement aggregation (target_location)
-              const inKey =
-                itemData.item_batch_management === 1
-                  ? `${mat.item_code}_${mat.target_location}_${
-                      mat.batch_no || "no_batch"
-                    }`
-                  : `${mat.item_code}_${mat.target_location}`;
-
-              if (!balanceUpdates[inKey]) {
-                balanceUpdates[inKey] = {
-                  material_id: mat.item_code,
-                  location_id: mat.target_location,
-                  batch_id: mat.batch_no || "",
-                  block_qty: 0,
-                  reserved_qty: 0,
-                  unrestricted_qty: 0,
-                  qualityinsp_qty: 0,
-                  intransit_qty: 0,
-                  movementType: "IN",
-                  plant_id: toData.plant_id,
-                  material_uom: itemData.based_uom,
-                  organization_id: toData.organization_id,
+                // Initialize category quantities
+                const outCategories = {
+                  block_qty:
+                    mat.source_inv_category === "Blocked" ? baseQty : 0,
+                  reserved_qty:
+                    mat.source_inv_category === "Reserved" ? baseQty : 0,
+                  unrestricted_qty:
+                    mat.source_inv_category === "Unrestricted" ? baseQty : 0,
+                  qualityinsp_qty:
+                    mat.source_inv_category === "Quality Inspection"
+                      ? baseQty
+                      : 0,
+                  intransit_qty:
+                    mat.source_inv_category === "In Transit" ? baseQty : 0,
                 };
-              }
 
-              balanceUpdates[inKey].block_qty += inCategories.block_qty;
-              balanceUpdates[inKey].reserved_qty += inCategories.reserved_qty;
-              balanceUpdates[inKey].unrestricted_qty +=
-                inCategories.unrestricted_qty;
-              balanceUpdates[inKey].qualityinsp_qty +=
-                inCategories.qualityinsp_qty;
-              balanceUpdates[inKey].intransit_qty += inCategories.intransit_qty;
+                const inCategories = {
+                  block_qty:
+                    mat.target_inv_category === "Blocked" ? baseQty : 0,
+                  reserved_qty:
+                    mat.target_inv_category === "Reserved" ? baseQty : 0,
+                  unrestricted_qty:
+                    mat.target_inv_category === "Unrestricted" ? baseQty : 0,
+                  qualityinsp_qty:
+                    mat.target_inv_category === "Quality Inspection"
+                      ? baseQty
+                      : 0,
+                  intransit_qty:
+                    mat.target_inv_category === "In Transit" ? baseQty : 0,
+                };
+                // OUT movement aggregation (source_bin)
+                const outKey =
+                  itemData.item_batch_management === 1
+                    ? `${mat.item_code}_${mat.source_bin}_${
+                        mat.batch_no || "no_batch"
+                      }`
+                    : `${mat.item_code}_${mat.source_bin}`;
 
-              console.log("Aggregated IN quantities", {
-                key: inKey,
-                block_qty: balanceUpdates[inKey].block_qty,
-                reserved_qty: balanceUpdates[inKey].reserved_qty,
-                unrestricted_qty: balanceUpdates[inKey].unrestricted_qty,
-                qualityinsp_qty: balanceUpdates[inKey].qualityinsp_qty,
-                intransit_qty: balanceUpdates[inKey].intransit_qty,
-                inv_category: mat.target_inv_category,
-              });
+                if (!balanceUpdates[outKey]) {
+                  balanceUpdates[outKey] = {
+                    material_id: mat.item_code,
+                    location_id: mat.source_bin,
+                    batch_id: mat.batch_no || "",
+                    block_qty: 0,
+                    reserved_qty: 0,
+                    unrestricted_qty: 0,
+                    qualityinsp_qty: 0,
+                    intransit_qty: 0,
+                    movementType: "OUT",
+                    material_uom: itemData.based_uom,
+                    plant_id: toData.plant_id,
+                    organization_id: toData.organization_id,
+                  };
+                }
+
+                balanceUpdates[outKey].block_qty += outCategories.block_qty;
+                balanceUpdates[outKey].reserved_qty +=
+                  outCategories.reserved_qty;
+                balanceUpdates[outKey].unrestricted_qty +=
+                  outCategories.unrestricted_qty;
+                balanceUpdates[outKey].qualityinsp_qty +=
+                  outCategories.qualityinsp_qty;
+                balanceUpdates[outKey].intransit_qty +=
+                  outCategories.intransit_qty;
+
+                console.log("Aggregated OUT quantities", {
+                  key: outKey,
+                  block_qty: balanceUpdates[outKey].block_qty,
+                  reserved_qty: balanceUpdates[outKey].reserved_qty,
+                  unrestricted_qty: balanceUpdates[outKey].unrestricted_qty,
+                  qualityinsp_qty: balanceUpdates[outKey].qualityinsp_qty,
+                  intransit_qty: balanceUpdates[outKey].intransit_qty,
+                  inv_category: mat.source_inv_category,
+                });
+                // IN movement aggregation (target_location)
+                const inKey =
+                  itemData.item_batch_management === 1
+                    ? `${mat.item_code}_${mat.target_location}_${
+                        mat.batch_no || "no_batch"
+                      }`
+                    : `${mat.item_code}_${mat.target_location}`;
+
+                if (!balanceUpdates[inKey]) {
+                  balanceUpdates[inKey] = {
+                    material_id: mat.item_code,
+                    location_id: mat.target_location,
+                    batch_id: mat.batch_no || "",
+                    block_qty: 0,
+                    reserved_qty: 0,
+                    unrestricted_qty: 0,
+                    qualityinsp_qty: 0,
+                    intransit_qty: 0,
+                    movementType: "IN",
+                    plant_id: toData.plant_id,
+                    material_uom: itemData.based_uom,
+                    organization_id: toData.organization_id,
+                  };
+                }
+
+                balanceUpdates[inKey].block_qty += inCategories.block_qty;
+                balanceUpdates[inKey].reserved_qty += inCategories.reserved_qty;
+                balanceUpdates[inKey].unrestricted_qty +=
+                  inCategories.unrestricted_qty;
+                balanceUpdates[inKey].qualityinsp_qty +=
+                  inCategories.qualityinsp_qty;
+                balanceUpdates[inKey].intransit_qty +=
+                  inCategories.intransit_qty;
+
+                console.log("Aggregated IN quantities", {
+                  key: inKey,
+                  block_qty: balanceUpdates[inKey].block_qty,
+                  reserved_qty: balanceUpdates[inKey].reserved_qty,
+                  unrestricted_qty: balanceUpdates[inKey].unrestricted_qty,
+                  qualityinsp_qty: balanceUpdates[inKey].qualityinsp_qty,
+                  intransit_qty: balanceUpdates[inKey].intransit_qty,
+                  inv_category: mat.target_inv_category,
+                });
+              } // Close the if (!isSerializedItem) block
             }
           }
         }
@@ -802,7 +1283,7 @@ const processInventoryMovementandBalanceTable = async (
     }
 
     await processBalanceTable(balanceUpdates);
-  } catch (error) {
+  } catch {
     throw new Error("Error in creating inventory movement.");
   }
 };

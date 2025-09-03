@@ -2327,14 +2327,84 @@ const createICTPStockMovement = async (allData) => {
           material_actual_qty: 0,
         });
 
+        // Calculate pricing for ICTP serialized items
+        let unitPrice = 0;
+        let totalPrice = 0;
+
+        if (group.materialData.material_costing_method === "Weighted Average") {
+          const waQuery =
+            group.materialData.item_batch_management == "1" && group.batch_id
+              ? db.collection("wa_costing_method").where({
+                  material_id: group.material_id,
+                  batch_id: group.batch_id,
+                  organization_id: allData.organization_id,
+                })
+              : db.collection("wa_costing_method").where({
+                  material_id: group.material_id,
+                  organization_id: allData.organization_id,
+                });
+
+          const waResult = await waQuery.get();
+          if (waResult.data && waResult.data.length > 0) {
+            const waRecord = waResult.data[0];
+            if (waRecord.wa_quantity >= group.totalQty) {
+              unitPrice = waRecord.wa_cost_price || 0;
+              totalPrice = unitPrice * group.totalQty;
+            }
+          }
+        } else if (group.materialData.material_costing_method === "First In First Out") {
+          const fifoQuery =
+            group.materialData.item_batch_management == "1" && group.batch_id
+              ? db.collection("fifo_costing_history").where({
+                  material_id: group.material_id,
+                  batch_id: group.batch_id,
+                  organization_id: allData.organization_id,
+                })
+              : db.collection("fifo_costing_history").where({
+                  material_id: group.material_id,
+                  organization_id: allData.organization_id,
+                });
+
+          const fifoResult = await fifoQuery.get();
+          if (fifoResult.data && fifoResult.data.length > 0) {
+            // Sort records by fifo_sequence in ascending order
+            const sortedRecords = fifoResult.data.sort(
+              (a, b) => (a.fifo_sequence || 0) - (b.fifo_sequence || 0)
+            );
+
+            let remainingQty = group.totalQty;
+            let totalCost = 0;
+
+            for (const record of sortedRecords) {
+              if (remainingQty <= 0) break;
+              
+              const availableQty = Math.min(record.fifo_quantity || 0, remainingQty);
+              totalCost += availableQty * (record.fifo_cost_price || 0);
+              remainingQty -= availableQty;
+            }
+
+            if (remainingQty <= 0) {
+              unitPrice = totalCost / group.totalQty;
+              totalPrice = totalCost;
+            }
+          }
+        } else if (group.materialData.material_costing_method === "Fixed Cost") {
+          unitPrice = group.materialData.purchase_unit_price || 0;
+          totalPrice = unitPrice * group.totalQty;
+        }
+
+        // Round to 4 decimal places like other movements
+        unitPrice = Math.round(unitPrice * 10000) / 10000;
+        totalPrice = Math.round(totalPrice * 10000) / 10000;
+
         // Create OUT movement for the group
         const inventoryMovementOUTData = {
           transaction_type: "SM",
           trx_no: prefix,
           parent_trx_no: allData.production_order_no,
           movement: "OUT",
-          unit_price: 0,
-          total_price: 0,
+          unit_price: unitPrice,
+          total_price: totalPrice,
           quantity: group.totalQty,
           item_id: group.material_id,
           inventory_category: "Reserved",
@@ -2360,8 +2430,8 @@ const createICTPStockMovement = async (allData) => {
           trx_no: prefix,
           parent_trx_no: allData.production_order_no,
           movement: "IN",
-          unit_price: 0,
-          total_price: 0,
+          unit_price: unitPrice,
+          total_price: totalPrice,
           quantity: group.totalQty,
           item_id: group.material_id,
           inventory_category: "Unrestricted",
@@ -2529,13 +2599,83 @@ const createICTPStockMovement = async (allData) => {
       // Non-serialized items (serialized items are handled separately in groups)
       const baseQTY = await convertUOM(materialData, mat);
 
+      // Calculate pricing for ICTP non-serialized items
+      let unitPrice = 0;
+      let totalPrice = 0;
+
+      if (materialData.material_costing_method === "Weighted Average") {
+        const waQuery =
+          materialData.item_batch_management == "1" && mat.batch_id
+            ? db.collection("wa_costing_method").where({
+                material_id: mat.material_id,
+                batch_id: mat.batch_id,
+                organization_id: allData.organization_id,
+              })
+            : db.collection("wa_costing_method").where({
+                material_id: mat.material_id,
+                organization_id: allData.organization_id,
+              });
+
+        const waResult = await waQuery.get();
+        if (waResult.data && waResult.data.length > 0) {
+          const waRecord = waResult.data[0];
+          if (waRecord.wa_quantity >= unusedQty) {
+            unitPrice = waRecord.wa_cost_price || 0;
+            totalPrice = unitPrice * unusedQty;
+          }
+        }
+      } else if (materialData.material_costing_method === "First In First Out") {
+        const fifoQuery =
+          materialData.item_batch_management == "1" && mat.batch_id
+            ? db.collection("fifo_costing_history").where({
+                material_id: mat.material_id,
+                batch_id: mat.batch_id,
+                organization_id: allData.organization_id,
+              })
+            : db.collection("fifo_costing_history").where({
+                material_id: mat.material_id,
+                organization_id: allData.organization_id,
+              });
+
+        const fifoResult = await fifoQuery.get();
+        if (fifoResult.data && fifoResult.data.length > 0) {
+          // Sort records by fifo_sequence in ascending order
+          const sortedRecords = fifoResult.data.sort(
+            (a, b) => (a.fifo_sequence || 0) - (b.fifo_sequence || 0)
+          );
+
+          let remainingQty = unusedQty;
+          let totalCost = 0;
+
+          for (const record of sortedRecords) {
+            if (remainingQty <= 0) break;
+            
+            const availableQty = Math.min(record.fifo_quantity || 0, remainingQty);
+            totalCost += availableQty * (record.fifo_cost_price || 0);
+            remainingQty -= availableQty;
+          }
+
+          if (remainingQty <= 0) {
+            unitPrice = totalCost / unusedQty;
+            totalPrice = totalCost;
+          }
+        }
+      } else if (materialData.material_costing_method === "Fixed Cost") {
+        unitPrice = materialData.purchase_unit_price || 0;
+        totalPrice = unitPrice * unusedQty;
+      }
+
+      // Round to 4 decimal places like other movements
+      unitPrice = Math.round(unitPrice * 10000) / 10000;
+      totalPrice = Math.round(totalPrice * 10000) / 10000;
+
       const inventoryMovementOUTData = {
         transaction_type: "SM",
         trx_no: prefix,
         parent_trx_no: allData.production_order_no,
         movement: "OUT",
-        unit_price: 0,
-        total_price: 0,
+        unit_price: unitPrice,
+        total_price: totalPrice,
         quantity: unusedQty,
         item_id: mat.material_id,
         inventory_category: "Reserved",
@@ -2560,8 +2700,8 @@ const createICTPStockMovement = async (allData) => {
         trx_no: prefix,
         parent_trx_no: allData.production_order_no,
         movement: "IN",
-        unit_price: 0,
-        total_price: 0,
+        unit_price: unitPrice,
+        total_price: totalPrice,
         quantity: unusedQty,
         item_id: mat.material_id,
         inventory_category: "Unrestricted",
@@ -2702,12 +2842,88 @@ const createICTPStockMovement = async (allData) => {
           mat.material_required_qty - mat.material_actual_qty
         } ${uomName} (RES -> UNR)${batchNumber}`;
 
+        // Calculate pricing for stock movement line item
+        const resItem = await db.collection("Item").doc(mat.material_id).get();
+        const materialData = resItem?.data[0];
+        const unusedQty = mat.material_required_qty - mat.material_actual_qty;
+        
+        let unitPrice = 0;
+        let totalPrice = 0;
+        
+        if (materialData?.material_costing_method === "Weighted Average") {
+          const waQuery =
+            materialData.item_batch_management == "1" && mat.batch_id
+              ? db.collection("wa_costing_method").where({
+                  material_id: mat.material_id,
+                  batch_id: mat.batch_id,
+                  organization_id: allData.organization_id,
+                })
+              : db.collection("wa_costing_method").where({
+                  material_id: mat.material_id,
+                  organization_id: allData.organization_id,
+                });
+
+          const waResult = await waQuery.get();
+          if (waResult.data && waResult.data.length > 0) {
+            const waRecord = waResult.data[0];
+            if (waRecord.wa_quantity >= unusedQty) {
+              unitPrice = waRecord.wa_cost_price || 0;
+              totalPrice = unitPrice * unusedQty;
+            }
+          }
+        } else if (materialData?.material_costing_method === "First In First Out") {
+          const fifoQuery =
+            materialData.item_batch_management == "1" && mat.batch_id
+              ? db.collection("fifo_costing_history").where({
+                  material_id: mat.material_id,
+                  batch_id: mat.batch_id,
+                  organization_id: allData.organization_id,
+                })
+              : db.collection("fifo_costing_history").where({
+                  material_id: mat.material_id,
+                  organization_id: allData.organization_id,
+                });
+
+          const fifoResult = await fifoQuery.get();
+          if (fifoResult.data && fifoResult.data.length > 0) {
+            // Sort records by fifo_sequence in ascending order
+            const sortedRecords = fifoResult.data.sort(
+              (a, b) => (a.fifo_sequence || 0) - (b.fifo_sequence || 0)
+            );
+
+            let remainingQty = unusedQty;
+            let totalCost = 0;
+
+            for (const record of sortedRecords) {
+              if (remainingQty <= 0) break;
+              
+              const availableQty = Math.min(record.fifo_quantity || 0, remainingQty);
+              totalCost += availableQty * (record.fifo_cost_price || 0);
+              remainingQty -= availableQty;
+            }
+
+            if (remainingQty <= 0) {
+              unitPrice = totalCost / unusedQty;
+              totalPrice = totalCost;
+            }
+          }
+        } else if (materialData?.material_costing_method === "Fixed Cost") {
+          unitPrice = materialData.purchase_unit_price || 0;
+          totalPrice = unitPrice * unusedQty;
+        }
+        
+        // Round to 4 decimal places
+        unitPrice = Math.round(unitPrice * 10000) / 10000;
+        totalPrice = Math.round(totalPrice * 10000) / 10000;
+
         const smLineItemData = {
           item_selection: mat.material_id,
           item_name: mat.material_name,
           item_desc: mat.material_desc,
           quantity_uom: mat.material_uom || "",
           total_quantity: mat.material_required_qty - mat.material_actual_qty,
+          unit_price: unitPrice,
+          total_price: totalPrice,
           stock_summary: stockSummary || "",
         };
 
@@ -2749,12 +2965,84 @@ const createICTPStockMovement = async (allData) => {
 
         stockSummary = `Total: ${group.totalQty} ${uomName}\n\nDETAILS:\n1. ${binLocationName}: ${group.totalQty} ${uomName} (RES -> UNR)${batchNumber}`;
 
+        // Calculate pricing for serialized group stock movement line item
+        let unitPrice = 0;
+        let totalPrice = 0;
+        
+        if (group.materialData?.material_costing_method === "Weighted Average") {
+          const waQuery =
+            group.materialData.item_batch_management == "1" && group.batch_id
+              ? db.collection("wa_costing_method").where({
+                  material_id: group.material_id,
+                  batch_id: group.batch_id,
+                  organization_id: allData.organization_id,
+                })
+              : db.collection("wa_costing_method").where({
+                  material_id: group.material_id,
+                  organization_id: allData.organization_id,
+                });
+
+          const waResult = await waQuery.get();
+          if (waResult.data && waResult.data.length > 0) {
+            const waRecord = waResult.data[0];
+            if (waRecord.wa_quantity >= group.totalQty) {
+              unitPrice = waRecord.wa_cost_price || 0;
+              totalPrice = unitPrice * group.totalQty;
+            }
+          }
+        } else if (group.materialData?.material_costing_method === "First In First Out") {
+          const fifoQuery =
+            group.materialData.item_batch_management == "1" && group.batch_id
+              ? db.collection("fifo_costing_history").where({
+                  material_id: group.material_id,
+                  batch_id: group.batch_id,
+                  organization_id: allData.organization_id,
+                })
+              : db.collection("fifo_costing_history").where({
+                  material_id: group.material_id,
+                  organization_id: allData.organization_id,
+                });
+
+          const fifoResult = await fifoQuery.get();
+          if (fifoResult.data && fifoResult.data.length > 0) {
+            // Sort records by fifo_sequence in ascending order
+            const sortedRecords = fifoResult.data.sort(
+              (a, b) => (a.fifo_sequence || 0) - (b.fifo_sequence || 0)
+            );
+
+            let remainingQty = group.totalQty;
+            let totalCost = 0;
+
+            for (const record of sortedRecords) {
+              if (remainingQty <= 0) break;
+              
+              const availableQty = Math.min(record.fifo_quantity || 0, remainingQty);
+              totalCost += availableQty * (record.fifo_cost_price || 0);
+              remainingQty -= availableQty;
+            }
+
+            if (remainingQty <= 0) {
+              unitPrice = totalCost / group.totalQty;
+              totalPrice = totalCost;
+            }
+          }
+        } else if (group.materialData?.material_costing_method === "Fixed Cost") {
+          unitPrice = group.materialData.purchase_unit_price || 0;
+          totalPrice = unitPrice * group.totalQty;
+        }
+        
+        // Round to 4 decimal places
+        unitPrice = Math.round(unitPrice * 10000) / 10000;
+        totalPrice = Math.round(totalPrice * 10000) / 10000;
+
         const smLineItemData = {
           item_selection: group.material_id,
           item_name: group.items[0].material_name,
           item_desc: group.items[0].material_desc,
           quantity_uom: group.items[0].material_uom || "",
           total_quantity: group.totalQty,
+          unit_price: unitPrice,
+          total_price: totalPrice,
           stock_summary: stockSummary || "",
         };
 

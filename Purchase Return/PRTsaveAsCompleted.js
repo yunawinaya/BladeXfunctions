@@ -1029,6 +1029,229 @@ const roundPrice = (value) => {
   return parseFloat(parseFloat(value || 0).toFixed(4));
 };
 
+// Serial number validation function to prevent duplicates
+const validateSerialNumbersForReturn = async (
+  data,
+  plantId,
+  organizationId
+) => {
+  console.log("Validating serial numbers for Purchase Return");
+
+  const items = data.table_prt;
+  if (!Array.isArray(items) || items.length === 0) {
+    return { isValid: true };
+  }
+
+  // Helper function to safely parse JSON
+  const parseJsonSafely = (jsonString, defaultValue = []) => {
+    try {
+      return jsonString ? JSON.parse(jsonString) : defaultValue;
+    } catch (error) {
+      console.error("JSON parse error:", error);
+      return defaultValue;
+    }
+  };
+
+  // Helper function for rounding quantities
+  const roundQty = (value) => {
+    return parseFloat(parseFloat(value || 0).toFixed(3));
+  };
+
+  // Create a map to track required serial numbers using pipe separator for keys
+  const requiredSerialNumbers = new Map();
+  const duplicateSerialNumbers = new Set();
+
+  // First pass: Check for duplicate serial numbers within the transaction
+  for (const item of items) {
+    if (!item.material_id || !item.temp_qty_data) {
+      continue;
+    }
+
+    try {
+      // Get item data to check serialization
+      const itemRes = await db
+        .collection("Item")
+        .where({ id: item.material_id })
+        .get();
+
+      if (!itemRes.data || !itemRes.data.length) {
+        return {
+          isValid: false,
+          error: `Item not found: ${item.material_id}`,
+        };
+      }
+
+      const itemData = itemRes.data[0];
+
+      // Skip if not a serialized item
+      if (itemData.serial_number_management !== 1) {
+        continue;
+      }
+
+      const isBatchManagedItem = itemData.item_batch_management === 1;
+      const temporaryData = parseJsonSafely(item.temp_qty_data);
+
+      for (const temp of temporaryData) {
+        if (!temp.serial_number) {
+          continue;
+        }
+
+        const returnQuantity = temp.return_quantity || temp.prt_quantity || 0;
+        if (returnQuantity <= 0) {
+          continue;
+        }
+
+        // Create unique key using pipe separator to avoid conflicts with hyphens in serial numbers
+        let key;
+        if (isBatchManagedItem && temp.batch_id) {
+          key = `${item.material_id}|${temp.location_id || "no-location"}|${
+            temp.batch_id
+          }|${temp.serial_number}`;
+        } else {
+          key = `${item.material_id}|${temp.location_id || "no-location"}|${
+            temp.serial_number
+          }`;
+        }
+
+        // Check for duplicates within the transaction
+        if (requiredSerialNumbers.has(key)) {
+          duplicateSerialNumbers.add(temp.serial_number);
+          console.error(`Duplicate serial number found: ${temp.serial_number}`);
+        } else {
+          requiredSerialNumbers.set(key, {
+            materialId: item.material_id,
+            serialNumber: temp.serial_number,
+            locationId: temp.location_id,
+            batchId: temp.batch_id,
+            returnQuantity: returnQuantity,
+            itemName: itemData.material_name || item.material_id,
+          });
+        }
+      }
+    } catch (error) {
+      console.error(`Error processing item ${item.material_id}:`, error);
+      return {
+        isValid: false,
+        error: `Error processing item ${item.material_id}: ${error.message}`,
+      };
+    }
+  }
+
+  // Check if any duplicate serial numbers were found
+  if (duplicateSerialNumbers.size > 0) {
+    const duplicates = Array.from(duplicateSerialNumbers).join(", ");
+    return {
+      isValid: false,
+      error: `Duplicate serial numbers detected within transaction: ${duplicates}. Each serial number can only be returned once.`,
+    };
+  }
+
+  // Second pass: Check availability against current inventory balances
+  for (const [key, serialInfo] of requiredSerialNumbers.entries()) {
+    try {
+      // Check if the serial number exists in inventory
+      const serialBalanceParams = {
+        material_id: serialInfo.materialId,
+        serial_number: serialInfo.serialNumber,
+        plant_id: plantId,
+        organization_id: organizationId,
+      };
+
+      if (serialInfo.batchId) {
+        serialBalanceParams.batch_id = serialInfo.batchId;
+      }
+
+      if (serialInfo.locationId && serialInfo.locationId !== "no-location") {
+        serialBalanceParams.location_id = serialInfo.locationId;
+      }
+
+      const balanceQuery = await db
+        .collection("item_serial_balance")
+        .where(serialBalanceParams)
+        .get();
+
+      if (!balanceQuery.data || balanceQuery.data.length === 0) {
+        return {
+          isValid: false,
+          error: `Serial number "${serialInfo.serialNumber}" not found in inventory for item "${serialInfo.itemName}".`,
+        };
+      }
+
+      const balance = balanceQuery.data[0];
+      const totalAvailableQty = roundQty(
+        parseFloat(balance.unrestricted_qty || 0) +
+          parseFloat(balance.reserved_qty || 0) +
+          parseFloat(balance.qualityinsp_qty || 0) +
+          parseFloat(balance.block_qty || 0)
+      );
+
+      // For serialized items, total quantity should typically be 1
+      // But check if sufficient quantity is available for return
+      if (totalAvailableQty < serialInfo.returnQuantity) {
+        let errorMsg = `Insufficient inventory for serial number "${serialInfo.serialNumber}" of item "${serialInfo.itemName}". `;
+        errorMsg += `Required: ${serialInfo.returnQuantity}, Available: ${totalAvailableQty}`;
+
+        if (serialInfo.locationId && serialInfo.locationId !== "no-location") {
+          try {
+            const locationRes = await db
+              .collection("bin_location")
+              .where({ id: serialInfo.locationId })
+              .get();
+
+            const locationName =
+              locationRes.data && locationRes.data.length > 0
+                ? locationRes.data[0].bin_location_combine ||
+                  serialInfo.locationId
+                : serialInfo.locationId;
+
+            errorMsg += `, Location: "${locationName}"`;
+          } catch {
+            errorMsg += `, Location: "${serialInfo.locationId}"`;
+          }
+        }
+
+        if (serialInfo.batchId) {
+          try {
+            const batchRes = await db
+              .collection("batch")
+              .where({ id: serialInfo.batchId })
+              .get();
+
+            const batchName =
+              batchRes.data && batchRes.data.length > 0
+                ? batchRes.data[0].batch_number || serialInfo.batchId
+                : serialInfo.batchId;
+
+            errorMsg += `, Batch: "${batchName}"`;
+          } catch {
+            errorMsg += `, Batch: "${serialInfo.batchId}"`;
+          }
+        }
+
+        return {
+          isValid: false,
+          error: errorMsg,
+        };
+      }
+
+      console.log(
+        `Serial number validation passed for ${serialInfo.serialNumber}: Available=${totalAvailableQty}, Required=${serialInfo.returnQuantity}`
+      );
+    } catch (error) {
+      console.error(`Error checking serial balance for ${key}:`, error);
+      return {
+        isValid: false,
+        error: `Error checking serial number availability: ${error.message}`,
+      };
+    }
+  }
+
+  console.log(
+    `Serial number validation passed for Purchase Return with ${requiredSerialNumbers.size} unique serial numbers`
+  );
+  return { isValid: true };
+};
+
 const closeDialog = () => {
   if (this.parentGenerateForm) {
     this.parentGenerateForm.$refs.SuPageDialogRef.hide();
@@ -1080,7 +1303,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, field) => {
+const validateField = (value, _field) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "number") return value <= 0;
@@ -1291,16 +1514,14 @@ const updateGRandPOStatus = async (entry) => {
 
 const addEntry = async (organizationId, entry) => {
   try {
+    // Step 1: Prepare prefix data but don't update counter yet
     const prefixData = await getPrefixData(organizationId);
 
     if (prefixData !== null) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
+      const { prefixToShow } = await findUniquePrefix(
         prefixData,
         organizationId
       );
-
-      await updatePrefix(organizationId, runningNumber);
-
       entry.purchase_return_no = prefixToShow;
     } else {
       const isUnique = await checkUniqueness(
@@ -1313,29 +1534,73 @@ const addEntry = async (organizationId, entry) => {
         );
       }
     }
+
+    // Step 2: VALIDATE SERIAL NUMBERS FIRST
+    console.log("Validating serial numbers for Purchase Return");
+    const validationResult = await validateSerialNumbersForReturn(
+      entry,
+      entry.plant,
+      organizationId
+    );
+
+    if (!validationResult.isValid) {
+      this.parentGenerateForm.$alert(
+        validationResult.error,
+        "Serial Number Validation Failed",
+        {
+          confirmButtonText: "OK",
+          type: "error",
+        }
+      );
+      throw new Error(
+        `Serial number validation failed: ${validationResult.error}`
+      );
+    }
+
+    // Step 3: Add the record ONLY after validation passes
     await db.collection("purchase_return_head").add(entry);
+
+    // Step 4: Update prefix counter ONLY after record is successfully added
+    if (prefixData !== null) {
+      const { runningNumber } = await findUniquePrefix(
+        prefixData,
+        organizationId
+      );
+      await updatePrefix(organizationId, runningNumber);
+    }
+
+    // Step 5: Process inventory and update statuses
     await updateInventory(entry, entry.plant, organizationId);
     await updateGRandPOStatus(entry);
 
     this.$message.success("Add successfully");
     await closeDialog();
   } catch (error) {
+    // Handle serial number validation gracefully
+    if (
+      error.message &&
+      error.message.includes("Serial number validation failed")
+    ) {
+      console.log(
+        "Serial number validation failed - user notified via alert dialog"
+      );
+      return;
+    }
+
     this.$message.error(error);
   }
 };
 
 const updateEntry = async (organizationId, entry, purchaseReturnId) => {
   try {
+    // Step 1: Prepare prefix data for Draft status but don't update counter yet
     const prefixData = await getPrefixData(organizationId);
 
     if (prefixData !== null) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
+      const { prefixToShow } = await findUniquePrefix(
         prefixData,
         organizationId
       );
-
-      await updatePrefix(organizationId, runningNumber);
-
       entry.purchase_return_no = prefixToShow;
     } else {
       const isUnique = await checkUniqueness(
@@ -1348,16 +1613,62 @@ const updateEntry = async (organizationId, entry, purchaseReturnId) => {
         );
       }
     }
+
+    // Step 2: VALIDATE SERIAL NUMBERS FIRST
+    console.log("Validating serial numbers for Purchase Return");
+    const validationResult = await validateSerialNumbersForReturn(
+      entry,
+      entry.plant,
+      organizationId
+    );
+
+    if (!validationResult.isValid) {
+      this.parentGenerateForm.$alert(
+        validationResult.error,
+        "Serial Number Validation Failed",
+        {
+          confirmButtonText: "OK",
+          type: "error",
+        }
+      );
+      throw new Error(
+        `Serial number validation failed: ${validationResult.error}`
+      );
+    }
+
+    // Step 3: Update the record ONLY after validation passes
     await db
       .collection("purchase_return_head")
       .doc(purchaseReturnId)
       .update(entry);
+
+    // Step 4: Update prefix counter ONLY after record is successfully updated
+    if (prefixData !== null) {
+      const { runningNumber } = await findUniquePrefix(
+        prefixData,
+        organizationId
+      );
+      await updatePrefix(organizationId, runningNumber);
+    }
+
+    // Step 5: Process inventory and update statuses
     await updateInventory(entry, entry.plant, organizationId);
     await updateGRandPOStatus(entry);
 
     this.$message.success("Update successfully");
     await closeDialog();
   } catch (error) {
+    // Handle serial number validation gracefully
+    if (
+      error.message &&
+      error.message.includes("Serial number validation failed")
+    ) {
+      console.log(
+        "Serial number validation failed - user notified via alert dialog"
+      );
+      return;
+    }
+
     this.$message.error(error);
   }
 };
@@ -1402,7 +1713,7 @@ const fillbackHeaderFields = async (entry) => {
       prtLineItem.line_index = index + 1;
     }
     return entry.table_prt;
-  } catch (error) {
+  } catch {
     throw new Error("Error processing purchase return.");
   }
 };
