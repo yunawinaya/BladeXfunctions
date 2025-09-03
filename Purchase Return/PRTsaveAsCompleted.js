@@ -770,7 +770,7 @@ const updateInventory = async (data, plantId, organizationId) => {
             let baseQty = altQty;
             let altUOM = item.return_uom_id;
             let baseUOM = itemData.based_uom;
-            let altWAQty = roundQty(item.return_quantity);
+            let altWAQty = roundQty(temp.return_quantity);
             let baseWAQty = altWAQty;
 
             if (
@@ -1302,23 +1302,20 @@ const addEntry = async (organizationId, entry) => {
       await updatePrefix(organizationId, runningNumber);
 
       entry.purchase_return_no = prefixToShow;
+    } else {
+      const isUnique = await checkUniqueness(
+        entry.purchase_return_no,
+        organizationId
+      );
+      if (!isUnique) {
+        throw new Error(
+          `PRT Number "${entry.purchase_return_no}" already exists. Please use a different number.`
+        );
+      }
     }
     await db.collection("purchase_return_head").add(entry);
     await updateInventory(entry, entry.plant, organizationId);
     await updateGRandPOStatus(entry);
-
-    this.runWorkflow(
-      "1917415391491338241",
-      { purchase_return_no: entry.purchase_return_no },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        console.error("失败结果：", err);
-        closeDialog();
-        throw new Error("An error occurred.");
-      }
-    );
 
     this.$message.success("Add successfully");
     await closeDialog();
@@ -1340,6 +1337,16 @@ const updateEntry = async (organizationId, entry, purchaseReturnId) => {
       await updatePrefix(organizationId, runningNumber);
 
       entry.purchase_return_no = prefixToShow;
+    } else {
+      const isUnique = await checkUniqueness(
+        entry.purchase_return_no,
+        organizationId
+      );
+      if (!isUnique) {
+        throw new Error(
+          `PRT Number "${entry.purchase_return_no}" already exists. Please use a different number.`
+        );
+      }
     }
     await db
       .collection("purchase_return_head")
@@ -1348,18 +1355,6 @@ const updateEntry = async (organizationId, entry, purchaseReturnId) => {
     await updateInventory(entry, entry.plant, organizationId);
     await updateGRandPOStatus(entry);
 
-    this.runWorkflow(
-      "1917415391491338241",
-      { purchase_return_no: entry.purchase_return_no },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        console.error("失败结果：", err);
-        closeDialog();
-        throw new Error("An error occurred.");
-      }
-    );
     this.$message.success("Update successfully");
     await closeDialog();
   } catch (error) {
@@ -1389,6 +1384,8 @@ const findFieldMessage = (obj) => {
         if (found) return found;
       }
     }
+
+    return obj.toString();
   }
   return null;
 };
@@ -1428,7 +1425,7 @@ const processPRTLineItem = async (entry) => {
   }
 
   if (zeroQtyArray.length > 0) {
-    this.$confirm(
+    await this.$confirm(
       `Line${zeroQtyArray.length > 1 ? "s" : ""} ${zeroQtyArray.join(", ")} ha${
         zeroQtyArray.length > 1 ? "ve" : "s"
       } a zero return quantity, which may prevent processing.\nIf you proceed, it will delete the row with 0 return quantity. \nWould you like to proceed?`,
@@ -1445,12 +1442,13 @@ const processPRTLineItem = async (entry) => {
         entry.table_prt = entry.table_prt.filter(
           (item) => item.return_quantity > 0
         );
-        for (const prt of entry.table_prt) {
-          let poID = [];
-          let grID = [];
-          let purchaseOrderNumber = [];
-          let goodsReceivingNumber = [];
 
+        let poID = [];
+        let grID = [];
+        let purchaseOrderNumber = [];
+        let goodsReceivingNumber = [];
+
+        for (const prt of entry.table_prt) {
           grID.push(prt.gr_id);
           goodsReceivingNumber.push(prt.gr_number);
 
@@ -1501,7 +1499,6 @@ const processPRTLineItem = async (entry) => {
     ];
 
     const missingFields = await validateForm(data, requiredFields);
-    await this.validate("purchase_return_no");
 
     if (missingFields.length === 0) {
       const page_status = this.getValue("page_status");
@@ -1531,6 +1528,8 @@ const processPRTLineItem = async (entry) => {
         reason_for_return,
         pr_note,
         remark,
+        remark2,
+        remark3,
         reference_type,
 
         driver_name,
@@ -1603,6 +1602,8 @@ const processPRTLineItem = async (entry) => {
         reason_for_return,
         pr_note,
         remark,
+        remark2,
+        remark3,
         reference_type,
 
         driver_name,
@@ -1656,6 +1657,12 @@ const processPRTLineItem = async (entry) => {
 
       const latestPRT = await processPRTLineItem(entry);
       latestPRT.table_prt = await fillbackHeaderFields(latestPRT);
+
+      if (latestPRT.table_prt.length === 0) {
+        throw new Error(
+          "All Returned Quantity must not be 0. Please add at lease one item with return quantity > 0."
+        );
+      }
 
       if (page_status === "Add") {
         await addEntry(organizationId, latestPRT);

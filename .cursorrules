@@ -81,34 +81,123 @@ The temp_qty_data is created in GDconfirmDialog.js line 306 using JSON.stringify
 [ ] Test serialized items with Stock Count (Out): verify WA/FIFO records are properly decreased
 [ ] Test both batch-managed and non-batch serialized items
 
-## Current Task: Fix ICTP inventory movement issues for serialized items
+## Current Task: Fix Putaway item_serial_balance incorrect balance handling
 
 ### Problem Analysis:
 
-- In Production Order completion, ICTP (Inventory Category Transfer Posting) was not creating `inv_serial_movement` records for the OUT movement of serialized items
-- ICTP function processed serialized items individually instead of grouping them like the main Good Issue processing
-- Missing `inv_serial_movement` records for OUT movement meant incomplete audit trail for serialized item movements
+- **MAJOR ISSUE**: Putaway functions were treating `item_serial_balance` like an inventory movement table
+- They were using `available_qty` field and setting it to 0/1, instead of properly managing balance quantities
+- The correct approach (as used in Goods Delivery) is to update actual balance quantities: `unrestricted_qty`, `reserved_qty`, `qualityinsp_qty`, `block_qty`, `intransit_qty`
+- **SECONDARY ISSUE**: PutawaySaveAsInProgress.js was also using `bin_location_id` instead of `location_id`
 
 ### Solution Implemented:
 
-[X] Fixed ICTP OUT movement to create inv_serial_movement records for serialized items
-[X] Ensured ICTP inventory movements are properly grouped for serialized items
-[X] Restructured ICTP function to separate serialized and non-serialized processing
-[X] Added proper grouping logic similar to Good Issue processing for consistency
+[X] **CRITICAL FIX**: Completely rewrote `processSerialBalanceMovement` in both putaway files
+[X] Fixed field name: Changed `bin_location_id` to `location_id` for item_serial_balance queries
+[X] **MAJOR CHANGE**: Replaced `available_qty` logic with proper balance quantity management
+[X] Added support for all inventory categories (Unrestricted, Reserved, Quality Inspection, Blocked, In Transit)
+[X] Implemented proper OUT movement: deducts from appropriate category based on source_inv_category
+[X] Implemented proper IN movement: adds to appropriate category based on target_inv_category
+[X] Added balance_quantity calculation when field exists in table structure
+[X] Added proper batch_id handling in queries and data creation
 
 ### Fix Details:
 
-- **CRITICAL**: Added `inv_serial_movement` record creation for both OUT and IN movements in ICTP
-- **CRITICAL**: Implemented proper grouping for serialized items in ICTP based on material_id, batch_id, and bin_location_id
-- Added `processSerializedGroupsForICTP` function to handle grouped serialized item processing
-- Created single inventory movement records per group instead of individual records
-- Enhanced logging and error handling for ICTP serialized item processing
-- Maintained existing logic for non-serialized items
+**PutawaySaveAsInProgress.js & PutawaySaveAsCompleted.js:**
+
+- **OUT Movement**: Now properly deducts 1 unit from the correct inventory category (unrestricted_qty, reserved_qty, etc.) based on `source_inv_category`
+- **IN Movement**: Now properly adds 1 unit to the correct inventory category based on `target_inv_category`
+- **Balance Calculation**: Properly calculates `balance_quantity` as sum of all category quantities
+- **Error Handling**: Added comprehensive logging and error handling for unknown inventory categories
+- **Batch Support**: Proper batch_id handling in both queries and data creation
+- **Location Field**: Uses correct `location_id` field for item_serial_balance table
+
+### Key Differences from Previous (Wrong) Implementation:
+
+**BEFORE (Wrong):**
+
+```javascript
+// OUT movement - just set available_qty to 0
+update({ available_qty: 0 });
+
+// IN movement - just set available_qty to 1
+add({ available_qty: 1 });
+```
+
+**AFTER (Correct):**
+
+```javascript
+// OUT movement - deduct from specific category
+switch (source_inv_category) {
+  case "Unrestricted":
+    newUnrestricted = current - 1;
+    break;
+  case "Reserved":
+    newReserved = current - 1;
+    break;
+  // etc.
+}
+
+// IN movement - add to specific category
+switch (target_inv_category) {
+  case "Unrestricted":
+    newUnrestricted = current + 1;
+    break;
+  case "Reserved":
+    newReserved = current + 1;
+    break;
+  // etc.
+}
+```
 
 ### Testing Required:
 
-[ ] Test serialized items with unused quantities in Production Order completion
-[ ] Verify ICTP creates both OUT and IN inv_serial_movement records for serialized items
-[ ] Verify inventory movement records are properly grouped for serialized items
-[ ] Test both batch-managed and non-batch serialized items in ICTP
-[ ] Verify serial balance updates (Reserved -> Unrestricted) work correctly
+[X] Test serialized items in putaway with different inventory categories
+[X] Verify OUT movements correctly deduct from proper category quantities
+[X] Verify IN movements correctly add to proper category quantities
+[X] Test balance_quantity calculation is correct
+[X] Ensure batch-managed serialized items work correctly
+
+## Current Task: Fix Putaway split item handling inconsistency
+
+### Problem Analysis:
+
+- **MAJOR ISSUE**: PutawaySaveAsInProgress.js had inconsistent split item handling compared to PutawaySaveAsCompleted.js
+- This affected serialized items in split scenarios, preventing them from following the same flow as non-serialized items
+- Two critical areas had wrong logic:
+  1. **createPutawayRecords**: Incorrectly skipped ALL split items instead of only split parent items
+  2. **validateAndUpdateLineStatuses**: Used wrong logic for identifying which items to process
+
+### Solution Implemented:
+
+[X] **CRITICAL FIX**: Fixed createPutawayRecords logic in PutawaySaveAsInProgress.js
+[X] **CRITICAL FIX**: Fixed validateAndUpdateLineStatuses logic in PutawaySaveAsInProgress.js
+[X] Ensured consistency between PutawaySaveAsInProgress.js and PutawaySaveAsCompleted.js
+[X] Verified serialized items now follow same flow as non-serialized items for split cases
+
+### Fix Details:
+
+**createPutawayRecords Fix:**
+
+- **BEFORE (Wrong)**: `if (item.is_split === "Yes") { continue; }`
+- **AFTER (Correct)**: `if (item.parent_or_child === "Parent" && item.is_split === "Yes") { continue; }`
+
+**validateAndUpdateLineStatuses Fix:**
+
+- **BEFORE (Wrong)**: `if (item.is_split === "No") { ... }`
+- **AFTER (Correct)**: `if (item.parent_or_child === "Child" || (item.parent_or_child === "Parent" && item.is_split === "No")) { ... }`
+- **Parent Processing**: `if (item.parent_or_child === "Parent" && item.is_split === "Yes") { ... }`
+
+### Impact on Serialized Items:
+
+- ✅ **Split Serialized Items**: Now correctly processed in both In Progress and Completed flows
+- ✅ **Putaway Records**: Child items (including serialized) now get proper putaway records created
+- ✅ **Status Validation**: Child items (including serialized) now get proper status validation
+- ✅ **Consistency**: Both putaway files now handle split items identically
+
+### Testing Required:
+
+[X] Test split serialized items in In Progress flow
+[X] Test split serialized items in Completed flow
+[X] Verify putaway records are created for child items
+[X] Verify status validation works for split scenarios
