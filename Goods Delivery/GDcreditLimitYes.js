@@ -664,7 +664,11 @@ const validateInventoryAvailabilityForCompleted = async (
           organization_id: organizationId,
         };
 
-        if (batchId) {
+        if (locationId) {
+          itemBalanceParams.location_id = locationId;
+        }
+
+        if (batchId && batchId !== "undefined") {
           itemBalanceParams.batch_id = batchId;
         }
 
@@ -811,11 +815,20 @@ const addEntryWithValidation = async (organizationId, gd, gdStatus) => {
     const prefixData = await getPrefixData(organizationId);
 
     if (prefixData.length !== 0) {
-      const { prefixToShow } = await findUniquePrefix(
+      const { prefixToShow, runningNumber } = await findUniquePrefix(
         prefixData,
         organizationId
       );
       gd.delivery_no = prefixToShow;
+
+      await updatePrefix(organizationId, runningNumber);
+    } else {
+      const isUnique = await checkUniqueness(gd.delivery_no, organizationId);
+      if (!isUnique) {
+        throw new Error(
+          `GD Number "${gd.delivery_no}" already exists. Please use a different number.`
+        );
+      }
     }
 
     // Step 2: VALIDATE INVENTORY AVAILABILITY FIRST
@@ -843,22 +856,6 @@ const addEntryWithValidation = async (organizationId, gd, gdStatus) => {
 
     // Step 4: Add the record ONLY after inventory processing succeeds
     await db.collection("goods_delivery").add(gd);
-
-    // Step 5: Update prefix counter ONLY after record is successfully added
-    if (prefixData.length !== 0) {
-      const { runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId
-      );
-      await updatePrefix(organizationId, runningNumber);
-    } else {
-      const isUnique = await checkUniqueness(gd.delivery_no, organizationId);
-      if (!isUnique) {
-        throw new Error(
-          `GD Number "${gd.delivery_no}" already exists. Please use a different number.`
-        );
-      }
-    }
 
     // Step 6: Update related records
     const { so_data_array } = await updateSalesOrderStatus(
@@ -910,11 +907,13 @@ const updateEntryWithValidation = async (
       const prefixData = await getPrefixData(organizationId);
 
       if (prefixData.length !== 0) {
-        const { prefixToShow } = await findUniquePrefix(
+        const { prefixToShow, runningNumber } = await findUniquePrefix(
           prefixData,
           organizationId
         );
         gd.delivery_no = prefixToShow;
+
+        await updatePrefix(organizationId, runningNumber);
       } else {
         const isUnique = await checkUniqueness(gd.delivery_no, organizationId);
         if (!isUnique) {
@@ -950,18 +949,6 @@ const updateEntryWithValidation = async (
 
     // Step 4: Update the record ONLY after inventory processing succeeds
     await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
-
-    // Step 5: Update prefix counter ONLY after record is successfully updated
-    if (gdStatus === "Draft") {
-      const prefixData = await getPrefixData(organizationId);
-      if (prefixData.length !== 0) {
-        const { runningNumber } = await findUniquePrefix(
-          prefixData,
-          organizationId
-        );
-        await updatePrefix(organizationId, runningNumber);
-      }
-    }
 
     // Step 6: Update related records
     const { so_data_array } = await updateSalesOrderStatus(
@@ -2486,7 +2473,11 @@ const generatePrefix = (runNumber, now, prefixData) => {
 const checkUniqueness = async (generatedPrefix, organizationId) => {
   const existingDoc = await db
     .collection("goods_delivery")
-    .where({ delivery_no: generatedPrefix, organization_id: organizationId })
+    .where({
+      delivery_no: generatedPrefix,
+      organization_id: organizationId,
+      is_deleted: 0,
+    })
     .get();
 
   return !existingDoc.data || existingDoc.data.length === 0;
@@ -2636,7 +2627,6 @@ const findFieldMessage = (obj) => {
         if (found) return found;
       }
     }
-
     return obj.toString();
   }
   return null;
@@ -3019,60 +3009,6 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
   }
 };
 
-const checkCompletedSO = async (so_id) => {
-  const soIds = Array.isArray(so_id) ? so_id : [so_id];
-
-  for (const sales_order_id of soIds) {
-    const resSO = await db
-      .collection("sales_order")
-      .where({ id: sales_order_id })
-      .get();
-
-    if (!resSO.data || !resSO.data.length) {
-      console.warn(`Sales order ${sales_order_id} not found`);
-      continue;
-    }
-
-    const soData = resSO.data[0];
-
-    const allItemsFullyDelivered = soData.table_so.every((item) => {
-      const quantity = parseFloat(item.so_quantity || 0);
-      const deliveredQty = parseFloat(item.delivered_qty || 0);
-
-      if (quantity <= 0) return true;
-
-      return deliveredQty >= quantity;
-    });
-
-    if (allItemsFullyDelivered) {
-      throw new Error(
-        `Sales Order ${soData.so_no} is already fully delivered and cannot be processed further.`
-      );
-    }
-  }
-
-  return true;
-};
-
-const fillbackHeaderFields = async (gd) => {
-  try {
-    for (const [index, gdLineItem] of gd.table_gd.entries()) {
-      gdLineItem.customer_id = gd.customer_name || null;
-      gdLineItem.organization_id = gd.organization_id;
-      gdLineItem.plant_id = gd.plant_id || null;
-      gdLineItem.billing_state_id = gd.billing_address_state || null;
-      gdLineItem.billing_country_id = gd.billing_address_country || null;
-      gdLineItem.shipping_state_id = gd.shipping_address_state || null;
-      gdLineItem.shipping_country_id = gd.shipping_address_country || null;
-      gdLineItem.assigned_to = gd.assigned_to || null;
-      gdLineItem.line_index = index + 1;
-    }
-    return gd.table_gd;
-  } catch {
-    throw new Error("Error processing goods delivery.");
-  }
-};
-
 const fetchDeliveredQuantity = async () => {
   const tableGD = this.getValue("table_gd") || [];
 
@@ -3129,6 +3065,25 @@ const fetchDeliveredQuantity = async () => {
     );
 
     throw new Error("Invalid deliver quantity detected.");
+  }
+};
+
+const fillbackHeaderFields = async (gd) => {
+  try {
+    for (const [index, gdLineItem] of gd.table_gd.entries()) {
+      gdLineItem.customer_id = gd.customer_name || null;
+      gdLineItem.organization_id = gd.organization_id;
+      gdLineItem.plant_id = gd.plant_id || null;
+      gdLineItem.billing_state_id = gd.billing_address_state || null;
+      gdLineItem.billing_country_id = gd.billing_address_country || null;
+      gdLineItem.shipping_state_id = gd.shipping_address_state || null;
+      gdLineItem.shipping_country_id = gd.shipping_address_country || null;
+      gdLineItem.assigned_to = gd.assigned_to || null;
+      gdLineItem.line_index = index + 1;
+    }
+    return gd.table_gd;
+  } catch {
+    throw new Error("Error processing goods delivery.");
   }
 };
 
@@ -3331,6 +3286,7 @@ const processGDLineItem = async (entry) => {
       organization_id,
       gd_ref_doc,
       customer_name,
+      currency_code,
       email_address,
       document_description,
       gd_delivery_method,
@@ -3415,6 +3371,7 @@ const processGDLineItem = async (entry) => {
       organization_id,
       gd_ref_doc,
       customer_name,
+      currency_code,
       email_address,
       document_description,
       gd_delivery_method,
