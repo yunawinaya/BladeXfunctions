@@ -95,6 +95,13 @@ The parent item will correctly show `SN004` as the leftover serial number after 
 
 ## Previous Completed Tasks:
 
+### Fix Stock Movement createSerialNumberRecord for Misc Receipt - COMPLETED
+
+[X] **CRITICAL FIX**: Fixed createSerialNumberRecord function to use generated_serial_numbers instead of raw serial_number_data
+[X] **ENHANCED**: Modified addSerialNumberInventoryForSM to store generated_serial_numbers array in the item data structure
+[X] **UPDATED**: Changed createSerialNumberRecord to use generated_serial_numbers.join("\n") like Goods Receiving process
+[X] **ALIGNED**: Ensured Stock Movement follows the same pattern as Goods Receiving for serial number record creation
+
 ### Fix inventory dialog temp_qty_data missing location_id - COMPLETED
 
 [X] Enhanced the filteredData creation in GDconfirmDialog.js to ensure all required fields are preserved

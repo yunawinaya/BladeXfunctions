@@ -578,6 +578,38 @@ const filterInvCategory = async (movementType, stockMovement) => {
   }, 50);
 };
 
+const hideSerialNumberRecordTab = () => {
+  setTimeout(() => {
+    const tableSerialNumber = this.getValue("table_sn_records");
+    if (!tableSerialNumber || tableSerialNumber.length === 0) {
+      const tabSelector =
+        '.el-drawer[role="dialog"] .el-tabs__item.is-top#tab-serial_number_records[tabindex="-1"][aria-selected="false"]';
+      const tab = document.querySelector(tabSelector);
+
+      if (tab) {
+        tab.style.display = "none";
+      } else {
+        const fallbackTab = document.querySelector(
+          '.el-drawer[role="dialog"] .el-tabs__item#tab-serial_number_records'
+        );
+        if (fallbackTab) {
+          fallbackTab.style.display = "none";
+        } else {
+          console.log("Completion tab not found");
+        }
+      }
+
+      const inactiveTabSelector =
+        '.el-drawer[role="dialog"] .el-tabs__item.is-top[tabindex="-1"]:not(#tab-serial_number_records)';
+      const inactiveTab = document.querySelector(inactiveTabSelector);
+      if (inactiveTab) {
+        inactiveTab.setAttribute("aria-disabled", "true");
+        inactiveTab.classList.add("is-disabled");
+      }
+    }
+  }, 10); // Small delay to ensure DOM is ready
+};
+
 (async () => {
   try {
     const data = this.getValues();
@@ -620,6 +652,7 @@ const filterInvCategory = async (movementType, stockMovement) => {
 
         await checkAccIntegrationType(organizationId);
         await filterMovementType();
+        await hideSerialNumberRecordTab();
         break;
 
       case "Edit":
@@ -673,6 +706,7 @@ const filterInvCategory = async (movementType, stockMovement) => {
         await showProductionOrder(data);
         await showStatusHTML(data.stock_movement_status);
         await checkAccIntegrationType(organizationId);
+        await hideSerialNumberRecordTab();
 
         break;
 
@@ -693,7 +727,7 @@ const filterInvCategory = async (movementType, stockMovement) => {
         await showStatusHTML(data.stock_movement_status);
         await showProductionOrder(data);
         await checkAccIntegrationType(organizationId);
-
+        await hideSerialNumberRecordTab();
         break;
     }
   } catch (error) {
