@@ -1916,38 +1916,52 @@ const createOrUpdatePicking = async (
               const existingTO = existingTOResponse.data[0];
               console.log(`Found existing Transfer Order: ${existingTO.to_id}`);
 
-              // Prepare updated picking items (including serialized items)
-              const updatedPickingItems = [];
+              // Prepare updated picking items with grouping for serialized items
+              const updatedPickingItemGroups = new Map();
+
               gdData.table_gd.forEach((item) => {
                 if (item.temp_qty_data && item.material_id) {
                   try {
                     const tempData = parseJsonSafely(item.temp_qty_data);
+
                     tempData.forEach((tempItem) => {
                       const materialId =
                         tempItem.material_id || item.material_id;
+                      // Create a grouping key based on item, batch, and location
+                      const groupKey = `${materialId}_${
+                        tempItem.batch_id || "no-batch"
+                      }_${tempItem.location_id}`;
 
-                      const pickingItem = {
-                        item_code: String(materialId),
-                        item_name: item.material_name,
-                        item_desc: item.gd_material_desc || "",
-                        batch_no: tempItem.batch_id
-                          ? String(tempItem.batch_id)
-                          : null,
-                        qty_to_pick: parseFloat(tempItem.gd_quantity),
-                        item_uom: String(item.gd_order_uom_id),
-                        source_bin: String(tempItem.location_id),
-                        pending_process_qty: parseFloat(tempItem.gd_quantity),
-                        line_status: "Open",
-                      };
-
-                      // Add serial number for serialized items
-                      if (tempItem.serial_number) {
-                        pickingItem.serial_number = String(
-                          tempItem.serial_number
-                        );
+                      if (!updatedPickingItemGroups.has(groupKey)) {
+                        // Create new group
+                        updatedPickingItemGroups.set(groupKey, {
+                          item_code: String(materialId),
+                          item_name: item.material_name,
+                          item_desc: item.gd_material_desc || "",
+                          batch_no: tempItem.batch_id
+                            ? String(tempItem.batch_id)
+                            : null,
+                          qty_to_pick: 0,
+                          item_uom: String(item.gd_order_uom_id),
+                          source_bin: String(tempItem.location_id),
+                          pending_process_qty: 0,
+                          line_status: "Open",
+                          serial_numbers: [],
+                        });
                       }
 
-                      updatedPickingItems.push(pickingItem);
+                      const group = updatedPickingItemGroups.get(groupKey);
+                      group.qty_to_pick += parseFloat(tempItem.gd_quantity);
+                      group.pending_process_qty += parseFloat(
+                        tempItem.gd_quantity
+                      );
+
+                      // Add serial number if exists
+                      if (tempItem.serial_number) {
+                        group.serial_numbers.push(
+                          String(tempItem.serial_number)
+                        );
+                      }
                     });
                   } catch (error) {
                     console.error(
@@ -1955,6 +1969,19 @@ const createOrUpdatePicking = async (
                     );
                   }
                 }
+              });
+
+              // Convert grouped items to picking items array
+              const updatedPickingItems = [];
+              updatedPickingItemGroups.forEach((group) => {
+                // Format serial numbers with line breaks if any exist
+                if (group.serial_numbers.length > 0) {
+                  group.serial_numbers = group.serial_numbers.join(", ");
+                } else {
+                  delete group.serial_numbers;
+                }
+
+                updatedPickingItems.push(group);
               });
 
               // Update the existing Transfer Order
@@ -2099,36 +2126,50 @@ const createOrUpdatePicking = async (
           is_deleted: 0,
         };
 
-        // Process table items (including serialized items)
+        // Process table items with grouping for serialized items
+        const pickingItemGroups = new Map();
+
         gdData.table_gd.forEach((item) => {
           if (item.temp_qty_data && item.material_id) {
             try {
               const tempData = parseJsonSafely(item.temp_qty_data);
-              tempData.forEach((tempItem) => {
-                const pickingItem = {
-                  item_code: item.material_id,
-                  item_name: item.material_name,
-                  item_desc: item.gd_material_desc || "",
-                  batch_no: tempItem.batch_id
-                    ? String(tempItem.batch_id)
-                    : null,
-                  item_batch_id: tempItem.batch_id
-                    ? String(tempItem.batch_id)
-                    : null,
-                  qty_to_pick: parseFloat(tempItem.gd_quantity),
-                  item_uom: String(item.gd_order_uom_id),
-                  pending_process_qty: parseFloat(tempItem.gd_quantity),
-                  source_bin: String(tempItem.location_id),
-                  line_status: "Open",
-                  so_no: item.line_so_no,
-                };
 
-                // Add serial number for serialized items
-                if (tempItem.serial_number) {
-                  pickingItem.serial_number = String(tempItem.serial_number);
+              tempData.forEach((tempItem) => {
+                // Create a grouping key based on item, batch, and location
+                const groupKey = `${item.material_id}_${
+                  tempItem.batch_id || "no-batch"
+                }_${tempItem.location_id}`;
+
+                if (!pickingItemGroups.has(groupKey)) {
+                  // Create new group
+                  pickingItemGroups.set(groupKey, {
+                    item_code: item.material_id,
+                    item_name: item.material_name,
+                    item_desc: item.gd_material_desc || "",
+                    batch_no: tempItem.batch_id
+                      ? String(tempItem.batch_id)
+                      : null,
+                    item_batch_id: tempItem.batch_id
+                      ? String(tempItem.batch_id)
+                      : null,
+                    qty_to_pick: 0,
+                    item_uom: String(item.gd_order_uom_id),
+                    pending_process_qty: 0,
+                    source_bin: String(tempItem.location_id),
+                    line_status: "Open",
+                    so_no: item.line_so_no,
+                    serial_numbers: [],
+                  });
                 }
 
-                transferOrder.table_picking_items.push(pickingItem);
+                const group = pickingItemGroups.get(groupKey);
+                group.qty_to_pick += parseFloat(tempItem.gd_quantity);
+                group.pending_process_qty += parseFloat(tempItem.gd_quantity);
+
+                // Add serial number if exists
+                if (tempItem.serial_number) {
+                  group.serial_numbers.push(String(tempItem.serial_number));
+                }
               });
             } catch (error) {
               console.error(
@@ -2136,6 +2177,18 @@ const createOrUpdatePicking = async (
               );
             }
           }
+        });
+
+        // Convert grouped items to picking items array
+        pickingItemGroups.forEach((group) => {
+          // Format serial numbers with line breaks if any exist
+          if (group.serial_numbers.length > 0) {
+            group.serial_numbers = group.serial_numbers.join(", ");
+          } else {
+            delete group.serial_numbers;
+          }
+
+          transferOrder.table_picking_items.push(group);
         });
 
         const prefixData = await getPrefixData(
