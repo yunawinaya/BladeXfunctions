@@ -2338,6 +2338,52 @@ const findUniquePrefix = async (prefixData, organizationId, documentTypes) => {
   return { prefixToShow, runningNumber };
 };
 
+const createSerialNumberRecord = async (entry) => {
+  const serialNumberRecords = [];
+  for (const [index, item] of entry.table_gr.entries()) {
+    if (item.is_serialized_item !== 1) {
+      console.log(
+        `Skipping serial number record for non-serialized item ${item.item_id}`
+      );
+      continue;
+    }
+    if (item.received_qty > 0) {
+      const serialNumberRecord = {
+        item_id: item.item_id,
+        item_name: item.item_name,
+        item_desc: item.item_desc,
+        more_desc: item.more_desc,
+        batch_id: item.batch_id,
+        location_id: item.location_id,
+        item_uom: item.item_uom,
+        received_qty: item.received_qty,
+        inv_category: item.inv_category,
+        line_po_no: item.line_po_no,
+        line_index: index + 1,
+        line_remark_1: item.line_remark_1,
+        line_remark_2: item.line_remark_2,
+      };
+
+      // Add serial numbers for serialized items with line break formatting
+      if (
+        item.is_serialized_item === 1 &&
+        item.generated_serial_numbers &&
+        Array.isArray(item.generated_serial_numbers)
+      ) {
+        serialNumberRecord.serial_numbers =
+          item.generated_serial_numbers.join("\n");
+        console.log(
+          `Using generated serial numbers for goods receiving item ${item.item_id}: ${serialNumberRecord.serial_numbers}`
+        );
+      }
+
+      serialNumberRecords.push(serialNumberRecord);
+    }
+  }
+
+  entry.table_sn_records = entry.table_sn_records.concat(serialNumberRecords);
+};
+
 const addEntry = async (organizationId, entry, putAwaySetupData) => {
   try {
     const prefixData = await getPrefixData(organizationId, "Goods Receiving");
@@ -2371,6 +2417,27 @@ const addEntry = async (organizationId, entry, putAwaySetupData) => {
     await db.collection("goods_receiving").add(entry);
 
     await addInventory(entry, entry.plant_id, organizationId, putAwaySetupData);
+
+    await createSerialNumberRecord(entry);
+
+    // Find the created record and update it with serial number records
+    const createdRecord = await db
+      .collection("goods_receiving")
+      .where({
+        gr_no: entry.gr_no,
+        organization_id: organizationId,
+        plant_id: entry.plant_id,
+      })
+      .get();
+
+    if (createdRecord.data && createdRecord.data.length > 0) {
+      await db
+        .collection("goods_receiving")
+        .doc(createdRecord.data[0].id)
+        .update({
+          table_sn_records: entry.table_sn_records,
+        });
+    }
 
     const purchaseOrderIds = entry.po_id;
 
@@ -2501,9 +2568,17 @@ const updateEntry = async (
       processedTableGr.push(processedItem);
     }
     entry.table_gr = processedTableGr;
+
     await db.collection("goods_receiving").doc(goodsReceivingId).update(entry);
 
     await addInventory(entry, entry.plant_id, organizationId, putAwaySetupData);
+
+    await createSerialNumberRecord(entry);
+
+    // Update the entry with serial number records
+    await db.collection("goods_receiving").doc(goodsReceivingId).update({
+      table_sn_records: entry.table_sn_records,
+    });
     const purchaseOrderIds = entry.po_id;
 
     const { po_data_array } = await updatePurchaseOrderStatus(
@@ -2796,6 +2871,7 @@ const processGRLineItem = async (entry) => {
         assigned_to,
         gr_date,
         table_gr,
+        table_sn_records,
         billing_address_line_1,
         billing_address_line_2,
         billing_address_line_3,
@@ -2843,6 +2919,7 @@ const processGRLineItem = async (entry) => {
         assigned_to,
         gr_date,
         table_gr,
+        table_sn_records,
         billing_address_line_1,
         billing_address_line_2,
         billing_address_line_3,

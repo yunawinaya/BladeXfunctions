@@ -2,7 +2,7 @@ const fetchItemData = async (itemID) => {
   const resItem = await db
     .collection("Item")
     .field(
-      "receiving_inspection,item_batch_management,batch_number_genaration,material_costing_method,item_category,serial_number_management,table_uom_conversion,based_uom"
+      "receiving_inspection,item_batch_management,batch_number_genaration,material_costing_method,item_category,serial_number_management,table_uom_conversion,based_uom,formula"
     )
     .where({ id: itemID })
     .get();
@@ -102,6 +102,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
   let existingGR = this.getValue("table_gr");
   const predefinedData = this.getValue("predefined_data");
   const previousReferenceType = this.getValue("reference_type");
+  const supplierName = this.getValue("supplier_name");
 
   const putawaySetupData = predefinedData[0].putawaySetup;
   const defaultBinLocationID = predefinedData[0].defaultBinLocation;
@@ -157,6 +158,24 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
       }
     );
     return;
+  }
+
+  if (supplierName && supplierName !== [...uniqueSuppliers][0]) {
+    await this.$confirm(
+      `You've selected a different supplier than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,
+      "Different Supplier Detected",
+      {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "error",
+        dangerouslyUseHTMLString: true,
+      }
+    ).catch(() => {
+      console.log("User clicked Cancel or closed the dialog");
+      throw new Error();
+    });
+
+    existingGR = [];
   }
 
   this.closeDialog("dialog_select_item");
@@ -266,6 +285,13 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
             this.display("table_gr.select_serial_number");
 
             newTableGrRecord.is_serialized_item = 1;
+          }
+
+          if (itemData?.formula && itemData?.formula !== "") {
+            this.display("table_gr.button_formula");
+
+            newTableGrRecord.has_formula = 1;
+            newTableGrRecord.formula = itemData?.formula;
           }
 
           tableGR.push(newTableGrRecord);
@@ -385,6 +411,13 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
           newTableGrRecord.is_serialized_item = 1;
         }
 
+        if (poItem.item?.formula && poItem.item?.formula !== "") {
+          this.display("table_gr.button_formula");
+
+          newTableGrRecord.has_formula = 1;
+          newTableGrRecord.formula = poItem.item?.formula;
+        }
+
         tableGR.push(newTableGrRecord);
 
         purchaseOrderNumber.push(poItem.purchase_order.purchase_order_no);
@@ -436,6 +469,12 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
         this.disabled(`table_gr.${rowIndex}.select_serial_number`, true);
         this.disabled(`table_gr.${rowIndex}.received_qty`, false);
         this.disabled(`table_gr.${rowIndex}.base_received_qty`, false);
+      }
+
+      if (gr.has_formula === 1) {
+        this.disabled(`table_gr.${rowIndex}.button_formula`, false);
+      } else {
+        this.disabled(`table_gr.${rowIndex}.button_formula`, true);
       }
     });
   }, 100);

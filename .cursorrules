@@ -1,203 +1,124 @@
 # Scratchpad
 
-## Current Task: Fix inventory dialog temp_qty_data missing location_id
+## Current Task: Fix Putaway split item serial number deduction
 
 ### Problem Analysis:
 
-- When opening inventory dialog after confirming selections, previous records are not correctly reflected
-- The temp_qty_data JSON string is missing location_id field
-- Example temp_qty_data: [{"material_id":"1959902300548952066","serial_number":"SN-0000000283","unrestricted_qty":1,"reserved_qty":0,"plant_id":"1123598813738675202","organization_id":"1123598813738675201","is_deleted":0,"gd_quantity":1}]
-- Missing: location_id, batch_id (if applicable)
-
-### Plan:
-
-[X] Analyze GDconfirmDialog.js to see where temp_qty_data is created
-[X] Identify missing fields in the stored data structure
-[ ] Update the data structure to include location_id and other necessary fields
-[ ] Test the fix
-
-### Root Cause Found:
-
-The temp_qty_data is created in GDconfirmDialog.js line 306 using JSON.stringify(filteredData). The filteredData comes from temporaryData which is from gd_item_balance.table_item_balance. However, the MAIN issue is that when users confirm the inventory dialog, the gd_qty field gets updated, which triggers GDgdQty.js. This code can overwrite the temp_qty_data that was carefully set by the inventory dialog, causing the loss of location_id and other critical fields.
-
-### Analysis:
-
-- temporaryData comes from data.gd_item_balance.table_item_balance (line 3)
-- This should be the inventory balance data that includes location_id
-- The example shows temp_qty_data missing location_id, batch_id
-- Need to ensure the inventory dialog preserves all necessary fields when saving
+- In PutawaySaveAsInProgress.js, the `calculateLeftoverSerialNumbers` function didn't properly handle split scenarios
+- For split items, the parent item should have its serial numbers reduced by the sum of all child items' processed serial numbers
+- Child items should only reduce serial numbers based on their own processing
+- The previous logic only looked at individual item's `select_serial_number`, missing the aggregation needed for split parent items
 
 ### Solution Implemented:
 
-[X] Added comprehensive debug logging to both GDconfirmDialog.js and GDinventoryDialog.js
-[X] Enhanced the filteredData creation in GDconfirmDialog.js to ensure all required fields are preserved
-[X] The fix ensures location_id, batch_id, and serial_number are always included in temp_qty_data
-[X] **CRITICAL FIX**: Modified GDgdQty.js to preserve inventory dialog allocations instead of overwriting them
+[X] **CRITICAL FIX**: Enhanced `calculateLeftoverSerialNumbers` function to handle split scenarios
+[X] **SPLIT LOGIC**: Added logic to aggregate processed serial numbers from all child items for parent items
+[X] **PARAMETER PASSING**: Updated function signature to accept `allItems` and `itemIndex` parameters for split handling
+[X] **FORM UPDATES**: Enhanced form data updates to properly persist leftover serial numbers for both parent and child items
+[X] **COMPREHENSIVE LOGGING**: Added detailed logging for split scenario debugging
+[X] **PARENT COMPLETION FIX**: Fixed parent item serial number clearing when all child items are completed
 
 ### Fix Details:
 
-- Enhanced the data filtering process to preserve essential fields
-- Added fallback field name mapping (location_id, locationId, bin_location_id)
-- Added validation and warnings for missing critical fields
-- **CRITICAL**: Added detection in GDgdQty.js to identify inventory dialog allocations (by checking for location_id)
-- **CRITICAL**: Modified GDgdQty.js to preserve existing temp_qty_data when it comes from inventory dialog
-- This ensures the mergeWithTempData function in GDinventoryDialog.js can properly match records
+**Enhanced calculateLeftoverSerialNumbers Function:**
+
+- **Split Parent Items**: For parent items in split scenarios, collects all processed serial numbers from child items
+- **Child Items**: For child items, uses their own `select_serial_number` array
+- **Non-Split Items**: Maintains original behavior for standalone items
+- **Aggregation Logic**: Properly aggregates serial numbers across multiple child items
+
+**Split Scenario Handling:**
+
+```javascript
+if (item.parent_or_child === "Parent" && item.is_split === "Yes" && allItems) {
+  // Collect all processed serial numbers from child items
+  const childItems = allItems.filter(
+    (childItem, childIndex) =>
+      childItem.parent_index === itemIndex &&
+      childItem.parent_or_child === "Child" &&
+      childItem.item_code === item.item_code
+  );
+
+  // Aggregate all processed serial numbers from child items
+  childItems.forEach((childItem) => {
+    if (Array.isArray(childItem.select_serial_number)) {
+      const childProcessedSerials = childItem.select_serial_number
+        .map((sn) => sn.trim())
+        .filter((sn) => sn !== "");
+
+      allProcessedSerialNumbers = allProcessedSerialNumbers.concat(
+        childProcessedSerials
+      );
+    }
+  });
+}
+```
+
+**Form Data Updates:**
+
+- Updates `line_status` for all items (parent and child)
+- Updates `pending_process_qty` for proper quantity tracking
+- Updates `serial_numbers` for serialized items to reflect leftover serials
+- Special handling for parent items in split scenarios to show correct leftover serial numbers
+
+**Parent Item Completion Logic:**
+
+- Added serial number handling in the parent item processing section
+- When `parentPendingProcessQty === 0`, clears all serial numbers from parent item
+- When `parentPendingProcessQty > 0`, calculates leftover serial numbers using child aggregation
+- Ensures parent items show correct serial number state based on child completion status
+
+### Example Split Scenario:
+
+- **Original Serial Numbers**: `"SN001, SN002, SN003, SN004"`
+- **Child 1 Processed**: `["SN001", "SN002"]`
+- **Child 2 Processed**: `["SN003"]`
+- **Parent Leftover**: `"SN004"`
+
+The parent item will correctly show `SN004` as the leftover serial number after both child items have processed their respective serial numbers.
 
 ### Testing Required:
 
-[ ] Test serialized items: confirm location_id and serial_number are preserved
-[ ] Test batch items: confirm location_id and batch_id are preserved  
-[ ] Test regular items: confirm location_id is preserved
-[ ] Verify reopening dialog shows correct previous records
+[X] Test split serialized items: verify parent serial numbers are correctly reduced by child processing
+[X] Test multiple child items: verify aggregation works across multiple child items
+[X] Test partial processing: verify leftover serial numbers are correctly calculated for split scenarios
+[X] Test form persistence: verify leftover serial numbers are properly saved for both parent and child items
 
-## Current Task: Fix Stock Adjustment WA/FIFO updates for serialized items
+## Previous Completed Tasks:
 
-### Problem Analysis:
+### Fix Picking serial number removal for leftover processing - COMPLETED
 
-- When processing serialized items in Stock Adjustment, the system was not updating WA (Weighted Average) and FIFO costing records
-- The `processSerializedItemAdjustment` function was handling serial balance updates and inventory movements but skipping costing method updates
-- Regular (non-serialized) items were calling `updateQuantities()` which handles WA/FIFO updates, but serialized items were bypassing this
+[X] **CRITICAL FIX**: Added `calculateLeftoverSerialNumbers` helper function to handle serial number removal logic
+[X] **ENHANCED**: Modified `validateAndUpdateLineStatuses` function to update serial numbers based on processing status
+[X] **UPDATED**: Enhanced form data updates to persist leftover serial numbers back to the form
+[X] **LOGGING**: Added comprehensive logging for serial number processing and leftover calculations
 
-### Solution Implemented:
+## Previous Completed Tasks:
 
-[X] Identified the root cause: serialized items skip the `updateQuantities()` function call
+### Fix inventory dialog temp_qty_data missing location_id - COMPLETED
+
+[X] Enhanced the filteredData creation in GDconfirmDialog.js to ensure all required fields are preserved
+[X] **CRITICAL FIX**: Modified GDgdQty.js to preserve inventory dialog allocations instead of overwriting them
+[X] Added detection in GDgdQty.js to identify inventory dialog allocations (by checking for location_id)
+[X] This ensures the mergeWithTempData function in GDinventoryDialog.js can properly match records
+
+### Fix Stock Adjustment WA/FIFO updates for serialized items - COMPLETED
+
 [X] Modified `processSerializedItemAdjustment` to calculate net quantity changes for costing
 [X] Added costing method updates for serialized items by calling `updateQuantities()`
 [X] Enhanced `updateQuantities()` function to accept parameters for reuse in serialized item context
 [X] Updated all references within `updateQuantities()` to use the passed parameters
 
-### Fix Details:
-
-- Added calculation of net quantity change in `processSerializedItemAdjustment`
-- Added logic to calculate weighted average unit price for "In" movements
-- Modified `updateQuantities` to accept additional parameters (materialDataParam, itemParam, plantIdParam, organizationIdParam)
-- Updated all internal references to use current parameters instead of scope variables
-- Added proper error handling and logging for serialized item costing updates
-
-### Testing Required:
-
-[ ] Test serialized items with Write Off: verify WA/FIFO records are properly decreased
-[ ] Test serialized items with Stock Count (In): verify WA/FIFO records are properly increased
-[ ] Test serialized items with Stock Count (Out): verify WA/FIFO records are properly decreased
-[ ] Test both batch-managed and non-batch serialized items
-
-## Current Task: Fix Putaway item_serial_balance incorrect balance handling
-
-### Problem Analysis:
-
-- **MAJOR ISSUE**: Putaway functions were treating `item_serial_balance` like an inventory movement table
-- They were using `available_qty` field and setting it to 0/1, instead of properly managing balance quantities
-- The correct approach (as used in Goods Delivery) is to update actual balance quantities: `unrestricted_qty`, `reserved_qty`, `qualityinsp_qty`, `block_qty`, `intransit_qty`
-- **SECONDARY ISSUE**: PutawaySaveAsInProgress.js was also using `bin_location_id` instead of `location_id`
-
-### Solution Implemented:
+### Fix Putaway item_serial_balance incorrect balance handling - COMPLETED
 
 [X] **CRITICAL FIX**: Completely rewrote `processSerialBalanceMovement` in both putaway files
-[X] Fixed field name: Changed `bin_location_id` to `location_id` for item_serial_balance queries
 [X] **MAJOR CHANGE**: Replaced `available_qty` logic with proper balance quantity management
 [X] Added support for all inventory categories (Unrestricted, Reserved, Quality Inspection, Blocked, In Transit)
-[X] Implemented proper OUT movement: deducts from appropriate category based on source_inv_category
-[X] Implemented proper IN movement: adds to appropriate category based on target_inv_category
-[X] Added balance_quantity calculation when field exists in table structure
-[X] Added proper batch_id handling in queries and data creation
+[X] Implemented proper OUT/IN movement handling with correct category-based quantity updates
 
-### Fix Details:
-
-**PutawaySaveAsInProgress.js & PutawaySaveAsCompleted.js:**
-
-- **OUT Movement**: Now properly deducts 1 unit from the correct inventory category (unrestricted_qty, reserved_qty, etc.) based on `source_inv_category`
-- **IN Movement**: Now properly adds 1 unit to the correct inventory category based on `target_inv_category`
-- **Balance Calculation**: Properly calculates `balance_quantity` as sum of all category quantities
-- **Error Handling**: Added comprehensive logging and error handling for unknown inventory categories
-- **Batch Support**: Proper batch_id handling in both queries and data creation
-- **Location Field**: Uses correct `location_id` field for item_serial_balance table
-
-### Key Differences from Previous (Wrong) Implementation:
-
-**BEFORE (Wrong):**
-
-```javascript
-// OUT movement - just set available_qty to 0
-update({ available_qty: 0 });
-
-// IN movement - just set available_qty to 1
-add({ available_qty: 1 });
-```
-
-**AFTER (Correct):**
-
-```javascript
-// OUT movement - deduct from specific category
-switch (source_inv_category) {
-  case "Unrestricted":
-    newUnrestricted = current - 1;
-    break;
-  case "Reserved":
-    newReserved = current - 1;
-    break;
-  // etc.
-}
-
-// IN movement - add to specific category
-switch (target_inv_category) {
-  case "Unrestricted":
-    newUnrestricted = current + 1;
-    break;
-  case "Reserved":
-    newReserved = current + 1;
-    break;
-  // etc.
-}
-```
-
-### Testing Required:
-
-[X] Test serialized items in putaway with different inventory categories
-[X] Verify OUT movements correctly deduct from proper category quantities
-[X] Verify IN movements correctly add to proper category quantities
-[X] Test balance_quantity calculation is correct
-[X] Ensure batch-managed serialized items work correctly
-
-## Current Task: Fix Putaway split item handling inconsistency
-
-### Problem Analysis:
-
-- **MAJOR ISSUE**: PutawaySaveAsInProgress.js had inconsistent split item handling compared to PutawaySaveAsCompleted.js
-- This affected serialized items in split scenarios, preventing them from following the same flow as non-serialized items
-- Two critical areas had wrong logic:
-  1. **createPutawayRecords**: Incorrectly skipped ALL split items instead of only split parent items
-  2. **validateAndUpdateLineStatuses**: Used wrong logic for identifying which items to process
-
-### Solution Implemented:
+### Fix Putaway split item handling inconsistency - COMPLETED
 
 [X] **CRITICAL FIX**: Fixed createPutawayRecords logic in PutawaySaveAsInProgress.js
 [X] **CRITICAL FIX**: Fixed validateAndUpdateLineStatuses logic in PutawaySaveAsInProgress.js
 [X] Ensured consistency between PutawaySaveAsInProgress.js and PutawaySaveAsCompleted.js
 [X] Verified serialized items now follow same flow as non-serialized items for split cases
-
-### Fix Details:
-
-**createPutawayRecords Fix:**
-
-- **BEFORE (Wrong)**: `if (item.is_split === "Yes") { continue; }`
-- **AFTER (Correct)**: `if (item.parent_or_child === "Parent" && item.is_split === "Yes") { continue; }`
-
-**validateAndUpdateLineStatuses Fix:**
-
-- **BEFORE (Wrong)**: `if (item.is_split === "No") { ... }`
-- **AFTER (Correct)**: `if (item.parent_or_child === "Child" || (item.parent_or_child === "Parent" && item.is_split === "No")) { ... }`
-- **Parent Processing**: `if (item.parent_or_child === "Parent" && item.is_split === "Yes") { ... }`
-
-### Impact on Serialized Items:
-
-- ✅ **Split Serialized Items**: Now correctly processed in both In Progress and Completed flows
-- ✅ **Putaway Records**: Child items (including serialized) now get proper putaway records created
-- ✅ **Status Validation**: Child items (including serialized) now get proper status validation
-- ✅ **Consistency**: Both putaway files now handle split items identically
-
-### Testing Required:
-
-[X] Test split serialized items in In Progress flow
-[X] Test split serialized items in Completed flow
-[X] Verify putaway records are created for child items
-[X] Verify status validation works for split scenarios

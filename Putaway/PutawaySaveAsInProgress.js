@@ -243,7 +243,11 @@ const validateAndUpdateLineStatuses = (putawayItems) => {
 
     // Update serial numbers for serialized items - calculate leftover serial numbers
     if (item.is_serialized_item === 1 && pending_process_qty > 0) {
-      const leftoverSerialNumbers = calculateLeftoverSerialNumbers(item);
+      const leftoverSerialNumbers = calculateLeftoverSerialNumbers(
+        item,
+        updatedItems,
+        index
+      );
       item.serial_numbers = leftoverSerialNumbers;
       console.log(
         `Updated serial_numbers for partially processed item ${item.item_code}: "${leftoverSerialNumbers}"`
@@ -299,6 +303,28 @@ const validateAndUpdateLineStatuses = (putawayItems) => {
       item.line_status = allChildrenCompleted ? "Completed" : "In Progress";
       item.pending_process_qty = parentPendingProcessQty;
 
+      // Update serial numbers for serialized parent items in split scenarios
+      if (item.is_serialized_item === 1) {
+        if (parentPendingProcessQty > 0) {
+          // If there's still pending quantity, calculate leftover serial numbers
+          const leftoverSerialNumbers = calculateLeftoverSerialNumbers(
+            item,
+            updatedItems,
+            index
+          );
+          item.serial_numbers = leftoverSerialNumbers;
+          console.log(
+            `Updated serial_numbers for partially processed split parent item ${item.item_code}: "${leftoverSerialNumbers}"`
+          );
+        } else if (parentPendingProcessQty === 0) {
+          // If all children are completed, clear parent serial numbers
+          item.serial_numbers = "";
+          console.log(
+            `Cleared serial_numbers for fully processed split parent item ${item.item_code}`
+          );
+        }
+      }
+
       console.log(
         `Parent Item ${item.item_code || index} line status: ${
           item.line_status
@@ -311,13 +337,17 @@ const validateAndUpdateLineStatuses = (putawayItems) => {
 };
 
 // Helper function to calculate leftover serial numbers after partial processing
-const calculateLeftoverSerialNumbers = (item) => {
+const calculateLeftoverSerialNumbers = (
+  item,
+  allItems = null,
+  itemIndex = null
+) => {
   // Only process serialized items
   if (item.is_serialized_item !== 1) {
     return item.serial_numbers; // Return original if not serialized
   }
 
-  // Get the original serial numbers and processed serial numbers
+  // Get the original serial numbers
   const originalSerialNumbers = item.serial_numbers
     ? item.serial_numbers
         .split(",")
@@ -325,30 +355,77 @@ const calculateLeftoverSerialNumbers = (item) => {
         .filter((sn) => sn !== "")
     : [];
 
-  const processedSerialNumbers = Array.isArray(item.select_serial_number)
-    ? item.select_serial_number.map((sn) => sn.trim()).filter((sn) => sn !== "")
-    : [];
+  let allProcessedSerialNumbers = [];
+
+  // Handle split scenarios differently
+  if (
+    item.parent_or_child === "Parent" &&
+    item.is_split === "Yes" &&
+    allItems
+  ) {
+    // For parent items in split scenarios, collect all processed serial numbers from child items
+    console.log(
+      `Processing split parent item ${item.item_code}: collecting serial numbers from child items`
+    );
+
+    const childItems = allItems.filter(
+      (childItem, childIndex) =>
+        childItem.parent_index === itemIndex &&
+        childItem.parent_or_child === "Child" &&
+        childItem.item_code === item.item_code
+    );
+
+    console.log(
+      `Found ${childItems.length} child items for parent ${item.item_code}`
+    );
+
+    // Aggregate all processed serial numbers from child items
+    childItems.forEach((childItem, childIdx) => {
+      if (Array.isArray(childItem.select_serial_number)) {
+        const childProcessedSerials = childItem.select_serial_number
+          .map((sn) => sn.trim())
+          .filter((sn) => sn !== "");
+
+        allProcessedSerialNumbers = allProcessedSerialNumbers.concat(
+          childProcessedSerials
+        );
+
+        console.log(
+          `Child item ${
+            childIdx + 1
+          } processed serials: [${childProcessedSerials.join(", ")}]`
+        );
+      }
+    });
+  } else {
+    // For non-split items or child items, use their own select_serial_number
+    allProcessedSerialNumbers = Array.isArray(item.select_serial_number)
+      ? item.select_serial_number
+          .map((sn) => sn.trim())
+          .filter((sn) => sn !== "")
+      : [];
+  }
 
   console.log(
-    `Item ${
-      item.item_code
-    }: Original serial numbers: [${originalSerialNumbers.join(", ")}]`
+    `Item ${item.item_code} (${
+      item.parent_or_child || "standalone"
+    }): Original serial numbers: [${originalSerialNumbers.join(", ")}]`
   );
   console.log(
-    `Item ${
-      item.item_code
-    }: Processed serial numbers: [${processedSerialNumbers.join(", ")}]`
+    `Item ${item.item_code} (${
+      item.parent_or_child || "standalone"
+    }): All processed serial numbers: [${allProcessedSerialNumbers.join(", ")}]`
   );
 
-  // Calculate leftover serial numbers by removing processed ones
+  // Calculate leftover serial numbers by removing all processed ones
   const leftoverSerialNumbers = originalSerialNumbers.filter(
-    (originalSN) => !processedSerialNumbers.includes(originalSN)
+    (originalSN) => !allProcessedSerialNumbers.includes(originalSN)
   );
 
   console.log(
-    `Item ${
-      item.item_code
-    }: Leftover serial numbers: [${leftoverSerialNumbers.join(", ")}]`
+    `Item ${item.item_code} (${
+      item.parent_or_child || "standalone"
+    }): Leftover serial numbers: [${leftoverSerialNumbers.join(", ")}]`
   );
 
   // Return the leftover serial numbers as a comma-separated string
@@ -1424,12 +1501,37 @@ const processInventoryMovementandBalanceTable = async (
       return;
     }
 
-    // Update the form data with the new line statuses (only if we proceed)
+    // Update the form data with the new line statuses and serial numbers (only if we proceed)
     for (let index = 0; index < updatedItems.length; index++) {
       this.setData({
         [`table_putaway_item.${index}.line_status`]:
           updatedItems[index].line_status,
       });
+
+      // Update pending process quantity
+      this.setData({
+        [`table_putaway_item.${index}.pending_process_qty`]:
+          updatedItems[index].pending_process_qty,
+      });
+
+      // Update serial numbers for serialized items (including split scenarios)
+      if (updatedItems[index].is_serialized_item === 1) {
+        this.setData({
+          [`table_putaway_item.${index}.serial_numbers`]:
+            updatedItems[index].serial_numbers,
+        });
+
+        // For parent items in split scenarios, also update their serial numbers
+        // This ensures the parent item shows the correct leftover serial numbers
+        if (
+          updatedItems[index].parent_or_child === "Parent" &&
+          updatedItems[index].is_split === "Yes"
+        ) {
+          console.log(
+            `Updated parent item ${updatedItems[index].item_code} serial numbers in form: "${updatedItems[index].serial_numbers}"`
+          );
+        }
+      }
     }
 
     const latestPutawayItems = updatedItems

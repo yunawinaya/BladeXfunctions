@@ -274,6 +274,38 @@ const displayAssignedTo = async () => {
   }
 };
 
+const hideSerialNumberRecordTab = () => {
+  setTimeout(() => {
+    const tableSerialNumber = this.getValue("table_sn_records");
+    if (!tableSerialNumber || tableSerialNumber.length === 0) {
+      const tabSelector =
+        '.el-drawer[role="dialog"] .el-tabs__item.is-top#tab-serial_number_records[tabindex="-1"][aria-selected="false"]';
+      const tab = document.querySelector(tabSelector);
+
+      if (tab) {
+        tab.style.display = "none";
+      } else {
+        const fallbackTab = document.querySelector(
+          '.el-drawer[role="dialog"] .el-tabs__item#tab-serial_number_records'
+        );
+        if (fallbackTab) {
+          fallbackTab.style.display = "none";
+        } else {
+          console.log("Completion tab not found");
+        }
+      }
+
+      const inactiveTabSelector =
+        '.el-drawer[role="dialog"] .el-tabs__item.is-top[tabindex="-1"]:not(#tab-serial_number_records)';
+      const inactiveTab = document.querySelector(inactiveTabSelector);
+      if (inactiveTab) {
+        inactiveTab.setAttribute("aria-disabled", "true");
+        inactiveTab.classList.add("is-disabled");
+      }
+    }
+  }, 10); // Small delay to ensure DOM is ready
+};
+
 (async () => {
   try {
     const status = await this.getValue("gr_status");
@@ -302,6 +334,7 @@ const displayAssignedTo = async () => {
         this.hide("button_completed");
         await setPlant(organizationId);
         await setPrefix(organizationId);
+        await hideSerialNumberRecordTab();
 
         break;
 
@@ -314,7 +347,7 @@ const displayAssignedTo = async () => {
         await viewSerialNumber();
         await viewBaseQty();
         await displayAssignedTo();
-
+        await hideSerialNumberRecordTab();
         if (status === "Draft") {
           this.triggerEvent("onChange_plant");
           this.hide("button_completed");
@@ -329,6 +362,7 @@ const displayAssignedTo = async () => {
         await isViewMode();
         await viewBaseQty();
         await displayAssignedTo();
+        await hideSerialNumberRecordTab();
         break;
     }
   } catch (error) {

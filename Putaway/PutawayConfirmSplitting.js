@@ -8,6 +8,13 @@
     `table_putaway_item.${rowIndex}.is_serialized_item`
   );
 
+  if (isSerializedItem === 1 && noOfSplit > qtyToPutaway) {
+    this.$message.error(
+      "Number of split cannot be greater than quantity to putaway for serialized item"
+    );
+    return;
+  }
+
   const splitData = [];
   const qtyByRow = parseFloat((qtyToPutaway / noOfSplit).toFixed(3));
 

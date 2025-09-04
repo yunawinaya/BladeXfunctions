@@ -221,7 +221,12 @@ const viewSerialNumber = async () => {
   const table_putaway_records = this.getValue("table_putaway_records");
   if (table_putaway_item.length > 0) {
     for (const putaway of table_putaway_item) {
-      if (putaway.is_serialized_item === 1) {
+      if (
+        putaway.is_serialized_item === 1 &&
+        putaway.serial_numbers !== "" &&
+        putaway.serial_numbers !== undefined
+      ) {
+        console.log("serial numbers", putaway.serial_numbers);
         await this.display("table_putaway_item.select_serial_number");
       }
     }
@@ -238,7 +243,7 @@ const viewSerialNumber = async () => {
 const setSerialNumber = async () => {
   try {
     const table_putaway_item = this.getValue("table_putaway_item");
-    
+
     // Check if table_putaway_item exists and is an array
     if (!Array.isArray(table_putaway_item) || table_putaway_item.length === 0) {
       console.log("No putaway items found or invalid data structure");
@@ -249,30 +254,42 @@ const setSerialNumber = async () => {
       try {
         // Check if item is serialized
         if (putaway.is_serialized_item === 1) {
-          console.log(`Processing serialized item at index ${index}:`, putaway.item_code || putaway.id);
-          
+          console.log(
+            `Processing serialized item at index ${index}:`,
+            putaway.item_code || putaway.id
+          );
+
           // Check if serial_numbers exists and is not empty
-          if (!putaway.serial_numbers || 
-              putaway.serial_numbers === null || 
-              putaway.serial_numbers === undefined ||
-              typeof putaway.serial_numbers !== 'string' ||
-              putaway.serial_numbers.trim() === '') {
-            console.warn(`No valid serial numbers found for item at index ${index}`);
+          if (
+            !putaway.serial_numbers ||
+            putaway.serial_numbers === null ||
+            putaway.serial_numbers === undefined ||
+            typeof putaway.serial_numbers !== "string" ||
+            putaway.serial_numbers.trim() === ""
+          ) {
+            console.warn(
+              `No valid serial numbers found for item at index ${index}`
+            );
             continue;
           }
 
           // Split and clean serial numbers
           const serialNumbers = putaway.serial_numbers
             .split(",")
-            .map(sn => sn.trim())
-            .filter(sn => sn !== "");
+            .map((sn) => sn.trim())
+            .filter((sn) => sn !== "");
 
           if (serialNumbers.length === 0) {
-            console.warn(`No valid serial numbers after processing for item at index ${index}`);
+            console.warn(
+              `No valid serial numbers after processing for item at index ${index}`
+            );
             continue;
           }
 
-          console.log(`Setting ${serialNumbers.length} serial numbers for item at index ${index}:`, serialNumbers);
+          console.log(
+            `Setting ${serialNumbers.length} serial numbers for item at index ${index}:`,
+            serialNumbers
+          );
 
           // Set option data for select dropdown
           await this.setOptionData(
@@ -286,9 +303,14 @@ const setSerialNumber = async () => {
           });
 
           // Disable putaway_qty field for serialized items
-          await this.disabled([`table_putaway_item.${index}.putaway_qty`], true);
+          await this.disabled(
+            [`table_putaway_item.${index}.putaway_qty`],
+            true
+          );
 
-          console.log(`Successfully set serial numbers for item at index ${index}`);
+          console.log(
+            `Successfully set serial numbers for item at index ${index}`
+          );
         }
       } catch (itemError) {
         console.error(`Error processing item at index ${index}:`, itemError);
@@ -355,7 +377,9 @@ const setSerialNumber = async () => {
         await showStatusHTML(status);
         await showQINo();
         await viewSerialNumber();
-        await setSerialNumber();
+        setTimeout(() => {
+          setSerialNumber();
+        }, 300);
         break;
 
       case "View":

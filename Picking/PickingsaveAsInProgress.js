@@ -195,6 +195,53 @@ const validateField = (value) => {
   return !value;
 };
 
+// Helper function to calculate leftover serial numbers after partial processing
+const calculateLeftoverSerialNumbers = (item) => {
+  // Only process serialized items
+  if (item.is_serialized_item !== 1) {
+    return item.serial_numbers; // Return original if not serialized
+  }
+
+  // Get the original serial numbers and processed serial numbers
+  const originalSerialNumbers = item.serial_numbers
+    ? item.serial_numbers
+        .split(",")
+        .map((sn) => sn.trim())
+        .filter((sn) => sn !== "")
+    : [];
+
+  const processedSerialNumbers = Array.isArray(item.select_serial_number)
+    ? item.select_serial_number.map((sn) => sn.trim()).filter((sn) => sn !== "")
+    : [];
+
+  console.log(
+    `Item ${
+      item.item_code || item.item_id
+    }: Original serial numbers: [${originalSerialNumbers.join(", ")}]`
+  );
+  console.log(
+    `Item ${
+      item.item_code || item.item_id
+    }: Processed serial numbers: [${processedSerialNumbers.join(", ")}]`
+  );
+
+  // Calculate leftover serial numbers by removing processed ones
+  const leftoverSerialNumbers = originalSerialNumbers.filter(
+    (originalSN) => !processedSerialNumbers.includes(originalSN)
+  );
+
+  console.log(
+    `Item ${
+      item.item_code || item.item_id
+    }: Leftover serial numbers: [${leftoverSerialNumbers.join(", ")}]`
+  );
+
+  // Return the leftover serial numbers as a comma-separated string
+  return leftoverSerialNumbers.length > 0
+    ? leftoverSerialNumbers.join(", ")
+    : "";
+};
+
 // Enhanced quantity validation and line status determination
 const validateAndUpdateLineStatuses = (pickingItems) => {
   const errors = [];
@@ -246,9 +293,29 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
     // Calculate pending process quantity
     const pending_process_qty = pendingProcessQty - pickedQty;
 
-    // Update line status
+    // Update line status and pending process quantity
     updatedItems[index].line_status = lineStatus;
     updatedItems[index].pending_process_qty = pending_process_qty;
+
+    // Update serial numbers for serialized items - calculate leftover serial numbers
+    if (item.is_serialized_item === 1 && pending_process_qty > 0) {
+      const leftoverSerialNumbers = calculateLeftoverSerialNumbers(item);
+      updatedItems[index].serial_numbers = leftoverSerialNumbers;
+      console.log(
+        `Updated serial_numbers for partially processed item ${
+          item.item_code || item.item_id
+        }: "${leftoverSerialNumbers}"`
+      );
+    } else if (item.is_serialized_item === 1 && pending_process_qty === 0) {
+      // If fully processed, clear serial numbers
+      updatedItems[index].serial_numbers = "";
+      console.log(
+        `Cleared serial_numbers for fully processed item ${
+          item.item_code || item.item_id
+        }`
+      );
+    }
+
     console.log(`Item ${item.item_id || index} line status: ${lineStatus}`);
   }
 
@@ -269,6 +336,12 @@ const addEntry = async (organizationId, toData) => {
 
       await updatePrefix(organizationId, runningNumber, "Transfer Order");
       toData.to_id = prefixToShow;
+    }
+
+    for (const item of toData.table_picking_items) {
+      if (item.select_serial_number) {
+        item.select_serial_number = null;
+      }
     }
 
     // Add the record
@@ -312,6 +385,12 @@ const updateEntry = async (organizationId, toData, toId, originalToStatus) => {
 
         await updatePrefix(organizationId, runningNumber, "Transfer Order");
         toData.to_id = prefixToShow;
+      }
+    }
+
+    for (const item of toData.table_picking_items) {
+      if (item.select_serial_number) {
+        item.select_serial_number = null;
       }
     }
 
@@ -392,6 +471,26 @@ const createPickingRecord = async (toData) => {
         confirmed_by: this.getVarGlobal("nickname"),
         confirmed_at: new Date().toISOString().slice(0, 19).replace("T", " "),
       };
+
+      // Add serial numbers for serialized items with line break formatting
+      if (
+        item.is_serialized_item === 1 &&
+        item.select_serial_number &&
+        Array.isArray(item.select_serial_number)
+      ) {
+        const trimmedSerialNumbers = item.select_serial_number
+          .map((sn) => sn.trim())
+          .filter((sn) => sn !== "");
+
+        if (trimmedSerialNumbers.length > 0) {
+          pickingRecord.serial_numbers = trimmedSerialNumbers.join("\n");
+
+          console.log(
+            `Added ${trimmedSerialNumbers.length} serial numbers to picking record for ${item.item_code}: ${pickingRecord.serial_numbers}`
+          );
+        }
+      }
+
       pickingRecords.push(pickingRecord);
     }
   }
@@ -459,12 +558,26 @@ const createPickingRecord = async (toData) => {
       return;
     }
 
-    // Update the form data with the new line statuses (only if we proceed)
+    // Update the form data with the new line statuses and serial numbers (only if we proceed)
     for (let index = 0; index < updatedItems.length; index++) {
       this.setData({
         [`table_picking_items.${index}.line_status`]:
           updatedItems[index].line_status,
       });
+
+      // Update pending process quantity
+      this.setData({
+        [`table_picking_items.${index}.pending_process_qty`]:
+          updatedItems[index].pending_process_qty,
+      });
+
+      // Update serial numbers for serialized items
+      if (updatedItems[index].is_serialized_item === 1) {
+        this.setData({
+          [`table_picking_items.${index}.serial_numbers`]:
+            updatedItems[index].serial_numbers,
+        });
+      }
     }
 
     const newTransferOrderStatus = "In Progress";
