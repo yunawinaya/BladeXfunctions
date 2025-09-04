@@ -103,7 +103,6 @@ const showStatusHTML = async (status) => {
 };
 
 const isViewMode = async () => {
-  const grType = this.getValue("gr_type");
   this.hide([
     "link_billing_address",
     "link_shipping_address",
@@ -249,6 +248,23 @@ const viewSerialNumber = async () => {
   });
 };
 
+const viewBaseQty = async () => {
+  const tableGR = this.getValue("table_gr");
+  tableGR.forEach((gr) => {
+    if (gr.item_uom !== gr.base_item_uom) {
+      this.display([
+        "table_gr.ordered_qty_uom",
+        "table_gr.base_ordered_qty",
+        "table_gr.base_ordered_qty_uom",
+        "table_gr.to_received_qty_uom",
+        "table_gr.base_received_qty_uom",
+        "table_gr.base_received_qty",
+        "table_gr.base_item_uom",
+      ]);
+    }
+  });
+};
+
 (async () => {
   try {
     const status = await this.getValue("gr_status");
@@ -287,6 +303,7 @@ const viewSerialNumber = async () => {
         await showStatusHTML(status);
         await fetchReceivedQuantity();
         await viewSerialNumber();
+        await viewBaseQty();
 
         if (status === "Draft") {
           this.triggerEvent("onChange_plant");
@@ -298,6 +315,7 @@ const viewSerialNumber = async () => {
         await displayAddress();
         await showStatusHTML(status);
         await isViewMode();
+        await viewBaseQty();
         break;
     }
   } catch (error) {
