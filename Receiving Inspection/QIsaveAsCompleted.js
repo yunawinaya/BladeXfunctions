@@ -317,74 +317,76 @@ const createPutAway = async (data, organizationId) => {
             (serial) => serial.passed === 0
           );
 
-          // Create putaway entries for failed serials (to Blocked)
+          // Create grouped putaway entry for failed serials (to Blocked)
           if (failedSerials.length > 0) {
-            for (let i = 0; i < failedSerials.length; i++) {
-              const serial = failedSerials[i];
-              const blockItemData = {
-                line_index: putAwayLineItemData.length + 1,
-                item_code: item.item_id,
-                item_name: item.item_name,
-                item_desc: item.item_desc,
-                batch_no: item.batch_id || "",
-                source_inv_category: "In Transit",
-                target_inv_category: "Blocked",
-                received_qty: 1, // 1 unit per serial
-                item_uom: item.received_uom,
-                source_bin: item.location_id,
-                qty_to_putaway: 1,
-                pending_process_qty: 1,
-                putaway_qty: 0,
-                target_location: "",
-                remark: `Serial: ${serial.system_serial_number}`,
-                line_status: "Open",
-                po_no: "",
-                is_split: "No",
-                parent_or_child: "Parent",
-                parent_index: putAwayLineItemData.length,
-                unit_price: item.unit_price,
-                total_price: item.unit_price * 1,
-                qi_no: this.getValue("id"),
-                serial_numbers: serial.system_serial_number,
-              };
+            const failedSerialNumbers = failedSerials
+              .map(serial => serial.system_serial_number)
+              .join(", ");
+            
+            const blockItemData = {
+              line_index: putAwayLineItemData.length + 1,
+              item_code: item.item_id,
+              item_name: item.item_name,
+              item_desc: item.item_desc,
+              batch_no: item.batch_id || "",
+              source_inv_category: "In Transit",
+              target_inv_category: "Blocked",
+              received_qty: failedSerials.length,
+              item_uom: item.received_uom,
+              source_bin: item.location_id,
+              qty_to_putaway: failedSerials.length,
+              pending_process_qty: failedSerials.length,
+              putaway_qty: 0,
+              target_location: "",
+              remark: `Failed inspection - ${failedSerials.length} units`,
+              line_status: "Open",
+              po_no: "",
+              is_split: "No",
+              parent_or_child: "Parent",
+              parent_index: putAwayLineItemData.length,
+              unit_price: item.unit_price,
+              total_price: item.unit_price * failedSerials.length,
+              qi_no: this.getValue("id"),
+              serial_numbers: failedSerialNumbers,
+            };
 
-              putAwayLineItemData.push(blockItemData);
-            }
+            putAwayLineItemData.push(blockItemData);
           }
 
-          // Create putaway entries for passed serials (to Unrestricted)
+          // Create grouped putaway entry for passed serials (to Unrestricted)
           if (passedSerials.length > 0) {
-            for (let i = 0; i < passedSerials.length; i++) {
-              const serial = passedSerials[i];
-              const unrestrictedItemData = {
-                line_index: putAwayLineItemData.length + 1,
-                item_code: item.item_id,
-                item_name: item.item_name,
-                item_desc: item.item_desc,
-                batch_no: item.batch_id || "",
-                source_inv_category: "In Transit",
-                target_inv_category: "Unrestricted",
-                received_qty: 1, // 1 unit per serial
-                item_uom: item.received_uom,
-                source_bin: item.location_id,
-                qty_to_putaway: 1,
-                pending_process_qty: 1,
-                putaway_qty: 0,
-                target_location: "",
-                remark: `Serial: ${serial.system_serial_number}`,
-                line_status: "Open",
-                po_no: "",
-                is_split: "No",
-                parent_or_child: "Parent",
-                parent_index: putAwayLineItemData.length,
-                unit_price: item.unit_price,
-                total_price: item.unit_price * 1,
-                qi_no: this.getValue("id"),
-                serial_numbers: serial.system_serial_number,
-              };
+            const passedSerialNumbers = passedSerials
+              .map(serial => serial.system_serial_number)
+              .join(", ");
+            
+            const unrestrictedItemData = {
+              line_index: putAwayLineItemData.length + 1,
+              item_code: item.item_id,
+              item_name: item.item_name,
+              item_desc: item.item_desc,
+              batch_no: item.batch_id || "",
+              source_inv_category: "In Transit",
+              target_inv_category: "Unrestricted",
+              received_qty: passedSerials.length,
+              item_uom: item.received_uom,
+              source_bin: item.location_id,
+              qty_to_putaway: passedSerials.length,
+              pending_process_qty: passedSerials.length,
+              putaway_qty: 0,
+              target_location: "",
+              remark: `Passed inspection - ${passedSerials.length} units`,
+              line_status: "Open",
+              po_no: "",
+              is_split: "No",
+              parent_or_child: "Parent",
+              parent_index: putAwayLineItemData.length,
+              unit_price: item.unit_price,
+              total_price: item.unit_price * passedSerials.length,
+              qi_no: this.getValue("id"),
+              serial_numbers: passedSerialNumbers,
+            };
 
-              putAwayLineItemData.push(unrestrictedItemData);
-            }
+            putAwayLineItemData.push(unrestrictedItemData);
           }
         }
       } else {
