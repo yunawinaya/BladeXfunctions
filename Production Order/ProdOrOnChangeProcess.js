@@ -98,26 +98,49 @@
         processData.bom_base_qty.toFixed(3)
       );
       // Map material data to BOM format
-      const mappedBomData = await materialList.map((item) => {
-        const wastage = parseFloat(item.wastage) || 0;
+      const mappedBomData = await Promise.all(
+        materialList.map(async (item) => {
+          const wastage = parseFloat(item.wastage) || 0;
 
-        return {
-          material_id: item.bom_material_code,
-          material_name: item.bom_material_name,
-          material_desc: item.material_desc,
-          material_category: item.bom_material_category,
-          material_quantity: parseFloat(
+          let materialQuantity = parseFloat(
             (
               (qtyToProduce / processRouteBaseQty) *
               item.quantity *
               (1 + wastage / 100)
             ).toFixed(3)
-          ),
-          material_uom: item.base_uom,
-          item_process_id: item.item_process_id || null,
-          bin_location_id: item.bin_location || null,
-        };
-      });
+          );
+
+          try {
+            const resItem = await db
+              .collection("Item")
+              .where({
+                id: item.bom_material_code,
+                serial_number_management: 1,
+              })
+              .get();
+
+            if (resItem.data && resItem.data[0]) {
+              materialQuantity = Math.ceil(materialQuantity);
+            }
+          } catch (error) {
+            console.warn(
+              `Error checking serialization for item ${item.bom_material_code}:`,
+              error
+            );
+          }
+
+          return {
+            material_id: item.bom_material_code,
+            material_name: item.bom_material_name,
+            material_desc: item.material_desc,
+            material_category: item.bom_material_category,
+            material_quantity: materialQuantity,
+            material_uom: item.base_uom,
+            item_process_id: item.item_process_id || null,
+            bin_location_id: item.bin_location || null,
+          };
+        })
+      );
 
       console.log("mappedBomData", mappedBomData);
 

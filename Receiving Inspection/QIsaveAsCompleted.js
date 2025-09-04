@@ -298,14 +298,24 @@ const createPutAway = async (data, organizationId) => {
         try {
           serialData = JSON.parse(item.serial_number_data);
         } catch (parseError) {
-          console.error("Error parsing serial number data for putaway:", parseError);
+          console.error(
+            "Error parsing serial number data for putaway:",
+            parseError
+          );
           continue;
         }
 
-        if (serialData.table_serial_number && Array.isArray(serialData.table_serial_number)) {
+        if (
+          serialData.table_serial_number &&
+          Array.isArray(serialData.table_serial_number)
+        ) {
           // Group serial numbers by passed status
-          const passedSerials = serialData.table_serial_number.filter(serial => serial.passed === 1);
-          const failedSerials = serialData.table_serial_number.filter(serial => serial.passed === 0);
+          const passedSerials = serialData.table_serial_number.filter(
+            (serial) => serial.passed === 1
+          );
+          const failedSerials = serialData.table_serial_number.filter(
+            (serial) => serial.passed === 0
+          );
 
           // Create putaway entries for failed serials (to Blocked)
           if (failedSerials.length > 0) {
@@ -335,7 +345,7 @@ const createPutAway = async (data, organizationId) => {
                 unit_price: item.unit_price,
                 total_price: item.unit_price * 1,
                 qi_no: this.getValue("id"),
-                serial_number: serial.system_serial_number,
+                serial_numbers: serial.system_serial_number,
               };
 
               putAwayLineItemData.push(blockItemData);
@@ -370,7 +380,7 @@ const createPutAway = async (data, organizationId) => {
                 unit_price: item.unit_price,
                 total_price: item.unit_price * 1,
                 qi_no: this.getValue("id"),
-                serial_number: serial.system_serial_number,
+                serial_numbers: serial.system_serial_number,
               };
 
               putAwayLineItemData.push(unrestrictedItemData);
@@ -497,7 +507,12 @@ const createPutAway = async (data, organizationId) => {
   }
 };
 
-const processSerializedItemMovements = async (data, mat, itemData, putAwayRequired) => {
+const processSerializedItemMovements = async (
+  data,
+  mat,
+  itemData,
+  putAwayRequired
+) => {
   try {
     if (!mat.serial_number_data) {
       console.log(`No serial number data for item ${mat.item_id}`);
@@ -512,15 +527,19 @@ const processSerializedItemMovements = async (data, mat, itemData, putAwayRequir
       return;
     }
 
-    if (!serialData.table_serial_number || !Array.isArray(serialData.table_serial_number)) {
+    if (
+      !serialData.table_serial_number ||
+      !Array.isArray(serialData.table_serial_number)
+    ) {
       console.log(`No serial number table for item ${mat.item_id}`);
       return;
     }
 
     // Filter out invalid serial numbers
     const validSerials = serialData.table_serial_number.filter(
-      serialItem => serialItem.system_serial_number && 
-                   serialItem.system_serial_number !== "Auto generated serial number"
+      (serialItem) =>
+        serialItem.system_serial_number &&
+        serialItem.system_serial_number !== "Auto generated serial number"
     );
 
     if (validSerials.length === 0) {
@@ -530,7 +549,7 @@ const processSerializedItemMovements = async (data, mat, itemData, putAwayRequir
 
     // Group serials by target category for inventory movement grouping
     const serialGroups = new Map();
-    
+
     // Create OUT movement group (all serials from Quality Inspection)
     const outGroupKey = `${mat.item_id}_${mat.location_id}_${mat.batch_id}_QualityInspection_OUT`;
     serialGroups.set(outGroupKey, {
@@ -538,22 +557,24 @@ const processSerializedItemMovements = async (data, mat, itemData, putAwayRequir
       movement: "OUT",
       serials: [...validSerials],
       targetQtyField: "qualityinsp_qty",
-      operation: "subtract"
+      operation: "subtract",
     });
 
     // Group serials by passed status for IN movements
-    const passedSerials = validSerials.filter(serial => serial.passed === 1);
-    const failedSerials = validSerials.filter(serial => serial.passed === 0);
+    const passedSerials = validSerials.filter((serial) => serial.passed === 1);
+    const failedSerials = validSerials.filter((serial) => serial.passed === 0);
 
     if (passedSerials.length > 0) {
-      const passedCategory = putAwayRequired === 1 ? "In Transit" : "Unrestricted";
+      const passedCategory =
+        putAwayRequired === 1 ? "In Transit" : "Unrestricted";
       const passedGroupKey = `${mat.item_id}_${mat.location_id}_${mat.batch_id}_${passedCategory}_IN`;
       serialGroups.set(passedGroupKey, {
         category: passedCategory,
         movement: "IN",
         serials: passedSerials,
-        targetQtyField: putAwayRequired === 1 ? "intransit_qty" : "unrestricted_qty",
-        operation: "add"
+        targetQtyField:
+          putAwayRequired === 1 ? "intransit_qty" : "unrestricted_qty",
+        operation: "add",
       });
     }
 
@@ -565,7 +586,7 @@ const processSerializedItemMovements = async (data, mat, itemData, putAwayRequir
         movement: "IN",
         serials: failedSerials,
         targetQtyField: putAwayRequired === 1 ? "intransit_qty" : "block_qty",
-        operation: "add"
+        operation: "add",
       });
     }
 
@@ -597,10 +618,12 @@ const processSerializedItemMovements = async (data, mat, itemData, putAwayRequir
         organization_id: data.organization_id,
       };
 
-      const inventoryMovementResult = await db.collection("inventory_movement").add(inventoryMovementData);
-      
+      const inventoryMovementResult = await db
+        .collection("inventory_movement")
+        .add(inventoryMovementData);
+
       // Add small delay and fetch the actual ID
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       const fetchedMovement = await db
         .collection("inventory_movement")
         .where({
@@ -614,9 +637,13 @@ const processSerializedItemMovements = async (data, mat, itemData, putAwayRequir
         })
         .get();
 
-      const actualMovementId = fetchedMovement?.data?.[fetchedMovement.data.length - 1]?.id || inventoryMovementResult.id;
+      const actualMovementId =
+        fetchedMovement?.data?.[fetchedMovement.data.length - 1]?.id ||
+        inventoryMovementResult.id;
 
-      console.log(`Created grouped ${group.movement} inventory movement for ${totalQuantity} serials in ${group.category}`);
+      console.log(
+        `Created grouped ${group.movement} inventory movement for ${totalQuantity} serials in ${group.category}`
+      );
 
       // Create individual serial movement records for each serial in the group
       for (const serialItem of group.serials) {
@@ -643,19 +670,29 @@ const processSerializedItemMovements = async (data, mat, itemData, putAwayRequir
           })
           .get();
 
-        if (serialBalanceQuery && serialBalanceQuery.data && serialBalanceQuery.data.length > 0) {
+        if (
+          serialBalanceQuery &&
+          serialBalanceQuery.data &&
+          serialBalanceQuery.data.length > 0
+        ) {
           const currentBalance = serialBalanceQuery.data[0];
           let updatedBalance;
-          
+
           if (group.operation === "subtract") {
             updatedBalance = {
               ...currentBalance,
-              [group.targetQtyField]: Math.max(0, roundQty(currentBalance[group.targetQtyField] - 1)),
+              [group.targetQtyField]: Math.max(
+                0,
+                roundQty(currentBalance[group.targetQtyField] - 1)
+              ),
             };
-          } else { // add
+          } else {
+            // add
             updatedBalance = {
               ...currentBalance,
-              [group.targetQtyField]: roundQty(currentBalance[group.targetQtyField] + 1),
+              [group.targetQtyField]: roundQty(
+                currentBalance[group.targetQtyField] + 1
+              ),
             };
           }
 
@@ -666,10 +703,14 @@ const processSerializedItemMovements = async (data, mat, itemData, putAwayRequir
         }
       }
 
-      console.log(`Created ${group.serials.length} inv_serial_movement records for ${group.category} ${group.movement}`);
+      console.log(
+        `Created ${group.serials.length} inv_serial_movement records for ${group.category} ${group.movement}`
+      );
     }
 
-    console.log(`Successfully processed ${validSerials.length} serial numbers for item ${mat.item_id} with grouped inventory movements`);
+    console.log(
+      `Successfully processed ${validSerials.length} serial numbers for item ${mat.item_id} with grouped inventory movements`
+    );
   } catch (error) {
     console.error("Error processing serialized item movements:", error);
     throw error;
@@ -701,7 +742,12 @@ const processInventoryMovement = async (data) => {
           // Check if this is a serialized item
           if (mat.is_serialized_item === 1 && mat.serial_number_data) {
             console.log(`Processing serialized item ${mat.item_id}`);
-            await processSerializedItemMovements(data, mat, itemData, putAwayRequired);
+            await processSerializedItemMovements(
+              data,
+              mat,
+              itemData,
+              putAwayRequired
+            );
           } else {
             // Process non-serialized item as before
             await addInventoryMovementData(
@@ -973,14 +1019,18 @@ const addEntry = async (organizationId, entry) => {
         `table_insp_mat.${index}.passed_qty`,
         `table_insp_mat.${index}.failed_qty`
       );
-      
+
       // Validate that both passed_qty and failed_qty can't be 0
       if ((item.passed_qty || 0) === 0 && (item.failed_qty || 0) === 0) {
         this.hideLoading();
-        this.$message.error(`Item ${index + 1}: Both passed quantity and failed quantity cannot be 0. Please specify inspection results.`);
+        this.$message.error(
+          `Item ${
+            index + 1
+          }: Both passed quantity and failed quantity cannot be 0. Please specify inspection results.`
+        );
         return;
       }
-      
+
       data.inspection_pass_fail = `${item.passed_qty} / ${item.failed_qty}`;
     }
 
