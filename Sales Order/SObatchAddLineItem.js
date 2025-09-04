@@ -183,6 +183,8 @@ const fetchUnrestrictedQty = async (
       this.disabled([`table_so.${newIndex}.so_tax_percentage`], false);
     }
 
+    console.log("item", item);
+
     const initialQty = await fetchUnrestrictedQty(
       item.id,
       item.item_batch_management,

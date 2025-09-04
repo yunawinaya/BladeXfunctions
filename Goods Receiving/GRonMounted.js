@@ -188,18 +188,8 @@ const setPlant = async (organizationId) => {
   let plantId = "";
 
   if (deptId === organizationId) {
-    const resPlant = await db
-      .collection("blade_dept")
-      .where({ parent_id: deptId })
-      .get();
-
-    if (!resPlant && resPlant.data.length === 0) {
-      plantId = deptId;
-      this.triggerEvent("onChange_plant");
-    } else {
-      plantId = "";
-      this.disabled(["table_gr"], true);
-    }
+    plantId = "";
+    this.disabled(["table_gr"], true);
   } else {
     plantId = deptId;
   }
@@ -241,9 +231,9 @@ const fetchReceivedQuantity = async () => {
 
 const viewSerialNumber = async () => {
   const tableGR = this.getValue("table_gr");
-  tableGR.forEach((gr, index) => {
+  tableGR.forEach((gr) => {
     if (gr.is_serialized_item === 1) {
-      this.display(`table_gr.${index}.select_serial_number`);
+      this.display(`table_gr.select_serial_number`);
     }
   });
 };
@@ -263,6 +253,25 @@ const viewBaseQty = async () => {
       ]);
     }
   });
+};
+
+const displayAssignedTo = async () => {
+  const plant = await this.getValue("plant_id");
+
+  const resPutAwaySetup = await db
+    .collection("putaway_setup")
+    .where({
+      plant_id: plant,
+      is_deleted: 0,
+      movement_type: "Good Receiving",
+    })
+    .get();
+
+  if (resPutAwaySetup && resPutAwaySetup.data.length > 0) {
+    this.display("assigned_to");
+  } else {
+    this.hide("assigned_to");
+  }
 };
 
 (async () => {
@@ -304,10 +313,13 @@ const viewBaseQty = async () => {
         await fetchReceivedQuantity();
         await viewSerialNumber();
         await viewBaseQty();
+        await displayAssignedTo();
 
         if (status === "Draft") {
           this.triggerEvent("onChange_plant");
           this.hide("button_completed");
+        } else {
+          this.disabled("assigned_to", true);
         }
         break;
 
@@ -316,6 +328,7 @@ const viewBaseQty = async () => {
         await showStatusHTML(status);
         await isViewMode();
         await viewBaseQty();
+        await displayAssignedTo();
         break;
     }
   } catch (error) {

@@ -1977,8 +1977,10 @@ const createOrUpdatePicking = async (
                 // Format serial numbers with line breaks if any exist
                 if (group.serial_numbers.length > 0) {
                   group.serial_numbers = group.serial_numbers.join(", ");
+                  group.is_serialized_item = 1;
                 } else {
                   delete group.serial_numbers;
+                  group.is_serialized_item = 0;
                 }
 
                 updatedPickingItems.push(group);
@@ -2184,8 +2186,10 @@ const createOrUpdatePicking = async (
           // Format serial numbers with line breaks if any exist
           if (group.serial_numbers.length > 0) {
             group.serial_numbers = group.serial_numbers.join(", ");
+            group.is_serialized_item = 1;
           } else {
             delete group.serial_numbers;
+            group.is_serialized_item = 0;
           }
 
           transferOrder.table_picking_items.push(group);

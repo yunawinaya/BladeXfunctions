@@ -195,6 +195,115 @@ const setPlant = async (organizationId) => {
   });
 };
 
+const viewSerialNumber = async () => {
+  const table_picking_items = this.getValue("table_picking_items");
+  const table_picking_records = this.getValue("table_picking_records");
+  if (table_picking_items.length > 0) {
+    for (const picking of table_picking_items) {
+      if (picking.is_serialized_item === 1) {
+        await this.display("table_picking_items.select_serial_number");
+      }
+    }
+  }
+  if (table_picking_records.length > 0) {
+    for (const picking of table_picking_records) {
+      if (picking.serial_numbers !== "" && picking.serial_numbers !== null) {
+        await this.display("table_picking_records.serial_numbers");
+      }
+    }
+  }
+};
+
+const setSerialNumber = async () => {
+  try {
+    const table_picking_items = this.getValue("table_picking_items");
+
+    // Check if table_picking_items exists and is an array
+    if (
+      !Array.isArray(table_picking_items) ||
+      table_picking_items.length === 0
+    ) {
+      console.log("No picking items found or invalid data structure");
+      return;
+    }
+
+    for (const [index, picking] of table_picking_items.entries()) {
+      try {
+        // Check if item is serialized
+        if (picking.is_serialized_item === 1) {
+          console.log(
+            `Processing serialized item at index ${index}:`,
+            picking.item_code || picking.id
+          );
+
+          // Check if serial_numbers exists and is not empty
+          if (
+            !picking.serial_numbers ||
+            picking.serial_numbers === null ||
+            picking.serial_numbers === undefined ||
+            typeof picking.serial_numbers !== "string" ||
+            picking.serial_numbers.trim() === ""
+          ) {
+            console.warn(
+              `No valid serial numbers found for item at index ${index}`
+            );
+            continue;
+          }
+
+          console.log("Picking Serial Numbers", picking.serial_numbers);
+
+          // Split and clean serial numbers
+          const serialNumbers = picking.serial_numbers
+            .split(",")
+            .map((sn) => sn.trim())
+            .filter((sn) => sn !== "");
+
+          if (serialNumbers.length === 0) {
+            console.warn(
+              `No valid serial numbers after processing for item at index ${index}`
+            );
+            continue;
+          }
+
+          console.log(
+            `Setting ${serialNumbers.length} serial numbers for item at index ${index}:`,
+            serialNumbers
+          );
+
+          // Set option data for select dropdown
+          await this.setOptionData(
+            [`table_picking_items.${index}.select_serial_number`],
+            serialNumbers
+          );
+
+          // Set the actual data
+          await this.setData({
+            [`table_picking_items.${index}.select_serial_number`]:
+              serialNumbers,
+          });
+
+          // Disable picked_qty field for serialized items
+          await this.disabled(
+            [`table_picking_items.${index}.picked_qty`],
+            true
+          );
+
+          console.log(
+            `Successfully set serial numbers for item at index ${index}`
+          );
+        }
+      } catch (itemError) {
+        console.error(`Error processing item at index ${index}:`, itemError);
+        // Continue with next item instead of breaking the entire function
+        continue;
+      }
+    }
+  } catch (error) {
+    console.error("Error in setSerialNumber function:", error);
+    // Don't throw error to prevent breaking the entire onMounted flow
+  }
+};
+
 // Main execution function
 (async () => {
   try {
@@ -247,6 +356,8 @@ const setPlant = async (organizationId) => {
         }
         await disabledField(status);
         await showStatusHTML(status);
+        await viewSerialNumber();
+        await setSerialNumber();
         break;
 
       case "View":
@@ -258,6 +369,7 @@ const setPlant = async (organizationId) => {
           "button_inprogress",
           "button_completed",
         ]);
+        await viewSerialNumber();
         break;
     }
   } catch (error) {
