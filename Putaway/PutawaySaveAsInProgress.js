@@ -240,6 +240,22 @@ const validateAndUpdateLineStatuses = (putawayItems) => {
     // Update item
     item.line_status = lineStatus || item.line_status;
     item.pending_process_qty = pending_process_qty;
+
+    // Update serial numbers for serialized items - calculate leftover serial numbers
+    if (item.is_serialized_item === 1 && pending_process_qty > 0) {
+      const leftoverSerialNumbers = calculateLeftoverSerialNumbers(item);
+      item.serial_numbers = leftoverSerialNumbers;
+      console.log(
+        `Updated serial_numbers for partially processed item ${item.item_code}: "${leftoverSerialNumbers}"`
+      );
+    } else if (item.is_serialized_item === 1 && pending_process_qty === 0) {
+      // If fully processed, clear serial numbers
+      item.serial_numbers = "";
+      console.log(
+        `Cleared serial_numbers for fully processed item ${item.item_code}`
+      );
+    }
+
     console.log(`Item ${item.item_code || index} line status: ${lineStatus}`);
 
     return lineStatus;
@@ -292,6 +308,42 @@ const validateAndUpdateLineStatuses = (putawayItems) => {
   }
 
   return { updatedItems, errors };
+};
+
+// Helper function to calculate leftover serial numbers after partial processing
+const calculateLeftoverSerialNumbers = (item) => {
+  // Only process serialized items
+  if (item.is_serialized_item !== 1) {
+    return item.serial_numbers; // Return original if not serialized
+  }
+
+  // Get the original serial numbers and processed serial numbers
+  const originalSerialNumbers = item.serial_numbers
+    ? item.serial_numbers.split(",").map((sn) => sn.trim()).filter((sn) => sn !== "")
+    : [];
+
+  const processedSerialNumbers = Array.isArray(item.select_serial_number)
+    ? item.select_serial_number.map((sn) => sn.trim()).filter((sn) => sn !== "")
+    : [];
+
+  console.log(
+    `Item ${item.item_code}: Original serial numbers: [${originalSerialNumbers.join(", ")}]`
+  );
+  console.log(
+    `Item ${item.item_code}: Processed serial numbers: [${processedSerialNumbers.join(", ")}]`
+  );
+
+  // Calculate leftover serial numbers by removing processed ones
+  const leftoverSerialNumbers = originalSerialNumbers.filter(
+    (originalSN) => !processedSerialNumbers.includes(originalSN)
+  );
+
+  console.log(
+    `Item ${item.item_code}: Leftover serial numbers: [${leftoverSerialNumbers.join(", ")}]`
+  );
+
+  // Return the leftover serial numbers as a comma-separated string
+  return leftoverSerialNumbers.length > 0 ? leftoverSerialNumbers.join(", ") : "";
 };
 
 const addEntry = async (organizationId, toData) => {

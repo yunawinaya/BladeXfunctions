@@ -236,21 +236,69 @@ const viewSerialNumber = async () => {
 };
 
 const setSerialNumber = async () => {
-  const table_putaway_item = this.getValue("table_putaway_item");
-  if (table_putaway_item.length > 0) {
+  try {
+    const table_putaway_item = this.getValue("table_putaway_item");
+    
+    // Check if table_putaway_item exists and is an array
+    if (!Array.isArray(table_putaway_item) || table_putaway_item.length === 0) {
+      console.log("No putaway items found or invalid data structure");
+      return;
+    }
+
     for (const [index, putaway] of table_putaway_item.entries()) {
-      if (putaway.is_serialized_item === 1) {
-        const serialNumbers = putaway.serial_numbers.split(",");
-        await this.setOptionData(
-          [`table_putaway_item.${index}.select_serial_number`],
-          serialNumbers
-        );
-        await this.setData({
-          [`table_putaway_item.${index}.select_serial_number`]: serialNumbers,
-        });
-        await this.disabled([`table_putaway_item.${index}.putaway_qty`], true);
+      try {
+        // Check if item is serialized
+        if (putaway.is_serialized_item === 1) {
+          console.log(`Processing serialized item at index ${index}:`, putaway.item_code || putaway.id);
+          
+          // Check if serial_numbers exists and is not empty
+          if (!putaway.serial_numbers || 
+              putaway.serial_numbers === null || 
+              putaway.serial_numbers === undefined ||
+              typeof putaway.serial_numbers !== 'string' ||
+              putaway.serial_numbers.trim() === '') {
+            console.warn(`No valid serial numbers found for item at index ${index}`);
+            continue;
+          }
+
+          // Split and clean serial numbers
+          const serialNumbers = putaway.serial_numbers
+            .split(",")
+            .map(sn => sn.trim())
+            .filter(sn => sn !== "");
+
+          if (serialNumbers.length === 0) {
+            console.warn(`No valid serial numbers after processing for item at index ${index}`);
+            continue;
+          }
+
+          console.log(`Setting ${serialNumbers.length} serial numbers for item at index ${index}:`, serialNumbers);
+
+          // Set option data for select dropdown
+          await this.setOptionData(
+            [`table_putaway_item.${index}.select_serial_number`],
+            serialNumbers
+          );
+
+          // Set the actual data
+          await this.setData({
+            [`table_putaway_item.${index}.select_serial_number`]: serialNumbers,
+          });
+
+          // Disable putaway_qty field for serialized items
+          await this.disabled([`table_putaway_item.${index}.putaway_qty`], true);
+
+          console.log(`Successfully set serial numbers for item at index ${index}`);
+        }
+      } catch (itemError) {
+        console.error(`Error processing item at index ${index}:`, itemError);
+        // Continue with next item instead of breaking the entire function
+        continue;
       }
     }
+  } catch (error) {
+    console.error("Error in setSerialNumber function:", error);
+    // Don't throw error to prevent breaking the entire onMounted flow
   }
 };
 
