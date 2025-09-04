@@ -115,7 +115,7 @@ const isViewMode = async () => {
 
 const disabledEditField = async (status) => {
   if (status !== "Draft") {
-    await this.disabled(
+    this.disabled(
       [
         "gr_status",
         "organization_id",
@@ -156,7 +156,7 @@ const disabledEditField = async (status) => {
       true
     );
 
-    await this.hide([
+    this.hide([
       "link_billing_address",
       "link_shipping_address",
       "button_save_as_draft",
@@ -165,7 +165,7 @@ const disabledEditField = async (status) => {
     ]);
 
     if (status === "Received") {
-      await this.display(["button_completed"]);
+      this.display(["button_completed"]);
     }
   } else {
     const data = this.getValues();
@@ -176,18 +176,11 @@ const disabledEditField = async (status) => {
           gr.item_batch_no !== "Auto-generated batch number" &&
           gr.item_batch_no !== "-"
         ) {
-          await this.disabled([`table_gr.${index}.item_batch_no`], false);
+          this.disabled([`table_gr.${index}.item_batch_no`], false);
         }
       }
-      if (gr.is_serialized_item === 1) {
-        console.log("enable serialized item, index:", index);
-        await this.display(["table_gr.select_serial_number"]);
-        await this.disabled([`table_gr.${index}.select_serial_number`], false);
-      } else {
-        await this.disabled([`table_gr.${index}.select_serial_number`], true);
-      }
     });
-    await this.disabled("reference_doc", false);
+    this.disabled("reference_doc", false);
   }
 };
 
@@ -216,6 +209,43 @@ const setPlant = async (organizationId) => {
     organization_id: organizationId,
     plant_id: plantId,
     gr_received_by: this.getVarGlobal("nickname"),
+  });
+};
+
+const fetchReceivedQuantity = async () => {
+  const tableGR = this.getValue("table_gr") || [];
+
+  const resPOLineData = await Promise.all(
+    tableGR.map((item) =>
+      db
+        .collection("purchase_order_2ukyuanr_sub")
+        .doc(item.po_line_item_id)
+        .get()
+    )
+  );
+
+  const poLineItemData = resPOLineData.map((response) => response.data[0]);
+
+  const updatedTableGR = tableGR.map((item, index) => {
+    const poLine = poLineItemData[index];
+    const totalReceivedQty = poLine ? poLine.received_qty || 0 : 0;
+    const orderQty = poLine ? poLine.quantity || 0 : 0;
+    const maxReceivableQty = orderQty - totalReceivedQty;
+    return {
+      ...item,
+      to_received_qty: maxReceivableQty,
+    };
+  });
+
+  this.setData({ table_gr: updatedTableGR });
+};
+
+const viewSerialNumber = async () => {
+  const tableGR = this.getValue("table_gr");
+  tableGR.forEach((gr, index) => {
+    if (gr.is_serialized_item === 1) {
+      this.display(`table_gr.${index}.select_serial_number`);
+    }
   });
 };
 
@@ -255,6 +285,8 @@ const setPlant = async (organizationId) => {
         await disabledEditField(status);
         await displayAddress();
         await showStatusHTML(status);
+        await fetchReceivedQuantity();
+        await viewSerialNumber();
 
         if (status === "Draft") {
           this.triggerEvent("onChange_plant");

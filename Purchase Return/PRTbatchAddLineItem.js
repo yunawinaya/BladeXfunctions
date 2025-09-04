@@ -56,11 +56,28 @@ const processData = async (existingPRT, tablePRT) => {
   }
 };
 
+const convertToBaseUOM = (quantity, altUOM, itemData) => {
+  if (!altUOM || altUOM === itemData.based_uom) {
+    return quantity;
+  }
+
+  const uomConversion = itemData.table_uom_conversion?.find(
+    (conv) => conv.alt_uom_id === altUOM
+  );
+
+  if (uomConversion && uomConversion.base_qty) {
+    return quantity * uomConversion.base_qty;
+  }
+
+  return quantity;
+};
+
 (async () => {
   const referenceType = this.getValue(`dialog_select_item.reference_type`);
   const currentItemArray = this.getValue(`dialog_select_item.item_array`);
   let existingPRT = this.getValue("table_prt");
   const previousReferenceType = this.getValue("reference_type");
+  const supplierName = this.getValue("supplier_id");
 
   let tablePRT = [];
   let purchaseOrderNumber = [];
@@ -110,6 +127,24 @@ const processData = async (existingPRT, tablePRT) => {
     return;
   }
 
+  if (supplierName && supplierName !== [...uniqueSuppliers][0]) {
+    await this.$confirm(
+      `You've selected a different supplier than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,
+      "Different Supplier Detected",
+      {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "error",
+        dangerouslyUseHTMLString: true,
+      }
+    ).catch(() => {
+      console.log("User clicked Cancel or closed the dialog");
+      throw new Error();
+    });
+
+    existingPRT = [];
+  }
+
   this.closeDialog("dialog_select_item");
   this.showLoading();
 
@@ -122,16 +157,27 @@ const processData = async (existingPRT, tablePRT) => {
             itemData = await fetchItemData(grItem.item_id);
           }
 
+          let receivedQuantity = grItem.received_qty;
+          let UOM = grItem.item_uom;
+
+          if (itemData && itemData.serial_number_management === 1) {
+            receivedQuantity = convertToBaseUOM(
+              grItem.received_qty,
+              grItem.item_uom,
+              itemData
+            );
+
+            UOM = itemData.based_uom;
+          }
+
           const newtablePRTRecord = {
             material_id: grItem.item_id || null,
             material_name: grItem.item_name,
             material_desc: grItem.item_desc,
             more_desc: grItem.more_desc,
-            received_qty: parseFloat(grItem.received_qty.toFixed(3)),
-            return_quantity: parseFloat(
-              (grItem.received_qty - grItem.return_quantity).toFixed(3)
-            ),
-            return_uom_id: grItem.item_uom,
+            received_qty: parseFloat(receivedQuantity.toFixed(3)),
+            return_quantity: 0,
+            return_uom_id: UOM,
             po_number: grItem.line_po_no,
             gr_number: gr.gr_no,
             gr_date: gr.gr_date,
@@ -158,14 +204,22 @@ const processData = async (existingPRT, tablePRT) => {
 
     case "Item":
       for (const grItem of currentItemArray) {
+        let receivedQuantity = grItem.received_qty;
+        let UOM = grItem.item_uom;
+
+        if (grItem.is_serialized_item === 1) {
+          receivedQuantity = grItem.base_received_qty;
+          UOM = grItem.item.base_item_uom;
+        }
+
         const newtablePRTRecord = {
           material_id: grItem.item.id || null,
           material_name: grItem.item.material_name,
           material_desc: grItem.item_desc,
           more_desc: grItem.more_desc,
-          received_qty: parseFloat(grItem.received_qty.toFixed(3)),
+          received_qty: parseFloat(receivedQuantity.toFixed(3)),
           return_quantity: 0,
-          return_uom_id: grItem.item_uom,
+          return_uom_id: UOM,
           po_number: grItem.purchase_order_id.purchase_order_no,
           gr_number: grItem.goods_receiving_id.gr_no,
           gr_date: grItem.goods_receiving_id.gr_date,
@@ -192,7 +246,7 @@ const processData = async (existingPRT, tablePRT) => {
   tablePRT = tablePRT.filter(
     (prt) =>
       prt.returned_quantity !== prt.received_qty &&
-      !existingPRT.find((prtItem) => prtItem.gr_line_id === gr.gr_line_id)
+      !existingPRT.find((prtItem) => prtItem.gr_line_id === prt.gr_line_id)
   );
 
   const latesttablePRT = [...existingPRT, ...tablePRT];

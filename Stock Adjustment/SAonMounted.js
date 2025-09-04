@@ -150,6 +150,8 @@ const disabledEditField = async (stockAdjustmentStatus) => {
         "plant_id",
         "stock_adjustment",
         "adjustment_remarks",
+        "adjustment_remarks2",
+        "adjustment_remarks3",
         "table_item_balance",
         "reference_documents",
         "stock_adjustment.adjustment_reason",
@@ -231,6 +233,10 @@ const disabledEditField = async (stockAdjustmentStatus) => {
           this.disabled(["adjustment_no"], false);
         } else if (prefixConfig && prefixConfig.is_active === 1) {
           this.disabled(["adjustment_no"], true);
+        }
+
+        if (data.adjustment_type === "Write Off") {
+          this.hide("stock_adjustment.unit_price");
         }
 
         await showStatusHTML(data.stock_adjustment_status);

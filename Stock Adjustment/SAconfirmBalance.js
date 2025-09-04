@@ -50,7 +50,8 @@
     // Filter out items with quantity 0 and sum up sa_quantity values
     const totalSaQuantity = temporaryData
       .filter((item) => {
-        const isValidItem = item.sa_quantity && item.sa_quantity > 0;
+        const isValidItem =
+          item.sa_quantity && item.sa_quantity > 0 ? true : false;
         console.log("Filtering item:", item, "isValidItem:", isValidItem); // Log each filtered item
         return isValidItem;
       })
@@ -320,7 +321,17 @@
         [`dialog_index.table_index`]: filteredDataForSave,
       });
 
-      this.display(`stock_adjustment.${rowIndex}.unit_price`);
+      // Show unit_price only if there are "In" movement types
+      const hasInMovement = filteredDataForSave.some(
+        (item) => item.movement_type === "In"
+      );
+      if (hasInMovement) {
+        this.display(`stock_adjustment.${rowIndex}.unit_price`);
+        this.disabled(`stock_adjustment.${rowIndex}.unit_price`, false);
+      } else {
+        this.hide(`stock_adjustment.${rowIndex}.unit_price`);
+        this.disabled(`stock_adjustment.${rowIndex}.unit_price`, true);
+      }
 
       console.log("temporaryData:", temporaryData); // Already present
       console.log(

@@ -29,7 +29,8 @@ const addOnPO = async (data) => {
   }
   console.log(`[${new Date().toISOString()}] Processing ${items.length} items`);
 
-  const processPromises = items.map(async (item, index) => {
+  // Process items sequentially to ensure proper line number sequencing
+  for (const [index, item] of items.entries()) {
     try {
       // Log item details
       console.log(
@@ -59,7 +60,7 @@ const addOnPO = async (data) => {
             item.item_id
           }`
         );
-        return;
+        continue;
       }
       console.log(`[${new Date().toISOString()}] Item found:`, itemRes.data[0]);
 
@@ -113,7 +114,7 @@ const addOnPO = async (data) => {
         );
       }
 
-      // Prepare onOrderData
+      // Prepare onOrderData with sequential line number
       const onOrderData = {
         purchase_order_number: data.purchase_order_no,
         material_id: item.item_id,
@@ -199,14 +200,11 @@ const addOnPO = async (data) => {
         } (index ${index + 1}):`,
         error
       );
+      // Continue with next item instead of throwing
+      continue;
     }
-  });
+  }
 
-  // Wait for all items to be processed
-  console.log(
-    `[${new Date().toISOString()}] Waiting for all items to be processed`
-  );
-  await Promise.all(processPromises);
   console.log(`[${new Date().toISOString()}] All items processed successfully`);
 };
 
@@ -253,7 +251,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, field) => {
+const validateField = (value, _field) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "number") return value <= 0;
@@ -420,6 +418,16 @@ const addEntry = async (organizationId, entry) => {
       await updatePrefix(organizationId, runningNumber);
 
       entry.purchase_order_no = prefixToShow;
+    } else {
+      const isUnique = await checkUniqueness(
+        entry.purchase_order_no,
+        organizationId
+      );
+      if (!isUnique) {
+        throw new Error(
+          `PO Number "${entry.purchase_order_no}" already exists. Please use a different number.`
+        );
+      }
     }
 
     console.log(this.getValue("po_status"));
@@ -461,6 +469,16 @@ const updateEntry = async (organizationId, entry, purchaseOrderId) => {
         await updatePrefix(organizationId, runningNumber);
 
         entry.purchase_order_no = prefixToShow;
+      } else {
+        const isUnique = await checkUniqueness(
+          entry.purchase_order_no,
+          organizationId
+        );
+        if (!isUnique) {
+          throw new Error(
+            `PO Number "${entry.purchase_order_no}" already exists. Please use a different number.`
+          );
+        }
       }
     }
 
@@ -532,7 +550,7 @@ const updateItemTransactionDate = async (entry) => {
           .collection("Item")
           .doc(item)
           .update({ last_transaction_date: date });
-      } catch (error) {
+      } catch {
         throw new Error(
           `Cannot update last transaction date for item #${index + 1}.`
         );
@@ -561,7 +579,7 @@ const fillbackHeaderFields = async (entry) => {
       poLineItem.po_created_by = this.getVarGlobal("nickname");
     }
     return entry.table_po;
-  } catch (error) {
+  } catch {
     throw new Error("Error processing purchase order.");
   }
 };
@@ -592,7 +610,7 @@ const deleteRelatedGR = async (existingGR) => {
         is_deleted: 1,
       });
     }
-  } catch (error) {
+  } catch {
     throw new Error("Error in deleting associated goods receiving.");
   }
 };
@@ -604,7 +622,7 @@ const deleteRelatedPI = async (existingPI) => {
         is_deleted: 1,
       });
     }
-  } catch (error) {
+  } catch {
     throw new Error("Error in deleting associated purchase invoice.");
   }
 };
@@ -616,6 +634,7 @@ const deleteRelatedPI = async (existingPI) => {
     const requiredFields = [
       { name: "po_supplier_id", label: "Supplier Name" },
       { name: "po_plant", label: "Plant" },
+      { name: "purchase_order_no", label: "PO Number" },
       {
         name: "table_po",
         label: "Item Information",
@@ -629,7 +648,6 @@ const deleteRelatedPI = async (existingPI) => {
     const { quantityFailValFields, itemFailValFields } = await validateQuantity(
       data.table_po
     );
-    await this.validate("purchase_order_no");
 
     if (missingFields.length > 0) {
       this.hideLoading();
@@ -698,6 +716,8 @@ const deleteRelatedPI = async (existingPI) => {
         po_total_tax,
         po_total,
         po_remark,
+        po_remark2,
+        po_remark3,
         po_tnc,
         preq_no,
         preq_id,
@@ -753,6 +773,8 @@ const deleteRelatedPI = async (existingPI) => {
         po_total_tax,
         po_total,
         po_remark,
+        po_remark2,
+        po_remark3,
         po_tnc,
         preq_no,
         preq_id,
