@@ -26,6 +26,271 @@ const showStatusHTML = (status) => {
   }
 };
 
+const CONFIG = {
+  fields: {
+    all: [
+      "stock_movement.item_selection",
+      "stock_movement.view_stock",
+      "stock_movement.transfer_stock",
+      "stock_movement.edit_stock",
+      "stock_movement.total_quantity",
+      "stock_movement.to_recv_qty",
+      "stock_movement.received_quantity",
+      "stock_movement.received_quantity_uom",
+      "stock_movement.quantity_uom",
+      "stock_movement.unit_price",
+      "stock_movement.amount",
+      "stock_movement.location_id",
+      "stock_movement.batch_id",
+      "stock_movement.category",
+      "stock_movement.stock_summary",
+      "movement_reason",
+      "delivery_method",
+      "receiving_operation_faci",
+      "is_production_order",
+    ],
+    buttons: [
+      "button_post",
+      "comp_post_button",
+      "button_inprogress_ift",
+      "button_complete_receive",
+      "button_save_as_draft",
+      "button_issued_ift",
+      "button_completed",
+    ],
+  },
+  hideFields: {
+    Add: ["stock_movement.edit_stock", "stock_movement.view_stock"],
+    View: ["stock_movement.transfer_stock", "stock_movement.edit_stock"],
+    Edit: ["stock_movement.view_stock", "stock_movement.transfer_stock"],
+    "Inter Operation Facility Transfer": [
+      "stock_movement.received_quantity",
+      "stock_movement.category",
+      "stock_movement.received_quantity_uom",
+      "stock_movement.unit_price",
+      "stock_movement.amount",
+      "stock_movement.location_id",
+      "is_production_order",
+      "stock_movement.to_recv_qty",
+      "stock_movement.batch_id",
+    ],
+    "Location Transfer": [
+      "delivery_method",
+      "receiving_operation_faci",
+      "stock_movement.category",
+      "stock_movement.received_quantity",
+      "stock_movement.received_quantity_uom",
+      "stock_movement.unit_price",
+      "stock_movement.amount",
+      "stock_movement.to_recv_qty",
+      "stock_movement.batch_id",
+    ],
+    "Miscellaneous Issue": [
+      "receiving_operation_faci",
+      "delivery_method",
+      "stock_movement.category",
+      "stock_movement.received_quantity",
+      "stock_movement.received_quantity_uom",
+      "stock_movement.unit_price",
+      "stock_movement.amount",
+      "stock_movement.location_id",
+      "is_production_order",
+      "stock_movement.to_recv_qty",
+      "stock_movement.batch_id",
+    ],
+    "Miscellaneous Receipt": [
+      "delivery_method",
+      "receiving_operation_faci",
+      "stock_movement.transfer_stock",
+      "stock_movement.total_quantity",
+      "stock_movement.quantity_uom",
+      "is_production_order",
+      "stock_movement.to_recv_qty",
+      "stock_movement.view_stock",
+      "stock_movement.edit_stock",
+      "stock_movement.stock_summary",
+    ],
+    "Disposal/Scrap": [
+      "receiving_operation_faci",
+      "delivery_method",
+      "stock_movement.category",
+      "stock_movement.received_quantity",
+      "stock_movement.received_quantity_uom",
+      "stock_movement.unit_price",
+      "stock_movement.amount",
+      "stock_movement.location_id",
+      "is_production_order",
+      "stock_movement.to_recv_qty",
+      "stock_movement.batch_id",
+    ],
+    "Inventory Category Transfer Posting": [
+      "receiving_operation_faci",
+      "delivery_method",
+      "movement_reason",
+      "stock_movement.category",
+      "stock_movement.received_quantity",
+      "stock_movement.received_quantity_uom",
+      "stock_movement.unit_price",
+      "stock_movement.amount",
+      "stock_movement.location_id",
+      "is_production_order",
+      "stock_movement.to_recv_qty",
+      "stock_movement.batch_id",
+    ],
+    "Inter Operation Facility Transfer (Receiving)": [
+      "stock_movement.transfer_stock",
+      "stock_movement.amount",
+      "stock_movement.quantity_uom",
+      "is_production_order",
+      "delivery_method",
+      "receiving_operation_faci",
+      "stock_movement.view_stock",
+      "stock_movement.edit_stock",
+      "stock_movement.stock_summary",
+    ],
+    "Good Issue": [
+      "receiving_operation_faci",
+      "delivery_method",
+      "stock_movement.category",
+      "stock_movement.received_quantity",
+      "stock_movement.received_quantity_uom",
+      "stock_movement.unit_price",
+      "stock_movement.amount",
+      "stock_movement.location_id",
+      "stock_movement.to_recv_qty",
+      "stock_movement.batch_id",
+    ],
+    "Production Receipt": [
+      "delivery_method",
+      "receiving_operation_faci",
+      "stock_movement.quantity_uom",
+      "stock_movement.transfer_stock",
+      "stock_movement.total_quantity",
+      "stock_movement.to_recv_qty",
+      "stock_movement.view_stock",
+      "stock_movement.edit_stock",
+      "stock_movement.stock_summary",
+    ],
+  },
+  buttonConfig: {
+    Add: {
+      "Inter Operation Facility Transfer (Receiving)": [
+        "button_save_as_draft",
+        "button_complete_receive",
+      ],
+      "Inter Operation Facility Transfer": [
+        "button_issued_ift",
+        "button_save_as_draft",
+      ],
+      "Location Transfer": ["button_save_as_draft", "button_completed"],
+      "Inventory Category Transfer Posting": [
+        "button_save_as_draft",
+        "button_completed",
+      ],
+      "Miscellaneous Issue": [
+        "button_save_as_draft",
+        "button_completed",
+        "comp_post_button",
+      ],
+      "Good Issue": [
+        "button_save_as_draft",
+        "button_completed",
+        "comp_post_button",
+      ],
+      "Miscellaneous Receipt": [
+        "button_save_as_draft",
+        "button_completed",
+        "comp_post_button",
+      ],
+      "Production Receipt": [
+        "button_save_as_draft",
+        "button_completed",
+        "comp_post_button",
+      ],
+      "Disposal/Scrap": [
+        "button_save_as_draft",
+        "button_completed",
+        "comp_post_button",
+      ],
+    },
+    Edit: {
+      Issued: {
+        "Inter Operation Facility Transfer": ["button_inprogress_ift"],
+      },
+      Completed: {
+        default: ["button_post"],
+      },
+      Created: {
+        "Inter Operation Facility Transfer (Receiving)": [
+          "button_complete_receive",
+        ],
+        "Location Transfer": ["button_completed"],
+      },
+    },
+  },
+};
+
+const configureFields = (movementType, isProductionOrder) => {
+  this.display(CONFIG.fields.all);
+  if (CONFIG.hideFields[movementType]) {
+    this.hide(CONFIG.hideFields[movementType]);
+  }
+
+  if (movementType === "Location Transfer" && isProductionOrder) {
+    this.display(["stock_movement.requested_qty"]);
+  }
+
+  if (movementType === "Inter Operation Facility Transfer (Receiving)") {
+    this.disabled(["stock_movement.received_quantity_uom"], true);
+    this.disabled(["stock_movement.category"], false);
+  }
+
+  const disableFields = [
+    "Location Transfer",
+    "Miscellaneous Issue",
+    "Disposal/Scrap",
+  ];
+  if (disableFields.includes(movementType)) {
+    this.disabled(["stock_movement.total_quantity"], true);
+  }
+};
+
+const configureButtons = (movementType, pageStatus, stockMovementStatus) => {
+  this.hide(CONFIG.fields.buttons);
+
+  if (
+    pageStatus === "Add" ||
+    (stockMovementStatus === "Draft" && pageStatus === "Edit")
+  ) {
+    this.display(
+      CONFIG.buttonConfig.Add[movementType] || [
+        "button_save_as_draft",
+        "button_completed",
+        "comp_post_button",
+      ]
+    );
+  } else if (
+    pageStatus === "Edit" &&
+    CONFIG.buttonConfig.Edit[stockMovementStatus]?.[movementType]
+  ) {
+    this.display(CONFIG.buttonConfig.Edit[stockMovementStatus][movementType]);
+  } else if (
+    pageStatus === "Edit" &&
+    stockMovementStatus === "Completed" &&
+    [
+      "Inter Operation Facility Transfer",
+      "Miscellaneous Issue",
+      "Good Issue",
+      "Miscellaneous Receipt",
+      "Production Receipt",
+      "Disposal/Scrap",
+      "Inter Operation Facility Transfer (Receiving)",
+    ].includes(movementType)
+  ) {
+    this.display(CONFIG.buttonConfig.Edit.Completed.default);
+  }
+};
+
 const checkAccIntegrationType = async (organizationId) => {
   if (organizationId) {
     const resAI = await db
@@ -395,6 +660,14 @@ const filterInvCategory = async (movementType, stockMovement) => {
           await filterInvCategory(data.movement_type, data.stock_movement);
         }
 
+        await configureFields(data.movement_type, data.is_production_order);
+        await configureButtons(
+          data.movement_type,
+          pageStatus,
+          data.stock_movement_status
+        );
+
+        this.hide(CONFIG.hideFields[pageStatus]);
         await filterMovementType();
         await displayDeliveryField();
         await showProductionOrder(data);
@@ -404,11 +677,18 @@ const filterInvCategory = async (movementType, stockMovement) => {
         break;
 
       case "View":
+        await configureFields(data.movement_type, data.is_production_order);
+        await configureButtons(
+          data.movement_type,
+          pageStatus,
+          data.stock_movement_status
+        );
         this.hide([
           "stock_movement.transfer_stock",
           "stock_movement.view_stock",
           "stock_movement.edit_stock",
         ]);
+
         await displayDeliveryField();
         await showStatusHTML(data.stock_movement_status);
         await showProductionOrder(data);
