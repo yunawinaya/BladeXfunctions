@@ -851,6 +851,13 @@ const addEntryWithValidation = async (organizationId, gd, gdStatus) => {
         organizationId
       );
       await updatePrefix(organizationId, runningNumber);
+    } else {
+      const isUnique = await checkUniqueness(gd.delivery_no, organizationId);
+      if (!isUnique) {
+        throw new Error(
+          `GD Number "${gd.delivery_no}" already exists. Please use a different number.`
+        );
+      }
     }
 
     // Step 6: Update related records
@@ -908,6 +915,13 @@ const updateEntryWithValidation = async (
           organizationId
         );
         gd.delivery_no = prefixToShow;
+      } else {
+        const isUnique = await checkUniqueness(gd.delivery_no, organizationId);
+        if (!isUnique) {
+          throw new Error(
+            `GD Number "${gd.delivery_no}" already exists. Please use a different number.`
+          );
+        }
       }
     }
 
@@ -2622,6 +2636,8 @@ const findFieldMessage = (obj) => {
         if (found) return found;
       }
     }
+
+    return obj.toString();
   }
   return null;
 };
@@ -3057,30 +3073,126 @@ const fillbackHeaderFields = async (gd) => {
   }
 };
 
-const checkQuantitiesBySoId = async (tableGD) => {
-  // Step 1: Group by so_id and sum quantities
-  const totalsBySoId = tableGD.reduce((acc, item) => {
-    const { line_so_no, gd_qty } = item;
-    acc[line_so_no] = (acc[line_so_no] || 0) + gd_qty;
-    return acc;
-  }, {});
+const fetchDeliveredQuantity = async () => {
+  const tableGD = this.getValue("table_gd") || [];
 
-  // Step 2: Check for so_ids with total quantity of 0
-  const errors = [];
-  const results = Object.entries(totalsBySoId).map(
-    ([line_so_no, totalQuantity]) => {
-      if (totalQuantity === 0) {
-        errors.push(line_so_no);
-      }
-      return { line_so_no, totalQuantity };
-    }
+  const resSOLineData = await Promise.all(
+    tableGD.map((item) =>
+      db.collection("sales_order_axszx8cj_sub").doc(item.so_line_item_id).get()
+    )
   );
 
-  // Step 3: Return results and errors
-  return {
-    totals: results,
-    errors: errors.length > 0 ? errors : null,
-  };
+  const soLineItemData = resSOLineData.map((response) => response.data[0]);
+
+  const resItem = await Promise.all(
+    tableGD
+      .filter(
+        (item) => item.material_id !== null && item.material_id !== undefined
+      )
+      .map((item) => db.collection("Item").doc(item.material_id).get())
+  );
+
+  const itemData = resItem.map((response) => response.data[0]);
+
+  const inValidDeliverQty = [];
+
+  for (const [index, item] of tableGD.entries()) {
+    const soLine = soLineItemData.find((so) => so.id === item.so_line_item_id);
+    const itemInfo = itemData.find((data) => data.id === item.material_id);
+    if (soLine) {
+      const tolerance = itemInfo ? itemInfo.over_delivery_tolerance || 0 : 0;
+      const maxDeliverableQty =
+        ((soLine.so_quantity || 0) - (soLine.delivered_qty || 0)) *
+        ((100 + tolerance) / 100);
+      if ((item.gd_qty || 0) > maxDeliverableQty) {
+        inValidDeliverQty.push(`#${index + 1}`);
+        this.setData({
+          [`table_gd.${index}.gd_undelivered_qty`]:
+            (soLine.so_quantity || 0) - (soLine.delivered_qty || 0),
+        });
+      }
+    }
+  }
+
+  if (inValidDeliverQty.length > 0) {
+    await this.$alert(
+      `Line${inValidDeliverQty.length > 1 ? "s" : ""} ${inValidDeliverQty.join(
+        ", "
+      )} ha${
+        inValidDeliverQty.length > 1 ? "ve" : "s"
+      } an expected deliver quantity exceeding the maximum deliverable quantity.`,
+      "Invalid Deliver Quantity",
+      {
+        confirmButtonText: "OK",
+        type: "error",
+      }
+    );
+
+    throw new Error("Invalid deliver quantity detected.");
+  }
+};
+
+const processGDLineItem = async (entry) => {
+  const totalQuantity = entry.table_gd.reduce((sum, item) => {
+    const { gd_qty } = item;
+    return sum + (gd_qty || 0); // Handle null/undefined received_qty
+  }, 0);
+
+  if (totalQuantity === 0) {
+    throw new Error("Total deliver quantity is 0.");
+  }
+
+  const zeroQtyArray = [];
+  for (const [index, gd] of entry.table_gd.entries()) {
+    if (gd.gd_qty <= 0) {
+      zeroQtyArray.push(`#${index + 1}`);
+    }
+  }
+
+  if (zeroQtyArray.length > 0) {
+    await this.$confirm(
+      `Line${zeroQtyArray.length > 1 ? "s" : ""} ${zeroQtyArray.join(", ")} ha${
+        zeroQtyArray.length > 1 ? "ve" : "s"
+      } a zero deliver quantity, which may prevent processing.\nIf you proceed, it will delete the row with 0 deliver quantity. \nWould you like to proceed?`,
+      "Zero Deliver Quantity Detected",
+      {
+        confirmButtonText: "OK",
+        cancelButtonText: "Cancel",
+        type: "warning",
+        dangerouslyUseHTMLString: false,
+      }
+    )
+      .then(async () => {
+        console.log("User clicked OK");
+        entry.table_gd = entry.table_gd.filter((item) => item.gd_qty > 0);
+
+        let soID = [];
+        let salesOrderNumber = [];
+
+        for (const gd of entry.table_gd) {
+          soID.push(gd.line_so_id);
+          salesOrderNumber.push(gd.line_so_no);
+        }
+
+        soID = [...new Set(soID)];
+        salesOrderNumber = [...new Set(salesOrderNumber)];
+
+        entry.so_id = soID;
+        entry.so_no = salesOrderNumber.join(", ");
+
+        return entry;
+      })
+      .catch(() => {
+        // Function to execute when the user clicks "Cancel" or closes the dialog
+        console.log("User clicked Cancel or closed the dialog");
+        this.hideLoading();
+        throw new Error("Saving goods delivery cancelled.");
+        // Add your logic to stop or handle cancellation here
+        // Example: this.stopFunction();
+      });
+  }
+
+  return entry;
 };
 
 // Main execution wrapped in an async IIFE
@@ -3109,6 +3221,7 @@ const checkQuantitiesBySoId = async (tableGD) => {
       { name: "plant_id", label: "Plant" },
       { name: "so_id", label: "Sales Order" },
       { name: "delivery_date", label: "Delivery Date" },
+      { name: "delivery_no", label: "Goods Delivery Number" },
       {
         name: "table_gd",
         label: "Item Information",
@@ -3226,7 +3339,7 @@ const checkQuantitiesBySoId = async (tableGD) => {
 
       driver_name,
       driver_contact_no,
-      ic_noic_no,
+      ic_no,
       validity_of_collection,
       vehicle_no,
       pickup_date,
@@ -3250,6 +3363,8 @@ const checkQuantitiesBySoId = async (tableGD) => {
 
       table_gd,
       order_remark,
+      order_remark2,
+      order_remark3,
       billing_address_line_1,
       billing_address_line_2,
       billing_address_line_3,
@@ -3283,6 +3398,7 @@ const checkQuantitiesBySoId = async (tableGD) => {
       is_accurate,
       gd_total,
       reference_type,
+      gd_created_by,
     } = data;
 
     // Prepare goods delivery object
@@ -3307,7 +3423,7 @@ const checkQuantitiesBySoId = async (tableGD) => {
 
       driver_name,
       driver_contact_no,
-      ic_noic_no,
+      ic_no,
       validity_of_collection,
       vehicle_no,
       pickup_date,
@@ -3331,6 +3447,8 @@ const checkQuantitiesBySoId = async (tableGD) => {
 
       table_gd,
       order_remark,
+      order_remark2,
+      order_remark3,
       billing_address_line_1,
       billing_address_line_2,
       billing_address_line_3,
@@ -3364,6 +3482,7 @@ const checkQuantitiesBySoId = async (tableGD) => {
       is_accurate,
       gd_total: parseFloat(gd_total.toFixed(3)),
       reference_type,
+      gd_created_by,
     };
 
     // Clean up undefined/null values
@@ -3373,29 +3492,22 @@ const checkQuantitiesBySoId = async (tableGD) => {
       }
     });
 
-    const result = await checkQuantitiesBySoId(gd.table_gd);
+    const latestGD = await processGDLineItem(gd);
 
-    if (result.errors) {
-      throw new Error(
-        `Total quantity for SO Number ${result.errors.join(
-          ", "
-        )} is 0. Please delete the item with related SO or deliver at least one item with quantity > 0.`
-      );
-    }
-    const latestGD = gd.table_gd.filter((item) => item.gd_qty > 0);
-
-    gd.table_gd = latestGD;
-
-    if (gd.table_gd.length === 0) {
+    if (latestGD.table_gd.length === 0) {
       throw new Error(
         "All Delivered Quantity must not be 0. Please add at lease one item with delivered quantity > 0."
       );
     }
 
-    await fillbackHeaderFields(gd);
+    await fillbackHeaderFields(latestGD);
 
     // Check picking requirements with proper parameters
-    const pickingCheck = await checkPickingStatus(gd, page_status, gdStatus);
+    const pickingCheck = await checkPickingStatus(
+      latestGD,
+      page_status,
+      gdStatus
+    );
 
     if (!pickingCheck.canProceed) {
       this.parentGenerateForm.$alert(pickingCheck.title, pickingCheck.message, {
@@ -3406,21 +3518,21 @@ const checkQuantitiesBySoId = async (tableGD) => {
       return;
     }
 
-    await checkCompletedSO(gd.so_id);
+    await fetchDeliveredQuantity();
 
     // Perform action based on page status
     if (page_status === "Add") {
-      await addEntryWithValidation(organizationId, gd, gdStatus);
+      await addEntryWithValidation(organizationId, latestGD, gdStatus);
     } else if (page_status === "Edit") {
       const goodsDeliveryId = data.id;
       await updateEntryWithValidation(
         organizationId,
-        gd,
+        latestGD,
         gdStatus,
         goodsDeliveryId
       );
       if (gdStatus === "Created") {
-        await updateOnReserveGoodsDelivery(organizationId, gd);
+        await updateOnReserveGoodsDelivery(organizationId, latestGD);
       }
     }
   } catch (error) {

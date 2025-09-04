@@ -841,6 +841,10 @@ const validateInventoryAvailability = async (data, organizationId) => {
           itemBalanceParams.batch_id = batchId;
         }
 
+        if (locationId) {
+          itemBalanceParams.location_id = locationId;
+        }
+
         const balanceQuery = await db
           .collection(balanceCollection)
           .where(itemBalanceParams)
