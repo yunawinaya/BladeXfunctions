@@ -372,7 +372,6 @@ const createPutawayRecords = async (toData, tablePutawayItem) => {
       confirmed_at: new Date().toISOString().slice(0, 19).replace("T", " "),
     };
 
-    // Add serial numbers for serialized items
     if (
       item.is_serialized_item === 1 &&
       item.select_serial_number &&
@@ -381,10 +380,15 @@ const createPutawayRecords = async (toData, tablePutawayItem) => {
       const trimmedSerialNumbers = item.select_serial_number
         .map((sn) => sn.trim())
         .filter((sn) => sn !== "");
-      putawayRecord.serial_numbers = trimmedSerialNumbers.join(", ");
-      console.log(
-        `Added serial numbers to putaway record for ${item.item_code}: ${putawayRecord.serial_numbers}`
-      );
+
+      if (trimmedSerialNumbers.length > 0) {
+        // Show all serial numbers with line breaks for better presentation
+        putawayRecord.serial_numbers = trimmedSerialNumbers.join("\n");
+
+        console.log(
+          `Added ${trimmedSerialNumbers.length} serial numbers to putaway record for ${item.item_code}: ${putawayRecord.serial_numbers}`
+        );
+      }
     }
 
     putawayRecords.push(putawayRecord);

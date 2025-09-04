@@ -1670,6 +1670,13 @@ const addEntry = async (organizationId, gd) => {
 
       runningNumber = newRunningNumber;
       gd.delivery_no = prefixToShow;
+    } else {
+      const isUnique = await checkUniqueness(gd.delivery_no, organizationId);
+      if (!isUnique) {
+        throw new Error(
+          `GD Number "${gd.delivery_no}" already exists. Please use a different number.`
+        );
+      }
     }
 
     // Step 2: VALIDATE INVENTORY AVAILABILITY FIRST
@@ -1713,6 +1720,8 @@ const addEntry = async (organizationId, gd) => {
       throw new Error("Failed to retrieve created goods delivery record");
     }
 
+    await createOnReserveGoodsDelivery(organizationId, gd);
+
     const gdId = createdRecord.data[0].id;
     console.log("Goods delivery created successfully with ID:", gdId);
 
@@ -1744,6 +1753,13 @@ const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
 
         runningNumber = newRunningNumber;
         gd.delivery_no = prefixToShow;
+      }
+    } else {
+      const isUnique = await checkUniqueness(gd.delivery_no, organizationId);
+      if (!isUnique) {
+        throw new Error(
+          `GD Number "${gd.delivery_no}" already exists. Please use a different number.`
+        );
       }
     }
 
@@ -1779,6 +1795,12 @@ const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
     // Step 5: Update prefix counter ONLY after record is successfully updated
     if (gdStatus === "Draft" && prefixData && runningNumber !== null) {
       await updatePrefix(organizationId, runningNumber, "Goods Delivery");
+    }
+
+    if (gdStatus === "Draft" && gd.gd_status === "Created") {
+      await createOnReserveGoodsDelivery(organizationId, gd);
+    } else if (gdStatus === "Created" && gd.gd_status === "Created") {
+      await updateOnReserveGoodsDelivery(organizationId, gd);
     }
 
     console.log("Goods delivery updated successfully");
@@ -2552,6 +2574,65 @@ const checkQuantitiesBySoId = async (tableGD) => {
   };
 };
 
+const fetchDeliveredQuantity = async () => {
+  const tableGD = this.getValue("table_gd") || [];
+
+  const resSOLineData = await Promise.all(
+    tableGD.map((item) =>
+      db.collection("sales_order_axszx8cj_sub").doc(item.so_line_item_id).get()
+    )
+  );
+
+  const soLineItemData = resSOLineData.map((response) => response.data[0]);
+
+  const resItem = await Promise.all(
+    tableGD
+      .filter(
+        (item) => item.material_id !== null && item.material_id !== undefined
+      )
+      .map((item) => db.collection("Item").doc(item.material_id).get())
+  );
+
+  const itemData = resItem.map((response) => response.data[0]);
+
+  const inValidDeliverQty = [];
+
+  for (const [index, item] of tableGD.entries()) {
+    const soLine = soLineItemData.find((so) => so.id === item.so_line_item_id);
+    const itemInfo = itemData.find((data) => data.id === item.material_id);
+    if (soLine) {
+      const tolerance = itemInfo ? itemInfo.over_delivery_tolerance || 0 : 0;
+      const maxDeliverableQty =
+        ((soLine.so_quantity || 0) - (soLine.delivered_qty || 0)) *
+        ((100 + tolerance) / 100);
+      if ((item.gd_qty || 0) > maxDeliverableQty) {
+        inValidDeliverQty.push(`#${index + 1}`);
+        this.setData({
+          [`table_gd.${index}.gd_undelivered_qty`]:
+            (soLine.so_quantity || 0) - (soLine.delivered_qty || 0),
+        });
+      }
+    }
+  }
+
+  if (inValidDeliverQty.length > 0) {
+    await this.$alert(
+      `Line${inValidDeliverQty.length > 1 ? "s" : ""} ${inValidDeliverQty.join(
+        ", "
+      )} ha${
+        inValidDeliverQty.length > 1 ? "ve" : "s"
+      } an expected deliver quantity exceeding the maximum deliverable quantity.`,
+      "Invalid Deliver Quantity",
+      {
+        confirmButtonText: "OK",
+        type: "error",
+      }
+    );
+
+    throw new Error("Invalid deliver quantity detected.");
+  }
+};
+
 // Main execution wrapped in an async IIFE
 (async () => {
   try {
@@ -2564,6 +2645,7 @@ const checkQuantitiesBySoId = async (tableGD) => {
       { name: "customer_name", label: "Customer" },
       { name: "plant_id", label: "Plant" },
       { name: "so_id", label: "Sales Order" },
+      { name: "delivery_no", label: "Goods Delivery Number" },
       {
         name: "table_gd",
         label: "Item Information",
@@ -2583,6 +2665,8 @@ const checkQuantitiesBySoId = async (tableGD) => {
     for (const [index] of data.table_gd.entries()) {
       await this.validate(`table_gd.${index}.gd_qty`);
     }
+
+    await fetchDeliveredQuantity();
 
     // Validate form
     const missingFields = validateForm(data, requiredFields);
@@ -2790,7 +2874,6 @@ const checkQuantitiesBySoId = async (tableGD) => {
       // Perform action based on page status
       if (page_status === "Add") {
         gdId = await addEntry(organizationId, gd);
-        await createOnReserveGoodsDelivery(organizationId, gd);
         shouldHandlePicking = true;
         isPickingUpdate = false;
       } else if (page_status === "Edit") {
@@ -2801,12 +2884,10 @@ const checkQuantitiesBySoId = async (tableGD) => {
           // Draft to Created - create new picking
           shouldHandlePicking = true;
           isPickingUpdate = false;
-          await createOnReserveGoodsDelivery(organizationId, gd);
         } else if (data.gd_status === "Created" && gd.gd_status === "Created") {
           // Created to Created - update existing picking
           shouldHandlePicking = true;
           isPickingUpdate = true;
-          await updateOnReserveGoodsDelivery(organizationId, gd);
         }
 
         await updateEntry(organizationId, gd, gdId, data.gd_status);

@@ -319,7 +319,10 @@ const calculateLeftoverSerialNumbers = (item) => {
 
   // Get the original serial numbers and processed serial numbers
   const originalSerialNumbers = item.serial_numbers
-    ? item.serial_numbers.split(",").map((sn) => sn.trim()).filter((sn) => sn !== "")
+    ? item.serial_numbers
+        .split(",")
+        .map((sn) => sn.trim())
+        .filter((sn) => sn !== "")
     : [];
 
   const processedSerialNumbers = Array.isArray(item.select_serial_number)
@@ -327,10 +330,14 @@ const calculateLeftoverSerialNumbers = (item) => {
     : [];
 
   console.log(
-    `Item ${item.item_code}: Original serial numbers: [${originalSerialNumbers.join(", ")}]`
+    `Item ${
+      item.item_code
+    }: Original serial numbers: [${originalSerialNumbers.join(", ")}]`
   );
   console.log(
-    `Item ${item.item_code}: Processed serial numbers: [${processedSerialNumbers.join(", ")}]`
+    `Item ${
+      item.item_code
+    }: Processed serial numbers: [${processedSerialNumbers.join(", ")}]`
   );
 
   // Calculate leftover serial numbers by removing processed ones
@@ -339,11 +346,15 @@ const calculateLeftoverSerialNumbers = (item) => {
   );
 
   console.log(
-    `Item ${item.item_code}: Leftover serial numbers: [${leftoverSerialNumbers.join(", ")}]`
+    `Item ${
+      item.item_code
+    }: Leftover serial numbers: [${leftoverSerialNumbers.join(", ")}]`
   );
 
   // Return the leftover serial numbers as a comma-separated string
-  return leftoverSerialNumbers.length > 0 ? leftoverSerialNumbers.join(", ") : "";
+  return leftoverSerialNumbers.length > 0
+    ? leftoverSerialNumbers.join(", ")
+    : "";
 };
 
 const addEntry = async (organizationId, toData) => {
@@ -489,10 +500,14 @@ const createPutawayRecords = async (toData, tablePutawayItem) => {
         const trimmedSerialNumbers = item.select_serial_number
           .map((sn) => sn.trim())
           .filter((sn) => sn !== "");
-        putawayRecord.serial_numbers = trimmedSerialNumbers.join(", ");
-        console.log(
-          `Added serial numbers to putaway record for ${item.item_code}: ${putawayRecord.serial_numbers}`
-        );
+
+        if (trimmedSerialNumbers.length > 0) {
+          putawayRecord.serial_numbers = trimmedSerialNumbers.join("\n");
+
+          console.log(
+            `Added ${trimmedSerialNumbers.length} serial numbers to putaway record for ${item.item_code}: ${putawayRecord.serial_numbers}`
+          );
+        }
       }
 
       putawayRecords.push(putawayRecord);
