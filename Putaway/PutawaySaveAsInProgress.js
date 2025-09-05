@@ -709,7 +709,7 @@ const processSerializedItemMovement = async (
 
     if (movementQuery.data && movementQuery.data.length > 0) {
       const movementId = movementQuery.data.sort(
-        (a, b) => new Date(b.created_time) - new Date(a.created_time)
+        (a, b) => new Date(b.create_time) - new Date(a.create_time)
       )[0].id;
       console.log(`Found consolidated movement ID: ${movementId}`);
 

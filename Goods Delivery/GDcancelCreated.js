@@ -365,7 +365,7 @@ const id = this.getValue("goods_delivery_id");
                         // Find the IN and OUT movements
                         const sortedMovements = movementQuery.data.sort(
                           (a, b) =>
-                            new Date(b.created_time) - new Date(a.created_time)
+                            new Date(b.create_time) - new Date(a.create_time)
                         );
 
                         const inMovement = sortedMovements.find(
