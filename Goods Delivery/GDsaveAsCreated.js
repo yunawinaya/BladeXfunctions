@@ -612,6 +612,7 @@ const reverseBalanceChanges = async (
             serial_number: prevTemp.serial_number,
             plant_id: data.plant_id,
             organization_id: organizationId,
+            location_id: prevTemp.location_id,
           };
 
           // Add batch_id if item has batch management

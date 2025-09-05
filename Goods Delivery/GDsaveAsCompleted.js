@@ -1309,6 +1309,7 @@ const processBalanceTable = async (
                   serial_number: temp.serial_number,
                   plant_id: plantId,
                   organization_id: organizationId,
+                  location_id: temp.location_id,
                 };
 
                 if (isBatchManagedItem && temp.batch_id) {
