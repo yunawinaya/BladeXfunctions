@@ -272,7 +272,6 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
 
             newTableGrRecord.base_ordered_qty = baseQty;
             newTableGrRecord.base_ordered_qty_uom = itemData?.based_uom;
-            newTableGrRecord.to_received_qty_uom = itemData?.based_uom;
             newTableGrRecord.base_received_qty_uom = itemData?.based_uom;
             newTableGrRecord.base_item_uom = itemData?.based_uom;
             newTableGrRecord.base_received_qty = parseFloat(
@@ -395,7 +394,6 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
 
             newTableGrRecord.base_ordered_qty = baseQty;
             newTableGrRecord.base_ordered_qty_uom = poItem.item.based_uom;
-            newTableGrRecord.to_received_qty_uom = poItem.item.based_uom;
             newTableGrRecord.base_received_qty_uom = poItem.item.based_uom;
             newTableGrRecord.base_item_uom = poItem.item.based_uom;
             newTableGrRecord.base_received_qty = parseFloat(
