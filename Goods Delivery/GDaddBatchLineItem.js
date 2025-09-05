@@ -1648,14 +1648,14 @@ const createTableGdWithBaseUOM = async (allItems) => {
 };
 
 (async () => {
-  let existingGD = this.getValue("table_gd");
-  console.log("data", this.getValues());
   const referenceType = this.getValue(`dialog_select_item.reference_type`);
   const previousReferenceType = this.getValue("reference_type");
   const currentItemArray = this.getValue(`dialog_select_item.item_array`);
+  let existingGD = this.getValue("dialog_select_item.gd_line_data");
   const customerName = this.getValue("customer_name");
 
-  console.log("existingGD before process", existingGD);
+  console.log("existingGD", existingGD);
+
   let allItems = [];
   let salesOrderNumber = [];
   let soId = [];
@@ -1772,16 +1772,19 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   let newTableGd = await createTableGdWithBaseUOM(allItems);
 
-  console.log("existingGD", existingGD);
-  console.log("newTableGd", newTableGd);
+  // Create unique keys for robust duplicate detection
+  const createUniqueKey = (item) =>
+    `${item.material_id}_${item.so_line_item_id}_${item.line_so_id}`;
+
+  const existingKeys = new Set(existingGD.map(createUniqueKey));
+
   newTableGd = newTableGd.filter(
     (gd) =>
-      gd.gd_undelivered_qty !== 0 &&
-      !existingGD.find(
-        (gdItem) => gdItem.so_line_item_id === gd.so_line_item_id
-      )
+      gd.gd_undelivered_qty !== 0 && !existingKeys.has(createUniqueKey(gd))
   );
 
+  console.log("newTableGd", newTableGd);
+  console.log("existingGD", existingGD);
   const latestTableGD = [...existingGD, ...newTableGd];
   console.log("latestTableGD", latestTableGD);
 
