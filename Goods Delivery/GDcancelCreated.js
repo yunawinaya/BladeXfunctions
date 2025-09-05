@@ -186,7 +186,8 @@ const id = this.getValue("goods_delivery_id");
                 }
 
                 const costingMethod = itemData.material_costing_method;
-                const isSerializedItem = itemData.serial_number_management === 1;
+                const isSerializedItem =
+                  itemData.serial_number_management === 1;
 
                 let unitPrice = item.unit_price;
                 let totalPrice = item.unit_price * altQty;
@@ -286,6 +287,7 @@ const id = this.getValue("goods_delivery_id");
                     serial_number: temp.serial_number,
                     plant_id: gdData.plant_id,
                     organization_id: gdData.organization_id,
+                    location_id: temp.location_id,
                   };
 
                   if (temp.batch_id) {
@@ -322,7 +324,10 @@ const id = this.getValue("goods_delivery_id");
                         .doc(serialBalance.id)
                         .update({
                           unrestricted_qty: currentUnrestricted + cancelQty,
-                          reserved_qty: Math.max(0, currentReserved - cancelQty),
+                          reserved_qty: Math.max(
+                            0,
+                            currentReserved - cancelQty
+                          ),
                           updated_at: new Date(),
                         });
 
@@ -353,12 +358,20 @@ const id = this.getValue("goods_delivery_id");
                         })
                         .get();
 
-                      if (movementQuery.data && movementQuery.data.length >= 2) {
+                      if (
+                        movementQuery.data &&
+                        movementQuery.data.length >= 2
+                      ) {
                         // Find the IN and OUT movements
-                        const inMovement = movementQuery.data.find(
+                        const sortedMovements = movementQuery.data.sort(
+                          (a, b) =>
+                            new Date(b.created_time) - new Date(a.created_time)
+                        );
+
+                        const inMovement = sortedMovements.find(
                           (mov) => mov.movement === "IN"
                         );
-                        const outMovement = movementQuery.data.find(
+                        const outMovement = sortedMovements.find(
                           (mov) => mov.movement === "OUT"
                         );
 

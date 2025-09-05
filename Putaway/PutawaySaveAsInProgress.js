@@ -708,7 +708,9 @@ const processSerializedItemMovement = async (
       .get();
 
     if (movementQuery.data && movementQuery.data.length > 0) {
-      const movementId = movementQuery.data[0].id;
+      const movementId = movementQuery.data.sort(
+        (a, b) => new Date(b.created_time) - new Date(a.created_time)
+      )[0].id;
       console.log(`Found consolidated movement ID: ${movementId}`);
 
       // Create individual inv_serial_movement records for each serial number

@@ -218,6 +218,7 @@ const updateSerialBalance = async (
       serial_number: serialNumber,
       plant_id: plantId,
       organization_id: organizationId,
+      location_id: locationId,
     };
 
     if (batchId) {
@@ -627,8 +628,7 @@ const updateQuantities = async (
     const currentMaterialData = materialDataParam || materialData;
     const currentItem = itemParam || item;
     const currentPlantId = plantIdParam || plant_id;
-    const currentOrganizationId =
-      organizationIdParam || organization_id;
+    const currentOrganizationId = organizationIdParam || organization_id;
 
     if (!currentMaterialData?.id) {
       throw new Error("Invalid material data: material_id is missing");
@@ -641,11 +641,9 @@ const updateQuantities = async (
     const costingMethod = currentMaterialData.material_costing_method;
 
     if (
-      ![
-        "Weighted Average",
-        "First In First Out",
-        "Fixed Cost",
-      ].includes(costingMethod)
+      !["Weighted Average", "First In First Out", "Fixed Cost"].includes(
+        costingMethod
+      )
     ) {
       throw new Error(`Unsupported costing method: ${costingMethod}`);
     }
@@ -683,9 +681,7 @@ const updateQuantities = async (
         .where(waQueryConditions);
 
       const waResponse = await waQuery.get();
-      const waData = Array.isArray(waResponse?.data)
-        ? waResponse.data
-        : [];
+      const waData = Array.isArray(waResponse?.data) ? waResponse.data : [];
 
       if (waData.length > 0) {
         const latestWa = waData.sort(
@@ -701,9 +697,7 @@ const updateQuantities = async (
           newWaQuantity = roundQty(currentQty + quantityChange);
           newWaCostPrice =
             newWaQuantity > 0
-              ? roundPrice(
-                  (currentTotalCost + addedCost) / newWaQuantity
-                )
+              ? roundPrice((currentTotalCost + addedCost) / newWaQuantity)
               : 0;
         } else {
           newWaQuantity = roundQty(currentQty + quantityChange);
@@ -716,14 +710,11 @@ const updateQuantities = async (
           throw new Error("Insufficient WA quantity");
         }
 
-        await db
-          .collection("wa_costing_method")
-          .doc(latestWa.id)
-          .update({
-            wa_quantity: newWaQuantity,
-            wa_cost_price: newWaCostPrice,
-            updated_at: new Date(),
-          });
+        await db.collection("wa_costing_method").doc(latestWa.id).update({
+          wa_quantity: newWaQuantity,
+          wa_cost_price: newWaCostPrice,
+          updated_at: new Date(),
+        });
 
         await logTableState(
           "wa_costing_method",
@@ -771,9 +762,7 @@ const updateQuantities = async (
         : [];
       const lastSequence =
         fifoData.length > 0
-          ? Math.max(
-              ...fifoData.map((record) => record.fifo_sequence || 0)
-            )
+          ? Math.max(...fifoData.map((record) => record.fifo_sequence || 0))
           : 0;
       const newSequence = lastSequence + 1;
 
@@ -805,12 +794,8 @@ const updateQuantities = async (
           for (const fifoRecord of fifoData) {
             if (remainingReduction <= 0) break;
 
-            const available = roundQty(
-              fifoRecord.fifo_available_quantity || 0
-            );
-            const reduction = roundQty(
-              Math.min(available, remainingReduction)
-            );
+            const available = roundQty(fifoRecord.fifo_available_quantity || 0);
+            const reduction = roundQty(Math.min(available, remainingReduction));
             const newAvailable = roundQty(available - reduction);
 
             await db
@@ -821,9 +806,7 @@ const updateQuantities = async (
                 updated_at: new Date(),
               });
 
-            remainingReduction = roundQty(
-              remainingReduction - reduction
-            );
+            remainingReduction = roundQty(remainingReduction - reduction);
           }
 
           if (remainingReduction > 0) {
@@ -832,8 +815,7 @@ const updateQuantities = async (
                 currentMaterialData.id
               }. Available: ${roundQty(
                 fifoData.reduce(
-                  (sum, record) =>
-                    sum + (record.fifo_available_quantity || 0),
+                  (sum, record) => sum + (record.fifo_available_quantity || 0),
                   0
                 )
               )}, Requested: ${roundQty(-quantityChange)}`
@@ -863,9 +845,7 @@ const updateQuantities = async (
       batchId,
     });
     throw new Error(
-      `Failed to update costing method: ${
-        error.message || "Unknown error"
-      }`
+      `Failed to update costing method: ${error.message || "Unknown error"}`
     );
   }
 };
@@ -913,7 +893,6 @@ const updateInventory = (allData) => {
           }
           return; // Skip regular balance processing for serialized items
         }
-
 
         const updateBalance = async (balance) => {
           const categoryMap = {
@@ -1150,7 +1129,7 @@ const updateInventory = (allData) => {
               : materialData.purchase_unit_price || 0;
 
           return updateQuantities(
-            -item.total_quantity, 
+            -item.total_quantity,
             balanceUnitPrice,
             materialData,
             item,
@@ -1204,7 +1183,7 @@ const updateInventory = (allData) => {
               : materialData.purchase_unit_price || 0;
 
           return updateQuantities(
-            netQuantityChange, 
+            netQuantityChange,
             balanceUnitPrice,
             materialData,
             item,
@@ -1301,6 +1280,7 @@ async function preCheckQuantitiesAndCosting(allData, context) {
               serial_number: balance.serial_number,
               plant_id: plant_id,
               organization_id: allData.organization_id,
+              location_id: balance.location_id,
             };
 
             if (materialData.item_batch_management == "1" && balance.batch_id) {

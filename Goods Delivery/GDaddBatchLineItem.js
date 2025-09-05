@@ -1648,11 +1648,14 @@ const createTableGdWithBaseUOM = async (allItems) => {
 };
 
 (async () => {
+  let existingGD = this.getValue("table_gd");
+  console.log("data", this.getValues());
   const referenceType = this.getValue(`dialog_select_item.reference_type`);
   const previousReferenceType = this.getValue("reference_type");
   const currentItemArray = this.getValue(`dialog_select_item.item_array`);
-  let existingGD = this.getValue("table_gd");
+  const customerName = this.getValue("customer_name");
 
+  console.log("existingGD before process", existingGD);
   let allItems = [];
   let salesOrderNumber = [];
   let soId = [];
@@ -1686,11 +1689,10 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   const uniqueCustomer = new Set(
     currentItemArray.map((so) =>
-      referenceType === "Document"
-        ? so.customer_id
-        : so.sales_order.customer_name
+      referenceType === "Document" ? so.customer_id : so.customer_id.id
     )
   );
+
   const allSameCustomer = uniqueCustomer.size === 1;
 
   if (!allSameCustomer) {
@@ -1703,6 +1705,24 @@ const createTableGdWithBaseUOM = async (allItems) => {
       }
     );
     return;
+  }
+
+  if (customerName && customerName !== [...uniqueCustomer][0]) {
+    await this.$confirm(
+      `You've selected a different customer than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,
+      "Different Customer Detected",
+      {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "error",
+        dangerouslyUseHTMLString: true,
+      }
+    ).catch(() => {
+      console.log("User clicked Cancel or closed the dialog");
+      throw new Error();
+    });
+
+    existingGD = [];
   }
 
   this.closeDialog("dialog_select_item");
@@ -1752,6 +1772,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   let newTableGd = await createTableGdWithBaseUOM(allItems);
 
+  console.log("existingGD", existingGD);
+  console.log("newTableGd", newTableGd);
   newTableGd = newTableGd.filter(
     (gd) =>
       gd.gd_undelivered_qty !== 0 &&
@@ -1761,6 +1783,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
   );
 
   const latestTableGD = [...existingGD, ...newTableGd];
+  console.log("latestTableGD", latestTableGD);
 
   const newTableInsufficient = allItems.map((item) => ({
     material_id: item.itemId,

@@ -218,6 +218,7 @@ const updateSerialBalance = async (
       serial_number: serialNumber,
       plant_id: plantId,
       organization_id: organizationId,
+      location_id: locationId,
     };
 
     if (batchId) {
@@ -1279,6 +1280,7 @@ async function preCheckQuantitiesAndCosting(allData, context) {
               serial_number: balance.serial_number,
               plant_id: plant_id,
               organization_id: allData.organization_id,
+              location_id: balance.location_id,
             };
 
             if (materialData.item_batch_management == "1" && balance.batch_id) {

@@ -182,15 +182,11 @@ const disabledField = async (status, pickingStatus) => {
       "link_shipping_address",
       "button_save_as_draft",
       "button_save_as_created",
-      "so_id",
-      "fake_so_id",
     ]);
 
     if (status === "Completed") {
       this.hide(["button_save_as_completed"]);
     }
-
-    this.display(["so_no"]);
   } else {
     if (status === "Created") {
       this.hide(["button_save_as_draft"]);
@@ -204,8 +200,6 @@ const disabledField = async (status, pickingStatus) => {
       ],
       false
     );
-    this.hide(["fake_so_id"]);
-    this.display("so_id");
   }
 };
 
@@ -290,6 +284,7 @@ const setPlant = async (organizationId) => {
       plantId = deptId;
     } else {
       plantId = "";
+      this.disabled("table_gd", true);
     }
   } else {
     plantId = deptId;
@@ -299,6 +294,7 @@ const setPlant = async (organizationId) => {
     organization_id: organizationId,
     plant_id: plantId,
     delivery_date: new Date().toISOString().split("T")[0],
+    gd_created_by: this.getVarGlobal("nickname"),
   });
 };
 
@@ -327,6 +323,11 @@ const disabledSelectStock = async (data) => {
       if (resItem && resItem.data.length > 0) {
         const plant = data.plant_id;
         const itemData = resItem.data[0];
+
+        if (itemData.stock_control === 0 && itemData.show_delivery === 0) {
+          this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+          this.disabled([`table_gd.${index}.gd_qty`], false);
+        }
 
         if (itemData.item_batch_management === 0) {
           if (plant) {
@@ -392,6 +393,30 @@ const setDisplayAssignedTo = async (data) => {
     this.display("assigned_to");
   }
 };
+const fetchDeliveredQuantity = async () => {
+  const tableGD = this.getValue("table_gd") || [];
+
+  const resSOLineData = await Promise.all(
+    tableGD.map((item) =>
+      db.collection("sales_order_axszx8cj_sub").doc(item.so_line_item_id).get()
+    )
+  );
+
+  const soLineItemData = resSOLineData.map((response) => response.data[0]);
+
+  const updatedTableGD = tableGD.map((item, index) => {
+    const soLine = soLineItemData[index];
+    const totalDeliveredQuantity = soLine ? soLine.delivered_qty || 0 : 0;
+    const orderQty = soLine ? soLine.so_quantity || 0 : 0;
+    const maxDeliverableQty = orderQty - totalDeliveredQuantity;
+    return {
+      ...item,
+      gd_undelivered_qty: maxDeliverableQty,
+    };
+  });
+
+  this.setData({ table_gd: updatedTableGD });
+};
 
 // Main execution function
 (async () => {
@@ -440,6 +465,7 @@ const setDisplayAssignedTo = async (data) => {
           await this.display(["address_grid"]);
         }
         await displayDeliveryMethod();
+        await fetchDeliveredQuantity();
         break;
 
       case "View":

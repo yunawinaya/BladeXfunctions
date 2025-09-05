@@ -322,6 +322,7 @@ const updateInventory = async (data, plantId, organizationId) => {
         serial_number: serialNumber,
         plant_id: plantId,
         organization_id: organizationId,
+        location_id: locationId,
       };
 
       if (batchId) {
@@ -1155,6 +1156,7 @@ const validateSerialNumbersForReturn = async (
         serial_number: serialInfo.serialNumber,
         plant_id: plantId,
         organization_id: organizationId,
+        location_id: serialInfo.locationId,
       };
 
       if (serialInfo.batchId) {

@@ -441,6 +441,7 @@ const preCheckMaterialQuantities = async (data) => {
           serial_number: mat.serial_number,
           plant_id: data.plant_id,
           organization_id: data.organization_id,
+          location_id: mat.bin_location_id,
         };
 
         if (matBatchManagement === 1 && mat.batch_id) {
@@ -694,31 +695,34 @@ const updateOutputCosting = async (data, unitPrice, db) => {
 
     const item = itemQuery.data[0];
     const isSerializedItem = item.serial_number_management === 1;
-    
+
     // Handle serialized items differently - they don't use regular balance tables
     if (isSerializedItem) {
       console.log(
         `Processing costing update for serialized item ${data.material_id}`
       );
-      
+
       // For serialized items, update costing tables directly without balance dependency
       // Use data.batch_id if available (passed from the calling function)
       if (item.material_costing_method === "Weighted Average") {
-        console.log(`Processing WA costing for serialized item: material_id=${data.material_id}, batch_management=${item.item_batch_management}, batch_id=${data.batch_id}`);
-        
-        const waQuery = item.item_batch_management === 1 && data.batch_id
-          ? db.collection("wa_costing_method").where({
-              material_id: data.material_id,
-              batch_id: data.batch_id,
-              plant_id: data.plant_id,
-            })
-          : db.collection("wa_costing_method").where({
-              material_id: data.material_id,
-              plant_id: data.plant_id,
-            });
+        console.log(
+          `Processing WA costing for serialized item: material_id=${data.material_id}, batch_management=${item.item_batch_management}, batch_id=${data.batch_id}`
+        );
+
+        const waQuery =
+          item.item_batch_management === 1 && data.batch_id
+            ? db.collection("wa_costing_method").where({
+                material_id: data.material_id,
+                batch_id: data.batch_id,
+                plant_id: data.plant_id,
+              })
+            : db.collection("wa_costing_method").where({
+                material_id: data.material_id,
+                plant_id: data.plant_id,
+              });
 
         const waResult = await waQuery.get();
-        
+
         if (!waResult.data || waResult.data.length === 0) {
           // Create new WA costing record for serialized item
           const newWaRecord = {
@@ -728,9 +732,13 @@ const updateOutputCosting = async (data, unitPrice, db) => {
             wa_cost_price: roundedUnitPrice,
             update_time: new Date().toISOString(),
             is_deleted: 0,
-            ...(item.item_batch_management === 1 ? { batch_id: data.batch_id || null } : {}),
+            ...(item.item_batch_management === 1
+              ? { batch_id: data.batch_id || null }
+              : {}),
           };
-          const waResult = await db.collection("wa_costing_method").add(newWaRecord);
+          const waResult = await db
+            .collection("wa_costing_method")
+            .add(newWaRecord);
           console.log(
             `Created new WA costing record for serialized item ID: ${waResult.id}, wa_quantity: ${data.yield_qty}, wa_cost_price: ${roundedUnitPrice}`
           );
@@ -740,35 +748,51 @@ const updateOutputCosting = async (data, unitPrice, db) => {
           const existingWaQuantity = waRecord.wa_quantity || 0;
           const existingWaCost = waRecord.wa_cost_price || 0;
           const newWaQuantity = existingWaQuantity + data.yield_qty;
-          const newWaCostPrice = Math.round(
-            ((existingWaQuantity * existingWaCost + data.yield_qty * roundedUnitPrice) / newWaQuantity) * 10000
-          ) / 10000;
+          const newWaCostPrice =
+            Math.round(
+              ((existingWaQuantity * existingWaCost +
+                data.yield_qty * roundedUnitPrice) /
+                newWaQuantity) *
+                10000
+            ) / 10000;
 
-          await db.collection("wa_costing_method").doc(waRecord.id).update({
-            wa_quantity: newWaQuantity,
-            wa_cost_price: Number(newWaCostPrice),
-            update_time: new Date().toISOString(),
-          });
+          await db
+            .collection("wa_costing_method")
+            .doc(waRecord.id)
+            .update({
+              wa_quantity: newWaQuantity,
+              wa_cost_price: Number(newWaCostPrice),
+              update_time: new Date().toISOString(),
+            });
           console.log(
             `Updated WA costing record for serialized item ID: ${waRecord.id}, new wa_quantity: ${newWaQuantity}, new wa_cost_price: ${newWaCostPrice}`
           );
         }
       } else if (item.material_costing_method === "First In First Out") {
-        console.log(`Processing FIFO costing for serialized item: material_id=${data.material_id}, batch_management=${item.item_batch_management}, batch_id=${data.batch_id}`);
-        
-        const fifoQuery = item.item_batch_management === 1 && data.batch_id
-          ? db.collection("fifo_costing_history").where({
-              material_id: data.material_id,
-              batch_id: data.batch_id,
-            })
-          : db.collection("fifo_costing_history").where({
-              material_id: data.material_id,
-            });
+        console.log(
+          `Processing FIFO costing for serialized item: material_id=${data.material_id}, batch_management=${item.item_batch_management}, batch_id=${data.batch_id}`
+        );
+
+        const fifoQuery =
+          item.item_batch_management === 1 && data.batch_id
+            ? db.collection("fifo_costing_history").where({
+                material_id: data.material_id,
+                batch_id: data.batch_id,
+              })
+            : db.collection("fifo_costing_history").where({
+                material_id: data.material_id,
+              });
 
         const fifoResponse = await fifoQuery.get();
         let sequenceNumber = 1;
-        if (fifoResponse.data && Array.isArray(fifoResponse.data) && fifoResponse.data.length > 0) {
-          const existingSequences = fifoResponse.data.map((doc) => parseInt(doc.fifo_sequence || 0));
+        if (
+          fifoResponse.data &&
+          Array.isArray(fifoResponse.data) &&
+          fifoResponse.data.length > 0
+        ) {
+          const existingSequences = fifoResponse.data.map((doc) =>
+            parseInt(doc.fifo_sequence || 0)
+          );
           sequenceNumber = Math.max(...existingSequences, 0) + 1;
         }
 
@@ -783,15 +807,19 @@ const updateOutputCosting = async (data, unitPrice, db) => {
           created_at: new Date().toISOString(),
           update_time: new Date().toISOString(),
           is_deleted: 0,
-          ...(item.item_batch_management === 1 ? { batch_id: data.batch_id || null } : {}),
+          ...(item.item_batch_management === 1
+            ? { batch_id: data.batch_id || null }
+            : {}),
         };
 
-        const fifoResultAdd = await db.collection("fifo_costing_history").add(newFifoRecord);
+        const fifoResultAdd = await db
+          .collection("fifo_costing_history")
+          .add(newFifoRecord);
         console.log(
           `Added new FIFO costing record for serialized item ID: ${fifoResultAdd.id}, sequence: ${sequenceNumber}, quantity: ${data.yield_qty}, cost_price: ${roundedUnitPrice}`
         );
       }
-      
+
       return; // Exit early for serialized items
     }
 
@@ -1009,6 +1037,7 @@ const updateSerialBalance = async (
     serial_number: serialNumber,
     plant_id: plantId,
     organization_id: organizationId,
+    location_id: locationId,
   };
 
   if (batchId) {
@@ -1943,8 +1972,12 @@ const handleInventoryBalanceAndMovement = async (
     let producedBatchId = data.batch_id;
 
     if (item_batch_management === 1) {
-      console.log(`Creating batch for ${isSerializedItem ? 'serialized' : 'non-serialized'} item: material_id=${data.material_id}, batch_number=${data.batch_id}`);
-      
+      console.log(
+        `Creating batch for ${
+          isSerializedItem ? "serialized" : "non-serialized"
+        } item: material_id=${data.material_id}, batch_number=${data.batch_id}`
+      );
+
       const batchData = {
         batch_number: data.batch_id || "",
         material_id: data.material_id,
@@ -1964,9 +1997,19 @@ const handleInventoryBalanceAndMovement = async (
       if (resBatch && resBatch.data.length > 0) {
         producedBatchId = await resBatch.data[0].id;
       }
-      console.log(`Created new batch record with ID: ${producedBatchId} for ${isSerializedItem ? 'serialized' : 'non-serialized'} item`);
+      console.log(
+        `Created new batch record with ID: ${producedBatchId} for ${
+          isSerializedItem ? "serialized" : "non-serialized"
+        } item`
+      );
     } else {
-      console.log(`No batch creation needed for ${isSerializedItem ? 'serialized' : 'non-serialized'} item: material_id=${data.material_id} (batch_management=${item_batch_management})`);
+      console.log(
+        `No batch creation needed for ${
+          isSerializedItem ? "serialized" : "non-serialized"
+        } item: material_id=${
+          data.material_id
+        } (batch_management=${item_batch_management})`
+      );
     }
 
     // Skip regular balance updates for serialized items - they are handled in item_serial_balance
@@ -2352,7 +2395,9 @@ const createICTPStockMovement = async (allData) => {
               totalPrice = unitPrice * group.totalQty;
             }
           }
-        } else if (group.materialData.material_costing_method === "First In First Out") {
+        } else if (
+          group.materialData.material_costing_method === "First In First Out"
+        ) {
           const fifoQuery =
             group.materialData.item_batch_management == "1" && group.batch_id
               ? db.collection("fifo_costing_history").where({
@@ -2377,8 +2422,11 @@ const createICTPStockMovement = async (allData) => {
 
             for (const record of sortedRecords) {
               if (remainingQty <= 0) break;
-              
-              const availableQty = Math.min(record.fifo_quantity || 0, remainingQty);
+
+              const availableQty = Math.min(
+                record.fifo_quantity || 0,
+                remainingQty
+              );
               totalCost += availableQty * (record.fifo_cost_price || 0);
               remainingQty -= availableQty;
             }
@@ -2388,7 +2436,9 @@ const createICTPStockMovement = async (allData) => {
               totalPrice = totalCost;
             }
           }
-        } else if (group.materialData.material_costing_method === "Fixed Cost") {
+        } else if (
+          group.materialData.material_costing_method === "Fixed Cost"
+        ) {
           unitPrice = group.materialData.purchase_unit_price || 0;
           totalPrice = unitPrice * group.totalQty;
         }
@@ -2453,7 +2503,7 @@ const createICTPStockMovement = async (allData) => {
 
         // Create OUT movement first (Good Issue - consume materials)
         await db.collection("inventory_movement").add(inventoryMovementOUTData);
-        
+
         // Then create IN movement (Production Receipt - produce output)
         await db.collection("inventory_movement").add(inventoryMovementINData);
 
@@ -2624,7 +2674,9 @@ const createICTPStockMovement = async (allData) => {
             totalPrice = unitPrice * unusedQty;
           }
         }
-      } else if (materialData.material_costing_method === "First In First Out") {
+      } else if (
+        materialData.material_costing_method === "First In First Out"
+      ) {
         const fifoQuery =
           materialData.item_batch_management == "1" && mat.batch_id
             ? db.collection("fifo_costing_history").where({
@@ -2649,8 +2701,11 @@ const createICTPStockMovement = async (allData) => {
 
           for (const record of sortedRecords) {
             if (remainingQty <= 0) break;
-            
-            const availableQty = Math.min(record.fifo_quantity || 0, remainingQty);
+
+            const availableQty = Math.min(
+              record.fifo_quantity || 0,
+              remainingQty
+            );
             totalCost += availableQty * (record.fifo_cost_price || 0);
             remainingQty -= availableQty;
           }
@@ -2723,7 +2778,7 @@ const createICTPStockMovement = async (allData) => {
 
       // Create OUT movement first (Good Issue - consume materials)
       await db.collection("inventory_movement").add(inventoryMovementOUTData);
-      
+
       // Then create IN movement (Production Receipt - produce output)
       await db.collection("inventory_movement").add(inventoryMovementINData);
 
@@ -2846,10 +2901,10 @@ const createICTPStockMovement = async (allData) => {
         const resItem = await db.collection("Item").doc(mat.material_id).get();
         const materialData = resItem?.data[0];
         const unusedQty = mat.material_required_qty - mat.material_actual_qty;
-        
+
         let unitPrice = 0;
         let totalPrice = 0;
-        
+
         if (materialData?.material_costing_method === "Weighted Average") {
           const waQuery =
             materialData.item_batch_management == "1" && mat.batch_id
@@ -2871,7 +2926,9 @@ const createICTPStockMovement = async (allData) => {
               totalPrice = unitPrice * unusedQty;
             }
           }
-        } else if (materialData?.material_costing_method === "First In First Out") {
+        } else if (
+          materialData?.material_costing_method === "First In First Out"
+        ) {
           const fifoQuery =
             materialData.item_batch_management == "1" && mat.batch_id
               ? db.collection("fifo_costing_history").where({
@@ -2896,8 +2953,11 @@ const createICTPStockMovement = async (allData) => {
 
             for (const record of sortedRecords) {
               if (remainingQty <= 0) break;
-              
-              const availableQty = Math.min(record.fifo_quantity || 0, remainingQty);
+
+              const availableQty = Math.min(
+                record.fifo_quantity || 0,
+                remainingQty
+              );
               totalCost += availableQty * (record.fifo_cost_price || 0);
               remainingQty -= availableQty;
             }
@@ -2911,7 +2971,7 @@ const createICTPStockMovement = async (allData) => {
           unitPrice = materialData.purchase_unit_price || 0;
           totalPrice = unitPrice * unusedQty;
         }
-        
+
         // Round to 4 decimal places
         unitPrice = Math.round(unitPrice * 10000) / 10000;
         totalPrice = Math.round(totalPrice * 10000) / 10000;
@@ -2968,8 +3028,10 @@ const createICTPStockMovement = async (allData) => {
         // Calculate pricing for serialized group stock movement line item
         let unitPrice = 0;
         let totalPrice = 0;
-        
-        if (group.materialData?.material_costing_method === "Weighted Average") {
+
+        if (
+          group.materialData?.material_costing_method === "Weighted Average"
+        ) {
           const waQuery =
             group.materialData.item_batch_management == "1" && group.batch_id
               ? db.collection("wa_costing_method").where({
@@ -2990,7 +3052,9 @@ const createICTPStockMovement = async (allData) => {
               totalPrice = unitPrice * group.totalQty;
             }
           }
-        } else if (group.materialData?.material_costing_method === "First In First Out") {
+        } else if (
+          group.materialData?.material_costing_method === "First In First Out"
+        ) {
           const fifoQuery =
             group.materialData.item_batch_management == "1" && group.batch_id
               ? db.collection("fifo_costing_history").where({
@@ -3015,8 +3079,11 @@ const createICTPStockMovement = async (allData) => {
 
             for (const record of sortedRecords) {
               if (remainingQty <= 0) break;
-              
-              const availableQty = Math.min(record.fifo_quantity || 0, remainingQty);
+
+              const availableQty = Math.min(
+                record.fifo_quantity || 0,
+                remainingQty
+              );
               totalCost += availableQty * (record.fifo_cost_price || 0);
               remainingQty -= availableQty;
             }
@@ -3026,11 +3093,13 @@ const createICTPStockMovement = async (allData) => {
               totalPrice = totalCost;
             }
           }
-        } else if (group.materialData?.material_costing_method === "Fixed Cost") {
+        } else if (
+          group.materialData?.material_costing_method === "Fixed Cost"
+        ) {
           unitPrice = group.materialData.purchase_unit_price || 0;
           totalPrice = unitPrice * group.totalQty;
         }
-        
+
         // Round to 4 decimal places
         unitPrice = Math.round(unitPrice * 10000) / 10000;
         totalPrice = Math.round(totalPrice * 10000) / 10000;
