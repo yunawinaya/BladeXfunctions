@@ -1933,7 +1933,7 @@ const createOrUpdatePicking = async (
               // Prepare updated picking items with grouping for serialized items
               const updatedPickingItemGroups = new Map();
 
-              gdData.table_gd.forEach((item) => {
+              gdData.table_gd.forEach((item, gdLineIndex) => {
                 if (item.temp_qty_data && item.material_id) {
                   try {
                     const tempData = parseJsonSafely(item.temp_qty_data);
@@ -1941,10 +1941,10 @@ const createOrUpdatePicking = async (
                     tempData.forEach((tempItem) => {
                       const materialId =
                         tempItem.material_id || item.material_id;
-                      // Create a grouping key based on item, batch, and location
+                      // Create a grouping key based on item, batch, location, and GD line index to prevent merging separate lines
                       const groupKey = `${materialId}_${
                         tempItem.batch_id || "no-batch"
-                      }_${tempItem.location_id}`;
+                      }_${tempItem.location_id}_line${gdLineIndex}`;
 
                       if (!updatedPickingItemGroups.has(groupKey)) {
                         // Create new group
@@ -2145,16 +2145,16 @@ const createOrUpdatePicking = async (
         // Process table items with grouping for serialized items
         const pickingItemGroups = new Map();
 
-        gdData.table_gd.forEach((item) => {
+        gdData.table_gd.forEach((item, gdLineIndex) => {
           if (item.temp_qty_data && item.material_id) {
             try {
               const tempData = parseJsonSafely(item.temp_qty_data);
 
               tempData.forEach((tempItem) => {
-                // Create a grouping key based on item, batch, and location
+                // Create a grouping key based on item, batch, location, and GD line index to prevent merging separate lines
                 const groupKey = `${item.material_id}_${
                   tempItem.batch_id || "no-batch"
-                }_${tempItem.location_id}`;
+                }_${tempItem.location_id}_line${gdLineIndex}`;
 
                 if (!pickingItemGroups.has(groupKey)) {
                   // Create new group
