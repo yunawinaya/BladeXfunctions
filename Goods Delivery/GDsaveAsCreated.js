@@ -2669,6 +2669,10 @@ const fetchDeliveredQuantity = async () => {
   const inValidDeliverQty = [];
 
   for (const [index, item] of tableGD.entries()) {
+    if (!item.material_id || item.material_id === "") {
+      continue;
+    }
+
     const soLine = soLineItemData.find((so) => so.id === item.so_line_item_id);
     const itemInfo = itemData.find((data) => data.id === item.material_id);
     if (soLine) {
