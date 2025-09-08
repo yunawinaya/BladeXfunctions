@@ -1484,11 +1484,14 @@ const processBalanceTable = async (
                   .get();
 
                 if (movementQuery.data && movementQuery.data.length > 0) {
-                  const movementId = movementQuery.data[0].id;
+                  const movementId = movementQuery.data.sort(
+                    (a, b) => new Date(b.create_time) - new Date(a.create_time)
+                  )[0].id;
 
                   createdDocs.push({
                     collection: "inventory_movement",
                     docId: movementId,
+                    groupKey: groupKey,
                   });
 
                   console.log(
@@ -1557,11 +1560,15 @@ const processBalanceTable = async (
                     reservedMovementQuery.data &&
                     reservedMovementQuery.data.length > 0
                   ) {
-                    const reservedMovementId = reservedMovementQuery.data[0].id;
+                    const reservedMovementId = reservedMovementQuery.data.sort(
+                      (a, b) =>
+                        new Date(b.create_time) - new Date(a.create_time)
+                    )[0].id;
 
                     createdDocs.push({
                       collection: "inventory_movement",
                       docId: reservedMovementId,
+                      groupKey: groupKey,
                     });
 
                     console.log(
@@ -1616,11 +1623,15 @@ const processBalanceTable = async (
                     unrestrictedMovementQuery.data.length > 0
                   ) {
                     const unrestrictedMovementId =
-                      unrestrictedMovementQuery.data[0].id;
+                      unrestrictedMovementQuery.data.sort(
+                        (a, b) =>
+                          new Date(b.create_time) - new Date(a.create_time)
+                      )[0].id;
 
                     createdDocs.push({
                       collection: "inventory_movement",
                       docId: unrestrictedMovementId,
+                      groupKey: groupKey,
                     });
 
                     console.log(
@@ -1700,9 +1711,15 @@ const processBalanceTable = async (
                     releaseMovementQuery.data &&
                     releaseMovementQuery.data.length > 0
                   ) {
+                    const movementId = releaseMovementQuery.data.sort(
+                      (a, b) =>
+                        new Date(b.create_time) - new Date(a.create_time)
+                    )[0].id;
+
                     createdDocs.push({
                       collection: "inventory_movement",
-                      docId: releaseMovementQuery.data[0].id,
+                      docId: movementId,
+                      groupKey: groupKey,
                     });
                   }
 
@@ -1731,9 +1748,15 @@ const processBalanceTable = async (
                     returnMovementQuery.data &&
                     returnMovementQuery.data.length > 0
                   ) {
+                    const movementId = returnMovementQuery.data.sort(
+                      (a, b) =>
+                        new Date(b.create_time) - new Date(a.create_time)
+                    )[0].id;
+
                     createdDocs.push({
                       collection: "inventory_movement",
-                      docId: returnMovementQuery.data[0].id,
+                      docId: movementId,
+                      groupKey: groupKey,
                     });
                   }
 
@@ -1778,11 +1801,14 @@ const processBalanceTable = async (
                 .get();
 
               if (movementQuery.data && movementQuery.data.length > 0) {
-                const movementId = movementQuery.data[0].id;
+                const movementId = movementQuery.data.sort(
+                  (a, b) => new Date(b.create_time) - new Date(a.create_time)
+                )[0].id;
 
                 createdDocs.push({
                   collection: "inventory_movement",
                   docId: movementId,
+                  groupKey: groupKey,
                 });
 
                 console.log(
@@ -1797,10 +1823,15 @@ const processBalanceTable = async (
                 `Creating inv_serial_movement records for ${group.items.length} serialized items`
               );
 
-              // Find the inventory movement records we just created that are OUT movements
-              const outMovements = createdDocs.filter(
-                (doc) => doc.collection === "inventory_movement"
+              // Use movements created specifically for this group during the above processing
+              // Filter movements by exact group key to ensure we only get movements for this specific group
+              const currentGroupMovements = createdDocs.filter(
+                (doc) =>
+                  doc.collection === "inventory_movement" &&
+                  doc.groupKey === groupKey // Add groupKey during movement creation
               );
+
+              const outMovements = currentGroupMovements;
 
               console.log(
                 `Found ${outMovements.length} OUT movements to process for serial records`
@@ -1888,7 +1919,11 @@ const processBalanceTable = async (
                           serialMovementQuery.data.length > 0
                         ) {
                           const serialMovementId =
-                            serialMovementQuery.data[0].id;
+                            serialMovementQuery.data.sort(
+                              (a, b) =>
+                                new Date(b.create_time) -
+                                new Date(a.create_time)
+                            )[0].id;
 
                           createdDocs.push({
                             collection: "inv_serial_movement",

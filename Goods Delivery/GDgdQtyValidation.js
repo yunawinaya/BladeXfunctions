@@ -25,7 +25,10 @@ if (Object.keys(window.validationState).length === 0) {
 // Calculate total quantity for this material across all rows
 let currentItemQtyTotal = 0;
 for (let i = 0; i < data.table_gd.length; i++) {
-  if (materialId === data.table_gd[i].material_id) {
+  if (
+    materialId === data.table_gd[i].material_id &&
+    i + 1 === data.table_gd[1].line_index
+  ) {
     currentItemQtyTotal += parseFloat(data.table_gd[i].gd_qty || 0);
   }
 }

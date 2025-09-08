@@ -1220,7 +1220,9 @@ const processItemBalance = async (
 
       let outMovementId = null;
       if (outMovementQuery.data && outMovementQuery.data.length > 0) {
-        outMovementId = outMovementQuery.data[0].id;
+        outMovementId = outMovementQuery.data.sort(
+          (a, b) => new Date(b.create_time) - new Date(a.create_time)
+        )[0].id;
         createdDocs.push({
           collection: "inventory_movement",
           docId: outMovementId,
@@ -1258,7 +1260,9 @@ const processItemBalance = async (
 
       let inMovementId = null;
       if (inMovementQuery.data && inMovementQuery.data.length > 0) {
-        inMovementId = inMovementQuery.data[0].id;
+        inMovementId = inMovementQuery.data.sort(
+          (a, b) => new Date(b.create_time) - new Date(a.create_time)
+        )[0].id;
         createdDocs.push({
           collection: "inventory_movement",
           docId: inMovementId,
@@ -1320,7 +1324,9 @@ const processItemBalance = async (
               outSerialMovementQuery.data &&
               outSerialMovementQuery.data.length > 0
             ) {
-              const outSerialMovementId = outSerialMovementQuery.data[0].id;
+              const outSerialMovementId = outSerialMovementQuery.data.sort(
+                (a, b) => new Date(b.create_time) - new Date(a.create_time)
+              )[0].id;
               createdDocs.push({
                 collection: "inv_serial_movement",
                 docId: outSerialMovementId,
@@ -1362,7 +1368,9 @@ const processItemBalance = async (
               inSerialMovementQuery.data &&
               inSerialMovementQuery.data.length > 0
             ) {
-              const inSerialMovementId = inSerialMovementQuery.data[0].id;
+              const inSerialMovementId = inSerialMovementQuery.data.sort(
+                (a, b) => new Date(b.create_time) - new Date(a.create_time)
+              )[0].id;
               createdDocs.push({
                 collection: "inv_serial_movement",
                 docId: inSerialMovementId,
