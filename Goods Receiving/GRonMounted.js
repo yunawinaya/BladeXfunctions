@@ -231,9 +231,12 @@ const fetchReceivedQuantity = async () => {
 
 const viewSerialNumber = async () => {
   const tableGR = this.getValue("table_gr");
-  tableGR.forEach((gr) => {
+  tableGR.forEach((gr, index) => {
     if (gr.is_serialized_item === 1) {
       this.display(`table_gr.select_serial_number`);
+      this.disabled(`table_gr.${index}.received_qty`, true);
+    } else {
+      this.disabled(`table_gr.${index}.received_qty`, false);
     }
   });
 };
