@@ -577,7 +577,9 @@ const processSerializedItemAdjustment = async (
         .get();
 
       if (movementQuery.data && movementQuery.data.length > 0) {
-        const movementId = movementQuery.data[0].id;
+        const movementId = movementQuery.data.sort(
+          (a, b) => new Date(b.create_time) - new Date(a.create_time)
+        )[0].id;
         console.log(`Retrieved inventory movement ID: ${movementId}`);
 
         // Step 4: Create individual serial movement records for each serial in this group
@@ -1082,7 +1084,9 @@ const updateInventory = (allData) => {
             .get();
 
           if (singleMovementQuery.data && singleMovementQuery.data.length > 0) {
-            const singleMovementId = singleMovementQuery.data[0].id;
+            const singleMovementId = singleMovementQuery.data.sort(
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+            )[0].id;
             console.log(
               `Retrieved single inventory movement ID: ${singleMovementId}`
             );
@@ -1625,16 +1629,38 @@ const addEntry = async (organizationId, sa, self) => {
     ) {
       console.log("Calling SQL Accounting workflow");
 
-      this.runWorkflow(
-        "1909088441531375617",
+      await this.runWorkflow(
+        "1958732352162164738",
         { key: "value" },
-        (res) => {
-          this.$message.success("Add Stock Adjustment successfully");
-          closeDialog();
+        async (res) => {
+          console.log("成功结果：", res);
+          if (res.data.status === "running") {
+            // Run workflow
+            await this.runWorkflow(
+              "1909088441531375617",
+              { key: "value" },
+              (res) => {
+                console.log("成功结果：", res);
+                this.$message.success("Add Stock Adjustment successfully.");
+                closeDialog();
+              },
+              (err) => {
+                console.error("失败结果：", err);
+                this.hideLoading();
+                throw new Error(
+                  "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists."
+                );
+              }
+            );
+          }
         },
         (err) => {
+          console.log("失败结果：", err);
+
           this.hideLoading();
-          this.$message.error("Post PI Failed: ", err);
+          throw new Error(
+            "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists."
+          );
         }
       );
     } else if (
@@ -1701,16 +1727,38 @@ const updateEntry = async (organizationId, sa, self, stockAdjustmentId) => {
     ) {
       console.log("Calling SQL Accounting workflow");
 
-      this.runWorkflow(
-        "1909088441531375617",
+      await this.runWorkflow(
+        "1958732352162164738",
         { key: "value" },
-        (res) => {
-          this.$message.success("Update Stock Adjustment successfully");
-          closeDialog();
+        async (res) => {
+          console.log("成功结果：", res);
+          if (res.data.status === "running") {
+            // Run workflow
+            await this.runWorkflow(
+              "1909088441531375617",
+              { key: "value" },
+              (res) => {
+                console.log("成功结果：", res);
+                this.$message.success("Update Stock Adjustment successfully.");
+                closeDialog();
+              },
+              (err) => {
+                console.error("失败结果：", err);
+                this.hideLoading();
+                throw new Error(
+                  "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists."
+                );
+              }
+            );
+          }
         },
         (err) => {
+          console.log("失败结果：", err);
+
           this.hideLoading();
-          this.$message.error("Post PI Failed: ", err);
+          throw new Error(
+            "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists."
+          );
         }
       );
     } else if (

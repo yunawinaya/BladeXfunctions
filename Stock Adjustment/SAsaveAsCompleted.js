@@ -577,7 +577,9 @@ const processSerializedItemAdjustment = async (
         .get();
 
       if (movementQuery.data && movementQuery.data.length > 0) {
-        const movementId = movementQuery.data[0].id;
+        const movementId = movementQuery.data.sort(
+          (a, b) => new Date(b.create_time) - new Date(a.create_time)
+        )[0].id;
         console.log(`Retrieved inventory movement ID: ${movementId}`);
 
         // Step 4: Create individual serial movement records for each serial in this group
@@ -1082,7 +1084,9 @@ const updateInventory = (allData) => {
             .get();
 
           if (singleMovementQuery.data && singleMovementQuery.data.length > 0) {
-            const singleMovementId = singleMovementQuery.data[0].id;
+            const singleMovementId = singleMovementQuery.data.sort(
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+            )[0].id;
             console.log(
               `Retrieved single inventory movement ID: ${singleMovementId}`
             );
@@ -1496,7 +1500,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, field) => {
+const validateField = (value, _field) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "number") return value <= 0;
@@ -1664,7 +1668,7 @@ const fillbackHeaderFields = async (sa) => {
       saLineItem.line_index = index + 1;
     }
     return sa.stock_adjustment;
-  } catch (error) {
+  } catch {
     throw new Error("Error processing Stock Adjustment.");
   }
 };
