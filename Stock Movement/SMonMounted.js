@@ -578,6 +578,18 @@ const filterInvCategory = async (movementType, stockMovement) => {
   }, 50);
 };
 
+const viewSerialNumber = async () => {
+  const tableSM = this.getValue("stock_movement");
+  tableSM.forEach((sm, index) => {
+    if (sm.is_serialized_item === 1) {
+      this.display(`stock_movement.select_serial_number`);
+      this.disabled(`stock_movement.${index}.received_quantity`, true);
+    } else {
+      this.disabled(`stock_movement.${index}.received_quantity`, false);
+    }
+  });
+};
+
 const hideSerialNumberRecordTab = () => {
   setTimeout(() => {
     const tableSerialNumber = this.getValue("table_sn_records");
@@ -691,6 +703,7 @@ const hideSerialNumberRecordTab = () => {
           data.movement_type == "Miscellaneous Receipt"
         ) {
           await filterInvCategory(data.movement_type, data.stock_movement);
+          await viewSerialNumber();
         }
 
         await configureFields(data.movement_type, data.is_production_order);
