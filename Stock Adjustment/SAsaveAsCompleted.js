@@ -549,8 +549,8 @@ const createSerialMovementRecord = async (
   }
 };
 
-// Main function to process serialized item adjustments
-const processSerializedItemAdjustment = async (
+// Function to process serialized item balances only (without costing updates)
+const processSerializedItemBalancesOnly = async (
   item,
   materialData,
   balanceIndexData,
@@ -560,7 +560,7 @@ const processSerializedItemAdjustment = async (
   allData
 ) => {
   console.log(
-    `Processing serialized item ${item.material_id} with ${balanceIndexData.length} serial balances`
+    `Processing serialized item balances only for ${item.material_id} with ${balanceIndexData.length} serial balances`
   );
 
   const serialBalances = parseBalanceIndexForSerials(balanceIndexData);
@@ -572,60 +572,7 @@ const processSerializedItemAdjustment = async (
     return;
   }
 
-  // Calculate net quantity change for costing updates
-  let netQuantityChange = 0;
-  let totalInCost = 0;
-  let totalInQuantity = 0;
-
-  for (const balance of serialBalances) {
-    if (adjustment_type === "Write Off") {
-      netQuantityChange -= balance.sa_quantity; // Deduct quantity
-    } else if (adjustment_type === "Stock Count") {
-      if (balance.movement_type === "In") {
-        netQuantityChange += balance.sa_quantity; // Add quantity
-        totalInCost += (item.unit_price || 0) * balance.sa_quantity;
-        totalInQuantity += balance.sa_quantity;
-      } else if (balance.movement_type === "Out") {
-        netQuantityChange -= balance.sa_quantity; // Deduct quantity
-      }
-    }
-  }
-
-  console.log(
-    `Serialized item ${item.material_id} net quantity change: ${netQuantityChange}`
-  );
-
-  // Update costing methods (WA/FIFO) for serialized items
-  if (netQuantityChange !== 0) {
-    try {
-      // Calculate weighted average unit price for "In" movements
-      const balanceUnitPrice =
-        totalInQuantity > 0
-          ? totalInCost / totalInQuantity
-          : item.unit_price || materialData.purchase_unit_price || 0;
-
-      console.log(
-        `Updating costing for serialized item ${item.material_id}, quantity change: ${netQuantityChange}, unit price: ${balanceUnitPrice}`
-      );
-
-      await updateQuantities(
-        netQuantityChange,
-        balanceUnitPrice,
-        materialData,
-        item,
-        plant_id,
-        organization_id
-      );
-    } catch (error) {
-      console.error(
-        `Error updating costing for serialized item ${item.material_id}:`,
-        error
-      );
-      throw error;
-    }
-  }
-
-  // Step 1: Update individual serial balances
+  // Process individual serial balances (skip costing updates as they're handled separately)
   for (const balance of serialBalances) {
     const serialNumber = balance.serial_number;
     const batchId =
@@ -674,7 +621,7 @@ const processSerializedItemAdjustment = async (
     }
   }
 
-  // Step 2: Group serial balances by location + batch + category + movement_type for consolidated inventory movements
+  // Create consolidated inventory movements for each group
   const groupedBalances = new Map();
 
   for (const balance of serialBalances) {
@@ -712,7 +659,7 @@ const processSerializedItemAdjustment = async (
     `Grouped ${serialBalances.length} serial balances into ${groupedBalances.size} consolidated inventory movements`
   );
 
-  // Step 3: Create consolidated inventory movements for each group
+  // Create consolidated inventory movements for each group
   for (const [groupKey, group] of groupedBalances) {
     console.log(
       `Creating consolidated inventory movement for group: ${groupKey}, total qty: ${group.total_quantity}`
@@ -799,7 +746,7 @@ const processSerializedItemAdjustment = async (
         )[0].id;
         console.log(`Retrieved inventory movement ID: ${movementId}`);
 
-        // Step 4: Create individual serial movement records for each serial in this group
+        // Create individual serial movement records for each serial in this group
         for (const serialInfo of group.serial_numbers) {
           await createSerialMovementRecord(
             movementId,
@@ -1069,381 +1016,519 @@ const updateQuantities = async (
   }
 };
 
-const updateInventory = (allData) => {
+const updateInventory = async (allData) => {
   const subformData = allData.stock_adjustment;
   const plant_id = allData.plant_id;
   const organization_id = allData.organization_id;
   const adjustment_type = allData.adjustment_type;
   console.log("allData", adjustment_type);
 
-  subformData.forEach((item) => {
-    console.log("Processing item:", item.total_quantity);
+  // First, aggregate costing updates by material to prevent race conditions and ensure correct totals
+  const materialCostingUpdates = new Map(); // key: materialId, value: { netQuantityChange, totalInCost, totalInQuantity, materialData, items }
+
+  // Step 1: Process all items and aggregate costing updates by material
+  for (const item of subformData) {
+    console.log(
+      "Processing item for costing aggregation:",
+      item.total_quantity
+    );
     const balanceIndexData = JSON.parse(item.balance_index);
 
-    db.collection("Item")
-      .where({
-        id: item.material_id,
-      })
-      .get()
-      .then(async (response) => {
-        const materialData = response.data[0];
-        console.log("materialData:", materialData.id);
+    try {
+      const response = await db
+        .collection("Item")
+        .where({ id: item.material_id })
+        .get();
 
-        // Check if item is serialized and handle accordingly
-        if (isSerializedItem(materialData)) {
+      const materialData = response.data[0];
+      console.log("materialData:", materialData.id);
+
+      if (!materialData) {
+        console.error(`Material not found: ${item.material_id}`);
+        continue;
+      }
+
+      // Check if item is serialized and aggregate costing updates
+      if (isSerializedItem(materialData)) {
+        console.log(
+          `Item ${item.material_id} is serialized, aggregating costing updates`
+        );
+
+        const serialBalances = parseBalanceIndexForSerials(balanceIndexData);
+
+        if (serialBalances.length === 0) {
           console.log(
-            `Item ${item.material_id} is serialized, using serial balance processing`
+            `No serial numbers found for serialized item ${item.material_id}`
           );
-          try {
-            await processSerializedItemAdjustment(
-              item,
-              materialData,
-              balanceIndexData,
-              adjustment_type,
-              plant_id,
-              organization_id,
-              allData
-            );
-          } catch (error) {
-            console.error(
-              `Error processing serialized item ${item.material_id}:`,
-              error
-            );
-          }
-          return; // Skip regular balance processing for serialized items
+          continue;
         }
 
-        const updateBalance = async (balance) => {
-          const categoryMap = {
-            Unrestricted: "unrestricted_qty",
-            Reserved: "reserved_qty",
-            "Quality Inspection": "qualityinsp_qty",
-            Blocked: "block_qty",
-          };
+        // Calculate net quantity change for this item
+        let itemNetQuantityChange = 0;
+        let itemTotalInCost = 0;
+        let itemTotalInQuantity = 0;
 
-          const qtyField = categoryMap[balance.category];
-          const qtyChange =
-            balance.movement_type === "In"
-              ? roundQty(balance.sa_quantity)
-              : roundQty(-balance.sa_quantity);
-          const collectionName =
-            materialData.item_batch_management == "1"
-              ? "item_batch_balance"
-              : "item_balance";
+        for (const balance of serialBalances) {
+          if (adjustment_type === "Write Off") {
+            itemNetQuantityChange -= balance.sa_quantity; // Deduct quantity
+          } else if (adjustment_type === "Stock Count") {
+            if (balance.movement_type === "In") {
+              itemNetQuantityChange += balance.sa_quantity; // Add quantity
+              itemTotalInCost += (item.unit_price || 0) * balance.sa_quantity;
+              itemTotalInQuantity += balance.sa_quantity;
+            } else if (balance.movement_type === "Out") {
+              itemNetQuantityChange -= balance.sa_quantity; // Deduct quantity
+            }
+          }
+        }
 
-          const balanceQueryCondition =
-            materialData.item_batch_management == "1" && balance.batch_id
-              ? {
-                  material_id: materialData.id,
-                  location_id: balance.location_id,
-                  batch_id: balance.batch_id,
-                }
-              : {
-                  material_id: materialData.id,
-                  location_id: balance.location_id,
-                };
+        console.log(
+          `Item ${item.material_id} individual net quantity change: ${itemNetQuantityChange}`
+        );
 
-          await logTableState(
-            collectionName,
-            balanceQueryCondition,
-            `Before balance update for material ${materialData.id}, location ${balance.location_id}`
-          );
-
-          const balanceQuery = db
-            .collection(collectionName)
-            .where(balanceQueryCondition);
-
-          let balanceData = null;
-          const response = await balanceQuery.get();
-          balanceData = response.data[0];
-
-          if (!balanceData) {
-            const initialData = {
-              material_id: materialData.id,
-              location_id: balance.location_id,
-              batch_id: balance.batch_id || "",
-              balance_quantity: 0,
-              unrestricted_qty: 0,
-              reserved_qty: 0,
-              qualityinsp_qty: 0,
-              block_qty: 0,
-              plant_id: plant_id,
-              organization_id: organization_id,
-            };
-            await db.collection(collectionName).add(initialData);
-
-            await logTableState(
-              collectionName,
-              balanceQueryCondition`After adding new balance record for material ${materialData.id}, location ${balance.location_id}`
-            );
-
-            const newResponse = await balanceQuery.get();
-            balanceData = newResponse.data[0];
+        // Aggregate costing updates by material
+        if (itemNetQuantityChange !== 0) {
+          if (!materialCostingUpdates.has(item.material_id)) {
+            materialCostingUpdates.set(item.material_id, {
+              netQuantityChange: 0,
+              totalInCost: 0,
+              totalInQuantity: 0,
+              materialData: materialData,
+              items: [],
+            });
           }
 
-          const newBalanceQty = roundQty(
-            balanceData.balance_quantity + qtyChange
+          const costingUpdate = materialCostingUpdates.get(item.material_id);
+          costingUpdate.netQuantityChange += itemNetQuantityChange;
+          costingUpdate.totalInCost += itemTotalInCost;
+          costingUpdate.totalInQuantity += itemTotalInQuantity;
+          costingUpdate.items.push({
+            item: item,
+            balanceIndexData: balanceIndexData,
+            itemNetQuantityChange: itemNetQuantityChange,
+          });
+
+          materialCostingUpdates.set(item.material_id, costingUpdate);
+        }
+      } else {
+        // For non-serialized items, handle individually as before
+        // We'll process these in Step 3
+      }
+    } catch (error) {
+      console.error(`Error processing item ${item.material_id}:`, error);
+    }
+  }
+
+  // Step 2: Apply aggregated costing updates for serialized items
+  for (const [materialId, costingUpdate] of materialCostingUpdates.entries()) {
+    console.log(
+      `Applying aggregated costing update for material ${materialId}: total quantity change ${costingUpdate.netQuantityChange}`
+    );
+
+    try {
+      // Calculate weighted average unit price for "In" movements
+      const balanceUnitPrice =
+        costingUpdate.totalInQuantity > 0
+          ? costingUpdate.totalInCost / costingUpdate.totalInQuantity
+          : costingUpdate.items[0].item.unit_price ||
+            costingUpdate.materialData.purchase_unit_price ||
+            0;
+
+      console.log(
+        `Updating costing for material ${materialId}, aggregated quantity change: ${costingUpdate.netQuantityChange}, unit price: ${balanceUnitPrice}`
+      );
+
+      await updateQuantities(
+        costingUpdate.netQuantityChange,
+        balanceUnitPrice,
+        costingUpdate.materialData,
+        costingUpdate.items[0].item, // Use first item as representative
+        plant_id,
+        organization_id
+      );
+    } catch (error) {
+      console.error(
+        `Error updating aggregated costing for material ${materialId}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  // Step 3: Process individual item balance updates (serial balances, inventory movements) and non-serialized items
+  for (const item of subformData) {
+    console.log("Processing item for balance updates:", item.total_quantity);
+    const balanceIndexData = JSON.parse(item.balance_index);
+
+    try {
+      const response = await db
+        .collection("Item")
+        .where({ id: item.material_id })
+        .get();
+
+      const materialData = response.data[0];
+
+      if (!materialData) {
+        console.error(`Material not found: ${item.material_id}`);
+        continue;
+      }
+
+      // Check if item is serialized and handle accordingly
+      if (isSerializedItem(materialData)) {
+        console.log(
+          `Processing individual serial balances for item ${item.material_id}`
+        );
+        try {
+          // Process only the balance updates and inventory movements, skip costing updates
+          await processSerializedItemBalancesOnly(
+            item,
+            materialData,
+            balanceIndexData,
+            adjustment_type,
+            plant_id,
+            organization_id,
+            allData
           );
-          const newCategoryQty = roundQty(
-            (balanceData[qtyField] || 0) + qtyChange
+        } catch (error) {
+          console.error(
+            `Error processing serialized item balances ${item.material_id}:`,
+            error
           );
-          console.log("newBalanceQty", newBalanceQty);
-          console.log("newCategoryQty", newCategoryQty);
-          if (newBalanceQty < 0 || newCategoryQty < 0) {
-            throw new Error(
-              `Insufficient quantity in ${collectionName} for ${balance.category}`
-            );
-          }
+        }
+        continue; // Skip regular balance processing for serialized items
+      }
 
-          const updateData = {
-            balance_quantity: newBalanceQty,
-            [qtyField]: newCategoryQty,
-          };
-
-          await db
-            .collection(collectionName)
-            .where(balanceQueryCondition)
-            .update(updateData);
-
-          await logTableState(
-            collectionName,
-            balanceQueryCondition,
-            `After balance update for material ${materialData.id}, location ${balance.location_id}`
-          );
-
-          return balanceData;
+      // Handle non-serialized items
+      const updateBalance = async (balance) => {
+        const categoryMap = {
+          Unrestricted: "unrestricted_qty",
+          Reserved: "reserved_qty",
+          "Quality Inspection": "qualityinsp_qty",
+          Blocked: "block_qty",
         };
 
-        const recordInventoryMovement = async (balance) => {
-          const movementType = balance.movement_type === "In" ? "IN" : "OUT";
+        const qtyField = categoryMap[balance.category];
+        const qtyChange =
+          balance.movement_type === "In"
+            ? roundQty(balance.sa_quantity)
+            : roundQty(-balance.sa_quantity);
+        const collectionName =
+          materialData.item_batch_management == "1"
+            ? "item_batch_balance"
+            : "item_balance";
 
-          await logTableState(
-            "inventory_movement",
-            { trx_no: allData.adjustment_no, item_id: item.material_id },
-            `Before adding inventory movement for adjustment ${allData.adjustment_no}, material ${item.material_id}`
-          );
+        const balanceQueryCondition =
+          materialData.item_batch_management == "1" && balance.batch_id
+            ? {
+                material_id: materialData.id,
+                location_id: balance.location_id,
+                batch_id: balance.batch_id,
+              }
+            : {
+                material_id: materialData.id,
+                location_id: balance.location_id,
+              };
 
-          let initialUnitPrice = roundPrice(item.unit_price || 0);
-          let unitPrice = roundPrice(item.unit_price || 0);
-          let totalPrice = roundPrice(item.unit_price * balance.sa_quantity);
+        await logTableState(
+          collectionName,
+          balanceQueryCondition,
+          `Before balance update for material ${materialData.id}, location ${balance.location_id}`
+        );
 
-          const costingMethod = materialData.material_costing_method;
+        const balanceQuery = db
+          .collection(collectionName)
+          .where(balanceQueryCondition);
 
-          if (costingMethod === "First In First Out") {
-            const fifoCostPrice = await getLatestFIFOCostPrice(
-              item.material_id,
-              item.item_batch_no,
-              movementType === "OUT" ? balance.sa_quantity : null
-            );
-            unitPrice = roundPrice(fifoCostPrice);
-            totalPrice = roundPrice(fifoCostPrice * balance.sa_quantity);
-          } else if (costingMethod === "Weighted Average") {
-            // Get unit price from WA cost price
-            const waCostPrice = await getWeightedAverageCostPrice(
-              item.material_id,
-              item.item_batch_no
-            );
-            unitPrice = roundPrice(waCostPrice);
-            totalPrice = roundPrice(waCostPrice * balance.sa_quantity);
-          } else if (costingMethod === "Fixed Cost") {
-            // Get unit price from Fixed Cost
-            const fixedCostPrice = await getFixedCostPrice(item.material_id);
-            unitPrice = roundPrice(fixedCostPrice);
-            totalPrice = roundPrice(fixedCostPrice * balance.sa_quantity);
-          } else {
-            return Promise.resolve();
-          }
+        let balanceData = null;
+        const response = await balanceQuery.get();
+        balanceData = response.data[0];
 
-          const inventoryMovementData = {
-            transaction_type: "SA",
-            trx_no: allData.adjustment_no,
-            parent_trx_no: null,
-            movement: movementType,
-            unit_price: movementType === "IN" ? initialUnitPrice : unitPrice,
-            total_price: totalPrice,
-            quantity: roundQty(balance.sa_quantity),
-            item_id: item.material_id,
-            inventory_category: balance.category,
-            uom_id: materialData.based_uom,
-            base_qty: roundQty(balance.sa_quantity),
-            base_uom_id: materialData.based_uom,
-            bin_location_id: balance.location_id,
-            batch_number_id:
-              materialData.item_batch_management == "1"
-                ? item.item_batch_no
-                : null,
-            costing_method_id: materialData.material_costing_method,
-            created_at: new Date(),
-            adjustment_type: adjustment_type,
+        if (!balanceData) {
+          const initialData = {
+            material_id: materialData.id,
+            location_id: balance.location_id,
+            batch_id: balance.batch_id || "",
+            balance_quantity: 0,
+            unrestricted_qty: 0,
+            reserved_qty: 0,
+            qualityinsp_qty: 0,
+            block_qty: 0,
             plant_id: plant_id,
             organization_id: organization_id,
           };
-
-          await db.collection("inventory_movement").add(inventoryMovementData);
-          console.log("Inventory movement recorded");
-
-          // Wait and fetch the created movement ID
-          await new Promise((resolve) => setTimeout(resolve, 100));
-
-          const singleMovementQuery = await db
-            .collection("inventory_movement")
-            .where({
-              transaction_type: "SA",
-              trx_no: allData.adjustment_no,
-              movement: movementType,
-              inventory_category: balance.category,
-              item_id: item.material_id,
-              bin_location_id: balance.location_id,
-              base_qty: roundQty(balance.sa_quantity),
-              plant_id: plant_id,
-              organization_id: organization_id,
-            })
-            .get();
-
-          if (singleMovementQuery.data && singleMovementQuery.data.length > 0) {
-            const singleMovementId = singleMovementQuery.data.sort(
-              (a, b) => new Date(b.create_time) - new Date(a.create_time)
-            )[0].id;
-            console.log(
-              `Retrieved single inventory movement ID: ${singleMovementId}`
-            );
-
-            // Create serial movement record if item is serialized and has serial number
-            if (isSerializedItem(materialData) && balance.serial_number) {
-              try {
-                await createSerialMovementRecord(
-                  singleMovementId,
-                  balance.serial_number,
-                  materialData.item_batch_management == "1"
-                    ? balance.batch_id
-                    : null,
-                  balance.sa_quantity,
-                  materialData.based_uom,
-                  plant_id,
-                  organization_id
-                );
-              } catch (serialError) {
-                console.error(
-                  `Error creating serial movement for ${balance.serial_number}:`,
-                  serialError
-                );
-              }
-            }
-          } else {
-            console.error("Failed to retrieve single inventory movement");
-          }
+          await db.collection(collectionName).add(initialData);
 
           await logTableState(
-            "inventory_movement",
-            { trx_no: allData.adjustment_no, item_id: item.material_id },
-            `After adding inventory movement for adjustment ${allData.adjustment_no}, material ${item.material_id}`
+            collectionName,
+            balanceQueryCondition`After adding new balance record for material ${materialData.id}, location ${balance.location_id}`
           );
 
-          return invMovementResult;
+          const newResponse = await balanceQuery.get();
+          balanceData = newResponse.data[0];
+        }
+
+        const newBalanceQty = roundQty(
+          balanceData.balance_quantity + qtyChange
+        );
+        const newCategoryQty = roundQty(
+          (balanceData[qtyField] || 0) + qtyChange
+        );
+        console.log("newBalanceQty", newBalanceQty);
+        console.log("newCategoryQty", newCategoryQty);
+        if (newBalanceQty < 0 || newCategoryQty < 0) {
+          throw new Error(
+            `Insufficient quantity in ${collectionName} for ${balance.category}`
+          );
+        }
+
+        const updateData = {
+          balance_quantity: newBalanceQty,
+          [qtyField]: newCategoryQty,
         };
 
-        if (adjustment_type === "Write Off") {
-          // For Write Off, assume unit_price is consistent across balance_index entries
-          const balanceUnitPrice =
-            balanceIndexData && balanceIndexData.length > 0
-              ? item.unit_price || materialData.purchase_unit_price || 0
-              : materialData.purchase_unit_price || 0;
+        await db
+          .collection(collectionName)
+          .where(balanceQueryCondition)
+          .update(updateData);
 
-          return updateQuantities(
-            -item.total_quantity,
-            balanceUnitPrice,
-            materialData,
-            item,
-            plant_id,
-            organization_id
-          )
-            .then(() => {
-              if (balanceIndexData && Array.isArray(balanceIndexData)) {
-                return balanceIndexData
-                  .filter((balance) => balance.sa_quantity > 0)
-                  .reduce((promise, balance) => {
-                    return promise.then(() => {
-                      return updateBalance(balance).then(() => {
-                        return recordInventoryMovement(balance);
-                      });
-                    });
-                  }, Promise.resolve());
-              }
-              return null;
-            })
-            .then((responses) => {
-              if (responses) {
-                console.log("Write Off update responses:", responses);
-              }
-            })
-            .catch((error) => {
-              console.error("Error in Write Off processing:", error);
-              throw error;
-            });
-        } else if (adjustment_type === "Stock Count") {
-          let netQuantityChange = 0;
-          let totalInCost = 0;
-          let totalInQuantity = 0;
-
-          if (balanceIndexData && Array.isArray(balanceIndexData)) {
-            balanceIndexData.forEach((balance) => {
-              if (balance.movement_type === "In") {
-                netQuantityChange += balance.sa_quantity;
-                totalInCost += (item.unit_price || 0) * balance.sa_quantity;
-                totalInQuantity += balance.sa_quantity;
-              } else if (balance.movement_type === "Out") {
-                netQuantityChange -= balance.sa_quantity;
-              }
-            });
-          }
-
-          // Calculate weighted average unit price for "In" movements
-          const balanceUnitPrice =
-            totalInQuantity > 0
-              ? totalInCost / totalInQuantity
-              : materialData.purchase_unit_price || 0;
-
-          return updateQuantities(
-            netQuantityChange,
-            balanceUnitPrice,
-            materialData,
-            item,
-            plant_id,
-            organization_id
-          )
-            .then(() => {
-              if (balanceIndexData && Array.isArray(balanceIndexData)) {
-                return balanceIndexData
-                  .filter((balance) => balance.sa_quantity > 0)
-                  .reduce((promise, balance) => {
-                    return promise.then(() => {
-                      return updateBalance(balance).then(() => {
-                        return recordInventoryMovement(balance);
-                      });
-                    });
-                  }, Promise.resolve());
-              }
-              return null;
-            })
-            .then((responses) => {
-              if (responses) {
-                console.log("Stock Count update responses:", responses);
-              }
-            })
-            .catch((error) => {
-              console.error("Error in Stock Count processing:", error);
-              throw error;
-            });
-        }
-        return Promise.resolve(null);
-      })
-      .catch((error) => {
-        console.error(
-          "Error fetching item data or processing adjustment:",
-          error
+        await logTableState(
+          collectionName,
+          balanceQueryCondition,
+          `After balance update for material ${materialData.id}, location ${balance.location_id}`
         );
-      });
-  });
+
+        return balanceData;
+      };
+
+      const recordInventoryMovement = async (balance) => {
+        const movementType = balance.movement_type === "In" ? "IN" : "OUT";
+
+        await logTableState(
+          "inventory_movement",
+          { trx_no: allData.adjustment_no, item_id: item.material_id },
+          `Before adding inventory movement for adjustment ${allData.adjustment_no}, material ${item.material_id}`
+        );
+
+        let initialUnitPrice = roundPrice(item.unit_price || 0);
+        let unitPrice = roundPrice(item.unit_price || 0);
+        let totalPrice = roundPrice(item.unit_price * balance.sa_quantity);
+
+        const costingMethod = materialData.material_costing_method;
+
+        if (costingMethod === "First In First Out") {
+          const fifoCostPrice = await getLatestFIFOCostPrice(
+            item.material_id,
+            item.item_batch_no,
+            movementType === "OUT" ? balance.sa_quantity : null
+          );
+          unitPrice = roundPrice(fifoCostPrice);
+          totalPrice = roundPrice(fifoCostPrice * balance.sa_quantity);
+        } else if (costingMethod === "Weighted Average") {
+          // Get unit price from WA cost price
+          const waCostPrice = await getWeightedAverageCostPrice(
+            item.material_id,
+            item.item_batch_no
+          );
+          unitPrice = roundPrice(waCostPrice);
+          totalPrice = roundPrice(waCostPrice * balance.sa_quantity);
+        } else if (costingMethod === "Fixed Cost") {
+          // Get unit price from Fixed Cost
+          const fixedCostPrice = await getFixedCostPrice(item.material_id);
+          unitPrice = roundPrice(fixedCostPrice);
+          totalPrice = roundPrice(fixedCostPrice * balance.sa_quantity);
+        } else {
+          return Promise.resolve();
+        }
+
+        const inventoryMovementData = {
+          transaction_type: "SA",
+          trx_no: allData.adjustment_no,
+          parent_trx_no: null,
+          movement: movementType,
+          unit_price: movementType === "IN" ? initialUnitPrice : unitPrice,
+          total_price: totalPrice,
+          quantity: roundQty(balance.sa_quantity),
+          item_id: item.material_id,
+          inventory_category: balance.category,
+          uom_id: materialData.based_uom,
+          base_qty: roundQty(balance.sa_quantity),
+          base_uom_id: materialData.based_uom,
+          bin_location_id: balance.location_id,
+          batch_number_id:
+            materialData.item_batch_management == "1"
+              ? item.item_batch_no
+              : null,
+          costing_method_id: materialData.material_costing_method,
+          created_at: new Date(),
+          adjustment_type: adjustment_type,
+          plant_id: plant_id,
+          organization_id: organization_id,
+        };
+
+        await db.collection("inventory_movement").add(inventoryMovementData);
+        console.log("Inventory movement recorded");
+
+        // Wait and fetch the created movement ID
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const singleMovementQuery = await db
+          .collection("inventory_movement")
+          .where({
+            transaction_type: "SA",
+            trx_no: allData.adjustment_no,
+            movement: movementType,
+            inventory_category: balance.category,
+            item_id: item.material_id,
+            bin_location_id: balance.location_id,
+            base_qty: roundQty(balance.sa_quantity),
+            plant_id: plant_id,
+            organization_id: organization_id,
+          })
+          .get();
+
+        if (singleMovementQuery.data && singleMovementQuery.data.length > 0) {
+          const singleMovementId = singleMovementQuery.data.sort(
+            (a, b) => new Date(b.create_time) - new Date(a.create_time)
+          )[0].id;
+          console.log(
+            `Retrieved single inventory movement ID: ${singleMovementId}`
+          );
+
+          // Create serial movement record if item is serialized and has serial number
+          if (isSerializedItem(materialData) && balance.serial_number) {
+            try {
+              await createSerialMovementRecord(
+                singleMovementId,
+                balance.serial_number,
+                materialData.item_batch_management == "1"
+                  ? balance.batch_id
+                  : null,
+                balance.sa_quantity,
+                materialData.based_uom,
+                plant_id,
+                organization_id
+              );
+            } catch (serialError) {
+              console.error(
+                `Error creating serial movement for ${balance.serial_number}:`,
+                serialError
+              );
+            }
+          }
+        } else {
+          console.error("Failed to retrieve single inventory movement");
+        }
+
+        await logTableState(
+          "inventory_movement",
+          { trx_no: allData.adjustment_no, item_id: item.material_id },
+          `After adding inventory movement for adjustment ${allData.adjustment_no}, material ${item.material_id}`
+        );
+
+        return invMovementResult;
+      };
+
+      if (adjustment_type === "Write Off") {
+        // For Write Off, assume unit_price is consistent across balance_index entries
+        const balanceUnitPrice =
+          balanceIndexData && balanceIndexData.length > 0
+            ? item.unit_price || materialData.purchase_unit_price || 0
+            : materialData.purchase_unit_price || 0;
+
+        return updateQuantities(
+          -item.total_quantity,
+          balanceUnitPrice,
+          materialData,
+          item,
+          plant_id,
+          organization_id
+        )
+          .then(() => {
+            if (balanceIndexData && Array.isArray(balanceIndexData)) {
+              return balanceIndexData
+                .filter((balance) => balance.sa_quantity > 0)
+                .reduce((promise, balance) => {
+                  return promise.then(() => {
+                    return updateBalance(balance).then(() => {
+                      return recordInventoryMovement(balance);
+                    });
+                  });
+                }, Promise.resolve());
+            }
+            return null;
+          })
+          .then((responses) => {
+            if (responses) {
+              console.log("Write Off update responses:", responses);
+            }
+          })
+          .catch((error) => {
+            console.error("Error in Write Off processing:", error);
+            throw error;
+          });
+      } else if (adjustment_type === "Stock Count") {
+        let netQuantityChange = 0;
+        let totalInCost = 0;
+        let totalInQuantity = 0;
+
+        if (balanceIndexData && Array.isArray(balanceIndexData)) {
+          balanceIndexData.forEach((balance) => {
+            if (balance.movement_type === "In") {
+              netQuantityChange += balance.sa_quantity;
+              totalInCost += (item.unit_price || 0) * balance.sa_quantity;
+              totalInQuantity += balance.sa_quantity;
+            } else if (balance.movement_type === "Out") {
+              netQuantityChange -= balance.sa_quantity;
+            }
+          });
+        }
+
+        // Calculate weighted average unit price for "In" movements
+        const balanceUnitPrice =
+          totalInQuantity > 0
+            ? totalInCost / totalInQuantity
+            : materialData.purchase_unit_price || 0;
+
+        return updateQuantities(
+          netQuantityChange,
+          balanceUnitPrice,
+          materialData,
+          item,
+          plant_id,
+          organization_id
+        )
+          .then(() => {
+            if (balanceIndexData && Array.isArray(balanceIndexData)) {
+              return balanceIndexData
+                .filter((balance) => balance.sa_quantity > 0)
+                .reduce((promise, balance) => {
+                  return promise.then(() => {
+                    return updateBalance(balance).then(() => {
+                      return recordInventoryMovement(balance);
+                    });
+                  });
+                }, Promise.resolve());
+            }
+            return null;
+          })
+          .then((responses) => {
+            if (responses) {
+              console.log("Stock Count update responses:", responses);
+            }
+          })
+          .catch((error) => {
+            console.error("Error in Stock Count processing:", error);
+            throw error;
+          });
+      }
+      return Promise.resolve(null);
+    } catch (error) {
+      console.error(
+        "Error fetching item data or processing adjustment:",
+        error
+      );
+    }
+  }
 };
 
 async function preCheckQuantitiesAndCosting(allData, context) {

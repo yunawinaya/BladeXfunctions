@@ -1,6 +1,26 @@
 # Scratchpad
 
-## Current Task: Add duplicate serial number validation to Stock Adjustment
+## Current Task: Fix costing method aggregation for multiple serialized items
+
+### Problem Analysis:
+
+- When processing multiple serialized items with the same material (e.g., MAT123 with SN001 and SN002), the WA/FIFO costing methods were only being updated once instead of aggregating the total quantity
+- User reverted from aggregated approach back to individual processing, causing race conditions and incorrect costing updates
+- Example scenario: Item #1 (MAT123, SN001, Qty:1) + Item #2 (MAT123, SN002, Qty:1) should deduct 2 total from WA/FIFO, but was only deducting 1
+
+### Solution Implemented:
+
+[X] **CRITICAL FIX**: Restored aggregated costing update approach to prevent race conditions and ensure correct totals
+[X] **THREE-STEP PROCESSING**: Implemented proper separation of concerns:
+
+- Step 1: Aggregate costing updates by material across all items
+- Step 2: Apply aggregated costing updates once per material
+- Step 3: Process individual balance updates and inventory movements
+  [X] **NEW FUNCTION**: Created `processSerializedItemBalancesOnly` to handle balance updates without costing
+  [X] **RACE CONDITION FIX**: Prevented multiple async processes from updating same WA/FIFO records simultaneously
+  [X] **QUANTITY AGGREGATION**: Properly aggregates quantities from multiple items with same material before updating costing methods
+
+### Previous Completed Task: Add duplicate serial number validation to Stock Adjustment
 
 ### Problem Analysis:
 
