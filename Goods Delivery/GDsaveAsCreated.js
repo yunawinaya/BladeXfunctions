@@ -1767,13 +1767,13 @@ const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
 
         runningNumber = newRunningNumber;
         gd.delivery_no = prefixToShow;
-      }
-    } else {
-      const isUnique = await checkUniqueness(gd.delivery_no, organizationId);
-      if (!isUnique) {
-        throw new Error(
-          `GD Number "${gd.delivery_no}" already exists. Please use a different number.`
-        );
+      } else {
+        const isUnique = await checkUniqueness(gd.delivery_no, organizationId);
+        if (!isUnique) {
+          throw new Error(
+            `GD Number "${gd.delivery_no}" already exists. Please use a different number.`
+          );
+        }
       }
     }
 
