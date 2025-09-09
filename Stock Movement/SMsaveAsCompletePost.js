@@ -385,8 +385,11 @@ class StockAdjuster {
         );
 
         // For production orders, items should go to Reserved category at destination
-        const destinationCategory = data.is_production_order === 1 ? "Reserved" : (balance.category || "Unrestricted");
-        
+        const destinationCategory =
+          data.is_production_order === 1
+            ? "Reserved"
+            : balance.category || "Unrestricted";
+
         await this.createOrUpdateReceivingSerialBalance(
           item.item_selection,
           balance.serial_number,
@@ -1057,8 +1060,16 @@ class StockAdjuster {
       this.validateRequiredFields(
         item,
         ["item_selection"],
-        `for item ${item.item_selection || "unknown"}`
+        `for item ${item.item_name || "unknown"}`
       );
+
+      if (movementType === "Miscellaneous Receipt") {
+        this.validateRequiredFields(
+          item,
+          ["category"],
+          `for item ${item.item_name || "unknown"}`
+        );
+      }
 
       const materialResponse = await this.db
         .collection("Item")
@@ -1780,13 +1791,33 @@ class StockAdjuster {
         console.log("Calling SQL Accounting workflow");
 
         await this.runWorkflow(
-          "1910197713380311041",
+          "1958732352162164738",
           { key: "value" },
-          (res) => {
-            console.log("Workflow success", res);
+          async (res) => {
+            console.log("成功结果：", res);
+            if (res.data.status === "running") {
+              await this.runWorkflow(
+                "1910197713380311041",
+                { key: "value" },
+                (res) => {
+                  console.log("Workflow success", res);
+                },
+                (err) => {
+                  console.error("Workflow error", err);
+                  throw new Error(
+                    "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists."
+                  );
+                }
+              );
+            }
           },
           (err) => {
-            console.error("Workflow error", err);
+            console.log("失败结果：", err);
+
+            this.hideLoading();
+            throw new Error(
+              "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists."
+            );
           }
         );
       } else if (
@@ -2954,7 +2985,7 @@ class StockAdjuster {
           // Process OUT movement serials once
           if (outMovementQuery.data && outMovementQuery.data.length > 0) {
             const outMovementRecord = outMovementQuery.data.sort(
-              (a, b) => new Date(b.created_at) - new Date(a.created_at)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
             )[0];
             const outMovementId = outMovementRecord.id;
 
@@ -3003,7 +3034,7 @@ class StockAdjuster {
           // Process IN movement serials once
           if (inMovementQuery.data && inMovementQuery.data.length > 0) {
             const inMovementRecord = inMovementQuery.data.sort(
-              (a, b) => new Date(b.created_at) - new Date(a.created_at)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
             )[0];
             const inMovementId = inMovementRecord.id;
 
@@ -3148,7 +3179,7 @@ class StockAdjuster {
           }
 
           const inventoryMovementRecord = inventoryMovementQuery.data.sort(
-            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+            (a, b) => new Date(b.create_time) - new Date(a.create_time)
           )[0];
 
           const inventoryMovementId = inventoryMovementRecord.id;
@@ -3221,7 +3252,7 @@ class StockAdjuster {
           // Process OUT movement - this will handle the serial balance update
           if (outMovementQueryICT.data && outMovementQueryICT.data.length > 0) {
             const outMovementIdICT = outMovementQueryICT.data.sort(
-              (a, b) => new Date(b.created_at) - new Date(a.created_at)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
             )[0].id;
 
             await this.addSerialNumberInventoryForCategoryTransfer(
@@ -3237,7 +3268,7 @@ class StockAdjuster {
           // Process IN movement - create serial movement record
           if (inMovementQueryICT.data && inMovementQueryICT.data.length > 0) {
             const inMovementIdICT = inMovementQueryICT.data.sort(
-              (a, b) => new Date(b.created_at) - new Date(a.created_at)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
             )[0].id;
 
             // Create serial movement record for IN movement

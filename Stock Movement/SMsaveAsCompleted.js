@@ -2970,7 +2970,7 @@ class StockAdjuster {
           // Process OUT movement serials once
           if (outMovementQuery.data && outMovementQuery.data.length > 0) {
             const outMovementRecord = outMovementQuery.data.sort(
-              (a, b) => new Date(b.created_at) - new Date(a.created_at)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
             )[0];
             const outMovementId = outMovementRecord.id;
 
@@ -3019,7 +3019,7 @@ class StockAdjuster {
           // Process IN movement serials once
           if (inMovementQuery.data && inMovementQuery.data.length > 0) {
             const inMovementRecord = inMovementQuery.data.sort(
-              (a, b) => new Date(b.created_at) - new Date(a.created_at)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
             )[0];
             const inMovementId = inMovementRecord.id;
 
@@ -3164,7 +3164,7 @@ class StockAdjuster {
           }
 
           const inventoryMovementRecord = inventoryMovementQuery.data.sort(
-            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+            (a, b) => new Date(b.create_time) - new Date(a.create_time)
           )[0];
 
           const inventoryMovementId = inventoryMovementRecord.id;
@@ -3242,7 +3242,7 @@ class StockAdjuster {
           // Process OUT movement - this will handle the serial balance update
           if (outMovementQueryICT.data && outMovementQueryICT.data.length > 0) {
             const outMovementIdICT = outMovementQueryICT.data.sort(
-              (a, b) => new Date(b.created_at) - new Date(a.created_at)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
             )[0].id;
 
             await this.addSerialNumberInventoryForCategoryTransfer(
@@ -3258,7 +3258,7 @@ class StockAdjuster {
           // Process IN movement - create serial movement record
           if (inMovementQueryICT.data && inMovementQueryICT.data.length > 0) {
             const inMovementIdICT = inMovementQueryICT.data.sort(
-              (a, b) => new Date(b.created_at) - new Date(a.created_at)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
             )[0].id;
 
             // Create serial movement record for IN movement
@@ -4420,7 +4420,7 @@ const createSerialNumberRecord = async (entry) => {
     entry.table_sn_records = [];
   }
 
-  for (const [index, item] of entry.stock_movement.entries()) {
+  for (const [_index, item] of entry.stock_movement.entries()) {
     // Only process serialized items for Miscellaneous Receipt
     if (item.is_serialized_item !== 1) {
       console.log(
