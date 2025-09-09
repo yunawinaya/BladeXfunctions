@@ -1,15 +1,28 @@
 # Scratchpad
 
-## Current Task: Fix Putaway split item serial number deduction
+## Current Task: Add duplicate serial number validation to Stock Adjustment
 
 ### Problem Analysis:
 
-- In PutawaySaveAsInProgress.js, the `calculateLeftoverSerialNumbers` function didn't properly handle split scenarios
-- For split items, the parent item should have its serial numbers reduced by the sum of all child items' processed serial numbers
-- Child items should only reduce serial numbers based on their own processing
-- The previous logic only looked at individual item's `select_serial_number`, missing the aggregation needed for split parent items
+- Stock Adjustment (SAsaveAsCompleted.js) was missing validation to prevent users from processing 2 identical serialized items with the same serial numbers
+- Users could accidentally select the same serial number for multiple items, leading to inventory inconsistencies
+- Goods Delivery (GDsaveAsCompleted.js) already has this validation implemented
+- Need to implement similar validation logic for Stock Adjustment
 
 ### Solution Implemented:
+
+[X] **CRITICAL FIX**: Added `validateDuplicateSerialNumbers` function to prevent duplicate serial number processing
+[X] **COMPREHENSIVE VALIDATION**: Implemented validation that checks for:
+
+- Duplicate serial numbers across different items
+- Excessive quantities (>1) for serialized items
+- Non-integer quantities for serialized items
+- Conflicting IN/OUT movements for non-serialized items at same location/batch/category
+  [X] **DETAILED ERROR MESSAGES**: Added user-friendly error messages showing exactly which serial numbers are duplicated and in which items
+  [X] **INTEGRATION**: Added validation call in `preCheckQuantitiesAndCosting` function before processing
+  [X] **MAP-BASED TRACKING**: Used Map data structure to efficiently track serial number usage across all items
+
+### Previous Completed Task: Fix Putaway split item serial number deduction
 
 [X] **CRITICAL FIX**: Enhanced `calculateLeftoverSerialNumbers` function to handle split scenarios
 [X] **SPLIT LOGIC**: Added logic to aggregate processed serial numbers from all child items for parent items

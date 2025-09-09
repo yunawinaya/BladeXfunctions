@@ -197,6 +197,223 @@ const parseBalanceIndexForSerials = (balanceIndexData) => {
   );
 };
 
+// Function to validate duplicate serial numbers, excessive quantities, and allocation conflicts
+const validateDuplicateSerialNumbers = (allData) => {
+  console.log(
+    "Validating duplicate serial numbers and allocation conflicts across items"
+  );
+
+  const serialNumberMap = new Map(); // key: materialId|serialNumber|batchId|locationId|category, value: { count, totalQuantity, items }
+  const nonSerializedMap = new Map(); // key: materialId|batchId|locationId|category, value: { totalQuantity, items }
+
+  for (
+    let itemIndex = 0;
+    itemIndex < allData.stock_adjustment.length;
+    itemIndex++
+  ) {
+    const item = allData.stock_adjustment[itemIndex];
+    const balanceIndexData = JSON.parse(item.balance_index);
+
+    for (const balance of balanceIndexData) {
+      // Skip zero quantity entries
+      if (!balance.sa_quantity || balance.sa_quantity <= 0) {
+        continue;
+      }
+
+      // Check if this is a serialized balance
+      const isSerializedBalance =
+        balance.serial_number && balance.serial_number.trim() !== "";
+
+      if (isSerializedBalance) {
+        // Handle serialized items
+        const key = `${item.material_id}|${balance.serial_number}|${
+          balance.batch_id || "no-batch"
+        }|${balance.location_id}|${balance.category || "Unrestricted"}`;
+
+        if (!serialNumberMap.has(key)) {
+          serialNumberMap.set(key, {
+            count: 0,
+            totalQuantity: 0,
+            items: [],
+          });
+        }
+
+        const entry = serialNumberMap.get(key);
+        entry.count += 1;
+        entry.totalQuantity += balance.sa_quantity;
+        entry.items.push({
+          itemIndex: itemIndex + 1,
+          materialId: item.material_id,
+          serialNumber: balance.serial_number,
+          quantity: balance.sa_quantity,
+          category: balance.category || "Unrestricted",
+          locationId: balance.location_id,
+          batchId: balance.batch_id,
+          movementType: balance.movement_type,
+        });
+
+        serialNumberMap.set(key, entry);
+      } else {
+        // Handle non-serialized items
+        const key = `${item.material_id}|${balance.batch_id || "no-batch"}|${
+          balance.location_id
+        }|${balance.category || "Unrestricted"}`;
+
+        if (!nonSerializedMap.has(key)) {
+          nonSerializedMap.set(key, {
+            totalQuantity: 0,
+            items: [],
+          });
+        }
+
+        const entry = nonSerializedMap.get(key);
+        entry.totalQuantity += balance.sa_quantity;
+        entry.items.push({
+          itemIndex: itemIndex + 1,
+          materialId: item.material_id,
+          quantity: balance.sa_quantity,
+          category: balance.category || "Unrestricted",
+          locationId: balance.location_id,
+          batchId: balance.batch_id,
+          movementType: balance.movement_type,
+        });
+
+        nonSerializedMap.set(key, entry);
+      }
+    }
+  }
+
+  const violations = [];
+
+  // Check serialized item violations
+  for (const [key, entry] of serialNumberMap.entries()) {
+    const keyParts = key.split("|");
+    const violation = {
+      type: "serialized",
+      materialId: keyParts[0],
+      serialNumber: keyParts[1],
+      batchId: keyParts[2] !== "no-batch" ? keyParts[2] : null,
+      locationId: keyParts[3],
+      category: keyParts[4],
+      count: entry.count,
+      totalQuantity: entry.totalQuantity,
+      items: entry.items,
+      issues: [],
+    };
+
+    // Check for duplicates (same serial used multiple times)
+    if (entry.count > 1) {
+      violation.issues.push(`Used ${entry.count} times across different items`);
+    }
+
+    // Check for excessive quantity (serialized items should typically be 1 unit each)
+    if (entry.totalQuantity > 1) {
+      violation.issues.push(
+        `Total quantity ${entry.totalQuantity} exceeds 1 unit (typical for serialized items)`
+      );
+    }
+
+    // Check for non-integer quantities (serialized items should be whole units)
+    if (entry.totalQuantity !== Math.floor(entry.totalQuantity)) {
+      violation.issues.push(
+        `Non-integer quantity ${entry.totalQuantity} (serialized items should be whole units)`
+      );
+    }
+
+    if (violation.issues.length > 0) {
+      violations.push(violation);
+    }
+  }
+
+  // Check non-serialized item violations
+  for (const [key, entry] of nonSerializedMap.entries()) {
+    const keyParts = key.split("|");
+
+    // Group items by movement type to check for conflicts
+    const inMovements = entry.items.filter(
+      (item) => item.movementType === "In"
+    );
+    const outMovements = entry.items.filter(
+      (item) => item.movementType === "Out"
+    );
+
+    if (inMovements.length > 0 && outMovements.length > 0) {
+      // Both IN and OUT movements for the same location/batch/category across different items
+      const violation = {
+        type: "non-serialized",
+        materialId: keyParts[0],
+        batchId: keyParts[1] !== "no-batch" ? keyParts[1] : null,
+        locationId: keyParts[2],
+        category: keyParts[3],
+        totalQuantity: entry.totalQuantity,
+        items: entry.items,
+        issues: [],
+      };
+
+      violation.issues.push(
+        `Conflicting movements: ${inMovements.length} IN movement(s) and ${outMovements.length} OUT movement(s) for the same location/batch/category`
+      );
+
+      violations.push(violation);
+    }
+  }
+
+  if (violations.length > 0) {
+    console.error(
+      "Inventory allocation validation violations found:",
+      violations
+    );
+
+    // Build detailed error message
+    let errorMessage = "Inventory allocation validation errors detected:\n\n";
+
+    violations.forEach((violation, index) => {
+      errorMessage += `${index + 1}. Material ID: ${violation.materialId}\n`;
+
+      if (violation.type === "serialized") {
+        errorMessage += `   Serial Number: "${violation.serialNumber}"\n`;
+      }
+
+      if (violation.batchId) {
+        errorMessage += `   Batch: ${violation.batchId}\n`;
+      }
+      errorMessage += `   Location: ${violation.locationId}\n`;
+      errorMessage += `   Category: ${violation.category}\n`;
+      errorMessage += `   Issues:\n`;
+      violation.issues.forEach((issue) => {
+        errorMessage += `     • ${issue}\n`;
+      });
+
+      if (violation.type === "serialized") {
+        errorMessage += `   Used in items: ${violation.items
+          .map((item) => `#${item.itemIndex} (qty: ${item.quantity})`)
+          .join(", ")}\n\n`;
+      } else {
+        errorMessage += `   Items involved:\n`;
+        violation.items.forEach((item) => {
+          errorMessage += `     - Item #${item.itemIndex}: ${item.movementType} ${item.quantity} units\n`;
+        });
+        errorMessage += `\n`;
+      }
+    });
+
+    errorMessage += "Please ensure:\n";
+    errorMessage +=
+      "• Each serial number is used only once per material/location/batch/category\n";
+    errorMessage +=
+      "• Serialized items use whole number quantities (typically 1 unit per serial)\n";
+    errorMessage +=
+      "• No conflicting IN/OUT movements for the same non-serialized item location/batch/category\n";
+    errorMessage +=
+      "• No duplicate serial number selections across different items";
+
+    throw new Error(errorMessage);
+  }
+
+  console.log("Inventory allocation validation passed - no conflicts found");
+  return true;
+};
+
 // Function to update serial balance for serialized items
 const updateSerialBalance = async (
   materialId,
@@ -1232,6 +1449,9 @@ const updateInventory = (allData) => {
 async function preCheckQuantitiesAndCosting(allData, context) {
   try {
     console.log("Starting preCheckQuantitiesAndCosting with data:", allData);
+
+    // Step 1: Validate inventory allocation conflicts across items
+    validateDuplicateSerialNumbers(allData);
 
     // Step 3: Perform item validations and quantity checks
     for (const item of allData.stock_adjustment) {
