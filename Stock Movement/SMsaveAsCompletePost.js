@@ -865,6 +865,41 @@ class StockAdjuster {
           });
       }
 
+      // Update the item's serial number data in the main data structure and store generated serial numbers
+      const updatedSerialNumberData = {
+        ...serialNumberData,
+        table_serial_number: updatedTableSerialNumber,
+      };
+
+      // Update the item in data.stock_movement
+      const itemIndex = data.stock_movement.findIndex(
+        (smItem) => smItem === item
+      );
+      if (itemIndex !== -1) {
+        data.stock_movement[itemIndex].serial_number_data = JSON.stringify(
+          updatedSerialNumberData
+        );
+
+        // Store the generated serial numbers for record creation use
+        const generatedSerialNumbers = updatedTableSerialNumber
+          .map((serial) => serial.system_serial_number)
+          .filter(
+            (serial) =>
+              serial &&
+              serial !== "" &&
+              serial !== "Auto generated serial number"
+          );
+        data.stock_movement[itemIndex].generated_serial_numbers =
+          generatedSerialNumbers;
+        console.log(
+          `Stored ${
+            generatedSerialNumbers.length
+          } generated serial numbers for record creation: [${generatedSerialNumbers.join(
+            ", "
+          )}]`
+        );
+      }
+
       console.log(
         `Successfully processed serial number inventory for SM item ${item.item_selection}`
       );
@@ -2961,10 +2996,15 @@ class StockAdjuster {
           inventory_category: category || balance.category,
         };
 
-        const [outResult, inResult] = await Promise.all([
-          this.db.collection("inventory_movement").add(outMovement),
-          this.db.collection("inventory_movement").add(inMovement),
-        ]);
+        // Create OUT movement first (deduction from source)
+        const outResult = await this.db
+          .collection("inventory_movement")
+          .add(outMovement);
+
+        // Then create IN movement (addition to destination)
+        const inResult = await this.db
+          .collection("inventory_movement")
+          .add(inMovement);
 
         // Handle serialized items for Location Transfer
         if (isSerializedItem) {
@@ -3101,7 +3141,9 @@ class StockAdjuster {
             .get();
 
           if (movementQuery.data && movementQuery.data.length > 0) {
-            const movementId = movementQuery.data[0].id;
+            const movementId = movementQuery.data.sort(
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+            )[0].id;
 
             if (
               balance.serial_balances &&
@@ -3214,10 +3256,15 @@ class StockAdjuster {
           bin_location_id: balance.location_id,
         };
 
-        const [outResultICT, inResultICT] = await Promise.all([
-          this.db.collection("inventory_movement").add(outMovementICT),
-          this.db.collection("inventory_movement").add(inMovementICT),
-        ]);
+        // Create OUT movement first (deduction from source category)
+        const outResultICT = await this.db
+          .collection("inventory_movement")
+          .add(outMovementICT);
+
+        // Then create IN movement (addition to target category)
+        const inResultICT = await this.db
+          .collection("inventory_movement")
+          .add(inMovementICT);
 
         // Handle serialized items for Category Transfer
         if (isSerializedItem) {
@@ -3314,7 +3361,9 @@ class StockAdjuster {
             .get();
 
           if (movementQuery.data && movementQuery.data.length > 0) {
-            const movementId = movementQuery.data[0].id;
+            const movementId = movementQuery.data.sort(
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+            )[0].id;
 
             await this.addSerialNumberInventoryForInterFacilityTransfer(
               allData,
@@ -3362,7 +3411,9 @@ class StockAdjuster {
             .get();
 
           if (movementQuery.data && movementQuery.data.length > 0) {
-            const movementId = movementQuery.data[0].id;
+            const movementId = movementQuery.data.sort(
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+            )[0].id;
 
             if (
               balance.serial_balances &&
@@ -4282,6 +4333,35 @@ async function processFormData(db, formData, context, organizationId) {
       console.log("📝 Starting stock adjustment processing");
       results = await adjuster.processStockAdjustment(formData, organizationId);
       console.log("✓ Stock adjustment completed");
+
+      // Create serial number records for serialized items (only for Miscellaneous Receipt)
+      if (formData.movement_type === "Miscellaneous Receipt") {
+        console.log(
+          "📋 Creating serial number records after inventory processing"
+        );
+        await createSerialNumberRecord(formData);
+
+        // Update the stock movement record with serial number records
+        const stockMovementRecord = await db
+          .collection("stock_movement")
+          .where({
+            stock_movement_no: formData.stock_movement_no,
+            organization_id: organizationId,
+          })
+          .get();
+
+        if (stockMovementRecord.data && stockMovementRecord.data.length > 0) {
+          await db
+            .collection("stock_movement")
+            .doc(stockMovementRecord.data[0].id)
+            .update({
+              table_sn_records: formData.table_sn_records,
+            });
+          console.log(
+            "✓ Updated stock movement record with serial number records"
+          );
+        }
+      }
     }
     return results;
   } catch (error) {
@@ -4481,6 +4561,62 @@ const fillbackHeaderFields = async (allData) => {
   } catch {
     throw new Error("Error processing Stock Movement.");
   }
+};
+
+const createSerialNumberRecord = async (entry) => {
+  const serialNumberRecords = [];
+
+  // Initialize table_sn_records if it doesn't exist
+  if (!entry.table_sn_records) {
+    entry.table_sn_records = [];
+  }
+
+  for (const [_index, item] of entry.stock_movement.entries()) {
+    // Only process serialized items for Miscellaneous Receipt
+    if (item.is_serialized_item !== 1) {
+      console.log(
+        `Skipping serial number record for non-serialized item ${item.item_selection}`
+      );
+      continue;
+    }
+
+    // Only process items with received quantity > 0
+    if (parseFloat(item.received_quantity || 0) > 0) {
+      const serialNumberRecord = {
+        item_selection: item.item_selection,
+        item_name: item.item_name,
+        item_desc: item.item_desc,
+        batch_id: item.batch_id,
+        location_id: item.location_id,
+        quantity_uom: item.quantity_uom,
+        received_quantity: item.received_quantity,
+        unit_price: item.unit_price,
+        amount: item.amount,
+        category: item.category,
+      };
+
+      // Add serial numbers for serialized items with line break formatting
+      if (
+        item.is_serialized_item === 1 &&
+        item.generated_serial_numbers &&
+        Array.isArray(item.generated_serial_numbers)
+      ) {
+        serialNumberRecord.serial_numbers =
+          item.generated_serial_numbers.join("\n");
+        console.log(
+          `Using generated serial numbers for stock movement item ${item.item_selection}: ${serialNumberRecord.serial_numbers}`
+        );
+      }
+
+      serialNumberRecords.push(serialNumberRecord);
+    }
+  }
+
+  entry.table_sn_records = entry.table_sn_records.concat(serialNumberRecords);
+
+  console.log(
+    `Created ${serialNumberRecords.length} serial number records for stock movement`
+  );
 };
 
 // Add this at the bottom of your Save as Completed button handler
