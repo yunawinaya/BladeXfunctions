@@ -223,10 +223,7 @@
 
       const duplicateMessages = duplicates
         .map((dup) => {
-          const entryDetails = dup.entries
-            .map((entry) => `Row ${entry.row_index}`)
-            .join(", ");
-          return `• Serial Number "${dup.serialNumber}" appears in: ${entryDetails}`;
+          return `• Serial Number "${dup.serialNumber}". `;
         })
         .join("\n");
 
