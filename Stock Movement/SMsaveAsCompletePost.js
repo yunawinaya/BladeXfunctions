@@ -4299,13 +4299,103 @@ const processRow = async (item, organizationId) => {
 
     if (resBatchConfig && resBatchConfig.data.length > 0) {
       const batchConfigData = resBatchConfig.data[0];
+      let batchDate = "";
+      let dd,
+        mm,
+        yy = "";
+
+      // Checking for related field
+      switch (batchConfigData.batch_format) {
+        case "Document Date":
+          let issueDate = this.getValue("issue_date");
+
+          if (!issueDate)
+            throw new Error(
+              "Issue Date is required for generating batch number."
+            );
+
+          console.log("issueDate", new Date(issueDate));
+
+          issueDate = new Date(issueDate);
+
+          dd = String(issueDate.getDate()).padStart(2, "0");
+          mm = String(issueDate.getMonth() + 1).padStart(2, "0");
+          yy = String(issueDate.getFullYear()).slice(-2);
+
+          batchDate = dd + mm + yy;
+
+          console.log("batchDate", batchDate);
+          break;
+
+        case "Document Created Date":
+          let createdDate = new Date().toISOString().split("T")[0];
+
+          console.log("createdDate", createdDate);
+
+          createdDate = new Date(createdDate);
+
+          dd = String(createdDate.getDate()).padStart(2, "0");
+          mm = String(createdDate.getMonth() + 1).padStart(2, "0");
+          yy = String(createdDate.getFullYear()).slice(-2);
+
+          batchDate = dd + mm + yy;
+
+          console.log("batchDate", batchDate);
+          break;
+
+        case "Manufacturing Date":
+          let manufacturingDate = item.manufacturing_date;
+
+          console.log("manufacturingDate", manufacturingDate);
+
+          if (!manufacturingDate)
+            throw new Error(
+              "Manufacturing Date is required for generating batch number."
+            );
+
+          manufacturingDate = new Date(manufacturingDate);
+
+          dd = String(manufacturingDate.getDate()).padStart(2, "0");
+          mm = String(manufacturingDate.getMonth() + 1).padStart(2, "0");
+          yy = String(manufacturingDate.getFullYear()).slice(-2);
+
+          batchDate = dd + mm + yy;
+
+          console.log("batchDate", batchDate);
+          break;
+
+        case "Expired Date":
+          let expiredDate = item.expired_date;
+
+          console.log("expiredDate", expiredDate);
+
+          if (!expiredDate)
+            throw new Error(
+              "Expired Date is required for generating batch number."
+            );
+
+          expiredDate = new Date(expiredDate);
+
+          dd = String(expiredDate.getDate()).padStart(2, "0");
+          mm = String(expiredDate.getMonth() + 1).padStart(2, "0");
+          yy = String(expiredDate.getFullYear()).slice(-2);
+
+          batchDate = dd + mm + yy;
+
+          console.log("batchDate", batchDate);
+          break;
+      }
 
       let batchPrefix = batchConfigData.batch_prefix || "";
       if (batchPrefix) batchPrefix += "-";
 
       const generatedBatchNo =
         batchPrefix +
-        String(batchConfigData.batch_running_number).padStart(10, "0");
+        batchDate +
+        String(batchConfigData.batch_running_number).padStart(
+          batchConfigData.batch_padding_zeroes,
+          "0"
+        );
 
       item.batch_id = generatedBatchNo;
       await db
