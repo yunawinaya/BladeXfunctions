@@ -1,6 +1,23 @@
 # Scratchpad
 
-## Current Task: Fix costing method aggregation for multiple serialized items
+## Current Task: Fix Stock Movement balance_index append issue when editing drafts
+
+### Problem Analysis:
+
+- When saving a Stock Movement as Draft and then editing it again, the system was appending new entries to balance_index instead of updating existing ones
+- The issue was in SMconfirmDialog.js where the filtering logic used strict equality (item.row_index !== rowIndex)
+- Data type mismatch: existing entries had row_index as strings ("0", "1") while current rowIndex was a number (1)
+- This caused "1" !== 1 to return true, so existing items were kept instead of being filtered out
+
+### Solution Implemented:
+
+[X] **CRITICAL FIX**: Fixed data type comparison in SMconfirmDialog.js filtering logic
+[X] **STRING CONVERSION**: Convert both item.row_index and rowIndex to strings before comparison
+[X] **PROPER FILTERING**: Now correctly removes existing entries for the current row before adding new ones
+[X] **ENHANCED LOGGING**: Added clearer debug logging with quoted strings to show data types
+[X] **DUPLICATE VALIDATION**: Added serial number duplicate validation in SMconfirmDialog.js to prevent same serial number from being allocated multiple times in the same location/batch combination
+
+### Previous Completed Task: Fix costing method aggregation for multiple serialized items
 
 ### Problem Analysis:
 

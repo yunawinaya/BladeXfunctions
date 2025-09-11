@@ -129,11 +129,12 @@
 
     // Filter out any existing entries that belong to this specific row
     let updatedBalanceIndex = currentBalanceIndex.filter((item) => {
-      const shouldKeep = item.row_index !== rowIndex;
+      // Convert both to strings to ensure proper comparison
+      const itemRowIndex = String(item.row_index);
+      const currentRowIndex = String(rowIndex);
+      const shouldKeep = itemRowIndex !== currentRowIndex;
       console.log(
-        `Checking item with row_index ${
-          item.row_index
-        } against current rowIndex ${rowIndex}: ${
+        `Checking item with row_index "${itemRowIndex}" against current rowIndex "${currentRowIndex}": ${
           shouldKeep ? "KEEP" : "REMOVE"
         }`
       );
@@ -171,6 +172,71 @@
       "Final balance_index:",
       JSON.stringify(updatedBalanceIndex, null, 2)
     );
+
+    // Validate for duplicate serial numbers in same location/batch combination
+    console.log(
+      "🔍 VALIDATING SERIAL NUMBER DUPLICATES (same location/batch):"
+    );
+    const serialLocationBatchMap = new Map(); // key: serial_number|location_id|batch_id, value: array of entries
+
+    updatedBalanceIndex.forEach((entry, index) => {
+      if (entry.serial_number && entry.serial_number.trim() !== "") {
+        const serialNumber = entry.serial_number.trim();
+        const locationId = entry.location_id || "no-location";
+        const batchId = entry.batch_id || "no-batch";
+
+        // Create unique key for serial number + location + batch combination
+        const combinationKey = `${serialNumber}|${locationId}|${batchId}`;
+
+        if (!serialLocationBatchMap.has(combinationKey)) {
+          serialLocationBatchMap.set(combinationKey, []);
+        }
+
+        serialLocationBatchMap.get(combinationKey).push({
+          index: index,
+          row_index: entry.row_index,
+          material_id: entry.material_id,
+          serialNumber: serialNumber,
+          locationId: locationId,
+          batchId: batchId,
+          entry: entry,
+        });
+      }
+    });
+
+    // Check for duplicates (same serial number in same location/batch)
+    const duplicates = [];
+    for (const [combinationKey, entries] of serialLocationBatchMap.entries()) {
+      if (entries.length > 1) {
+        duplicates.push({
+          combinationKey: combinationKey,
+          serialNumber: entries[0].serialNumber,
+          locationId: entries[0].locationId,
+          batchId: entries[0].batchId,
+          entries: entries,
+        });
+      }
+    }
+
+    if (duplicates.length > 0) {
+      console.error("❌ DUPLICATE SERIAL NUMBERS FOUND:", duplicates);
+
+      const duplicateMessages = duplicates
+        .map((dup) => {
+          const entryDetails = dup.entries
+            .map((entry) => `Row ${entry.row_index}`)
+            .join(", ");
+          return `• Serial Number "${dup.serialNumber}" appears in: ${entryDetails}`;
+        })
+        .join("\n");
+
+      this.$message.error(
+        `Duplicate serial numbers detected in the same location/batch combination:\n\n${duplicateMessages}\n\nThe same serial number cannot be allocated multiple times to the same location and batch. Please remove the duplicates and try again.`
+      );
+      return; // Stop processing and keep dialog open
+    }
+
+    console.log("✅ Serial number validation passed - no duplicates found");
 
     const formatFilteredData = async (temporaryData) => {
       // Filter data to only include items with quantity > 0
