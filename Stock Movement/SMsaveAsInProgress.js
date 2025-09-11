@@ -1631,7 +1631,7 @@ const updateItemTransactionDate = async (entry) => {
           .collection("Item")
           .doc(item)
           .update({ last_transaction_date: date });
-      } catch (error) {
+      } catch {
         throw new Error(
           `Cannot update last transaction date for item #${index + 1}.`
         );

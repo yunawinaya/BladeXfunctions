@@ -1554,7 +1554,12 @@ class ReceivingIOFTProcessor {
       materialData.item_batch_management == "1" ||
       materialData.item_isbatch_managed == "1";
 
-    // Create grouped OUT movement (one record for all serials in this group)
+    const representativeSerial = serialBalances[0];
+    const issuingLocationId =
+      representativeSerial?.balance_index?.location_id || locationId;
+    const issuingBatchId =
+      representativeSerial?.balance_index?.batch_id || batchId;
+
     const outMovement = {
       transaction_type: "SM",
       trx_no: issuingStockMovementNo,
@@ -1568,8 +1573,8 @@ class ReceivingIOFTProcessor {
       uom_id: itemUom,
       base_qty: formattedTotalQuantity,
       base_uom_id: itemUom,
-      bin_location_id: locationId,
-      batch_number_id: isBatchManaged ? batchId : null,
+      bin_location_id: issuingLocationId,
+      batch_number_id: isBatchManaged ? issuingBatchId : null,
       costing_method_id: materialData.material_costing_method,
       organization_id: organizationId,
       plant_id: issuingPlantId,
@@ -1599,12 +1604,6 @@ class ReceivingIOFTProcessor {
     };
 
     try {
-      // Create the grouped inventory movements
-      const [outResult, inResult] = await Promise.all([
-        this.db.collection("inventory_movement").add(outMovement),
-        this.db.collection("inventory_movement").add(inMovement),
-      ]);
-
       console.log(
         `✅ Created grouped inventory movements for ${serialBalances.length} serial numbers`
       );
@@ -1621,7 +1620,7 @@ class ReceivingIOFTProcessor {
           movement: "OUT",
           inventory_category: sourceCategory,
           item_id: materialId,
-          bin_location_id: locationId,
+          bin_location_id: issuingLocationId,
           base_qty: formattedTotalQuantity,
           plant_id: issuingPlantId,
           organization_id: organizationId,
