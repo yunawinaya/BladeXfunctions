@@ -532,9 +532,7 @@ class StockAdjuster {
       const itemData = itemRes.data[0];
       let baseUOM = itemData.based_uom;
 
-      let baseQty = this.roundQty(
-        parseFloat(balance.quantity_converted || balance.sm_quantity || 0)
-      );
+      let baseQty = this.roundQty(parseFloat(balance.original_quantity || 1));
 
       // Create serial movement record for the OUT movement
       await this.createSerialMovementRecord(
@@ -1679,6 +1677,8 @@ class StockAdjuster {
                 sm_quantity:
                   balance.quantity_converted || balance.sm_quantity || 0,
                 quantity_converted:
+                  balance.quantity_converted || balance.sm_quantity || 0,
+                original_quantity:
                   balance.quantity_converted || balance.sm_quantity || 0,
                 serial_balances: [balance],
               },
@@ -3241,38 +3241,69 @@ class StockAdjuster {
             })
             .get();
 
-          // Process OUT movement - this will handle the serial balance update
+          // Process OUT movement - this will handle the serial balance update for each serial
           if (outMovementQueryICT.data && outMovementQueryICT.data.length > 0) {
             const outMovementIdICT = outMovementQueryICT.data.sort(
               (a, b) => new Date(b.create_time) - new Date(a.create_time)
             )[0].id;
 
-            await this.addSerialNumberInventoryForCategoryTransfer(
-              allData,
-              subformData,
-              outMovementIdICT,
-              organizationId,
-              allData.issuing_operation_faci,
-              balance
-            );
+            // Process each serial balance individually
+            if (balance.serial_balances && balance.serial_balances.length > 0) {
+              for (const serialBalance of balance.serial_balances) {
+                await this.addSerialNumberInventoryForCategoryTransfer(
+                  allData,
+                  subformData,
+                  outMovementIdICT,
+                  organizationId,
+                  allData.issuing_operation_faci,
+                  serialBalance
+                );
+              }
+            } else {
+              // Fallback for single balance
+              await this.addSerialNumberInventoryForCategoryTransfer(
+                allData,
+                subformData,
+                outMovementIdICT,
+                organizationId,
+                allData.issuing_operation_faci,
+                balance
+              );
+            }
           }
 
-          // Process IN movement - create serial movement record
+          // Process IN movement - create serial movement record for each serial
           if (inMovementQueryICT.data && inMovementQueryICT.data.length > 0) {
             const inMovementIdICT = inMovementQueryICT.data.sort(
               (a, b) => new Date(b.create_time) - new Date(a.create_time)
             )[0].id;
 
-            // Create serial movement record for IN movement
-            await this.createSerialMovementRecord(
-              inMovementIdICT,
-              balance.serial_number,
-              balance.batch_id,
-              formattedConvertedQty,
-              materialData.based_uom,
-              allData.issuing_operation_faci,
-              organizationId
-            );
+            // Create serial movement records for each serial
+            if (balance.serial_balances && balance.serial_balances.length > 0) {
+              for (const serialBalance of balance.serial_balances) {
+                const serialQty = this.roundQty(parseFloat(serialBalance.original_quantity || 1));
+                await this.createSerialMovementRecord(
+                  inMovementIdICT,
+                  serialBalance.serial_number,
+                  serialBalance.batch_id,
+                  serialQty,
+                  effectiveUom,
+                  allData.issuing_operation_faci,
+                  organizationId
+                );
+              }
+            } else {
+              // Fallback for single balance
+              await this.createSerialMovementRecord(
+                inMovementIdICT,
+                balance.serial_number,
+                balance.batch_id,
+                formattedConvertedQty,
+                materialData.based_uom,
+                allData.issuing_operation_faci,
+                organizationId
+              );
+            }
           }
         }
 

@@ -14,9 +14,6 @@ console.log("index", index);
 const category_type =
   data.sm_item_balance.table_item_balance[index].category ??
   data.sm_item_balance.table_item_balance[index].category_from;
-const movementType =
-  data.sm_item_balance.table_item_balance[index].movement_type;
-
 const unrestricted_field =
   data.sm_item_balance.table_item_balance[index].unrestricted_qty;
 const reserved_field =
