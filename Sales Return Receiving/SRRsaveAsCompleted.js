@@ -58,6 +58,26 @@ const updateInventory = async (data, plantId, organizationId) => {
       });
   };
 
+  const getFixedCostPrice = async (materialId) => {
+    try {
+      const query = db.collection("Item").where({ id: materialId });
+      const response = await query.get();
+      const result = response.data;
+
+      if (result && result.length > 0) {
+        return roundPrice(parseFloat(result[0].purchase_unit_price || 0));
+      }
+
+      return 0;
+    } catch (error) {
+      console.error(
+        `Error retrieving fixed cost price for ${materialId}:`,
+        error
+      );
+      return 0;
+    }
+  };
+
   // Extracted FIFO update logic
   const updateFIFOInventory = async (item, returnQty, batchId) => {
     try {
@@ -279,25 +299,129 @@ const updateInventory = async (data, plantId, organizationId) => {
           totalPrice = roundPrice(fixedCostPrice * baseQty);
         }
 
-        const inventoryMovementData = {
-          transaction_type: "SRR",
-          trx_no: data.srr_no,
-          parent_trx_no: item.sr_number,
-          movement: "IN",
-          unit_price: unitPrice,
-          total_price: totalPrice,
-          quantity: altQty,
-          item_id: item.material_id,
-          inventory_category: item.inventory_category,
-          uom_id: altUOM,
-          base_qty: baseQty,
-          base_uom_id: baseUOM,
-          bin_location_id: item.location_id,
-          batch_number_id: item.batch_id,
-          costing_method_id: item.costing_method,
-          plant_id: plantId,
-          organization_id: organizationId,
-        };
+        // Check if item has serial numbers to process and is configured for serial management
+        const isSerializedItem = itemData.serial_number_management === 1;
+        const hasSerialNumbers =
+          isSerializedItem &&
+          item.select_serial_number &&
+          Array.isArray(item.select_serial_number) &&
+          item.select_serial_number.length > 0;
+
+        // Validate serialized item quantities
+        if (isSerializedItem && hasSerialNumbers) {
+          const receivedQty = roundQty(item.received_qty);
+          const serialCount = item.select_serial_number.length;
+
+          if (serialCount !== receivedQty) {
+            throw new Error(
+              `Serial number count (${serialCount}) does not match received quantity (${receivedQty}) for item ${item.material_name}`
+            );
+          }
+        } else if (
+          isSerializedItem &&
+          !hasSerialNumbers &&
+          roundQty(item.received_qty) > 0
+        ) {
+          // Serialized item configured but no serials selected - this should be an error
+          throw new Error(
+            `Item ${item.material_name} is configured for serial number management but no serial numbers are selected`
+          );
+        }
+
+        if (hasSerialNumbers) {
+          // Create single consolidated inventory movement for all selected serials
+          const serialInventoryMovementData = {
+            transaction_type: "SRR",
+            trx_no: data.srr_no,
+            parent_trx_no: item.sr_number,
+            movement: "IN",
+            unit_price: unitPrice,
+            total_price: totalPrice,
+            quantity: altQty,
+            item_id: item.material_id,
+            inventory_category: item.inventory_category,
+            uom_id: altUOM,
+            base_qty: baseQty,
+            base_uom_id: baseUOM,
+            bin_location_id: item.location_id,
+            batch_number_id: item.batch_id,
+            costing_method_id: item.costing_method,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+
+          await db
+            .collection("inventory_movement")
+            .add(serialInventoryMovementData);
+
+          // Wait and get the created movement ID
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          const movementQuery = await db
+            .collection("inventory_movement")
+            .where({
+              transaction_type: "SRR",
+              trx_no: data.srr_no,
+              parent_trx_no: item.sr_number,
+              movement: "IN",
+              item_id: item.material_id,
+              bin_location_id: item.location_id,
+              base_qty: baseQty,
+              plant_id: plantId,
+              organization_id: organizationId,
+            })
+            .get();
+
+          if (movementQuery.data && movementQuery.data.length > 0) {
+            const movementId = movementQuery.data.sort(
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+            )[0].id;
+
+            // Create individual inv_serial_movement records for each serial number
+            for (const serialNumber of item.select_serial_number) {
+              const individualQty = roundQty(
+                baseQty / item.select_serial_number.length
+              );
+
+              await db.collection("inv_serial_movement").add({
+                inventory_movement_id: movementId,
+                serial_number: serialNumber,
+                batch_id: item.batch_id || null,
+                base_qty: individualQty,
+                base_uom: baseUOM,
+                plant_id: plantId,
+                organization_id: organizationId,
+              });
+
+              console.log(
+                `Created inv_serial_movement for serial ${serialNumber}, movement ID: ${movementId}, qty: ${individualQty}`
+              );
+            }
+          }
+        } else {
+          // Process as non-serialized item
+          const inventoryMovementData = {
+            transaction_type: "SRR",
+            trx_no: data.srr_no,
+            parent_trx_no: item.sr_number,
+            movement: "IN",
+            unit_price: unitPrice,
+            total_price: totalPrice,
+            quantity: altQty,
+            item_id: item.material_id,
+            inventory_category: item.inventory_category,
+            uom_id: altUOM,
+            base_qty: baseQty,
+            base_uom_id: baseUOM,
+            bin_location_id: item.location_id,
+            batch_number_id: item.batch_id,
+            costing_method_id: item.costing_method,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+
+          await db.collection("inventory_movement").add(inventoryMovementData);
+        }
 
         const itemBatchBalanceParams = {
           material_id: item.material_id,
@@ -331,78 +455,274 @@ const updateInventory = async (data, plantId, organizationId) => {
             .doc(item.id)
             .update({ batch_id: batchId });
         }
-        await db.collection("inventory_movement").add(inventoryMovementData);
 
         // Add batch_id to query params if it exists
         if (item.batch_id) {
           itemBatchBalanceParams.batch_id = item.batch_id;
         }
 
-        let block_qty = 0,
-          reserved_qty = 0,
-          unrestricted_qty = 0,
-          qualityinsp_qty = 0,
-          intransit_qty = 0;
-
-        const returnQty = roundQty(baseQty || 0);
-
-        if (item.inventory_category === "Blocked") {
-          block_qty = returnQty;
-        } else if (item.inventory_category === "Reserved") {
-          reserved_qty = returnQty;
-        } else if (item.inventory_category === "Unrestricted") {
-          unrestricted_qty = returnQty;
-        } else if (item.inventory_category === "Quality Inspection") {
-          qualityinsp_qty = returnQty;
-        } else if (item.inventory_category === "In Transit") {
-          intransit_qty = returnQty;
-        } else {
-          unrestricted_qty = returnQty;
-        }
-
-        if (item.batch_id) {
-          const batchResponse = await db
-            .collection("item_batch_balance")
-            .where(itemBatchBalanceParams)
-            .get();
-
-          const result = batchResponse.data;
-          const hasExistingBalance =
-            result && Array.isArray(result) && result.length > 0;
-          const existingDoc = hasExistingBalance ? result[0] : null;
-
-          let balance_quantity;
-
-          if (existingDoc && existingDoc.id) {
-            const updatedBlockQty = roundQty(
-              parseFloat(existingDoc.block_qty || 0) + block_qty
-            );
-            const updatedReservedQty = roundQty(
-              parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
-            );
-            const updatedUnrestrictedQty = roundQty(
-              parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
-            );
-            const updatedQualityInspQty = roundQty(
-              parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
-            );
-            const updatedIntransitQty = roundQty(
-              parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
+        // Handle serialized items
+        if (hasSerialNumbers) {
+          // Process each serial number for inventory balance
+          for (const serialNumber of item.select_serial_number) {
+            const serialQty = roundQty(
+              baseQty / item.select_serial_number.length
             );
 
-            balance_quantity = roundQty(
-              updatedBlockQty +
-                updatedReservedQty +
-                updatedUnrestrictedQty +
-                updatedQualityInspQty +
-                updatedIntransitQty
-            );
+            let block_qty = 0,
+              reserved_qty = 0,
+              unrestricted_qty = 0,
+              qualityinsp_qty = 0,
+              intransit_qty = 0;
 
-            await db
-              .collection("item_batch_balance")
-              .doc(existingDoc.id)
-              .update({
+            if (item.inventory_category === "Blocked") {
+              block_qty = serialQty;
+            } else if (item.inventory_category === "Reserved") {
+              reserved_qty = serialQty;
+            } else if (item.inventory_category === "Unrestricted") {
+              unrestricted_qty = serialQty;
+            } else if (item.inventory_category === "Quality Inspection") {
+              qualityinsp_qty = serialQty;
+            } else if (item.inventory_category === "In Transit") {
+              intransit_qty = serialQty;
+            } else {
+              unrestricted_qty = serialQty;
+            }
+
+            // Update or create item serial balance record
+            const serialBalanceParams = {
+              material_id: item.material_id,
+              location_id: item.location_id,
+              plant_id: plantId,
+              serial_number: serialNumber,
+              organization_id: organizationId,
+            };
+
+            if (item.batch_id) {
+              serialBalanceParams.batch_id = item.batch_id;
+            }
+
+            const serialBalanceResponse = await db
+              .collection("item_serial_balance")
+              .where(serialBalanceParams)
+              .get();
+
+            const serialResult = serialBalanceResponse.data;
+            const hasExistingSerial =
+              serialResult &&
+              Array.isArray(serialResult) &&
+              serialResult.length > 0;
+            const existingSerialDoc = hasExistingSerial
+              ? serialResult[0]
+              : null;
+
+            if (existingSerialDoc && existingSerialDoc.id) {
+              const updatedSerialBlockQty = roundQty(
+                parseFloat(existingSerialDoc.block_qty || 0) + block_qty
+              );
+              const updatedSerialReservedQty = roundQty(
+                parseFloat(existingSerialDoc.reserved_qty || 0) + reserved_qty
+              );
+              const updatedSerialUnrestrictedQty = roundQty(
+                parseFloat(existingSerialDoc.unrestricted_qty || 0) +
+                  unrestricted_qty
+              );
+              const updatedSerialQualityInspQty = roundQty(
+                parseFloat(existingSerialDoc.qualityinsp_qty || 0) +
+                  qualityinsp_qty
+              );
+              const updatedSerialIntransitQty = roundQty(
+                parseFloat(existingSerialDoc.intransit_qty || 0) + intransit_qty
+              );
+
+              const serialBalanceQuantity = roundQty(
+                updatedSerialBlockQty +
+                  updatedSerialReservedQty +
+                  updatedSerialUnrestrictedQty +
+                  updatedSerialQualityInspQty +
+                  updatedSerialIntransitQty
+              );
+
+              await db
+                .collection("item_serial_balance")
+                .doc(existingSerialDoc.id)
+                .update({
+                  block_qty: updatedSerialBlockQty,
+                  reserved_qty: updatedSerialReservedQty,
+                  unrestricted_qty: updatedSerialUnrestrictedQty,
+                  qualityinsp_qty: updatedSerialQualityInspQty,
+                  intransit_qty: updatedSerialIntransitQty,
+                  balance_quantity: serialBalanceQuantity,
+                });
+            } else {
+              const serialBalanceQuantity = roundQty(
+                block_qty +
+                  reserved_qty +
+                  unrestricted_qty +
+                  qualityinsp_qty +
+                  intransit_qty
+              );
+
+              await db.collection("item_serial_balance").add({
+                material_id: item.material_id,
+                location_id: item.location_id,
                 batch_id: item.batch_id,
+                serial_number: serialNumber,
+                block_qty: block_qty,
+                reserved_qty: reserved_qty,
+                unrestricted_qty: unrestricted_qty,
+                qualityinsp_qty: qualityinsp_qty,
+                intransit_qty: intransit_qty,
+                balance_quantity: serialBalanceQuantity,
+                plant_id: plantId,
+                organization_id: organizationId,
+              });
+            }
+          }
+        } else {
+          // Handle non-serialized items (original logic)
+          let block_qty = 0,
+            reserved_qty = 0,
+            unrestricted_qty = 0,
+            qualityinsp_qty = 0,
+            intransit_qty = 0;
+
+          const returnQty = roundQty(baseQty || 0);
+
+          if (item.inventory_category === "Blocked") {
+            block_qty = returnQty;
+          } else if (item.inventory_category === "Reserved") {
+            reserved_qty = returnQty;
+          } else if (item.inventory_category === "Unrestricted") {
+            unrestricted_qty = returnQty;
+          } else if (item.inventory_category === "Quality Inspection") {
+            qualityinsp_qty = returnQty;
+          } else if (item.inventory_category === "In Transit") {
+            intransit_qty = returnQty;
+          } else {
+            unrestricted_qty = returnQty;
+          }
+
+          if (item.batch_id) {
+            const batchResponse = await db
+              .collection("item_batch_balance")
+              .where(itemBatchBalanceParams)
+              .get();
+
+            const result = batchResponse.data;
+            const hasExistingBalance =
+              result && Array.isArray(result) && result.length > 0;
+            const existingDoc = hasExistingBalance ? result[0] : null;
+
+            let balance_quantity;
+
+            if (existingDoc && existingDoc.id) {
+              const updatedBlockQty = roundQty(
+                parseFloat(existingDoc.block_qty || 0) + block_qty
+              );
+              const updatedReservedQty = roundQty(
+                parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
+              );
+              const updatedUnrestrictedQty = roundQty(
+                parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
+              );
+              const updatedQualityInspQty = roundQty(
+                parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
+              );
+              const updatedIntransitQty = roundQty(
+                parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
+              );
+
+              balance_quantity = roundQty(
+                updatedBlockQty +
+                  updatedReservedQty +
+                  updatedUnrestrictedQty +
+                  updatedQualityInspQty +
+                  updatedIntransitQty
+              );
+
+              await db
+                .collection("item_batch_balance")
+                .doc(existingDoc.id)
+                .update({
+                  batch_id: item.batch_id,
+                  block_qty: updatedBlockQty,
+                  reserved_qty: updatedReservedQty,
+                  unrestricted_qty: updatedUnrestrictedQty,
+                  qualityinsp_qty: updatedQualityInspQty,
+                  intransit_qty: updatedIntransitQty,
+                  balance_quantity: balance_quantity,
+                });
+
+              console.log(
+                `Updated batch balance for item ${item.material_id}, batch ${item.batch_id}`
+              );
+            } else {
+              balance_quantity = roundQty(
+                block_qty +
+                  reserved_qty +
+                  unrestricted_qty +
+                  qualityinsp_qty +
+                  intransit_qty
+              );
+
+              await db.collection("item_batch_balance").add({
+                material_id: item.material_id,
+                location_id: item.location_id,
+                batch_id: item.batch_id,
+                block_qty: block_qty,
+                reserved_qty: reserved_qty,
+                unrestricted_qty: unrestricted_qty,
+                qualityinsp_qty: qualityinsp_qty,
+                intransit_qty: intransit_qty,
+                balance_quantity: balance_quantity,
+                plant_id: plantId,
+                organization_id: organizationId,
+              });
+
+              console.log(
+                `Created new batch balance for item ${item.material_id}, batch ${item.batch_id}`
+              );
+            }
+          } else {
+            const balanceResponse = await db
+              .collection("item_balance")
+              .where(itemBatchBalanceParams)
+              .get();
+
+            const result = balanceResponse.data;
+            const hasExistingBalance =
+              result && Array.isArray(result) && result.length > 0;
+            const existingDoc = hasExistingBalance ? result[0] : null;
+
+            let balance_quantity;
+
+            if (existingDoc && existingDoc.id) {
+              const updatedBlockQty = roundQty(
+                parseFloat(existingDoc.block_qty || 0) + block_qty
+              );
+              const updatedReservedQty = roundQty(
+                parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
+              );
+              const updatedUnrestrictedQty = roundQty(
+                parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
+              );
+              const updatedQualityInspQty = roundQty(
+                parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
+              );
+              const updatedIntransitQty = roundQty(
+                parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
+              );
+
+              balance_quantity = roundQty(
+                updatedBlockQty +
+                  updatedReservedQty +
+                  updatedUnrestrictedQty +
+                  updatedQualityInspQty +
+                  updatedIntransitQty
+              );
+
+              await db.collection("item_balance").doc(existingDoc.id).update({
                 block_qty: updatedBlockQty,
                 reserved_qty: updatedReservedQty,
                 unrestricted_qty: updatedUnrestrictedQty,
@@ -411,114 +731,41 @@ const updateInventory = async (data, plantId, organizationId) => {
                 balance_quantity: balance_quantity,
               });
 
-            console.log(
-              `Updated batch balance for item ${item.material_id}, batch ${item.batch_id}`
-            );
-          } else {
-            balance_quantity = roundQty(
-              block_qty +
-                reserved_qty +
-                unrestricted_qty +
-                qualityinsp_qty +
-                intransit_qty
-            );
+              console.log(`Updated balance for item ${item.material_id}`);
+            } else {
+              balance_quantity = roundQty(
+                block_qty +
+                  reserved_qty +
+                  unrestricted_qty +
+                  qualityinsp_qty +
+                  intransit_qty
+              );
 
-            await db.collection("item_batch_balance").add({
-              material_id: item.material_id,
-              location_id: item.location_id,
-              batch_id: item.batch_id,
-              block_qty: block_qty,
-              reserved_qty: reserved_qty,
-              unrestricted_qty: unrestricted_qty,
-              qualityinsp_qty: qualityinsp_qty,
-              intransit_qty: intransit_qty,
-              balance_quantity: balance_quantity,
-              plant_id: plantId,
-              organization_id: organizationId,
-            });
+              await db.collection("item_balance").add({
+                material_id: item.material_id,
+                location_id: item.location_id,
+                block_qty: block_qty,
+                reserved_qty: reserved_qty,
+                unrestricted_qty: unrestricted_qty,
+                qualityinsp_qty: qualityinsp_qty,
+                intransit_qty: intransit_qty,
+                balance_quantity: balance_quantity,
+                plant_id: plantId,
+                organization_id: organizationId,
+              });
 
-            console.log(
-              `Created new batch balance for item ${item.material_id}, batch ${item.batch_id}`
-            );
-          }
-        } else {
-          const balanceResponse = await db
-            .collection("item_balance")
-            .where(itemBatchBalanceParams)
-            .get();
-
-          const result = balanceResponse.data;
-          const hasExistingBalance =
-            result && Array.isArray(result) && result.length > 0;
-          const existingDoc = hasExistingBalance ? result[0] : null;
-
-          let balance_quantity;
-
-          if (existingDoc && existingDoc.id) {
-            const updatedBlockQty = roundQty(
-              parseFloat(existingDoc.block_qty || 0) + block_qty
-            );
-            const updatedReservedQty = roundQty(
-              parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
-            );
-            const updatedUnrestrictedQty = roundQty(
-              parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
-            );
-            const updatedQualityInspQty = roundQty(
-              parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
-            );
-            const updatedIntransitQty = roundQty(
-              parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
-            );
-
-            balance_quantity = roundQty(
-              updatedBlockQty +
-                updatedReservedQty +
-                updatedUnrestrictedQty +
-                updatedQualityInspQty +
-                updatedIntransitQty
-            );
-
-            await db.collection("item_balance").doc(existingDoc.id).update({
-              block_qty: updatedBlockQty,
-              reserved_qty: updatedReservedQty,
-              unrestricted_qty: updatedUnrestrictedQty,
-              qualityinsp_qty: updatedQualityInspQty,
-              intransit_qty: updatedIntransitQty,
-              balance_quantity: balance_quantity,
-            });
-
-            console.log(`Updated balance for item ${item.material_id}`);
-          } else {
-            balance_quantity = roundQty(
-              block_qty +
-                reserved_qty +
-                unrestricted_qty +
-                qualityinsp_qty +
-                intransit_qty
-            );
-
-            await db.collection("item_balance").add({
-              material_id: item.material_id,
-              location_id: item.location_id,
-              block_qty: block_qty,
-              reserved_qty: reserved_qty,
-              unrestricted_qty: unrestricted_qty,
-              qualityinsp_qty: qualityinsp_qty,
-              intransit_qty: intransit_qty,
-              balance_quantity: balance_quantity,
-              plant_id: plantId,
-              organization_id: organizationId,
-            });
-
-            console.log(`Created new balance for item ${item.material_id}`);
+              console.log(`Created new balance for item ${item.material_id}`);
+            }
           }
         }
 
+        // Update FIFO/WA based on costing method (applies to both serialized and non-serialized)
+        const finalReturnQty = hasSerialNumbers ? roundQty(baseQty) : returnQty;
+
         if (costingMethod === "First In First Out") {
-          await updateFIFOInventory(item, returnQty, item.batch_id);
+          await updateFIFOInventory(item, finalReturnQty, item.batch_id);
         } else if (costingMethod === "Weighted Average") {
-          await updateWeightedAverage(item, returnQty, item.batch_id);
+          await updateWeightedAverage(item, finalReturnQty, item.batch_id);
         } else {
           return Promise.resolve();
         }
@@ -572,7 +819,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, field) => {
+const validateField = (value, _field) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (Array.isArray(value)) return value.length === 0;
@@ -826,7 +1073,7 @@ const updateSalesReturn = async (entry) => {
     const srData = resSR.map((response) => response.data[0]);
 
     const updatedSR = await Promise.all(
-      srData.map(async (item, index) => {
+      srData.map(async (item, _index) => {
         const updatedSRStatus = item.table_sr.some(
           (srItem) =>
             parseFloat(srItem.received_qty || 0) <
@@ -883,10 +1130,30 @@ const addEntry = async (organizationId, entry) => {
     }
     entry.table_srr = processedTableSRR;
 
+    const inventoryProcessingEntry = JSON.parse(JSON.stringify(entry));
+
+    entry.table_srr = entry.table_srr.map((item) => {
+      if (
+        item.select_serial_number &&
+        Array.isArray(item.select_serial_number) &&
+        item.select_serial_number.length > 0
+      ) {
+        item.serial_numbers = item.select_serial_number.join("\n");
+        delete item.select_serial_number;
+      } else {
+        item.serial_numbers = null;
+      }
+      return item;
+    });
+
     const resSRR = await db.collection("sales_return_receiving").add(entry);
 
     console.log(`resSRR ${resSRR.data[0]}`);
-    await updateInventory(resSRR.data[0], entry.plant_id, organizationId);
+    await updateInventory(
+      inventoryProcessingEntry,
+      inventoryProcessingEntry.plant_id,
+      organizationId
+    );
     await updateSalesReturn(entry);
 
     this.$message.success("Add successfully");
@@ -927,13 +1194,33 @@ const updateEntry = async (organizationId, entry, salesReturnReceivingId) => {
     }
     entry.table_srr = processedTableSRR;
 
+    const inventoryProcessingEntry = JSON.parse(JSON.stringify(entry));
+
+    entry.table_srr = entry.table_srr.map((item) => {
+      if (
+        item.select_serial_number &&
+        Array.isArray(item.select_serial_number) &&
+        item.select_serial_number.length > 0
+      ) {
+        item.serial_numbers = item.select_serial_number.join("\n");
+        delete item.select_serial_number;
+      } else {
+        item.serial_numbers = null;
+      }
+      return item;
+    });
+
     const resSRR = await db
       .collection("sales_return_receiving")
       .doc(salesReturnReceivingId)
       .update(entry);
 
     console.log(`resSRR ${resSRR.data[0]}`);
-    await updateInventory(resSRR.data[0], entry.plant_id, organizationId);
+    await updateInventory(
+      inventoryProcessingEntry,
+      inventoryProcessingEntry.plant_id,
+      organizationId
+    );
     await updateSalesReturn(entry);
 
     this.$message.success("Update successfully");
@@ -998,7 +1285,7 @@ const calculateReceivedQuantities = async (
 };
 
 // Validate that quantities don't exceed expected amounts
-const validateReceivingQuantities = async (entry, isUpdate = false) => {
+const _validateReceivingQuantities = async (entry, isUpdate = false) => {
   try {
     const salesReturnIds = Array.isArray(entry.sales_return_id)
       ? entry.sales_return_id
@@ -1238,7 +1525,7 @@ const fillbackHeaderFields = async (entry) => {
       srrLineItem.line_index = index + 1;
     }
     return entry.table_srr;
-  } catch (error) {
+  } catch {
     throw new Error("Error processing sales return receiving.");
   }
 };
