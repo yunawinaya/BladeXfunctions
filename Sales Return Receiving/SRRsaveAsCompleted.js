@@ -21,30 +21,30 @@ const updateInventory = async (data, plantId, organizationId) => {
 
   const calculateCostPrice = (itemData, conversion) => {
     return db
-      .collection("purchase_order")
-      .where({ id: data.purchase_order_id })
+      .collection("sales_order")
+      .where({ id: itemData.so_id })
       .get()
-      .then((poResponse) => {
-        if (!poResponse.data || !poResponse.data.length) {
-          console.log(`No purchase order found for ${data.purchase_order_id}`);
+      .then((soResponse) => {
+        if (!soResponse.data || !soResponse.data.length) {
+          console.log(`No sales order found for ${itemData.so_id}`);
           return roundPrice(itemData.unit_price);
         }
 
-        const poData = poResponse.data[0];
+        const soData = soResponse.data[0];
 
-        const exchangeRate = poData.exchange_rate;
-        let poQuantity = 0;
+        const exchangeRate = soData.exchange_rate;
+        let soQuantity = 0;
         let totalAmount = 0;
 
-        for (const poItem of poData.table_po) {
-          if (poItem.item_id === itemData.item_id) {
-            poQuantity = roundQty(poItem.quantity);
-            totalAmount = roundPrice(poItem.po_amount);
+        for (const soItem of soData.table_so) {
+          if (soItem.id === itemData.so_line_id) {
+            soQuantity = roundQty(soItem.so_quantity);
+            totalAmount = roundPrice(soItem.so_amount);
             break;
           }
         }
 
-        const pricePerUnit = roundPrice(totalAmount / poQuantity);
+        const pricePerUnit = roundPrice(totalAmount / soQuantity);
         const costPrice = roundPrice(
           (pricePerUnit / conversion) * exchangeRate
         );
@@ -224,7 +224,7 @@ const updateInventory = async (data, plantId, organizationId) => {
         }
 
         // UOM Conversion
-        let altQty = roundQty(item.return_quantity);
+        let altQty = roundQty(item.received_qty);
         let baseQty = altQty;
         let altUOM = item.quantity_uom;
         let baseUOM = itemData.based_uom;
@@ -233,7 +233,7 @@ const updateInventory = async (data, plantId, organizationId) => {
           Array.isArray(itemData.table_uom_conversion) &&
           itemData.table_uom_conversion.length > 0
         ) {
-          console.log(`Checking UOM conversions for item ${item.item_id}`);
+          console.log(`Checking UOM conversions for item ${item.material_id}`);
 
           const uomConversion = itemData.table_uom_conversion.find(
             (conv) => conv.alt_uom_id === altUOM
@@ -254,7 +254,7 @@ const updateInventory = async (data, plantId, organizationId) => {
           }
         } else {
           console.log(
-            `No UOM conversion table for item ${item.item_id}, using received quantity as-is`
+            `No UOM conversion table for item ${item.material_id}, using received quantity as-is`
           );
         }
 
@@ -271,16 +271,15 @@ const updateInventory = async (data, plantId, organizationId) => {
             item,
             baseQty / roundQty(item.received_qty)
           );
-          unitPrice = fifoCostPrice;
+          unitPrice = roundPrice(fifoCostPrice);
           totalPrice = roundPrice(fifoCostPrice * baseQty);
         } else if (costingMethod === "Fixed Cost") {
-          const fixedCostPrice = await getFixedCostPrice(item.item_id);
-          unitPrice = fixedCostPrice;
+          const fixedCostPrice = await getFixedCostPrice(item.material_id);
+          unitPrice = roundPrice(fixedCostPrice);
           totalPrice = roundPrice(fixedCostPrice * baseQty);
         }
 
-        // Create inventory movement record
-        await db.collection("inventory_movement").add({
+        const inventoryMovementData = {
           transaction_type: "SRR",
           trx_no: data.srr_no,
           parent_trx_no: item.sr_number,
@@ -298,12 +297,41 @@ const updateInventory = async (data, plantId, organizationId) => {
           costing_method_id: item.costing_method,
           plant_id: plantId,
           organization_id: organizationId,
-        });
+        };
 
         const itemBatchBalanceParams = {
           material_id: item.material_id,
           location_id: item.location_id,
+          plant_id: plantId,
         };
+
+        if (item.batch_no !== "-") {
+          const batchData = {
+            batch_number: item.batch_no,
+            material_id: item.material_id,
+            initial_quantity: baseQty,
+            transaction_no: data.srr_no,
+            parent_transaction_no: item.sr_number,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+
+          const batchResponse = await db.collection("batch").add(batchData);
+
+          // Get the batch_id from the add response if available
+          let batchId = batchResponse?.data[0].id || null;
+          item.batch_id = batchId;
+
+          inventoryMovementData.batch_number_id = batchId;
+
+          console.log(`Batch ID for ${item.material_name}: ${batchId}`);
+
+          await db
+            .collection("sales_return_receiving_05z4r94a_sub")
+            .doc(item.id)
+            .update({ batch_id: batchId });
+        }
+        await db.collection("inventory_movement").add(inventoryMovementData);
 
         // Add batch_id to query params if it exists
         if (item.batch_id) {
@@ -600,15 +628,15 @@ const generatePrefix = (runNumber, now, prefixData) => {
   return generated;
 };
 
-const checkUniqueness = async (generatedPrefix) => {
+const checkUniqueness = async (generatedPrefix, organizationId) => {
   const existingDoc = await db
     .collection("sales_return_receiving")
-    .where({ srr_no: generatedPrefix })
+    .where({ srr_no: generatedPrefix, organization_id: organizationId })
     .get();
   return existingDoc.data[0] ? false : true;
 };
 
-const findUniquePrefix = async (prefixData) => {
+const findUniquePrefix = async (prefixData, organizationId) => {
   const now = new Date();
   let prefixToShow;
   let runningNumber = prefixData.running_number;
@@ -619,271 +647,254 @@ const findUniquePrefix = async (prefixData) => {
   while (!isUnique && attempts < maxAttempts) {
     attempts++;
     prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow);
+    isUnique = await checkUniqueness(prefixToShow, organizationId);
     if (!isUnique) {
       runningNumber++;
     }
   }
 
   if (!isUnique) {
-    this.$message.error(
+    throw new Error(
       "Could not generate a unique Sales Return Receiving number after maximum attempts"
     );
   }
-
   return { prefixToShow, runningNumber };
 };
 
-// NEW FUNCTION: Check receipt completion status for each Sales Return
-const checkSalesReturnReceivingStatus = async (salesReturnId) => {
-  try {
-    // Get the Sales Return
-    const srResult = await db
-      .collection("sales_return")
-      .where({ id: salesReturnId })
+const processRow = async (item, organizationId) => {
+  if (item.batch_no === "Auto-generated batch number") {
+    const resBatchConfig = await db
+      .collection("batch_level_config")
+      .where({ organization_id: organizationId })
       .get();
 
-    if (!srResult.data || srResult.data.length === 0) {
-      console.warn(`Sales Return not found: ${salesReturnId}`);
-      return { fullyReceived: false };
-    }
+    if (resBatchConfig && resBatchConfig.data.length > 0) {
+      const batchConfigData = resBatchConfig.data[0];
 
-    const salesReturn = srResult.data[0];
+      let batchDate = "";
+      let dd,
+        mm,
+        yy = "";
 
-    // Get all SRRs for this Sales Return
-    const srrResults = await db
-      .collection("sales_return_receiving")
-      .where({ sales_return_id: salesReturnId })
-      .get();
+      // Checking for related field
+      switch (batchConfigData.batch_format) {
+        case "Document Date":
+          let issueDate = this.getValue("received_date");
 
-    // If there are no SRRs, nothing is received
-    if (!srrResults.data || srrResults.data.length === 0) {
-      return { fullyReceived: false };
-    }
+          if (!issueDate)
+            throw new Error(
+              "Received Date is required for generating batch number."
+            );
 
-    // Calculate total expected and received quantities per material
-    const expectedQuantities = {};
-    const receivedQuantities = {};
+          console.log("issueDate", new Date(issueDate));
 
-    // Get expected quantities from SR
-    if (salesReturn.table_sr && Array.isArray(salesReturn.table_sr)) {
-      salesReturn.table_sr.forEach((item) => {
-        if (item.material_id) {
-          expectedQuantities[item.material_id] =
-            (expectedQuantities[item.material_id] || 0) +
-            Number(item.expected_return_qty || 0);
-        }
-      });
-    }
+          issueDate = new Date(issueDate);
 
-    // Get received quantities from all SRRs
-    srrResults.data.forEach((srr) => {
-      if (srr.table_srr && Array.isArray(srr.table_srr)) {
-        srr.table_srr.forEach((item) => {
-          if (item.material_id) {
-            receivedQuantities[item.material_id] =
-              (receivedQuantities[item.material_id] || 0) +
-              Number(item.return_quantity || 0);
-          }
+          dd = String(issueDate.getDate()).padStart(2, "0");
+          mm = String(issueDate.getMonth() + 1).padStart(2, "0");
+          yy = String(issueDate.getFullYear()).slice(-2);
+
+          batchDate = dd + mm + yy;
+
+          console.log("batchDate", batchDate);
+          break;
+
+        case "Document Created Date":
+          let createdDate = new Date().toISOString().split("T")[0];
+
+          console.log("createdDate", createdDate);
+
+          createdDate = new Date(createdDate);
+
+          dd = String(createdDate.getDate()).padStart(2, "0");
+          mm = String(createdDate.getMonth() + 1).padStart(2, "0");
+          yy = String(createdDate.getFullYear()).slice(-2);
+
+          batchDate = dd + mm + yy;
+
+          console.log("batchDate", batchDate);
+          break;
+
+        case "Manufacturing Date":
+          let manufacturingDate = item.manufacturing_date;
+
+          console.log("manufacturingDate", manufacturingDate);
+
+          if (!manufacturingDate)
+            throw new Error(
+              "Manufacturing Date is required for generating batch number."
+            );
+
+          manufacturingDate = new Date(manufacturingDate);
+
+          dd = String(manufacturingDate.getDate()).padStart(2, "0");
+          mm = String(manufacturingDate.getMonth() + 1).padStart(2, "0");
+          yy = String(manufacturingDate.getFullYear()).slice(-2);
+
+          batchDate = dd + mm + yy;
+
+          console.log("batchDate", batchDate);
+          break;
+
+        case "Expired Date":
+          let expiredDate = item.expired_date;
+
+          console.log("expiredDate", expiredDate);
+
+          if (!expiredDate)
+            throw new Error(
+              "Expired Date is required for generating batch number."
+            );
+
+          expiredDate = new Date(expiredDate);
+
+          dd = String(expiredDate.getDate()).padStart(2, "0");
+          mm = String(expiredDate.getMonth() + 1).padStart(2, "0");
+          yy = String(expiredDate.getFullYear()).slice(-2);
+
+          batchDate = dd + mm + yy;
+
+          console.log("batchDate", batchDate);
+          break;
+      }
+
+      let batchPrefix = batchConfigData.batch_prefix || "";
+      if (batchPrefix) batchPrefix += "-";
+
+      const generatedBatchNo =
+        batchPrefix +
+        batchDate +
+        String(batchConfigData.batch_running_number).padStart(
+          batchConfigData.batch_padding_zeroes,
+          "0"
+        );
+
+      item.batch_no = generatedBatchNo;
+      await db
+        .collection("batch_level_config")
+        .where({ id: batchConfigData.id })
+        .update({
+          batch_running_number: batchConfigData.batch_running_number + 1,
         });
-      }
-    });
 
-    // Check if all materials are fully received
-    let fullyReceived = true;
-    let partiallyReceived = false;
-
-    for (const materialId in expectedQuantities) {
-      const expected = expectedQuantities[materialId];
-      const received = receivedQuantities[materialId] || 0;
-
-      if (received > 0) {
-        partiallyReceived = true;
-      }
-
-      if (received < expected) {
-        fullyReceived = false;
-      }
+      return item;
     }
-
-    return {
-      fullyReceived,
-      partiallyReceived,
-      status: fullyReceived
-        ? "Fully Received"
-        : partiallyReceived
-        ? "Partially Received"
-        : "Issued",
-    };
-  } catch (error) {
-    console.error(`Error checking SRR status for SR ${salesReturnId}:`, error);
-    return { fullyReceived: false, partiallyReceived: false, status: "Issued" };
-  }
-};
-
-// NEW FUNCTION: Check the status for a Sales Order based on its Sales Returns
-const checkSalesOrderReceivingStatus = async (soId) => {
-  try {
-    // Get all Sales Returns for this SO
-    const srResults = await db
-      .collection("sales_return")
-      .where({ sr_return_so_id: soId })
-      .get();
-
-    if (!srResults.data || srResults.data.length === 0) {
-      return { status: null };
-    }
-
-    let allSRsFullyReceived = true;
-    let anySRPartiallyReceived = false;
-
-    // Check the status of each Sales Return
-    for (const sr of srResults.data) {
-      const { fullyReceived, partiallyReceived } =
-        await checkSalesReturnReceivingStatus(sr.id);
-
-      if (partiallyReceived) {
-        anySRPartiallyReceived = true;
-      }
-
-      if (!fullyReceived) {
-        allSRsFullyReceived = false;
-      }
-    }
-
-    const status = allSRsFullyReceived
-      ? "Fully Received"
-      : anySRPartiallyReceived
-      ? "Partially Received"
-      : null;
-
-    return { status };
-  } catch (error) {
-    console.error(`Error checking SRR status for SO ${soId}:`, error);
-    return { status: null };
-  }
-};
-
-// NEW FUNCTION: Update the status of Sales Returns and Sales Orders
-const updateSalesReturnAndOrderStatus = async (data) => {
-  try {
-    // Get unique Sales Return IDs
-    const salesReturnIds = Array.isArray(data.sales_return_id)
-      ? data.sales_return_id
-      : [data.sales_return_id];
-
-    // Get unique SO IDs
-    const soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];
-
-    const updatePromises = [];
-
-    // Update each Sales Return status
-    for (const srId of salesReturnIds) {
-      if (!srId) continue;
-
-      const { status } = await checkSalesReturnReceivingStatus(srId);
-
-      if (status) {
-        updatePromises.push(
-          db
-            .collection("sales_return")
-            .doc(srId)
-            .update({
-              srr_status: status,
-              sr_status: status === "Fully Received" ? "Completed" : "Issued",
-            })
-        );
-      }
-    }
-
-    // Update each Sales Order status
-    for (const soId of soIds) {
-      if (!soId) continue;
-
-      const { status } = await checkSalesOrderReceivingStatus(soId);
-
-      if (status) {
-        updatePromises.push(
-          db.collection("sales_order").doc(soId).update({
-            srr_status: status,
-          })
-        );
-      }
-    }
-
-    await Promise.all(updatePromises);
-    return true;
-  } catch (error) {
-    console.error("Error updating SR and SO status:", error);
-    throw error;
+  } else {
+    return item;
   }
 };
 
 const updateSalesReturn = async (entry) => {
   try {
-    const salesReturnIds = Array.isArray(entry.sales_return_id)
-      ? entry.sales_return_id
-      : [entry.sales_return_id];
+    const resSRLineData = await Promise.all(
+      entry.table_srr.map(
+        async (item) =>
+          await db
+            .collection("sales_return_mes6yhqe_sub")
+            .doc(item.sr_line_id)
+            .get()
+      )
+    );
 
-    // Update each Sales Return with Completed status
-    for (const salesReturnId of salesReturnIds) {
-      if (salesReturnId) {
-        await db.collection("sales_return").doc(salesReturnId).update({
-          sr_status: "Completed",
+    const srLineItemData = resSRLineData.map((response) => response.data[0]);
+
+    await Promise.all(
+      entry.table_srr.map(async (item, index) => {
+        await db
+          .collection("sales_return_mes6yhqe_sub")
+          .doc(item.sr_line_id)
+          .update({
+            received_qty:
+              parseFloat(srLineItemData[index].received_qty || 0) +
+              parseFloat(item.received_qty || 0),
+            srr_status:
+              parseFloat(srLineItemData[index].received_qty || 0) +
+                parseFloat(item.received_qty || 0) >=
+              parseFloat(srLineItemData[index].expected_return_qty || 0)
+                ? "Fully Received"
+                : "Partially Received",
+          });
+      })
+    );
+
+    const resSR = await Promise.all(
+      entry.sr_id.map(
+        async (item) => await db.collection("sales_return").doc(item).get()
+      )
+    );
+
+    const srData = resSR.map((response) => response.data[0]);
+
+    const updatedSR = await Promise.all(
+      srData.map(async (item, index) => {
+        const updatedSRStatus = item.table_sr.some(
+          (srItem) =>
+            parseFloat(srItem.received_qty || 0) <
+            parseFloat(srItem.expected_return_qty || 0)
+        )
+          ? "Partially Received"
+          : "Fully Received";
+
+        return {
+          id: item.id,
+          srr_status: updatedSRStatus,
+        };
+      })
+    );
+
+    await Promise.all(
+      updatedSR.map(async (item) => {
+        await db.collection("sales_return").doc(item.id).update({
+          srr_status: item.srr_status,
         });
-      }
-    }
-
-    // Update the srr_status for Sales Returns and Sales Orders
-    await updateSalesReturnAndOrderStatus(entry);
-
-    return true;
+      })
+    );
   } catch (error) {
-    console.error("Error updating Sales Return status:", error);
-    throw error;
+    throw new Error("Error updating Sales Return records." + error);
   }
 };
 
 const addEntry = async (organizationId, entry) => {
   try {
     const prefixData = await getPrefixData(organizationId);
-    if (prefixData.length !== 0) {
+    if (prefixData !== null) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData
+        prefixData,
+        organizationId
       );
 
       await updatePrefix(organizationId, runningNumber);
 
       // Set the SRR number
       entry.srr_no = prefixToShow;
-
-      await db
-        .collection("sales_return_receiving")
-        .add(entry)
-        .then(() => {
-          this.runWorkflow(
-            "1918241501326159874",
-            { srr_no: entry.srr_no },
-            async (res) => {
-              console.log("成功结果：", res);
-            },
-            (err) => {
-              alert();
-              console.error("失败结果：", err);
-              closeDialog();
-            }
-          );
-        });
-
-      await updateInventory(entry, entry.plant_id, organizationId);
-      await updateSalesReturn(entry);
-
-      this.$message.success("Add successfully");
-      closeDialog();
+    } else {
+      const isUnique = await checkUniqueness(entry.srr_no, organizationId);
+      if (!isUnique) {
+        throw new Error(
+          `SRR Number "${entry.srr_no}" already exists. Please use a different number.`
+        );
+      }
     }
+
+    const processedTableSRR = [];
+    for (const item of entry.table_srr) {
+      const processedItem = await processRow(item, organizationId);
+      processedTableSRR.push(processedItem);
+    }
+    entry.table_srr = processedTableSRR;
+
+    const resSRR = await db.collection("sales_return_receiving").add(entry);
+
+    console.log(`resSRR ${resSRR.data[0]}`);
+    await updateInventory(resSRR.data[0], entry.plant_id, organizationId);
+    await updateSalesReturn(entry);
+
+    this.$message.success("Add successfully");
+    closeDialog();
   } catch (error) {
     this.hideLoading();
-    this.$message.error(error);
+    console.error(error);
+    this.$message.error(error.message || String(error));
   }
 };
 
@@ -891,41 +902,46 @@ const updateEntry = async (organizationId, entry, salesReturnReceivingId) => {
   try {
     const prefixData = await getPrefixData(organizationId);
 
-    if (prefixData.length !== 0) {
+    if (prefixData !== null) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData
+        prefixData,
+        organizationId
       );
 
       await updatePrefix(organizationId, runningNumber);
 
       entry.srr_no = prefixToShow;
-      await db
-        .collection("sales_return_receiving")
-        .doc(salesReturnReceivingId)
-        .update(entry)
-        .then(() => {
-          this.runWorkflow(
-            "1918241501326159874",
-            { srr_no: entry.srr_no },
-            async (res) => {
-              console.log("成功结果：", res);
-            },
-            (err) => {
-              alert();
-              console.error("失败结果：", err);
-              closeDialog();
-            }
-          );
-        });
-      await updateInventory(entry, entry.plant_id, organizationId);
-      await updateSalesReturn(entry);
-
-      this.$message.success("Update successfully");
-      await closeDialog();
+    } else {
+      const isUnique = await checkUniqueness(entry.srr_no, organizationId);
+      if (!isUnique) {
+        throw new Error(
+          `SRR Number "${entry.srr_no}" already exists. Please use a different number.`
+        );
+      }
     }
+
+    const processedTableSRR = [];
+    for (const item of entry.table_srr) {
+      const processedItem = await processRow(item, organizationId);
+      processedTableSRR.push(processedItem);
+    }
+    entry.table_srr = processedTableSRR;
+
+    const resSRR = await db
+      .collection("sales_return_receiving")
+      .doc(salesReturnReceivingId)
+      .update(entry);
+
+    console.log(`resSRR ${resSRR.data[0]}`);
+    await updateInventory(resSRR.data[0], entry.plant_id, organizationId);
+    await updateSalesReturn(entry);
+
+    this.$message.success("Update successfully");
+    await closeDialog();
   } catch (error) {
     this.hideLoading();
-    this.$message.error(error);
+    console.error(error);
+    this.$message.error(error.message || String(error));
   }
 };
 
@@ -1057,14 +1073,183 @@ const validateReceivingQuantities = async (entry, isUpdate = false) => {
   }
 };
 
+const findFieldMessage = (obj) => {
+  // Base case: if current object has the structure we want
+  if (obj && typeof obj === "object") {
+    if (obj.field && obj.message) {
+      return obj.message;
+    }
+
+    // Check array elements
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = findFieldMessage(item);
+        if (found) return found;
+      }
+    }
+
+    // Check all object properties
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const found = findFieldMessage(obj[key]);
+        if (found) return found;
+      }
+    }
+
+    return obj.toString();
+  }
+  return null;
+};
+
+const fetchReceivedQuantity = async () => {
+  const tableSRR = this.getValue("table_srr") || [];
+
+  const resSRLineData = await Promise.all(
+    tableSRR.map((item) =>
+      db.collection("sales_return_mes6yhqe_sub").doc(item.sr_line_id).get()
+    )
+  );
+
+  const srLineItemData = resSRLineData.map((response) => response.data[0]);
+
+  const invalidReceivedQty = [];
+
+  for (const [index, item] of tableSRR.entries()) {
+    const srLine = srLineItemData.find((sr) => sr.id === item.sr_line_id);
+
+    if (srLine) {
+      const maxReceivableQty =
+        (srLine.expected_return_qty || 0) - (srLine.received_qty || 0);
+      if ((item.received_qty || 0) > maxReceivableQty) {
+        invalidReceivedQty.push(`#${index + 1}`);
+        this.setData({
+          [`table.srr.${index}.to_receive_qty`]: maxReceivableQty,
+        });
+      }
+    }
+  }
+
+  if (invalidReceivedQty.length > 0) {
+    await this.$alert(
+      `Line${
+        invalidReceivedQty.length > 1 ? "s" : ""
+      } ${invalidReceivedQty.join(", ")} ha${
+        invalidReceivedQty.length > 1 ? "ve" : "s"
+      } an expected receive quantity exceeding the maximum receivable quantity.`,
+      "Invalid Receive Quantity",
+      {
+        confirmButtonText: "OK",
+        type: "error",
+      }
+    );
+
+    throw new Error("Invalid receive quantity detected.");
+  }
+};
+
+const processSRRLineItem = async (entry) => {
+  const totalQuantity = entry.table_srr.reduce((sum, item) => {
+    const { received_qty } = item;
+    return sum + (received_qty || 0); // Handle null/undefined received_qty
+  }, 0);
+
+  if (totalQuantity === 0) {
+    throw new Error("Total receive quantity is 0.");
+  }
+
+  const zeroQtyArray = [];
+  for (const [index, srr] of entry.table_srr.entries()) {
+    console.log("srr.received_qty", srr.received_qty);
+    if (!srr.received_qty || (srr.received_qty && srr.received_qty <= 0)) {
+      zeroQtyArray.push(`#${index + 1}`);
+    }
+  }
+
+  console.log("zeroQtyArray", zeroQtyArray);
+  if (zeroQtyArray.length > 0) {
+    await this.$confirm(
+      `Line${zeroQtyArray.length > 1 ? "s" : ""} ${zeroQtyArray.join(", ")} ha${
+        zeroQtyArray.length > 1 ? "ve" : "s"
+      } a zero receive quantity, which may prevent processing.\nIf you proceed, it will delete the row with 0 receive quantity. \nWould you like to proceed?`,
+      "Zero Receive Quantity Detected",
+      {
+        confirmButtonText: "OK",
+        cancelButtonText: "Cancel",
+        type: "warning",
+        dangerouslyUseHTMLString: false,
+      }
+    )
+      .then(async () => {
+        console.log("User clicked OK");
+        entry.table_srr = entry.table_srr.filter(
+          (item) => item.received_qty > 0
+        );
+        let salesOrderNumber = [];
+        let soId = [];
+        let goodsDeliveryNumber = [];
+        let gdId = [];
+        let salesReturnNumber = [];
+        let srId = [];
+        for (const srr of entry.table_srr) {
+          gdId.push(srr.gd_id);
+          goodsDeliveryNumber.push(srr.gd_number);
+
+          soId.push(srr.so_id);
+          salesOrderNumber.push(srr.so_number);
+
+          srId.push(srr.sr_id);
+          salesReturnNumber.push(srr.sr_number);
+        }
+
+        soId = [...new Set(soId)];
+        gdId = [...new Set(gdId)];
+        srId = [...new Set(srId)];
+        salesOrderNumber = [...new Set(salesOrderNumber)];
+        goodsDeliveryNumber = [...new Set(goodsDeliveryNumber)];
+        salesReturnNumber = [...new Set(salesReturnNumber)];
+
+        entry.so_id = soId;
+        entry.gd_id = gdId;
+        entry.sr_id = srId;
+        entry.so_no_display = salesOrderNumber.join(", ");
+        entry.gd_no_display = goodsDeliveryNumber.join(", ");
+        entry.sr_no_display = salesReturnNumber.join(", ");
+
+        return entry;
+      })
+      .catch(() => {
+        // Function to execute when the user clicks "Cancel" or closes the dialog
+        console.log("User clicked Cancel or closed the dialog");
+        this.hideLoading();
+        throw new Error("Saving sales return receiving cancelled.");
+        // Add your logic to stop or handle cancellation here
+        // Example: this.stopFunction();
+      });
+  }
+
+  return entry;
+};
+
+const fillbackHeaderFields = async (entry) => {
+  try {
+    for (const [index, srrLineItem] of entry.table_srr.entries()) {
+      srrLineItem.customer_id = entry.customer_id || null;
+      srrLineItem.plant_id = entry.plant_id || null;
+      srrLineItem.line_index = index + 1;
+    }
+    return entry.table_srr;
+  } catch (error) {
+    throw new Error("Error processing sales return receiving.");
+  }
+};
+
 (async () => {
   try {
     const data = this.getValues();
     this.showLoading();
 
     const requiredFields = [
-      { name: "so_id", label: "SO Number" },
-      { name: "sales_return_id", label: "Sales Return Number" },
+      { name: "plant_id", label: "Plant" },
       { name: "srr_no", label: "SRR Number" },
       {
         name: "table_srr",
@@ -1074,11 +1259,13 @@ const validateReceivingQuantities = async (entry, isUpdate = false) => {
         arrayFields: [
           { name: "location_id", label: "Target Location" },
           { name: "inventory_category", label: "Inventory Category" },
+          { name: "batch_no", label: "Batch Number" },
         ],
       },
     ];
 
     const missingFields = await validateForm(data, requiredFields);
+    await fetchReceivedQuantity();
 
     if (missingFields.length === 0) {
       const page_status = this.getValue("page_status");
@@ -1089,66 +1276,75 @@ const validateReceivingQuantities = async (entry, isUpdate = false) => {
       }
 
       const {
-        fake_so_id,
-        so_id,
-        so_no_display,
-        sales_return_id,
+        plant_id,
+        srr_no,
         sr_no_display,
+        gd_no_display,
+        so_no_display,
+
+        sr_id,
+        gd_id,
+        so_id,
+
         customer_id,
         contact_person,
-        srr_no,
-        plant_id,
-        organization_id,
+
         user_id,
-        fileupload_ed0qx6ga,
+        srr_ref_doc,
         received_date,
         table_srr,
-        input_y0dr1vke,
+        received_details,
         remarks,
+        remarks2,
+        remarks3,
+        organization_id,
+
+        reference_type,
       } = data;
 
       const entry = {
         srr_status: "Completed",
-        so_id,
+        plant_id,
+        srr_no,
+        sr_no_display,
+        gd_no_display,
         so_no_display,
-        fake_so_id,
+
+        sr_id,
+        gd_id,
+        so_id,
+
         customer_id,
         contact_person,
-        sales_return_id,
-        sr_no_display,
-        srr_no,
-        plant_id,
-        organization_id,
+
         user_id,
-        fileupload_ed0qx6ga,
+        srr_ref_doc,
         received_date,
         table_srr,
-        input_y0dr1vke,
+        received_details,
         remarks,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        remarks2,
+        remarks3,
+        organization_id,
+
+        reference_type,
       };
 
-      // Validate quantities
-      const validation = await validateReceivingQuantities(
-        entry,
-        page_status === "Edit"
-      );
+      const latestSRR = await processSRRLineItem(entry);
 
-      if (!validation.valid) {
-        this.hideLoading();
-        this.$message.error(validation.errors.join("\n"));
-        return;
+      if (latestSRR.table_srr.length === 0) {
+        throw new Error(
+          "All Received Quantity must not be 0. Please add at lease one item with receive quantity > 0."
+        );
       }
 
+      latestSRR.table_srr = await fillbackHeaderFields(latestSRR);
+
       if (page_status === "Add") {
-        await addEntry(organizationId, entry);
-        closeDialog();
+        await addEntry(organizationId, latestSRR);
       } else if (page_status === "Edit") {
         const salesReturnReceivingId = this.getValue("id");
-        entry.updated_at = new Date().toISOString();
-        await updateEntry(organizationId, entry, salesReturnReceivingId);
-        closeDialog();
+        await updateEntry(organizationId, latestSRR, salesReturnReceivingId);
       }
     } else {
       this.hideLoading();
@@ -1156,11 +1352,18 @@ const validateReceivingQuantities = async (entry, isUpdate = false) => {
     }
   } catch (error) {
     this.hideLoading();
-    this.$message.error(
-      typeof error === "string"
-        ? error
-        : error.message || "An unexpected error occurred"
-    );
-    console.error("Error processing Sales Return Receiving:", error);
+
+    // Try to get message from standard locations first
+    let errorMessage = "";
+    console.log(error);
+
+    if (error && typeof error === "object") {
+      errorMessage = findFieldMessage(error) || "An error occurred";
+    } else {
+      errorMessage = error;
+    }
+
+    this.$message.error(errorMessage);
+    console.error(errorMessage);
   }
 })();
