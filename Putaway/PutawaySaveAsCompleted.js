@@ -1210,10 +1210,10 @@ const processInventoryMovementandBalanceTable = async (
                 // OUT movement aggregation (source_bin)
                 const outKey =
                   itemData.item_batch_management === 1
-                    ? `${mat.item_code}_${mat.source_bin}_${
+                    ? `OUT_${mat.item_code}_${mat.source_bin}_${
                         mat.batch_no || "no_batch"
                       }`
-                    : `${mat.item_code}_${mat.source_bin}`;
+                    : `OUT_${mat.item_code}_${mat.source_bin}`;
 
                 if (!balanceUpdates[outKey]) {
                   balanceUpdates[outKey] = {
@@ -1254,10 +1254,10 @@ const processInventoryMovementandBalanceTable = async (
                 // IN movement aggregation (target_location)
                 const inKey =
                   itemData.item_batch_management === 1
-                    ? `${mat.item_code}_${mat.target_location}_${
+                    ? `IN_${mat.item_code}_${mat.target_location}_${
                         mat.batch_no || "no_batch"
                       }`
-                    : `${mat.item_code}_${mat.target_location}`;
+                    : `IN_${mat.item_code}_${mat.target_location}`;
 
                 if (!balanceUpdates[inKey]) {
                   balanceUpdates[inKey] = {
