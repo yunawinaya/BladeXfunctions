@@ -1,48 +1,62 @@
 (async () => {
   try {
-    const unCompletedListID = "custom_lwxe7tfp";
-    const allListID = "custom_wfwjnk9q";
-    const tabUncompletedElement = document.getElementById("tab-tab_unposted");
+    const unCompletedListID = "custom_gsf6m9ng";
+    const allListID = "custom_5of0llto";
+    const unPostedListID = "custom_ukujz0oi";
+    const tabUncompletedElement = document.getElementById(
+      "tab-tab_uncompleted"
+    );
+    const tabUnpostedEelement = document.getElementById("tab-tab_unposted");
 
     const activeTab = tabUncompletedElement?.classList.contains("is-active")
       ? "Uncompleted"
+      : tabUnpostedEelement?.classList.contains("is-active")
+      ? "Unposted"
       : "All";
 
     let selectedRecords;
 
     selectedRecords = this.getComponent(
-      activeTab === "Uncompleted" ? unCompletedListID : allListID
+      activeTab === "Uncompleted"
+        ? unCompletedListID
+        : activeTab === "Unposted"
+        ? unPostedListID
+        : allListID
     )?.$refs.crud.tableSelect;
 
     console.log("selectedRecords", selectedRecords);
 
     if (selectedRecords && selectedRecords.length > 0) {
-      // Select all Sales Invoice ids with Draft status
-      const salesInvoiceIds = selectedRecords
+      const stockMovementIds = selectedRecords
         .filter(
-          (item) => item.si_status === "Draft" || item.si_status === "Cancelled"
+          (item) =>
+            item.stock_movement_status === "Draft" ||
+            item.stock_movement_status === "Cancelled"
         )
         .map((item) => item.id);
-      console.log("salesInvoiceIds", salesInvoiceIds);
-      if (salesInvoiceIds.length === 0) {
+
+      if (stockMovementIds.length === 0) {
         this.$message.error(
-          "Please select at least one draft or cancelled sales invoice."
+          "Please select at least one draft or cancelled stock movement."
         );
         return;
       }
-      const salesInvoiceNumbers = selectedRecords
+
+      const stockMovementNumbers = selectedRecords
         .filter(
-          (item) => item.si_status === "Draft" || item.si_status === "Cancelled"
+          (item) =>
+            item.stock_movement_status === "Draft" ||
+            item.stock_movement_status === "Cancelled"
         )
-        .map((item) => item.sales_invoice_no);
+        .map((item) => item.stock_movement_no);
 
       await this.$confirm(
         `You've selected ${
-          salesInvoiceNumbers.length
-        } sales invoice(s) to delete. <br> <strong>Sales Invoice Numbers:</strong> <br>${salesInvoiceNumbers.join(
+          stockMovementNumbers.length
+        } stock movement(s) to delete. <br> <strong>Stock Movement Numbers:</strong> <br>${stockMovementNumbers.join(
           ", "
         )} <br>Do you want to proceed?`,
-        "Sales Invoice Deletion",
+        "Stock Movement Deletion",
         {
           confirmButtonText: "Proceed",
           cancelButtonText: "Cancel",
@@ -54,8 +68,8 @@
         throw new Error();
       });
 
-      for (const id of salesInvoiceIds) {
-        db.collection("sales_invoice")
+      for (const id of stockMovementIds) {
+        db.collection("stock_movement")
           .doc(id)
           .update({
             is_deleted: 1,

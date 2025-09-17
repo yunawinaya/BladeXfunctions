@@ -1,7 +1,7 @@
 (async () => {
   try {
-    const unCompletedListID = "custom_lwxe7tfp";
-    const allListID = "custom_wfwjnk9q";
+    const unCompletedListID = "custom_z7cfnh6j";
+    const allListID = "custom_y5ewf6w9";
     const tabUncompletedElement = document.getElementById("tab-tab_unposted");
 
     const activeTab = tabUncompletedElement?.classList.contains("is-active")
@@ -17,32 +17,36 @@
     console.log("selectedRecords", selectedRecords);
 
     if (selectedRecords && selectedRecords.length > 0) {
-      // Select all Sales Invoice ids with Draft status
-      const salesInvoiceIds = selectedRecords
+      const stockAdjustmentIds = selectedRecords
         .filter(
-          (item) => item.si_status === "Draft" || item.si_status === "Cancelled"
+          (item) =>
+            item.stock_adjustment_status.dict_key === "Draft" ||
+            item.stock_adjustment_status.dict_key === "Cancelled"
         )
         .map((item) => item.id);
-      console.log("salesInvoiceIds", salesInvoiceIds);
-      if (salesInvoiceIds.length === 0) {
+
+      if (stockAdjustmentIds.length === 0) {
         this.$message.error(
-          "Please select at least one draft or cancelled sales invoice."
+          "Please select at least one draft or cancelled stock adjustment."
         );
         return;
       }
-      const salesInvoiceNumbers = selectedRecords
+
+      const stockAdjustmentNumbers = selectedRecords
         .filter(
-          (item) => item.si_status === "Draft" || item.si_status === "Cancelled"
+          (item) =>
+            item.stock_adjustment_status.dict_key === "Draft" ||
+            item.stock_adjustment_status.dict_key === "Cancelled"
         )
-        .map((item) => item.sales_invoice_no);
+        .map((item) => item.adjustment_no);
 
       await this.$confirm(
         `You've selected ${
-          salesInvoiceNumbers.length
-        } sales invoice(s) to delete. <br> <strong>Sales Invoice Numbers:</strong> <br>${salesInvoiceNumbers.join(
+          stockAdjustmentNumbers.length
+        } stock adjustment(s) to delete. <br> <strong>Stock Adjustment Numbers:</strong> <br>${stockAdjustmentNumbers.join(
           ", "
         )} <br>Do you want to proceed?`,
-        "Sales Invoice Deletion",
+        "Stock Adjustment Deletion",
         {
           confirmButtonText: "Proceed",
           cancelButtonText: "Cancel",
@@ -54,8 +58,8 @@
         throw new Error();
       });
 
-      for (const id of salesInvoiceIds) {
-        db.collection("sales_invoice")
+      for (const id of stockAdjustmentIds) {
+        db.collection("stock_adjustment")
           .doc(id)
           .update({
             is_deleted: 1,

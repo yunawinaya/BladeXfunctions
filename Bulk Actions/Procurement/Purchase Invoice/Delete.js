@@ -1,7 +1,7 @@
 (async () => {
   try {
-    const unCompletedListID = "custom_lwxe7tfp";
-    const allListID = "custom_wfwjnk9q";
+    const unCompletedListID = "custom_zceupuuv";
+    const allListID = "custom_su1b24n6";
     const tabUncompletedElement = document.getElementById("tab-tab_unposted");
 
     const activeTab = tabUncompletedElement?.classList.contains("is-active")
@@ -17,32 +17,32 @@
     console.log("selectedRecords", selectedRecords);
 
     if (selectedRecords && selectedRecords.length > 0) {
-      // Select all Sales Invoice ids with Draft status
-      const salesInvoiceIds = selectedRecords
+      const purchaseInvoiceIds = selectedRecords
         .filter(
-          (item) => item.si_status === "Draft" || item.si_status === "Cancelled"
+          (item) => item.pi_status === "Draft" || item.pi_status === "Cancelled"
         )
         .map((item) => item.id);
-      console.log("salesInvoiceIds", salesInvoiceIds);
-      if (salesInvoiceIds.length === 0) {
+
+      if (purchaseInvoiceIds.length === 0) {
         this.$message.error(
-          "Please select at least one draft or cancelled sales invoice."
+          "Please select at least one draft or cancelled purchase invoice."
         );
         return;
       }
-      const salesInvoiceNumbers = selectedRecords
+
+      const purchaseInvoiceNumbers = selectedRecords
         .filter(
-          (item) => item.si_status === "Draft" || item.si_status === "Cancelled"
+          (item) => item.pi_status === "Draft" || item.pi_status === "Cancelled"
         )
-        .map((item) => item.sales_invoice_no);
+        .map((item) => item.purchase_invoice_no);
 
       await this.$confirm(
         `You've selected ${
-          salesInvoiceNumbers.length
-        } sales invoice(s) to delete. <br> <strong>Sales Invoice Numbers:</strong> <br>${salesInvoiceNumbers.join(
+          purchaseInvoiceNumbers.length
+        } purchase invoice(s) to delete. <br> <strong>Purchase Invoice Numbers:</strong> <br>${purchaseInvoiceNumbers.join(
           ", "
         )} <br>Do you want to proceed?`,
-        "Sales Invoice Deletion",
+        "Purchase Invoice Deletion",
         {
           confirmButtonText: "Proceed",
           cancelButtonText: "Cancel",
@@ -54,8 +54,8 @@
         throw new Error();
       });
 
-      for (const id of salesInvoiceIds) {
-        db.collection("sales_invoice")
+      for (const id of purchaseInvoiceIds) {
+        db.collection("purchase_invoice")
           .doc(id)
           .update({
             is_deleted: 1,
