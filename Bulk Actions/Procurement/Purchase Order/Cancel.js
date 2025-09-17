@@ -35,12 +35,46 @@
         try {
           const receivedGRResults = await db
             .collection("goods_receiving")
-            .where({ po_id: poItem.id, gr_status: "Received" })
+            .filter([
+              {
+                type: "branch",
+                operator: "all",
+                children: [
+                  {
+                    prop: "po_id",
+                    operator: "in",
+                    value: poItem.id,
+                  },
+                  {
+                    prop: "gr_status",
+                    operator: "equal",
+                    value: "Received",
+                  },
+                ],
+              },
+            ])
             .get();
 
           const completedGRResults = await db
             .collection("goods_receiving")
-            .where({ po_id: poItem.id, gr_status: "Completed" })
+            .filter([
+              {
+                type: "branch",
+                operator: "all",
+                children: [
+                  {
+                    prop: "po_id",
+                    operator: "in",
+                    value: poItem.id,
+                  },
+                  {
+                    prop: "gr_status",
+                    operator: "equal",
+                    value: "Completed",
+                  },
+                ],
+              },
+            ])
             .get();
 
           const allProcessedGRs = [
@@ -101,7 +135,13 @@
           try {
             const PIResults = await db
               .collection("purchase_invoice")
-              .where({ po_id: poItem.id })
+              .filter([
+                {
+                  prop: "po_id",
+                  operator: "in",
+                  value: poItem.id,
+                },
+              ])
               .get();
 
             if (PIResults.data && PIResults.data.length > 0) {
@@ -152,7 +192,24 @@
         try {
           const GRResults = await db
             .collection("goods_receiving")
-            .where({ po_id: poItem.id, gr_status: "Draft" })
+            .filter([
+              {
+                type: "branch",
+                operator: "all",
+                children: [
+                  {
+                    prop: "po_id",
+                    operator: "in",
+                    value: poItem.id,
+                  },
+                  {
+                    prop: "gr_status",
+                    operator: "equal",
+                    value: "Draft",
+                  },
+                ],
+              },
+            ])
             .get();
 
           if (GRResults.data && GRResults.data.length > 0) {
@@ -215,7 +272,24 @@
         try {
           const PIResults = await db
             .collection("purchase_invoice")
-            .where({ po_id: poItem.id, pi_status: "Draft" })
+            .filter([
+              {
+                type: "branch",
+                operator: "all",
+                children: [
+                  {
+                    prop: "po_id",
+                    operator: "in",
+                    value: poItem.id,
+                  },
+                  {
+                    prop: "pi_status",
+                    operator: "equal",
+                    value: "Draft",
+                  },
+                ],
+              },
+            ])
             .get();
 
           if (PIResults.data && PIResults.data.length > 0) {

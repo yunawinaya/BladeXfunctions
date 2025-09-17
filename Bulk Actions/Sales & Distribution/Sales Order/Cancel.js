@@ -33,7 +33,24 @@
         try {
           const GDResults = await db
             .collection("goods_delivery")
-            .where({ so_id: soItem.id, gd_status: "Created" })
+            .filter([
+              {
+                type: "branch",
+                operator: "all",
+                children: [
+                  {
+                    prop: "so_id",
+                    operator: "in",
+                    value: soItem.id,
+                  },
+                  {
+                    prop: "gd_status",
+                    operator: "equal",
+                    value: "Created",
+                  },
+                ],
+              },
+            ])
             .get();
           
           if (GDResults.data && GDResults.data.length > 0) {
@@ -82,7 +99,13 @@
           try {
             const SIResults = await db
               .collection("sales_invoice")
-              .where({ so_id: soItem.id })
+              .filter([
+                {
+                  prop: "so_id",
+                  operator: "in",
+                  value: soItem.id,
+                },
+              ])
               .get();
             
             if (SIResults.data && SIResults.data.length > 0) {
@@ -131,7 +154,24 @@
         try {
           const GDResults = await db
             .collection("goods_delivery")
-            .where({ so_id: soItem.id, gd_status: "Draft" })
+            .filter([
+              {
+                type: "branch",
+                operator: "all",
+                children: [
+                  {
+                    prop: "so_id",
+                    operator: "in",
+                    value: soItem.id,
+                  },
+                  {
+                    prop: "gd_status",
+                    operator: "equal",
+                    value: "Draft",
+                  },
+                ],
+              },
+            ])
             .get();
           
           if (GDResults.data && GDResults.data.length > 0) {
@@ -194,7 +234,24 @@
         try {
           const SIResults = await db
             .collection("sales_invoice")
-            .where({ so_id: soItem.id, si_status: "Draft" })
+            .filter([
+              {
+                type: "branch",
+                operator: "all",
+                children: [
+                  {
+                    prop: "so_id",
+                    operator: "in",
+                    value: soItem.id,
+                  },
+                  {
+                    prop: "si_status",
+                    operator: "equal",
+                    value: "Draft",
+                  },
+                ],
+              },
+            ])
             .get();
           
           if (SIResults.data && SIResults.data.length > 0) {
