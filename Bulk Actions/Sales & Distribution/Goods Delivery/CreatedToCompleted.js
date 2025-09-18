@@ -80,6 +80,186 @@ const getWeightedAverageCostPrice = async (materialId, batchId, plantId) => {
   }
 };
 
+// Enhanced FIFO cost price calculation with consumed quantity tracking
+const getLatestFIFOCostPrice = async (
+  materialId,
+  batchId,
+  deductionQty = null,
+  previouslyConsumedQty = 0,
+  plantId
+) => {
+  try {
+    const query = batchId
+      ? db.collection("fifo_costing_history").where({
+          material_id: materialId,
+          batch_id: batchId,
+          plant_id: plantId,
+        })
+      : db
+          .collection("fifo_costing_history")
+          .where({ material_id: materialId, plant_id: plantId });
+
+    const response = await query.get();
+    const result = response.data;
+
+    if (result && Array.isArray(result) && result.length > 0) {
+      // Sort by FIFO sequence (lowest/oldest first, as per FIFO principle)
+      const sortedRecords = result.sort(
+        (a, b) => a.fifo_sequence - b.fifo_sequence
+      );
+
+      // Process previously consumed quantities to simulate their effect on available quantities
+      if (previouslyConsumedQty > 0) {
+        let qtyToSkip = previouslyConsumedQty;
+
+        console.log(
+          `Adjusting for ${previouslyConsumedQty} units already consumed in this transaction`
+        );
+
+        // Simulate the effect of previous consumption on available quantities
+        for (let i = 0; i < sortedRecords.length && qtyToSkip > 0; i++) {
+          const record = sortedRecords[i];
+          const availableQty = roundQty(record.fifo_available_quantity || 0);
+
+          if (availableQty <= 0) continue;
+
+          // If this record has enough quantity, just reduce it
+          if (availableQty >= qtyToSkip) {
+            record._adjustedAvailableQty = roundQty(availableQty - qtyToSkip);
+            console.log(
+              `FIFO record ${record.fifo_sequence}: Adjusted available from ${availableQty} to ${record._adjustedAvailableQty} (consumed ${qtyToSkip})`
+            );
+            qtyToSkip = 0;
+          } else {
+            // Otherwise, consume all of this record and continue to next
+            record._adjustedAvailableQty = 0;
+            console.log(
+              `FIFO record ${record.fifo_sequence}: Fully consumed ${availableQty} units, no remainder`
+            );
+            qtyToSkip = roundQty(qtyToSkip - availableQty);
+          }
+        }
+
+        if (qtyToSkip > 0) {
+          console.warn(
+            `Warning: Could not account for all previously consumed quantity. Remaining: ${qtyToSkip}`
+          );
+        }
+      }
+
+      // If no deduction quantity is provided, just return the cost price of the first record with available quantity
+      if (!deductionQty) {
+        // First look for records with available quantity
+        for (const record of sortedRecords) {
+          // Use adjusted quantity if available, otherwise use original
+          const availableQty = roundQty(
+            record._adjustedAvailableQty !== undefined
+              ? record._adjustedAvailableQty
+              : record.fifo_available_quantity || 0
+          );
+
+          if (availableQty > 0) {
+            console.log(
+              `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
+            );
+            return roundPrice(record.fifo_cost_price || 0);
+          }
+        }
+
+        // If no records with available quantity, use the most recent record
+        console.warn(
+          `No FIFO records with available quantity found for ${materialId}, using most recent cost price`
+        );
+        return roundPrice(
+          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+        );
+      }
+
+      // If deduction quantity is provided, calculate weighted average cost price across multiple FIFO records
+      let remainingQtyToDeduct = roundQty(deductionQty);
+      let totalCost = 0;
+      let totalDeductedQty = 0;
+
+      // Log the calculation process
+      console.log(
+        `Calculating weighted average FIFO cost for ${materialId}, deduction quantity: ${remainingQtyToDeduct}`
+      );
+
+      // Process each FIFO record in sequence until we've accounted for all deduction quantity
+      for (const record of sortedRecords) {
+        if (remainingQtyToDeduct <= 0) {
+          break;
+        }
+
+        // Use adjusted quantity if available, otherwise use original
+        const availableQty = roundQty(
+          record._adjustedAvailableQty !== undefined
+            ? record._adjustedAvailableQty
+            : record.fifo_available_quantity || 0
+        );
+
+        if (availableQty <= 0) {
+          continue; // Skip records with no available quantity
+        }
+
+        const costPrice = roundPrice(record.fifo_cost_price || 0);
+        const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
+
+        const costContribution = roundPrice(qtyToDeduct * costPrice);
+        totalCost = roundPrice(totalCost + costContribution);
+        totalDeductedQty = roundQty(totalDeductedQty + qtyToDeduct);
+
+        console.log(
+          `FIFO record ${record.fifo_sequence}: Deducting ${qtyToDeduct} units at ${costPrice} per unit = ${costContribution}`
+        );
+
+        remainingQtyToDeduct = roundQty(remainingQtyToDeduct - qtyToDeduct);
+      }
+
+      // If we couldn't satisfy the full deduction from available records, issue a warning
+      if (remainingQtyToDeduct > 0) {
+        console.warn(
+          `Warning: Not enough FIFO quantity available. Remaining to deduct: ${remainingQtyToDeduct}`
+        );
+
+        // For the remaining quantity, use the last record's cost price
+        if (sortedRecords.length > 0) {
+          const lastRecord = sortedRecords[sortedRecords.length - 1];
+          const lastCostPrice = roundPrice(lastRecord.fifo_cost_price || 0);
+
+          console.log(
+            `Using last FIFO record's cost price (${lastCostPrice}) for remaining ${remainingQtyToDeduct} units`
+          );
+
+          const additionalCost = roundPrice(
+            remainingQtyToDeduct * lastCostPrice
+          );
+          totalCost = roundPrice(totalCost + additionalCost);
+          totalDeductedQty = roundQty(totalDeductedQty + remainingQtyToDeduct);
+        }
+      }
+
+      // Calculate the weighted average cost price
+      if (totalDeductedQty > 0) {
+        const weightedAvgCost = roundPrice(totalCost / totalDeductedQty);
+        console.log(
+          `Weighted Average FIFO Cost: ${totalCost} / ${totalDeductedQty} = ${weightedAvgCost}`
+        );
+        return weightedAvgCost;
+      }
+
+      // Fallback to first record with cost if no quantity could be deducted
+      return roundPrice(sortedRecords[0].fifo_cost_price || 0);
+    }
+
+    console.warn(`No FIFO records found for material ${materialId}`);
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving FIFO cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
 // Update FIFO Inventory and calculate average cost
 const updateFIFOInventory = async (
   materialId,
@@ -271,113 +451,6 @@ const updateWeightedAverageCosting = async (
       success: false,
       message: error.message,
       averageCost: 0,
-    };
-  }
-};
-
-// Validate inventory availability before processing
-const validateInventoryAvailability = async (
-  materialId,
-  requiredQty,
-  locationId,
-  batchId,
-  serialNumber,
-  plantId,
-  organizationId,
-  isSerializedItem
-) => {
-  try {
-    if (isSerializedItem) {
-      // For serialized items, check item_serial_balance
-      const serialBalanceParams = {
-        material_id: materialId,
-        serial_number: serialNumber,
-        plant_id: plantId,
-        organization_id: organizationId,
-        location_id: locationId,
-      };
-
-      if (batchId) {
-        serialBalanceParams.batch_id = batchId;
-      }
-
-      const balanceQuery = await db
-        .collection("item_serial_balance")
-        .where(serialBalanceParams)
-        .get();
-
-      if (balanceQuery.data && balanceQuery.data.length > 0) {
-        const balance = balanceQuery.data[0];
-        const unrestrictedQty = roundQty(
-          parseFloat(balance.unrestricted_qty || 0)
-        );
-        const reservedQty = roundQty(parseFloat(balance.reserved_qty || 0));
-        const totalAvailable = roundQty(unrestrictedQty + reservedQty);
-
-        return {
-          isValid: totalAvailable >= requiredQty,
-          available: totalAvailable,
-          message:
-            totalAvailable >= requiredQty
-              ? "Sufficient inventory"
-              : `Insufficient inventory for serial ${serialNumber}. Available: ${totalAvailable}, Required: ${requiredQty}`,
-        };
-      }
-
-      return {
-        isValid: false,
-        available: 0,
-        message: `Serial balance not found for ${serialNumber}`,
-      };
-    } else {
-      // For non-serialized items, check regular balance
-      const balanceCollection = batchId ? "item_batch_balance" : "item_balance";
-      const itemBalanceParams = {
-        material_id: materialId,
-        location_id: locationId,
-        plant_id: plantId,
-        organization_id: organizationId,
-      };
-
-      if (batchId) {
-        itemBalanceParams.batch_id = batchId;
-      }
-
-      const balanceQuery = await db
-        .collection(balanceCollection)
-        .where(itemBalanceParams)
-        .get();
-
-      if (balanceQuery.data && balanceQuery.data.length > 0) {
-        const balance = balanceQuery.data[0];
-        const unrestrictedQty = roundQty(
-          parseFloat(balance.unrestricted_qty || 0)
-        );
-        const reservedQty = roundQty(parseFloat(balance.reserved_qty || 0));
-        const totalAvailable = roundQty(unrestrictedQty + reservedQty);
-
-        return {
-          isValid: totalAvailable >= requiredQty,
-          available: totalAvailable,
-          message:
-            totalAvailable >= requiredQty
-              ? "Sufficient inventory"
-              : `Insufficient inventory. Available: ${totalAvailable}, Required: ${requiredQty}`,
-        };
-      }
-
-      return {
-        isValid: false,
-        available: 0,
-        message: `Balance record not found for ${materialId} at location ${locationId}`,
-      };
-    }
-  } catch (error) {
-    console.error(`Error validating inventory for ${materialId}:`, error);
-    return {
-      isValid: false,
-      available: 0,
-      message: error.message,
     };
   }
 };
@@ -586,101 +659,6 @@ const updateItemBalance = async (
     }
   } catch (error) {
     console.error(`Error updating item balance for ${materialId}:`, error);
-    return {
-      success: false,
-      message: error.message,
-    };
-  }
-};
-
-// Update Plant Stock Balance
-const updatePlantStockBalance = async (
-  materialId,
-  quantity,
-  plantId,
-  batchId
-) => {
-  try {
-    // Determine collection based on batch management
-    const collection = batchId
-      ? "plant_stock_balance_batch"
-      : "plant_stock_balance";
-
-    const plantBalanceParams = {
-      material_id: materialId,
-      plant_id: plantId,
-    };
-
-    if (batchId) {
-      plantBalanceParams.batch_id = batchId;
-    }
-
-    // Get current plant balance
-    const plantBalanceQuery = await db
-      .collection(collection)
-      .where(plantBalanceParams)
-      .get();
-
-    if (!plantBalanceQuery.data || plantBalanceQuery.data.length === 0) {
-      // Create new plant balance record if doesn't exist
-      const newPlantBalance = {
-        material_id: materialId,
-        plant_id: plantId,
-        unrestricted_qty: 0,
-        reserved_qty: 0,
-        in_transit_qty: 0,
-        total_qty: 0,
-        created_at: new Date(),
-        updated_at: new Date(),
-        ...(batchId && { batch_id: batchId }),
-      };
-
-      await db.collection(collection).add(newPlantBalance);
-
-      return {
-        success: true,
-        message: `created new plant balance record with 0 quantities`,
-      };
-    }
-
-    const existingPlantDoc = plantBalanceQuery.data[0];
-    const currentUnrestricted = parseFloat(
-      existingPlantDoc.unrestricted_qty || 0
-    );
-    const currentReserved = parseFloat(existingPlantDoc.reserved_qty || 0);
-    const currentInTransit = parseFloat(existingPlantDoc.in_transit_qty || 0);
-    const currentTotal = parseFloat(existingPlantDoc.total_qty || 0);
-
-    // Calculate new quantities (reduce from total and unrestricted)
-    const newUnrestricted = roundQty(
-      Math.max(0, currentUnrestricted - quantity)
-    );
-    const newTotal = roundQty(Math.max(0, currentTotal - quantity));
-
-    // Validate sufficient quantity
-    if (currentTotal < quantity) {
-      return {
-        success: false,
-        message: `Insufficient total plant quantity. Available: ${currentTotal}, Required: ${quantity}`,
-      };
-    }
-
-    // Update plant balance
-    await db.collection(collection).doc(existingPlantDoc.id).update({
-      unrestricted_qty: newUnrestricted,
-      total_qty: newTotal,
-      updated_at: new Date(),
-    });
-
-    return {
-      success: true,
-      message: `reduced by ${quantity}, remaining: unrestricted ${newUnrestricted}, reserved ${currentReserved}, in_transit ${currentInTransit}, total ${newTotal}`,
-    };
-  } catch (error) {
-    console.error(
-      `Error updating plant stock balance for ${materialId}:`,
-      error
-    );
     return {
       success: false,
       message: error.message,
@@ -1006,7 +984,9 @@ const validateBulkCreditLimits = async (goodsDeliveryData) => {
 
     // Skip if no accounting integration
     if (!gdItem.acc_integration_type || gdItem.acc_integration_type === null) {
-      console.log(`Skipping credit limit check for GD ${gdItem.delivery_no} - no accounting integration`);
+      console.log(
+        `Skipping credit limit check for GD ${gdItem.delivery_no} - no accounting integration`
+      );
       continue;
     }
 
@@ -1029,24 +1009,35 @@ const validateBulkCreditLimits = async (goodsDeliveryData) => {
           gdNo: gdItem.delivery_no,
           customerName: gdItem.customer_name?.customer_com_name || customerId,
           error: `Customer not found`,
-          type: 'customer_not_found'
+          type: "customer_not_found",
         });
         continue;
       }
 
       const controlTypes = customerData.control_type_list;
-      const outstandingAmount = parseFloat(customerData.outstanding_balance || 0) || 0;
-      const overdueAmount = parseFloat(customerData.overdue_inv_total_amount || 0) || 0;
+      const outstandingAmount =
+        parseFloat(customerData.outstanding_balance || 0) || 0;
+      const overdueAmount =
+        parseFloat(customerData.overdue_inv_total_amount || 0) || 0;
       const overdueLimit = parseFloat(customerData.overdue_limit || 0) || 0;
-      const creditLimit = parseFloat(customerData.customer_credit_limit || 0) || 0;
+      const creditLimit =
+        parseFloat(customerData.customer_credit_limit || 0) || 0;
       const gdTotal = parseFloat(gdItem.gd_total || 0) || 0;
       const revisedOutstandingAmount = outstandingAmount + gdTotal;
 
-      console.log(`Credit limit check for ${customerData.customer_com_name}: Outstanding=${outstandingAmount}, GD Total=${gdTotal}, Revised=${revisedOutstandingAmount}, Credit Limit=${creditLimit}, Overdue=${overdueAmount}, Overdue Limit=${overdueLimit}`);
+      console.log(
+        `Credit limit check for ${customerData.customer_com_name}: Outstanding=${outstandingAmount}, GD Total=${gdTotal}, Revised=${revisedOutstandingAmount}, Credit Limit=${creditLimit}, Overdue=${overdueAmount}, Overdue Limit=${overdueLimit}`
+      );
 
       // Check if control types are defined
-      if (!controlTypes || !Array.isArray(controlTypes) || controlTypes.length === 0) {
-        console.log(`No control types defined for customer ${customerData.customer_com_name}, allowing to proceed`);
+      if (
+        !controlTypes ||
+        !Array.isArray(controlTypes) ||
+        controlTypes.length === 0
+      ) {
+        console.log(
+          `No control types defined for customer ${customerData.customer_com_name}, allowing to proceed`
+        );
         continue;
       }
 
@@ -1055,19 +1046,34 @@ const validateBulkCreditLimits = async (goodsDeliveryData) => {
         0: () => ({ result: true, priority: "unblock", status: "Passed" }),
         1: () => {
           if (overdueAmount > overdueLimit) {
-            return { result: false, priority: "block", status: "Blocked", reason: "Overdue limit exceeded" };
+            return {
+              result: false,
+              priority: "block",
+              status: "Blocked",
+              reason: "Overdue limit exceeded",
+            };
           }
           return { result: true, priority: "unblock", status: "Passed" };
         },
         2: () => {
           if (overdueAmount > overdueLimit) {
-            return { result: false, priority: "override", status: "Override Required", reason: "Overdue limit exceeded (override required)" };
+            return {
+              result: false,
+              priority: "override",
+              status: "Override Required",
+              reason: "Overdue limit exceeded (override required)",
+            };
           }
           return { result: true, priority: "unblock", status: "Passed" };
         },
         3: () => {
           if (revisedOutstandingAmount > creditLimit) {
-            return { result: false, priority: "block", status: "Blocked", reason: "Credit limit exceeded" };
+            return {
+              result: false,
+              priority: "block",
+              status: "Blocked",
+              reason: "Credit limit exceeded",
+            };
           }
           return { result: true, priority: "unblock", status: "Passed" };
         },
@@ -1075,11 +1081,26 @@ const validateBulkCreditLimits = async (goodsDeliveryData) => {
           const creditExceeded = revisedOutstandingAmount > creditLimit;
           const overdueExceeded = overdueAmount > overdueLimit;
           if (creditExceeded && overdueExceeded) {
-            return { result: false, priority: "block", status: "Blocked", reason: "Both credit and overdue limits exceeded" };
+            return {
+              result: false,
+              priority: "block",
+              status: "Blocked",
+              reason: "Both credit and overdue limits exceeded",
+            };
           } else if (creditExceeded) {
-            return { result: false, priority: "block", status: "Blocked", reason: "Credit limit exceeded" };
+            return {
+              result: false,
+              priority: "block",
+              status: "Blocked",
+              reason: "Credit limit exceeded",
+            };
           } else if (overdueExceeded) {
-            return { result: false, priority: "block", status: "Blocked", reason: "Overdue limit exceeded" };
+            return {
+              result: false,
+              priority: "block",
+              status: "Blocked",
+              reason: "Overdue limit exceeded",
+            };
           }
           return { result: true, priority: "unblock", status: "Passed" };
         },
@@ -1088,18 +1109,38 @@ const validateBulkCreditLimits = async (goodsDeliveryData) => {
           const overdueExceeded = overdueAmount > overdueLimit;
           if (creditExceeded) {
             if (overdueExceeded) {
-              return { result: false, priority: "block", status: "Blocked", reason: "Both credit and overdue limits exceeded" };
+              return {
+                result: false,
+                priority: "block",
+                status: "Blocked",
+                reason: "Both credit and overdue limits exceeded",
+              };
             } else {
-              return { result: false, priority: "block", status: "Blocked", reason: "Credit limit exceeded" };
+              return {
+                result: false,
+                priority: "block",
+                status: "Blocked",
+                reason: "Credit limit exceeded",
+              };
             }
           } else if (overdueExceeded) {
-            return { result: false, priority: "override", status: "Override Required", reason: "Overdue limit exceeded (override required)" };
+            return {
+              result: false,
+              priority: "override",
+              status: "Override Required",
+              reason: "Overdue limit exceeded (override required)",
+            };
           }
           return { result: true, priority: "unblock", status: "Passed" };
         },
         6: () => {
           if (revisedOutstandingAmount > creditLimit) {
-            return { result: false, priority: "override", status: "Override Required", reason: "Credit limit exceeded (override required)" };
+            return {
+              result: false,
+              priority: "override",
+              status: "Override Required",
+              reason: "Credit limit exceeded (override required)",
+            };
           }
           return { result: true, priority: "unblock", status: "Passed" };
         },
@@ -1107,9 +1148,19 @@ const validateBulkCreditLimits = async (goodsDeliveryData) => {
           const creditExceeded = revisedOutstandingAmount > creditLimit;
           const overdueExceeded = overdueAmount > overdueLimit;
           if (overdueExceeded) {
-            return { result: false, priority: "block", status: "Blocked", reason: "Overdue limit exceeded" };
+            return {
+              result: false,
+              priority: "block",
+              status: "Blocked",
+              reason: "Overdue limit exceeded",
+            };
           } else if (creditExceeded) {
-            return { result: false, priority: "override", status: "Override Required", reason: "Credit limit exceeded (override required)" };
+            return {
+              result: false,
+              priority: "override",
+              status: "Override Required",
+              reason: "Credit limit exceeded (override required)",
+            };
           }
           return { result: true, priority: "unblock", status: "Passed" };
         },
@@ -1117,16 +1168,37 @@ const validateBulkCreditLimits = async (goodsDeliveryData) => {
           const creditExceeded = revisedOutstandingAmount > creditLimit;
           const overdueExceeded = overdueAmount > overdueLimit;
           if (creditExceeded && overdueExceeded) {
-            return { result: false, priority: "override", status: "Override Required", reason: "Both credit and overdue limits exceeded (override required)" };
+            return {
+              result: false,
+              priority: "override",
+              status: "Override Required",
+              reason:
+                "Both credit and overdue limits exceeded (override required)",
+            };
           } else if (creditExceeded) {
-            return { result: false, priority: "override", status: "Override Required", reason: "Credit limit exceeded (override required)" };
+            return {
+              result: false,
+              priority: "override",
+              status: "Override Required",
+              reason: "Credit limit exceeded (override required)",
+            };
           } else if (overdueExceeded) {
-            return { result: false, priority: "override", status: "Override Required", reason: "Overdue limit exceeded (override required)" };
+            return {
+              result: false,
+              priority: "override",
+              status: "Override Required",
+              reason: "Overdue limit exceeded (override required)",
+            };
           }
           return { result: true, priority: "unblock", status: "Passed" };
         },
         9: () => {
-          return { result: false, priority: "block", status: "Blocked", reason: "Customer account suspended" };
+          return {
+            result: false,
+            priority: "block",
+            status: "Blocked",
+            reason: "Customer account suspended",
+          };
         },
       };
 
@@ -1142,7 +1214,9 @@ const validateBulkCreditLimits = async (goodsDeliveryData) => {
 
       // Sort by priority: unblock first, then block, then override
       const priorityOrder = { unblock: 1, block: 2, override: 3 };
-      results.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+      results.sort(
+        (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
+      );
 
       // Use the highest priority result
       const finalResult = results[0];
@@ -1154,10 +1228,18 @@ const validateBulkCreditLimits = async (goodsDeliveryData) => {
 
         // Add financial details
         if (finalResult.reason.includes("credit")) {
-          errorMsg += `. Outstanding: ${outstandingAmount.toFixed(2)}, GD Total: ${gdTotal.toFixed(2)}, Total: ${revisedOutstandingAmount.toFixed(2)}, Credit Limit: ${creditLimit.toFixed(2)}`;
+          errorMsg += `. Outstanding: ${outstandingAmount.toFixed(
+            2
+          )}, GD Total: ${gdTotal.toFixed(
+            2
+          )}, Total: ${revisedOutstandingAmount.toFixed(
+            2
+          )}, Credit Limit: ${creditLimit.toFixed(2)}`;
         }
         if (finalResult.reason.includes("overdue")) {
-          errorMsg += `. Overdue Amount: ${overdueAmount.toFixed(2)}, Overdue Limit: ${overdueLimit.toFixed(2)}`;
+          errorMsg += `. Overdue Amount: ${overdueAmount.toFixed(
+            2
+          )}, Overdue Limit: ${overdueLimit.toFixed(2)}`;
         }
 
         allCreditLimitErrors.push({
@@ -1174,31 +1256,40 @@ const validateBulkCreditLimits = async (goodsDeliveryData) => {
             creditLimit,
             overdueAmount,
             overdueLimit,
-            reason: finalResult.reason
-          }
+            reason: finalResult.reason,
+          },
         });
       } else {
-        console.log(`Credit limit check passed for GD ${gdItem.delivery_no} - ${customerData.customer_com_name}`);
+        console.log(
+          `Credit limit check passed for GD ${gdItem.delivery_no} - ${customerData.customer_com_name}`
+        );
       }
-
     } catch (error) {
-      console.error(`Error checking credit limits for GD ${gdItem.delivery_no}:`, error);
+      console.error(
+        `Error checking credit limits for GD ${gdItem.delivery_no}:`,
+        error
+      );
       allCreditLimitErrors.push({
         gdNo: gdItem.delivery_no,
         error: `Error checking credit limits: ${error.message}`,
-        type: 'system_error'
+        type: "system_error",
       });
     }
   }
 
   if (allCreditLimitErrors.length > 0) {
-    console.log("Bulk credit limit validation failed with errors:", allCreditLimitErrors);
+    console.log(
+      "Bulk credit limit validation failed with errors:",
+      allCreditLimitErrors
+    );
     return {
       isValid: false,
       errors: allCreditLimitErrors,
-      summary: `Found ${allCreditLimitErrors.length} credit limit validation error(s) across ${
-        new Set(allCreditLimitErrors.map(e => e.gdNo)).size
-      } goods delivery(s).`
+      summary: `Found ${
+        allCreditLimitErrors.length
+      } credit limit validation error(s) across ${
+        new Set(allCreditLimitErrors.map((e) => e.gdNo)).size
+      } goods delivery(s).`,
     };
   }
 
@@ -1412,7 +1503,8 @@ const checkBulkPickingStatus = async (goodsDeliveryData) => {
             gdNo: gdData.delivery_no,
             plantId: gdData.plant_id,
             currentStatus: gdData.picking_status || "Not Started",
-            issue: "Picking process must be completed before goods delivery completion",
+            issue:
+              "Picking process must be completed before goods delivery completion",
           });
         } else {
           console.log(
@@ -1423,9 +1515,7 @@ const checkBulkPickingStatus = async (goodsDeliveryData) => {
     }
 
     if (pickingIssues.length > 0) {
-      console.log(
-        `Found ${pickingIssues.length} picking validation issues`
-      );
+      console.log(`Found ${pickingIssues.length} picking validation issues`);
       return {
         allPassed: false,
         failedGDs: pickingIssues,
@@ -1434,7 +1524,11 @@ const checkBulkPickingStatus = async (goodsDeliveryData) => {
     }
 
     console.log("Bulk picking validation passed for all selected GDs");
-    return { allPassed: true, failedGDs: [], summary: "All picking requirements met" };
+    return {
+      allPassed: true,
+      failedGDs: [],
+      summary: "All picking requirements met",
+    };
   } catch (error) {
     console.error("Error in bulk picking validation:", error);
     return {
@@ -1446,7 +1540,10 @@ const checkBulkPickingStatus = async (goodsDeliveryData) => {
 };
 
 // Check for existing reserved goods conflicts for bulk goods deliveries
-const checkBulkExistingReservedGoods = async (goodsDeliveryData, organizationId) => {
+const checkBulkExistingReservedGoods = async (
+  goodsDeliveryData,
+  organizationId
+) => {
   try {
     console.log("Checking existing reserved goods conflicts for bulk GDs...");
 
@@ -1475,15 +1572,21 @@ const checkBulkExistingReservedGoods = async (goodsDeliveryData, organizationId)
       }
 
       // Remove duplicates and empty values
-      const uniqueSONumbers = [...new Set(soNumbers)].filter((so) => so.length > 0);
+      const uniqueSONumbers = [...new Set(soNumbers)].filter(
+        (so) => so.length > 0
+      );
 
       if (uniqueSONumbers.length === 0) {
-        console.log(`No SO numbers found for GD ${gdData.delivery_no}, skipping conflict check`);
+        console.log(
+          `No SO numbers found for GD ${gdData.delivery_no}, skipping conflict check`
+        );
         continue;
       }
 
       console.log(
-        `Checking reserved goods conflicts for GD ${gdData.delivery_no} with SOs: ${uniqueSONumbers.join(", ")}`
+        `Checking reserved goods conflicts for GD ${
+          gdData.delivery_no
+        } with SOs: ${uniqueSONumbers.join(", ")}`
       );
 
       // Check each SO number for conflicts
@@ -1552,8 +1655,14 @@ const checkBulkExistingReservedGoods = async (goodsDeliveryData, organizationId)
       };
     }
 
-    console.log("Bulk reserved goods conflict check passed for all selected GDs");
-    return { allPassed: true, failedGDs: [], summary: "No reserved goods conflicts found" };
+    console.log(
+      "Bulk reserved goods conflict check passed for all selected GDs"
+    );
+    return {
+      allPassed: true,
+      failedGDs: [],
+      summary: "No reserved goods conflicts found",
+    };
   } catch (error) {
     console.error("Error in bulk reserved goods conflict check:", error);
     return {
@@ -1578,12 +1687,14 @@ const checkBulkDeliveryQuantities = async (goodsDeliveryData) => {
         continue;
       }
 
-      console.log(`Checking delivery quantities for GD ${gdData.delivery_no}...`);
+      console.log(
+        `Checking delivery quantities for GD ${gdData.delivery_no}...`
+      );
 
       // Get all unique SO line item IDs for batch fetching
       const soLineItemIds = tableGD
-        .filter(item => item.so_line_item_id && item.material_id)
-        .map(item => item.so_line_item_id);
+        .filter((item) => item.so_line_item_id && item.material_id)
+        .map((item) => item.so_line_item_id);
 
       if (soLineItemIds.length === 0) {
         continue;
@@ -1593,26 +1704,41 @@ const checkBulkDeliveryQuantities = async (goodsDeliveryData) => {
       const resSOLineData = await Promise.all(
         soLineItemIds.map(async (soLineItemId) => {
           try {
-            const response = await db.collection("sales_order_axszx8cj_sub").doc(soLineItemId).get();
+            const response = await db
+              .collection("sales_order_axszx8cj_sub")
+              .doc(soLineItemId)
+              .get();
             return response.data ? response.data[0] : null;
           } catch (error) {
-            console.warn(`Failed to fetch SO line item ${soLineItemId}:`, error);
+            console.warn(
+              `Failed to fetch SO line item ${soLineItemId}:`,
+              error
+            );
             return null;
           }
         })
       );
 
       // Get all unique material IDs for batch fetching
-      const materialIds = [...new Set(tableGD
-        .filter(item => item.material_id)
-        .map(item => item.material_id))];
+      const materialIds = [
+        ...new Set(
+          tableGD
+            .filter((item) => item.material_id)
+            .map((item) => item.material_id)
+        ),
+      ];
 
       // Batch fetch item data
       const resItem = await Promise.all(
         materialIds.map(async (materialId) => {
           try {
-            const response = await db.collection("Item").where({ id: materialId }).get();
-            return response.data && response.data.length > 0 ? response.data[0] : null;
+            const response = await db
+              .collection("Item")
+              .where({ id: materialId })
+              .get();
+            return response.data && response.data.length > 0
+              ? response.data[0]
+              : null;
           } catch (error) {
             console.warn(`Failed to fetch item ${materialId}:`, error);
             return null;
@@ -1645,11 +1771,15 @@ const checkBulkDeliveryQuantities = async (goodsDeliveryData) => {
         const itemInfo = itemDataMap.get(item.material_id);
 
         if (!soLine) {
-          console.warn(`SO line not found for item ${index + 1} in GD ${gdData.delivery_no}`);
+          console.warn(
+            `SO line not found for item ${index + 1} in GD ${
+              gdData.delivery_no
+            }`
+          );
           continue;
         }
 
-        const tolerance = itemInfo ? (itemInfo.over_delivery_tolerance || 0) : 0;
+        const tolerance = itemInfo ? itemInfo.over_delivery_tolerance || 0 : 0;
         const orderedQty = parseFloat(soLine.so_quantity || 0);
         const previouslyDeliveredQty = parseFloat(soLine.delivered_qty || 0);
         const currentDeliveryQty = parseFloat(item.gd_qty || 0);
@@ -1660,9 +1790,11 @@ const checkBulkDeliveryQuantities = async (goodsDeliveryData) => {
 
         console.log(
           `GD ${gdData.delivery_no}, Item ${index + 1}: ` +
-          `Ordered: ${orderedQty}, Previously Delivered: ${previouslyDeliveredQty}, ` +
-          `Current Delivery: ${currentDeliveryQty}, Max Allowed: ${maxDeliverableQty.toFixed(3)}, ` +
-          `Tolerance: ${tolerance}%`
+            `Ordered: ${orderedQty}, Previously Delivered: ${previouslyDeliveredQty}, ` +
+            `Current Delivery: ${currentDeliveryQty}, Max Allowed: ${maxDeliverableQty.toFixed(
+              3
+            )}, ` +
+            `Tolerance: ${tolerance}%`
         );
 
         if (currentDeliveryQty > maxDeliverableQty) {
@@ -1670,18 +1802,22 @@ const checkBulkDeliveryQuantities = async (goodsDeliveryData) => {
             gdNo: gdData.delivery_no,
             lineNumber: index + 1,
             materialId: item.material_id,
-            materialName: item.material_name || item.gd_material_desc || "Unknown Item",
+            materialName:
+              item.material_name || item.gd_material_desc || "Unknown Item",
             orderedQty: orderedQty,
             previouslyDeliveredQty: previouslyDeliveredQty,
             currentDeliveryQty: currentDeliveryQty,
             maxDeliverableQty: maxDeliverableQty,
             tolerance: tolerance,
-            issue: `Delivery quantity ${currentDeliveryQty} exceeds maximum deliverable quantity ${maxDeliverableQty.toFixed(3)} (tolerance: ${tolerance}%)`,
+            issue: `Delivery quantity ${currentDeliveryQty} exceeds maximum deliverable quantity ${maxDeliverableQty.toFixed(
+              3
+            )} (tolerance: ${tolerance}%)`,
           });
 
           console.log(
-            `Quantity violation found in GD ${gdData.delivery_no}, line ${index + 1}: ` +
-            `${currentDeliveryQty} > ${maxDeliverableQty.toFixed(3)}`
+            `Quantity violation found in GD ${gdData.delivery_no}, line ${
+              index + 1
+            }: ` + `${currentDeliveryQty} > ${maxDeliverableQty.toFixed(3)}`
           );
         }
       }
@@ -1698,8 +1834,14 @@ const checkBulkDeliveryQuantities = async (goodsDeliveryData) => {
       };
     }
 
-    console.log("Bulk delivery quantity validation passed for all selected GDs");
-    return { allPassed: true, failedGDs: [], summary: "All delivery quantities within tolerance" };
+    console.log(
+      "Bulk delivery quantity validation passed for all selected GDs"
+    );
+    return {
+      allPassed: true,
+      failedGDs: [],
+      summary: "All delivery quantities within tolerance",
+    };
   } catch (error) {
     console.error("Error in bulk delivery quantity validation:", error);
     return {
@@ -1906,7 +2048,8 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
       );
 
       // Run delivery quantity validation on remaining valid GDs
-      const deliveryQuantityValidationResult = await checkBulkDeliveryQuantities(validGoodsDeliveryData);
+      const deliveryQuantityValidationResult =
+        await checkBulkDeliveryQuantities(validGoodsDeliveryData);
 
       // Filter GDs that passed inventory and delivery quantity validation
       let quantityValidGoodsDeliveryData = validGoodsDeliveryData;
@@ -1914,7 +2057,7 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
       if (!deliveryQuantityValidationResult.allPassed) {
         // Group failed line items by GD number
         const failedGDMap = new Map();
-        deliveryQuantityValidationResult.failedGDs.forEach(issue => {
+        deliveryQuantityValidationResult.failedGDs.forEach((issue) => {
           if (!failedGDMap.has(issue.gdNo)) {
             failedGDMap.set(issue.gdNo, []);
           }
@@ -1924,7 +2067,7 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
         // Filter out GDs that have any failed line items
         const quantityFailedGDNumbers = Array.from(failedGDMap.keys());
         quantityValidGoodsDeliveryData = validGoodsDeliveryData.filter(
-          gd => !quantityFailedGDNumbers.includes(gd.delivery_no)
+          (gd) => !quantityFailedGDNumbers.includes(gd.delivery_no)
         );
 
         // Prepare delivery quantity error message
@@ -1935,7 +2078,9 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
           quantityErrorMsg += `<br><strong>GD ${gdNo}:</strong><br>`;
           issues.forEach((issue) => {
             quantityErrorMsg += `• Line ${issue.lineNumber} - ${issue.materialName}: `;
-            quantityErrorMsg += `Delivery Qty ${issue.currentDeliveryQty} > Max ${issue.maxDeliverableQty.toFixed(3)} `;
+            quantityErrorMsg += `Delivery Qty ${
+              issue.currentDeliveryQty
+            } > Max ${issue.maxDeliverableQty.toFixed(3)} `;
             quantityErrorMsg += `(Tolerance: ${issue.tolerance}%)<br>`;
           });
         }
@@ -1947,11 +2092,15 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
         }
 
         // Show alert for delivery quantity failed GDs
-        await this.$alert(quantityErrorMsg, "Delivery Quantity Validation Issues", {
-          confirmButtonText: "OK",
-          type: "warning",
-          dangerouslyUseHTMLString: true,
-        });
+        await this.$alert(
+          quantityErrorMsg,
+          "Delivery Quantity Validation Issues",
+          {
+            confirmButtonText: "OK",
+            type: "warning",
+            dangerouslyUseHTMLString: true,
+          }
+        );
 
         // If no valid GDs remain after delivery quantity validation, exit
         if (quantityValidGoodsDeliveryData.length === 0) {
@@ -1964,16 +2113,20 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
       );
 
       // Run picking status validation on remaining valid GDs
-      const pickingValidationResult = await checkBulkPickingStatus(quantityValidGoodsDeliveryData);
+      const pickingValidationResult = await checkBulkPickingStatus(
+        quantityValidGoodsDeliveryData
+      );
 
       // Filter GDs that passed inventory, delivery quantity, and picking validation
       let pickingValidGoodsDeliveryData = quantityValidGoodsDeliveryData;
 
       if (!pickingValidationResult.allPassed) {
         // Filter out GDs that failed picking validation
-        const pickingFailedGDNumbers = pickingValidationResult.failedGDs.map(gd => gd.gdNo);
+        const pickingFailedGDNumbers = pickingValidationResult.failedGDs.map(
+          (gd) => gd.gdNo
+        );
         pickingValidGoodsDeliveryData = validGoodsDeliveryData.filter(
-          gd => !pickingFailedGDNumbers.includes(gd.delivery_no)
+          (gd) => !pickingFailedGDNumbers.includes(gd.delivery_no)
         );
 
         // Prepare picking error message
@@ -2015,20 +2168,23 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
       );
 
       // Run reserved goods conflict check on remaining valid GDs
-      const reservedGoodsValidationResult = await checkBulkExistingReservedGoods(
-        pickingValidGoodsDeliveryData,
-        selectedGoodsDeliveryData[0]?.organization_id
-      );
+      const reservedGoodsValidationResult =
+        await checkBulkExistingReservedGoods(
+          pickingValidGoodsDeliveryData,
+          pickingValidGoodsDeliveryData[0]?.organization_id
+        );
 
       // Filter GDs that passed inventory, picking, and reserved goods validation
       let reservedGoodsValidGoodsDeliveryData = pickingValidGoodsDeliveryData;
 
       if (!reservedGoodsValidationResult.allPassed) {
         // Filter out GDs that failed reserved goods conflict check
-        const reservedFailedGDNumbers = reservedGoodsValidationResult.failedGDs.map(gd => gd.gdNo);
-        reservedGoodsValidGoodsDeliveryData = pickingValidGoodsDeliveryData.filter(
-          gd => !reservedFailedGDNumbers.includes(gd.delivery_no)
-        );
+        const reservedFailedGDNumbers =
+          reservedGoodsValidationResult.failedGDs.map((gd) => gd.gdNo);
+        reservedGoodsValidGoodsDeliveryData =
+          pickingValidGoodsDeliveryData.filter(
+            (gd) => !reservedFailedGDNumbers.includes(gd.delivery_no)
+          );
 
         // Prepare reserved goods conflict error message
         let reservedErrorMsg = `<strong>Reserved Goods Conflict Issues</strong><br><br>`;
@@ -2068,16 +2224,20 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
       );
 
       // Run credit limit validation on remaining valid GDs
-      const creditLimitValidationResult = await validateBulkCreditLimits(reservedGoodsValidGoodsDeliveryData);
+      const creditLimitValidationResult = await validateBulkCreditLimits(
+        reservedGoodsValidGoodsDeliveryData
+      );
 
       // Filter GDs that passed inventory, picking, reserved goods, and credit limit validation
       let finalValidGoodsDeliveryData = reservedGoodsValidGoodsDeliveryData;
 
       if (!creditLimitValidationResult.allPassed) {
         // Filter out GDs that failed credit limit validation
-        const creditFailedGDNumbers = creditLimitValidationResult.failedGDs.map(gd => gd.delivery_no);
+        const creditFailedGDNumbers = creditLimitValidationResult.failedGDs.map(
+          (gd) => gd.delivery_no
+        );
         finalValidGoodsDeliveryData = validGoodsDeliveryData.filter(
-          gd => !creditFailedGDNumbers.includes(gd.delivery_no)
+          (gd) => !creditFailedGDNumbers.includes(gd.delivery_no)
         );
 
         // Prepare credit limit error message
@@ -2135,6 +2295,9 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
         throw new Error();
       });
 
+      // Create a map to track consumed FIFO quantities during this transaction
+      const consumedFIFOQty = new Map();
+
       // Process each goods delivery with full inventory flow
       for (const gdItem of finalValidGoodsDeliveryData) {
         // Initialize rollback tracking arrays for this GD
@@ -2154,7 +2317,10 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                 .update(doc.originalData);
               console.log(`Rolled back ${doc.collection}/${doc.docId}`);
             } catch (rollbackError) {
-              console.error(`Rollback error for ${doc.collection}/${doc.docId}:`, rollbackError);
+              console.error(
+                `Rollback error for ${doc.collection}/${doc.docId}:`,
+                rollbackError
+              );
             }
           }
 
@@ -2166,7 +2332,10 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
               });
               console.log(`Marked as deleted ${doc.collection}/${doc.docId}`);
             } catch (rollbackError) {
-              console.error(`Rollback error for ${doc.collection}/${doc.docId}:`, rollbackError);
+              console.error(
+                `Rollback error for ${doc.collection}/${doc.docId}:`,
+                rollbackError
+              );
             }
           }
 
@@ -2205,9 +2374,53 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
 
             const temporaryData = parseJsonSafely(item.temp_qty_data, []);
 
+            // Check if item is serialized and batch managed for grouping logic
+            const isSerializedItem = itemData.serial_number_management === 1;
+            const isBatchManagedItem = itemData.item_batch_management === 1;
+
+            console.log(
+              `Item ${item.material_id}: Serialized=${isSerializedItem}, Batch=${isBatchManagedItem}`
+            );
+
+            // GROUP temp_qty_data by location + batch combination for movement consolidation
+            const groupedTempData = new Map();
+
             for (const temp of temporaryData) {
-              // Enhanced UOM Conversion with proper rounding
-              let altQty = roundQty(temp.gd_quantity || 0);
+              // Create grouping key based on location and batch (if applicable)
+              let groupKey;
+              if (isBatchManagedItem && temp.batch_id) {
+                groupKey = `${temp.location_id}|${temp.batch_id}`;
+              } else {
+                groupKey = temp.location_id;
+              }
+
+              if (!groupedTempData.has(groupKey)) {
+                groupedTempData.set(groupKey, {
+                  location_id: temp.location_id,
+                  batch_id: temp.batch_id,
+                  items: [],
+                  totalQty: 0,
+                });
+              }
+
+              const group = groupedTempData.get(groupKey);
+              group.items.push(temp);
+              group.totalQty += parseFloat(temp.gd_quantity || 0);
+            }
+
+            console.log(
+              `Grouped ${temporaryData.length} items into ${groupedTempData.size} movement groups for item ${item.material_id}`
+            );
+
+            // Process each group to create consolidated movements
+            for (const [groupKey, group] of groupedTempData) {
+              console.log(
+                `Processing group: ${groupKey} with ${group.items.length} items, total qty: ${group.totalQty}`
+              );
+
+              // Use group total quantity instead of individual temp quantity
+              // Enhanced UOM Conversion with proper rounding for consolidated group
+              let altQty = roundQty(group.totalQty);
               let baseQty = altQty;
               let altUOM = item.gd_order_uom_id;
               let baseUOM = itemData.based_uom;
@@ -2248,51 +2461,42 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
 
               // Get cost price based on costing method
               if (costingMethod === "First In First Out") {
-                // Get FIFO cost price and update FIFO costing history
-                const fifoResult = await updateFIFOInventory(
+                // Define a key for tracking consumed FIFO quantities
+                const materialBatchKey = group.batch_id
+                  ? `${item.material_id}-${group.batch_id}`
+                  : item.material_id;
+
+                // Get previously consumed quantity (default to 0 if none)
+                const previouslyConsumedQty =
+                  consumedFIFOQty.get(materialBatchKey) || 0;
+
+                // Get unit price from latest FIFO sequence with awareness of consumed quantities
+                const fifoCostPrice = await getLatestFIFOCostPrice(
                   item.material_id,
+                  group.batch_id,
                   baseQty,
-                  temp.batch_id,
+                  previouslyConsumedQty,
                   gdItem.plant_id.id
                 );
 
-                if (fifoResult.success) {
-                  unitPrice = roundPrice(fifoResult.averageCost);
-                  totalPrice = roundPrice(unitPrice * baseQty);
-                  console.log(
-                    `FIFO Cost: ${unitPrice} (consumed: ${baseQty}, average: ${fifoResult.averageCost})`
-                  );
-                } else {
-                  console.warn(
-                    `FIFO update failed for material ${item.material_id}: ${fifoResult.message}`
-                  );
-                  // Fallback to reading latest FIFO cost without updating
-                  const query = temp.batch_id
-                    ? db.collection("fifo_costing_history").where({
-                        material_id: item.material_id,
-                        batch_id: temp.batch_id,
-                        plant_id: gdItem.plant_id.id,
-                      })
-                    : db.collection("fifo_costing_history").where({
-                        material_id: item.material_id,
-                        plant_id: gdItem.plant_id.id,
-                      });
+                // Update the consumed quantity for this material/batch
+                consumedFIFOQty.set(
+                  materialBatchKey,
+                  previouslyConsumedQty + baseQty
+                );
 
-                  const fallbackResult = await query.get();
-                  if (fallbackResult.data && fallbackResult.data.length > 0) {
-                    const latestRecord = fallbackResult.data.sort(
-                      (a, b) => b.fifo_sequence - a.fifo_sequence
-                    )[0];
-                    unitPrice = roundPrice(latestRecord.fifo_cost_price || 0);
-                    totalPrice = roundPrice(unitPrice * baseQty);
-                  }
-                }
+                unitPrice = roundPrice(fifoCostPrice);
+                totalPrice = roundPrice(fifoCostPrice * baseQty);
+
+                console.log(
+                  `Enhanced FIFO Cost: ${unitPrice} (consumed: ${baseQty}, previously consumed: ${previouslyConsumedQty})`
+                );
               } else if (costingMethod === "Weighted Average") {
                 // Get WA cost price and update weighted average costing
                 const waResult = await updateWeightedAverageCosting(
                   item.material_id,
                   baseQty,
-                  temp.batch_id,
+                  group.batch_id,
                   gdItem.plant_id.id
                 );
 
@@ -2300,7 +2504,7 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                   unitPrice = roundPrice(waResult.averageCost);
                   totalPrice = roundPrice(unitPrice * baseQty);
                   console.log(
-                    `WA Cost: ${unitPrice} (consumed: ${baseQty}, average: ${waResult.averageCost})`
+                    `Enhanced WA Cost: ${unitPrice} (consumed: ${baseQty}, average: ${waResult.averageCost})`
                   );
                 } else {
                   console.warn(
@@ -2309,7 +2513,7 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                   // Fallback to reading latest WA cost without updating
                   unitPrice = await getWeightedAverageCostPrice(
                     item.material_id,
-                    temp.batch_id,
+                    group.batch_id,
                     gdItem.plant_id.id
                   );
                   totalPrice = roundPrice(unitPrice * baseQty);
@@ -2325,25 +2529,11 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                 // Keep original unit price
               }
 
-              // Validate inventory availability before creating movements
-              const validationResult = await validateInventoryAvailability(
-                item.material_id,
-                baseQty,
-                temp.location_id,
-                temp.batch_id,
-                temp.serial_number,
-                gdItem.plant_id.id,
-                gdItem.organization_id,
-                isSerializedItem
-              );
-
-              if (!validationResult.isValid) {
-                console.error(`CRITICAL: ${validationResult.message}`);
-                throw new Error(validationResult.message);
-              }
+              // For grouped processing, we skip individual validation since we already validated in bulk
+              // The group consolidates multiple items, so validation is done at a higher level
 
               console.log(
-                `Inventory validation passed for ${item.material_id}: ${validationResult.message}`
+                `Processing consolidated group for ${item.material_id} at ${group.location_id}: ${baseQty} total quantity`
               );
 
               // Enhanced inventory movement with proper category handling for Created status
@@ -2360,8 +2550,8 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                 uom_id: altUOM,
                 base_qty: roundQty(baseQty),
                 base_uom_id: baseUOM,
-                bin_location_id: temp.location_id,
-                batch_number_id: temp.batch_id || null,
+                bin_location_id: group.location_id,
+                batch_number_id: group.batch_id || null,
                 costing_method_id: item.item_costing_method,
                 plant_id: gdItem.plant_id.id,
                 organization_id: gdItem.organization_id,
@@ -2386,10 +2576,10 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
               // Handle serialized items
               if (isSerializedItem) {
                 console.log(
-                  `Processing serialized item completion for ${item.material_id}, serial: ${temp.serial_number}`
+                  `Processing serialized item completion for ${item.material_id}, serial: ${group.serial_number}`
                 );
 
-                if (!temp.serial_number) {
+                if (!group.serial_number) {
                   console.error(
                     `Serial number missing for serialized item ${item.material_id}`
                   );
@@ -2400,24 +2590,24 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                 const serialBalanceResult = await updateItemBalance(
                   item.material_id,
                   1, // For serialized items, quantity is always 1
-                  temp.location_id,
-                  temp.batch_id,
+                  group.location_id,
+                  group.batch_id,
                   gdItem.so_no,
                   gdItem.plant_id.id,
                   gdItem.organization_id,
                   true, // is serialized
-                  temp.serial_number
+                  group.serial_number
                 );
 
                 if (!serialBalanceResult.success) {
                   console.error(
-                    `CRITICAL: Serial balance update failed for ${temp.serial_number}: ${serialBalanceResult.message}`
+                    `CRITICAL: Serial balance update failed for ${group.serial_number}: ${serialBalanceResult.message}`
                   );
                   throw new Error(serialBalanceResult.message);
                 }
 
                 console.log(
-                  `Serial balance updated: ${temp.serial_number} - ${serialBalanceResult.message}`
+                  `Serial balance updated: ${group.serial_number} - ${serialBalanceResult.message}`
                 );
 
                 // Create inventory movements for serialized items with proper categories
@@ -2449,7 +2639,9 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
 
                 // Create movements and collect their IDs for serial movement records
                 for (const movementData of movements) {
-                  const serialMovementResult = await db.collection("inventory_movement").add(movementData);
+                  const serialMovementResult = await db
+                    .collection("inventory_movement")
+                    .add(movementData);
 
                   // Track created serial movement for rollback
                   createdDocs.push({
@@ -2458,7 +2650,7 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                   });
 
                   console.log(
-                    `Created ${movementData.inventory_category} movement for serial ${temp.serial_number}: ${movementData.base_qty}`
+                    `Created ${movementData.inventory_category} movement for serial ${group.serial_number}: ${movementData.base_qty}`
                   );
 
                   // Wait and get the movement ID for serial movement record
@@ -2470,7 +2662,7 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                       transaction_type: "GDL",
                       trx_no: gdItem.delivery_no,
                       item_id: item.material_id,
-                      bin_location_id: temp.location_id,
+                      bin_location_id: group.location_id,
                       inventory_category: movementData.inventory_category,
                       base_qty: movementData.base_qty,
                       plant_id: gdItem.plant_id.id,
@@ -2484,16 +2676,18 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                         new Date(b.create_time) - new Date(a.create_time)
                     )[0];
 
-                    const serialMoveResult = await db.collection("inv_serial_movement").add({
-                      inventory_movement_id: latestMovement.id,
-                      serial_number: temp.serial_number,
-                      batch_id: temp.batch_id || null,
-                      base_qty: movementData.base_qty,
-                      base_uom: baseUOM,
-                      plant_id: gdItem.plant_id.id,
-                      organization_id: gdItem.organization_id,
-                      created_at: new Date(),
-                    });
+                    const serialMoveResult = await db
+                      .collection("inv_serial_movement")
+                      .add({
+                        inventory_movement_id: latestMovement.id,
+                        serial_number: group.serial_number,
+                        batch_id: group.batch_id || null,
+                        base_qty: movementData.base_qty,
+                        base_uom: baseUOM,
+                        plant_id: gdItem.plant_id.id,
+                        organization_id: gdItem.organization_id,
+                        created_at: new Date(),
+                      });
 
                     // Track created serial movement record for rollback
                     createdDocs.push({
@@ -2502,7 +2696,7 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                     });
 
                     console.log(
-                      `Created serial movement record for ${temp.serial_number} (${movementData.inventory_category})`
+                      `Created serial movement record for ${group.serial_number} (${movementData.inventory_category})`
                     );
                   }
                 }
@@ -2515,8 +2709,8 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
               const balanceResult = await updateItemBalance(
                 item.material_id,
                 baseQty,
-                temp.location_id,
-                temp.batch_id,
+                group.location_id,
+                group.batch_id,
                 gdItem.so_no,
                 gdItem.plant_id.id,
                 gdItem.organization_id,
@@ -2576,26 +2770,8 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
               }
 
               console.log(
-                `Balance updated: ${item.material_id} at ${temp.location_id} - ${balanceResult.message}`
+                `Balance updated: ${item.material_id} at ${group.location_id} - ${balanceResult.message}`
               );
-
-              // Update plant stock balance
-              const plantBalanceResult = await updatePlantStockBalance(
-                item.material_id,
-                baseQty,
-                gdItem.plant_id.id,
-                temp.batch_id
-              );
-
-              if (!plantBalanceResult.success) {
-                console.warn(
-                  `Plant balance update warning for ${item.material_id}: ${plantBalanceResult.message}`
-                );
-              } else {
-                console.log(
-                  `Plant balance updated: ${item.material_id} - ${plantBalanceResult.message}`
-                );
-              }
             }
           }
 
