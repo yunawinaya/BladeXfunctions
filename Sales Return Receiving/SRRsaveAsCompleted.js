@@ -307,6 +307,30 @@ const updateInventory = async (data, plantId, organizationId) => {
           Array.isArray(item.select_serial_number) &&
           item.select_serial_number.length > 0;
 
+        if (item.batch_no !== "-") {
+          const batchData = {
+            batch_number: item.batch_no,
+            material_id: item.material_id,
+            initial_quantity: baseQty,
+            transaction_no: data.srr_no,
+            parent_transaction_no: item.sr_number,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+
+          const batchResponse = await db.collection("batch").add(batchData);
+
+          // Get the batch_id from the add response if available
+          let batchId = batchResponse?.data[0].id || null;
+          item.batch_id = batchId;
+          console.log(`Batch ID for ${item.material_name}: ${batchId}`);
+
+          await db
+            .collection("sales_return_receiving_05z4r94a_sub")
+            .doc(item.id)
+            .update({ batch_id: batchId });
+        }
+
         // Validate serialized item quantities
         if (isSerializedItem && hasSerialNumbers) {
           const receivedQty = roundQty(item.received_qty);
@@ -428,33 +452,6 @@ const updateInventory = async (data, plantId, organizationId) => {
           location_id: item.location_id,
           plant_id: plantId,
         };
-
-        if (item.batch_no !== "-") {
-          const batchData = {
-            batch_number: item.batch_no,
-            material_id: item.material_id,
-            initial_quantity: baseQty,
-            transaction_no: data.srr_no,
-            parent_transaction_no: item.sr_number,
-            plant_id: plantId,
-            organization_id: organizationId,
-          };
-
-          const batchResponse = await db.collection("batch").add(batchData);
-
-          // Get the batch_id from the add response if available
-          let batchId = batchResponse?.data[0].id || null;
-          item.batch_id = batchId;
-
-          inventoryMovementData.batch_number_id = batchId;
-
-          console.log(`Batch ID for ${item.material_name}: ${batchId}`);
-
-          await db
-            .collection("sales_return_receiving_05z4r94a_sub")
-            .doc(item.id)
-            .update({ batch_id: batchId });
-        }
 
         // Add batch_id to query params if it exists
         if (item.batch_id) {
@@ -1409,7 +1406,7 @@ const fetchReceivedQuantity = async () => {
         (srLine.expected_return_qty || 0) - (srLine.received_qty || 0);
       if ((item.received_qty || 0) > maxReceivableQty) {
         invalidReceivedQty.push(`#${index + 1}`);
-        this.setData({
+        await this.setData({
           [`table.srr.${index}.to_receive_qty`]: maxReceivableQty,
         });
       }
