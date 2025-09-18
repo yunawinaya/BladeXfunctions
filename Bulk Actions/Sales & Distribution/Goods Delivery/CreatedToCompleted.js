@@ -1206,6 +1206,510 @@ const validateBulkCreditLimits = async (goodsDeliveryData) => {
   return { isValid: true };
 };
 
+// Update on_reserved_gd records for Completed status with serialized item support
+const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
+  try {
+    console.log(
+      "Updating on_reserved_gd records for delivery (including serialized items):",
+      gdData.delivery_no
+    );
+
+    // Helper function to safely parse JSON
+    const parseJsonSafely = (jsonString, defaultValue = []) => {
+      try {
+        return jsonString ? JSON.parse(jsonString) : defaultValue;
+      } catch (error) {
+        console.error("JSON parse error:", error);
+        return defaultValue;
+      }
+    };
+
+    // Get existing records for this GD
+    const existingReserved = await db
+      .collection("on_reserved_gd")
+      .where({
+        doc_no: gdData.delivery_no,
+        organization_id: organizationId,
+      })
+      .get();
+
+    // Prepare new data from current GD (including serialized items)
+    const newReservedData = [];
+    for (let i = 0; i < gdData.table_gd.length; i++) {
+      const gdLineItem = gdData.table_gd[i];
+
+      if (!gdLineItem.material_id || gdLineItem.material_id === "") {
+        console.log(
+          `Skipping item ${gdLineItem.material_id} due to no material_id`
+        );
+        continue;
+      }
+
+      const temp_qty_data = parseJsonSafely(gdLineItem.temp_qty_data);
+      for (let j = 0; j < temp_qty_data.length; j++) {
+        const tempItem = temp_qty_data[j];
+
+        const reservedRecord = {
+          doc_type: "Good Delivery",
+          parent_no: gdLineItem.line_so_no,
+          doc_no: gdData.delivery_no,
+          material_id: gdLineItem.material_id,
+          item_name: gdLineItem.material_name,
+          item_desc: gdLineItem.gd_material_desc || "",
+          batch_id: tempItem.batch_id || null,
+          bin_location: tempItem.location_id,
+          item_uom: gdLineItem.gd_order_uom_id,
+          line_no: i + 1,
+          reserved_qty: tempItem.gd_quantity,
+          delivered_qty: tempItem.gd_quantity, // For Completed status, delivered = reserved
+          open_qty: 0, // For Completed status, open_qty = 0
+          reserved_date: new Date()
+            .toISOString()
+            .slice(0, 19)
+            .replace("T", " "),
+          plant_id: gdData.plant_id,
+          organization_id: organizationId,
+          updated_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+        };
+
+        // Add serial number for serialized items
+        if (tempItem.serial_number) {
+          reservedRecord.serial_number = tempItem.serial_number;
+        }
+
+        newReservedData.push(reservedRecord);
+      }
+    }
+
+    if (existingReserved.data && existingReserved.data.length > 0) {
+      console.log(
+        `Found ${existingReserved.data.length} existing reserved records to update (including serialized items)`
+      );
+
+      const updatePromises = [];
+
+      // Update existing records (up to the number of existing records)
+      for (
+        let i = 0;
+        i < Math.min(existingReserved.data.length, newReservedData.length);
+        i++
+      ) {
+        const existingRecord = existingReserved.data[i];
+        const newData = newReservedData[i];
+
+        updatePromises.push(
+          db.collection("on_reserved_gd").doc(existingRecord.id).update(newData)
+        );
+      }
+
+      // If there are more existing records than new data, delete the extras
+      if (existingReserved.data.length > newReservedData.length) {
+        for (
+          let i = newReservedData.length;
+          i < existingReserved.data.length;
+          i++
+        ) {
+          const extraRecord = existingReserved.data[i];
+          updatePromises.push(
+            db.collection("on_reserved_gd").doc(extraRecord.id).delete()
+          );
+        }
+      }
+
+      // If there are more new records than existing, create the extras
+      if (newReservedData.length > existingReserved.data.length) {
+        for (
+          let i = existingReserved.data.length;
+          i < newReservedData.length;
+          i++
+        ) {
+          const extraData = {
+            ...newReservedData[i],
+            created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+          };
+          updatePromises.push(db.collection("on_reserved_gd").add(extraData));
+        }
+      }
+
+      await Promise.all(updatePromises);
+      console.log(
+        "Successfully updated existing reserved records (including serialized items)"
+      );
+    } else {
+      // No existing records, create new ones
+      console.log(
+        "No existing records found, creating new ones (including serialized items)"
+      );
+
+      const createPromises = newReservedData.map((data) => {
+        return db.collection("on_reserved_gd").add({
+          ...data,
+          created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+        });
+      });
+
+      await Promise.all(createPromises);
+      console.log(
+        `Created ${newReservedData.length} new reserved goods records (including serialized items)`
+      );
+    }
+
+    console.log(
+      "Updated reserved goods records successfully (including serialized items)"
+    );
+    return { success: true, message: "Reserved goods updated successfully" };
+  } catch (error) {
+    console.error(
+      "Error updating reserved goods delivery (serialized items):",
+      error
+    );
+    return { success: false, message: error.message };
+  }
+};
+
+// Check picking status requirements for bulk goods deliveries
+const checkBulkPickingStatus = async (goodsDeliveryData) => {
+  try {
+    console.log("Checking picking status requirements for bulk GDs...");
+
+    const pickingIssues = [];
+
+    for (const gdData of goodsDeliveryData) {
+      if (!gdData.plant_id) {
+        pickingIssues.push({
+          gdNo: gdData.delivery_no,
+          issue: "Plant ID is required for picking setup validation",
+        });
+        continue;
+      }
+
+      // Check if plant has picking setup for Good Delivery
+      const pickingSetupData = await db
+        .collection("picking_setup")
+        .where({
+          plant_id: gdData.plant_id,
+          movement_type: "Good Delivery",
+          picking_required: 1,
+        })
+        .get();
+
+      // If no picking setup found, allow normal processing
+      if (!pickingSetupData.data || pickingSetupData.data.length === 0) {
+        console.log(
+          `No picking setup found for plant ${gdData.plant_id} in GD ${gdData.delivery_no}, proceeding normally`
+        );
+        continue;
+      }
+
+      console.log(
+        `Picking setup found for plant ${gdData.plant_id} in GD ${gdData.delivery_no}. Checking requirements...`
+      );
+
+      // For bulk action (Edit mode with Created status), check if picking is completed
+      if (gdData.gd_status === "Created") {
+        if (gdData.picking_status !== "Completed") {
+          pickingIssues.push({
+            gdNo: gdData.delivery_no,
+            plantId: gdData.plant_id,
+            currentStatus: gdData.picking_status || "Not Started",
+            issue: "Picking process must be completed before goods delivery completion",
+          });
+        } else {
+          console.log(
+            `Picking completed for GD ${gdData.delivery_no}, allowing completion`
+          );
+        }
+      }
+    }
+
+    if (pickingIssues.length > 0) {
+      console.log(
+        `Found ${pickingIssues.length} picking validation issues`
+      );
+      return {
+        allPassed: false,
+        failedGDs: pickingIssues,
+        summary: `${pickingIssues.length} goods delivery(s) require completed picking process`,
+      };
+    }
+
+    console.log("Bulk picking validation passed for all selected GDs");
+    return { allPassed: true, failedGDs: [], summary: "All picking requirements met" };
+  } catch (error) {
+    console.error("Error in bulk picking validation:", error);
+    return {
+      allPassed: false,
+      failedGDs: [],
+      summary: `Picking validation error: ${error.message}`,
+    };
+  }
+};
+
+// Check for existing reserved goods conflicts for bulk goods deliveries
+const checkBulkExistingReservedGoods = async (goodsDeliveryData, organizationId) => {
+  try {
+    console.log("Checking existing reserved goods conflicts for bulk GDs...");
+
+    const conflictIssues = [];
+
+    for (const gdData of goodsDeliveryData) {
+      // Collect all SO numbers from this GD
+      const soNumbers = [];
+
+      // From header
+      if (gdData.so_no) {
+        if (typeof gdData.so_no === "string") {
+          gdData.so_no.split(",").forEach((so) => soNumbers.push(so.trim()));
+        } else {
+          soNumbers.push(gdData.so_no.toString());
+        }
+      }
+
+      // From line items
+      if (Array.isArray(gdData.table_gd)) {
+        gdData.table_gd.forEach((item) => {
+          if (item.line_so_no) {
+            soNumbers.push(item.line_so_no.toString().trim());
+          }
+        });
+      }
+
+      // Remove duplicates and empty values
+      const uniqueSONumbers = [...new Set(soNumbers)].filter((so) => so.length > 0);
+
+      if (uniqueSONumbers.length === 0) {
+        console.log(`No SO numbers found for GD ${gdData.delivery_no}, skipping conflict check`);
+        continue;
+      }
+
+      console.log(
+        `Checking reserved goods conflicts for GD ${gdData.delivery_no} with SOs: ${uniqueSONumbers.join(", ")}`
+      );
+
+      // Check each SO number for conflicts
+      for (const soNo of uniqueSONumbers) {
+        const query = {
+          parent_no: soNo,
+          organization_id: organizationId,
+          doc_type: "Good Delivery",
+          is_deleted: 0,
+        };
+
+        // Get current GD's delivery_no to exclude it
+        const currentGdNo = gdData.delivery_no;
+        console.log(
+          `Excluding current GD ${currentGdNo} from validation check for SO ${soNo}`
+        );
+
+        // Get all reserved goods for this specific SO
+        const allReservedResponse = await db
+          .collection("on_reserved_gd")
+          .where(query)
+          .get();
+
+        if (allReservedResponse.data && allReservedResponse.data.length > 0) {
+          // Filter out records belonging to the current GD
+          const otherReservedRecords = allReservedResponse.data.filter(
+            (record) => record.doc_no !== currentGdNo
+          );
+
+          // Check if any other GD has open quantities for this SO
+          const hasOpenQty = otherReservedRecords.some(
+            (record) => parseFloat(record.open_qty || 0) > 0
+          );
+
+          if (hasOpenQty) {
+            // Get the GD number that has open quantities
+            const conflictingRecord = otherReservedRecords.find(
+              (record) => parseFloat(record.open_qty || 0) > 0
+            );
+
+            conflictIssues.push({
+              gdNo: gdData.delivery_no,
+              conflictingSoNo: soNo,
+              conflictingGdNo: conflictingRecord.doc_no,
+              openQty: conflictingRecord.open_qty,
+              issue: `SO ${soNo} has open quantities reserved by another GD (${conflictingRecord.doc_no})`,
+            });
+
+            console.log(
+              `Conflict found: GD ${gdData.delivery_no} conflicts with ${conflictingRecord.doc_no} for SO ${soNo}`
+            );
+            break; // Found conflict for this GD, no need to check other SOs
+          }
+        }
+      }
+    }
+
+    if (conflictIssues.length > 0) {
+      console.log(
+        `Found ${conflictIssues.length} reserved goods conflict issues`
+      );
+      return {
+        allPassed: false,
+        failedGDs: conflictIssues,
+        summary: `${conflictIssues.length} goods delivery(s) have reserved goods conflicts`,
+      };
+    }
+
+    console.log("Bulk reserved goods conflict check passed for all selected GDs");
+    return { allPassed: true, failedGDs: [], summary: "No reserved goods conflicts found" };
+  } catch (error) {
+    console.error("Error in bulk reserved goods conflict check:", error);
+    return {
+      allPassed: false,
+      failedGDs: [],
+      summary: `Reserved goods conflict check error: ${error.message}`,
+    };
+  }
+};
+
+// Check delivery quantities against SO limits with over-delivery tolerance
+const checkBulkDeliveryQuantities = async (goodsDeliveryData) => {
+  try {
+    console.log("Checking delivery quantities with tolerance for bulk GDs...");
+
+    const quantityIssues = [];
+
+    for (const gdData of goodsDeliveryData) {
+      const tableGD = gdData.table_gd || [];
+
+      if (tableGD.length === 0) {
+        continue;
+      }
+
+      console.log(`Checking delivery quantities for GD ${gdData.delivery_no}...`);
+
+      // Get all unique SO line item IDs for batch fetching
+      const soLineItemIds = tableGD
+        .filter(item => item.so_line_item_id && item.material_id)
+        .map(item => item.so_line_item_id);
+
+      if (soLineItemIds.length === 0) {
+        continue;
+      }
+
+      // Batch fetch SO line data
+      const resSOLineData = await Promise.all(
+        soLineItemIds.map(async (soLineItemId) => {
+          try {
+            const response = await db.collection("sales_order_axszx8cj_sub").doc(soLineItemId).get();
+            return response.data ? response.data[0] : null;
+          } catch (error) {
+            console.warn(`Failed to fetch SO line item ${soLineItemId}:`, error);
+            return null;
+          }
+        })
+      );
+
+      // Get all unique material IDs for batch fetching
+      const materialIds = [...new Set(tableGD
+        .filter(item => item.material_id)
+        .map(item => item.material_id))];
+
+      // Batch fetch item data
+      const resItem = await Promise.all(
+        materialIds.map(async (materialId) => {
+          try {
+            const response = await db.collection("Item").where({ id: materialId }).get();
+            return response.data && response.data.length > 0 ? response.data[0] : null;
+          } catch (error) {
+            console.warn(`Failed to fetch item ${materialId}:`, error);
+            return null;
+          }
+        })
+      );
+
+      // Create lookup maps for efficiency
+      const soLineDataMap = new Map();
+      resSOLineData.forEach((data, index) => {
+        if (data) {
+          soLineDataMap.set(soLineItemIds[index], data);
+        }
+      });
+
+      const itemDataMap = new Map();
+      resItem.forEach((data) => {
+        if (data) {
+          itemDataMap.set(data.id, data);
+        }
+      });
+
+      // Check each GD line item
+      for (const [index, item] of tableGD.entries()) {
+        if (!item.material_id || item.material_id === "") {
+          continue;
+        }
+
+        const soLine = soLineDataMap.get(item.so_line_item_id);
+        const itemInfo = itemDataMap.get(item.material_id);
+
+        if (!soLine) {
+          console.warn(`SO line not found for item ${index + 1} in GD ${gdData.delivery_no}`);
+          continue;
+        }
+
+        const tolerance = itemInfo ? (itemInfo.over_delivery_tolerance || 0) : 0;
+        const orderedQty = parseFloat(soLine.so_quantity || 0);
+        const previouslyDeliveredQty = parseFloat(soLine.delivered_qty || 0);
+        const currentDeliveryQty = parseFloat(item.gd_qty || 0);
+
+        // Calculate maximum deliverable quantity considering tolerance
+        const remainingQty = orderedQty - previouslyDeliveredQty;
+        const maxDeliverableQty = remainingQty * ((100 + tolerance) / 100);
+
+        console.log(
+          `GD ${gdData.delivery_no}, Item ${index + 1}: ` +
+          `Ordered: ${orderedQty}, Previously Delivered: ${previouslyDeliveredQty}, ` +
+          `Current Delivery: ${currentDeliveryQty}, Max Allowed: ${maxDeliverableQty.toFixed(3)}, ` +
+          `Tolerance: ${tolerance}%`
+        );
+
+        if (currentDeliveryQty > maxDeliverableQty) {
+          quantityIssues.push({
+            gdNo: gdData.delivery_no,
+            lineNumber: index + 1,
+            materialId: item.material_id,
+            materialName: item.material_name || item.gd_material_desc || "Unknown Item",
+            orderedQty: orderedQty,
+            previouslyDeliveredQty: previouslyDeliveredQty,
+            currentDeliveryQty: currentDeliveryQty,
+            maxDeliverableQty: maxDeliverableQty,
+            tolerance: tolerance,
+            issue: `Delivery quantity ${currentDeliveryQty} exceeds maximum deliverable quantity ${maxDeliverableQty.toFixed(3)} (tolerance: ${tolerance}%)`,
+          });
+
+          console.log(
+            `Quantity violation found in GD ${gdData.delivery_no}, line ${index + 1}: ` +
+            `${currentDeliveryQty} > ${maxDeliverableQty.toFixed(3)}`
+          );
+        }
+      }
+    }
+
+    if (quantityIssues.length > 0) {
+      console.log(
+        `Found ${quantityIssues.length} delivery quantity validation issues`
+      );
+      return {
+        allPassed: false,
+        failedGDs: quantityIssues,
+        summary: `${quantityIssues.length} delivery line(s) exceed maximum deliverable quantities`,
+      };
+    }
+
+    console.log("Bulk delivery quantity validation passed for all selected GDs");
+    return { allPassed: true, failedGDs: [], summary: "All delivery quantities within tolerance" };
+  } catch (error) {
+    console.error("Error in bulk delivery quantity validation:", error);
+    return {
+      allPassed: false,
+      failedGDs: [],
+      summary: `Delivery quantity validation error: ${error.message}`,
+    };
+  }
+};
+
 // Update Sales Order Status with delivery progress tracking
 const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
   try {
@@ -1398,14 +1902,176 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
       }
 
       console.log(
-        `Bulk inventory validation completed - proceeding to credit limit validation with ${validGoodsDeliveryData.length} valid GDs`
+        `Bulk inventory validation completed - proceeding to delivery quantity validation with ${validGoodsDeliveryData.length} valid GDs`
+      );
+
+      // Run delivery quantity validation on remaining valid GDs
+      const deliveryQuantityValidationResult = await checkBulkDeliveryQuantities(validGoodsDeliveryData);
+
+      // Filter GDs that passed inventory and delivery quantity validation
+      let quantityValidGoodsDeliveryData = validGoodsDeliveryData;
+
+      if (!deliveryQuantityValidationResult.allPassed) {
+        // Group failed line items by GD number
+        const failedGDMap = new Map();
+        deliveryQuantityValidationResult.failedGDs.forEach(issue => {
+          if (!failedGDMap.has(issue.gdNo)) {
+            failedGDMap.set(issue.gdNo, []);
+          }
+          failedGDMap.get(issue.gdNo).push(issue);
+        });
+
+        // Filter out GDs that have any failed line items
+        const quantityFailedGDNumbers = Array.from(failedGDMap.keys());
+        quantityValidGoodsDeliveryData = validGoodsDeliveryData.filter(
+          gd => !quantityFailedGDNumbers.includes(gd.delivery_no)
+        );
+
+        // Prepare delivery quantity error message
+        let quantityErrorMsg = `<strong>Delivery Quantity Validation Issues</strong><br><br>`;
+        quantityErrorMsg += `<strong>The following goods deliveries have items exceeding maximum deliverable quantities:</strong><br>`;
+
+        for (const [gdNo, issues] of failedGDMap) {
+          quantityErrorMsg += `<br><strong>GD ${gdNo}:</strong><br>`;
+          issues.forEach((issue) => {
+            quantityErrorMsg += `• Line ${issue.lineNumber} - ${issue.materialName}: `;
+            quantityErrorMsg += `Delivery Qty ${issue.currentDeliveryQty} > Max ${issue.maxDeliverableQty.toFixed(3)} `;
+            quantityErrorMsg += `(Tolerance: ${issue.tolerance}%)<br>`;
+          });
+        }
+
+        if (quantityValidGoodsDeliveryData.length > 0) {
+          quantityErrorMsg += `<br><strong>Remaining ${quantityValidGoodsDeliveryData.length} GD(s) will continue to picking validation.</strong>`;
+        } else {
+          quantityErrorMsg += `<br><strong>No valid GDs remaining to process.</strong>`;
+        }
+
+        // Show alert for delivery quantity failed GDs
+        await this.$alert(quantityErrorMsg, "Delivery Quantity Validation Issues", {
+          confirmButtonText: "OK",
+          type: "warning",
+          dangerouslyUseHTMLString: true,
+        });
+
+        // If no valid GDs remain after delivery quantity validation, exit
+        if (quantityValidGoodsDeliveryData.length === 0) {
+          return;
+        }
+      }
+
+      console.log(
+        `Delivery quantity validation completed - proceeding to picking validation with ${quantityValidGoodsDeliveryData.length} valid GDs`
+      );
+
+      // Run picking status validation on remaining valid GDs
+      const pickingValidationResult = await checkBulkPickingStatus(quantityValidGoodsDeliveryData);
+
+      // Filter GDs that passed inventory, delivery quantity, and picking validation
+      let pickingValidGoodsDeliveryData = quantityValidGoodsDeliveryData;
+
+      if (!pickingValidationResult.allPassed) {
+        // Filter out GDs that failed picking validation
+        const pickingFailedGDNumbers = pickingValidationResult.failedGDs.map(gd => gd.gdNo);
+        pickingValidGoodsDeliveryData = validGoodsDeliveryData.filter(
+          gd => !pickingFailedGDNumbers.includes(gd.delivery_no)
+        );
+
+        // Prepare picking error message
+        let pickingErrorMsg = `<strong>Picking Validation Issues</strong><br><br>`;
+        pickingErrorMsg += `<strong>The following goods deliveries require completed picking process:</strong><br>`;
+
+        for (const failedGD of pickingValidationResult.failedGDs) {
+          pickingErrorMsg += `<br><strong>GD ${failedGD.gdNo}:</strong><br>`;
+          if (failedGD.plantId) {
+            pickingErrorMsg += `• Plant: ${failedGD.plantId}<br>`;
+          }
+          if (failedGD.currentStatus) {
+            pickingErrorMsg += `• Current Picking Status: ${failedGD.currentStatus}<br>`;
+          }
+          pickingErrorMsg += `• ${failedGD.issue}<br>`;
+        }
+
+        if (pickingValidGoodsDeliveryData.length > 0) {
+          pickingErrorMsg += `<br><strong>Remaining ${pickingValidGoodsDeliveryData.length} GD(s) will continue to credit limit validation.</strong>`;
+        } else {
+          pickingErrorMsg += `<br><strong>No valid GDs remaining to process.</strong>`;
+        }
+
+        // Show alert for picking failed GDs
+        await this.$alert(pickingErrorMsg, "Picking Validation Issues", {
+          confirmButtonText: "OK",
+          type: "warning",
+          dangerouslyUseHTMLString: true,
+        });
+
+        // If no valid GDs remain after picking validation, exit
+        if (pickingValidGoodsDeliveryData.length === 0) {
+          return;
+        }
+      }
+
+      console.log(
+        `Picking validation completed - proceeding to reserved goods conflict check with ${pickingValidGoodsDeliveryData.length} valid GDs`
+      );
+
+      // Run reserved goods conflict check on remaining valid GDs
+      const reservedGoodsValidationResult = await checkBulkExistingReservedGoods(
+        pickingValidGoodsDeliveryData,
+        selectedGoodsDeliveryData[0]?.organization_id
+      );
+
+      // Filter GDs that passed inventory, picking, and reserved goods validation
+      let reservedGoodsValidGoodsDeliveryData = pickingValidGoodsDeliveryData;
+
+      if (!reservedGoodsValidationResult.allPassed) {
+        // Filter out GDs that failed reserved goods conflict check
+        const reservedFailedGDNumbers = reservedGoodsValidationResult.failedGDs.map(gd => gd.gdNo);
+        reservedGoodsValidGoodsDeliveryData = pickingValidGoodsDeliveryData.filter(
+          gd => !reservedFailedGDNumbers.includes(gd.delivery_no)
+        );
+
+        // Prepare reserved goods conflict error message
+        let reservedErrorMsg = `<strong>Reserved Goods Conflict Issues</strong><br><br>`;
+        reservedErrorMsg += `<strong>The following goods deliveries have conflicts with other GDs:</strong><br>`;
+
+        for (const failedGD of reservedGoodsValidationResult.failedGDs) {
+          reservedErrorMsg += `<br><strong>GD ${failedGD.gdNo}:</strong><br>`;
+          reservedErrorMsg += `• Conflicting SO: ${failedGD.conflictingSoNo}<br>`;
+          reservedErrorMsg += `• Conflicting GD: ${failedGD.conflictingGdNo}<br>`;
+          if (failedGD.openQty) {
+            reservedErrorMsg += `• Open Quantity: ${failedGD.openQty}<br>`;
+          }
+          reservedErrorMsg += `• ${failedGD.issue}<br>`;
+        }
+
+        if (reservedGoodsValidGoodsDeliveryData.length > 0) {
+          reservedErrorMsg += `<br><strong>Remaining ${reservedGoodsValidGoodsDeliveryData.length} GD(s) will continue to credit limit validation.</strong>`;
+        } else {
+          reservedErrorMsg += `<br><strong>No valid GDs remaining to process.</strong>`;
+        }
+
+        // Show alert for reserved goods conflict failed GDs
+        await this.$alert(reservedErrorMsg, "Reserved Goods Conflict Issues", {
+          confirmButtonText: "OK",
+          type: "warning",
+          dangerouslyUseHTMLString: true,
+        });
+
+        // If no valid GDs remain after reserved goods validation, exit
+        if (reservedGoodsValidGoodsDeliveryData.length === 0) {
+          return;
+        }
+      }
+
+      console.log(
+        `Reserved goods conflict check completed - proceeding to credit limit validation with ${reservedGoodsValidGoodsDeliveryData.length} valid GDs`
       );
 
       // Run credit limit validation on remaining valid GDs
-      const creditLimitValidationResult = await validateBulkCreditLimits(validGoodsDeliveryData);
+      const creditLimitValidationResult = await validateBulkCreditLimits(reservedGoodsValidGoodsDeliveryData);
 
-      // Filter GDs that passed both inventory and credit limit validation
-      let finalValidGoodsDeliveryData = validGoodsDeliveryData;
+      // Filter GDs that passed inventory, picking, reserved goods, and credit limit validation
+      let finalValidGoodsDeliveryData = reservedGoodsValidGoodsDeliveryData;
 
       if (!creditLimitValidationResult.allPassed) {
         // Filter out GDs that failed credit limit validation
@@ -1457,7 +2123,7 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
       confirmationMessage += `<strong>Goods Delivery Numbers:</strong><br>${validGoodsDeliveryNumbers.join(
         ", "
       )}`;
-      confirmationMessage += `<br><br><strong>✓ Inventory validation passed</strong><br><strong>✓ Credit limit validation passed</strong><br>Do you want to proceed?`;
+      confirmationMessage += `<br><br><strong>✓ Inventory validation passed</strong><br><strong>✓ Delivery quantity validation passed</strong><br><strong>✓ Picking validation passed</strong><br><strong>✓ Reserved goods conflict check passed</strong><br><strong>✓ Credit limit validation passed</strong><br>Do you want to proceed?`;
 
       await this.$confirm(confirmationMessage, "Goods Delivery Completion", {
         confirmButtonText: "Proceed",
@@ -1471,6 +2137,42 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
 
       // Process each goods delivery with full inventory flow
       for (const gdItem of finalValidGoodsDeliveryData) {
+        // Initialize rollback tracking arrays for this GD
+        const updatedDocs = [];
+        const createdDocs = [];
+
+        // Rollback function for this GD
+        const rollbackChanges = async () => {
+          console.log(`Rolling back changes for GD ${gdItem.delivery_no}...`);
+
+          // Rollback updated documents to their original state
+          for (const doc of updatedDocs.reverse()) {
+            try {
+              await db
+                .collection(doc.collection)
+                .doc(doc.docId)
+                .update(doc.originalData);
+              console.log(`Rolled back ${doc.collection}/${doc.docId}`);
+            } catch (rollbackError) {
+              console.error(`Rollback error for ${doc.collection}/${doc.docId}:`, rollbackError);
+            }
+          }
+
+          // Mark created documents as deleted
+          for (const doc of createdDocs.reverse()) {
+            try {
+              await db.collection(doc.collection).doc(doc.docId).update({
+                is_deleted: 1,
+              });
+              console.log(`Marked as deleted ${doc.collection}/${doc.docId}`);
+            } catch (rollbackError) {
+              console.error(`Rollback error for ${doc.collection}/${doc.docId}:`, rollbackError);
+            }
+          }
+
+          console.log(`Rollback completed for GD ${gdItem.delivery_no}`);
+        };
+
         try {
           console.log(`Processing GD ${gdItem.delivery_no} for completion...`);
 
@@ -1671,6 +2373,12 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                 .collection("inventory_movement")
                 .add(inventoryMovementData);
 
+              // Track created movement for rollback
+              createdDocs.push({
+                collection: "inventory_movement",
+                docId: movementResult.id,
+              });
+
               console.log(
                 `Created inventory movement: ${baseQty} ${baseUOM} of ${item.material_id} (${movementResult.id})`
               );
@@ -1741,7 +2449,13 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
 
                 // Create movements and collect their IDs for serial movement records
                 for (const movementData of movements) {
-                  await db.collection("inventory_movement").add(movementData);
+                  const serialMovementResult = await db.collection("inventory_movement").add(movementData);
+
+                  // Track created serial movement for rollback
+                  createdDocs.push({
+                    collection: "inventory_movement",
+                    docId: serialMovementResult.id,
+                  });
 
                   console.log(
                     `Created ${movementData.inventory_category} movement for serial ${temp.serial_number}: ${movementData.base_qty}`
@@ -1770,7 +2484,7 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                         new Date(b.create_time) - new Date(a.create_time)
                     )[0];
 
-                    await db.collection("inv_serial_movement").add({
+                    const serialMoveResult = await db.collection("inv_serial_movement").add({
                       inventory_movement_id: latestMovement.id,
                       serial_number: temp.serial_number,
                       batch_id: temp.batch_id || null,
@@ -1779,6 +2493,12 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                       plant_id: gdItem.plant_id.id,
                       organization_id: gdItem.organization_id,
                       created_at: new Date(),
+                    });
+
+                    // Track created serial movement record for rollback
+                    createdDocs.push({
+                      collection: "inv_serial_movement",
+                      docId: serialMoveResult.id,
                     });
 
                     console.log(
@@ -1820,9 +2540,15 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
                   ),
                 };
 
-                await db
+                const unrestrictedMoveResult = await db
                   .collection("inventory_movement")
                   .add(unrestrictedMovementData);
+
+                // Track created unrestricted movement for rollback
+                createdDocs.push({
+                  collection: "inventory_movement",
+                  docId: unrestrictedMoveResult.id,
+                });
 
                 console.log(
                   `Created additional unrestricted movement: ${balanceResult.fromUnrestricted} ${baseUOM}`
@@ -1873,6 +2599,22 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
             }
           }
 
+          // Update reserved goods records before marking as Completed
+          const reservedGoodsResult = await updateOnReserveGoodsDelivery(
+            gdItem.organization_id,
+            gdItem
+          );
+
+          if (!reservedGoodsResult.success) {
+            console.warn(
+              `Reserved goods update warning for ${gdItem.delivery_no}: ${reservedGoodsResult.message}`
+            );
+          } else {
+            console.log(
+              `Reserved goods updated: ${gdItem.delivery_no} - ${reservedGoodsResult.message}`
+            );
+          }
+
           // Update goods delivery status to Completed
           await db.collection("goods_delivery").doc(gdItem.id).update({
             gd_status: "Completed",
@@ -1901,8 +2643,12 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
           );
         } catch (error) {
           console.error(`Error completing ${gdItem.delivery_no}:`, error);
+
+          // Perform rollback of all changes made for this GD
+          await rollbackChanges();
+
           this.$message.error(
-            `Error completing ${gdItem.delivery_no}: ${error.message}. Please check inventory levels.`
+            `Error completing ${gdItem.delivery_no}: ${error.message}. All changes have been rolled back.`
           );
         } finally {
           // Reset processing flag for this GD
