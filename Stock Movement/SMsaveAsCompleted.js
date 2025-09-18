@@ -1841,10 +1841,12 @@ class StockAdjuster {
     subformData,
     organizationId
   ) {
-    const collectionName =
-      materialData.item_batch_management == "1"
-        ? "item_batch_balance"
-        : "item_balance";
+    // For batched items, we'll handle both item_batch_balance AND item_balance
+    // For non-batched items, we'll only handle item_balance
+    const isBatchedItem = materialData.item_batch_management == "1";
+    const primaryCollectionName = isBatchedItem
+      ? "item_batch_balance"
+      : "item_balance";
 
     let qtyChangeValue =
       movementType === "Miscellaneous Receipt"
@@ -1994,7 +1996,7 @@ class StockAdjuster {
       queryConditions
     );
     const balanceResponse = await this.db
-      .collection(collectionName)
+      .collection(primaryCollectionName)
       .where(queryConditions)
       .get();
 
@@ -2023,6 +2025,15 @@ class StockAdjuster {
           is_deleted: 0,
           tenant_id: allData.tenant_id || "000000",
           organization_id: organizationId,
+          doc_date: allData.issue_date,
+          manufacturing_date:
+            (subformData && subformData.manufacturing_date) ||
+            (balance && balance.manufacturing_date) ||
+            null,
+          expired_date:
+            (subformData && subformData.expired_date) ||
+            (balance && balance.expired_date) ||
+            null,
         };
 
     switch (movementType) {
@@ -2082,7 +2093,7 @@ class StockAdjuster {
         subformData.is_serial_allocated === 1;
 
       if (!isSerializedItem) {
-        await this.db.collection(collectionName).add(updateData);
+        await this.db.collection(primaryCollectionName).add(updateData);
       } else {
         console.log(
           "Skipped balance creation for serialized item - handled by serial balance"
@@ -2112,7 +2123,7 @@ class StockAdjuster {
         }
 
         await this.db
-          .collection(collectionName)
+          .collection(primaryCollectionName)
           .doc(balanceData.id)
           .update(updateFields);
       } else {
@@ -2155,6 +2166,108 @@ class StockAdjuster {
         movementType,
         organizationId
       );
+    }
+
+    // ✅ NEW: For batched items, also update item_balance collection (both serialized and non-serialized)
+    if (isBatchedItem) {
+      const isSerializedItem = materialData.serial_number_management === 1;
+      const isSerialAllocated =
+        movementType === "Miscellaneous Receipt"
+          ? subformData.is_serialized_item === 1 &&
+            subformData.is_serial_allocated === 1
+          : true;
+
+      if (isSerializedItem && isSerialAllocated) {
+        // For serialized batched items: calculate aggregated quantities from serial data
+        const serialItem = subformData || balance; // Get the item with serial data
+        if (serialItem.serial_number_data) {
+          const aggregatedQuantities = calculateAggregatedSerialQuantities(
+            serialItem,
+            qtyChangeValue,
+            this.roundQty
+          );
+
+          if (aggregatedQuantities) {
+            const itemBalanceParams = {
+              material_id: materialData.id,
+              location_id: locationId,
+              plant_id: allData.issuing_operation_faci,
+              organization_id: organizationId,
+            };
+
+            await processItemBalance(
+              this.db,
+              { material_id: materialData.id, location_id: locationId },
+              itemBalanceParams,
+              aggregatedQuantities.block_qty,
+              aggregatedQuantities.reserved_qty,
+              aggregatedQuantities.unrestricted_qty,
+              aggregatedQuantities.qualityinsp_qty,
+              aggregatedQuantities.intransit_qty,
+              this.roundQty
+            );
+
+            console.log(
+              `Updated item_balance for serialized batch item ${materialData.id} with ${aggregatedQuantities.serial_count} serial numbers`
+            );
+          }
+        }
+      } else {
+        // For non-serialized batched items: use direct quantities from updateData
+        const categoryField =
+          this.categoryMap[balance.category || "Unrestricted"];
+        let block_qty = 0,
+          reserved_qty = 0,
+          unrestricted_qty = 0,
+          qualityinsp_qty = 0,
+          intransit_qty = 0;
+
+        // Calculate the quantity change based on movement type
+        let qtyChange = qtyChangeValue;
+        if (
+          [
+            "Miscellaneous Issue",
+            "Disposal/Scrap",
+            "Location Transfer",
+          ].includes(movementType)
+        ) {
+          qtyChange = -qtyChangeValue;
+        }
+
+        // Assign to appropriate category
+        if (categoryField === "block_qty") {
+          block_qty = qtyChange;
+        } else if (categoryField === "reserved_qty") {
+          reserved_qty = qtyChange;
+        } else if (categoryField === "qualityinsp_qty") {
+          qualityinsp_qty = qtyChange;
+        } else {
+          unrestricted_qty = qtyChange; // Default
+        }
+
+        const itemBalanceParams = {
+          material_id: materialData.id,
+          location_id: locationId,
+          plant_id: allData.issuing_operation_faci,
+          organization_id: organizationId,
+        };
+
+        await processItemBalance(
+          this.db,
+          { material_id: materialData.id, location_id: locationId },
+          itemBalanceParams,
+          block_qty,
+          reserved_qty,
+          unrestricted_qty,
+          qualityinsp_qty,
+          intransit_qty,
+          this.roundQty
+        );
+
+        console.log(
+          `Updated item_balance for non-serialized batch item ${materialData.id}`
+        );
+      }
     }
 
     return { weightedAverageCost, batchId };
@@ -2906,6 +3019,15 @@ class StockAdjuster {
       plant_id: allData.issuing_operation_faci,
       created_at: new Date(),
       organization_id: organizationId,
+      doc_date: allData.issue_date,
+      manufacturing_date:
+        (subformData && subformData.manufacturing_date) ||
+        (balance && balance.manufacturing_date) ||
+        null,
+      expired_date:
+        (subformData && subformData.expired_date) ||
+        (balance && balance.expired_date) ||
+        null,
     };
 
     console.log("baseMovementData JN", baseMovementData);
@@ -3281,7 +3403,9 @@ class StockAdjuster {
             // Create serial movement records for each serial
             if (balance.serial_balances && balance.serial_balances.length > 0) {
               for (const serialBalance of balance.serial_balances) {
-                const serialQty = this.roundQty(parseFloat(serialBalance.original_quantity || 1));
+                const serialQty = this.roundQty(
+                  parseFloat(serialBalance.original_quantity || 1)
+                );
                 await this.createSerialMovementRecord(
                   inMovementIdICT,
                   serialBalance.serial_number,
@@ -4692,6 +4816,232 @@ const processStockMovements = async () => {
     console.error("Extracted error message:", errorMessage);
 
     self.$message.error(errorMessage);
+  }
+};
+
+// Function to process item_balance for both batched and non-batched items
+const processItemBalance = async (
+  db,
+  item,
+  itemBalanceParams,
+  block_qty,
+  reserved_qty,
+  unrestricted_qty,
+  qualityinsp_qty,
+  intransit_qty,
+  roundQty
+) => {
+  try {
+    // Get current item balance records
+    const balanceResponse = await db
+      .collection("item_balance")
+      .where(itemBalanceParams)
+      .get();
+
+    const hasExistingBalance =
+      balanceResponse.data &&
+      Array.isArray(balanceResponse.data) &&
+      balanceResponse.data.length > 0;
+
+    console.log(
+      `Item ${
+        item.material_id || item.item_id
+      }: Found existing balance: ${hasExistingBalance}`
+    );
+
+    const existingDoc = hasExistingBalance ? balanceResponse.data[0] : null;
+
+    let balance_quantity;
+
+    if (existingDoc && existingDoc.id) {
+      // Update existing balance
+      console.log(
+        `Updating existing balance for item ${
+          item.material_id || item.item_id
+        } at location ${item.location_id}`
+      );
+
+      const updatedBlockQty = roundQty(
+        parseFloat(existingDoc.block_qty || 0) + block_qty
+      );
+      const updatedReservedQty = roundQty(
+        parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
+      );
+      const updatedUnrestrictedQty = roundQty(
+        parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
+      );
+      const updatedQualityInspQty = roundQty(
+        parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
+      );
+      const updatedIntransitQty = roundQty(
+        parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
+      );
+
+      balance_quantity =
+        updatedBlockQty +
+        updatedReservedQty +
+        updatedUnrestrictedQty +
+        updatedQualityInspQty +
+        updatedIntransitQty;
+
+      await db.collection("item_balance").doc(existingDoc.id).update({
+        block_qty: updatedBlockQty,
+        reserved_qty: updatedReservedQty,
+        unrestricted_qty: updatedUnrestrictedQty,
+        qualityinsp_qty: updatedQualityInspQty,
+        intransit_qty: updatedIntransitQty,
+        balance_quantity: balance_quantity,
+      });
+
+      console.log(
+        `Updated balance for item ${
+          item.material_id || item.item_id
+        }: ${balance_quantity}`
+      );
+    } else {
+      // Create new balance record
+      console.log(
+        `Creating new balance for item ${
+          item.material_id || item.item_id
+        } at location ${item.location_id}`
+      );
+
+      balance_quantity =
+        block_qty +
+        reserved_qty +
+        unrestricted_qty +
+        qualityinsp_qty +
+        intransit_qty;
+
+      const newBalanceData = {
+        material_id: item.material_id || item.item_id,
+        location_id: item.location_id,
+        block_qty: block_qty,
+        reserved_qty: reserved_qty,
+        unrestricted_qty: unrestricted_qty,
+        qualityinsp_qty: qualityinsp_qty,
+        intransit_qty: intransit_qty,
+        balance_quantity: balance_quantity,
+        plant_id: itemBalanceParams.plant_id,
+        organization_id: itemBalanceParams.organization_id,
+      };
+
+      await db.collection("item_balance").add(newBalanceData);
+      console.log(
+        `Created new balance for item ${
+          item.material_id || item.item_id
+        }: ${balance_quantity}`
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Error processing item_balance for item ${
+        item.material_id || item.item_id
+      }:`,
+      error
+    );
+    throw error;
+  }
+};
+
+// Function to calculate aggregated quantities for serialized items
+const calculateAggregatedSerialQuantities = (item, baseQty, roundQty) => {
+  try {
+    // Parse serial number data if available
+    if (!item.serial_number_data) {
+      console.log(
+        `No serial number data found for item ${
+          item.material_id || item.item_id
+        }`
+      );
+      return null;
+    }
+
+    let serialNumberData;
+    try {
+      serialNumberData = JSON.parse(item.serial_number_data);
+    } catch (parseError) {
+      console.error(
+        `Error parsing serial number data for item ${
+          item.material_id || item.item_id
+        }:`,
+        parseError
+      );
+      return null;
+    }
+
+    const tableSerialNumber = serialNumberData.table_serial_number || [];
+    const serialQuantity = serialNumberData.serial_number_qty || 0;
+
+    if (serialQuantity === 0 || tableSerialNumber.length === 0) {
+      console.log(
+        `No serial numbers to process for item ${
+          item.material_id || item.item_id
+        }`
+      );
+      return null;
+    }
+
+    // Calculate base quantity per serial number
+    const baseQtyPerSerial = serialQuantity > 0 ? baseQty / serialQuantity : 0;
+
+    // Initialize aggregated quantities
+    let aggregated_block_qty = 0;
+    let aggregated_reserved_qty = 0;
+    let aggregated_unrestricted_qty = 0;
+    let aggregated_qualityinsp_qty = 0;
+    let aggregated_intransit_qty = 0;
+
+    // Aggregate quantities based on inventory category
+    // Since all serial numbers for an item typically have the same inventory category,
+    // we can multiply the per-serial quantity by the total number of serial numbers
+    if (item.inv_category === "Blocked") {
+      aggregated_block_qty = baseQtyPerSerial * serialQuantity;
+    } else if (item.inv_category === "Reserved") {
+      aggregated_reserved_qty = baseQtyPerSerial * serialQuantity;
+    } else if (item.inv_category === "Unrestricted") {
+      aggregated_unrestricted_qty = baseQtyPerSerial * serialQuantity;
+    } else if (item.inv_category === "Quality Inspection") {
+      aggregated_qualityinsp_qty = baseQtyPerSerial * serialQuantity;
+    } else if (item.inv_category === "In Transit") {
+      aggregated_intransit_qty = baseQtyPerSerial * serialQuantity;
+    } else {
+      // Default to unrestricted if category not specified
+      aggregated_unrestricted_qty = baseQtyPerSerial * serialQuantity;
+    }
+
+    console.log(
+      `Aggregated serial quantities for item ${
+        item.material_id || item.item_id
+      }: ` +
+        `Total serial count: ${serialQuantity}, ` +
+        `Category: ${item.inv_category}, ` +
+        `Per-serial qty: ${baseQtyPerSerial}, ` +
+        `Total aggregated: ${
+          aggregated_block_qty +
+          aggregated_reserved_qty +
+          aggregated_unrestricted_qty +
+          aggregated_qualityinsp_qty +
+          aggregated_intransit_qty
+        }`
+    );
+
+    return {
+      block_qty: roundQty(aggregated_block_qty),
+      reserved_qty: roundQty(aggregated_reserved_qty),
+      unrestricted_qty: roundQty(aggregated_unrestricted_qty),
+      qualityinsp_qty: roundQty(aggregated_qualityinsp_qty),
+      intransit_qty: roundQty(aggregated_intransit_qty),
+      serial_count: serialQuantity,
+    };
+  } catch (error) {
+    console.error(
+      `Error calculating aggregated serial quantities for item ${
+        item.material_id || item.item_id
+      }:`,
+      error
+    );
+    return null;
   }
 };
 
