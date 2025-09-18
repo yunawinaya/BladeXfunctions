@@ -879,7 +879,7 @@ const checkBulkPickingStatus = async (goodsDeliveryData) => {
         if (gdData.picking_status !== "Completed") {
           pickingIssues.push({
             gdNo: gdData.delivery_no,
-            plantId: gdData.plant_id.id,
+            plantId: gdData.plant_id.dept_name,
             currentStatus: gdData.picking_status || "Not Started",
             issue:
               "Picking process must be completed before goods delivery completion",
@@ -3272,7 +3272,7 @@ const fillbackHeaderFields = async (gd) => {
         pickingErrorMsg += `<strong>The following goods deliveries require completed picking process:</strong><br>`;
 
         for (const failedGD of pickingValidationResult.failedGDs) {
-          pickingErrorMsg += `<br><strong>GD ${failedGD.gdNo}:</strong><br>`;
+          pickingErrorMsg += `<br><strong>${failedGD.gdNo}:</strong><br>`;
           if (failedGD.plantId) {
             pickingErrorMsg += `• Plant: ${failedGD.plantId}<br>`;
           }
