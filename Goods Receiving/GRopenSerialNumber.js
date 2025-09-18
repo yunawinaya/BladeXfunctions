@@ -182,6 +182,10 @@
       } else {
         // Create fresh dialog data
         console.log("Creating fresh serial number data");
+        await this.setData({
+          dialog_serial_number: {},
+        });
+
         dialogData = {
           [`dialog_serial_number.item_id`]: itemData.id || materialId,
           [`dialog_serial_number.item_code`]: itemData.material_code || "",
