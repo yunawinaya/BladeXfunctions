@@ -1497,6 +1497,9 @@ const addInventory = async (
         costing_method_id: item.item_costing_method,
         plant_id: plantId,
         organization_id: organizationId,
+        doc_date: data.gr_date,
+        manufacturing_date: item.manufacturing_date,
+        expired_date: item.expired_date,
       };
 
       await updateOnOrderPurchaseOrder(
@@ -1668,6 +1671,9 @@ const addInventory = async (
               balance_quantity: balance_quantity,
               plant_id: plantId,
               organization_id: organizationId,
+              doc_date: data.gr_date,
+              manufacturing_date: item.manufacturing_date,
+              expired_date: item.expired_date,
             };
 
             await db.collection("item_batch_balance").add(newBalanceData);
