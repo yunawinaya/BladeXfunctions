@@ -995,6 +995,217 @@ const validateBulkInventoryAvailability = async (goodsDeliveryData) => {
   return { isValid: true };
 };
 
+// Comprehensive bulk credit limit validation for all selected GDs
+const validateBulkCreditLimits = async (goodsDeliveryData) => {
+  console.log("Starting bulk credit limit validation for all selected GDs");
+
+  const allCreditLimitErrors = [];
+
+  for (const gdItem of goodsDeliveryData) {
+    console.log(`Validating credit limits for GD: ${gdItem.delivery_no}`);
+
+    // Skip if no accounting integration
+    if (!gdItem.acc_integration_type || gdItem.acc_integration_type === null) {
+      console.log(`Skipping credit limit check for GD ${gdItem.delivery_no} - no accounting integration`);
+      continue;
+    }
+
+    try {
+      // Get customer data
+      const customerId = gdItem.customer_name?.id || gdItem.customer_name;
+      if (!customerId) {
+        console.warn(`No customer ID found for GD ${gdItem.delivery_no}`);
+        continue;
+      }
+
+      const fetchCustomer = await db
+        .collection("Customer")
+        .where({ id: customerId, is_deleted: 0 })
+        .get();
+
+      const customerData = fetchCustomer.data?.[0];
+      if (!customerData) {
+        allCreditLimitErrors.push({
+          gdNo: gdItem.delivery_no,
+          customerName: gdItem.customer_name?.customer_com_name || customerId,
+          error: `Customer not found`,
+          type: 'customer_not_found'
+        });
+        continue;
+      }
+
+      const controlTypes = customerData.control_type_list;
+      const outstandingAmount = parseFloat(customerData.outstanding_balance || 0) || 0;
+      const overdueAmount = parseFloat(customerData.overdue_inv_total_amount || 0) || 0;
+      const overdueLimit = parseFloat(customerData.overdue_limit || 0) || 0;
+      const creditLimit = parseFloat(customerData.customer_credit_limit || 0) || 0;
+      const gdTotal = parseFloat(gdItem.gd_total || 0) || 0;
+      const revisedOutstandingAmount = outstandingAmount + gdTotal;
+
+      console.log(`Credit limit check for ${customerData.customer_com_name}: Outstanding=${outstandingAmount}, GD Total=${gdTotal}, Revised=${revisedOutstandingAmount}, Credit Limit=${creditLimit}, Overdue=${overdueAmount}, Overdue Limit=${overdueLimit}`);
+
+      // Check if control types are defined
+      if (!controlTypes || !Array.isArray(controlTypes) || controlTypes.length === 0) {
+        console.log(`No control types defined for customer ${customerData.customer_com_name}, allowing to proceed`);
+        continue;
+      }
+
+      // Define control type behaviors
+      const controlTypeChecks = {
+        0: () => ({ result: true, priority: "unblock", status: "Passed" }),
+        1: () => {
+          if (overdueAmount > overdueLimit) {
+            return { result: false, priority: "block", status: "Blocked", reason: "Overdue limit exceeded" };
+          }
+          return { result: true, priority: "unblock", status: "Passed" };
+        },
+        2: () => {
+          if (overdueAmount > overdueLimit) {
+            return { result: false, priority: "override", status: "Override Required", reason: "Overdue limit exceeded (override required)" };
+          }
+          return { result: true, priority: "unblock", status: "Passed" };
+        },
+        3: () => {
+          if (revisedOutstandingAmount > creditLimit) {
+            return { result: false, priority: "block", status: "Blocked", reason: "Credit limit exceeded" };
+          }
+          return { result: true, priority: "unblock", status: "Passed" };
+        },
+        4: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+          if (creditExceeded && overdueExceeded) {
+            return { result: false, priority: "block", status: "Blocked", reason: "Both credit and overdue limits exceeded" };
+          } else if (creditExceeded) {
+            return { result: false, priority: "block", status: "Blocked", reason: "Credit limit exceeded" };
+          } else if (overdueExceeded) {
+            return { result: false, priority: "block", status: "Blocked", reason: "Overdue limit exceeded" };
+          }
+          return { result: true, priority: "unblock", status: "Passed" };
+        },
+        5: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+          if (creditExceeded) {
+            if (overdueExceeded) {
+              return { result: false, priority: "block", status: "Blocked", reason: "Both credit and overdue limits exceeded" };
+            } else {
+              return { result: false, priority: "block", status: "Blocked", reason: "Credit limit exceeded" };
+            }
+          } else if (overdueExceeded) {
+            return { result: false, priority: "override", status: "Override Required", reason: "Overdue limit exceeded (override required)" };
+          }
+          return { result: true, priority: "unblock", status: "Passed" };
+        },
+        6: () => {
+          if (revisedOutstandingAmount > creditLimit) {
+            return { result: false, priority: "override", status: "Override Required", reason: "Credit limit exceeded (override required)" };
+          }
+          return { result: true, priority: "unblock", status: "Passed" };
+        },
+        7: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+          if (overdueExceeded) {
+            return { result: false, priority: "block", status: "Blocked", reason: "Overdue limit exceeded" };
+          } else if (creditExceeded) {
+            return { result: false, priority: "override", status: "Override Required", reason: "Credit limit exceeded (override required)" };
+          }
+          return { result: true, priority: "unblock", status: "Passed" };
+        },
+        8: () => {
+          const creditExceeded = revisedOutstandingAmount > creditLimit;
+          const overdueExceeded = overdueAmount > overdueLimit;
+          if (creditExceeded && overdueExceeded) {
+            return { result: false, priority: "override", status: "Override Required", reason: "Both credit and overdue limits exceeded (override required)" };
+          } else if (creditExceeded) {
+            return { result: false, priority: "override", status: "Override Required", reason: "Credit limit exceeded (override required)" };
+          } else if (overdueExceeded) {
+            return { result: false, priority: "override", status: "Override Required", reason: "Overdue limit exceeded (override required)" };
+          }
+          return { result: true, priority: "unblock", status: "Passed" };
+        },
+        9: () => {
+          return { result: false, priority: "block", status: "Blocked", reason: "Customer account suspended" };
+        },
+      };
+
+      // Process control types according to priority: unblock > block > override
+      const results = [];
+      for (const controlType of controlTypes) {
+        const checkFunction = controlTypeChecks[controlType];
+        if (checkFunction) {
+          const result = checkFunction();
+          results.push({ controlType, ...result });
+        }
+      }
+
+      // Sort by priority: unblock first, then block, then override
+      const priorityOrder = { unblock: 1, block: 2, override: 3 };
+      results.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+      // Use the highest priority result
+      const finalResult = results[0];
+
+      if (!finalResult.result) {
+        // Credit limit check failed
+        let errorMsg = `Customer "${customerData.customer_com_name}" failed credit limit validation: ${finalResult.reason}`;
+        errorMsg += ` (Control Type: ${finalResult.controlType})`;
+
+        // Add financial details
+        if (finalResult.reason.includes("credit")) {
+          errorMsg += `. Outstanding: ${outstandingAmount.toFixed(2)}, GD Total: ${gdTotal.toFixed(2)}, Total: ${revisedOutstandingAmount.toFixed(2)}, Credit Limit: ${creditLimit.toFixed(2)}`;
+        }
+        if (finalResult.reason.includes("overdue")) {
+          errorMsg += `. Overdue Amount: ${overdueAmount.toFixed(2)}, Overdue Limit: ${overdueLimit.toFixed(2)}`;
+        }
+
+        allCreditLimitErrors.push({
+          gdNo: gdItem.delivery_no,
+          customerName: customerData.customer_com_name,
+          error: errorMsg,
+          type: finalResult.priority,
+          status: finalResult.status,
+          details: {
+            controlType: finalResult.controlType,
+            outstandingAmount,
+            gdTotal,
+            revisedOutstandingAmount,
+            creditLimit,
+            overdueAmount,
+            overdueLimit,
+            reason: finalResult.reason
+          }
+        });
+      } else {
+        console.log(`Credit limit check passed for GD ${gdItem.delivery_no} - ${customerData.customer_com_name}`);
+      }
+
+    } catch (error) {
+      console.error(`Error checking credit limits for GD ${gdItem.delivery_no}:`, error);
+      allCreditLimitErrors.push({
+        gdNo: gdItem.delivery_no,
+        error: `Error checking credit limits: ${error.message}`,
+        type: 'system_error'
+      });
+    }
+  }
+
+  if (allCreditLimitErrors.length > 0) {
+    console.log("Bulk credit limit validation failed with errors:", allCreditLimitErrors);
+    return {
+      isValid: false,
+      errors: allCreditLimitErrors,
+      summary: `Found ${allCreditLimitErrors.length} credit limit validation error(s) across ${
+        new Set(allCreditLimitErrors.map(e => e.gdNo)).size
+      } goods delivery(s).`
+    };
+  }
+
+  console.log("Bulk credit limit validation passed for all selected GDs");
+  return { isValid: true };
+};
+
 // Update Sales Order Status with delivery progress tracking
 const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
   try {
@@ -1187,11 +1398,57 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
       }
 
       console.log(
-        `Bulk inventory validation completed - proceeding to confirmation with ${validGoodsDeliveryData.length} valid GDs`
+        `Bulk inventory validation completed - proceeding to credit limit validation with ${validGoodsDeliveryData.length} valid GDs`
+      );
+
+      // Run credit limit validation on remaining valid GDs
+      const creditLimitValidationResult = await validateBulkCreditLimits(validGoodsDeliveryData);
+
+      // Filter GDs that passed both inventory and credit limit validation
+      let finalValidGoodsDeliveryData = validGoodsDeliveryData;
+
+      if (!creditLimitValidationResult.allPassed) {
+        // Filter out GDs that failed credit limit validation
+        const creditFailedGDNumbers = creditLimitValidationResult.failedGDs.map(gd => gd.delivery_no);
+        finalValidGoodsDeliveryData = validGoodsDeliveryData.filter(
+          gd => !creditFailedGDNumbers.includes(gd.delivery_no)
+        );
+
+        // Prepare credit limit error message
+        let creditErrorMsg = `<strong>Credit Limit Validation Issues</strong><br><br>`;
+        creditErrorMsg += `<strong>The following goods deliveries failed credit limit validation:</strong><br>`;
+
+        for (const failedGD of creditLimitValidationResult.failedGDs) {
+          creditErrorMsg += `<br><strong>GD ${failedGD.delivery_no}:</strong><br>`;
+          creditErrorMsg += `• Customer: ${failedGD.customer_name}<br>`;
+          creditErrorMsg += `• ${failedGD.error_message}<br>`;
+        }
+
+        if (finalValidGoodsDeliveryData.length > 0) {
+          creditErrorMsg += `<br><strong>Remaining ${finalValidGoodsDeliveryData.length} GD(s) will continue to confirmation.</strong>`;
+        } else {
+          creditErrorMsg += `<br><strong>No valid GDs remaining to process.</strong>`;
+        }
+
+        // Show alert for credit limit failed GDs
+        await this.$alert(creditErrorMsg, "Credit Limit Validation Issues", {
+          confirmButtonText: "OK",
+          type: "warning",
+          dangerouslyUseHTMLString: true,
+        });
+
+        // If no valid GDs remain after credit limit validation, exit
+        if (finalValidGoodsDeliveryData.length === 0) {
+          return;
+        }
+      }
+
+      console.log(
+        `Credit limit validation completed - proceeding to confirmation with ${finalValidGoodsDeliveryData.length} valid GDs`
       );
 
       // Update goods delivery numbers list for confirmation
-      const validGoodsDeliveryNumbers = validGoodsDeliveryData.map(
+      const validGoodsDeliveryNumbers = finalValidGoodsDeliveryData.map(
         (item) => item.delivery_no
       );
 
@@ -1200,7 +1457,7 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
       confirmationMessage += `<strong>Goods Delivery Numbers:</strong><br>${validGoodsDeliveryNumbers.join(
         ", "
       )}`;
-      confirmationMessage += `<br><br><strong>✓ Inventory validation passed</strong><br>Do you want to proceed?`;
+      confirmationMessage += `<br><br><strong>✓ Inventory validation passed</strong><br><strong>✓ Credit limit validation passed</strong><br>Do you want to proceed?`;
 
       await this.$confirm(confirmationMessage, "Goods Delivery Completion", {
         confirmButtonText: "Proceed",
@@ -1213,7 +1470,7 @@ const updateSalesOrderStatus = async (salesOrderId, deliveryNo) => {
       });
 
       // Process each goods delivery with full inventory flow
-      for (const gdItem of validGoodsDeliveryData) {
+      for (const gdItem of finalValidGoodsDeliveryData) {
         try {
           console.log(`Processing GD ${gdItem.delivery_no} for completion...`);
 
