@@ -457,27 +457,30 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
 
             let availableQtyAlt = 0;
             if (remainingStockBase > 0 && undeliveredQty > 0) {
-              let undeliveredQtyBase = undeliveredQty;
+              // Convert remaining stock from base UOM to alt UOM for proper allocation
+              let remainingStockAlt = remainingStockBase;
               if (item.altUOM !== itemData.based_uom) {
                 const uomConversion = itemData.table_uom_conversion?.find(
                   (conv) => conv.alt_uom_id === item.altUOM
                 );
                 if (uomConversion && uomConversion.base_qty) {
-                  undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
+                  remainingStockAlt =
+                    remainingStockBase / uomConversion.base_qty;
                 }
               }
 
-              const allocatedBase = Math.min(
-                remainingStockBase,
-                undeliveredQtyBase
-              );
-              const uomConversion = itemData.table_uom_conversion?.find(
-                (conv) => conv.alt_uom_id === item.altUOM
-              );
-              availableQtyAlt =
-                item.altUOM !== itemData.based_uom
-                  ? allocatedBase / (uomConversion?.base_qty || 1)
-                  : allocatedBase;
+              // Allocate in alt UOM, then convert back to base UOM for tracking
+              availableQtyAlt = Math.min(remainingStockAlt, undeliveredQty);
+
+              let allocatedBase = availableQtyAlt;
+              if (item.altUOM !== itemData.based_uom) {
+                const uomConversion = itemData.table_uom_conversion?.find(
+                  (conv) => conv.alt_uom_id === item.altUOM
+                );
+                if (uomConversion && uomConversion.base_qty) {
+                  allocatedBase = availableQtyAlt * uomConversion.base_qty;
+                }
+              }
 
               remainingStockBase -= allocatedBase;
             }
