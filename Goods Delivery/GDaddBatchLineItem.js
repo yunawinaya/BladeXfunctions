@@ -20,7 +20,8 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
   // First pass: Set up all item data and determine which items need allocation
   for (const [materialId, items] of Object.entries(materialGroups)) {
     // Skip database call and enable gd_qty if materialId is null
-    if (!materialId) {
+    console.log("materialID", materialId);
+    if (materialId === "undefined") {
       console.log(`Skipping item with null materialId`);
       items.forEach((item) => {
         const index = item.originalIndex;
@@ -29,7 +30,7 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
         const undeliveredQty = orderedQty - deliveredQty;
 
         this.setData({
-          [`table_gd.${index}.material_id`]: materialId || "",
+          [`table_gd.${index}.material_id`]: "",
           [`table_gd.${index}.material_name`]: item.itemName || "",
           [`table_gd.${index}.gd_material_desc`]: item.sourceItem.so_desc || "",
           [`table_gd.${index}.gd_order_quantity`]: orderedQty,
@@ -457,30 +458,27 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
 
             let availableQtyAlt = 0;
             if (remainingStockBase > 0 && undeliveredQty > 0) {
-              // Convert remaining stock from base UOM to alt UOM for proper allocation
-              let remainingStockAlt = remainingStockBase;
+              let undeliveredQtyBase = undeliveredQty;
               if (item.altUOM !== itemData.based_uom) {
                 const uomConversion = itemData.table_uom_conversion?.find(
                   (conv) => conv.alt_uom_id === item.altUOM
                 );
                 if (uomConversion && uomConversion.base_qty) {
-                  remainingStockAlt =
-                    remainingStockBase / uomConversion.base_qty;
+                  undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
                 }
               }
 
-              // Allocate in alt UOM, then convert back to base UOM for tracking
-              availableQtyAlt = Math.min(remainingStockAlt, undeliveredQty);
-
-              let allocatedBase = availableQtyAlt;
-              if (item.altUOM !== itemData.based_uom) {
-                const uomConversion = itemData.table_uom_conversion?.find(
-                  (conv) => conv.alt_uom_id === item.altUOM
-                );
-                if (uomConversion && uomConversion.base_qty) {
-                  allocatedBase = availableQtyAlt * uomConversion.base_qty;
-                }
-              }
+              const allocatedBase = Math.min(
+                remainingStockBase,
+                undeliveredQtyBase
+              );
+              const uomConversion = itemData.table_uom_conversion?.find(
+                (conv) => conv.alt_uom_id === item.altUOM
+              );
+              availableQtyAlt =
+                item.altUOM !== itemData.based_uom
+                  ? allocatedBase / (uomConversion?.base_qty || 1)
+                  : allocatedBase;
 
               remainingStockBase -= allocatedBase;
             }
@@ -1654,10 +1652,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
   const referenceType = this.getValue(`dialog_select_item.reference_type`);
   const previousReferenceType = this.getValue("reference_type");
   const currentItemArray = this.getValue(`dialog_select_item.item_array`);
-  let existingGD = this.getValue("dialog_select_item.gd_line_data");
+  let existingGD = this.getValue("table_gd");
   const customerName = this.getValue("customer_name");
-
-  console.log("existingGD", existingGD);
 
   let allItems = [];
   let salesOrderNumber = [];
@@ -1695,7 +1691,6 @@ const createTableGdWithBaseUOM = async (allItems) => {
       referenceType === "Document" ? so.customer_id : so.customer_id.id
     )
   );
-
   const allSameCustomer = uniqueCustomer.size === 1;
 
   if (!allSameCustomer) {
@@ -1775,21 +1770,15 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   let newTableGd = await createTableGdWithBaseUOM(allItems);
 
-  // Create unique keys for robust duplicate detection
-  const createUniqueKey = (item) =>
-    `${item.material_id}_${item.so_line_item_id}_${item.line_so_id}`;
-
-  const existingKeys = new Set(existingGD.map(createUniqueKey));
-
   newTableGd = newTableGd.filter(
     (gd) =>
-      gd.gd_undelivered_qty !== 0 && !existingKeys.has(createUniqueKey(gd))
+      gd.gd_undelivered_qty !== 0 &&
+      !existingGD.find(
+        (gdItem) => gdItem.so_line_item_id === gd.so_line_item_id
+      )
   );
 
-  console.log("newTableGd", newTableGd);
-  console.log("existingGD", existingGD);
   const latestTableGD = [...existingGD, ...newTableGd];
-  console.log("latestTableGD", latestTableGD);
 
   const newTableInsufficient = allItems.map((item) => ({
     material_id: item.itemId,
