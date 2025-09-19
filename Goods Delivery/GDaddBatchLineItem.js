@@ -530,10 +530,17 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
 
                 // Add to allocation queue
                 if (materialId) {
+                  // Convert to base UOM for allocation
+                  let allocationQty = availableQtyAlt;
+                  if (item.altUOM !== itemData.based_uom) {
+                    const uomConv = itemData.table_uom_conversion?.find(c => c.alt_uom_id === item.altUOM);
+                    allocationQty = uomConv?.base_qty ? availableQtyAlt * uomConv.base_qty : availableQtyAlt;
+                  }
+
                   itemsForAllocation.push({
                     materialId,
                     rowIndex: index,
-                    quantity: availableQtyAlt,
+                    quantity: allocationQty,
                     plantId,
                     uomId: item.altUOM,
                     isSerializedItem: false,
@@ -704,10 +711,17 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
                     allocationCondition6);
 
                 if (isEligibleForAllocation) {
+                  // Convert to base UOM for allocation
+                  let allocationQty = undeliveredQty;
+                  if (item.altUOM !== itemData.based_uom) {
+                    const uomConv = itemData.table_uom_conversion?.find(c => c.alt_uom_id === item.altUOM);
+                    allocationQty = uomConv?.base_qty ? undeliveredQty * uomConv.base_qty : undeliveredQty;
+                  }
+
                   itemsForAllocation.push({
                     materialId,
                     rowIndex: index,
-                    quantity: undeliveredQty,
+                    quantity: allocationQty,
                     plantId,
                     uomId: item.altUOM,
                     isSerializedItem: false,
@@ -1077,6 +1091,13 @@ const performAutomaticAllocation = async (
 
     // Create temp_qty_data and summary
     const tempQtyData = allAllocations.map((allocation) => {
+      // Convert allocation quantity to alt UOM for temp_qty_data
+      let gdQty = allocation.quantity;
+      if (uomId !== itemData.based_uom) {
+        const uomConv = itemData.table_uom_conversion?.find(c => c.alt_uom_id === uomId);
+        gdQty = uomConv?.base_qty ? allocation.quantity / uomConv.base_qty : allocation.quantity;
+      }
+
       const baseData = {
         material_id: materialId,
         location_id:
@@ -1092,7 +1113,7 @@ const performAutomaticAllocation = async (
         plant_id: plantId,
         organization_id: allocation.balance.organization_id,
         is_deleted: 0,
-        gd_quantity: allocation.quantity,
+        gd_quantity: gdQty,
       };
 
       // Add serial number for serialized items
@@ -1126,9 +1147,14 @@ const performAutomaticAllocation = async (
     const uomName = await getUOMData(uomId);
 
     const summaryDetails = allAllocations.map((allocation, index) => {
-      let summaryLine = `${index + 1}. ${allocation.binLocation}: ${
-        allocation.quantity
-      } ${uomName}`;
+      // Convert allocation quantity to alt UOM for display
+      let displayQty = allocation.quantity;
+      if (uomId !== itemData.based_uom) {
+        const uomConv = itemData.table_uom_conversion?.find(c => c.alt_uom_id === uomId);
+        displayQty = uomConv?.base_qty ? allocation.quantity / uomConv.base_qty : allocation.quantity;
+      }
+
+      let summaryLine = `${index + 1}. ${allocation.binLocation}: ${displayQty} ${uomName}`;
 
       // Add serial number to summary for serialized items
       if (isSerializedItem && allocation.serialNumber) {
@@ -1143,10 +1169,18 @@ const performAutomaticAllocation = async (
       return summaryLine;
     });
 
-    const totalAllocated = allAllocations.reduce(
+    const totalAllocatedBase = allAllocations.reduce(
       (sum, alloc) => sum + alloc.quantity,
       0
     );
+
+    // Convert back to alt UOM for display
+    let totalAllocated = totalAllocatedBase;
+    if (uomId !== itemData.based_uom) {
+      const uomConv = itemData.table_uom_conversion?.find(c => c.alt_uom_id === uomId);
+      totalAllocated = uomConv?.base_qty ? totalAllocatedBase / uomConv.base_qty : totalAllocatedBase;
+    }
+
     const summary = `Total: ${totalAllocated} ${uomName}\n\nDETAILS:\n${summaryDetails.join(
       "\n"
     )}`;
