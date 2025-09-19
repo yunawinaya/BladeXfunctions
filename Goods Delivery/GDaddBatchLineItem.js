@@ -1,4 +1,4 @@
-const checkInventoryWithDuplicates = async (allItems, plantId) => {
+const checkInventoryWithDuplicates = async (allItems, plantId, existingRowCount = 0) => {
   // Group items by material_id to find duplicates
   const materialGroups = {};
 
@@ -7,7 +7,8 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
     if (!materialGroups[materialId]) {
       materialGroups[materialId] = [];
     }
-    materialGroups[materialId].push({ ...item, originalIndex: index });
+    // Adjust originalIndex to account for existing rows
+    materialGroups[materialId].push({ ...item, originalIndex: index + existingRowCount });
   });
 
   console.log("Material groups:", materialGroups);
@@ -206,8 +207,21 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
         }
       }
 
+      // Subtract existing allocations from available stock
+      let totalPreviousAllocations = 0;
+      if (window.globalAllocationTracker && window.globalAllocationTracker.has(materialId)) {
+        const materialAllocations = window.globalAllocationTracker.get(materialId);
+        materialAllocations.forEach((rowAllocations) => {
+          rowAllocations.forEach((qty) => {
+            totalPreviousAllocations += qty;
+          });
+        });
+      }
+
+      const availableStockAfterAllocations = Math.max(0, totalUnrestrictedQtyBase - totalPreviousAllocations);
+
       console.log(
-        `Material ${materialId} using collection: ${collectionUsed}, Available stock: ${totalUnrestrictedQtyBase}`
+        `Material ${materialId} using collection: ${collectionUsed}, Raw stock: ${totalUnrestrictedQtyBase}, Previous allocations: ${totalPreviousAllocations}, Available: ${availableStockAfterAllocations}`
       );
 
       // Handle UI controls based on balance data length
@@ -297,11 +311,11 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
       });
 
       console.log(
-        `Material ${materialId}: Available=${totalUnrestrictedQtyBase}, Total Demand=${totalDemandBase}, Line Count=${items.length}, Collection=${collectionUsed}`
+        `Material ${materialId}: Available=${availableStockAfterAllocations}, Total Demand=${totalDemandBase}, Line Count=${items.length}, Collection=${collectionUsed}`
       );
 
       // Handle insufficient vs sufficient stock scenarios
-      const totalShortfallBase = totalDemandBase - totalUnrestrictedQtyBase;
+      const totalShortfallBase = totalDemandBase - availableStockAfterAllocations;
 
       if (totalShortfallBase > 0) {
         console.log(
@@ -448,7 +462,7 @@ const checkInventoryWithDuplicates = async (allItems, plantId) => {
         } else {
           // Handle non-serialized items (existing logic)
           // Distribute available stock proportionally
-          let remainingStockBase = Math.max(0, totalUnrestrictedQtyBase);
+          let remainingStockBase = Math.max(0, availableStockAfterAllocations);
 
           items.forEach((item) => {
             const index = item.originalIndex;
@@ -1689,6 +1703,14 @@ const createTableGdWithBaseUOM = async (allItems) => {
   let existingGD = this.getValue("table_gd");
   const customerName = this.getValue("customer_name");
 
+  // Reset global allocation tracker when starting fresh (no existing data)
+  if (!window.globalAllocationTracker) {
+    window.globalAllocationTracker = new Map();
+  } else if (!existingGD || existingGD.length === 0) {
+    // Clear tracker only when no existing GD data (fresh start)
+    window.globalAllocationTracker.clear();
+  }
+
   let allItems = [];
   let salesOrderNumber = [];
   let soId = [];
@@ -1848,10 +1870,18 @@ const createTableGdWithBaseUOM = async (allItems) => {
   setTimeout(async () => {
     try {
       const plantId = this.getValue("plant_id");
+      // Only check inventory for NEW items, not existing ones
+      const newItems = allItems.filter((item) => {
+        return !existingGD.find(
+          (gdItem) => gdItem.so_line_item_id === item.so_line_item_id
+        );
+      });
+
       // Use the enhanced inventory checking function with serialized item support
       const insufficientItems = await checkInventoryWithDuplicates(
-        allItems,
-        plantId
+        newItems,
+        plantId,
+        existingGD.length
       );
 
       // Show insufficient dialog if there are any shortfalls
