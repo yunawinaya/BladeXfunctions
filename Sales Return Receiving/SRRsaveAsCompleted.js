@@ -16,6 +16,230 @@ const roundPrice = (value) => {
   return parseFloat(parseFloat(value || 0).toFixed(4));
 };
 
+// Function to process item_balance for both batched and non-batched items
+const processItemBalance = async (
+  item,
+  itemBalanceParams,
+  block_qty,
+  reserved_qty,
+  unrestricted_qty,
+  qualityinsp_qty,
+  intransit_qty
+) => {
+  try {
+    // Get current item balance records
+    const balanceResponse = await db
+      .collection("item_balance")
+      .where(itemBalanceParams)
+      .get();
+
+    const hasExistingBalance =
+      balanceResponse.data &&
+      Array.isArray(balanceResponse.data) &&
+      balanceResponse.data.length > 0;
+
+    console.log(
+      `Item ${
+        item.material_id || item.item_id
+      }: Found existing balance: ${hasExistingBalance}`
+    );
+
+    const existingDoc = hasExistingBalance ? balanceResponse.data[0] : null;
+
+    let balance_quantity;
+
+    if (existingDoc && existingDoc.id) {
+      // Update existing balance
+      console.log(
+        `Updating existing balance for item ${
+          item.material_id || item.item_id
+        } at location ${item.location_id}`
+      );
+
+      const updatedBlockQty = roundQty(
+        parseFloat(existingDoc.block_qty || 0) + block_qty
+      );
+      const updatedReservedQty = roundQty(
+        parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
+      );
+      const updatedUnrestrictedQty = roundQty(
+        parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
+      );
+      const updatedQualityInspQty = roundQty(
+        parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
+      );
+      const updatedIntransitQty = roundQty(
+        parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
+      );
+
+      balance_quantity =
+        updatedBlockQty +
+        updatedReservedQty +
+        updatedUnrestrictedQty +
+        updatedQualityInspQty +
+        updatedIntransitQty;
+
+      await db.collection("item_balance").doc(existingDoc.id).update({
+        block_qty: updatedBlockQty,
+        reserved_qty: updatedReservedQty,
+        unrestricted_qty: updatedUnrestrictedQty,
+        qualityinsp_qty: updatedQualityInspQty,
+        intransit_qty: updatedIntransitQty,
+        balance_quantity: balance_quantity,
+      });
+
+      console.log(
+        `Updated balance for item ${
+          item.material_id || item.item_id
+        }: ${balance_quantity}`
+      );
+    } else {
+      // Create new balance record
+      console.log(
+        `Creating new balance for item ${
+          item.material_id || item.item_id
+        } at location ${item.location_id}`
+      );
+
+      balance_quantity =
+        block_qty +
+        reserved_qty +
+        unrestricted_qty +
+        qualityinsp_qty +
+        intransit_qty;
+
+      const newBalanceData = {
+        material_id: item.material_id || item.item_id,
+        location_id: item.location_id,
+        block_qty: block_qty,
+        reserved_qty: reserved_qty,
+        unrestricted_qty: unrestricted_qty,
+        qualityinsp_qty: qualityinsp_qty,
+        intransit_qty: intransit_qty,
+        balance_quantity: balance_quantity,
+        plant_id: itemBalanceParams.plant_id,
+        organization_id: itemBalanceParams.organization_id,
+      };
+
+      await db.collection("item_balance").add(newBalanceData);
+      console.log(
+        `Created new balance for item ${
+          item.material_id || item.item_id
+        }: ${balance_quantity}`
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Error processing item_balance for item ${
+        item.material_id || item.item_id
+      }:`,
+      error
+    );
+    throw error;
+  }
+};
+
+// Function to calculate aggregated quantities for serialized items
+const calculateAggregatedSerialQuantities = (item, baseQty) => {
+  try {
+    // Parse serial number data if available
+    if (!item.serial_number_data) {
+      console.log(
+        `No serial number data found for item ${
+          item.material_id || item.item_id
+        }`
+      );
+      return null;
+    }
+
+    let serialNumberData;
+    try {
+      serialNumberData = JSON.parse(item.serial_number_data);
+    } catch (parseError) {
+      console.error(
+        `Error parsing serial number data for item ${
+          item.material_id || item.item_id
+        }:`,
+        parseError
+      );
+      return null;
+    }
+
+    const tableSerialNumber = serialNumberData.table_serial_number || [];
+    const serialQuantity = serialNumberData.serial_number_qty || 0;
+
+    if (serialQuantity === 0 || tableSerialNumber.length === 0) {
+      console.log(
+        `No serial numbers to process for item ${
+          item.material_id || item.item_id
+        }`
+      );
+      return null;
+    }
+
+    // Calculate base quantity per serial number
+    const baseQtyPerSerial = serialQuantity > 0 ? baseQty / serialQuantity : 0;
+
+    // Initialize aggregated quantities
+    let aggregated_block_qty = 0;
+    let aggregated_reserved_qty = 0;
+    let aggregated_unrestricted_qty = 0;
+    let aggregated_qualityinsp_qty = 0;
+    let aggregated_intransit_qty = 0;
+
+    // Aggregate quantities based on inventory category
+    // Since all serial numbers for an item typically have the same inventory category,
+    // we can multiply the per-serial quantity by the total number of serial numbers
+    if (item.inv_category === "Blocked") {
+      aggregated_block_qty = baseQtyPerSerial * serialQuantity;
+    } else if (item.inv_category === "Reserved") {
+      aggregated_reserved_qty = baseQtyPerSerial * serialQuantity;
+    } else if (item.inv_category === "Unrestricted") {
+      aggregated_unrestricted_qty = baseQtyPerSerial * serialQuantity;
+    } else if (item.inv_category === "Quality Inspection") {
+      aggregated_qualityinsp_qty = baseQtyPerSerial * serialQuantity;
+    } else if (item.inv_category === "In Transit") {
+      aggregated_intransit_qty = baseQtyPerSerial * serialQuantity;
+    } else {
+      // Default to unrestricted if category not specified
+      aggregated_unrestricted_qty = baseQtyPerSerial * serialQuantity;
+    }
+
+    console.log(
+      `Aggregated serial quantities for item ${
+        item.material_id || item.item_id
+      }: ` +
+        `Total serial count: ${serialQuantity}, ` +
+        `Category: ${item.inv_category}, ` +
+        `Per-serial qty: ${baseQtyPerSerial}, ` +
+        `Total aggregated: ${
+          aggregated_block_qty +
+          aggregated_reserved_qty +
+          aggregated_unrestricted_qty +
+          aggregated_qualityinsp_qty +
+          aggregated_intransit_qty
+        }`
+    );
+
+    return {
+      block_qty: roundQty(aggregated_block_qty),
+      reserved_qty: roundQty(aggregated_reserved_qty),
+      unrestricted_qty: roundQty(aggregated_unrestricted_qty),
+      qualityinsp_qty: roundQty(aggregated_qualityinsp_qty),
+      intransit_qty: roundQty(aggregated_intransit_qty),
+      serial_count: serialQuantity,
+    };
+  } catch (error) {
+    console.error(
+      `Error calculating aggregated serial quantities for item ${
+        item.material_id || item.item_id
+      }:`,
+      error
+    );
+    return null;
+  }
+};
+
 const updateInventory = async (data, plantId, organizationId) => {
   const items = data.table_srr;
 
@@ -280,6 +504,7 @@ const updateInventory = async (data, plantId, organizationId) => {
 
         let unitPrice = roundPrice(item.unit_price);
         let totalPrice = roundPrice(unitPrice * baseQty);
+        let returnQty = roundQty(baseQty || 0); // Declare returnQty in proper scope
 
         const costingMethod = itemData.material_costing_method;
 
@@ -442,6 +667,9 @@ const updateInventory = async (data, plantId, organizationId) => {
             costing_method_id: item.costing_method,
             plant_id: plantId,
             organization_id: organizationId,
+            doc_date: data.received_date,
+            manufacturing_date: item.manufacturing_date,
+            expired_date: item.expired_date,
           };
 
           await db.collection("inventory_movement").add(inventoryMovementData);
@@ -584,8 +812,6 @@ const updateInventory = async (data, plantId, organizationId) => {
             qualityinsp_qty = 0,
             intransit_qty = 0;
 
-          const returnQty = roundQty(baseQty || 0);
-
           if (item.inventory_category === "Blocked") {
             block_qty = returnQty;
           } else if (item.inventory_category === "Reserved") {
@@ -675,10 +901,61 @@ const updateInventory = async (data, plantId, organizationId) => {
                 balance_quantity: balance_quantity,
                 plant_id: plantId,
                 organization_id: organizationId,
+                doc_date: data.received_date,
+                manufacturing_date: item.manufacturing_date,
+                expired_date: item.expired_date,
               });
 
               console.log(
                 `Created new batch balance for item ${item.material_id}, batch ${item.batch_id}`
+              );
+            }
+
+            // ✅ NEW: Also update item_balance for batched items
+            const itemBalanceParams = {
+              material_id: item.material_id,
+              location_id: item.location_id,
+              plant_id: plantId,
+              organization_id: organizationId,
+            };
+
+            // Check if this is a serialized item
+            const isSerializedItem =
+              item.is_serialized_item === 1 && item.is_serial_allocated === 1;
+
+            if (isSerializedItem) {
+              // For serialized batched items: calculate aggregated quantities from serial data
+              if (item.serial_number_data) {
+                const aggregatedQuantities =
+                  calculateAggregatedSerialQuantities(item, returnQty);
+                if (aggregatedQuantities) {
+                  await processItemBalance(
+                    item,
+                    itemBalanceParams,
+                    aggregatedQuantities.block_qty,
+                    aggregatedQuantities.reserved_qty,
+                    aggregatedQuantities.unrestricted_qty,
+                    aggregatedQuantities.qualityinsp_qty,
+                    aggregatedQuantities.intransit_qty
+                  );
+                  console.log(
+                    `Updated item_balance for serialized batch item ${item.material_id} with ${aggregatedQuantities.serial_count} serial numbers`
+                  );
+                }
+              }
+            } else {
+              // For non-serialized batched items: use direct quantities
+              await processItemBalance(
+                item,
+                itemBalanceParams,
+                block_qty,
+                reserved_qty,
+                unrestricted_qty,
+                qualityinsp_qty,
+                intransit_qty
+              );
+              console.log(
+                `Updated item_balance for non-serialized batch item ${item.material_id}`
               );
             }
           } else {

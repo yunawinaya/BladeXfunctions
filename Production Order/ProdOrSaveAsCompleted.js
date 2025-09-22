@@ -1,3 +1,196 @@
+// Function to process item_balance for both batched and non-batched items
+const processItemBalance = async (
+  item,
+  itemBalanceParams,
+  block_qty,
+  reserved_qty,
+  unrestricted_qty,
+  qualityinsp_qty,
+  intransit_qty
+) => {
+  try {
+    console.log("processItemBalance - itemBalanceParams:", itemBalanceParams);
+    console.log("processItemBalance - quantities:", {
+      block_qty,
+      reserved_qty,
+      unrestricted_qty,
+      qualityinsp_qty,
+      intransit_qty,
+    });
+
+    // Validate parameters
+    if (
+      !itemBalanceParams.material_id ||
+      !itemBalanceParams.location_id ||
+      !itemBalanceParams.plant_id ||
+      !itemBalanceParams.organization_id
+    ) {
+      throw new Error(
+        `Missing required itemBalanceParams: ${JSON.stringify(
+          itemBalanceParams
+        )}`
+      );
+    }
+
+    console.log("processItemBalance - About to query item_balance collection");
+    const existingItemBalanceQuery = await db
+      .collection("item_balance")
+      .where(itemBalanceParams)
+      .get();
+    console.log(
+      "processItemBalance - Query completed, result:",
+      existingItemBalanceQuery
+    );
+
+    const roundQty = (qty) => Math.round((qty || 0) * 10000) / 10000;
+
+    if (
+      !existingItemBalanceQuery.data ||
+      existingItemBalanceQuery.data.length === 0
+    ) {
+      const newItemBalanceData = {
+        material_id: itemBalanceParams.material_id,
+        location_id: itemBalanceParams.location_id,
+        plant_id: itemBalanceParams.plant_id,
+        organization_id: itemBalanceParams.organization_id,
+        balance_quantity: roundQty(
+          unrestricted_qty +
+            reserved_qty +
+            block_qty +
+            qualityinsp_qty +
+            intransit_qty
+        ),
+        block_qty: roundQty(block_qty),
+        reserved_qty: roundQty(reserved_qty),
+        unrestricted_qty: roundQty(unrestricted_qty),
+        qualityinsp_qty: roundQty(qualityinsp_qty),
+        intransit_qty: roundQty(intransit_qty),
+        is_deleted: 0,
+      };
+
+      console.log(
+        "processItemBalance - About to create new item_balance record:",
+        newItemBalanceData
+      );
+      await db.collection("item_balance").add(newItemBalanceData);
+      console.log(
+        `✅ NEW: Created item_balance record for material ${item.material_id}`
+      );
+    } else {
+      const existingItemBalance = existingItemBalanceQuery.data[0];
+      const updateItemBalanceData = {
+        balance_quantity: roundQty(
+          (existingItemBalance.balance_quantity || 0) +
+            unrestricted_qty +
+            reserved_qty +
+            block_qty +
+            qualityinsp_qty +
+            intransit_qty
+        ),
+        block_qty: roundQty((existingItemBalance.block_qty || 0) + block_qty),
+        reserved_qty: roundQty(
+          (existingItemBalance.reserved_qty || 0) + reserved_qty
+        ),
+        unrestricted_qty: roundQty(
+          (existingItemBalance.unrestricted_qty || 0) + unrestricted_qty
+        ),
+        qualityinsp_qty: roundQty(
+          (existingItemBalance.qualityinsp_qty || 0) + qualityinsp_qty
+        ),
+        intransit_qty: roundQty(
+          (existingItemBalance.intransit_qty || 0) + intransit_qty
+        ),
+      };
+
+      console.log(
+        "processItemBalance - About to update existing item_balance record:",
+        updateItemBalanceData
+      );
+      await db
+        .collection("item_balance")
+        .doc(existingItemBalance.id)
+        .update(updateItemBalanceData);
+      console.log(
+        `✅ NEW: Updated item_balance record for material ${item.material_id}`
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Error processing item_balance for material ${item.material_id}:`,
+      error
+    );
+    throw error;
+  }
+};
+
+// Function to calculate aggregated quantities from serial numbers for item_balance
+const calculateAggregatedSerialQuantities = (serialNumberData) => {
+  let totalQty = 0;
+  let unrestricted_qty = 0;
+  let reserved_qty = 0;
+  let block_qty = 0;
+  let qualityinsp_qty = 0;
+  let intransit_qty = 0;
+
+  console.log(
+    "calculateAggregatedSerialQuantities - Input data:",
+    serialNumberData
+  );
+
+  if (serialNumberData && serialNumberData.table_serial_number) {
+    console.log(
+      "calculateAggregatedSerialQuantities - table_serial_number:",
+      serialNumberData.table_serial_number
+    );
+
+    for (const serialItem of serialNumberData.table_serial_number) {
+      const qty = parseFloat(serialItem.serial_quantity) || 0;
+      totalQty += qty;
+
+      // Map categories to quantity fields
+      const category = serialItem.category || "Unrestricted";
+      console.log(`Serial item: qty=${qty}, category=${category}`);
+
+      switch (category) {
+        case "Unrestricted":
+          unrestricted_qty += qty;
+          break;
+        case "Reserved":
+          reserved_qty += qty;
+          break;
+        case "Blocked":
+          block_qty += qty;
+          break;
+        case "Quality Inspection":
+          qualityinsp_qty += qty;
+          break;
+        case "In Transit":
+          intransit_qty += qty;
+          break;
+        default:
+          unrestricted_qty += qty;
+          break;
+      }
+    }
+  } else {
+    console.log(
+      "calculateAggregatedSerialQuantities - No table_serial_number found"
+    );
+  }
+
+  const result = {
+    totalQty,
+    unrestricted_qty,
+    reserved_qty,
+    block_qty,
+    qualityinsp_qty,
+    intransit_qty,
+  };
+
+  console.log("calculateAggregatedSerialQuantities - Result:", result);
+  return result;
+};
+
 // Centralized organization ID handling
 const getOrganizationId = () => {
   const orgId = this.getVarGlobal("deptParentId");
@@ -2012,22 +2205,23 @@ const handleInventoryBalanceAndMovement = async (
       );
     }
 
-    // Skip regular balance updates for serialized items - they are handled in item_serial_balance
-    if (!isSerializedItem) {
-      const categoryField = categoryMap[data.category];
-      if (!categoryField) {
-        throw new Error("Invalid category: " + data.category);
-      }
+    // Handle balance updates for all items (non-serialized and serialized)
+    const categoryField = categoryMap[data.category];
+    if (!categoryField) {
+      throw new Error("Invalid category: " + data.category);
+    }
 
+    const isBatchedItem = item_batch_management === 1;
+
+    if (!isSerializedItem) {
+      // For non-serialized items: Handle both batched and non-batched items
       const balanceQuery = await db
         .collection(collectionName)
         .where({
           material_id: data.material_id,
           plant_id: data.plant_id,
           location_id: data.target_bin_location,
-          ...(item_batch_management === 1
-            ? { batch_id: producedBatchId || null }
-            : {}),
+          ...(isBatchedItem ? { batch_id: producedBatchId || null } : {}),
         })
         .get();
 
@@ -2049,8 +2243,12 @@ const handleInventoryBalanceAndMovement = async (
           create_time: new Date().toISOString(),
           update_time: new Date().toISOString(),
           organization_id: organizationId,
-          ...(item_batch_management === 1
-            ? { batch_id: producedBatchId || null }
+          ...(isBatchedItem
+            ? {
+                batch_id: producedBatchId || null,
+                manufacturing_date: data.manufacturing_date,
+                expired_date: data.expired_date,
+              }
             : {}),
           is_deleted: 0,
         };
@@ -2077,9 +2275,77 @@ const handleInventoryBalanceAndMovement = async (
           .update(updatedQuantities);
         console.log(`Balance record updated for ID: ${existingBalance.id}`);
       }
+
+      // ✅ NEW: For batched items, also update item_balance (without manufacturing/expired dates)
+      if (isBatchedItem) {
+        const itemBalanceParams = {
+          material_id: data.material_id,
+          location_id: data.target_bin_location,
+          plant_id: data.plant_id,
+          organization_id: organizationId,
+        };
+
+        const categoryQuantities = {
+          block_qty: data.category === "Blocked" ? data.yield_qty || 0 : 0,
+          reserved_qty: data.category === "Reserved" ? data.yield_qty || 0 : 0,
+          unrestricted_qty:
+            data.category === "Unrestricted" ? data.yield_qty || 0 : 0,
+          qualityinsp_qty:
+            data.category === "Quality Inspection" ? data.yield_qty || 0 : 0,
+          intransit_qty:
+            data.category === "In Transit" ? data.yield_qty || 0 : 0,
+        };
+
+        await processItemBalance(
+          data,
+          itemBalanceParams,
+          categoryQuantities.block_qty,
+          categoryQuantities.reserved_qty,
+          categoryQuantities.unrestricted_qty,
+          categoryQuantities.qualityinsp_qty,
+          categoryQuantities.intransit_qty
+        );
+      }
     } else {
+      // ✅ NEW: For serialized items, also update item_balance with aggregated quantities
+      if (data.serial_number_data) {
+        let parsedSerialNumberData;
+        try {
+          parsedSerialNumberData = JSON.parse(data.serial_number_data);
+        } catch (parseError) {
+          console.error(
+            `Error parsing serial number data for item_balance update:`,
+            parseError
+          );
+          parsedSerialNumberData = null;
+        }
+
+        if (parsedSerialNumberData) {
+          const aggregatedQuantities = calculateAggregatedSerialQuantities(
+            parsedSerialNumberData
+          );
+
+          const itemBalanceParams = {
+            material_id: data.material_id,
+            location_id: data.target_bin_location,
+            plant_id: data.plant_id,
+            organization_id: organizationId,
+          };
+
+          await processItemBalance(
+            data,
+            itemBalanceParams,
+            aggregatedQuantities.block_qty,
+            aggregatedQuantities.reserved_qty,
+            aggregatedQuantities.unrestricted_qty,
+            aggregatedQuantities.qualityinsp_qty,
+            aggregatedQuantities.intransit_qty
+          );
+        }
+      }
+
       console.log(
-        `Skipped regular balance update for serialized item ${data.material_id} - handled in item_serial_balance`
+        `Processed serialized item ${data.material_id} - handled in item_serial_balance and item_balance`
       );
     }
 
@@ -2111,6 +2377,8 @@ const handleInventoryBalanceAndMovement = async (
       organization_id: organizationId,
       update_time: new Date().toISOString(),
       is_deleted: 0,
+      manufacturing_date: data.manufacturing_date,
+      expired_date: data.expired_date,
     };
 
     await db.collection("inventory_movement").add(inMovement);
@@ -2198,12 +2466,103 @@ const generateBatchNumber = async (batch_id, organizationId) => {
       if (resBatchConfig && resBatchConfig.data.length > 0) {
         const batchConfigData = resBatchConfig.data[0];
 
+        let batchDate = "";
+        let dd,
+          mm,
+          yy = "";
+
+        // Checking for related field
+        switch (batchConfigData.batch_format) {
+          case "Document Date":
+            let issueDate = this.getValue("actual_execute_date");
+
+            if (!issueDate)
+              throw new Error(
+                "Actual Execution Date is required for generating batch number."
+              );
+
+            console.log("issueDate", new Date(issueDate));
+
+            issueDate = new Date(issueDate);
+
+            dd = String(issueDate.getDate()).padStart(2, "0");
+            mm = String(issueDate.getMonth() + 1).padStart(2, "0");
+            yy = String(issueDate.getFullYear()).slice(-2);
+
+            batchDate = dd + mm + yy;
+
+            console.log("batchDate", batchDate);
+            break;
+
+          case "Document Created Date":
+            let createdDate = new Date().toISOString().split("T")[0];
+
+            console.log("createdDate", createdDate);
+
+            createdDate = new Date(createdDate);
+
+            dd = String(createdDate.getDate()).padStart(2, "0");
+            mm = String(createdDate.getMonth() + 1).padStart(2, "0");
+            yy = String(createdDate.getFullYear()).slice(-2);
+
+            batchDate = dd + mm + yy;
+
+            console.log("batchDate", batchDate);
+            break;
+
+          case "Manufacturing Date":
+            let manufacturingDate = this.getValue("manufacturing_date");
+
+            console.log("manufacturingDate", manufacturingDate);
+
+            if (!manufacturingDate)
+              throw new Error(
+                "Manufacturing Date is required for generating batch number."
+              );
+
+            manufacturingDate = new Date(manufacturingDate);
+
+            dd = String(manufacturingDate.getDate()).padStart(2, "0");
+            mm = String(manufacturingDate.getMonth() + 1).padStart(2, "0");
+            yy = String(manufacturingDate.getFullYear()).slice(-2);
+
+            batchDate = dd + mm + yy;
+
+            console.log("batchDate", batchDate);
+            break;
+
+          case "Expired Date":
+            let expiredDate = this.getValue("expired_date");
+
+            console.log("expiredDate", expiredDate);
+
+            if (!expiredDate)
+              throw new Error(
+                "Expired Date is required for generating batch number."
+              );
+
+            expiredDate = new Date(expiredDate);
+
+            dd = String(expiredDate.getDate()).padStart(2, "0");
+            mm = String(expiredDate.getMonth() + 1).padStart(2, "0");
+            yy = String(expiredDate.getFullYear()).slice(-2);
+
+            batchDate = dd + mm + yy;
+
+            console.log("batchDate", batchDate);
+            break;
+        }
+
         let batchPrefix = batchConfigData.batch_prefix || "";
         if (batchPrefix) batchPrefix += "-";
 
         const generatedBatchNo =
           batchPrefix +
-          String(batchConfigData.batch_running_number).padStart(10, "0");
+          batchDate +
+          String(batchConfigData.batch_running_number).padStart(
+            batchConfigData.batch_padding_zeroes,
+            "0"
+          );
 
         await db
           .collection("batch_level_config")
@@ -2499,6 +2858,12 @@ const createICTPStockMovement = async (allData) => {
           organization_id: allData.organization_id,
           update_time: new Date().toISOString(),
           is_deleted: 0,
+          ...(group.materialData.item_batch_management === 1
+            ? {
+                manufacturing_date: allData.manufacturing_date,
+                expired_date: allData.expired_date,
+              }
+            : {}),
         };
 
         // Create OUT movement first (Good Issue - consume materials)
@@ -2774,6 +3139,12 @@ const createICTPStockMovement = async (allData) => {
         organization_id: allData.organization_id,
         update_time: new Date().toISOString(),
         is_deleted: 0,
+        ...(materialData.item_batch_management === "1"
+          ? {
+              manufacturing_date: allData.manufacturing_date,
+              expired_date: allData.expired_date,
+            }
+          : {}),
       };
 
       // Create OUT movement first (Good Issue - consume materials)
@@ -3284,6 +3655,7 @@ try {
   closeDialog();
 } catch (error) {
   console.error("Edit operation failed:", error);
+  this.$message.error(error.toString());
   this.hideLoading();
   throw error;
 }
