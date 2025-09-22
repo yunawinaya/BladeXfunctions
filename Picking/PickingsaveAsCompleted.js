@@ -101,7 +101,11 @@ const checkUniqueness = async (
 ) => {
   const existingDoc = await db
     .collection(collection)
-    .where({ [prefix]: generatedPrefix, organization_id: organizationId })
+    .where({
+      [prefix]: generatedPrefix,
+      organization_id: organizationId,
+      is_deleted: 0,
+    })
     .get();
 
   return !existingDoc.data || existingDoc.data.length === 0;
@@ -2184,6 +2188,18 @@ const addEntry = async (organizationId, toData) => {
 
       await updatePrefix(organizationId, runningNumber, "Transfer Order");
       toData.to_id = prefixToShow;
+    } else {
+      const isUnique = await checkUniqueness(
+        toData.to_id,
+        organizationId,
+        "transfer_order",
+        "to_id"
+      );
+      if (!isUnique) {
+        throw new Error(
+          `Picking Number "${toData.to_id}" already exists. Please use a different number.`
+        );
+      }
     }
 
     for (const item of toData.table_picking_items) {
@@ -2193,16 +2209,7 @@ const addEntry = async (organizationId, toData) => {
     }
 
     // Add the record
-    await db.collection("transfer_order").add(toData);
-
-    // Fetch the created record to get its ID
-    const createdRecord = await db
-      .collection("transfer_order")
-      .where({
-        to_id: toData.to_id,
-        organization_id: organizationId,
-      })
-      .get();
+    const createdRecord = await db.collection("transfer_order").add(toData);
 
     if (!createdRecord.data || createdRecord.data.length === 0) {
       throw new Error("Failed to retrieve created transfer order record");
@@ -2231,6 +2238,18 @@ const updateEntry = async (organizationId, toData, toId, originalToStatus) => {
 
         await updatePrefix(organizationId, runningNumber, "Transfer Order");
         toData.to_id = prefixToShow;
+      } else {
+        const isUnique = await checkUniqueness(
+          toData.to_id,
+          organizationId,
+          "transfer_order",
+          "to_id"
+        );
+        if (!isUnique) {
+          throw new Error(
+            `Picking Number "${toData.to_id}" already exists. Please use a different number.`
+          );
+        }
       }
     }
 
@@ -2567,6 +2586,12 @@ const createPickingRecord = async (toData) => {
         item_desc: item.item_desc,
         batch_no: item.batch_no,
         target_batch: item.batch_no,
+        so_no: item.so_no,
+        gd_no: item.gd_no,
+        so_id: item.so_id,
+        gd_id: item.gd_id,
+        so_line_id: item.so_line_id,
+        gd_line_id: item.gd_line_id,
         store_out_qty: item.picked_qty,
         item_uom: item.item_uom,
         source_bin: item.source_bin,
@@ -2901,6 +2926,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
       plant_id: data.plant_id,
       to_id: data.to_id,
       movement_type: data.movement_type,
+      customer_id: data.customer_id,
       ref_doc_type: data.ref_doc_type,
       gd_no: data.gd_no,
       delivery_no: data.delivery_no,
@@ -2939,11 +2965,15 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     // Perform action based on page status
     if (page_status === "Add") {
       await addEntry(organizationId, toData);
-      await updateGoodsDelivery(data.gd_no, isAutoCompleteGD, organizationId);
+      for (const gdId of data.gd_no) {
+        await updateGoodsDelivery(gdId, isAutoCompleteGD, organizationId);
+      }
     } else if (page_status === "Edit") {
       toId = data.id;
       await updateEntry(organizationId, toData, toId, originalToStatus);
-      await updateGoodsDelivery(data.gd_no, isAutoCompleteGD, organizationId);
+      for (const gdId of data.gd_no) {
+        await updateGoodsDelivery(gdId, isAutoCompleteGD, organizationId);
+      }
     }
 
     // Success message with status information
