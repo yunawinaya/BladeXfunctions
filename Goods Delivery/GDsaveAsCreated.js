@@ -1478,6 +1478,71 @@ const processItemBalance = async (
             }
           }
         }
+
+        // ADDED: Also update item_balance for serialized items (aggregated quantities)
+        const generalItemBalanceParams = {
+          material_id: item.material_id,
+          location_id: group.location_id,
+          plant_id: data.plant_id,
+          organization_id: organizationId,
+        };
+
+        // Don't include batch_id in item_balance query for serialized items (aggregated balance)
+        const generalBalanceQuery = await db
+          .collection("item_balance")
+          .where(generalItemBalanceParams)
+          .get();
+
+        if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+          const generalBalance = generalBalanceQuery.data[0];
+          const currentGeneralUnrestrictedQty = roundQty(
+            parseFloat(generalBalance.unrestricted_qty || 0)
+          );
+          const currentGeneralReservedQty = roundQty(
+            parseFloat(generalBalance.reserved_qty || 0)
+          );
+          const currentGeneralBalanceQty = roundQty(
+            parseFloat(generalBalance.balance_quantity || 0)
+          );
+
+          // Apply the same logic: move from unrestricted to reserved
+          const finalGeneralUnrestrictedQty = roundQty(
+            currentGeneralUnrestrictedQty - baseQty
+          );
+          const finalGeneralReservedQty = roundQty(
+            currentGeneralReservedQty + baseQty
+          );
+          const finalGeneralBalanceQty = roundQty(
+            currentGeneralBalanceQty // Balance quantity stays the same
+          );
+
+          const generalOriginalData = {
+            unrestricted_qty: currentGeneralUnrestrictedQty,
+            reserved_qty: currentGeneralReservedQty,
+            balance_quantity: currentGeneralBalanceQty,
+          };
+
+          updatedDocs.push({
+            collection: "item_balance",
+            docId: generalBalance.id,
+            originalData: generalOriginalData,
+          });
+
+          await db.collection("item_balance").doc(generalBalance.id).update({
+            unrestricted_qty: finalGeneralUnrestrictedQty,
+            reserved_qty: finalGeneralReservedQty,
+            balance_quantity: finalGeneralBalanceQty,
+          });
+
+          console.log(
+            `Updated item_balance for serialized item ${item.material_id} at ${group.location_id}: ` +
+              `moved ${baseQty} from unrestricted to reserved`
+          );
+        } else {
+          console.warn(
+            `No item_balance record found for serialized item ${item.material_id} at location ${group.location_id}`
+          );
+        }
       } else {
         // For non-serialized items, update the consolidated balance
         let itemBalanceParams = {
@@ -1531,8 +1596,81 @@ const processItemBalance = async (
           });
 
           console.log(
-            `Updated balance for group ${groupKey}: moved ${baseQty} from unrestricted to reserved`
+            `Updated ${balanceCollection} for group ${groupKey}: moved ${baseQty} from unrestricted to reserved`
           );
+
+          // ADDED: For batch items, also update item_balance (aggregated balance)
+          if (balanceCollection === "item_batch_balance" && group.batch_id) {
+            const generalItemBalanceParams = {
+              material_id: item.material_id,
+              location_id: group.location_id,
+              plant_id: data.plant_id,
+              organization_id: organizationId,
+            };
+
+            // Don't include batch_id in item_balance query (aggregated balance across all batches)
+            const generalBalanceQuery = await db
+              .collection("item_balance")
+              .where(generalItemBalanceParams)
+              .get();
+
+            if (
+              generalBalanceQuery.data &&
+              generalBalanceQuery.data.length > 0
+            ) {
+              const generalBalance = generalBalanceQuery.data[0];
+              const currentGeneralUnrestrictedQty = roundQty(
+                parseFloat(generalBalance.unrestricted_qty || 0)
+              );
+              const currentGeneralReservedQty = roundQty(
+                parseFloat(generalBalance.reserved_qty || 0)
+              );
+              const currentGeneralBalanceQty = roundQty(
+                parseFloat(generalBalance.balance_quantity || 0)
+              );
+
+              // Apply the same logic: move from unrestricted to reserved
+              const finalGeneralUnrestrictedQty = roundQty(
+                currentGeneralUnrestrictedQty - baseQty
+              );
+              const finalGeneralReservedQty = roundQty(
+                currentGeneralReservedQty + baseQty
+              );
+              const finalGeneralBalanceQty = roundQty(
+                currentGeneralBalanceQty // Balance quantity stays the same
+              );
+
+              const generalOriginalData = {
+                unrestricted_qty: currentGeneralUnrestrictedQty,
+                reserved_qty: currentGeneralReservedQty,
+                balance_quantity: currentGeneralBalanceQty,
+              };
+
+              updatedDocs.push({
+                collection: "item_balance",
+                docId: generalBalance.id,
+                originalData: generalOriginalData,
+              });
+
+              await db
+                .collection("item_balance")
+                .doc(generalBalance.id)
+                .update({
+                  unrestricted_qty: finalGeneralUnrestrictedQty,
+                  reserved_qty: finalGeneralReservedQty,
+                  balance_quantity: finalGeneralBalanceQty,
+                });
+
+              console.log(
+                `Updated item_balance for batch item ${item.material_id} at ${group.location_id}: ` +
+                  `moved ${baseQty} from unrestricted to reserved`
+              );
+            } else {
+              console.warn(
+                `No item_balance record found for batch item ${item.material_id} at location ${group.location_id}`
+              );
+            }
+          }
         }
       }
     }
@@ -2912,6 +3050,7 @@ const fetchDeliveredQuantity = async () => {
         gd_total: parseFloat(data.gd_total.toFixed(3)),
         assigned_to: data.assigned_to,
         reference_type: data.reference_type,
+        gd_created_by: data.gd_created_by,
       };
 
       // Clean up undefined/null values

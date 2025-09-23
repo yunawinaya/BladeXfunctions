@@ -1,6 +1,145 @@
 # Scratchpad
 
-## Current Task: Fix Stock Movement balance_index append issue when editing drafts
+## Current Task: Update Stock Movement item_balance handling - COMPLETED
+
+### Problem Analysis:
+
+- Stock Movement (SMsaveAsCompleted.js) had item_balance updates only for Miscellaneous Receipt
+- Other movement types that add/subtract inventory were missing item_balance aggregation updates
+- For serialized items: only updated item_serial_balance but not item_balance (aggregated)
+- For batch items: only updated item_batch_balance but not item_balance (aggregated across batches)
+- This was causing inconsistency in the aggregated balance data across the system
+
+### Solution Implemented:
+
+[X] **CRITICAL FIX**: Extended existing item_balance update logic to handle ALL movement types
+[X] **DEDUCTION MOVEMENTS**: Added item_balance updates for Location Transfer, Miscellaneous Issue, Disposal/Scrap
+[X] **ADDITION MOVEMENTS**: Added item_balance updates for Inter Operation Facility Transfer (already had Miscellaneous Receipt)
+[X] **CATEGORY TRANSFER**: Added special handling for Inventory Category Transfer Posting (moves between categories)
+[X] **SERIALIZED ITEMS**: Extended logic to handle serialized items that need item_balance aggregation
+[X] **ENHANCED LOGGING**: Added detailed logging for all movement types in item_balance updates
+
+**ADDITIONAL COMPREHENSIVE FIXES:**
+
+[X] **updateReceivingLocation**: Fixed Location Transfer destination location to update aggregated item_balance
+[X] **updateIssuingBalance (InProgress)**: Fixed Stock Movement InProgress to update aggregated item_balance for batched items
+[X] **updateIssuingBalance (Receive)**: Fixed Inter Operation Facility Transfer issuing balance to update aggregated item_balance
+[X] **updateReceivingBalance (Receive)**: Fixed Inter Operation Facility Transfer receiving balance to update aggregated item_balance
+
+### Details:
+
+**Movement Types Handled:**
+
+_Deduction Movements (-):_
+
+- Location Transfer: Subtracts from source location, adds to destination location
+- Miscellaneous Issue: Subtracts from inventory
+- Disposal/Scrap: Subtracts from inventory
+
+_Addition Movements (+):_
+
+- Inter Operation Facility Transfer: Adds to inventory
+- Miscellaneous Receipt: Adds to inventory (already implemented)
+
+_Special Cases:_
+
+- Inventory Category Transfer Posting: Moves quantities between categories (no net change)
+
+**For Serialized Items:**
+
+- Extended condition to include serialized items that need aggregation
+- Uses existing calculateAggregatedSerialQuantities function
+- Updates item_balance for aggregated quantities across all serials
+
+**For Batch Items:**
+
+- Updates item_batch_balance for specific batch quantities
+- Also updates item_balance for aggregated quantities across all batches
+- Applies movement-type-specific logic (addition vs subtraction)
+
+**Consistency:**
+
+- Now maintains complete inventory tracking across specific and aggregated balance tables
+- Ensures data integrity for both individual and consolidated reporting
+- Handles all Stock Movement types consistently
+
+## Previous Completed Task: Update PRTsaveAsCompleted.js item_balance handling - COMPLETED
+
+### Problem Analysis:
+
+- Purchase Return (PRTsaveAsCompleted.js) was missing item_balance updates for both serialized and batch items
+- For serialized items: only updated item_serial_balance (individual) but not item_balance (aggregated)
+- For batch items: only updated item_batch_balance (specific batch) but not item_balance (aggregated across batches)
+- This was causing inconsistency in the aggregated balance data across the system
+
+### Solution Implemented:
+
+[X] **CRITICAL FIX**: Updated PRTsaveAsCompleted.js to include item_balance updates for serialized items
+[X] **SERIALIZED ITEMS**: Added item_balance update logic for aggregated quantities (without batch_id)
+[X] **BATCH ITEMS**: Added item_balance update logic for aggregated quantities across all batches
+[X] **CONSISTENT LOGIC**: Ensures Purchase Return maintains consistency across all balance tables
+[X] **ENHANCED LOGGING**: Added detailed logging for item_balance update operations
+
+### Details:
+
+**For Serialized Items:**
+
+- Updates item_serial_balance changes (individual serial numbers)
+- Also updates item_balance changes (aggregated quantities without batch_id)
+- Groups by location for proper aggregation across multiple serial numbers
+- Subtracts from unrestricted category (default for returns)
+
+**For Batch Items:**
+
+- Updates item_batch_balance changes (specific batch quantities)
+- Also updates item_balance changes (aggregated across all batches)
+- Applies category-based logic (Unrestricted, Quality Inspection, Blocked, In Transit)
+- Uses actual categoryValue for proper quantity calculations
+
+**Consistency:**
+
+- Now matches the pattern established in Goods Delivery processes
+- Ensures complete inventory tracking across specific and aggregated balance tables
+- Maintains data integrity for both individual and consolidated reporting
+
+## Previous Completed Task: Update GDcancelCreated.js item_balance handling - COMPLETED
+
+### Problem Analysis:
+
+- GDsaveAsCreated.js was updated to process item_balance for both regular and serialized items
+- For serialized items: updates both item_serial_balance (individual) and item_balance (aggregated)
+- For batch items: updates both item_batch_balance (specific batch) and item_balance (aggregated across batches)
+- GDcancelCreated.js was missing the corresponding reversal logic for item_balance updates
+
+### Solution Implemented:
+
+[X] **CRITICAL FIX**: Updated GDcancelCreated.js to reverse item_balance changes for serialized items
+[X] **SERIALIZED ITEMS**: Added item_balance reversal logic for aggregated quantities (without batch_id)
+[X] **BATCH ITEMS**: Added item_balance reversal logic for aggregated quantities across all batches
+[X] **CONSISTENT LOGIC**: Ensures cancellation properly reverses both specific and aggregated balance updates
+[X] **ENHANCED LOGGING**: Added detailed logging for item_balance reversal operations
+
+### Details:
+
+**For Serialized Items:**
+
+- Reverses item_serial_balance changes (individual serial numbers)
+- Also reverses item_balance changes (aggregated quantities without batch_id)
+- Uses quantity of 1 for serialized items as per business logic
+
+**For Batch Items:**
+
+- Reverses item_batch_balance changes (specific batch quantities)
+- Also reverses item_balance changes (aggregated across all batches)
+- Uses actual baseQty for proper quantity calculations
+
+**Consistency:**
+
+- Now matches the create/save logic in GDsaveAsCreated.js
+- Ensures complete inventory reversal on cancellation
+- Maintains data integrity across all balance tables
+
+## Previous Completed Task: Fix Stock Movement balance_index append issue when editing drafts
 
 ### Problem Analysis:
 

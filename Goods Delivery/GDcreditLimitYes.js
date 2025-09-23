@@ -1309,6 +1309,7 @@ const processBalanceTable = async (
                   serial_number: temp.serial_number,
                   plant_id: plantId,
                   organization_id: organizationId,
+                  location_id: temp.location_id,
                 };
 
                 if (isBatchManagedItem && temp.batch_id) {
@@ -1483,11 +1484,14 @@ const processBalanceTable = async (
                   .get();
 
                 if (movementQuery.data && movementQuery.data.length > 0) {
-                  const movementId = movementQuery.data[0].id;
+                  const movementId = movementQuery.data.sort(
+                    (a, b) => new Date(b.create_time) - new Date(a.create_time)
+                  )[0].id;
 
                   createdDocs.push({
                     collection: "inventory_movement",
                     docId: movementId,
+                    groupKey: groupKey,
                   });
 
                   console.log(
@@ -1556,11 +1560,15 @@ const processBalanceTable = async (
                     reservedMovementQuery.data &&
                     reservedMovementQuery.data.length > 0
                   ) {
-                    const reservedMovementId = reservedMovementQuery.data[0].id;
+                    const reservedMovementId = reservedMovementQuery.data.sort(
+                      (a, b) =>
+                        new Date(b.create_time) - new Date(a.create_time)
+                    )[0].id;
 
                     createdDocs.push({
                       collection: "inventory_movement",
                       docId: reservedMovementId,
+                      groupKey: groupKey,
                     });
 
                     console.log(
@@ -1615,11 +1623,15 @@ const processBalanceTable = async (
                     unrestrictedMovementQuery.data.length > 0
                   ) {
                     const unrestrictedMovementId =
-                      unrestrictedMovementQuery.data[0].id;
+                      unrestrictedMovementQuery.data.sort(
+                        (a, b) =>
+                          new Date(b.create_time) - new Date(a.create_time)
+                      )[0].id;
 
                     createdDocs.push({
                       collection: "inventory_movement",
                       docId: unrestrictedMovementId,
+                      groupKey: groupKey,
                     });
 
                     console.log(
@@ -1699,9 +1711,15 @@ const processBalanceTable = async (
                     releaseMovementQuery.data &&
                     releaseMovementQuery.data.length > 0
                   ) {
+                    const movementId = releaseMovementQuery.data.sort(
+                      (a, b) =>
+                        new Date(b.create_time) - new Date(a.create_time)
+                    )[0].id;
+
                     createdDocs.push({
                       collection: "inventory_movement",
-                      docId: releaseMovementQuery.data[0].id,
+                      docId: movementId,
+                      groupKey: groupKey,
                     });
                   }
 
@@ -1730,9 +1748,15 @@ const processBalanceTable = async (
                     returnMovementQuery.data &&
                     returnMovementQuery.data.length > 0
                   ) {
+                    const movementId = returnMovementQuery.data.sort(
+                      (a, b) =>
+                        new Date(b.create_time) - new Date(a.create_time)
+                    )[0].id;
+
                     createdDocs.push({
                       collection: "inventory_movement",
-                      docId: returnMovementQuery.data[0].id,
+                      docId: movementId,
+                      groupKey: groupKey,
                     });
                   }
 
@@ -1777,11 +1801,14 @@ const processBalanceTable = async (
                 .get();
 
               if (movementQuery.data && movementQuery.data.length > 0) {
-                const movementId = movementQuery.data[0].id;
+                const movementId = movementQuery.data.sort(
+                  (a, b) => new Date(b.create_time) - new Date(a.create_time)
+                )[0].id;
 
                 createdDocs.push({
                   collection: "inventory_movement",
                   docId: movementId,
+                  groupKey: groupKey,
                 });
 
                 console.log(
@@ -1796,10 +1823,15 @@ const processBalanceTable = async (
                 `Creating inv_serial_movement records for ${group.items.length} serialized items`
               );
 
-              // Find the inventory movement records we just created that are OUT movements
-              const outMovements = createdDocs.filter(
-                (doc) => doc.collection === "inventory_movement"
+              // Use movements created specifically for this group during the above processing
+              // Filter movements by exact group key to ensure we only get movements for this specific group
+              const currentGroupMovements = createdDocs.filter(
+                (doc) =>
+                  doc.collection === "inventory_movement" &&
+                  doc.groupKey === groupKey // Add groupKey during movement creation
               );
+
+              const outMovements = currentGroupMovements;
 
               console.log(
                 `Found ${outMovements.length} OUT movements to process for serial records`
@@ -1887,7 +1919,11 @@ const processBalanceTable = async (
                           serialMovementQuery.data.length > 0
                         ) {
                           const serialMovementId =
-                            serialMovementQuery.data[0].id;
+                            serialMovementQuery.data.sort(
+                              (a, b) =>
+                                new Date(b.create_time) -
+                                new Date(a.create_time)
+                            )[0].id;
 
                           createdDocs.push({
                             collection: "inv_serial_movement",
@@ -2062,6 +2098,123 @@ const processBalanceTable = async (
                   throw serialBalanceError;
                 }
               }
+
+              // ADDED: Also update item_balance for serialized items (aggregated quantities)
+              const generalItemBalanceParams = {
+                material_id: item.material_id,
+                location_id: group.location_id,
+                plant_id: plantId,
+                organization_id: organizationId,
+              };
+
+              // Don't include batch_id in item_balance query for serialized items (aggregated balance)
+              const generalBalanceQuery = await db
+                .collection("item_balance")
+                .where(generalItemBalanceParams)
+                .get();
+
+              if (
+                generalBalanceQuery.data &&
+                generalBalanceQuery.data.length > 0
+              ) {
+                const generalBalance = generalBalanceQuery.data[0];
+                let currentGeneralUnrestrictedQty = roundQty(
+                  parseFloat(generalBalance.unrestricted_qty || 0)
+                );
+                let currentGeneralReservedQty = roundQty(
+                  parseFloat(generalBalance.reserved_qty || 0)
+                );
+                let currentGeneralBalanceQty = roundQty(
+                  parseFloat(generalBalance.balance_quantity || 0)
+                );
+
+                // Apply the same deduction logic to item_balance
+                let finalGeneralUnrestrictedQty = currentGeneralUnrestrictedQty;
+                let finalGeneralReservedQty = currentGeneralReservedQty;
+
+                if (gdStatus === "Created") {
+                  // Apply the smart deduction logic
+                  let availableReservedForThisGD = currentGeneralReservedQty;
+                  if (isUpdate && prevBaseQty > 0) {
+                    availableReservedForThisGD = Math.min(
+                      currentGeneralReservedQty,
+                      prevBaseQty
+                    );
+                  }
+
+                  if (availableReservedForThisGD >= baseQty) {
+                    // All quantity can come from Reserved
+                    finalGeneralReservedQty = roundQty(
+                      finalGeneralReservedQty - baseQty
+                    );
+
+                    // Handle unused reservations
+                    if (isUpdate && prevBaseQty > 0) {
+                      const unusedReservedQty = roundQty(prevBaseQty - baseQty);
+                      if (unusedReservedQty > 0) {
+                        finalGeneralReservedQty = roundQty(
+                          finalGeneralReservedQty - unusedReservedQty
+                        );
+                        finalGeneralUnrestrictedQty = roundQty(
+                          finalGeneralUnrestrictedQty + unusedReservedQty
+                        );
+                      }
+                    }
+                  } else {
+                    // Split between Reserved and Unrestricted
+                    const reservedDeduction = availableReservedForThisGD;
+                    const unrestrictedDeduction = roundQty(
+                      baseQty - reservedDeduction
+                    );
+
+                    finalGeneralReservedQty = roundQty(
+                      finalGeneralReservedQty - reservedDeduction
+                    );
+                    finalGeneralUnrestrictedQty = roundQty(
+                      finalGeneralUnrestrictedQty - unrestrictedDeduction
+                    );
+                  }
+                } else {
+                  // For non-Created status, decrease unrestricted
+                  finalGeneralUnrestrictedQty = roundQty(
+                    finalGeneralUnrestrictedQty - baseQty
+                  );
+                }
+
+                const finalGeneralBalanceQty = roundQty(
+                  currentGeneralBalanceQty - baseQty
+                );
+
+                const generalOriginalData = {
+                  unrestricted_qty: currentGeneralUnrestrictedQty,
+                  reserved_qty: currentGeneralReservedQty,
+                  balance_quantity: currentGeneralBalanceQty,
+                };
+
+                updatedDocs.push({
+                  collection: "item_balance",
+                  docId: generalBalance.id,
+                  originalData: generalOriginalData,
+                });
+
+                await db
+                  .collection("item_balance")
+                  .doc(generalBalance.id)
+                  .update({
+                    unrestricted_qty: finalGeneralUnrestrictedQty,
+                    reserved_qty: finalGeneralReservedQty,
+                    balance_quantity: finalGeneralBalanceQty,
+                  });
+
+                console.log(
+                  `Updated item_balance for serialized item ${item.material_id} at ${group.location_id}: ` +
+                    `Unrestricted=${finalGeneralUnrestrictedQty}, Reserved=${finalGeneralReservedQty}, Balance=${finalGeneralBalanceQty}`
+                );
+              } else {
+                console.warn(
+                  `No item_balance record found for serialized item ${item.material_id} at location ${group.location_id}`
+                );
+              }
             } else if (existingDoc && existingDoc.id) {
               // For non-serialized items, update the consolidated balance
               let currentUnrestrictedQty = roundQty(
@@ -2152,7 +2305,132 @@ const processBalanceTable = async (
                   balance_quantity: finalBalanceQty,
                 });
 
-              console.log(`Updated balance for group ${groupKey}`);
+              console.log(`Updated ${balanceCollection} for group ${groupKey}`);
+
+              // ADDED: For batch items, also update item_balance (aggregated balance)
+              if (
+                balanceCollection === "item_batch_balance" &&
+                group.batch_id
+              ) {
+                const generalItemBalanceParams = {
+                  material_id: item.material_id,
+                  location_id: group.location_id,
+                  plant_id: plantId,
+                  organization_id: organizationId,
+                };
+
+                // Don't include batch_id in item_balance query (aggregated balance across all batches)
+                const generalBalanceQuery = await db
+                  .collection("item_balance")
+                  .where(generalItemBalanceParams)
+                  .get();
+
+                if (
+                  generalBalanceQuery.data &&
+                  generalBalanceQuery.data.length > 0
+                ) {
+                  const generalBalance = generalBalanceQuery.data[0];
+                  let currentGeneralUnrestrictedQty = roundQty(
+                    parseFloat(generalBalance.unrestricted_qty || 0)
+                  );
+                  let currentGeneralReservedQty = roundQty(
+                    parseFloat(generalBalance.reserved_qty || 0)
+                  );
+                  let currentGeneralBalanceQty = roundQty(
+                    parseFloat(generalBalance.balance_quantity || 0)
+                  );
+
+                  // Apply the same deduction logic to item_balance
+                  let finalGeneralUnrestrictedQty =
+                    currentGeneralUnrestrictedQty;
+                  let finalGeneralReservedQty = currentGeneralReservedQty;
+
+                  if (gdStatus === "Created") {
+                    // Apply the smart deduction logic
+                    let availableReservedForThisGD = currentGeneralReservedQty;
+                    if (isUpdate && prevBaseQty > 0) {
+                      availableReservedForThisGD = Math.min(
+                        currentGeneralReservedQty,
+                        prevBaseQty
+                      );
+                    }
+
+                    if (availableReservedForThisGD >= baseQty) {
+                      // All quantity can come from Reserved
+                      finalGeneralReservedQty = roundQty(
+                        finalGeneralReservedQty - baseQty
+                      );
+
+                      // Handle unused reservations
+                      if (isUpdate && prevBaseQty > 0) {
+                        const unusedReservedQty = roundQty(
+                          prevBaseQty - baseQty
+                        );
+                        if (unusedReservedQty > 0) {
+                          finalGeneralReservedQty = roundQty(
+                            finalGeneralReservedQty - unusedReservedQty
+                          );
+                          finalGeneralUnrestrictedQty = roundQty(
+                            finalGeneralUnrestrictedQty + unusedReservedQty
+                          );
+                        }
+                      }
+                    } else {
+                      // Split between Reserved and Unrestricted
+                      const reservedDeduction = availableReservedForThisGD;
+                      const unrestrictedDeduction = roundQty(
+                        baseQty - reservedDeduction
+                      );
+
+                      finalGeneralReservedQty = roundQty(
+                        finalGeneralReservedQty - reservedDeduction
+                      );
+                      finalGeneralUnrestrictedQty = roundQty(
+                        finalGeneralUnrestrictedQty - unrestrictedDeduction
+                      );
+                    }
+                  } else {
+                    // For non-Created status, decrease unrestricted
+                    finalGeneralUnrestrictedQty = roundQty(
+                      finalGeneralUnrestrictedQty - baseQty
+                    );
+                  }
+
+                  const finalGeneralBalanceQty = roundQty(
+                    currentGeneralBalanceQty - baseQty
+                  );
+
+                  const generalOriginalData = {
+                    unrestricted_qty: currentGeneralUnrestrictedQty,
+                    reserved_qty: currentGeneralReservedQty,
+                    balance_quantity: currentGeneralBalanceQty,
+                  };
+
+                  updatedDocs.push({
+                    collection: "item_balance",
+                    docId: generalBalance.id,
+                    originalData: generalOriginalData,
+                  });
+
+                  await db
+                    .collection("item_balance")
+                    .doc(generalBalance.id)
+                    .update({
+                      unrestricted_qty: finalGeneralUnrestrictedQty,
+                      reserved_qty: finalGeneralReservedQty,
+                      balance_quantity: finalGeneralBalanceQty,
+                    });
+
+                  console.log(
+                    `Updated item_balance for batch item ${item.material_id} at ${group.location_id}: ` +
+                      `Unrestricted=${finalGeneralUnrestrictedQty}, Reserved=${finalGeneralReservedQty}, Balance=${finalGeneralBalanceQty}`
+                  );
+                } else {
+                  console.warn(
+                    `No item_balance record found for batch item ${item.material_id} at location ${group.location_id}`
+                  );
+                }
+              }
             }
           }
 
@@ -3033,6 +3311,10 @@ const fetchDeliveredQuantity = async () => {
   const inValidDeliverQty = [];
 
   for (const [index, item] of tableGD.entries()) {
+    if (!item.material_id || item.material_id === "") {
+      continue;
+    }
+
     const soLine = soLineItemData.find((so) => so.id === item.so_line_item_id);
     const itemInfo = itemData.find((data) => data.id === item.material_id);
     if (soLine) {
@@ -3276,7 +3558,6 @@ const processGDLineItem = async (entry) => {
 
     const {
       picking_status,
-      credit_limit_status,
       so_id,
       so_no,
       gd_billing_address,

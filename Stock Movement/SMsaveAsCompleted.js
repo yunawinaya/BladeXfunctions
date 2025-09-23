@@ -2133,6 +2133,311 @@ class StockAdjuster {
       }
     }
 
+    // ✅ CRITICAL FIX: For batched items processed through regular balance updates,
+    // also update item_balance (aggregated across all batches)
+    if (isBatchedItem && primaryCollectionName === "item_batch_balance") {
+      try {
+        const generalItemBalanceParams = {
+          material_id: materialData.id,
+          location_id: locationId,
+          plant_id: allData.issuing_operation_faci,
+          organization_id: organizationId,
+        };
+
+        // Don't include batch_id in item_balance query (aggregated balance across all batches)
+        const generalBalanceQuery = await this.db
+          .collection("item_balance")
+          .where(generalItemBalanceParams)
+          .get();
+
+        let generalUpdateData;
+
+        if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+          // Update existing item_balance record
+          const generalBalance = generalBalanceQuery.data[0];
+
+          // Apply the same movement logic as the batch-specific update
+          let generalBalanceQty = parseFloat(
+            generalBalance.balance_quantity || 0
+          );
+          let generalUnrestrictedQty = parseFloat(
+            generalBalance.unrestricted_qty || 0
+          );
+          let generalQualityInspQty = parseFloat(
+            generalBalance.qualityinsp_qty || 0
+          );
+          let generalBlockQty = parseFloat(generalBalance.block_qty || 0);
+          let generalReservedQty = parseFloat(generalBalance.reserved_qty || 0);
+          let generalIntransitQty = parseFloat(
+            generalBalance.intransit_qty || 0
+          );
+
+          // Apply movement type logic
+          const categoryField =
+            this.categoryMap[
+              movementType === "Location Transfer"
+                ? balance.category || "Unrestricted"
+                : movementType === "Miscellaneous Receipt"
+                ? subformData.category || "Unrestricted"
+                : balance.category || "Unrestricted"
+            ];
+
+          switch (movementType) {
+            case "Inter Operation Facility Transfer":
+              generalBalanceQty += qtyChangeValue;
+              if (categoryField === "unrestricted_qty") {
+                generalUnrestrictedQty += qtyChangeValue;
+              } else if (categoryField === "qualityinsp_qty") {
+                generalQualityInspQty += qtyChangeValue;
+              } else if (categoryField === "block_qty") {
+                generalBlockQty += qtyChangeValue;
+              } else if (categoryField === "reserved_qty") {
+                generalReservedQty += qtyChangeValue;
+              } else if (categoryField === "intransit_qty") {
+                generalIntransitQty += qtyChangeValue;
+              }
+              break;
+
+            case "Location Transfer":
+            case "Miscellaneous Issue":
+            case "Disposal/Scrap":
+              generalBalanceQty -= qtyChangeValue;
+              if (categoryField === "unrestricted_qty") {
+                generalUnrestrictedQty -= qtyChangeValue;
+              } else if (categoryField === "qualityinsp_qty") {
+                generalQualityInspQty -= qtyChangeValue;
+              } else if (categoryField === "block_qty") {
+                generalBlockQty -= qtyChangeValue;
+              } else if (categoryField === "reserved_qty") {
+                generalReservedQty -= qtyChangeValue;
+              } else if (categoryField === "intransit_qty") {
+                generalIntransitQty -= qtyChangeValue;
+              }
+              break;
+
+            case "Miscellaneous Receipt":
+              generalBalanceQty += qtyChangeValue;
+              if (categoryField === "unrestricted_qty") {
+                generalUnrestrictedQty += qtyChangeValue;
+              } else if (categoryField === "qualityinsp_qty") {
+                generalQualityInspQty += qtyChangeValue;
+              } else if (categoryField === "block_qty") {
+                generalBlockQty += qtyChangeValue;
+              } else if (categoryField === "reserved_qty") {
+                generalReservedQty += qtyChangeValue;
+              } else if (categoryField === "intransit_qty") {
+                generalIntransitQty += qtyChangeValue;
+              }
+              break;
+
+            case "Inventory Category Transfer Posting":
+              if (balance.category_from && balance.category_to) {
+                const fromCategoryField =
+                  this.categoryMap[balance.category_from];
+                const toCategoryField = this.categoryMap[balance.category_to];
+
+                // Subtract from source category
+                if (fromCategoryField === "unrestricted_qty") {
+                  generalUnrestrictedQty -= qtyChangeValue;
+                } else if (fromCategoryField === "qualityinsp_qty") {
+                  generalQualityInspQty -= qtyChangeValue;
+                } else if (fromCategoryField === "block_qty") {
+                  generalBlockQty -= qtyChangeValue;
+                } else if (fromCategoryField === "reserved_qty") {
+                  generalReservedQty -= qtyChangeValue;
+                } else if (fromCategoryField === "intransit_qty") {
+                  generalIntransitQty -= qtyChangeValue;
+                }
+
+                // Add to destination category
+                if (toCategoryField === "unrestricted_qty") {
+                  generalUnrestrictedQty += qtyChangeValue;
+                } else if (toCategoryField === "qualityinsp_qty") {
+                  generalQualityInspQty += qtyChangeValue;
+                } else if (toCategoryField === "block_qty") {
+                  generalBlockQty += qtyChangeValue;
+                } else if (toCategoryField === "reserved_qty") {
+                  generalReservedQty += qtyChangeValue;
+                } else if (toCategoryField === "intransit_qty") {
+                  generalIntransitQty += qtyChangeValue;
+                }
+              }
+              break;
+          }
+
+          generalUpdateData = {
+            balance_quantity: parseFloat(generalBalanceQty.toFixed(3)),
+            unrestricted_qty: parseFloat(generalUnrestrictedQty.toFixed(3)),
+            qualityinsp_qty: parseFloat(generalQualityInspQty.toFixed(3)),
+            block_qty: parseFloat(generalBlockQty.toFixed(3)),
+            reserved_qty: parseFloat(generalReservedQty.toFixed(3)),
+            intransit_qty: parseFloat(generalIntransitQty.toFixed(3)),
+            update_time: new Date().toISOString(),
+            update_user: allData.user_id || "system",
+          };
+
+          await this.db
+            .collection("item_balance")
+            .doc(generalBalance.id)
+            .update(generalUpdateData);
+
+          console.log(
+            `Updated aggregated item_balance for batched item ${materialData.id} with movement type ${movementType}`
+          );
+        } else {
+          // Create new item_balance record if it doesn't exist
+          console.log(
+            `No existing item_balance found for batched item ${materialData.id}, creating new record`
+          );
+
+          // This should rarely happen, but handle it for completeness
+          generalUpdateData = {
+            material_id: materialData.id,
+            location_id: locationId,
+            plant_id: allData.issuing_operation_faci,
+            organization_id: organizationId,
+            balance_quantity: 0,
+            unrestricted_qty: 0,
+            qualityinsp_qty: 0,
+            block_qty: 0,
+            reserved_qty: 0,
+            intransit_qty: 0,
+            create_user: allData.user_id || "system",
+            update_user: allData.user_id || "system",
+            create_time: new Date().toISOString(),
+            update_time: new Date().toISOString(),
+            is_deleted: 0,
+          };
+
+          // Apply the movement logic to the new record
+          const categoryField =
+            this.categoryMap[
+              movementType === "Location Transfer"
+                ? balance.category || "Unrestricted"
+                : movementType === "Miscellaneous Receipt"
+                ? subformData.category || "Unrestricted"
+                : balance.category || "Unrestricted"
+            ];
+
+          switch (movementType) {
+            case "Inter Operation Facility Transfer":
+              generalUpdateData.balance_quantity = qtyChangeValue;
+              if (categoryField === "unrestricted_qty") {
+                generalUpdateData.unrestricted_qty = qtyChangeValue;
+              } else if (categoryField === "qualityinsp_qty") {
+                generalUpdateData.qualityinsp_qty = qtyChangeValue;
+              } else if (categoryField === "block_qty") {
+                generalUpdateData.block_qty = qtyChangeValue;
+              } else if (categoryField === "reserved_qty") {
+                generalUpdateData.reserved_qty = qtyChangeValue;
+              } else if (categoryField === "intransit_qty") {
+                generalUpdateData.intransit_qty = qtyChangeValue;
+              }
+              break;
+
+            case "Location Transfer":
+            case "Miscellaneous Issue":
+            case "Disposal/Scrap":
+              // For deduction movements, we start with negative quantities
+              generalUpdateData.balance_quantity = -qtyChangeValue;
+              if (categoryField === "unrestricted_qty") {
+                generalUpdateData.unrestricted_qty = -qtyChangeValue;
+              } else if (categoryField === "qualityinsp_qty") {
+                generalUpdateData.qualityinsp_qty = -qtyChangeValue;
+              } else if (categoryField === "block_qty") {
+                generalUpdateData.block_qty = -qtyChangeValue;
+              } else if (categoryField === "reserved_qty") {
+                generalUpdateData.reserved_qty = -qtyChangeValue;
+              } else if (categoryField === "intransit_qty") {
+                generalUpdateData.intransit_qty = -qtyChangeValue;
+              }
+              break;
+
+            case "Miscellaneous Receipt":
+              generalUpdateData.balance_quantity = qtyChangeValue;
+              if (categoryField === "unrestricted_qty") {
+                generalUpdateData.unrestricted_qty = qtyChangeValue;
+              } else if (categoryField === "qualityinsp_qty") {
+                generalUpdateData.qualityinsp_qty = qtyChangeValue;
+              } else if (categoryField === "block_qty") {
+                generalUpdateData.block_qty = qtyChangeValue;
+              } else if (categoryField === "reserved_qty") {
+                generalUpdateData.reserved_qty = qtyChangeValue;
+              } else if (categoryField === "intransit_qty") {
+                generalUpdateData.intransit_qty = qtyChangeValue;
+              }
+              break;
+
+            case "Inventory Category Transfer Posting":
+              if (balance.category_from && balance.category_to) {
+                const fromCategoryField =
+                  this.categoryMap[balance.category_from];
+                const toCategoryField = this.categoryMap[balance.category_to];
+
+                // For new records with category transfers, we only set the destination category
+                // (assuming the source category starts at 0)
+                if (toCategoryField === "unrestricted_qty") {
+                  generalUpdateData.unrestricted_qty = qtyChangeValue;
+                } else if (toCategoryField === "qualityinsp_qty") {
+                  generalUpdateData.qualityinsp_qty = qtyChangeValue;
+                } else if (toCategoryField === "block_qty") {
+                  generalUpdateData.block_qty = qtyChangeValue;
+                } else if (toCategoryField === "reserved_qty") {
+                  generalUpdateData.reserved_qty = qtyChangeValue;
+                } else if (toCategoryField === "intransit_qty") {
+                  generalUpdateData.intransit_qty = qtyChangeValue;
+                }
+
+                // Set the source category to negative (since we're transferring from it)
+                if (fromCategoryField === "unrestricted_qty") {
+                  generalUpdateData.unrestricted_qty = -qtyChangeValue;
+                } else if (fromCategoryField === "qualityinsp_qty") {
+                  generalUpdateData.qualityinsp_qty = -qtyChangeValue;
+                } else if (fromCategoryField === "block_qty") {
+                  generalUpdateData.block_qty = -qtyChangeValue;
+                } else if (fromCategoryField === "reserved_qty") {
+                  generalUpdateData.reserved_qty = -qtyChangeValue;
+                } else if (fromCategoryField === "intransit_qty") {
+                  generalUpdateData.intransit_qty = -qtyChangeValue;
+                }
+
+                // Balance quantity remains 0 for category transfers (no net change)
+                generalUpdateData.balance_quantity = 0;
+              }
+              break;
+          }
+
+          // Round all quantities to 3 decimal places
+          generalUpdateData.balance_quantity = parseFloat(
+            generalUpdateData.balance_quantity.toFixed(3)
+          );
+          generalUpdateData.unrestricted_qty = parseFloat(
+            generalUpdateData.unrestricted_qty.toFixed(3)
+          );
+          generalUpdateData.qualityinsp_qty = parseFloat(
+            generalUpdateData.qualityinsp_qty.toFixed(3)
+          );
+          generalUpdateData.block_qty = parseFloat(
+            generalUpdateData.block_qty.toFixed(3)
+          );
+          generalUpdateData.reserved_qty = parseFloat(
+            generalUpdateData.reserved_qty.toFixed(3)
+          );
+          generalUpdateData.intransit_qty = parseFloat(
+            generalUpdateData.intransit_qty.toFixed(3)
+          );
+
+          await this.db.collection("item_balance").add(generalUpdateData);
+        }
+      } catch (error) {
+        console.error(
+          `Error updating aggregated item_balance for batched item ${materialData.id}:`,
+          error
+        );
+        // Don't throw - let the main process continue
+      }
+    }
+
     if (
       [
         "Miscellaneous Issue",
@@ -2169,7 +2474,8 @@ class StockAdjuster {
     }
 
     // ✅ NEW: For batched items, also update item_balance collection (both serialized and non-serialized)
-    if (isBatchedItem) {
+    // ✅ EXTENDED: Also handle serialized items that need item_balance aggregation
+    if (isBatchedItem || (isSerializedItem && isSerialAllocated)) {
       const isSerializedItem = materialData.serial_number_management === 1;
       const isSerialAllocated =
         movementType === "Miscellaneous Receipt"
@@ -2232,17 +2538,63 @@ class StockAdjuster {
           ].includes(movementType)
         ) {
           qtyChange = -qtyChangeValue;
+        } else if (
+          [
+            "Inter Operation Facility Transfer",
+            "Miscellaneous Receipt",
+          ].includes(movementType)
+        ) {
+          qtyChange = qtyChangeValue; // Positive for additions
         }
 
-        // Assign to appropriate category
-        if (categoryField === "block_qty") {
-          block_qty = qtyChange;
-        } else if (categoryField === "reserved_qty") {
-          reserved_qty = qtyChange;
-        } else if (categoryField === "qualityinsp_qty") {
-          qualityinsp_qty = qtyChange;
+        // Handle category transfer posting (special case)
+        if (movementType === "Inventory Category Transfer Posting") {
+          if (!balance.category_from || !balance.category_to) {
+            throw new Error(
+              "Both category_from and category_to are required for category transfer"
+            );
+          }
+
+          // Subtract from source category
+          const fromCategoryField = this.categoryMap[balance.category_from];
+          if (fromCategoryField === "block_qty") {
+            block_qty = -qtyChangeValue;
+          } else if (fromCategoryField === "reserved_qty") {
+            reserved_qty = -qtyChangeValue;
+          } else if (fromCategoryField === "qualityinsp_qty") {
+            qualityinsp_qty = -qtyChangeValue;
+          } else if (fromCategoryField === "intransit_qty") {
+            intransit_qty = -qtyChangeValue;
+          } else {
+            unrestricted_qty = -qtyChangeValue; // Default
+          }
+
+          // Add to destination category
+          const toCategoryField = this.categoryMap[balance.category_to];
+          if (toCategoryField === "block_qty") {
+            block_qty += qtyChangeValue;
+          } else if (toCategoryField === "reserved_qty") {
+            reserved_qty += qtyChangeValue;
+          } else if (toCategoryField === "qualityinsp_qty") {
+            qualityinsp_qty += qtyChangeValue;
+          } else if (toCategoryField === "intransit_qty") {
+            intransit_qty += qtyChangeValue;
+          } else {
+            unrestricted_qty += qtyChangeValue; // Default
+          }
         } else {
-          unrestricted_qty = qtyChange; // Default
+          // Assign to appropriate category for other movement types
+          if (categoryField === "block_qty") {
+            block_qty = qtyChange;
+          } else if (categoryField === "reserved_qty") {
+            reserved_qty = qtyChange;
+          } else if (categoryField === "qualityinsp_qty") {
+            qualityinsp_qty = qtyChange;
+          } else if (categoryField === "intransit_qty") {
+            intransit_qty = qtyChange;
+          } else {
+            unrestricted_qty = qtyChange; // Default
+          }
         }
 
         const itemBalanceParams = {
@@ -2265,7 +2617,9 @@ class StockAdjuster {
         );
 
         console.log(
-          `Updated item_balance for non-serialized batch item ${materialData.id}`
+          `Updated item_balance for ${
+            isBatchedItem ? "batched" : "serialized"
+          } item ${materialData.id} with movement type ${movementType}`
         );
       }
     }
@@ -2398,6 +2752,105 @@ class StockAdjuster {
       console.log(
         `Updated existing ${collectionName} record for batch ${balance.batch_id} at location ${receivingLocationId}`
       );
+    }
+
+    // ✅ CRITICAL FIX: For batched items, also update item_balance (aggregated across all batches)
+    if (
+      materialData.item_batch_management == "1" &&
+      collectionName === "item_batch_balance"
+    ) {
+      try {
+        const generalItemBalanceParams = {
+          material_id: materialData.id,
+          location_id: receivingLocationId,
+          plant_id: allData.issuing_operation_faci,
+          organization_id: organizationId,
+        };
+
+        // Don't include batch_id in item_balance query (aggregated balance across all batches)
+        const generalBalanceQuery = await this.db
+          .collection("item_balance")
+          .where(generalItemBalanceParams)
+          .get();
+
+        if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+          // Update existing item_balance record
+          const generalBalance = generalBalanceQuery.data[0];
+
+          const currentGeneralBalanceQty = parseFloat(
+            generalBalance.balance_quantity || 0
+          );
+          const currentGeneralCategoryQty = parseFloat(
+            generalBalance[categoryField] || 0
+          );
+
+          const generalUpdateData = {
+            balance_quantity: parseFloat(
+              (currentGeneralBalanceQty + qtyChangeValue).toFixed(3)
+            ),
+            [categoryField]: parseFloat(
+              (currentGeneralCategoryQty + qtyChangeValue).toFixed(3)
+            ),
+            update_time: new Date().toISOString(),
+            update_user: allData.user_id || "system",
+          };
+
+          await this.db
+            .collection("item_balance")
+            .doc(generalBalance.id)
+            .update(generalUpdateData);
+
+          console.log(
+            `Updated aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id}`
+          );
+        } else {
+          // Create new item_balance record if it doesn't exist
+          const generalUpdateData = {
+            material_id: materialData.id,
+            location_id: receivingLocationId,
+            plant_id: allData.issuing_operation_faci,
+            organization_id: organizationId,
+            balance_quantity: parseFloat(qtyChangeValue.toFixed(3)),
+            unrestricted_qty:
+              categoryField === "unrestricted_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            qualityinsp_qty:
+              categoryField === "qualityinsp_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            block_qty:
+              categoryField === "block_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            reserved_qty:
+              categoryField === "reserved_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            intransit_qty:
+              categoryField === "intransit_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            create_user: allData.user_id || "system",
+            update_user: allData.user_id || "system",
+            create_time: new Date().toISOString(),
+            update_time: new Date().toISOString(),
+            is_deleted: 0,
+          };
+
+          await this.db.collection("item_balance").add(generalUpdateData);
+
+          console.log(
+            `Created new aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id}`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Error updating aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id}:`,
+          error
+        );
+        // Don't throw - let the main process continue
+      }
     }
   }
 

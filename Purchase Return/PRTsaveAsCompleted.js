@@ -542,6 +542,88 @@ const updateInventory = async (data, plantId, organizationId) => {
       }
     }
 
+    // ADDED: Update item_balance for serialized items (aggregated quantities)
+    // Group by location for aggregated balance updates
+    const locationGroups = new Map();
+
+    for (const balance of serialBalances) {
+      const locationId = balance.location_id;
+      const returnQuantity = balance.return_quantity || balance.prt_quantity;
+
+      if (!locationGroups.has(locationId)) {
+        locationGroups.set(locationId, {
+          location_id: locationId,
+          total_quantity: 0,
+        });
+      }
+
+      const group = locationGroups.get(locationId);
+      group.total_quantity += returnQuantity;
+    }
+
+    // Update item_balance for each location (aggregated across all batches and serials)
+    for (const [locationId, group] of locationGroups) {
+      try {
+        const generalItemBalanceParams = {
+          material_id: item.material_id,
+          location_id: locationId,
+          plant_id: plant_id,
+          organization_id: organization_id,
+        };
+
+        // Don't include batch_id in item_balance query for serialized items (aggregated balance)
+        const generalBalanceQuery = await db
+          .collection("item_balance")
+          .where(generalItemBalanceParams)
+          .get();
+
+        if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+          const generalBalance = generalBalanceQuery.data[0];
+
+          // For Purchase Return, we subtract from inventory (opposite of Goods Delivery)
+          const currentUnrestrictedQty = roundQty(
+            parseFloat(generalBalance.unrestricted_qty || 0)
+          );
+          const currentBalanceQty = roundQty(
+            parseFloat(generalBalance.balance_quantity || 0)
+          );
+
+          // For Purchase Return, subtract quantities from unrestricted (default category)
+          const finalUnrestrictedQty = roundQty(
+            currentUnrestrictedQty - group.total_quantity
+          );
+          const finalBalanceQty = roundQty(
+            currentBalanceQty - group.total_quantity
+          );
+
+          await db
+            .collection("item_balance")
+            .doc(generalBalance.id)
+            .update({
+              unrestricted_qty: Math.max(0, finalUnrestrictedQty),
+              balance_quantity: Math.max(0, finalBalanceQty),
+              last_updated: new Date(),
+              last_transaction: allData.purchase_return_no,
+            });
+
+          console.log(
+            `Updated item_balance for serialized item ${item.material_id} at ${locationId}: ` +
+              `subtracted ${group.total_quantity} from aggregated balance`
+          );
+        } else {
+          console.warn(
+            `No item_balance record found for serialized item ${item.material_id} at location ${locationId}`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Error updating item_balance for serialized item ${item.material_id} at location ${locationId}:`,
+          error
+        );
+        throw error;
+      }
+    }
+
     // Step 2: Group serial balances by location + batch + category for consolidated inventory movements
     const groupedBalances = new Map();
 
@@ -926,6 +1008,98 @@ const updateInventory = async (data, plantId, organizationId) => {
                 console.log(
                   `Updated batch balance for item ${item.material_id}, batch ${temp.batch_id}`
                 );
+
+                // ADDED: Also update item_balance for batch items (aggregated balance across all batches)
+                const generalItemBalanceParams = {
+                  material_id: item.material_id,
+                  location_id: temp.location_id,
+                  plant_id: plantId,
+                  organization_id: organizationId,
+                };
+
+                // Don't include batch_id in item_balance query (aggregated balance across all batches)
+                const generalBalanceQuery = await db
+                  .collection("item_balance")
+                  .where(generalItemBalanceParams)
+                  .get();
+
+                if (
+                  generalBalanceQuery.data &&
+                  generalBalanceQuery.data.length > 0
+                ) {
+                  const generalBalance = generalBalanceQuery.data[0];
+
+                  // Get current quantities
+                  const currentGeneralUnrestrictedQty = roundQty(
+                    parseFloat(generalBalance.unrestricted_qty || 0)
+                  );
+                  const currentGeneralQualityInspQty = roundQty(
+                    parseFloat(generalBalance.qualityinsp_qty || 0)
+                  );
+                  const currentGeneralBlockQty = roundQty(
+                    parseFloat(generalBalance.block_qty || 0)
+                  );
+                  const currentGeneralIntransitQty = roundQty(
+                    parseFloat(generalBalance.intransit_qty || 0)
+                  );
+                  const currentGeneralBalanceQty = roundQty(
+                    parseFloat(generalBalance.balance_quantity || 0)
+                  );
+
+                  // Apply the same category-based subtraction logic
+                  let finalGeneralUnrestrictedQty =
+                    currentGeneralUnrestrictedQty;
+                  let finalGeneralQualityInspQty = currentGeneralQualityInspQty;
+                  let finalGeneralBlockQty = currentGeneralBlockQty;
+                  let finalGeneralIntransitQty = currentGeneralIntransitQty;
+
+                  if (categoryType === "Unrestricted") {
+                    finalGeneralUnrestrictedQty = roundQty(
+                      currentGeneralUnrestrictedQty - categoryValue
+                    );
+                  } else if (categoryType === "Quality Inspection") {
+                    finalGeneralQualityInspQty = roundQty(
+                      currentGeneralQualityInspQty - categoryValue
+                    );
+                  } else if (categoryType === "Blocked") {
+                    finalGeneralBlockQty = roundQty(
+                      currentGeneralBlockQty - categoryValue
+                    );
+                  } else if (categoryType === "In Transit") {
+                    finalGeneralIntransitQty = roundQty(
+                      currentGeneralIntransitQty - categoryValue
+                    );
+                  }
+
+                  const finalGeneralBalanceQty = roundQty(
+                    currentGeneralBalanceQty - categoryValue
+                  );
+
+                  await db
+                    .collection("item_balance")
+                    .doc(generalBalance.id)
+                    .update({
+                      unrestricted_qty: Math.max(
+                        0,
+                        finalGeneralUnrestrictedQty
+                      ),
+                      qualityinsp_qty: Math.max(0, finalGeneralQualityInspQty),
+                      block_qty: Math.max(0, finalGeneralBlockQty),
+                      intransit_qty: Math.max(0, finalGeneralIntransitQty),
+                      balance_quantity: Math.max(0, finalGeneralBalanceQty),
+                      last_updated: new Date(),
+                      last_transaction: data.purchase_return_no,
+                    });
+
+                  console.log(
+                    `Updated item_balance for batch item ${item.material_id} at ${temp.location_id}: ` +
+                      `subtracted ${categoryValue} from ${categoryType} (aggregated balance)`
+                  );
+                } else {
+                  console.warn(
+                    `No item_balance record found for batch item ${item.material_id} at location ${temp.location_id}`
+                  );
+                }
               } else {
                 console.log(
                   `No existing item_batch_balance found for item ${item.material_id}, batch ${temp.batch_id}`

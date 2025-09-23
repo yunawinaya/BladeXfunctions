@@ -2311,6 +2311,56 @@ const processBalanceTable = async (
                   );
                 }
               }
+            } else {
+              // For non-Created status (Unrestricted movement)
+              console.log(
+                `Processing ${gdStatus} status - moving ${baseQty} OUT from Unrestricted for group ${groupKey}`
+              );
+
+              const inventoryMovementData = {
+                ...baseInventoryMovement,
+                movement: "OUT",
+                inventory_category: "Unrestricted",
+              };
+
+              await db
+                .collection("inventory_movement")
+                .add(inventoryMovementData);
+
+              // Wait and fetch the created movement ID
+              await new Promise((resolve) => setTimeout(resolve, 100));
+
+              const movementQuery = await db
+                .collection("inventory_movement")
+                .where({
+                  transaction_type: "GDL",
+                  trx_no: data.delivery_no,
+                  parent_trx_no: item.line_so_no,
+                  movement: "OUT",
+                  inventory_category: "Unrestricted",
+                  item_id: item.material_id,
+                  bin_location_id: group.location_id,
+                  base_qty: baseQty,
+                  plant_id: plantId,
+                  organization_id: organizationId,
+                })
+                .get();
+
+              if (movementQuery.data && movementQuery.data.length > 0) {
+                const movementId = movementQuery.data.sort(
+                  (a, b) => new Date(b.create_time) - new Date(a.create_time)
+                )[0].id;
+
+                createdDocs.push({
+                  collection: "inventory_movement",
+                  docId: movementId,
+                  groupKey: groupKey,
+                });
+
+                console.log(
+                  `Created consolidated OUT movement from Unrestricted for group ${groupKey}: ${baseQty}, ID: ${movementId}`
+                );
+              }
             }
 
             // Create INDIVIDUAL inv_serial_movement records for each serial in the group
@@ -2488,6 +2538,17 @@ const processBalanceTable = async (
                     baseQty - availableReservedForThisGD
                   );
                 }
+              } else {
+                // For Completed status, deduct from unrestricted first, then reserved if needed
+                if (totalGroupUnrestricted >= baseQty) {
+                  remainingUnrestrictedToDeduct = baseQty;
+                  remainingReservedToDeduct = 0;
+                } else {
+                  remainingUnrestrictedToDeduct = totalGroupUnrestricted;
+                  remainingReservedToDeduct = roundQty(
+                    baseQty - totalGroupUnrestricted
+                  );
+                }
               }
 
               console.log(
@@ -2583,6 +2644,123 @@ const processBalanceTable = async (
                   throw serialBalanceError;
                 }
               }
+
+              // ADDED: Also update item_balance for serialized items (aggregated quantities)
+              const generalItemBalanceParams = {
+                material_id: item.material_id,
+                location_id: group.location_id,
+                plant_id: plantId,
+                organization_id: organizationId,
+              };
+
+              // Don't include batch_id in item_balance query for serialized items (aggregated balance)
+              const generalBalanceQuery = await db
+                .collection("item_balance")
+                .where(generalItemBalanceParams)
+                .get();
+
+              if (
+                generalBalanceQuery.data &&
+                generalBalanceQuery.data.length > 0
+              ) {
+                const generalBalance = generalBalanceQuery.data[0];
+                let currentGeneralUnrestrictedQty = roundQty(
+                  parseFloat(generalBalance.unrestricted_qty || 0)
+                );
+                let currentGeneralReservedQty = roundQty(
+                  parseFloat(generalBalance.reserved_qty || 0)
+                );
+                let currentGeneralBalanceQty = roundQty(
+                  parseFloat(generalBalance.balance_quantity || 0)
+                );
+
+                // Apply the same deduction logic to item_balance
+                let finalGeneralUnrestrictedQty = currentGeneralUnrestrictedQty;
+                let finalGeneralReservedQty = currentGeneralReservedQty;
+
+                if (gdStatus === "Created") {
+                  // Apply the smart deduction logic
+                  let availableReservedForThisGD = currentGeneralReservedQty;
+                  if (isUpdate && prevBaseQty > 0) {
+                    availableReservedForThisGD = Math.min(
+                      currentGeneralReservedQty,
+                      prevBaseQty
+                    );
+                  }
+
+                  if (availableReservedForThisGD >= baseQty) {
+                    // All quantity can come from Reserved
+                    finalGeneralReservedQty = roundQty(
+                      finalGeneralReservedQty - baseQty
+                    );
+
+                    // Handle unused reservations
+                    if (isUpdate && prevBaseQty > 0) {
+                      const unusedReservedQty = roundQty(prevBaseQty - baseQty);
+                      if (unusedReservedQty > 0) {
+                        finalGeneralReservedQty = roundQty(
+                          finalGeneralReservedQty - unusedReservedQty
+                        );
+                        finalGeneralUnrestrictedQty = roundQty(
+                          finalGeneralUnrestrictedQty + unusedReservedQty
+                        );
+                      }
+                    }
+                  } else {
+                    // Split between Reserved and Unrestricted
+                    const reservedDeduction = availableReservedForThisGD;
+                    const unrestrictedDeduction = roundQty(
+                      baseQty - reservedDeduction
+                    );
+
+                    finalGeneralReservedQty = roundQty(
+                      finalGeneralReservedQty - reservedDeduction
+                    );
+                    finalGeneralUnrestrictedQty = roundQty(
+                      finalGeneralUnrestrictedQty - unrestrictedDeduction
+                    );
+                  }
+                } else {
+                  // For non-Created status, decrease unrestricted
+                  finalGeneralUnrestrictedQty = roundQty(
+                    finalGeneralUnrestrictedQty - baseQty
+                  );
+                }
+
+                const finalGeneralBalanceQty = roundQty(
+                  currentGeneralBalanceQty - baseQty
+                );
+
+                const generalOriginalData = {
+                  unrestricted_qty: currentGeneralUnrestrictedQty,
+                  reserved_qty: currentGeneralReservedQty,
+                  balance_quantity: currentGeneralBalanceQty,
+                };
+
+                updatedDocs.push({
+                  collection: "item_balance",
+                  docId: generalBalance.id,
+                  originalData: generalOriginalData,
+                });
+
+                await db
+                  .collection("item_balance")
+                  .doc(generalBalance.id)
+                  .update({
+                    unrestricted_qty: finalGeneralUnrestrictedQty,
+                    reserved_qty: finalGeneralReservedQty,
+                    balance_quantity: finalGeneralBalanceQty,
+                  });
+
+                console.log(
+                  `Updated item_balance for serialized item ${item.material_id} at ${group.location_id}: ` +
+                    `Unrestricted=${finalGeneralUnrestrictedQty}, Reserved=${finalGeneralReservedQty}, Balance=${finalGeneralBalanceQty}`
+                );
+              } else {
+                console.warn(
+                  `No item_balance record found for serialized item ${item.material_id} at location ${group.location_id}`
+                );
+              }
             } else if (existingDoc && existingDoc.id) {
               // For non-serialized items, update the consolidated balance
               let currentUnrestrictedQty = roundQty(
@@ -2640,6 +2818,9 @@ const processBalanceTable = async (
                     finalUnrestrictedQty - unrestrictedDeduction
                   );
                 }
+              } else {
+                // For non-Created status, decrease unrestricted
+                finalUnrestrictedQty = roundQty(finalUnrestrictedQty - baseQty);
               }
 
               finalBalanceQty = roundQty(finalBalanceQty - baseQty);
@@ -2670,7 +2851,132 @@ const processBalanceTable = async (
                   balance_quantity: finalBalanceQty,
                 });
 
-              console.log(`Updated balance for group ${groupKey}`);
+              console.log(`Updated ${balanceCollection} for group ${groupKey}`);
+
+              // ADDED: For batch items, also update item_balance (aggregated balance)
+              if (
+                balanceCollection === "item_batch_balance" &&
+                group.batch_id
+              ) {
+                const generalItemBalanceParams = {
+                  material_id: item.material_id,
+                  location_id: group.location_id,
+                  plant_id: plantId,
+                  organization_id: organizationId,
+                };
+
+                // Don't include batch_id in item_balance query (aggregated balance across all batches)
+                const generalBalanceQuery = await db
+                  .collection("item_balance")
+                  .where(generalItemBalanceParams)
+                  .get();
+
+                if (
+                  generalBalanceQuery.data &&
+                  generalBalanceQuery.data.length > 0
+                ) {
+                  const generalBalance = generalBalanceQuery.data[0];
+                  let currentGeneralUnrestrictedQty = roundQty(
+                    parseFloat(generalBalance.unrestricted_qty || 0)
+                  );
+                  let currentGeneralReservedQty = roundQty(
+                    parseFloat(generalBalance.reserved_qty || 0)
+                  );
+                  let currentGeneralBalanceQty = roundQty(
+                    parseFloat(generalBalance.balance_quantity || 0)
+                  );
+
+                  // Apply the same deduction logic to item_balance
+                  let finalGeneralUnrestrictedQty =
+                    currentGeneralUnrestrictedQty;
+                  let finalGeneralReservedQty = currentGeneralReservedQty;
+
+                  if (gdStatus === "Created") {
+                    // Apply the smart deduction logic
+                    let availableReservedForThisGD = currentGeneralReservedQty;
+                    if (isUpdate && prevBaseQty > 0) {
+                      availableReservedForThisGD = Math.min(
+                        currentGeneralReservedQty,
+                        prevBaseQty
+                      );
+                    }
+
+                    if (availableReservedForThisGD >= baseQty) {
+                      // All quantity can come from Reserved
+                      finalGeneralReservedQty = roundQty(
+                        finalGeneralReservedQty - baseQty
+                      );
+
+                      // Handle unused reservations
+                      if (isUpdate && prevBaseQty > 0) {
+                        const unusedReservedQty = roundQty(
+                          prevBaseQty - baseQty
+                        );
+                        if (unusedReservedQty > 0) {
+                          finalGeneralReservedQty = roundQty(
+                            finalGeneralReservedQty - unusedReservedQty
+                          );
+                          finalGeneralUnrestrictedQty = roundQty(
+                            finalGeneralUnrestrictedQty + unusedReservedQty
+                          );
+                        }
+                      }
+                    } else {
+                      // Split between Reserved and Unrestricted
+                      const reservedDeduction = availableReservedForThisGD;
+                      const unrestrictedDeduction = roundQty(
+                        baseQty - reservedDeduction
+                      );
+
+                      finalGeneralReservedQty = roundQty(
+                        finalGeneralReservedQty - reservedDeduction
+                      );
+                      finalGeneralUnrestrictedQty = roundQty(
+                        finalGeneralUnrestrictedQty - unrestrictedDeduction
+                      );
+                    }
+                  } else {
+                    // For non-Created status, decrease unrestricted
+                    finalGeneralUnrestrictedQty = roundQty(
+                      finalGeneralUnrestrictedQty - baseQty
+                    );
+                  }
+
+                  const finalGeneralBalanceQty = roundQty(
+                    currentGeneralBalanceQty - baseQty
+                  );
+
+                  const generalOriginalData = {
+                    unrestricted_qty: currentGeneralUnrestrictedQty,
+                    reserved_qty: currentGeneralReservedQty,
+                    balance_quantity: currentGeneralBalanceQty,
+                  };
+
+                  updatedDocs.push({
+                    collection: "item_balance",
+                    docId: generalBalance.id,
+                    originalData: generalOriginalData,
+                  });
+
+                  await db
+                    .collection("item_balance")
+                    .doc(generalBalance.id)
+                    .update({
+                      unrestricted_qty: finalGeneralUnrestrictedQty,
+                      reserved_qty: finalGeneralReservedQty,
+                      balance_quantity: finalGeneralBalanceQty,
+                    });
+
+                  console.log(
+                    `Updated item_balance for batch item ${item.material_id} at ${group.location_id}: ` +
+                      `Unrestricted=${finalGeneralUnrestrictedQty}, Reserved=${finalGeneralReservedQty}, Balance=${finalGeneralBalanceQty}`
+                  );
+                } else {
+                  console.warn(
+                    `No item_balance record found for batch item ${item.material_id} at location ${group.location_id}`
+                  );
+                }
+              }
             }
           }
 
