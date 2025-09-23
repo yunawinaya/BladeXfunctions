@@ -146,6 +146,64 @@
             return parseFloat(result[0].purchase_unit_price || 0);
           };
 
+          // Helper function to update aggregated item_balance for batch and serialized items
+          const updateAggregatedItemBalance = async (
+            materialId,
+            locationId,
+            baseQty,
+            gdItem
+          ) => {
+            const generalItemBalanceParams = {
+              material_id: materialId,
+              location_id: locationId,
+              plant_id: gdItem.plant_id.id,
+            };
+
+            const generalBalanceQuery = await db
+              .collection("item_balance")
+              .where(generalItemBalanceParams)
+              .get();
+
+            if (
+              generalBalanceQuery.data &&
+              generalBalanceQuery.data.length > 0
+            ) {
+              const generalBalance = generalBalanceQuery.data[0];
+              const currentGeneralUnrestrictedQty = parseFloat(
+                generalBalance.unrestricted_qty || 0
+              );
+              const currentGeneralReservedQty = parseFloat(
+                generalBalance.reserved_qty || 0
+              );
+
+              // Reverse the logic: move from reserved back to unrestricted
+              const finalGeneralUnrestrictedQty =
+                currentGeneralUnrestrictedQty + baseQty;
+              const finalGeneralReservedQty = Math.max(
+                0,
+                currentGeneralReservedQty - baseQty
+              );
+
+              await db
+                .collection("item_balance")
+                .doc(generalBalance.id)
+                .update({
+                  unrestricted_qty: finalGeneralUnrestrictedQty,
+                  reserved_qty: finalGeneralReservedQty,
+                  updated_at: new Date(),
+                });
+
+              console.log(
+                `Reversed item_balance for item ${materialId} at ${locationId}: ` +
+                  `moved ${baseQty} from reserved to unrestricted (aggregated balance)`
+              );
+            } else {
+              console.warn(
+                `No item_balance record found for item ${materialId} at location ${locationId}`
+              );
+            }
+          };
+
           if (gdItem.gd_status !== "Created") {
             console.log(
               `Goods delivery is not in Created status (current: ${gdItem.gd_status}), skipping inventory reversal`
@@ -459,6 +517,14 @@
                       );
                     }
 
+                    // ADDED: Also update item_balance for serialized items (aggregated quantities)
+                    await updateAggregatedItemBalance(
+                      item.material_id,
+                      temp.location_id,
+                      1, // For serialized items, quantity is always 1
+                      gdItem
+                    );
+
                     // Skip regular balance processing for serialized items
                     continue;
                   }
@@ -466,6 +532,7 @@
                   const itemBalanceParams = {
                     material_id: item.material_id,
                     location_id: temp.location_id,
+                    plant_id: gdItem.plant_id.id,
                   };
 
                   if (temp.batch_id) {
@@ -506,6 +573,19 @@
                     console.log(
                       `Reversed inventory for ${item.material_id} at location ${temp.location_id}: ${baseQty} units moved from reserved to unrestricted`
                     );
+
+                    // ADDED: For batch items, also update item_balance (aggregated balance across all batches)
+                    if (
+                      balanceCollection === "item_batch_balance" &&
+                      temp.batch_id
+                    ) {
+                      await updateAggregatedItemBalance(
+                        item.material_id,
+                        temp.location_id,
+                        baseQty,
+                        gdItem
+                      );
+                    }
                   } else {
                     console.warn(
                       `Balance record not found for ${item.material_id} at location ${temp.location_id}`
