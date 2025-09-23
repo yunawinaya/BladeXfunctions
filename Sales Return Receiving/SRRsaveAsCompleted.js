@@ -1365,9 +1365,16 @@ const updateSalesReturn = async (entry) => {
 
     await Promise.all(
       updatedSR.map(async (item) => {
-        await db.collection("sales_return").doc(item.id).update({
-          srr_status: item.srr_status,
-        });
+        await db
+          .collection("sales_return")
+          .doc(item.id)
+          .update({
+            srr_status: item.srr_status,
+            sr_status:
+              item.srr_status === "Partially Received"
+                ? "Processing"
+                : "Completed",
+          });
       })
     );
   } catch (error) {
