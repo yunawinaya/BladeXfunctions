@@ -117,6 +117,63 @@ class StockAdjuster {
         `Updated serial balance category transfer for ${serialNumber}: ${categoryFrom}=${newFromQty}, ${categoryTo}=${newToQty}`
       );
 
+      // ✅ CRITICAL FIX: For serialized items, also update item_balance (aggregated across all serial numbers)
+      try {
+        const generalItemBalanceParams = {
+          material_id: materialId,
+          location_id: locationId,
+          plant_id: plantId,
+          organization_id: organizationId,
+        };
+
+        // Don't include serial_number in item_balance query (aggregated balance across all serial numbers)
+        const generalBalanceQuery = await this.db
+          .collection("item_balance")
+          .where(generalItemBalanceParams)
+          .get();
+
+        if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+          // Update existing item_balance record for category transfer
+          const generalBalance = generalBalanceQuery.data[0];
+
+          const currentGeneralFromQty = parseFloat(
+            generalBalance[fromCategoryField] || 0
+          );
+          const currentGeneralToQty = parseFloat(
+            generalBalance[toCategoryField] || 0
+          );
+
+          const generalUpdateData = {
+            [fromCategoryField]: this.roundQty(
+              currentGeneralFromQty - qtyChange
+            ),
+            [toCategoryField]: this.roundQty(
+              currentGeneralToQty + qtyChange
+            ),
+            update_time: new Date().toISOString(),
+          };
+
+          await this.db
+            .collection("item_balance")
+            .doc(generalBalance.id)
+            .update(generalUpdateData);
+
+          console.log(
+            `✓ Updated aggregated item_balance for serialized category transfer ${materialId}, serial ${serialNumber}: ${categoryFrom}=${generalUpdateData[fromCategoryField]}, ${categoryTo}=${generalUpdateData[toCategoryField]}`
+          );
+        } else {
+          console.warn(
+            `No item_balance record found for serialized category transfer ${materialId} at location ${locationId}`
+          );
+        }
+      } catch (itemBalanceError) {
+        console.error(
+          `Error updating aggregated item_balance for serialized category transfer ${materialId}, serial ${serialNumber}:`,
+          itemBalanceError
+        );
+        // Don't throw - let the main process continue
+      }
+
       return true;
     } catch (error) {
       console.error(
@@ -335,6 +392,82 @@ class StockAdjuster {
     console.log(
       `Updated serial balance for ${serialNumber}: ${category}=${newCategoryQty}, Balance=${newBalanceQty}`
     );
+
+    // ✅ CRITICAL FIX: For serialized items, also update item_balance (aggregated across all serial numbers)
+    try {
+      const generalItemBalanceParams = {
+        material_id: materialId,
+        location_id: locationId,
+        plant_id: plantId,
+        organization_id: organizationId,
+      };
+
+      // Don't include serial_number in item_balance query (aggregated balance across all serial numbers)
+      const generalBalanceQuery = await this.db
+        .collection("item_balance")
+        .where(generalItemBalanceParams)
+        .get();
+
+      if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+        // Update existing item_balance record
+        const generalBalance = generalBalanceQuery.data[0];
+
+        const currentGeneralBalanceQty = parseFloat(
+          generalBalance.balance_quantity || 0
+        );
+        const currentGeneralCategoryQty = parseFloat(
+          generalBalance[categoryField] || 0
+        );
+
+        const generalUpdateData = {
+          balance_quantity: this.roundQty(
+            currentGeneralBalanceQty + qtyChange
+          ),
+          [categoryField]: this.roundQty(
+            currentGeneralCategoryQty + qtyChange
+          ),
+          update_time: new Date().toISOString(),
+        };
+
+        await this.db
+          .collection("item_balance")
+          .doc(generalBalance.id)
+          .update(generalUpdateData);
+
+        console.log(
+          `✓ Updated aggregated item_balance for serialized item ${materialId}, serial ${serialNumber}: ${category}=${generalUpdateData[categoryField]}, Balance=${generalUpdateData.balance_quantity}`
+        );
+      } else {
+        // Create new item_balance record if it doesn't exist
+        const generalUpdateData = {
+          material_id: materialId,
+          location_id: locationId,
+          plant_id: plantId,
+          organization_id: organizationId,
+          balance_quantity: this.roundQty(qtyChange),
+          unrestricted_qty: category === "Unrestricted" ? this.roundQty(qtyChange) : 0,
+          qualityinsp_qty: category === "Quality Inspection" ? this.roundQty(qtyChange) : 0,
+          block_qty: category === "Blocked" ? this.roundQty(qtyChange) : 0,
+          reserved_qty: category === "Reserved" ? this.roundQty(qtyChange) : 0,
+          intransit_qty: category === "In Transit" ? this.roundQty(qtyChange) : 0,
+          create_time: new Date().toISOString(),
+          update_time: new Date().toISOString(),
+          is_deleted: 0,
+        };
+
+        await this.db.collection("item_balance").add(generalUpdateData);
+
+        console.log(
+          `✓ Created new aggregated item_balance for serialized item ${materialId}, serial ${serialNumber}: ${category}=${generalUpdateData[categoryField]}`
+        );
+      }
+    } catch (itemBalanceError) {
+      console.error(
+        `Error updating aggregated item_balance for serialized item ${materialId}, serial ${serialNumber}:`,
+        itemBalanceError
+      );
+      // Don't throw - let the main process continue
+    }
   }
 
   async addSerialNumberInventoryForSMReceipt(
@@ -494,6 +627,82 @@ class StockAdjuster {
       console.log(
         `Created new serial balance for ${serialNumber} at location ${locationId}`
       );
+    }
+
+    // ✅ CRITICAL FIX: For serialized items, also update item_balance (aggregated across all serial numbers)
+    try {
+      const generalItemBalanceParams = {
+        material_id: materialId,
+        location_id: locationId,
+        plant_id: plantId,
+        organization_id: organizationId,
+      };
+
+      // Don't include serial_number in item_balance query (aggregated balance across all serial numbers)
+      const generalBalanceQuery = await this.db
+        .collection("item_balance")
+        .where(generalItemBalanceParams)
+        .get();
+
+      if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+        // Update existing item_balance record
+        const generalBalance = generalBalanceQuery.data[0];
+
+        const currentGeneralBalanceQty = parseFloat(
+          generalBalance.balance_quantity || 0
+        );
+        const currentGeneralCategoryQty = parseFloat(
+          generalBalance[categoryField] || 0
+        );
+
+        const generalUpdateData = {
+          balance_quantity: this.roundQty(
+            currentGeneralBalanceQty + qtyChange
+          ),
+          [categoryField]: this.roundQty(
+            currentGeneralCategoryQty + qtyChange
+          ),
+          update_time: new Date().toISOString(),
+        };
+
+        await this.db
+          .collection("item_balance")
+          .doc(generalBalance.id)
+          .update(generalUpdateData);
+
+        console.log(
+          `✓ Updated aggregated item_balance for receiving serialized item ${materialId}, serial ${serialNumber}: ${category}=${generalUpdateData[categoryField]}, Balance=${generalUpdateData.balance_quantity}`
+        );
+      } else {
+        // Create new item_balance record if it doesn't exist
+        const generalUpdateData = {
+          material_id: materialId,
+          location_id: locationId,
+          plant_id: plantId,
+          organization_id: organizationId,
+          balance_quantity: this.roundQty(qtyChange),
+          unrestricted_qty: category === "Unrestricted" ? this.roundQty(qtyChange) : 0,
+          qualityinsp_qty: category === "Quality Inspection" ? this.roundQty(qtyChange) : 0,
+          block_qty: category === "Blocked" ? this.roundQty(qtyChange) : 0,
+          reserved_qty: category === "Reserved" ? this.roundQty(qtyChange) : 0,
+          intransit_qty: category === "In Transit" ? this.roundQty(qtyChange) : 0,
+          create_time: new Date().toISOString(),
+          update_time: new Date().toISOString(),
+          is_deleted: 0,
+        };
+
+        await this.db.collection("item_balance").add(generalUpdateData);
+
+        console.log(
+          `✓ Created new aggregated item_balance for receiving serialized item ${materialId}, serial ${serialNumber}: ${category}=${generalUpdateData[categoryField]}`
+        );
+      }
+    } catch (itemBalanceError) {
+      console.error(
+        `Error updating aggregated item_balance for receiving serialized item ${materialId}, serial ${serialNumber}:`,
+        itemBalanceError
+      );
+      // Don't throw - let the main process continue
     }
   }
 
@@ -896,6 +1105,86 @@ class StockAdjuster {
             ", "
           )}]`
         );
+      }
+
+      // ✅ CRITICAL FIX: For serialized items processed in SM, also update item_balance (aggregated across all serial numbers)
+      try {
+        const generalItemBalanceParams = {
+          material_id: item.item_selection,
+          location_id: item.location_id,
+          plant_id: plantId,
+          organization_id: organizationId,
+        };
+
+        // Don't include serial_number in item_balance query (aggregated balance across all serial numbers)
+        const generalBalanceQuery = await this.db
+          .collection("item_balance")
+          .where(generalItemBalanceParams)
+          .get();
+
+        // Calculate total quantities from all serial numbers processed
+        const totalUnrestrictedQty = this.roundQty(baseQty);
+        const totalBalanceQty = this.roundQty(baseQty);
+
+        if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+          // Update existing item_balance record
+          const generalBalance = generalBalanceQuery.data[0];
+
+          const currentGeneralBalanceQty = parseFloat(
+            generalBalance.balance_quantity || 0
+          );
+          const currentGeneralUnrestrictedQty = parseFloat(
+            generalBalance.unrestricted_qty || 0
+          );
+
+          const generalUpdateData = {
+            balance_quantity: this.roundQty(
+              currentGeneralBalanceQty + totalBalanceQty
+            ),
+            unrestricted_qty: this.roundQty(
+              currentGeneralUnrestrictedQty + totalUnrestrictedQty
+            ),
+            update_time: new Date().toISOString(),
+          };
+
+          await this.db
+            .collection("item_balance")
+            .doc(generalBalance.id)
+            .update(generalUpdateData);
+
+          console.log(
+            `✓ Updated aggregated item_balance for SM serialized item ${item.item_selection}: Unrestricted=${generalUpdateData.unrestricted_qty}, Balance=${generalUpdateData.balance_quantity}`
+          );
+        } else {
+          // Create new item_balance record
+          const generalUpdateData = {
+            material_id: item.item_selection,
+            location_id: item.location_id,
+            plant_id: plantId,
+            organization_id: organizationId,
+            balance_quantity: totalBalanceQty,
+            unrestricted_qty: totalUnrestrictedQty,
+            qualityinsp_qty: 0,
+            block_qty: 0,
+            reserved_qty: 0,
+            intransit_qty: 0,
+            create_time: new Date().toISOString(),
+            update_time: new Date().toISOString(),
+            is_deleted: 0,
+          };
+
+          await this.db.collection("item_balance").add(generalUpdateData);
+
+          console.log(
+            `✓ Created new aggregated item_balance for SM serialized item ${item.item_selection}: Unrestricted=${totalUnrestrictedQty}, Balance=${totalBalanceQty}`
+          );
+        }
+      } catch (itemBalanceError) {
+        console.error(
+          `Error updating aggregated item_balance for SM serialized item ${item.item_selection}:`,
+          itemBalanceError
+        );
+        // Don't throw - let the main process continue
       }
 
       console.log(
@@ -2462,7 +2751,7 @@ class StockAdjuster {
     if (movementType === "Location Transfer") {
       await this.updateReceivingLocation(
         materialData,
-        collectionName,
+        primaryCollectionName,
         subformData.location_id,
         qtyChangeValue,
         { ...balance, batch_id: batchId },
@@ -2471,11 +2760,80 @@ class StockAdjuster {
         movementType,
         organizationId
       );
+
+      // ✅ CRITICAL FIX: For Location Transfer with batched items and serialized items, also deduct from SOURCE location's item_balance
+      const isSerializedItem = materialData.serial_number_management === 1;
+
+      if (isBatchedItem || isSerializedItem) {
+        try {
+          const sourceItemBalanceParams = {
+            material_id: materialData.id,
+            location_id: locationId, // Source location
+            plant_id: allData.issuing_operation_faci,
+            organization_id: organizationId,
+          };
+
+          // Don't include batch_id/serial_number in item_balance query (aggregated balance across all batches/serials)
+          const sourceBalanceQuery = await this.db
+            .collection("item_balance")
+            .where(sourceItemBalanceParams)
+            .get();
+
+          if (sourceBalanceQuery.data && sourceBalanceQuery.data.length > 0) {
+            // Update existing item_balance record for SOURCE location (deduction)
+            const sourceBalance = sourceBalanceQuery.data[0];
+            const categoryField = this.categoryMap[balance.category || "Unrestricted"];
+
+            const currentSourceBalanceQty = parseFloat(
+              sourceBalance.balance_quantity || 0
+            );
+            const currentSourceCategoryQty = parseFloat(
+              sourceBalance[categoryField] || 0
+            );
+
+            const sourceUpdateData = {
+              balance_quantity: parseFloat(
+                (currentSourceBalanceQty - qtyChangeValue).toFixed(3)
+              ),
+              [categoryField]: parseFloat(
+                (currentSourceCategoryQty - qtyChangeValue).toFixed(3)
+              ),
+              update_time: new Date().toISOString(),
+              update_user: allData.user_id || "system",
+            };
+
+            await this.db
+              .collection("item_balance")
+              .doc(sourceBalance.id)
+              .update(sourceUpdateData);
+
+            console.log(
+              `Updated aggregated item_balance for SOURCE location ${locationId}, item ${materialData.id} (Location Transfer deduction - ${isBatchedItem ? 'batched' : ''}${isSerializedItem ? 'serialized' : ''})`
+            );
+          }
+        } catch (error) {
+          console.error(
+            `Error updating source item_balance for Location Transfer, item ${materialData.id}:`,
+            error
+          );
+          // Don't throw - let the main process continue
+        }
+      }
     }
 
     // ✅ NEW: For batched items, also update item_balance collection (both serialized and non-serialized)
     // ✅ EXTENDED: Also handle serialized items that need item_balance aggregation
-    if (isBatchedItem || (isSerializedItem && isSerialAllocated)) {
+    // ✅ CRITICAL FIX: Skip movements that are handled by the legacy processItemBalance logic below to prevent double updates
+    const movementsHandledByLegacyLogic = [
+      "Location Transfer",
+      "Miscellaneous Issue",
+      "Disposal/Scrap",
+      "Inter Operation Facility Transfer",
+      "Miscellaneous Receipt",
+      "Inventory Category Transfer Posting"
+    ];
+
+    if ((isBatchedItem || (isSerializedItem && isSerialAllocated)) && !movementsHandledByLegacyLogic.includes(movementType)) {
       const isSerializedItem = materialData.serial_number_management === 1;
       const isSerialAllocated =
         movementType === "Miscellaneous Receipt"
@@ -2619,7 +2977,7 @@ class StockAdjuster {
         console.log(
           `Updated item_balance for ${
             isBatchedItem ? "batched" : "serialized"
-          } item ${materialData.id} with movement type ${movementType}`
+          } item ${materialData.id} with movement type ${movementType} (legacy logic)`
         );
       }
     }
@@ -2847,6 +3205,102 @@ class StockAdjuster {
       } catch (error) {
         console.error(
           `Error updating aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id}:`,
+          error
+        );
+        // Don't throw - let the main process continue
+      }
+    }
+
+    // ✅ CRITICAL FIX: For serialized items, also update item_balance (aggregated across all serial numbers)
+    if (materialData.serial_number_management === 1) {
+      try {
+        const generalItemBalanceParams = {
+          material_id: materialData.id,
+          location_id: receivingLocationId,
+          plant_id: allData.issuing_operation_faci,
+          organization_id: organizationId,
+        };
+
+        // Don't include serial_number in item_balance query (aggregated balance across all serial numbers)
+        const generalBalanceQuery = await this.db
+          .collection("item_balance")
+          .where(generalItemBalanceParams)
+          .get();
+
+        if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+          // Update existing item_balance record
+          const generalBalance = generalBalanceQuery.data[0];
+
+          const currentGeneralBalanceQty = parseFloat(
+            generalBalance.balance_quantity || 0
+          );
+          const currentGeneralCategoryQty = parseFloat(
+            generalBalance[categoryField] || 0
+          );
+
+          const generalUpdateData = {
+            balance_quantity: parseFloat(
+              (currentGeneralBalanceQty + qtyChangeValue).toFixed(3)
+            ),
+            [categoryField]: parseFloat(
+              (currentGeneralCategoryQty + qtyChangeValue).toFixed(3)
+            ),
+            update_time: new Date().toISOString(),
+            update_user: allData.user_id || "system",
+          };
+
+          await this.db
+            .collection("item_balance")
+            .doc(generalBalance.id)
+            .update(generalUpdateData);
+
+          console.log(
+            `Updated aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id} (serialized)`
+          );
+        } else {
+          // Create new item_balance record
+          const generalUpdateData = {
+            material_id: materialData.id,
+            location_id: receivingLocationId,
+            plant_id: allData.issuing_operation_faci,
+            organization_id: organizationId,
+            balance_quantity: parseFloat(qtyChangeValue.toFixed(3)),
+            unrestricted_qty:
+              categoryField === "unrestricted_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            qualityinsp_qty:
+              categoryField === "qualityinsp_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            block_qty:
+              categoryField === "block_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            reserved_qty:
+              categoryField === "reserved_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            intransit_qty:
+              categoryField === "intransit_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            create_user: allData.user_id || "system",
+            update_user: allData.user_id || "system",
+            create_time: new Date().toISOString(),
+            update_time: new Date().toISOString(),
+            is_deleted: 0,
+          };
+
+          await this.db.collection("item_balance").add(generalUpdateData);
+
+          console.log(
+            `Created new aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id} (serialized)`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Error updating aggregated item_balance for serialized receiving location ${receivingLocationId}, item ${materialData.id}:`,
           error
         );
         // Don't throw - let the main process continue
