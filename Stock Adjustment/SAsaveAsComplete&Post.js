@@ -507,6 +507,81 @@ const updateSerialBalance = async (
       `Updated serial balance for ${serialNumber}: ${category}=${newCategoryQty}, Balance=${newBalanceQty}`
     );
 
+    // ✅ CRITICAL FIX: For serialized items, also update item_balance (aggregated across all serial numbers)
+    try {
+      const generalItemBalanceParams = {
+        material_id: materialId,
+        location_id: locationId,
+        plant_id: plantId,
+        organization_id: organizationId,
+      };
+
+      // Don't include serial_number in item_balance query (aggregated balance across all serials)
+      const generalBalanceQuery = await db
+        .collection("item_balance")
+        .where(generalItemBalanceParams)
+        .get();
+
+      if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+        // Update existing item_balance record
+        const generalBalance = generalBalanceQuery.data[0];
+
+        const currentGeneralCategoryQty = parseFloat(
+          generalBalance[categoryField] || 0
+        );
+        const currentGeneralBalanceQty = parseFloat(
+          generalBalance.balance_quantity || 0
+        );
+
+        const generalUpdateData = {
+          [categoryField]: roundQty(currentGeneralCategoryQty + qtyChange),
+          balance_quantity: roundQty(currentGeneralBalanceQty + qtyChange),
+          updated_at: new Date(),
+        };
+
+        await db
+          .collection("item_balance")
+          .doc(generalBalance.id)
+          .update(generalUpdateData);
+
+        console.log(
+          `Updated aggregated item_balance for serialized item stock adjustment, material ${materialId}`
+        );
+      } else {
+        // Create new item_balance record if it doesn't exist
+        const generalUpdateData = {
+          material_id: materialId,
+          location_id: locationId,
+          plant_id: plantId,
+          organization_id: organizationId,
+          balance_quantity: roundQty(qtyChange),
+          unrestricted_qty:
+            categoryField === "unrestricted_qty" ? roundQty(qtyChange) : 0,
+          qualityinsp_qty:
+            categoryField === "qualityinsp_qty" ? roundQty(qtyChange) : 0,
+          block_qty: categoryField === "block_qty" ? roundQty(qtyChange) : 0,
+          reserved_qty:
+            categoryField === "reserved_qty" ? roundQty(qtyChange) : 0,
+          intransit_qty: 0,
+          create_time: new Date(),
+          update_time: new Date(),
+          is_deleted: 0,
+        };
+
+        await db.collection("item_balance").add(generalUpdateData);
+
+        console.log(
+          `Created new aggregated item_balance for serialized item stock adjustment, material ${materialId}`
+        );
+      }
+    } catch (error) {
+      console.error(
+        `Error updating aggregated item_balance for serialized item stock adjustment, material ${materialId}:`,
+        error
+      );
+      // Don't throw - let the main process continue
+    }
+
     return true;
   } catch (error) {
     console.error(`Error updating serial balance for ${serialNumber}:`, error);
@@ -1290,6 +1365,91 @@ const updateInventory = async (allData) => {
           .collection(collectionName)
           .where(balanceQueryCondition)
           .update(updateData);
+
+        // ✅ CRITICAL FIX: For batched items, also update item_balance (aggregated across all batches)
+        if (
+          materialData.item_batch_management == "1" &&
+          collectionName === "item_batch_balance"
+        ) {
+          try {
+            const generalItemBalanceParams = {
+              material_id: materialData.id,
+              location_id: balance.location_id,
+              plant_id: plant_id,
+              organization_id: organization_id,
+            };
+
+            // Don't include batch_id in item_balance query (aggregated balance across all batches)
+            const generalBalanceQuery = await db
+              .collection("item_balance")
+              .where(generalItemBalanceParams)
+              .get();
+
+            if (
+              generalBalanceQuery.data &&
+              generalBalanceQuery.data.length > 0
+            ) {
+              // Update existing item_balance record
+              const generalBalance = generalBalanceQuery.data[0];
+
+              const currentGeneralCategoryQty = parseFloat(
+                generalBalance[qtyField] || 0
+              );
+              const currentGeneralBalanceQty = parseFloat(
+                generalBalance.balance_quantity || 0
+              );
+
+              const generalUpdateData = {
+                [qtyField]: roundQty(currentGeneralCategoryQty + qtyChange),
+                balance_quantity: roundQty(
+                  currentGeneralBalanceQty + qtyChange
+                ),
+                update_time: new Date().toISOString(),
+              };
+
+              await db
+                .collection("item_balance")
+                .doc(generalBalance.id)
+                .update(generalUpdateData);
+
+              console.log(
+                `Updated aggregated item_balance for stock adjustment, material ${materialData.id}`
+              );
+            } else {
+              // Create new item_balance record if it doesn't exist
+              const generalUpdateData = {
+                material_id: materialData.id,
+                location_id: balance.location_id,
+                plant_id: plant_id,
+                organization_id: organization_id,
+                balance_quantity: roundQty(qtyChange),
+                unrestricted_qty:
+                  qtyField === "unrestricted_qty" ? roundQty(qtyChange) : 0,
+                qualityinsp_qty:
+                  qtyField === "qualityinsp_qty" ? roundQty(qtyChange) : 0,
+                block_qty: qtyField === "block_qty" ? roundQty(qtyChange) : 0,
+                reserved_qty:
+                  qtyField === "reserved_qty" ? roundQty(qtyChange) : 0,
+                intransit_qty: 0,
+                create_time: new Date().toISOString(),
+                update_time: new Date().toISOString(),
+                is_deleted: 0,
+              };
+
+              await db.collection("item_balance").add(generalUpdateData);
+
+              console.log(
+                `Created new aggregated item_balance for stock adjustment, material ${materialData.id}`
+              );
+            }
+          } catch (error) {
+            console.error(
+              `Error updating aggregated item_balance for stock adjustment, material ${materialData.id}:`,
+              error
+            );
+            // Don't throw - let the main process continue
+          }
+        }
 
         await logTableState(
           collectionName,
