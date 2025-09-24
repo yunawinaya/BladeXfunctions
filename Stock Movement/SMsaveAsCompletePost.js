@@ -532,9 +532,7 @@ class StockAdjuster {
       const itemData = itemRes.data[0];
       let baseUOM = itemData.based_uom;
 
-      let baseQty = this.roundQty(
-        parseFloat(balance.quantity_converted || balance.sm_quantity || 0)
-      );
+      let baseQty = this.roundQty(parseFloat(balance.original_quantity || 1));
 
       // Create serial movement record for the OUT movement
       await this.createSerialMovementRecord(
@@ -1680,6 +1678,8 @@ class StockAdjuster {
                   balance.quantity_converted || balance.sm_quantity || 0,
                 quantity_converted:
                   balance.quantity_converted || balance.sm_quantity || 0,
+                original_quantity:
+                  balance.quantity_converted || balance.sm_quantity || 0,
                 serial_balances: [balance],
               },
             });
@@ -1896,10 +1896,12 @@ class StockAdjuster {
     subformData,
     organizationId
   ) {
-    const collectionName =
-      materialData.item_batch_management == "1"
-        ? "item_batch_balance"
-        : "item_balance";
+    // For batched items, we'll handle both item_batch_balance AND item_balance
+    // For non-batched items, we'll only handle item_balance
+    const isBatchedItem = materialData.item_batch_management == "1";
+    const primaryCollectionName = isBatchedItem
+      ? "item_batch_balance"
+      : "item_balance";
 
     let qtyChangeValue =
       movementType === "Miscellaneous Receipt"
@@ -2049,7 +2051,7 @@ class StockAdjuster {
       queryConditions
     );
     const balanceResponse = await this.db
-      .collection(collectionName)
+      .collection(primaryCollectionName)
       .where(queryConditions)
       .get();
 
@@ -2078,6 +2080,15 @@ class StockAdjuster {
           is_deleted: 0,
           tenant_id: allData.tenant_id || "000000",
           organization_id: organizationId,
+          doc_date: allData.issue_date,
+          manufacturing_date:
+            (subformData && subformData.manufacturing_date) ||
+            (balance && balance.manufacturing_date) ||
+            null,
+          expired_date:
+            (subformData && subformData.expired_date) ||
+            (balance && balance.expired_date) ||
+            null,
         };
 
     switch (movementType) {
@@ -2137,7 +2148,7 @@ class StockAdjuster {
         subformData.is_serial_allocated === 1;
 
       if (!isSerializedItem) {
-        await this.db.collection(collectionName).add(updateData);
+        await this.db.collection(primaryCollectionName).add(updateData);
       } else {
         console.log(
           "Skipped balance creation for serialized item - handled by serial balance"
@@ -2167,13 +2178,318 @@ class StockAdjuster {
         }
 
         await this.db
-          .collection(collectionName)
+          .collection(primaryCollectionName)
           .doc(balanceData.id)
           .update(updateFields);
       } else {
         console.log(
           "Skipped balance update for serialized item - handled by serial balance"
         );
+      }
+    }
+
+    // ✅ CRITICAL FIX: For batched items processed through regular balance updates,
+    // also update item_balance (aggregated across all batches)
+    if (isBatchedItem && primaryCollectionName === "item_batch_balance") {
+      try {
+        const generalItemBalanceParams = {
+          material_id: materialData.id,
+          location_id: locationId,
+          plant_id: allData.issuing_operation_faci,
+          organization_id: organizationId,
+        };
+
+        // Don't include batch_id in item_balance query (aggregated balance across all batches)
+        const generalBalanceQuery = await this.db
+          .collection("item_balance")
+          .where(generalItemBalanceParams)
+          .get();
+
+        let generalUpdateData;
+
+        if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+          // Update existing item_balance record
+          const generalBalance = generalBalanceQuery.data[0];
+
+          // Apply the same movement logic as the batch-specific update
+          let generalBalanceQty = parseFloat(
+            generalBalance.balance_quantity || 0
+          );
+          let generalUnrestrictedQty = parseFloat(
+            generalBalance.unrestricted_qty || 0
+          );
+          let generalQualityInspQty = parseFloat(
+            generalBalance.qualityinsp_qty || 0
+          );
+          let generalBlockQty = parseFloat(generalBalance.block_qty || 0);
+          let generalReservedQty = parseFloat(generalBalance.reserved_qty || 0);
+          let generalIntransitQty = parseFloat(
+            generalBalance.intransit_qty || 0
+          );
+
+          // Apply movement type logic
+          const categoryField =
+            this.categoryMap[
+              movementType === "Location Transfer"
+                ? balance.category || "Unrestricted"
+                : movementType === "Miscellaneous Receipt"
+                ? subformData.category || "Unrestricted"
+                : balance.category || "Unrestricted"
+            ];
+
+          switch (movementType) {
+            case "Inter Operation Facility Transfer":
+              generalBalanceQty += qtyChangeValue;
+              if (categoryField === "unrestricted_qty") {
+                generalUnrestrictedQty += qtyChangeValue;
+              } else if (categoryField === "qualityinsp_qty") {
+                generalQualityInspQty += qtyChangeValue;
+              } else if (categoryField === "block_qty") {
+                generalBlockQty += qtyChangeValue;
+              } else if (categoryField === "reserved_qty") {
+                generalReservedQty += qtyChangeValue;
+              } else if (categoryField === "intransit_qty") {
+                generalIntransitQty += qtyChangeValue;
+              }
+              break;
+
+            case "Location Transfer":
+            case "Miscellaneous Issue":
+            case "Disposal/Scrap":
+              generalBalanceQty -= qtyChangeValue;
+              if (categoryField === "unrestricted_qty") {
+                generalUnrestrictedQty -= qtyChangeValue;
+              } else if (categoryField === "qualityinsp_qty") {
+                generalQualityInspQty -= qtyChangeValue;
+              } else if (categoryField === "block_qty") {
+                generalBlockQty -= qtyChangeValue;
+              } else if (categoryField === "reserved_qty") {
+                generalReservedQty -= qtyChangeValue;
+              } else if (categoryField === "intransit_qty") {
+                generalIntransitQty -= qtyChangeValue;
+              }
+              break;
+
+            case "Miscellaneous Receipt":
+              generalBalanceQty += qtyChangeValue;
+              if (categoryField === "unrestricted_qty") {
+                generalUnrestrictedQty += qtyChangeValue;
+              } else if (categoryField === "qualityinsp_qty") {
+                generalQualityInspQty += qtyChangeValue;
+              } else if (categoryField === "block_qty") {
+                generalBlockQty += qtyChangeValue;
+              } else if (categoryField === "reserved_qty") {
+                generalReservedQty += qtyChangeValue;
+              } else if (categoryField === "intransit_qty") {
+                generalIntransitQty += qtyChangeValue;
+              }
+              break;
+
+            case "Inventory Category Transfer Posting":
+              if (balance.category_from && balance.category_to) {
+                const fromCategoryField =
+                  this.categoryMap[balance.category_from];
+                const toCategoryField = this.categoryMap[balance.category_to];
+
+                // Subtract from source category
+                if (fromCategoryField === "unrestricted_qty") {
+                  generalUnrestrictedQty -= qtyChangeValue;
+                } else if (fromCategoryField === "qualityinsp_qty") {
+                  generalQualityInspQty -= qtyChangeValue;
+                } else if (fromCategoryField === "block_qty") {
+                  generalBlockQty -= qtyChangeValue;
+                } else if (fromCategoryField === "reserved_qty") {
+                  generalReservedQty -= qtyChangeValue;
+                } else if (fromCategoryField === "intransit_qty") {
+                  generalIntransitQty -= qtyChangeValue;
+                }
+
+                // Add to destination category
+                if (toCategoryField === "unrestricted_qty") {
+                  generalUnrestrictedQty += qtyChangeValue;
+                } else if (toCategoryField === "qualityinsp_qty") {
+                  generalQualityInspQty += qtyChangeValue;
+                } else if (toCategoryField === "block_qty") {
+                  generalBlockQty += qtyChangeValue;
+                } else if (toCategoryField === "reserved_qty") {
+                  generalReservedQty += qtyChangeValue;
+                } else if (toCategoryField === "intransit_qty") {
+                  generalIntransitQty += qtyChangeValue;
+                }
+              }
+              break;
+          }
+
+          generalUpdateData = {
+            balance_quantity: parseFloat(generalBalanceQty.toFixed(3)),
+            unrestricted_qty: parseFloat(generalUnrestrictedQty.toFixed(3)),
+            qualityinsp_qty: parseFloat(generalQualityInspQty.toFixed(3)),
+            block_qty: parseFloat(generalBlockQty.toFixed(3)),
+            reserved_qty: parseFloat(generalReservedQty.toFixed(3)),
+            intransit_qty: parseFloat(generalIntransitQty.toFixed(3)),
+            update_time: new Date().toISOString(),
+            update_user: allData.user_id || "system",
+          };
+
+          await this.db
+            .collection("item_balance")
+            .doc(generalBalance.id)
+            .update(generalUpdateData);
+
+          console.log(
+            `Updated aggregated item_balance for batched item ${materialData.id} with movement type ${movementType}`
+          );
+        } else {
+          // Create new item_balance record if it doesn't exist
+          console.log(
+            `No existing item_balance found for batched item ${materialData.id}, creating new record`
+          );
+
+          // This should rarely happen, but handle it for completeness
+          generalUpdateData = {
+            material_id: materialData.id,
+            location_id: locationId,
+            plant_id: allData.issuing_operation_faci,
+            organization_id: organizationId,
+            balance_quantity: 0,
+            unrestricted_qty: 0,
+            qualityinsp_qty: 0,
+            block_qty: 0,
+            reserved_qty: 0,
+            intransit_qty: 0,
+            create_user: allData.user_id || "system",
+            update_user: allData.user_id || "system",
+            create_time: new Date().toISOString(),
+            update_time: new Date().toISOString(),
+            is_deleted: 0,
+          };
+
+          // Apply the movement logic to the new record
+          const categoryField =
+            this.categoryMap[
+              movementType === "Location Transfer"
+                ? balance.category || "Unrestricted"
+                : movementType === "Miscellaneous Receipt"
+                ? subformData.category || "Unrestricted"
+                : balance.category || "Unrestricted"
+            ];
+
+          switch (movementType) {
+            case "Inter Operation Facility Transfer":
+              generalUpdateData.balance_quantity = qtyChangeValue;
+              if (categoryField === "unrestricted_qty") {
+                generalUpdateData.unrestricted_qty = qtyChangeValue;
+              } else if (categoryField === "qualityinsp_qty") {
+                generalUpdateData.qualityinsp_qty = qtyChangeValue;
+              } else if (categoryField === "block_qty") {
+                generalUpdateData.block_qty = qtyChangeValue;
+              } else if (categoryField === "reserved_qty") {
+                generalUpdateData.reserved_qty = qtyChangeValue;
+              } else if (categoryField === "intransit_qty") {
+                generalUpdateData.intransit_qty = qtyChangeValue;
+              }
+              break;
+
+            case "Location Transfer":
+            case "Miscellaneous Issue":
+            case "Disposal/Scrap":
+              // For deduction movements, we start with negative quantities
+              generalUpdateData.balance_quantity = -qtyChangeValue;
+              if (categoryField === "unrestricted_qty") {
+                generalUpdateData.unrestricted_qty = -qtyChangeValue;
+              } else if (categoryField === "qualityinsp_qty") {
+                generalUpdateData.qualityinsp_qty = -qtyChangeValue;
+              } else if (categoryField === "block_qty") {
+                generalUpdateData.block_qty = -qtyChangeValue;
+              } else if (categoryField === "reserved_qty") {
+                generalUpdateData.reserved_qty = -qtyChangeValue;
+              } else if (categoryField === "intransit_qty") {
+                generalUpdateData.intransit_qty = -qtyChangeValue;
+              }
+              break;
+
+            case "Miscellaneous Receipt":
+              generalUpdateData.balance_quantity = qtyChangeValue;
+              if (categoryField === "unrestricted_qty") {
+                generalUpdateData.unrestricted_qty = qtyChangeValue;
+              } else if (categoryField === "qualityinsp_qty") {
+                generalUpdateData.qualityinsp_qty = qtyChangeValue;
+              } else if (categoryField === "block_qty") {
+                generalUpdateData.block_qty = qtyChangeValue;
+              } else if (categoryField === "reserved_qty") {
+                generalUpdateData.reserved_qty = qtyChangeValue;
+              } else if (categoryField === "intransit_qty") {
+                generalUpdateData.intransit_qty = qtyChangeValue;
+              }
+              break;
+
+            case "Inventory Category Transfer Posting":
+              if (balance.category_from && balance.category_to) {
+                const fromCategoryField =
+                  this.categoryMap[balance.category_from];
+                const toCategoryField = this.categoryMap[balance.category_to];
+
+                // For new records with category transfers, we only set the destination category
+                // (assuming the source category starts at 0)
+                if (toCategoryField === "unrestricted_qty") {
+                  generalUpdateData.unrestricted_qty = qtyChangeValue;
+                } else if (toCategoryField === "qualityinsp_qty") {
+                  generalUpdateData.qualityinsp_qty = qtyChangeValue;
+                } else if (toCategoryField === "block_qty") {
+                  generalUpdateData.block_qty = qtyChangeValue;
+                } else if (toCategoryField === "reserved_qty") {
+                  generalUpdateData.reserved_qty = qtyChangeValue;
+                } else if (toCategoryField === "intransit_qty") {
+                  generalUpdateData.intransit_qty = qtyChangeValue;
+                }
+
+                // Set the source category to negative (since we're transferring from it)
+                if (fromCategoryField === "unrestricted_qty") {
+                  generalUpdateData.unrestricted_qty = -qtyChangeValue;
+                } else if (fromCategoryField === "qualityinsp_qty") {
+                  generalUpdateData.qualityinsp_qty = -qtyChangeValue;
+                } else if (fromCategoryField === "block_qty") {
+                  generalUpdateData.block_qty = -qtyChangeValue;
+                } else if (fromCategoryField === "reserved_qty") {
+                  generalUpdateData.reserved_qty = -qtyChangeValue;
+                } else if (fromCategoryField === "intransit_qty") {
+                  generalUpdateData.intransit_qty = -qtyChangeValue;
+                }
+
+                // Balance quantity remains 0 for category transfers (no net change)
+                generalUpdateData.balance_quantity = 0;
+              }
+              break;
+          }
+
+          // Round all quantities to 3 decimal places
+          generalUpdateData.balance_quantity = parseFloat(
+            generalUpdateData.balance_quantity.toFixed(3)
+          );
+          generalUpdateData.unrestricted_qty = parseFloat(
+            generalUpdateData.unrestricted_qty.toFixed(3)
+          );
+          generalUpdateData.qualityinsp_qty = parseFloat(
+            generalUpdateData.qualityinsp_qty.toFixed(3)
+          );
+          generalUpdateData.block_qty = parseFloat(
+            generalUpdateData.block_qty.toFixed(3)
+          );
+          generalUpdateData.reserved_qty = parseFloat(
+            generalUpdateData.reserved_qty.toFixed(3)
+          );
+          generalUpdateData.intransit_qty = parseFloat(
+            generalUpdateData.intransit_qty.toFixed(3)
+          );
+
+          await this.db.collection("item_balance").add(generalUpdateData);
+        }
+      } catch (error) {
+        console.error(
+          `Error updating aggregated item_balance for batched item ${materialData.id}:`,
+          error
+        );
+        // Don't throw - let the main process continue
       }
     }
 
@@ -2210,6 +2526,157 @@ class StockAdjuster {
         movementType,
         organizationId
       );
+    }
+
+    // ✅ NEW: For batched items, also update item_balance collection (both serialized and non-serialized)
+    // ✅ EXTENDED: Also handle serialized items that need item_balance aggregation
+    if (isBatchedItem || (isSerializedItem && isSerialAllocated)) {
+      const isSerializedItem = materialData.serial_number_management === 1;
+      const isSerialAllocated =
+        movementType === "Miscellaneous Receipt"
+          ? subformData.is_serialized_item === 1 &&
+            subformData.is_serial_allocated === 1
+          : true;
+
+      if (isSerializedItem && isSerialAllocated) {
+        // For serialized batched items: calculate aggregated quantities from serial data
+        const serialItem = subformData || balance; // Get the item with serial data
+        if (serialItem.serial_number_data) {
+          const aggregatedQuantities = calculateAggregatedSerialQuantities(
+            serialItem,
+            qtyChangeValue,
+            this.roundQty
+          );
+
+          if (aggregatedQuantities) {
+            const itemBalanceParams = {
+              material_id: materialData.id,
+              location_id: locationId,
+              plant_id: allData.issuing_operation_faci,
+              organization_id: organizationId,
+            };
+
+            await processItemBalance(
+              this.db,
+              { material_id: materialData.id, location_id: locationId },
+              itemBalanceParams,
+              aggregatedQuantities.block_qty,
+              aggregatedQuantities.reserved_qty,
+              aggregatedQuantities.unrestricted_qty,
+              aggregatedQuantities.qualityinsp_qty,
+              aggregatedQuantities.intransit_qty,
+              this.roundQty
+            );
+
+            console.log(
+              `Updated item_balance for serialized batch item ${materialData.id} with ${aggregatedQuantities.serial_count} serial numbers`
+            );
+          }
+        }
+      } else {
+        // For non-serialized batched items: use direct quantities from updateData
+        const categoryField =
+          this.categoryMap[balance.category || "Unrestricted"];
+        let block_qty = 0,
+          reserved_qty = 0,
+          unrestricted_qty = 0,
+          qualityinsp_qty = 0,
+          intransit_qty = 0;
+
+        // Calculate the quantity change based on movement type
+        let qtyChange = qtyChangeValue;
+        if (
+          [
+            "Miscellaneous Issue",
+            "Disposal/Scrap",
+            "Location Transfer",
+          ].includes(movementType)
+        ) {
+          qtyChange = -qtyChangeValue;
+        } else if (
+          [
+            "Inter Operation Facility Transfer",
+            "Miscellaneous Receipt",
+          ].includes(movementType)
+        ) {
+          qtyChange = qtyChangeValue; // Positive for additions
+        }
+
+        // Handle category transfer posting (special case)
+        if (movementType === "Inventory Category Transfer Posting") {
+          if (!balance.category_from || !balance.category_to) {
+            throw new Error(
+              "Both category_from and category_to are required for category transfer"
+            );
+          }
+
+          // Subtract from source category
+          const fromCategoryField = this.categoryMap[balance.category_from];
+          if (fromCategoryField === "block_qty") {
+            block_qty = -qtyChangeValue;
+          } else if (fromCategoryField === "reserved_qty") {
+            reserved_qty = -qtyChangeValue;
+          } else if (fromCategoryField === "qualityinsp_qty") {
+            qualityinsp_qty = -qtyChangeValue;
+          } else if (fromCategoryField === "intransit_qty") {
+            intransit_qty = -qtyChangeValue;
+          } else {
+            unrestricted_qty = -qtyChangeValue; // Default
+          }
+
+          // Add to destination category
+          const toCategoryField = this.categoryMap[balance.category_to];
+          if (toCategoryField === "block_qty") {
+            block_qty += qtyChangeValue;
+          } else if (toCategoryField === "reserved_qty") {
+            reserved_qty += qtyChangeValue;
+          } else if (toCategoryField === "qualityinsp_qty") {
+            qualityinsp_qty += qtyChangeValue;
+          } else if (toCategoryField === "intransit_qty") {
+            intransit_qty += qtyChangeValue;
+          } else {
+            unrestricted_qty += qtyChangeValue; // Default
+          }
+        } else {
+          // Assign to appropriate category for other movement types
+          if (categoryField === "block_qty") {
+            block_qty = qtyChange;
+          } else if (categoryField === "reserved_qty") {
+            reserved_qty = qtyChange;
+          } else if (categoryField === "qualityinsp_qty") {
+            qualityinsp_qty = qtyChange;
+          } else if (categoryField === "intransit_qty") {
+            intransit_qty = qtyChange;
+          } else {
+            unrestricted_qty = qtyChange; // Default
+          }
+        }
+
+        const itemBalanceParams = {
+          material_id: materialData.id,
+          location_id: locationId,
+          plant_id: allData.issuing_operation_faci,
+          organization_id: organizationId,
+        };
+
+        await processItemBalance(
+          this.db,
+          { material_id: materialData.id, location_id: locationId },
+          itemBalanceParams,
+          block_qty,
+          reserved_qty,
+          unrestricted_qty,
+          qualityinsp_qty,
+          intransit_qty,
+          this.roundQty
+        );
+
+        console.log(
+          `Updated item_balance for ${
+            isBatchedItem ? "batched" : "serialized"
+          } item ${materialData.id} with movement type ${movementType}`
+        );
+      }
     }
 
     return { weightedAverageCost, batchId };
@@ -2340,6 +2807,105 @@ class StockAdjuster {
       console.log(
         `Updated existing ${collectionName} record for batch ${balance.batch_id} at location ${receivingLocationId}`
       );
+    }
+
+    // ✅ CRITICAL FIX: For batched items, also update item_balance (aggregated across all batches)
+    if (
+      materialData.item_batch_management == "1" &&
+      collectionName === "item_batch_balance"
+    ) {
+      try {
+        const generalItemBalanceParams = {
+          material_id: materialData.id,
+          location_id: receivingLocationId,
+          plant_id: allData.issuing_operation_faci,
+          organization_id: organizationId,
+        };
+
+        // Don't include batch_id in item_balance query (aggregated balance across all batches)
+        const generalBalanceQuery = await this.db
+          .collection("item_balance")
+          .where(generalItemBalanceParams)
+          .get();
+
+        if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+          // Update existing item_balance record
+          const generalBalance = generalBalanceQuery.data[0];
+
+          const currentGeneralBalanceQty = parseFloat(
+            generalBalance.balance_quantity || 0
+          );
+          const currentGeneralCategoryQty = parseFloat(
+            generalBalance[categoryField] || 0
+          );
+
+          const generalUpdateData = {
+            balance_quantity: parseFloat(
+              (currentGeneralBalanceQty + qtyChangeValue).toFixed(3)
+            ),
+            [categoryField]: parseFloat(
+              (currentGeneralCategoryQty + qtyChangeValue).toFixed(3)
+            ),
+            update_time: new Date().toISOString(),
+            update_user: allData.user_id || "system",
+          };
+
+          await this.db
+            .collection("item_balance")
+            .doc(generalBalance.id)
+            .update(generalUpdateData);
+
+          console.log(
+            `Updated aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id}`
+          );
+        } else {
+          // Create new item_balance record if it doesn't exist
+          const generalUpdateData = {
+            material_id: materialData.id,
+            location_id: receivingLocationId,
+            plant_id: allData.issuing_operation_faci,
+            organization_id: organizationId,
+            balance_quantity: parseFloat(qtyChangeValue.toFixed(3)),
+            unrestricted_qty:
+              categoryField === "unrestricted_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            qualityinsp_qty:
+              categoryField === "qualityinsp_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            block_qty:
+              categoryField === "block_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            reserved_qty:
+              categoryField === "reserved_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            intransit_qty:
+              categoryField === "intransit_qty"
+                ? parseFloat(qtyChangeValue.toFixed(3))
+                : 0,
+            create_user: allData.user_id || "system",
+            update_user: allData.user_id || "system",
+            create_time: new Date().toISOString(),
+            update_time: new Date().toISOString(),
+            is_deleted: 0,
+          };
+
+          await this.db.collection("item_balance").add(generalUpdateData);
+
+          console.log(
+            `Created new aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id}`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Error updating aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id}:`,
+          error
+        );
+        // Don't throw - let the main process continue
+      }
     }
   }
 
@@ -2961,6 +3527,15 @@ class StockAdjuster {
       plant_id: allData.issuing_operation_faci,
       created_at: new Date(),
       organization_id: organizationId,
+      doc_date: allData.issue_date,
+      manufacturing_date:
+        (subformData && subformData.manufacturing_date) ||
+        (balance && balance.manufacturing_date) ||
+        null,
+      expired_date:
+        (subformData && subformData.expired_date) ||
+        (balance && balance.expired_date) ||
+        null,
     };
 
     console.log("baseMovementData JN", baseMovementData);
@@ -3296,38 +3871,71 @@ class StockAdjuster {
             })
             .get();
 
-          // Process OUT movement - this will handle the serial balance update
+          // Process OUT movement - this will handle the serial balance update for each serial
           if (outMovementQueryICT.data && outMovementQueryICT.data.length > 0) {
             const outMovementIdICT = outMovementQueryICT.data.sort(
               (a, b) => new Date(b.create_time) - new Date(a.create_time)
             )[0].id;
 
-            await this.addSerialNumberInventoryForCategoryTransfer(
-              allData,
-              subformData,
-              outMovementIdICT,
-              organizationId,
-              allData.issuing_operation_faci,
-              balance
-            );
+            // Process each serial balance individually
+            if (balance.serial_balances && balance.serial_balances.length > 0) {
+              for (const serialBalance of balance.serial_balances) {
+                await this.addSerialNumberInventoryForCategoryTransfer(
+                  allData,
+                  subformData,
+                  outMovementIdICT,
+                  organizationId,
+                  allData.issuing_operation_faci,
+                  serialBalance
+                );
+              }
+            } else {
+              // Fallback for single balance
+              await this.addSerialNumberInventoryForCategoryTransfer(
+                allData,
+                subformData,
+                outMovementIdICT,
+                organizationId,
+                allData.issuing_operation_faci,
+                balance
+              );
+            }
           }
 
-          // Process IN movement - create serial movement record
+          // Process IN movement - create serial movement record for each serial
           if (inMovementQueryICT.data && inMovementQueryICT.data.length > 0) {
             const inMovementIdICT = inMovementQueryICT.data.sort(
               (a, b) => new Date(b.create_time) - new Date(a.create_time)
             )[0].id;
 
-            // Create serial movement record for IN movement
-            await this.createSerialMovementRecord(
-              inMovementIdICT,
-              balance.serial_number,
-              balance.batch_id,
-              formattedConvertedQty,
-              materialData.based_uom,
-              allData.issuing_operation_faci,
-              organizationId
-            );
+            // Create serial movement records for each serial
+            if (balance.serial_balances && balance.serial_balances.length > 0) {
+              for (const serialBalance of balance.serial_balances) {
+                const serialQty = this.roundQty(
+                  parseFloat(serialBalance.original_quantity || 1)
+                );
+                await this.createSerialMovementRecord(
+                  inMovementIdICT,
+                  serialBalance.serial_number,
+                  serialBalance.batch_id,
+                  serialQty,
+                  effectiveUom,
+                  allData.issuing_operation_faci,
+                  organizationId
+                );
+              }
+            } else {
+              // Fallback for single balance
+              await this.createSerialMovementRecord(
+                inMovementIdICT,
+                balance.serial_number,
+                balance.batch_id,
+                formattedConvertedQty,
+                materialData.based_uom,
+                allData.issuing_operation_faci,
+                organizationId
+              );
+            }
           }
         }
 
@@ -4716,6 +5324,232 @@ const processStockMovements = async () => {
     console.error("Extracted error message:", errorMessage);
 
     self.$message.error(errorMessage);
+  }
+};
+
+// Function to process item_balance for both batched and non-batched items
+const processItemBalance = async (
+  db,
+  item,
+  itemBalanceParams,
+  block_qty,
+  reserved_qty,
+  unrestricted_qty,
+  qualityinsp_qty,
+  intransit_qty,
+  roundQty
+) => {
+  try {
+    // Get current item balance records
+    const balanceResponse = await db
+      .collection("item_balance")
+      .where(itemBalanceParams)
+      .get();
+
+    const hasExistingBalance =
+      balanceResponse.data &&
+      Array.isArray(balanceResponse.data) &&
+      balanceResponse.data.length > 0;
+
+    console.log(
+      `Item ${
+        item.material_id || item.item_id
+      }: Found existing balance: ${hasExistingBalance}`
+    );
+
+    const existingDoc = hasExistingBalance ? balanceResponse.data[0] : null;
+
+    let balance_quantity;
+
+    if (existingDoc && existingDoc.id) {
+      // Update existing balance
+      console.log(
+        `Updating existing balance for item ${
+          item.material_id || item.item_id
+        } at location ${item.location_id}`
+      );
+
+      const updatedBlockQty = roundQty(
+        parseFloat(existingDoc.block_qty || 0) + block_qty
+      );
+      const updatedReservedQty = roundQty(
+        parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
+      );
+      const updatedUnrestrictedQty = roundQty(
+        parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
+      );
+      const updatedQualityInspQty = roundQty(
+        parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
+      );
+      const updatedIntransitQty = roundQty(
+        parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
+      );
+
+      balance_quantity =
+        updatedBlockQty +
+        updatedReservedQty +
+        updatedUnrestrictedQty +
+        updatedQualityInspQty +
+        updatedIntransitQty;
+
+      await db.collection("item_balance").doc(existingDoc.id).update({
+        block_qty: updatedBlockQty,
+        reserved_qty: updatedReservedQty,
+        unrestricted_qty: updatedUnrestrictedQty,
+        qualityinsp_qty: updatedQualityInspQty,
+        intransit_qty: updatedIntransitQty,
+        balance_quantity: balance_quantity,
+      });
+
+      console.log(
+        `Updated balance for item ${
+          item.material_id || item.item_id
+        }: ${balance_quantity}`
+      );
+    } else {
+      // Create new balance record
+      console.log(
+        `Creating new balance for item ${
+          item.material_id || item.item_id
+        } at location ${item.location_id}`
+      );
+
+      balance_quantity =
+        block_qty +
+        reserved_qty +
+        unrestricted_qty +
+        qualityinsp_qty +
+        intransit_qty;
+
+      const newBalanceData = {
+        material_id: item.material_id || item.item_id,
+        location_id: item.location_id,
+        block_qty: block_qty,
+        reserved_qty: reserved_qty,
+        unrestricted_qty: unrestricted_qty,
+        qualityinsp_qty: qualityinsp_qty,
+        intransit_qty: intransit_qty,
+        balance_quantity: balance_quantity,
+        plant_id: itemBalanceParams.plant_id,
+        organization_id: itemBalanceParams.organization_id,
+      };
+
+      await db.collection("item_balance").add(newBalanceData);
+      console.log(
+        `Created new balance for item ${
+          item.material_id || item.item_id
+        }: ${balance_quantity}`
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Error processing item_balance for item ${
+        item.material_id || item.item_id
+      }:`,
+      error
+    );
+    throw error;
+  }
+};
+
+// Function to calculate aggregated quantities for serialized items
+const calculateAggregatedSerialQuantities = (item, baseQty, roundQty) => {
+  try {
+    // Parse serial number data if available
+    if (!item.serial_number_data) {
+      console.log(
+        `No serial number data found for item ${
+          item.material_id || item.item_id
+        }`
+      );
+      return null;
+    }
+
+    let serialNumberData;
+    try {
+      serialNumberData = JSON.parse(item.serial_number_data);
+    } catch (parseError) {
+      console.error(
+        `Error parsing serial number data for item ${
+          item.material_id || item.item_id
+        }:`,
+        parseError
+      );
+      return null;
+    }
+
+    const tableSerialNumber = serialNumberData.table_serial_number || [];
+    const serialQuantity = serialNumberData.serial_number_qty || 0;
+
+    if (serialQuantity === 0 || tableSerialNumber.length === 0) {
+      console.log(
+        `No serial numbers to process for item ${
+          item.material_id || item.item_id
+        }`
+      );
+      return null;
+    }
+
+    // Calculate base quantity per serial number
+    const baseQtyPerSerial = serialQuantity > 0 ? baseQty / serialQuantity : 0;
+
+    // Initialize aggregated quantities
+    let aggregated_block_qty = 0;
+    let aggregated_reserved_qty = 0;
+    let aggregated_unrestricted_qty = 0;
+    let aggregated_qualityinsp_qty = 0;
+    let aggregated_intransit_qty = 0;
+
+    // Aggregate quantities based on inventory category
+    // Since all serial numbers for an item typically have the same inventory category,
+    // we can multiply the per-serial quantity by the total number of serial numbers
+    if (item.inv_category === "Blocked") {
+      aggregated_block_qty = baseQtyPerSerial * serialQuantity;
+    } else if (item.inv_category === "Reserved") {
+      aggregated_reserved_qty = baseQtyPerSerial * serialQuantity;
+    } else if (item.inv_category === "Unrestricted") {
+      aggregated_unrestricted_qty = baseQtyPerSerial * serialQuantity;
+    } else if (item.inv_category === "Quality Inspection") {
+      aggregated_qualityinsp_qty = baseQtyPerSerial * serialQuantity;
+    } else if (item.inv_category === "In Transit") {
+      aggregated_intransit_qty = baseQtyPerSerial * serialQuantity;
+    } else {
+      // Default to unrestricted if category not specified
+      aggregated_unrestricted_qty = baseQtyPerSerial * serialQuantity;
+    }
+
+    console.log(
+      `Aggregated serial quantities for item ${
+        item.material_id || item.item_id
+      }: ` +
+        `Total serial count: ${serialQuantity}, ` +
+        `Category: ${item.inv_category}, ` +
+        `Per-serial qty: ${baseQtyPerSerial}, ` +
+        `Total aggregated: ${
+          aggregated_block_qty +
+          aggregated_reserved_qty +
+          aggregated_unrestricted_qty +
+          aggregated_qualityinsp_qty +
+          aggregated_intransit_qty
+        }`
+    );
+
+    return {
+      block_qty: roundQty(aggregated_block_qty),
+      reserved_qty: roundQty(aggregated_reserved_qty),
+      unrestricted_qty: roundQty(aggregated_unrestricted_qty),
+      qualityinsp_qty: roundQty(aggregated_qualityinsp_qty),
+      intransit_qty: roundQty(aggregated_intransit_qty),
+      serial_count: serialQuantity,
+    };
+  } catch (error) {
+    console.error(
+      `Error calculating aggregated serial quantities for item ${
+        item.material_id || item.item_id
+      }:`,
+      error
+    );
+    return null;
   }
 };
 
