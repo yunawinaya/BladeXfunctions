@@ -601,7 +601,7 @@ const reverseBalanceChanges = async (
           );
 
           if (uomConversion) {
-            prevBaseQty = roundQty(prevBaseQty * uomConversion.base_qty);
+            prevBaseQty = roundQty(prevBaseQty / uomConversion.alt_qty);
           }
         }
 
@@ -754,7 +754,7 @@ const validateInventoryAvailability = async (data, organizationId) => {
           );
 
           if (uomConversion) {
-            baseQty = roundQty(baseQty * uomConversion.base_qty);
+            baseQty = roundQty(baseQty / uomConversion.alt_qty);
           }
         }
 
@@ -1128,7 +1128,7 @@ const processItemBalance = async (
         );
 
         if (uomConversion) {
-          baseQty = roundQty(altQty * uomConversion.base_qty);
+          baseQty = roundQty(altQty / uomConversion.alt_qty);
           console.log(`Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`);
         }
       }
@@ -2058,7 +2058,7 @@ const createOrUpdatePicking = async (
               .collection("transfer_order")
               .where({
                 ref_doc_type: "Good Delivery",
-                gd_no: gdId,
+                gd_no: [gdId],
                 movement_type: "Picking",
                 is_deleted: 0,
               })
@@ -2093,6 +2093,12 @@ const createOrUpdatePicking = async (
                           batch_no: tempItem.batch_id
                             ? String(tempItem.batch_id)
                             : null,
+                          so_no: item.line_so_no,
+                          gd_no: gdData.delivery_no,
+                          so_id: item.line_so_id,
+                          so_line_id: item.so_line_item_id,
+                          gd_id: gdId,
+                          gd_line_id: item.id,
                           qty_to_pick: 0,
                           item_uom: String(item.gd_order_uom_id),
                           source_bin: String(tempItem.location_id),
@@ -2138,6 +2144,10 @@ const createOrUpdatePicking = async (
                 updatedPickingItems.push(group);
               });
 
+              let soNOs = [
+                ...new Set(updatedPickingItems.map((pi) => pi.so_no)),
+              ];
+
               // Update the existing Transfer Order
               await db
                 .collection("transfer_order")
@@ -2148,6 +2158,8 @@ const createOrUpdatePicking = async (
                   updated_by: this.getVarGlobal("nickname"),
                   updated_at: new Date().toISOString(),
                   ref_doc: gdData.gd_ref_doc,
+                  so_no: soNOs.join(", "),
+                  customerIDs: [gdData.customer_name],
                 })
                 .then(() => {
                   console.log(
@@ -2268,10 +2280,10 @@ const createOrUpdatePicking = async (
           organization_id: organizationId,
           movement_type: "Picking",
           ref_doc_type: "Good Delivery",
-          gd_no: gdId,
+          gd_no: [gdId],
           delivery_no: gdData.delivery_no,
           so_no: gdData.so_no,
-          customer_id: gdData.customer_name,
+          customer_id: [gdData.customer_name],
           created_by: this.getVarGlobal("nickname"),
           created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
           ref_doc: gdData.gd_ref_doc,
@@ -2312,6 +2324,11 @@ const createOrUpdatePicking = async (
                     source_bin: String(tempItem.location_id),
                     line_status: "Open",
                     so_no: item.line_so_no,
+                    gd_no: gdData.delivery_no,
+                    so_id: item.line_so_id,
+                    so_line_id: item.so_line_item_id,
+                    gd_id: gdId,
+                    gd_line_id: item.id,
                     serial_numbers: [],
                   });
                 }
@@ -2936,7 +2953,7 @@ const fetchDeliveredQuantity = async () => {
         .get();
 
       if (pickingSetupResponse.data.length > 0) {
-        if (!data.assigned_to) {
+        if (data.assigned_to.length === 0) {
           await this.$confirm(
             `Assigned To field is empty.\nIf you proceed, assigned person in picking record will be empty. \nWould you like to proceed?`,
             "No Assigned Person Detected",

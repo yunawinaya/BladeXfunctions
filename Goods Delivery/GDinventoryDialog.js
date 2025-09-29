@@ -12,15 +12,42 @@ const tempQtyData = lineItemData.temp_qty_data;
 
 this.hide("gd_item_balance.table_item_balance.serial_number");
 
+const fetchUomData = async (uomIds) => {
+  try {
+    const resUOM = await Promise.all(
+      uomIds.map((id) =>
+        db.collection("unit_of_measurement").where({ id }).get()
+      )
+    );
+
+    const uomData = resUOM.map((response) => response.data[0]);
+
+    return uomData;
+  } catch (error) {
+    console.error("Error fetching UOM data:", error);
+    return [];
+  }
+};
+
 db.collection("Item")
   .where({
     id: materialId,
   })
   .get()
-  .then((response) => {
+  .then(async (response) => {
     console.log("response item", response);
     const itemData = response.data[0];
     const baseUOM = itemData.based_uom;
+
+    const altUoms = itemData.table_uom_conversion?.map(
+      (data) => data.alt_uom_id
+    );
+    let uomOptions = [];
+
+    const res = await fetchUomData(altUoms);
+    uomOptions.push(...res);
+
+    await this.setOptionData([`gd_item_balance.material_uom`], uomOptions);
 
     this.setData({
       [`gd_item_balance.material_code`]: itemData.material_code,
@@ -46,11 +73,11 @@ db.collection("Item")
         (conv) => conv.alt_uom_id === altUOM
       );
 
-      if (!uomConversion || !uomConversion.base_qty) {
+      if (!uomConversion || !uomConversion.alt_qty) {
         return baseQty;
       }
 
-      return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
+      return Math.round(baseQty * uomConversion.alt_qty * 1000) / 1000;
     };
 
     const processItemBalanceData = (itemBalanceData) => {

@@ -583,7 +583,7 @@ const validateInventoryAvailabilityForCompleted = async (
           );
 
           if (uomConversion) {
-            baseQty = roundQty(baseQty * uomConversion.base_qty);
+            baseQty = roundQty(baseQty / uomConversion.alt_qty);
           }
         }
 
@@ -1137,8 +1137,8 @@ const processBalanceTable = async (
                 `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
               );
 
-              baseQty = roundQty(altQty * uomConversion.base_qty);
-              baseWAQty = roundQty(altWAQty * uomConversion.base_qty);
+              baseQty = roundQty(altQty / uomConversion.alt_qty);
+              baseWAQty = roundQty(altWAQty / uomConversion.alt_qty);
 
               console.log(
                 `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
@@ -1170,7 +1170,7 @@ const processBalanceTable = async (
 
                 if (uomConversion) {
                   currentPrevBaseQty = roundQty(
-                    prevAltQty * uomConversion.base_qty
+                    prevAltQty / uomConversion.alt_qty
                   );
                 }
                 prevBaseQty += currentPrevBaseQty;
@@ -2113,7 +2113,10 @@ const processBalanceTable = async (
                 .where(generalItemBalanceParams)
                 .get();
 
-              if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+              if (
+                generalBalanceQuery.data &&
+                generalBalanceQuery.data.length > 0
+              ) {
                 const generalBalance = generalBalanceQuery.data[0];
                 let currentGeneralUnrestrictedQty = roundQty(
                   parseFloat(generalBalance.unrestricted_qty || 0)
@@ -2141,7 +2144,9 @@ const processBalanceTable = async (
 
                   if (availableReservedForThisGD >= baseQty) {
                     // All quantity can come from Reserved
-                    finalGeneralReservedQty = roundQty(finalGeneralReservedQty - baseQty);
+                    finalGeneralReservedQty = roundQty(
+                      finalGeneralReservedQty - baseQty
+                    );
 
                     // Handle unused reservations
                     if (isUpdate && prevBaseQty > 0) {
@@ -2171,10 +2176,14 @@ const processBalanceTable = async (
                   }
                 } else {
                   // For non-Created status, decrease unrestricted
-                  finalGeneralUnrestrictedQty = roundQty(finalGeneralUnrestrictedQty - baseQty);
+                  finalGeneralUnrestrictedQty = roundQty(
+                    finalGeneralUnrestrictedQty - baseQty
+                  );
                 }
 
-                const finalGeneralBalanceQty = roundQty(currentGeneralBalanceQty - baseQty);
+                const finalGeneralBalanceQty = roundQty(
+                  currentGeneralBalanceQty - baseQty
+                );
 
                 const generalOriginalData = {
                   unrestricted_qty: currentGeneralUnrestrictedQty,
@@ -2299,7 +2308,10 @@ const processBalanceTable = async (
               console.log(`Updated ${balanceCollection} for group ${groupKey}`);
 
               // ADDED: For batch items, also update item_balance (aggregated balance)
-              if (balanceCollection === "item_batch_balance" && group.batch_id) {
+              if (
+                balanceCollection === "item_batch_balance" &&
+                group.batch_id
+              ) {
                 const generalItemBalanceParams = {
                   material_id: item.material_id,
                   location_id: group.location_id,
@@ -2313,7 +2325,10 @@ const processBalanceTable = async (
                   .where(generalItemBalanceParams)
                   .get();
 
-                if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+                if (
+                  generalBalanceQuery.data &&
+                  generalBalanceQuery.data.length > 0
+                ) {
                   const generalBalance = generalBalanceQuery.data[0];
                   let currentGeneralUnrestrictedQty = roundQty(
                     parseFloat(generalBalance.unrestricted_qty || 0)
@@ -2326,7 +2341,8 @@ const processBalanceTable = async (
                   );
 
                   // Apply the same deduction logic to item_balance
-                  let finalGeneralUnrestrictedQty = currentGeneralUnrestrictedQty;
+                  let finalGeneralUnrestrictedQty =
+                    currentGeneralUnrestrictedQty;
                   let finalGeneralReservedQty = currentGeneralReservedQty;
 
                   if (gdStatus === "Created") {
@@ -2341,11 +2357,15 @@ const processBalanceTable = async (
 
                     if (availableReservedForThisGD >= baseQty) {
                       // All quantity can come from Reserved
-                      finalGeneralReservedQty = roundQty(finalGeneralReservedQty - baseQty);
+                      finalGeneralReservedQty = roundQty(
+                        finalGeneralReservedQty - baseQty
+                      );
 
                       // Handle unused reservations
                       if (isUpdate && prevBaseQty > 0) {
-                        const unusedReservedQty = roundQty(prevBaseQty - baseQty);
+                        const unusedReservedQty = roundQty(
+                          prevBaseQty - baseQty
+                        );
                         if (unusedReservedQty > 0) {
                           finalGeneralReservedQty = roundQty(
                             finalGeneralReservedQty - unusedReservedQty
@@ -2371,10 +2391,14 @@ const processBalanceTable = async (
                     }
                   } else {
                     // For non-Created status, decrease unrestricted
-                    finalGeneralUnrestrictedQty = roundQty(finalGeneralUnrestrictedQty - baseQty);
+                    finalGeneralUnrestrictedQty = roundQty(
+                      finalGeneralUnrestrictedQty - baseQty
+                    );
                   }
 
-                  const finalGeneralBalanceQty = roundQty(currentGeneralBalanceQty - baseQty);
+                  const finalGeneralBalanceQty = roundQty(
+                    currentGeneralBalanceQty - baseQty
+                  );
 
                   const generalOriginalData = {
                     unrestricted_qty: currentGeneralUnrestrictedQty,

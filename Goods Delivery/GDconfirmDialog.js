@@ -2,12 +2,13 @@
   const data = this.getValues();
   const temporaryData = data.gd_item_balance.table_item_balance;
   const rowIndex = data.gd_item_balance.row_index;
-  const gdUOMid = data.gd_item_balance.material_uom;
+  const selectedUOM = data.gd_item_balance.material_uom;
   const materialId = data.table_gd[rowIndex].material_id;
+  const goodDeliveryUOM = data.table_gd[rowIndex].gd_order_uom_id;
 
   const gdUOM = await db
     .collection("unit_of_measurement")
-    .where({ id: gdUOMid })
+    .where({ id: goodDeliveryUOM })
     .get()
     .then((res) => {
       return res.data[0].uom_name;
@@ -155,8 +156,96 @@
 
   console.log("All validations passed, proceeding with confirm");
 
+  // Convert quantities back to goodDeliveryUOM if user changed UOM
+  let processedTemporaryData = temporaryData;
+
+  if (selectedUOM !== goodDeliveryUOM) {
+    console.log(
+      "Converting quantities back from selectedUOM to goodDeliveryUOM"
+    );
+    console.log("From UOM:", selectedUOM, "To UOM:", goodDeliveryUOM);
+
+    // Get item data for conversion
+    const resItem = await db.collection("Item").where({ id: materialId }).get();
+    const itemData = resItem.data[0];
+    const tableUOMConversion = itemData.table_uom_conversion;
+    const baseUOM = itemData.based_uom;
+
+    const convertQuantityFromTo = (
+      value,
+      table_uom_conversion,
+      fromUOM,
+      toUOM,
+      baseUOM
+    ) => {
+      if (!value || fromUOM === toUOM) return value;
+
+      // First convert from current UOM back to base UOM
+      let baseQty = value;
+      if (fromUOM !== baseUOM) {
+        const fromConversion = table_uom_conversion.find(
+          (conv) => conv.alt_uom_id === fromUOM
+        );
+        if (fromConversion && fromConversion.alt_qty) {
+          baseQty = value / fromConversion.alt_qty;
+        }
+      }
+
+      // Then convert from base UOM to target UOM
+      if (toUOM !== baseUOM) {
+        const toConversion = table_uom_conversion.find(
+          (conv) => conv.alt_uom_id === toUOM
+        );
+        if (toConversion && toConversion.alt_qty) {
+          return Math.round(baseQty * toConversion.alt_qty * 1000) / 1000;
+        }
+      }
+
+      return baseQty;
+    };
+
+    const quantityFields = [
+      "block_qty",
+      "reserved_qty",
+      "unrestricted_qty",
+      "qualityinsp_qty",
+      "intransit_qty",
+      "balance_quantity",
+      "gd_quantity", // Include gd_quantity in conversion
+    ];
+
+    processedTemporaryData = temporaryData.map((record, index) => {
+      const convertedRecord = { ...record };
+
+      quantityFields.forEach((field) => {
+        if (convertedRecord[field]) {
+          const originalValue = convertedRecord[field];
+          convertedRecord[field] = convertQuantityFromTo(
+            convertedRecord[field],
+            tableUOMConversion,
+            selectedUOM,
+            goodDeliveryUOM,
+            baseUOM
+          );
+          console.log(
+            `Record ${index} ${field}: ${originalValue} -> ${convertedRecord[field]}`
+          );
+        }
+      });
+
+      return convertedRecord;
+    });
+
+    console.log(
+      "Converted temporary data back to goodDeliveryUOM:",
+      processedTemporaryData
+    );
+  }
+
   // Filter out items where gd_quantity is less than or equal to 0
-  const filteredData = temporaryData.filter((item) => item.gd_quantity > 0);
+  const filteredData = processedTemporaryData.filter(
+    (item) => item.gd_quantity > 0
+  );
   console.log("Filtered data (excluding gd_quantity <= 0):", filteredData);
 
   const formatFilteredData = async (filteredData) => {

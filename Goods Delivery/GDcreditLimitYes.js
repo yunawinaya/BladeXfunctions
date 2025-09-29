@@ -583,7 +583,7 @@ const validateInventoryAvailabilityForCompleted = async (
           );
 
           if (uomConversion) {
-            baseQty = roundQty(baseQty * uomConversion.base_qty);
+            baseQty = roundQty(baseQty / uomConversion.alt_qty);
           }
         }
 
@@ -1137,8 +1137,8 @@ const processBalanceTable = async (
                 `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
               );
 
-              baseQty = roundQty(altQty * uomConversion.base_qty);
-              baseWAQty = roundQty(altWAQty * uomConversion.base_qty);
+              baseQty = roundQty(altQty / uomConversion.alt_qty);
+              baseWAQty = roundQty(altWAQty / uomConversion.alt_qty);
 
               console.log(
                 `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`

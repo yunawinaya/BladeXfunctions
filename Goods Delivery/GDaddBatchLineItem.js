@@ -1,4 +1,8 @@
-const checkInventoryWithDuplicates = async (allItems, plantId, existingRowCount = 0) => {
+const checkInventoryWithDuplicates = async (
+  allItems,
+  plantId,
+  existingRowCount = 0
+) => {
   // Group items by material_id to find duplicates
   const materialGroups = {};
 
@@ -8,7 +12,10 @@ const checkInventoryWithDuplicates = async (allItems, plantId, existingRowCount 
       materialGroups[materialId] = [];
     }
     // Adjust originalIndex to account for existing rows
-    materialGroups[materialId].push({ ...item, originalIndex: index + existingRowCount });
+    materialGroups[materialId].push({
+      ...item,
+      originalIndex: index + existingRowCount,
+    });
   });
 
   console.log("Material groups:", materialGroups);
@@ -209,8 +216,12 @@ const checkInventoryWithDuplicates = async (allItems, plantId, existingRowCount 
 
       // Subtract existing allocations from available stock
       let totalPreviousAllocations = 0;
-      if (window.globalAllocationTracker && window.globalAllocationTracker.has(materialId)) {
-        const materialAllocations = window.globalAllocationTracker.get(materialId);
+      if (
+        window.globalAllocationTracker &&
+        window.globalAllocationTracker.has(materialId)
+      ) {
+        const materialAllocations =
+          window.globalAllocationTracker.get(materialId);
         materialAllocations.forEach((rowAllocations) => {
           rowAllocations.forEach((qty) => {
             totalPreviousAllocations += qty;
@@ -218,7 +229,10 @@ const checkInventoryWithDuplicates = async (allItems, plantId, existingRowCount 
         });
       }
 
-      const availableStockAfterAllocations = Math.max(0, totalUnrestrictedQtyBase - totalPreviousAllocations);
+      const availableStockAfterAllocations = Math.max(
+        0,
+        totalUnrestrictedQtyBase - totalPreviousAllocations
+      );
 
       console.log(
         `Material ${materialId} using collection: ${collectionUsed}, Raw stock: ${totalUnrestrictedQtyBase}, Previous allocations: ${totalPreviousAllocations}, Available: ${availableStockAfterAllocations}`
@@ -276,8 +290,8 @@ const checkInventoryWithDuplicates = async (allItems, plantId, existingRowCount 
           const uomConversion = itemData.table_uom_conversion?.find(
             (conv) => conv.alt_uom_id === item.altUOM
           );
-          if (uomConversion && uomConversion.base_qty) {
-            undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
+          if (uomConversion && uomConversion.alt_qty) {
+            undeliveredQtyBase = undeliveredQty / uomConversion.alt_qty;
           }
         }
         totalDemandBase += undeliveredQtyBase;
@@ -315,7 +329,8 @@ const checkInventoryWithDuplicates = async (allItems, plantId, existingRowCount 
       );
 
       // Handle insufficient vs sufficient stock scenarios
-      const totalShortfallBase = totalDemandBase - availableStockAfterAllocations;
+      const totalShortfallBase =
+        totalDemandBase - availableStockAfterAllocations;
 
       if (totalShortfallBase > 0) {
         console.log(
@@ -477,8 +492,8 @@ const checkInventoryWithDuplicates = async (allItems, plantId, existingRowCount 
                 const uomConversion = itemData.table_uom_conversion?.find(
                   (conv) => conv.alt_uom_id === item.altUOM
                 );
-                if (uomConversion && uomConversion.base_qty) {
-                  undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
+                if (uomConversion && uomConversion.alt_qty) {
+                  undeliveredQtyBase = undeliveredQty / uomConversion.alt_qty;
                 }
               }
 
@@ -491,7 +506,7 @@ const checkInventoryWithDuplicates = async (allItems, plantId, existingRowCount 
               );
               availableQtyAlt =
                 item.altUOM !== itemData.based_uom
-                  ? allocatedBase / (uomConversion?.base_qty || 1)
+                  ? allocatedBase * (uomConversion?.alt_qty || 1)
                   : allocatedBase;
 
               remainingStockBase -= allocatedBase;
@@ -547,8 +562,12 @@ const checkInventoryWithDuplicates = async (allItems, plantId, existingRowCount 
                   // Convert to base UOM for allocation
                   let allocationQty = availableQtyAlt;
                   if (item.altUOM !== itemData.based_uom) {
-                    const uomConv = itemData.table_uom_conversion?.find(c => c.alt_uom_id === item.altUOM);
-                    allocationQty = uomConv?.base_qty ? availableQtyAlt * uomConv.base_qty : availableQtyAlt;
+                    const uomConv = itemData.table_uom_conversion?.find(
+                      (c) => c.alt_uom_id === item.altUOM
+                    );
+                    allocationQty = uomConv?.alt_qty
+                      ? availableQtyAlt / uomConv.alt_qty
+                      : availableQtyAlt;
                   }
 
                   itemsForAllocation.push({
@@ -728,8 +747,12 @@ const checkInventoryWithDuplicates = async (allItems, plantId, existingRowCount 
                   // Convert to base UOM for allocation
                   let allocationQty = undeliveredQty;
                   if (item.altUOM !== itemData.based_uom) {
-                    const uomConv = itemData.table_uom_conversion?.find(c => c.alt_uom_id === item.altUOM);
-                    allocationQty = uomConv?.base_qty ? undeliveredQty * uomConv.base_qty : undeliveredQty;
+                    const uomConv = itemData.table_uom_conversion?.find(
+                      (c) => c.alt_uom_id === item.altUOM
+                    );
+                    allocationQty = uomConv?.alt_qty
+                      ? undeliveredQty / uomConv.alt_qty
+                      : undeliveredQty;
                   }
 
                   itemsForAllocation.push({
@@ -798,8 +821,8 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
     (conv) => conv.alt_uom_id === altUOM
   );
 
-  if (uomConversion && uomConversion.base_qty) {
-    return quantity * uomConversion.base_qty;
+  if (uomConversion && uomConversion.alt_qty) {
+    return quantity / uomConversion.alt_qty;
   }
 
   return quantity;
@@ -1108,8 +1131,12 @@ const performAutomaticAllocation = async (
       // Convert allocation quantity to alt UOM for temp_qty_data
       let gdQty = allocation.quantity;
       if (uomId !== itemData.based_uom) {
-        const uomConv = itemData.table_uom_conversion?.find(c => c.alt_uom_id === uomId);
-        gdQty = uomConv?.base_qty ? allocation.quantity / uomConv.base_qty : allocation.quantity;
+        const uomConv = itemData.table_uom_conversion?.find(
+          (c) => c.alt_uom_id === uomId
+        );
+        gdQty = uomConv?.alt_qty
+          ? allocation.quantity * uomConv.alt_qty
+          : allocation.quantity;
       }
 
       const baseData = {
@@ -1164,11 +1191,17 @@ const performAutomaticAllocation = async (
       // Convert allocation quantity to alt UOM for display
       let displayQty = allocation.quantity;
       if (uomId !== itemData.based_uom) {
-        const uomConv = itemData.table_uom_conversion?.find(c => c.alt_uom_id === uomId);
-        displayQty = uomConv?.base_qty ? allocation.quantity / uomConv.base_qty : allocation.quantity;
+        const uomConv = itemData.table_uom_conversion?.find(
+          (c) => c.alt_uom_id === uomId
+        );
+        displayQty = uomConv?.alt_qty
+          ? allocation.quantity * uomConv.alt_qty
+          : allocation.quantity;
       }
 
-      let summaryLine = `${index + 1}. ${allocation.binLocation}: ${displayQty} ${uomName}`;
+      let summaryLine = `${index + 1}. ${
+        allocation.binLocation
+      }: ${displayQty} ${uomName}`;
 
       // Add serial number to summary for serialized items
       if (isSerializedItem && allocation.serialNumber) {
@@ -1191,8 +1224,12 @@ const performAutomaticAllocation = async (
     // Convert back to alt UOM for display
     let totalAllocated = totalAllocatedBase;
     if (uomId !== itemData.based_uom) {
-      const uomConv = itemData.table_uom_conversion?.find(c => c.alt_uom_id === uomId);
-      totalAllocated = uomConv?.base_qty ? totalAllocatedBase / uomConv.base_qty : totalAllocatedBase;
+      const uomConv = itemData.table_uom_conversion?.find(
+        (c) => c.alt_uom_id === uomId
+      );
+      totalAllocated = uomConv?.alt_qty
+        ? totalAllocatedBase * uomConv.alt_qty
+        : totalAllocatedBase;
     }
 
     const summary = `Total: ${totalAllocated} ${uomName}\n\nDETAILS:\n${summaryDetails.join(
@@ -1824,15 +1861,18 @@ const createTableGdWithBaseUOM = async (allItems) => {
       break;
   }
 
-  let newTableGd = await createTableGdWithBaseUOM(allItems);
-
-  newTableGd = newTableGd.filter(
+  console.log("allItems", allItems);
+  allItems = allItems.filter(
     (gd) =>
-      gd.gd_undelivered_qty !== 0 &&
+      gd.deliveredQtyFromSource !== gd.orderedQty &&
       !existingGD.find(
         (gdItem) => gdItem.so_line_item_id === gd.so_line_item_id
       )
   );
+
+  console.log("allItems after filter", allItems);
+
+  let newTableGd = await createTableGdWithBaseUOM(allItems);
 
   const latestTableGD = [...existingGD, ...newTableGd];
 
