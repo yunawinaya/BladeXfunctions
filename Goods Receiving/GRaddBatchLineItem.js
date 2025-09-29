@@ -97,7 +97,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
   }
 
   const uomConversion = uomConversionTable.find(
-    (conv) => conv.alt_uom_id === altUOM && conv.alt_uom_id !== conv.base_uom_id
+    (conv) => conv.alt_uom_id === altUOM
   );
 
   if (!uomConversion || !uomConversion.alt_qty) {
@@ -251,7 +251,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
           const isAltUOM = itemData?.table_uom_conversion?.find(
             (conv) =>
               conv.alt_uom_id === poItem.quantity_uom &&
-              conv.alt_uom_id !== conv.base_uom_id
+              conv.alt_uom_id !== itemData.based_uom
           );
 
           if (isAltUOM) {
@@ -381,7 +381,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
           const isAltUOM = poItemAltUOM?.find(
             (conv) =>
               conv.alt_uom_id === poItem.item_uom &&
-              conv.alt_uom_id !== conv.base_uom_id
+              conv.alt_uom_id !== poItem.item.based_uom
           );
 
           console.log("isAltUOM", isAltUOM);

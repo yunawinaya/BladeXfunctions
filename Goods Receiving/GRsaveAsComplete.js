@@ -1277,8 +1277,7 @@ const addInventory = async (
         itemData.table_uom_conversion.length > 0
       ) {
         const uomConversion = itemData.table_uom_conversion.find(
-          (conv) =>
-            conv.alt_uom_id === altUOM && conv.alt_uom_id !== conv.base_uom_id
+          (conv) => conv.alt_uom_id === altUOM
         );
 
         if (uomConversion) {
@@ -1634,8 +1633,7 @@ const addInventory = async (
         console.log(`Checking UOM conversions for item ${item.item_id}`);
 
         const uomConversion = itemData.table_uom_conversion.find(
-          (conv) =>
-            conv.alt_uom_id === altUOM && conv.alt_uom_id !== conv.base_uom_id
+          (conv) => conv.alt_uom_id === altUOM
         );
 
         if (uomConversion) {

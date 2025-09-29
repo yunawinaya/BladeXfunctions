@@ -54,11 +54,11 @@ const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
     (conv) => conv.alt_uom_id === uom
   );
 
-  if (!uomConversion || !uomConversion.base_qty) {
+  if (!uomConversion || !uomConversion.alt_qty) {
     return baseQty;
   }
 
-  return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
+  return Math.round(baseQty * uomConversion.alt_qty * 1000) / 1000;
 };
 
 const fetchUnrestrictedQty = async (
@@ -176,8 +176,6 @@ const fetchUnrestrictedQty = async (
     const altUoms = table_uom_conversion.map((data) => data.alt_uom_id);
     let uomOptions = [];
 
-    await altUoms.push(based_uom);
-
     this.setData({
       [`table_so.${rowIndex}.so_desc`]: material_desc,
       [`table_so.${rowIndex}.item_id`]: material_name,
@@ -210,7 +208,7 @@ const fetchUnrestrictedQty = async (
     await this.setOptionData([`table_so.${rowIndex}.so_item_uom`], uomOptions);
 
     this.setData({
-      [`table_so.${rowIndex}.table_uom_conversion`]: uomOptions,
+      [`table_so.${rowIndex}.table_uom_conversion`]: JSON.stringify(uomOptions),
     });
 
     this.disabled([`table_so.${rowIndex}.so_item_uom`], false);
@@ -273,8 +271,6 @@ const fetchUnrestrictedQty = async (
           (data) => data.alt_uom_id
         );
 
-        await itemUOM.push(itemData.based_uom);
-
         const resUOM = await fetchUomData(itemUOM);
         uomOptions.push(...resUOM);
 
@@ -287,7 +283,7 @@ const fetchUnrestrictedQty = async (
           organizationId
         );
 
-        if (sales_default_uom) {
+        if (soItem.so_item_uom) {
           const finalQty = await convertBaseToAlt(
             initialQty,
             itemData.table_uom_conversion,
@@ -312,7 +308,7 @@ const fetchUnrestrictedQty = async (
     await this.setOptionData([`table_so.${rowIndex}.so_item_uom`], uomOptions);
 
     this.setData({
-      [`table_so.${rowIndex}.table_uom_conversion`]: uomOptions,
+      [`table_so.${rowIndex}.table_uom_conversion`]: JSON.stringify(uomOptions),
     });
 
     this.disabled([`table_so.${rowIndex}.so_item_uom`], false);
@@ -323,10 +319,14 @@ const fetchUnrestrictedQty = async (
     const tableSO = this.getValue("table_so");
     for (const [rowIndex, so] of tableSO.entries()) {
       console.log(so.table_uom_conversion);
-      await this.setOptionData(
-        [`table_so.${rowIndex}.so_item_uom`],
-        so.table_uom_conversion
-      );
+
+      if (so.table_uom_conversion) {
+        await this.setOptionData(
+          [`table_so.${rowIndex}.so_item_uom`],
+          JSON.parse(so.table_uom_conversion)
+        );
+        this.disabled([`table_so.${rowIndex}.so_item_uom`], false);
+      }
     }
   }
 })();

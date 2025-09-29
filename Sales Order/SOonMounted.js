@@ -315,7 +315,11 @@ const cloneResetQuantity = async (status) => {
     so.production_status = "";
   }
 
-  this.setData({ table_so: tableSO });
+  this.setData({
+    table_so: tableSO,
+    partially_delivered: `0 / ${tableSO.length}`,
+    fully_delivered: `0 / ${tableSO.length}`,
+  });
 };
 
 const setPlant = (organizationId, pageStatus) => {
@@ -323,11 +327,14 @@ const setPlant = (organizationId, pageStatus) => {
 
   if (currentDept === organizationId) {
     this.disabled("plant_name", false);
-    this.disabled("table_so", true);
+
+    if (pageStatus === "Add" || pageStatus === "Clone") {
+      this.setData({ plant_name: currentDept });
+    }
   } else {
     this.disabled("plant_name", true);
 
-    if (pageStatus === "Add") {
+    if (pageStatus === "Add" || pageStatus === "Clone") {
       this.setData({ plant_name: currentDept });
     }
   }
@@ -489,6 +496,14 @@ const fetchUnrestrictedQty = async () => {
         await setPrefix(organizationId);
         await setPlant(organizationId, pageStatus);
         this.setData({ so_date: new Date().toISOString().split("T")[0] });
+        if (this.getValue("sqt_no")) {
+          this.display("sqt_no");
+        }
+        await displayCurrency();
+        await displayTax();
+        await displayDeliveryMethod();
+        await enabledUOMField();
+        await fetchUnrestrictedQty();
         break;
 
       case "Edit":
@@ -500,6 +515,8 @@ const fetchUnrestrictedQty = async () => {
         await displayCurrency();
         await displayTax();
         await displayDeliveryMethod();
+        await fetchUnrestrictedQty();
+        await setPlant(organizationId, pageStatus);
         if (this.getValue("sqt_no")) {
           this.display("sqt_no");
         }
@@ -508,11 +525,11 @@ const fetchUnrestrictedQty = async () => {
       case "Clone":
         this.display(["draft_status"]);
         this.setData({ so_date: new Date().toISOString().split("T")[0] });
+        await setPlant(organizationId, pageStatus);
         await setPrefix(organizationId);
         if (this.getValue("sqt_no")) {
           this.display("sqt_no");
         }
-        this.setData({ so_date: new Date().toISOString().split("T")[0] });
         await enabledUOMField();
         await cloneResetQuantity(status);
         await checkAccIntegrationType(organizationId);
@@ -520,6 +537,8 @@ const fetchUnrestrictedQty = async () => {
         await displayTax();
         await displayDeliveryMethod();
         await fetchUnrestrictedQty();
+
+        console.log("delivered quantity", this.getValue("partially_delivered"));
         break;
 
       case "View":

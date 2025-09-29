@@ -19,6 +19,7 @@ const resetData = async (rowIndex) => {
     [`table_sqt.${rowIndex}.item_category_id`]: "",
     [`table_sqt.${rowIndex}.unrestricted_qty`]: 0,
     [`table_sqt.${rowIndex}.base_unrestricted_qty`]: 0,
+    [`table_sqt.${rowIndex}.table_uom_conversion`]: "",
   });
 };
 
@@ -52,17 +53,17 @@ const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
     (conv) => conv.alt_uom_id === uom
   );
 
-  if (!uomConversion || !uomConversion.base_qty) {
+  if (!uomConversion || !uomConversion.alt_qty) {
     return baseQty;
   }
 
-  return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
+  return Math.round(baseQty * uomConversion.alt_qty * 1000) / 1000;
 };
 
 const fetchUnrestrictedQty = async (
   itemId,
   item_batch_management,
-  item_serial_management,
+  serial_number_management,
   stock_control,
   plantId,
   organizationId
@@ -70,7 +71,7 @@ const fetchUnrestrictedQty = async (
   try {
     let totalUnrestrictedQtyBase = 0;
 
-    if (item_serial_management === 1) {
+    if (serial_number_management === 1) {
       const resSerialBalance = await db
         .collection("item_serial_balance")
         .where({
@@ -175,8 +176,6 @@ const fetchUnrestrictedQty = async (
     const altUoms = table_uom_conversion.map((data) => data.alt_uom_id);
     let uomOptions = [];
 
-    await altUoms.push(based_uom);
-
     this.setData({
       [`table_sqt.${rowIndex}.sqt_desc`]: material_desc,
       [`table_sqt.${rowIndex}.material_name`]: material_name,
@@ -208,6 +207,11 @@ const fetchUnrestrictedQty = async (
       [`table_sqt.${rowIndex}.sqt_order_uom_id`],
       uomOptions
     );
+
+    this.setData({
+      [`table_sqt.${rowIndex}.table_uom_conversion`]:
+        JSON.stringify(uomOptions),
+    });
     this.disabled([`table_sqt.${rowIndex}.sqt_order_uom_id`], false);
 
     const initialQty = await fetchUnrestrictedQty(
@@ -250,7 +254,7 @@ const fetchUnrestrictedQty = async (
         ),
       });
     }
-  } else if (sqtItem) {
+  } else if (!arguments[0].fieldModel && sqtItem) {
     let uomOptions = [];
     const rowIndex = arguments[0].index;
     if (sqtItem.material_id) {
@@ -274,8 +278,8 @@ const fetchUnrestrictedQty = async (
         const initialQty = await fetchUnrestrictedQty(
           arguments[0].value,
           itemData.item_batch_management,
-          itemData.serial_number_management,
           itemData.stock_control,
+          itemData.serial_number_management,
           plantId,
           organizationId
         );
@@ -303,8 +307,27 @@ const fetchUnrestrictedQty = async (
       [`table_sqt.${rowIndex}.sqt_order_uom_id`],
       uomOptions
     );
+
+    this.setData({
+      [`table_sqt.${rowIndex}.table_uom_conversion`]:
+        JSON.stringify(uomOptions),
+    });
+
     this.disabled([`table_sqt.${rowIndex}.sqt_order_uom_id`], false);
-  } else {
+  } else if (!arguments[0].value) {
     await resetData(rowIndex);
+    this.disabled(`table_sqt.${rowIndex}.sqt_order_uom_id`, true);
+  } else {
+    const tableSQT = this.getValue("table_sqt");
+    for (const [rowIndex, sqt] of tableSQT.entries()) {
+      console.log(sqt.table_uom_conversion);
+      if (sqt.table_uom_conversion) {
+        await this.setOptionData(
+          [`table_sqt.${rowIndex}.sqt_order_uom_id`],
+          JSON.parse(sqt.table_uom_conversion)
+        );
+        this.disabled([`table_sqt.${rowIndex}.sqt_order_uom_id`], false);
+      }
+    }
   }
 })();

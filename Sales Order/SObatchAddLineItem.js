@@ -28,11 +28,11 @@ const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
     (conv) => conv.alt_uom_id === uom
   );
 
-  if (!uomConversion || !uomConversion.base_qty) {
+  if (!uomConversion || !uomConversion.alt_qty) {
     return baseQty;
   }
 
-  return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
+  return Math.round(baseQty * uomConversion.alt_qty * 1000) / 1000;
 };
 
 const fetchUnrestrictedQty = async (
@@ -162,68 +162,75 @@ const fetchUnrestrictedQty = async (
 
   this.closeDialog("dialog_item_selection");
 
-  for (const [index, item] of currentItemArray.entries()) {
-    const newIndex = soLineItems.length + index;
-    const altUoms = item.table_uom_conversion?.map((data) => data.alt_uom_id);
-    let uomOptions = [];
+  setTimeout(async () => {
+    for (const [index, item] of currentItemArray.entries()) {
+      const newIndex = soLineItems.length + index;
+      const altUoms = item.table_uom_conversion?.map((data) => data.alt_uom_id);
+      let uomOptions = [];
 
-    await altUoms.push(item.based_uom);
-    const res = await fetchUomData(altUoms);
-    uomOptions.push(...res);
+      const res = await fetchUomData(altUoms);
+      uomOptions.push(...res);
 
-    await this.setOptionData([`table_so.${newIndex}.so_item_uom`], uomOptions);
+      console.log("uomOptions", uomOptions);
 
-    this.setData({
-      [`table_so.${newIndex}.table_uom_conversion`]: uomOptions,
-    });
-
-    this.disabled([`table_so.${newIndex}.so_item_uom`], false);
-
-    if (item.mat_sales_tax_id) {
-      this.disabled([`table_so.${newIndex}.so_tax_percentage`], false);
-    }
-
-    console.log("item", item);
-
-    const initialQty = await fetchUnrestrictedQty(
-      item.id,
-      item.item_batch_management,
-      item.serial_number_management,
-      item.stock_control,
-      plantId,
-      organizationId
-    );
-
-    if (item.sales_default_uom) {
-      const finalQty = await convertBaseToAlt(
-        initialQty,
-        item.table_uom_conversion,
-        item.sales_default_uom
+      await this.setOptionData(
+        [`table_so.${newIndex}.so_item_uom`],
+        uomOptions
       );
-      await this.setData({
-        [`table_so.${newIndex}.so_item_uom`]: item.sales_default_uom,
-        [`table_so.${newIndex}.unrestricted_qty`]: parseFloat(
-          finalQty.toFixed(4)
-        ),
-        [`table_so.${newIndex}.base_unrestricted_qty`]: parseFloat(
-          initialQty.toFixed(4)
-        ),
+
+      this.setData({
+        [`table_so.${newIndex}.table_uom_conversion`]:
+          JSON.stringify(uomOptions),
       });
-    } else {
-      const finalQty = await convertBaseToAlt(
-        initialQty,
-        item.table_uom_conversion,
-        item.based_uom
+
+      this.disabled([`table_so.${newIndex}.so_item_uom`], false);
+
+      if (item.mat_sales_tax_id) {
+        this.disabled([`table_so.${newIndex}.so_tax_percentage`], false);
+      }
+
+      console.log("item", item);
+
+      const initialQty = await fetchUnrestrictedQty(
+        item.id,
+        item.item_batch_management,
+        item.serial_number_management,
+        item.stock_control,
+        plantId,
+        organizationId
       );
-      await this.setData({
-        [`table_so.${newIndex}.so_item_uom`]: item.based_uom,
-        [`table_so.${newIndex}.unrestricted_qty`]: parseFloat(
-          finalQty.toFixed(4)
-        ),
-        [`table_so.${newIndex}.base_unrestricted_qty`]: parseFloat(
-          initialQty.toFixed(4)
-        ),
-      });
+
+      if (item.sales_default_uom) {
+        const finalQty = await convertBaseToAlt(
+          initialQty,
+          item.table_uom_conversion,
+          item.sales_default_uom
+        );
+        await this.setData({
+          [`table_so.${newIndex}.so_item_uom`]: item.sales_default_uom,
+          [`table_so.${newIndex}.unrestricted_qty`]: parseFloat(
+            finalQty.toFixed(4)
+          ),
+          [`table_so.${newIndex}.base_unrestricted_qty`]: parseFloat(
+            initialQty.toFixed(4)
+          ),
+        });
+      } else {
+        const finalQty = await convertBaseToAlt(
+          initialQty,
+          item.table_uom_conversion,
+          item.based_uom
+        );
+        await this.setData({
+          [`table_so.${newIndex}.so_item_uom`]: item.based_uom,
+          [`table_so.${newIndex}.unrestricted_qty`]: parseFloat(
+            finalQty.toFixed(4)
+          ),
+          [`table_so.${newIndex}.base_unrestricted_qty`]: parseFloat(
+            initialQty.toFixed(4)
+          ),
+        });
+      }
     }
-  }
+  }, 50);
 })();
