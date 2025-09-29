@@ -73,6 +73,17 @@ const processData = async (
         [`table_gr.${index}.inv_category`]: "Quality Inspection",
       });
     }
+
+    // disabled / enabled manufacturing & expired date
+    if (gr.item_batch_no === "-") {
+      this.disabled(
+        [
+          `table_gr.${index}.manufacturing_date`,
+          `table_gr.${index}.expired_date`,
+        ],
+        true
+      );
+    }
   }
 };
 
@@ -213,13 +224,14 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
             ),
             item_uom: poItem.quantity_uom || null,
             location_id: defaultBinLocationID,
-            item_batch_no:
-              itemData?.item_batch_management === 0
+            item_batch_no: itemData
+              ? itemData?.item_batch_management === 0
                 ? "-"
                 : itemData?.batch_number_genaration ===
                   "According To System Settings"
                 ? "Auto-generated batch number"
-                : "",
+                : ""
+              : "-",
             inv_category: "",
             line_po_no: po.purchase_order_number,
             initial_received_qty: parseFloat(
@@ -293,6 +305,13 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
             newTableGrRecord.formula = itemData?.formula;
           }
 
+          if (itemData?.item_batch_management === 1) {
+            this.display([
+              "table_gr.manufacturing_date",
+              "table_gr.expired_date",
+            ]);
+          }
+
           tableGR.push(newTableGrRecord);
         }
       }
@@ -324,13 +343,14 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
           ),
           item_uom: poItem.item_uom || null,
           location_id: defaultBinLocationID,
-          item_batch_no:
-            poItem.item?.item_batch_management === 0
+          item_batch_no: poItem.item
+            ? poItem.item?.item_batch_management === 0
               ? "-"
               : poItem.item?.batch_number_genaration ===
                 "According To System Settings"
               ? "Auto-generated batch number"
-              : "",
+              : ""
+            : "-",
           inv_category: "",
           line_po_no: poItem.purchase_order.purchase_order_no,
           initial_received_qty: parseFloat(
@@ -414,6 +434,13 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
 
           newTableGrRecord.has_formula = 1;
           newTableGrRecord.formula = poItem.item?.formula;
+        }
+
+        if (poItem.item?.item_batch_management === 1) {
+          this.display([
+            "table_gr.manufacturing_date",
+            "table_gr.expired_date",
+          ]);
         }
 
         tableGR.push(newTableGrRecord);
