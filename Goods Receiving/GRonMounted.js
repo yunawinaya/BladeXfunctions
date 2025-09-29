@@ -186,17 +186,20 @@ const disabledEditField = async (status) => {
 const setPlant = async (organizationId) => {
   const deptId = this.getVarSystem("deptIds").split(",")[0];
   let plantId = "";
+  const hasPlant = this.getValue("plant_id");
 
-  if (deptId === organizationId) {
-    plantId = "";
-    this.disabled(["table_gr"], true);
-  } else {
-    plantId = deptId;
+  if (!hasPlant) {
+    if (deptId === organizationId) {
+      plantId = "";
+      this.disabled(["table_gr"], true);
+    } else {
+      plantId = deptId;
+    }
   }
-
+  console.log(hasPlant, "hasPlant");
   this.setData({
     organization_id: organizationId,
-    plant_id: plantId,
+    ...(!hasPlant ? { plant_id: plantId } : {}),
     gr_received_by: this.getVarGlobal("nickname"),
   });
 };
@@ -267,14 +270,18 @@ const displayAssignedTo = async () => {
       plant_id: plant,
       is_deleted: 0,
       movement_type: "Good Receiving",
+      putaway_required: 1,
     })
     .get();
 
-  if (resPutAwaySetup && resPutAwaySetup.data.length > 0) {
-    this.display("assigned_to");
-  } else {
-    this.hide("assigned_to");
-  }
+  setTimeout(() => {
+    if (resPutAwaySetup && resPutAwaySetup.data.length > 0) {
+      console.log("resPutaway", resPutAwaySetup.data);
+      this.display("assigned_to");
+    } else {
+      this.hide("assigned_to");
+    }
+  }, 30);
 };
 
 const hideSerialNumberRecordTab = () => {
@@ -309,6 +316,56 @@ const hideSerialNumberRecordTab = () => {
   }, 10); // Small delay to ensure DOM is ready
 };
 
+const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
+  const tableGR = this.getValue("table_gr");
+  if (tableGR.length === 0) return;
+  if (pageStatus === "Edit" || pageStatus === "Add") {
+    if (status === "Draft") {
+      for (const [index, item] of tableGR.entries()) {
+        if (item.item_batch_no !== "-") {
+          await this.display([
+            "table_gr.manufacturing_date",
+            "table_gr.expired_date",
+          ]);
+          await this.disabled(
+            [
+              `table_gr.${index}.manufacturing_date`,
+              `table_gr.${index}.expired_date`,
+            ],
+            false
+          );
+        } else {
+          await this.disabled(
+            [
+              `table_gr.${index}.manufacturing_date`,
+              `table_gr.${index}.expired_date`,
+            ],
+            true
+          );
+        }
+      }
+    } else {
+      for (const [_index, item] of tableGR.entries()) {
+        if (item.item_batch_no !== "-") {
+          await this.display([
+            "table_gr.manufacturing_date",
+            "table_gr.expired_date",
+          ]);
+        }
+      }
+    }
+  } else {
+    for (const [_index, item] of tableGR.entries()) {
+      if (item.item_batch_no !== "-") {
+        await this.display([
+          "table_gr.manufacturing_date",
+          "table_gr.expired_date",
+        ]);
+      }
+    }
+  }
+};
+
 (async () => {
   try {
     const status = await this.getValue("gr_status");
@@ -332,12 +389,19 @@ const hideSerialNumberRecordTab = () => {
 
     switch (pageStatus) {
       case "Add":
+        console.log("this.getValues", this.getValues());
         this.setData({ gr_date: new Date().toISOString().split("T")[0] });
         this.display(["draft_status"]);
         this.hide("button_completed");
         await setPlant(organizationId);
         await setPrefix(organizationId);
         await hideSerialNumberRecordTab();
+        if (this.getValue("plant_id")) {
+          this.disabled("reference_doc", false);
+          console.log("trigger func_processGRLineItem");
+          await this.triggerEvent("func_processGRLineItem");
+          await this.triggerEvent("onChange_Supplier");
+        }
 
         break;
 
@@ -351,6 +415,7 @@ const hideSerialNumberRecordTab = () => {
         await viewBaseQty();
         await displayAssignedTo();
         await hideSerialNumberRecordTab();
+        await displayManufacturingAndExpiredDate(status, pageStatus);
         if (status === "Draft") {
           this.triggerEvent("onChange_plant");
           this.hide("button_completed");
@@ -366,6 +431,7 @@ const hideSerialNumberRecordTab = () => {
         await viewBaseQty();
         await displayAssignedTo();
         await hideSerialNumberRecordTab();
+        await displayManufacturingAndExpiredDate(status, pageStatus);
         break;
     }
   } catch (error) {

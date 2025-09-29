@@ -97,14 +97,14 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
   }
 
   const uomConversion = uomConversionTable.find(
-    (conv) => conv.alt_uom_id === altUOM
+    (conv) => conv.alt_uom_id === altUOM && conv.alt_uom_id !== conv.base_uom_id
   );
 
-  if (!uomConversion || !uomConversion.base_qty) {
+  if (!uomConversion || !uomConversion.alt_qty) {
     return altQty;
   }
 
-  return Math.round(altQty * uomConversion.base_qty * 1000) / 1000;
+  return Math.round((altQty / uomConversion.alt_qty) * 1000) / 1000;
 };
 
 (async () => {
@@ -249,7 +249,9 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
           };
 
           const isAltUOM = itemData?.table_uom_conversion?.find(
-            (conv) => conv.alt_uom_id === poItem.quantity_uom
+            (conv) =>
+              conv.alt_uom_id === poItem.quantity_uom &&
+              conv.alt_uom_id !== conv.base_uom_id
           );
 
           if (isAltUOM) {
@@ -262,10 +264,6 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
               "table_gr.base_received_qty",
               "table_gr.base_item_uom",
             ]);
-
-            const uomConversion = itemData.table_uom_conversion.find(
-              (conv) => conv.alt_uom_id === poItem.quantity_uom
-            );
 
             const baseQty = convertAltToBase(
               poItem.quantity,
@@ -289,7 +287,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
             newTableGrRecord.base_received_qty = parseFloat(
               (baseQty - baseReceivedQty || 0).toFixed(3)
             );
-            newTableGrRecord.uom_conversion = uomConversion.base_qty;
+            newTableGrRecord.uom_conversion = isAltUOM.alt_qty;
           }
 
           if (itemData?.serial_number_management === 1) {
@@ -381,7 +379,9 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
           console.log("poItemAltUOM", poItemAltUOM);
 
           const isAltUOM = poItemAltUOM?.find(
-            (conv) => conv.alt_uom_id === poItem.item_uom
+            (conv) =>
+              conv.alt_uom_id === poItem.item_uom &&
+              conv.alt_uom_id !== conv.base_uom_id
           );
 
           console.log("isAltUOM", isAltUOM);
@@ -419,7 +419,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
             newTableGrRecord.base_received_qty = parseFloat(
               (baseQty - baseReceivedQty || 0).toFixed(3)
             );
-            newTableGrRecord.uom_conversion = isAltUOM.base_qty;
+            newTableGrRecord.uom_conversion = isAltUOM.alt_qty;
           }
         }
 

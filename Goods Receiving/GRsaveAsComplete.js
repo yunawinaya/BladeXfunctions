@@ -493,7 +493,15 @@ const addInventory = async (
   };
 
   // Function to process item_balance for both batched and non-batched items
-  const processItemBalance = async (item, itemBalanceParams, block_qty, reserved_qty, unrestricted_qty, qualityinsp_qty, intransit_qty) => {
+  const processItemBalance = async (
+    item,
+    itemBalanceParams,
+    block_qty,
+    reserved_qty,
+    unrestricted_qty,
+    qualityinsp_qty,
+    intransit_qty
+  ) => {
     try {
       // Get current item balance records
       const balanceResponse = await db
@@ -510,9 +518,7 @@ const addInventory = async (
         `Item ${item.item_id}: Found existing balance: ${hasExistingBalance}`
       );
 
-      const existingDoc = hasExistingBalance
-        ? balanceResponse.data[0]
-        : null;
+      const existingDoc = hasExistingBalance ? balanceResponse.data[0] : null;
 
       let balance_quantity;
 
@@ -589,7 +595,10 @@ const addInventory = async (
         );
       }
     } catch (error) {
-      console.error(`Error processing item_balance for item ${item.item_id}:`, error);
+      console.error(
+        `Error processing item_balance for item ${item.item_id}:`,
+        error
+      );
       throw error;
     }
   };
@@ -623,7 +632,8 @@ const addInventory = async (
       }
 
       // Calculate base quantity per serial number
-      const baseQtyPerSerial = serialQuantity > 0 ? baseQty / serialQuantity : 0;
+      const baseQtyPerSerial =
+        serialQuantity > 0 ? baseQty / serialQuantity : 0;
 
       // Initialize aggregated quantities
       let aggregated_block_qty = 0;
@@ -652,10 +662,16 @@ const addInventory = async (
 
       console.log(
         `Aggregated serial quantities for item ${item.item_id}: ` +
-        `Total serial count: ${serialQuantity}, ` +
-        `Category: ${item.inv_category}, ` +
-        `Per-serial qty: ${baseQtyPerSerial}, ` +
-        `Total aggregated: ${aggregated_block_qty + aggregated_reserved_qty + aggregated_unrestricted_qty + aggregated_qualityinsp_qty + aggregated_intransit_qty}`
+          `Total serial count: ${serialQuantity}, ` +
+          `Category: ${item.inv_category}, ` +
+          `Per-serial qty: ${baseQtyPerSerial}, ` +
+          `Total aggregated: ${
+            aggregated_block_qty +
+            aggregated_reserved_qty +
+            aggregated_unrestricted_qty +
+            aggregated_qualityinsp_qty +
+            aggregated_intransit_qty
+          }`
       );
 
       return {
@@ -664,10 +680,13 @@ const addInventory = async (
         unrestricted_qty: roundQty(aggregated_unrestricted_qty),
         qualityinsp_qty: roundQty(aggregated_qualityinsp_qty),
         intransit_qty: roundQty(aggregated_intransit_qty),
-        serial_count: serialQuantity
+        serial_count: serialQuantity,
       };
     } catch (error) {
-      console.error(`Error calculating aggregated serial quantities for item ${item.item_id}:`, error);
+      console.error(
+        `Error calculating aggregated serial quantities for item ${item.item_id}:`,
+        error
+      );
       return null;
     }
   };
@@ -1258,11 +1277,12 @@ const addInventory = async (
         itemData.table_uom_conversion.length > 0
       ) {
         const uomConversion = itemData.table_uom_conversion.find(
-          (conv) => conv.alt_uom_id === altUOM
+          (conv) =>
+            conv.alt_uom_id === altUOM && conv.alt_uom_id !== conv.base_uom_id
         );
 
         if (uomConversion) {
-          baseQty = roundQty(altQty * uomConversion.base_qty);
+          baseQty = roundQty(altQty / uomConversion.alt_qty);
           console.log(
             `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM} for serial processing`
           );
@@ -1614,7 +1634,8 @@ const addInventory = async (
         console.log(`Checking UOM conversions for item ${item.item_id}`);
 
         const uomConversion = itemData.table_uom_conversion.find(
-          (conv) => conv.alt_uom_id === altUOM
+          (conv) =>
+            conv.alt_uom_id === altUOM && conv.alt_uom_id !== conv.base_uom_id
         );
 
         if (uomConversion) {
@@ -1622,7 +1643,7 @@ const addInventory = async (
             `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
           );
 
-          baseQty = roundQty(altQty * uomConversion.base_qty);
+          baseQty = roundQty(altQty / uomConversion.alt_qty);
 
           console.log(`Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`);
         } else {
@@ -1869,10 +1890,21 @@ const addInventory = async (
           // Also create/update item_balance for batched items (both serialized and non-serialized)
           if (!isSerializedItem) {
             // Non-serialized items: use existing quantities
-            await processItemBalance(item, itemBalanceParams, block_qty, reserved_qty, unrestricted_qty, qualityinsp_qty, intransit_qty);
+            await processItemBalance(
+              item,
+              itemBalanceParams,
+              block_qty,
+              reserved_qty,
+              unrestricted_qty,
+              qualityinsp_qty,
+              intransit_qty
+            );
           } else {
             // Serialized items: calculate aggregated quantities from serial number data
-            const aggregatedQuantities = calculateAggregatedSerialQuantities(item, baseQty);
+            const aggregatedQuantities = calculateAggregatedSerialQuantities(
+              item,
+              baseQty
+            );
             if (aggregatedQuantities) {
               await processItemBalance(
                 item,
@@ -1883,9 +1915,13 @@ const addInventory = async (
                 aggregatedQuantities.qualityinsp_qty,
                 aggregatedQuantities.intransit_qty
               );
-              console.log(`Created item_balance record for serialized batch item ${item.item_id} with ${aggregatedQuantities.serial_count} serial numbers`);
+              console.log(
+                `Created item_balance record for serialized batch item ${item.item_id} with ${aggregatedQuantities.serial_count} serial numbers`
+              );
             } else {
-              console.log("Skipped item_balance creation for serialized batch item - no valid serial data");
+              console.log(
+                "Skipped item_balance creation for serialized batch item - no valid serial data"
+              );
             }
           }
 
@@ -1956,10 +1992,21 @@ const addInventory = async (
           // Process item_balance for both serialized and non-serialized items
           if (!isSerializedItem) {
             // Non-serialized items: use existing quantities
-            await processItemBalance(item, itemBalanceParams, block_qty, reserved_qty, unrestricted_qty, qualityinsp_qty, intransit_qty);
+            await processItemBalance(
+              item,
+              itemBalanceParams,
+              block_qty,
+              reserved_qty,
+              unrestricted_qty,
+              qualityinsp_qty,
+              intransit_qty
+            );
           } else {
             // Serialized items: calculate aggregated quantities from serial number data
-            const aggregatedQuantities = calculateAggregatedSerialQuantities(item, baseQty);
+            const aggregatedQuantities = calculateAggregatedSerialQuantities(
+              item,
+              baseQty
+            );
             if (aggregatedQuantities) {
               await processItemBalance(
                 item,
@@ -1970,9 +2017,13 @@ const addInventory = async (
                 aggregatedQuantities.qualityinsp_qty,
                 aggregatedQuantities.intransit_qty
               );
-              console.log(`Created item_balance record for serialized non-batch item ${item.item_id} with ${aggregatedQuantities.serial_count} serial numbers`);
+              console.log(
+                `Created item_balance record for serialized non-batch item ${item.item_id} with ${aggregatedQuantities.serial_count} serial numbers`
+              );
             } else {
-              console.log("Skipped item_balance creation for serialized non-batch item - no valid serial data");
+              console.log(
+                "Skipped item_balance creation for serialized non-batch item - no valid serial data"
+              );
             }
           }
 

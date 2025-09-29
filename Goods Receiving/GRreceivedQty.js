@@ -33,113 +33,14 @@
       uomConversion,
     });
 
-    // Calculate remaining quantity to receive
-    const toReceivedQty = orderedQty - initialReceivedQty;
+    const receivedQty = quantity * uomConversion;
 
-    // Handle case when UOM conversion is 0 or not applicable
-    if (quantity >= 0 && uomConversion === 0) {
-      if (quantity > toReceivedQty) {
-        console.warn(
-          `Quantity (${quantity}) exceeds remaining quantity (${toReceivedQty})`
-        );
+    const toReceivedQty = baseOrderedQty - receivedQty - initialReceivedQty;
 
-        await this.setData({
-          [`table_gr.${rowIndex}.received_qty`]: quantity,
-          [`table_gr.${rowIndex}.base_received_qty`]: quantity,
-          [`table_gr.${rowIndex}.to_received_qty`]: "0,000",
-        });
-
-        // Show warning message
-        this.$message.warning(
-          `Received quantity exceeds remaining quantity. Remaining set to 0.`
-        );
-        return;
-      } else {
-        const totalReceivedQty = quantity + initialReceivedQty;
-        const remainingQty = orderedQty - totalReceivedQty;
-        const formattedRemainingQty = parseFloat(remainingQty.toFixed(3))
-          .toString()
-          .replace(".", ",");
-
-        await this.setData({
-          [`table_gr.${rowIndex}.received_qty`]: quantity,
-          [`table_gr.${rowIndex}.base_received_qty`]: quantity,
-          [`table_gr.${rowIndex}.to_received_qty`]: formattedRemainingQty,
-        });
-
-        console.log(
-          `Updated quantities - Received: ${quantity}, Remaining: ${formattedRemainingQty}`
-        );
-      }
-    }
-
-    // Handle case when UOM conversion is applicable
-    if (uomConversion > 0 && quantity >= 0) {
-      // Calculate base quantities using conversion
-      const baseReceivedQty = quantity * uomConversion;
-      const baseInitialReceivedQty = initialReceivedQty * uomConversion;
-      const baseToReceivedQty =
-        baseOrderedQty - baseInitialReceivedQty - baseReceivedQty;
-
-      // Validate that we don't exceed base ordered quantity
-      if (baseReceivedQty + baseInitialReceivedQty > baseOrderedQty) {
-        console.warn(
-          `Base received quantity (${
-            baseReceivedQty + baseInitialReceivedQty
-          }) exceeds base ordered quantity (${baseOrderedQty})`
-        );
-
-        const maxAllowedQty =
-          (baseOrderedQty - baseInitialReceivedQty) / uomConversion;
-        const formattedMaxQty = parseFloat(maxAllowedQty.toFixed(3));
-
-        await this.setData({
-          [`table_gr.${rowIndex}.received_qty`]: formattedMaxQty,
-          [`table_gr.${rowIndex}.base_received_qty`]:
-            baseOrderedQty - baseInitialReceivedQty,
-          [`table_gr.${rowIndex}.to_received_qty`]: "0,000",
-        });
-
-        this.$message.warning(
-          `Quantity adjusted to maximum allowed: ${formattedMaxQty}`
-        );
-        return;
-      }
-
-      // Format remaining quantity with comma as decimal separator
-      const formattedBaseToReceivedQty = parseFloat(
-        baseToReceivedQty.toFixed(3)
-      )
-        .toString()
-        .replace(".", ",");
-
-      await this.setData({
-        [`table_gr.${rowIndex}.received_qty`]: quantity,
-        [`table_gr.${rowIndex}.base_received_qty`]: baseReceivedQty,
-        [`table_gr.${rowIndex}.to_received_qty`]: formattedBaseToReceivedQty,
-      });
-
-      console.log("UOM conversion calculation:", {
-        receivedQty: quantity,
-        baseReceivedQty,
-        baseToReceivedQty: formattedBaseToReceivedQty,
-        conversionFactor: uomConversion,
-      });
-    }
-
-    // Handle negative quantity
-    if (quantity < 0) {
-      console.warn("Negative quantity entered");
-      this.$message.error("Quantity cannot be negative");
-
-      await this.setData({
-        [`table_gr.${rowIndex}.received_qty`]: 0,
-        [`table_gr.${rowIndex}.base_received_qty`]: 0,
-        [`table_gr.${rowIndex}.to_received_qty`]: toReceivedQty
-          .toString()
-          .replace(".", ","),
-      });
-    }
+    await this.setData({
+      [`table_gr.${rowIndex}.received_qty`]: receivedQty,
+      [`table_gr.${rowIndex}.to_received_qty`]: toReceivedQty,
+    });
   } catch (error) {
     console.error("Error in quantity calculation:", error);
 
