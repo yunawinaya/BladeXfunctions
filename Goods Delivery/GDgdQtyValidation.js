@@ -9,6 +9,7 @@ const gd_initial_delivered_qty = parseFloat(
 const gdUndeliveredQty = order_quantity - gd_initial_delivered_qty;
 const quantity = value;
 const materialId = data.table_gd[index].material_id;
+const currentUOM = data.table_gd[index].gd_order_uom_id;
 
 // Create or use a global validation state
 if (!window.validationState) {
@@ -56,21 +57,56 @@ for (let i = 0; i < data.table_gd.length; i++) {
 
     const itemData = itemRes.data[0];
 
+    // Function to convert quantity to base UOM
+    const convertToBaseUOM = (qty, fromUOM, itemData) => {
+      if (!qty || !fromUOM || !itemData) return qty;
+
+      const baseUOM = itemData.based_uom;
+      if (fromUOM === baseUOM) return qty;
+
+      const table_uom_conversion = itemData.table_uom_conversion;
+      if (!Array.isArray(table_uom_conversion)) return qty;
+
+      const fromConversion = table_uom_conversion.find(
+        (conv) => conv.alt_uom_id === fromUOM
+      );
+
+      if (fromConversion && fromConversion.alt_qty) {
+        return qty / fromConversion.alt_qty;
+      }
+
+      return qty;
+    };
+
+    // Convert quantities to base UOM for validation
+    const quantityBase = convertToBaseUOM(quantity, currentUOM, itemData);
+    const currentItemQtyTotalBase = convertToBaseUOM(currentItemQtyTotal, currentUOM, itemData);
+    const gdUndeliveredQtyBase = convertToBaseUOM(gdUndeliveredQty, currentUOM, itemData);
+
+    console.log("UOM Conversion Debug:", {
+      originalQuantity: quantity,
+      quantityBase,
+      currentUOM,
+      baseUOM: itemData.based_uom,
+      currentItemQtyTotal,
+      currentItemQtyTotalBase
+    });
+
     // Skip validation if stock control is disabled
     if (itemData.stock_control === 0) {
       console.log(
         `Stock control disabled for item ${materialId}, skipping inventory validation`
       );
 
-      // Still check order limits
-      let orderLimit = gdUndeliveredQty;
+      // Still check order limits (use base quantities)
+      let orderLimitBase = gdUndeliveredQtyBase;
       if (itemData.over_delivery_tolerance > 0) {
-        orderLimit =
-          gdUndeliveredQty +
-          gdUndeliveredQty * (itemData.over_delivery_tolerance / 100);
+        orderLimitBase =
+          gdUndeliveredQtyBase +
+          gdUndeliveredQtyBase * (itemData.over_delivery_tolerance / 100);
       }
 
-      if (quantity > orderLimit) {
+      if (quantityBase > orderLimitBase) {
         window.validationState[index] = false;
         callback("Quantity exceeds delivery limit");
       } else {
@@ -88,17 +124,17 @@ for (let i = 0; i < data.table_gd.length; i++) {
       `Item ${materialId} - Serialized: ${isSerializedItem}, Batch: ${isBatchManagedItem}`
     );
 
-    // Calculate order limit with tolerance
-    let orderLimit = gdUndeliveredQty;
+    // Calculate order limit with tolerance (use base quantities)
+    let orderLimitBase = gdUndeliveredQtyBase;
     if (itemData.over_delivery_tolerance > 0) {
-      orderLimit =
-        gdUndeliveredQty +
-        gdUndeliveredQty * (itemData.over_delivery_tolerance / 100);
+      orderLimitBase =
+        gdUndeliveredQtyBase +
+        gdUndeliveredQtyBase * (itemData.over_delivery_tolerance / 100);
     }
 
     // Check order limit first (business rule validation)
-    if (quantity > orderLimit) {
-      console.log("Order limit exceeded:", { orderLimit, quantity });
+    if (quantityBase > orderLimitBase) {
+      console.log("Order limit exceeded:", { orderLimitBase, quantityBase });
       window.validationState[index] = false;
       callback("Quantity exceeds delivery limit");
       return;
@@ -127,18 +163,28 @@ for (let i = 0; i < data.table_gd.length; i++) {
         let totalAvailableQty = 0;
 
         prevTempData.forEach((tempItem) => {
-          const unrestricted_qty = parseFloat(tempItem.unrestricted_qty || 0);
-          const reserved_qty = parseFloat(tempItem.reserved_qty || 0);
-          totalAvailableQty += unrestricted_qty + reserved_qty;
+          // temp_qty_data is already in goodDeliveryUOM, convert to base for validation
+          const gdUOM = data.table_gd[index].gd_order_uom_id;
+          const unrestricted_qty_base = convertToBaseUOM(
+            parseFloat(tempItem.unrestricted_qty || 0),
+            gdUOM,
+            itemData
+          );
+          const reserved_qty_base = convertToBaseUOM(
+            parseFloat(tempItem.reserved_qty || 0),
+            gdUOM,
+            itemData
+          );
+          totalAvailableQty += unrestricted_qty_base + reserved_qty_base;
         });
 
         console.log(`Created GD validation for ${materialId}:`, {
           totalAvailableQty,
-          currentItemQtyTotal,
+          currentItemQtyTotalBase,
           isSerializedItem,
         });
 
-        if (totalAvailableQty < currentItemQtyTotal) {
+        if (totalAvailableQty < currentItemQtyTotalBase) {
           window.validationState[index] = false;
           callback(`Insufficient total inventory`);
           return;
@@ -161,7 +207,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
           .get();
 
         if (resSerialBalance?.data?.length > 0) {
-          // Sum up unrestricted quantities from all serial numbers
+          // Sum up unrestricted quantities from all serial numbers (already in base UOM)
           availableQty = resSerialBalance.data.reduce((total, balance) => {
             return total + parseFloat(balance.unrestricted_qty || 0);
           }, 0);
@@ -169,7 +215,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
 
         console.log(`Draft GD validation for SERIALIZED item ${materialId}:`, {
           availableQty,
-          currentItemQtyTotal,
+          currentItemQtyTotalBase,
           serialCount: resSerialBalance?.data?.length || 0,
         });
       } else if (isBatchManagedItem) {
@@ -185,7 +231,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
           .get();
 
         if (resItemBalance?.data?.length > 0) {
-          // Sum up unrestricted quantities from all batches/locations
+          // Sum up unrestricted quantities from all batches/locations (already in base UOM)
           availableQty = resItemBalance.data.reduce((total, balance) => {
             return total + parseFloat(balance.unrestricted_qty || 0);
           }, 0);
@@ -193,7 +239,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
 
         console.log(`Draft GD validation for BATCH item ${materialId}:`, {
           availableQty,
-          currentItemQtyTotal,
+          currentItemQtyTotalBase,
           batchCount: resItemBalance?.data?.length || 0,
         });
       } else {
@@ -209,7 +255,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
           .get();
 
         if (resItemBalance?.data?.length > 0) {
-          // Sum up unrestricted quantities from all locations
+          // Sum up unrestricted quantities from all locations (already in base UOM)
           availableQty = resItemBalance.data.reduce((total, balance) => {
             return total + parseFloat(balance.unrestricted_qty || 0);
           }, 0);
@@ -217,12 +263,12 @@ for (let i = 0; i < data.table_gd.length; i++) {
 
         console.log(`Draft GD validation for REGULAR item ${materialId}:`, {
           availableQty,
-          currentItemQtyTotal,
+          currentItemQtyTotalBase,
           locationCount: resItemBalance?.data?.length || 0,
         });
       }
 
-      if (availableQty < currentItemQtyTotal) {
+      if (availableQty < currentItemQtyTotalBase) {
         window.validationState[index] = false;
         callback(`Insufficient unrestricted inventory`);
         return;
@@ -233,7 +279,8 @@ for (let i = 0; i < data.table_gd.length; i++) {
     console.log("All validations passed for:", {
       materialId,
       quantity,
-      orderLimit,
+      quantityBase,
+      orderLimitBase,
       isSerializedItem,
     });
     window.validationState[index] = true;
