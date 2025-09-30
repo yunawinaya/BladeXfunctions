@@ -488,7 +488,7 @@ const updateInventory = async (data, plantId, organizationId) => {
               `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
             );
 
-            baseQty = roundQty(altQty * uomConversion.base_qty);
+            baseQty = roundQty(altQty / uomConversion.alt_qty);
 
             console.log(
               `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
