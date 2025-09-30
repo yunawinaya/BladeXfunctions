@@ -1344,7 +1344,7 @@ const processBalanceTable = async (
                       reserved: reservedQty,
                       individualQty: roundQty(temp.gd_quantity),
                       individualBaseQty: uomConversion
-                        ? roundQty(temp.gd_quantity * uomConversion.base_qty)
+                        ? roundQty(temp.gd_quantity / uomConversion.alt_qty)
                         : roundQty(temp.gd_quantity),
                     });
 
@@ -1663,7 +1663,7 @@ const processBalanceTable = async (
 
                   // Calculate alternative UOM for unused quantity
                   const unusedAltQty = uomConversion
-                    ? roundQty(unusedReservedQty / uomConversion.base_qty)
+                    ? roundQty(unusedReservedQty * uomConversion.alt_qty)
                     : unusedReservedQty;
 
                   // Create movement to release unused reserved back to unrestricted
@@ -1876,7 +1876,7 @@ const processBalanceTable = async (
                       let individualBaseQty = roundQty(temp.gd_quantity);
                       if (uomConversion) {
                         individualBaseQty = roundQty(
-                          individualBaseQty * uomConversion.base_qty
+                          individualBaseQty / uomConversion.alt_qty
                         );
                       }
 

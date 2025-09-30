@@ -1288,7 +1288,7 @@ const processItemBalance = async (
             let individualBaseQty = roundQty(temp.gd_quantity);
             if (uomConversion) {
               individualBaseQty = roundQty(
-                individualBaseQty * uomConversion.base_qty
+                individualBaseQty / uomConversion.alt_qty
               );
             }
 
@@ -1419,7 +1419,7 @@ const processItemBalance = async (
               let individualBaseQty = roundQty(temp.gd_quantity);
               if (uomConversion) {
                 individualBaseQty = roundQty(
-                  individualBaseQty * uomConversion.base_qty
+                  individualBaseQty / uomConversion.alt_qty
                 );
               }
 
