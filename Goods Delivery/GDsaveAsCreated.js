@@ -3140,6 +3140,11 @@ const fetchDeliveredQuantity = async () => {
             await db.collection("goods_delivery").doc(gdId).update({
               picking_status: pickingStatus,
             });
+
+            await db
+              .collection("goods_delivery_fwii8mvb_sub")
+              .where({ goods_delivery_id: gdId })
+              .update({ picking_status: pickingStatus });
           }
         } catch (pickingError) {
           console.error("Error handling picking:", pickingError);
