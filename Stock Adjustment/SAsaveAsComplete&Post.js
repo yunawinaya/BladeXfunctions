@@ -1575,17 +1575,25 @@ const updateInventory = async (allData) => {
               );
             }
           }
+
+          await logTableState(
+            "inventory_movement",
+            { trx_no: allData.adjustment_no, item_id: item.material_id },
+            `After adding inventory movement for adjustment ${allData.adjustment_no}, material ${item.material_id}`
+          );
+
+          return singleMovementId;
         } else {
           console.error("Failed to retrieve single inventory movement");
+
+          await logTableState(
+            "inventory_movement",
+            { trx_no: allData.adjustment_no, item_id: item.material_id },
+            `After adding inventory movement for adjustment ${allData.adjustment_no}, material ${item.material_id}`
+          );
+
+          return null;
         }
-
-        await logTableState(
-          "inventory_movement",
-          { trx_no: allData.adjustment_no, item_id: item.material_id },
-          `After adding inventory movement for adjustment ${allData.adjustment_no}, material ${item.material_id}`
-        );
-
-        return invMovementResult;
       };
 
       if (adjustment_type === "Write Off") {

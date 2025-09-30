@@ -1188,6 +1188,102 @@ class ReceivingIOFTProcessor {
             .collection(collectionName)
             .add(newBalanceData);
 
+          // ✅ CRITICAL FIX: For batched items, also update item_balance (aggregated across all batches)
+          if (isBatchManaged && collectionName === "item_batch_balance") {
+            try {
+              const generalItemBalanceParams = {
+                material_id: materialId,
+                location_id: locationId,
+                plant_id: plantId,
+                organization_id: organizationId,
+              };
+
+              // Don't include batch_id in item_balance query (aggregated balance across all batches)
+              const generalBalanceQuery = await this.db
+                .collection("item_balance")
+                .where(generalItemBalanceParams)
+                .get();
+
+              if (
+                generalBalanceQuery.data &&
+                generalBalanceQuery.data.length > 0
+              ) {
+                // Update existing item_balance record
+                const generalBalance = generalBalanceQuery.data[0];
+
+                const currentGeneralBalanceQty = parseFloat(
+                  generalBalance.balance_quantity || 0
+                );
+                const currentGeneralCategoryQty = parseFloat(
+                  generalBalance[categoryField] || 0
+                );
+
+                const generalUpdateData = {
+                  balance_quantity: this.roundQty(
+                    currentGeneralBalanceQty + formattedQuantity
+                  ),
+                  [categoryField]: this.roundQty(
+                    currentGeneralCategoryQty + formattedQuantity
+                  ),
+                  update_time: new Date().toISOString(),
+                };
+
+                await this.db
+                  .collection("item_balance")
+                  .doc(generalBalance.id)
+                  .update(generalUpdateData);
+
+                console.log(
+                  `Updated aggregated item_balance for receiving balance (IOFT), material ${materialId}`
+                );
+              } else {
+                // Create new item_balance record if it doesn't exist
+                const generalUpdateData = {
+                  material_id: materialId,
+                  location_id: locationId,
+                  plant_id: plantId,
+                  organization_id: organizationId,
+                  balance_quantity: this.roundQty(formattedQuantity),
+                  unrestricted_qty:
+                    categoryField === "unrestricted_qty"
+                      ? this.roundQty(formattedQuantity)
+                      : 0,
+                  qualityinsp_qty:
+                    categoryField === "qualityinsp_qty"
+                      ? this.roundQty(formattedQuantity)
+                      : 0,
+                  block_qty:
+                    categoryField === "block_qty"
+                      ? this.roundQty(formattedQuantity)
+                      : 0,
+                  reserved_qty:
+                    categoryField === "reserved_qty"
+                      ? this.roundQty(formattedQuantity)
+                      : 0,
+                  intransit_qty:
+                    categoryField === "intransit_qty"
+                      ? this.roundQty(formattedQuantity)
+                      : 0,
+                  create_time: new Date().toISOString(),
+                  update_time: new Date().toISOString(),
+                  is_deleted: 0,
+                };
+
+                await this.db.collection("item_balance").add(generalUpdateData);
+
+                console.log(
+                  `Created new aggregated item_balance for receiving balance (IOFT), material ${materialId}`
+                );
+              }
+            } catch (error) {
+              console.error(
+                `Error updating aggregated item_balance for receiving balance (IOFT), material ${materialId}:`,
+                error
+              );
+              // Don't throw - let the main process continue
+            }
+          }
+
           return {
             balanceId: response.data[0].id,
             materialId,
@@ -1196,99 +1292,6 @@ class ReceivingIOFTProcessor {
           };
         } catch (err) {
           throw new Error(`Failed to create receiving balance: ${err.message}`);
-        }
-      }
-
-      // ✅ CRITICAL FIX: For batched items, also update item_balance (aggregated across all batches)
-      if (isBatchManaged && collectionName === "item_batch_balance") {
-        try {
-          const generalItemBalanceParams = {
-            material_id: materialId,
-            location_id: locationId,
-            plant_id: plantId,
-            organization_id: organizationId,
-          };
-
-          // Don't include batch_id in item_balance query (aggregated balance across all batches)
-          const generalBalanceQuery = await this.db
-            .collection("item_balance")
-            .where(generalItemBalanceParams)
-            .get();
-
-          if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
-            // Update existing item_balance record
-            const generalBalance = generalBalanceQuery.data[0];
-
-            const currentGeneralBalanceQty = parseFloat(
-              generalBalance.balance_quantity || 0
-            );
-            const currentGeneralCategoryQty = parseFloat(
-              generalBalance[categoryField] || 0
-            );
-
-            const generalUpdateData = {
-              balance_quantity: this.roundQty(
-                currentGeneralBalanceQty + formattedQuantity
-              ),
-              [categoryField]: this.roundQty(
-                currentGeneralCategoryQty + formattedQuantity
-              ),
-              update_time: new Date().toISOString(),
-            };
-
-            await this.db
-              .collection("item_balance")
-              .doc(generalBalance.id)
-              .update(generalUpdateData);
-
-            console.log(
-              `Updated aggregated item_balance for receiving balance (IOFT), material ${materialId}`
-            );
-          } else {
-            // Create new item_balance record if it doesn't exist
-            const generalUpdateData = {
-              material_id: materialId,
-              location_id: locationId,
-              plant_id: plantId,
-              organization_id: organizationId,
-              balance_quantity: this.roundQty(formattedQuantity),
-              unrestricted_qty:
-                categoryField === "unrestricted_qty"
-                  ? this.roundQty(formattedQuantity)
-                  : 0,
-              qualityinsp_qty:
-                categoryField === "qualityinsp_qty"
-                  ? this.roundQty(formattedQuantity)
-                  : 0,
-              block_qty:
-                categoryField === "block_qty"
-                  ? this.roundQty(formattedQuantity)
-                  : 0,
-              reserved_qty:
-                categoryField === "reserved_qty"
-                  ? this.roundQty(formattedQuantity)
-                  : 0,
-              intransit_qty:
-                categoryField === "intransit_qty"
-                  ? this.roundQty(formattedQuantity)
-                  : 0,
-              create_time: new Date().toISOString(),
-              update_time: new Date().toISOString(),
-              is_deleted: 0,
-            };
-
-            await this.db.collection("item_balance").add(generalUpdateData);
-
-            console.log(
-              `Created new aggregated item_balance for receiving balance (IOFT), material ${materialId}`
-            );
-          }
-        } catch (error) {
-          console.error(
-            `Error updating aggregated item_balance for receiving balance (IOFT), material ${materialId}:`,
-            error
-          );
-          // Don't throw - let the main process continue
         }
       }
     }

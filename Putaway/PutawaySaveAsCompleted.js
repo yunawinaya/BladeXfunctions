@@ -479,7 +479,7 @@ const addInventoryMovementData = async (
     if (matData.item_uom !== itemData.based_uom) {
       for (const uom of itemData.table_uom_conversion) {
         if (matData.item_uom === uom.alt_uom_id) {
-          basedQty = roundQty(matData.putaway_qty * uom.base_qty);
+          basedQty = roundQty(matData.putaway_qty / uom.alt_qty);
         }
       }
     } else if (matData.item_uom === itemData.based_uom) {
@@ -629,6 +629,178 @@ const processSerializedItemMovement = async (
           );
           throw serialError;
         }
+      }
+
+      // ✅ CRITICAL FIX: For serialized items, also update item_balance (aggregated across all serial numbers)
+      try {
+        const generalItemBalanceParams = {
+          material_id: matData.item_code,
+          location_id:
+            movementType === "OUT"
+              ? matData.source_bin
+              : matData.target_location,
+          plant_id: data.plant_id,
+          organization_id: data.organization_id,
+        };
+        // Don't include serial_number in item_balance query (aggregated balance across all serials)
+
+        const generalBalanceQuery = await db
+          .collection("item_balance")
+          .where(generalItemBalanceParams)
+          .get();
+
+        const consolidatedQty = serialNumbers.length; // Each serial = 1 unit
+        const inventoryCategory =
+          movementType === "OUT"
+            ? matData.source_inv_category
+            : matData.target_inv_category;
+
+        if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+          // Update existing item_balance
+          const generalBalance = generalBalanceQuery.data[0];
+
+          const currentUnrestricted = parseFloat(
+            generalBalance.unrestricted_qty || 0
+          );
+          const currentReserved = parseFloat(generalBalance.reserved_qty || 0);
+          const currentQualityInsp = parseFloat(
+            generalBalance.qualityinsp_qty || 0
+          );
+          const currentBlocked = parseFloat(generalBalance.block_qty || 0);
+          const currentInTransit = parseFloat(
+            generalBalance.intransit_qty || 0
+          );
+
+          let newUnrestricted = currentUnrestricted;
+          let newReserved = currentReserved;
+          let newQualityInsp = currentQualityInsp;
+          let newBlocked = currentBlocked;
+          let newInTransit = currentInTransit;
+
+          if (movementType === "OUT") {
+            // Deduct from appropriate category
+            switch (inventoryCategory) {
+              case "Unrestricted":
+                newUnrestricted = Math.max(
+                  0,
+                  currentUnrestricted - consolidatedQty
+                );
+                break;
+              case "Reserved":
+                newReserved = Math.max(0, currentReserved - consolidatedQty);
+                break;
+              case "Quality Inspection":
+                newQualityInsp = Math.max(
+                  0,
+                  currentQualityInsp - consolidatedQty
+                );
+                break;
+              case "Blocked":
+                newBlocked = Math.max(0, currentBlocked - consolidatedQty);
+                break;
+              case "In Transit":
+                newInTransit = Math.max(0, currentInTransit - consolidatedQty);
+                break;
+              default:
+                newUnrestricted = Math.max(
+                  0,
+                  currentUnrestricted - consolidatedQty
+                );
+            }
+          } else if (movementType === "IN") {
+            // Add to appropriate category
+            switch (inventoryCategory) {
+              case "Unrestricted":
+                newUnrestricted = currentUnrestricted + consolidatedQty;
+                break;
+              case "Reserved":
+                newReserved = currentReserved + consolidatedQty;
+                break;
+              case "Quality Inspection":
+                newQualityInsp = currentQualityInsp + consolidatedQty;
+                break;
+              case "Blocked":
+                newBlocked = currentBlocked + consolidatedQty;
+                break;
+              case "In Transit":
+                newInTransit = currentInTransit + consolidatedQty;
+                break;
+              default:
+                newUnrestricted = currentUnrestricted + consolidatedQty;
+            }
+          }
+
+          const updateData = {
+            unrestricted_qty: newUnrestricted,
+            reserved_qty: newReserved,
+            qualityinsp_qty: newQualityInsp,
+            block_qty: newBlocked,
+            intransit_qty: newInTransit,
+            updated_at: new Date(),
+          };
+
+          // Calculate balance_quantity if it exists
+          if (generalBalance.hasOwnProperty("balance_quantity")) {
+            updateData.balance_quantity =
+              newUnrestricted +
+              newReserved +
+              newQualityInsp +
+              newBlocked +
+              newInTransit;
+          }
+
+          await db
+            .collection("item_balance")
+            .doc(generalBalance.id)
+            .update(updateData);
+
+          console.log(
+            `✓ Updated item_balance for serialized item ${
+              matData.item_code
+            } ${movementType} movement: ${inventoryCategory} qty ${
+              movementType === "OUT" ? "-" : "+"
+            }${consolidatedQty}`
+          );
+        } else if (movementType === "IN") {
+          // Create new item_balance record for IN movement
+          const itemBalanceData = {
+            material_id: matData.item_code,
+            location_id: matData.target_location,
+            unrestricted_qty:
+              inventoryCategory === "Unrestricted" ? consolidatedQty : 0,
+            reserved_qty:
+              inventoryCategory === "Reserved" ? consolidatedQty : 0,
+            qualityinsp_qty:
+              inventoryCategory === "Quality Inspection" ? consolidatedQty : 0,
+            block_qty: inventoryCategory === "Blocked" ? consolidatedQty : 0,
+            intransit_qty:
+              inventoryCategory === "In Transit" ? consolidatedQty : 0,
+            plant_id: data.plant_id,
+            organization_id: data.organization_id,
+            material_uom: itemData.based_uom,
+            created_at: new Date(),
+            updated_at: new Date(),
+          };
+
+          // Calculate balance_quantity
+          itemBalanceData.balance_quantity =
+            itemBalanceData.unrestricted_qty +
+            itemBalanceData.reserved_qty +
+            itemBalanceData.qualityinsp_qty +
+            itemBalanceData.block_qty +
+            itemBalanceData.intransit_qty;
+
+          await db.collection("item_balance").add(itemBalanceData);
+          console.log(
+            `✓ Created item_balance for serialized item ${matData.item_code} IN movement: ${inventoryCategory} qty +${consolidatedQty}`
+          );
+        }
+      } catch (itemBalanceError) {
+        console.error(
+          `Error updating item_balance for serialized item ${matData.item_code}:`,
+          itemBalanceError
+        );
+        throw itemBalanceError;
       }
 
       console.log(
@@ -1043,6 +1215,143 @@ const processBalanceTable = async (balanceUpdates) => {
         console.log("Updating existing balance record", updatedBalance);
         await db.collection(collection).doc(record.id).update(updatedBalance);
         console.log("Balance record updated successfully");
+
+        // ✅ CRITICAL FIX: For batched items, also update item_balance (aggregated across all batches)
+        if (collection === "item_batch_balance") {
+          try {
+            const generalItemBalanceParams = {
+              material_id: update.material_id,
+              location_id: update.location_id,
+              plant_id: update.plant_id,
+              organization_id: update.organization_id,
+            };
+            // Don't include batch_id in item_balance query (aggregated balance across all batches)
+
+            const generalBalanceQuery = await db
+              .collection("item_balance")
+              .where(generalItemBalanceParams)
+              .get();
+
+            if (
+              generalBalanceQuery.data &&
+              generalBalanceQuery.data.length > 0
+            ) {
+              // Update existing item_balance
+              const generalBalance = generalBalanceQuery.data[0];
+
+              const currentUnrestricted = parseFloat(
+                generalBalance.unrestricted_qty || 0
+              );
+              const currentReserved = parseFloat(
+                generalBalance.reserved_qty || 0
+              );
+              const currentQualityInsp = parseFloat(
+                generalBalance.qualityinsp_qty || 0
+              );
+              const currentBlocked = parseFloat(generalBalance.block_qty || 0);
+              const currentInTransit = parseFloat(
+                generalBalance.intransit_qty || 0
+              );
+
+              let newUnrestricted = currentUnrestricted;
+              let newReserved = currentReserved;
+              let newQualityInsp = currentQualityInsp;
+              let newBlocked = currentBlocked;
+              let newInTransit = currentInTransit;
+
+              if (update.movementType === "OUT") {
+                // Deduct from item_balance
+                newUnrestricted = Math.max(
+                  0,
+                  currentUnrestricted - update.unrestricted_qty
+                );
+                newReserved = Math.max(
+                  0,
+                  currentReserved - update.reserved_qty
+                );
+                newQualityInsp = Math.max(
+                  0,
+                  currentQualityInsp - update.qualityinsp_qty
+                );
+                newBlocked = Math.max(0, currentBlocked - update.block_qty);
+                newInTransit = Math.max(
+                  0,
+                  currentInTransit - update.intransit_qty
+                );
+              } else if (update.movementType === "IN") {
+                // Add to item_balance
+                newUnrestricted = currentUnrestricted + update.unrestricted_qty;
+                newReserved = currentReserved + update.reserved_qty;
+                newQualityInsp = currentQualityInsp + update.qualityinsp_qty;
+                newBlocked = currentBlocked + update.block_qty;
+                newInTransit = currentInTransit + update.intransit_qty;
+              }
+
+              const generalUpdateData = {
+                unrestricted_qty: newUnrestricted,
+                reserved_qty: newReserved,
+                qualityinsp_qty: newQualityInsp,
+                block_qty: newBlocked,
+                intransit_qty: newInTransit,
+                updated_at: new Date(),
+              };
+
+              // Calculate balance_quantity if it exists
+              if (generalBalance.hasOwnProperty("balance_quantity")) {
+                generalUpdateData.balance_quantity =
+                  newUnrestricted +
+                  newReserved +
+                  newQualityInsp +
+                  newBlocked +
+                  newInTransit;
+              }
+
+              await db
+                .collection("item_balance")
+                .doc(generalBalance.id)
+                .update(generalUpdateData);
+
+              console.log(
+                `✓ Updated item_balance for batch item ${update.material_id} ${update.movementType} movement at location ${update.location_id}`
+              );
+            } else if (update.movementType === "IN") {
+              // Create new item_balance record for IN movement
+              const itemBalanceData = {
+                material_id: update.material_id,
+                location_id: update.location_id,
+                unrestricted_qty: update.unrestricted_qty,
+                reserved_qty: update.reserved_qty,
+                qualityinsp_qty: update.qualityinsp_qty,
+                block_qty: update.block_qty,
+                intransit_qty: update.intransit_qty,
+                plant_id: update.plant_id,
+                organization_id: update.organization_id,
+                material_uom: update.material_uom,
+                created_at: new Date(),
+                updated_at: new Date(),
+              };
+
+              // Calculate balance_quantity
+              itemBalanceData.balance_quantity =
+                itemBalanceData.unrestricted_qty +
+                itemBalanceData.reserved_qty +
+                itemBalanceData.qualityinsp_qty +
+                itemBalanceData.block_qty +
+                itemBalanceData.intransit_qty;
+
+              await db.collection("item_balance").add(itemBalanceData);
+              console.log(
+                `✓ Created item_balance for batch item ${update.material_id} IN movement at location ${update.location_id}`
+              );
+            }
+          } catch (itemBalanceError) {
+            console.error(
+              `Error updating item_balance for batch item ${update.material_id}:`,
+              itemBalanceError
+            );
+            throw itemBalanceError;
+          }
+        }
       } else if (update.movementType === "IN") {
         console.log(
           "No existing balance record found for IN movement, creating new"
@@ -1082,10 +1391,10 @@ const processInventoryMovementandBalanceTable = async (
       if (matData.item_uom !== itemData.based_uom) {
         for (const uom of itemData.table_uom_conversion) {
           if (matData.item_uom === uom.alt_uom_id) {
-            const convertedQty = roundQty(quantity * uom.base_qty);
+            const convertedQty = roundQty(quantity / uom.alt_qty);
             console.log("UOM conversion applied", {
               convertedQty,
-              conversion_factor: uom.base_qty,
+              conversion_factor: uom.alt_qty,
             });
             return convertedQty;
           }

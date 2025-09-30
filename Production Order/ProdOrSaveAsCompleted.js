@@ -1296,6 +1296,98 @@ const updateSerialBalance = async (
   console.log(
     `Updated serial balance for ${serialNumber}: ${category}=${newCategoryQty}, Balance=${newBalanceQty}`
   );
+
+  // ✅ CRITICAL FIX: For serialized items, also update item_balance (aggregated across all serial numbers)
+  try {
+    const generalItemBalanceParams = {
+      material_id: materialId,
+      location_id: locationId,
+      plant_id: plantId,
+      organization_id: organizationId,
+    };
+    // Don't include serial_number in item_balance query (aggregated balance across all serials)
+
+    const generalBalanceQuery = await db
+      .collection("item_balance")
+      .where(generalItemBalanceParams)
+      .get();
+
+    if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+      // Update existing item_balance
+      const generalBalance = generalBalanceQuery.data[0];
+
+      const currentUnrestricted = parseFloat(
+        generalBalance.unrestricted_qty || 0
+      );
+      const currentReserved = parseFloat(generalBalance.reserved_qty || 0);
+      const currentQualityInsp = parseFloat(
+        generalBalance.qualityinsp_qty || 0
+      );
+      const currentBlocked = parseFloat(generalBalance.block_qty || 0);
+      const currentInTransit = parseFloat(generalBalance.intransit_qty || 0);
+      const currentBalanceQty = parseFloat(
+        generalBalance.balance_quantity || 0
+      );
+
+      let newUnrestricted = currentUnrestricted;
+      let newReserved = currentReserved;
+      let newQualityInsp = currentQualityInsp;
+      let newBlocked = currentBlocked;
+      let newInTransit = currentInTransit;
+
+      // Apply the same change to the appropriate category in item_balance
+      switch (categoryField) {
+        case "unrestricted_qty":
+          newUnrestricted = Math.max(0, currentUnrestricted + qtyChange);
+          break;
+        case "reserved_qty":
+          newReserved = Math.max(0, currentReserved + qtyChange);
+          break;
+        case "qualityinsp_qty":
+          newQualityInsp = Math.max(0, currentQualityInsp + qtyChange);
+          break;
+        case "block_qty":
+          newBlocked = Math.max(0, currentBlocked + qtyChange);
+          break;
+        case "intransit_qty":
+          newInTransit = Math.max(0, currentInTransit + qtyChange);
+          break;
+      }
+
+      const newBalanceQty = Math.max(0, currentBalanceQty + qtyChange);
+
+      const generalUpdateData = {
+        unrestricted_qty: parseFloat(newUnrestricted.toFixed(3)),
+        reserved_qty: parseFloat(newReserved.toFixed(3)),
+        qualityinsp_qty: parseFloat(newQualityInsp.toFixed(3)),
+        block_qty: parseFloat(newBlocked.toFixed(3)),
+        intransit_qty: parseFloat(newInTransit.toFixed(3)),
+        balance_quantity: parseFloat(newBalanceQty.toFixed(3)),
+        updated_at: new Date(),
+      };
+
+      await db
+        .collection("item_balance")
+        .doc(generalBalance.id)
+        .update(generalUpdateData);
+
+      console.log(
+        `✓ Updated item_balance for serialized item ${materialId} serial ${serialNumber}: ${category} ${
+          qtyChange > 0 ? "+" : ""
+        }${qtyChange}`
+      );
+    } else {
+      console.warn(
+        `No item_balance found for serialized item ${materialId} at location ${locationId} - serial balance update only`
+      );
+    }
+  } catch (itemBalanceError) {
+    console.error(
+      `Error updating item_balance for serialized item ${materialId}:`,
+      itemBalanceError
+    );
+    throw itemBalanceError;
+  }
 };
 
 const createOrUpdateReceivingSerialBalance = async (
@@ -1386,6 +1478,117 @@ const createOrUpdateReceivingSerialBalance = async (
       `Created new serial balance for ${serialNumber} at location ${locationId}`
     );
   }
+
+  // ✅ CRITICAL FIX: For serialized items, also update item_balance (aggregated across all serial numbers)
+  try {
+    const generalItemBalanceParams = {
+      material_id: materialId,
+      location_id: locationId,
+      plant_id: plantId,
+      organization_id: organizationId,
+    };
+    // Don't include serial_number in item_balance query (aggregated balance across all serials)
+
+    const generalBalanceQuery = await db
+      .collection("item_balance")
+      .where(generalItemBalanceParams)
+      .get();
+
+    if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+      // Update existing item_balance
+      const generalBalance = generalBalanceQuery.data[0];
+
+      const currentUnrestricted = parseFloat(
+        generalBalance.unrestricted_qty || 0
+      );
+      const currentReserved = parseFloat(generalBalance.reserved_qty || 0);
+      const currentQualityInsp = parseFloat(
+        generalBalance.qualityinsp_qty || 0
+      );
+      const currentBlocked = parseFloat(generalBalance.block_qty || 0);
+      const currentInTransit = parseFloat(generalBalance.intransit_qty || 0);
+      const currentBalanceQty = parseFloat(
+        generalBalance.balance_quantity || 0
+      );
+
+      let newUnrestricted = currentUnrestricted;
+      let newReserved = currentReserved;
+      let newQualityInsp = currentQualityInsp;
+      let newBlocked = currentBlocked;
+      let newInTransit = currentInTransit;
+
+      // Apply the same change to the appropriate category in item_balance
+      switch (category) {
+        case "Unrestricted":
+          newUnrestricted = currentUnrestricted + qtyChange;
+          break;
+        case "Reserved":
+          newReserved = currentReserved + qtyChange;
+          break;
+        case "Quality Inspection":
+          newQualityInsp = currentQualityInsp + qtyChange;
+          break;
+        case "Blocked":
+          newBlocked = currentBlocked + qtyChange;
+          break;
+        case "In Transit":
+          newInTransit = currentInTransit + qtyChange;
+          break;
+        default:
+          newUnrestricted = currentUnrestricted + qtyChange;
+      }
+
+      const newBalanceQty = currentBalanceQty + qtyChange;
+
+      const generalUpdateData = {
+        unrestricted_qty: parseFloat(newUnrestricted.toFixed(3)),
+        reserved_qty: parseFloat(newReserved.toFixed(3)),
+        qualityinsp_qty: parseFloat(newQualityInsp.toFixed(3)),
+        block_qty: parseFloat(newBlocked.toFixed(3)),
+        intransit_qty: parseFloat(newInTransit.toFixed(3)),
+        balance_quantity: parseFloat(newBalanceQty.toFixed(3)),
+        updated_at: new Date(),
+      };
+
+      await db
+        .collection("item_balance")
+        .doc(generalBalance.id)
+        .update(generalUpdateData);
+
+      console.log(
+        `✓ Updated item_balance for serialized item ${materialId} serial ${serialNumber} production receipt: ${category} +${qtyChange}`
+      );
+    } else {
+      // Create new item_balance record for production receipt
+      const itemBalanceData = {
+        material_id: materialId,
+        location_id: locationId,
+        unrestricted_qty: category === "Unrestricted" ? roundQty(qtyChange) : 0,
+        reserved_qty: category === "Reserved" ? roundQty(qtyChange) : 0,
+        qualityinsp_qty:
+          category === "Quality Inspection" ? roundQty(qtyChange) : 0,
+        block_qty: category === "Blocked" ? roundQty(qtyChange) : 0,
+        intransit_qty: category === "In Transit" ? roundQty(qtyChange) : 0,
+        balance_quantity: roundQty(qtyChange),
+        plant_id: plantId,
+        organization_id: organizationId,
+        material_uom: materialUom,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      await db.collection("item_balance").add(itemBalanceData);
+      console.log(
+        `✓ Created item_balance for serialized item ${materialId} serial ${serialNumber} production receipt: ${category} +${qtyChange}`
+      );
+    }
+  } catch (itemBalanceError) {
+    console.error(
+      `Error updating item_balance for serialized item production receipt ${materialId}:`,
+      itemBalanceError
+    );
+    throw itemBalanceError;
+  }
 };
 
 const processSerializedItemForGoodIssue = async (
@@ -1423,6 +1626,46 @@ const processSerializedItemForGoodIssue = async (
     plantId,
     organizationId
   );
+
+  // Update item_balance aggregation for serialized item deduction
+  try {
+    const itemBalanceRes = await db
+      .collection("item_balance")
+      .where({
+        material_id: mat.material_id,
+        location_id: mat.bin_location_id,
+        plant_id: plantId,
+        organization_id: organizationId,
+        is_deleted: 0,
+      })
+      .get();
+
+    if (itemBalanceRes.data && itemBalanceRes.data.length > 0) {
+      const itemBalance = itemBalanceRes.data[0];
+      await db
+        .collection("item_balance")
+        .doc(itemBalance.id)
+        .update({
+          reserved_qty:
+            (itemBalance.reserved_qty || 0) - mat.material_actual_qty,
+          balance_quantity:
+            (itemBalance.balance_quantity || 0) - mat.material_actual_qty,
+        });
+      console.log(
+        `✓ Updated item_balance for serialized item ${mat.material_id} deduction: reserved_qty -${mat.material_actual_qty}`
+      );
+    } else {
+      console.warn(
+        `No item_balance found for serialized item ${mat.material_id} at location ${mat.bin_location_id} - deduction only`
+      );
+    }
+  } catch (itemBalanceError) {
+    console.error(
+      `Error updating item_balance aggregation for serialized item deduction: ${mat.material_id}, serial: ${mat.serial_number}`,
+      itemBalanceError
+    );
+    throw itemBalanceError;
+  }
 
   // Note: unused quantity inventory movements handled in ICTP function
 
@@ -1944,6 +2187,73 @@ const handleInventoryBalanceAndMovement = async (
             `Balance record updated for ID: ${matBalance.id}, batch_id: ${batch.batch_id}, deducted: ${mat.material_actual_qty}`
           );
 
+          // ✅ CRITICAL FIX: For batched items, also update item_balance (aggregated across all batches)
+          if (matBatchManagement === 1) {
+            try {
+              const generalItemBalanceParams = {
+                material_id: mat.material_id,
+                location_id: mat.bin_location_id,
+                plant_id: data.plant_id,
+                organization_id: organizationId,
+              };
+              // Don't include batch_id in item_balance query (aggregated balance across all batches)
+
+              const generalBalanceQuery = await db
+                .collection("item_balance")
+                .where(generalItemBalanceParams)
+                .get();
+
+              if (
+                generalBalanceQuery.data &&
+                generalBalanceQuery.data.length > 0
+              ) {
+                // Update existing item_balance
+                const generalBalance = generalBalanceQuery.data[0];
+
+                const currentReserved = parseFloat(
+                  generalBalance.reserved_qty || 0
+                );
+                const currentBalanceQty = parseFloat(
+                  generalBalance.balance_quantity || 0
+                );
+
+                const newReserved = Math.max(
+                  0,
+                  currentReserved - mat.material_actual_qty
+                );
+                const newBalanceQty = Math.max(
+                  0,
+                  currentBalanceQty - mat.material_actual_qty
+                );
+
+                const generalUpdateData = {
+                  reserved_qty: parseFloat(newReserved.toFixed(3)),
+                  balance_quantity: parseFloat(newBalanceQty.toFixed(3)),
+                  updated_at: new Date(),
+                };
+
+                await db
+                  .collection("item_balance")
+                  .doc(generalBalance.id)
+                  .update(generalUpdateData);
+
+                console.log(
+                  `✓ Updated item_balance for batch item ${mat.material_id} deduction: reserved_qty -${mat.material_actual_qty}`
+                );
+              } else {
+                console.warn(
+                  `No item_balance found for batch item ${mat.material_id} at location ${mat.bin_location_id} - deduction only`
+                );
+              }
+            } catch (itemBalanceError) {
+              console.error(
+                `Error updating item_balance for batch item ${mat.material_id}:`,
+                itemBalanceError
+              );
+              throw itemBalanceError;
+            }
+          }
+
           remainingQty -= qtyToDeduct;
           processedBatches.push(batch.batch_id);
         }
@@ -2029,6 +2339,83 @@ const handleInventoryBalanceAndMovement = async (
             console.log(
               `Balance record updated for ID: ${matBalance.id}, batch_id: ${matBalance.batch_id}, deducted: ${qtyToDeduct}`
             );
+
+            // ✅ CRITICAL FIX: For batched items, also update item_balance (aggregated across all batches)
+            try {
+              const generalItemBalanceParams = {
+                material_id: mat.material_id,
+                location_id: mat.bin_location_id,
+                plant_id: data.plant_id,
+                organization_id: organizationId,
+              };
+              // Don't include batch_id in item_balance query (aggregated balance across all batches)
+
+              const generalBalanceQuery = await db
+                .collection("item_balance")
+                .where(generalItemBalanceParams)
+                .get();
+
+              if (
+                generalBalanceQuery.data &&
+                generalBalanceQuery.data.length > 0
+              ) {
+                // Update existing item_balance
+                const generalBalance = generalBalanceQuery.data[0];
+
+                const currentReserved = parseFloat(
+                  generalBalance.reserved_qty || 0
+                );
+                const currentUnrestricted = parseFloat(
+                  generalBalance.unrestricted_qty || 0
+                );
+                const currentBalanceQty = parseFloat(
+                  generalBalance.balance_quantity || 0
+                );
+
+                // Calculate the same changes as the batch balance
+                const reservedDeduction = mat.material_required_qty || 0;
+                const unrestrictedAddition =
+                  mat.material_required_qty - mat.material_actual_qty || 0;
+                const netBalanceChange = mat.material_actual_qty || 0;
+
+                const newReserved = Math.max(
+                  0,
+                  currentReserved - reservedDeduction
+                );
+                const newUnrestricted =
+                  currentUnrestricted + unrestrictedAddition;
+                const newBalanceQty = Math.max(
+                  0,
+                  currentBalanceQty - netBalanceChange
+                );
+
+                const generalUpdateData = {
+                  reserved_qty: parseFloat(newReserved.toFixed(3)),
+                  unrestricted_qty: parseFloat(newUnrestricted.toFixed(3)),
+                  balance_quantity: parseFloat(newBalanceQty.toFixed(3)),
+                  updated_at: new Date(),
+                };
+
+                await db
+                  .collection("item_balance")
+                  .doc(generalBalance.id)
+                  .update(generalUpdateData);
+
+                console.log(
+                  `✓ Updated item_balance for additional batch item ${mat.material_id} deduction: reserved_qty -${reservedDeduction}, unrestricted_qty +${unrestrictedAddition}, net balance -${netBalanceChange}`
+                );
+              } else {
+                console.warn(
+                  `No item_balance found for additional batch item ${mat.material_id} at location ${mat.bin_location_id} - deduction only`
+                );
+              }
+            } catch (itemBalanceError) {
+              console.error(
+                `Error updating item_balance for additional batch item ${mat.material_id}:`,
+                itemBalanceError
+              );
+              throw itemBalanceError;
+            }
 
             remainingQty -= qtyToDeduct;
           }
