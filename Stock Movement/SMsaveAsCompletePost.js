@@ -1426,7 +1426,7 @@ class StockAdjuster {
             selected_uom = uomConversion.alt_uom_id;
             quantityConverted =
               Math.round(
-                (item.received_quantity || 0) * uomConversion.base_qty * 1000
+                ((item.received_quantity || 0) / uomConversion.alt_qty) * 1000
               ) / 1000;
             unitPriceConverted =
               Math.round(((item.unit_price || 0) / quantityConverted) * 1000) /

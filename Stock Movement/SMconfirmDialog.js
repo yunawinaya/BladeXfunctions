@@ -3,6 +3,8 @@
   const temporaryData = allData.sm_item_balance.table_item_balance;
   const rowIndex = allData.sm_item_balance.row_index;
   const movementType = allData.movement_type;
+  const quantityUOM = allData.stock_movement[rowIndex].quantity_uom;
+  const selectedUOM = allData.sm_item_balance.material_uom;
 
   let isValid = true;
 
@@ -19,10 +21,9 @@
   }
 
   // Get UOM information - you'll need to adjust this field name based on your data structure
-  const materialUOMid = allData.stock_movement[rowIndex].quantity_uom;
   const gdUOM = await db
     .collection("unit_of_measurement")
-    .where({ id: materialUOMid })
+    .where({ id: quantityUOM })
     .get()
     .then((res) => {
       return res.data[0]?.uom_name || "";
@@ -41,7 +42,95 @@
     console.error("Error fetching item data:", error);
   }
 
-  const totalSmQuantity = temporaryData
+  // Convert quantities back to quantityUOM if user changed UOM
+  let processedTemporaryData = temporaryData;
+
+  if (selectedUOM !== quantityUOM) {
+    console.log("Converting quantities back from selectedUOM to quantityUOM");
+    console.log("From UOM:", selectedUOM, "To UOM:", quantityUOM);
+
+    // Get item data for conversion
+    const itemData = await db
+      .collection("Item")
+      .where({ id: materialId })
+      .get()
+      .then((res) => res.data[0]);
+    const tableUOMConversion = itemData.table_uom_conversion;
+    const baseUOM = itemData.based_uom;
+
+    const convertQuantityFromTo = (
+      value,
+      table_uom_conversion,
+      fromUOM,
+      toUOM,
+      baseUOM
+    ) => {
+      if (!value || fromUOM === toUOM) return value;
+
+      // First convert from current UOM back to base UOM
+      let baseQty = value;
+      if (fromUOM !== baseUOM) {
+        const fromConversion = table_uom_conversion.find(
+          (conv) => conv.alt_uom_id === fromUOM
+        );
+        if (fromConversion && fromConversion.alt_qty) {
+          baseQty = value / fromConversion.alt_qty;
+        }
+      }
+
+      // Then convert from base UOM to target UOM
+      if (toUOM !== baseUOM) {
+        const toConversion = table_uom_conversion.find(
+          (conv) => conv.alt_uom_id === toUOM
+        );
+        if (toConversion && toConversion.alt_qty) {
+          return Math.round(baseQty * toConversion.alt_qty * 1000) / 1000;
+        }
+      }
+
+      return baseQty;
+    };
+
+    const quantityFields = [
+      "block_qty",
+      "reserved_qty",
+      "unrestricted_qty",
+      "qualityinsp_qty",
+      "intransit_qty",
+      "balance_quantity",
+      "sm_quantity", // Include sm_quantity in conversion
+    ];
+
+    processedTemporaryData = temporaryData.map((record, index) => {
+      const convertedRecord = { ...record };
+
+      quantityFields.forEach((field) => {
+        if (convertedRecord[field]) {
+          const originalValue = convertedRecord[field];
+          convertedRecord[field] = convertQuantityFromTo(
+            convertedRecord[field],
+            tableUOMConversion,
+            selectedUOM,
+            quantityUOM,
+            baseUOM
+          );
+          console.log(
+            `Record ${index} ${field}: ${originalValue} -> ${convertedRecord[field]}`
+          );
+        }
+      });
+
+      return convertedRecord;
+    });
+
+    console.log(
+      "Converted temporary data back to quantityUOM:",
+      processedTemporaryData
+    );
+  }
+
+  // Use converted data for calculations
+  const totalSmQuantity = processedTemporaryData
     .filter((item) => (item.sm_quantity || 0) > 0)
     .reduce((sum, item) => {
       const category_type = item.category ?? item.category_from;
@@ -94,7 +183,7 @@
       return sum + quantity;
     }, 0);
 
-  console.log("Total SM quantity:", totalSmQuantity);
+  console.log("Total SM quantity (converted):", totalSmQuantity);
 
   // Only update data and close dialog if all validations pass
   if (isValid) {
@@ -104,7 +193,7 @@
     });
 
     const currentBalanceIndex = this.getValues().balance_index || [];
-    const rowsToUpdate = temporaryData.filter(
+    const rowsToUpdate = processedTemporaryData.filter(
       (item) => (item.sm_quantity || 0) > 0
     );
 
@@ -374,11 +463,11 @@
       return summary + details;
     };
 
-    const formattedString = await formatFilteredData(temporaryData);
+    const formattedString = await formatFilteredData(processedTemporaryData);
     console.log("📋 Formatted string:", formattedString);
 
     const textareaContent = JSON.stringify(
-      temporaryData.filter((tempData) => tempData.sm_quantity > 0)
+      processedTemporaryData.filter((tempData) => tempData.sm_quantity > 0)
     );
 
     this.setData({

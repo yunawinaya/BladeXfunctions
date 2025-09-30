@@ -147,9 +147,7 @@ class StockAdjuster {
             [fromCategoryField]: this.roundQty(
               currentGeneralFromQty - qtyChange
             ),
-            [toCategoryField]: this.roundQty(
-              currentGeneralToQty + qtyChange
-            ),
+            [toCategoryField]: this.roundQty(currentGeneralToQty + qtyChange),
             update_time: new Date().toISOString(),
           };
 
@@ -420,12 +418,8 @@ class StockAdjuster {
         );
 
         const generalUpdateData = {
-          balance_quantity: this.roundQty(
-            currentGeneralBalanceQty + qtyChange
-          ),
-          [categoryField]: this.roundQty(
-            currentGeneralCategoryQty + qtyChange
-          ),
+          balance_quantity: this.roundQty(currentGeneralBalanceQty + qtyChange),
+          [categoryField]: this.roundQty(currentGeneralCategoryQty + qtyChange),
           update_time: new Date().toISOString(),
         };
 
@@ -445,11 +439,14 @@ class StockAdjuster {
           plant_id: plantId,
           organization_id: organizationId,
           balance_quantity: this.roundQty(qtyChange),
-          unrestricted_qty: category === "Unrestricted" ? this.roundQty(qtyChange) : 0,
-          qualityinsp_qty: category === "Quality Inspection" ? this.roundQty(qtyChange) : 0,
+          unrestricted_qty:
+            category === "Unrestricted" ? this.roundQty(qtyChange) : 0,
+          qualityinsp_qty:
+            category === "Quality Inspection" ? this.roundQty(qtyChange) : 0,
           block_qty: category === "Blocked" ? this.roundQty(qtyChange) : 0,
           reserved_qty: category === "Reserved" ? this.roundQty(qtyChange) : 0,
-          intransit_qty: category === "In Transit" ? this.roundQty(qtyChange) : 0,
+          intransit_qty:
+            category === "In Transit" ? this.roundQty(qtyChange) : 0,
           create_time: new Date().toISOString(),
           update_time: new Date().toISOString(),
           is_deleted: 0,
@@ -656,12 +653,8 @@ class StockAdjuster {
         );
 
         const generalUpdateData = {
-          balance_quantity: this.roundQty(
-            currentGeneralBalanceQty + qtyChange
-          ),
-          [categoryField]: this.roundQty(
-            currentGeneralCategoryQty + qtyChange
-          ),
+          balance_quantity: this.roundQty(currentGeneralBalanceQty + qtyChange),
+          [categoryField]: this.roundQty(currentGeneralCategoryQty + qtyChange),
           update_time: new Date().toISOString(),
         };
 
@@ -681,11 +674,14 @@ class StockAdjuster {
           plant_id: plantId,
           organization_id: organizationId,
           balance_quantity: this.roundQty(qtyChange),
-          unrestricted_qty: category === "Unrestricted" ? this.roundQty(qtyChange) : 0,
-          qualityinsp_qty: category === "Quality Inspection" ? this.roundQty(qtyChange) : 0,
+          unrestricted_qty:
+            category === "Unrestricted" ? this.roundQty(qtyChange) : 0,
+          qualityinsp_qty:
+            category === "Quality Inspection" ? this.roundQty(qtyChange) : 0,
           block_qty: category === "Blocked" ? this.roundQty(qtyChange) : 0,
           reserved_qty: category === "Reserved" ? this.roundQty(qtyChange) : 0,
-          intransit_qty: category === "In Transit" ? this.roundQty(qtyChange) : 0,
+          intransit_qty:
+            category === "In Transit" ? this.roundQty(qtyChange) : 0,
           create_time: new Date().toISOString(),
           update_time: new Date().toISOString(),
           is_deleted: 0,
@@ -1430,7 +1426,7 @@ class StockAdjuster {
             selected_uom = uomConversion.alt_uom_id;
             quantityConverted =
               Math.round(
-                (item.received_quantity || 0) * uomConversion.base_qty * 1000
+                ((item.received_quantity || 0) / uomConversion.alt_qty) * 1000
               ) / 1000;
             unitPriceConverted =
               Math.round(((item.unit_price || 0) / quantityConverted) * 1000) /
@@ -2782,7 +2778,8 @@ class StockAdjuster {
           if (sourceBalanceQuery.data && sourceBalanceQuery.data.length > 0) {
             // Update existing item_balance record for SOURCE location (deduction)
             const sourceBalance = sourceBalanceQuery.data[0];
-            const categoryField = this.categoryMap[balance.category || "Unrestricted"];
+            const categoryField =
+              this.categoryMap[balance.category || "Unrestricted"];
 
             const currentSourceBalanceQty = parseFloat(
               sourceBalance.balance_quantity || 0
@@ -2808,7 +2805,11 @@ class StockAdjuster {
               .update(sourceUpdateData);
 
             console.log(
-              `Updated aggregated item_balance for SOURCE location ${locationId}, item ${materialData.id} (Location Transfer deduction - ${isBatchedItem ? 'batched' : ''}${isSerializedItem ? 'serialized' : ''})`
+              `Updated aggregated item_balance for SOURCE location ${locationId}, item ${
+                materialData.id
+              } (Location Transfer deduction - ${
+                isBatchedItem ? "batched" : ""
+              }${isSerializedItem ? "serialized" : ""})`
             );
           }
         } catch (error) {
@@ -2830,10 +2831,13 @@ class StockAdjuster {
       "Disposal/Scrap",
       "Inter Operation Facility Transfer",
       "Miscellaneous Receipt",
-      "Inventory Category Transfer Posting"
+      "Inventory Category Transfer Posting",
     ];
 
-    if ((isBatchedItem || (isSerializedItem && isSerialAllocated)) && !movementsHandledByLegacyLogic.includes(movementType)) {
+    if (
+      (isBatchedItem || (isSerializedItem && isSerialAllocated)) &&
+      !movementsHandledByLegacyLogic.includes(movementType)
+    ) {
       const isSerializedItem = materialData.serial_number_management === 1;
       const isSerialAllocated =
         movementType === "Miscellaneous Receipt"
@@ -2977,7 +2981,9 @@ class StockAdjuster {
         console.log(
           `Updated item_balance for ${
             isBatchedItem ? "batched" : "serialized"
-          } item ${materialData.id} with movement type ${movementType} (legacy logic)`
+          } item ${
+            materialData.id
+          } with movement type ${movementType} (legacy logic)`
         );
       }
     }

@@ -20,6 +20,11 @@ const handleBatchManagement = (movementType, currentItemArray, smLineItem) => {
       const rowIndex = smLineItem.length + index;
 
       if (item.item_batch_management === 1) {
+        this.display([
+          "stock_movement.manufacturing_date",
+          "stock_movement.expired_date",
+        ]);
+
         switch (item.batch_number_genaration) {
           case "According To System Settings":
             this.setData({
@@ -27,24 +32,49 @@ const handleBatchManagement = (movementType, currentItemArray, smLineItem) => {
                 "Auto-generated batch number",
             });
             this.disabled(`stock_movement.${rowIndex}.batch_id`, true);
+            this.disabled(
+              [
+                `stock_movement.${rowIndex}.manufacturing_date`,
+                `stock_movement.${rowIndex}.expired_date`,
+              ],
+              false
+            );
             break;
 
           case "Manual Input":
             this.disabled(`stock_movement.${rowIndex}.batch_id`, false);
+            this.disabled(
+              [
+                `stock_movement.${rowIndex}.manufacturing_date`,
+                `stock_movement.${rowIndex}.expired_date`,
+              ],
+              false
+            );
             break;
         }
       } else {
         this.setData({ [`stock_movement.${rowIndex}.batch_id`]: "-" });
-        this.disabled(`stock_movement.${rowIndex}.batch_id`, true);
+        this.disabled(
+          [
+            `stock_movement.${rowIndex}.manufacturing_date`,
+            `stock_movement.${rowIndex}.expired_date`,
+            `stock_movement.${rowIndex}.batch_id`,
+          ],
+          true
+        );
       }
     }
   } else {
-    this.hide("stock_movement.batch_id");
+    this.hide([
+      "stock_movement.manufacturing_date",
+      "stock_movement.expired_date",
+      "stock_movement.batch_id",
+    ]);
   }
 };
 
 const handleBinLocation = (defaultBin, currentItemArray, smLineItem) => {
-  for (const [index, item] of currentItemArray.entries()) {
+  for (const [index, _item] of currentItemArray.entries()) {
     const rowIndex = smLineItem.length + index;
 
     if (defaultBin) {
@@ -67,7 +97,7 @@ const handleInvCategory = async (
     .where({ code: "inventory_category" })
     .get();
 
-  for (const [index, item] of currentItemArray.entries()) {
+  for (const [index, _item] of currentItemArray.entries()) {
     const rowIndex = smLineItem.length + index;
 
     this.setData({
@@ -98,7 +128,6 @@ const handleUOM = async (currentItemArray, smLineItem) => {
     const rowIndex = smLineItem.length + index;
 
     const altUoms = item.table_uom_conversion.map((data) => data.alt_uom_id);
-    altUoms.push(item.based_uom);
 
     const uomOptions = [];
 

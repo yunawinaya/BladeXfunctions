@@ -79,7 +79,6 @@ const handleInvCategory = async (rowIndex, movementType) => {
 
 const handleUOM = async (itemData, rowIndex) => {
   const altUoms = itemData.table_uom_conversion.map((data) => data.alt_uom_id);
-  altUoms.push(itemData.based_uom);
 
   const uomOptions = [];
 
