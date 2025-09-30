@@ -6,6 +6,8 @@
     const temporaryData = allData.sa_item_balance.table_item_balance;
     const rowIndex = allData.sa_item_balance.row_index;
     const page_status = allData.page_status;
+    const quantityUOM = allData.sa_item_balance.uom_id;
+    const selectedUOM = allData.sa_item_balance.material_uom;
     console.log("temporaryData:", temporaryData); // Log temporaryData
     console.log("rowIndex:", rowIndex); // Log rowIndex
     console.log("page_status:", page_status); // Log page_status
@@ -47,8 +49,95 @@
     let isValid = true; // Flag to track validation status
     console.log("Initial isValid:", isValid); // Log initial isValid
 
+    // Convert quantities back to quantityUOM if user changed UOM
+    let processedTemporaryData = temporaryData;
+
+    if (selectedUOM !== quantityUOM) {
+      console.log("Converting quantities back from selectedUOM to quantityUOM");
+      console.log("From UOM:", selectedUOM, "To UOM:", quantityUOM);
+
+      // Get item data for conversion
+      const itemDataForConversion = await db
+        .collection("Item")
+        .where({ material_code: materialId })
+        .get()
+        .then((res) => res.data[0]);
+      const tableUOMConversion = itemDataForConversion.table_uom_conversion;
+      const baseUOM = itemDataForConversion.based_uom;
+
+      const convertQuantityFromTo = (
+        value,
+        table_uom_conversion,
+        fromUOM,
+        toUOM,
+        baseUOM
+      ) => {
+        if (!value || fromUOM === toUOM) return value;
+
+        // First convert from current UOM back to base UOM
+        let baseQty = value;
+        if (fromUOM !== baseUOM) {
+          const fromConversion = table_uom_conversion.find(
+            (conv) => conv.alt_uom_id === fromUOM
+          );
+          if (fromConversion && fromConversion.alt_qty) {
+            baseQty = value / fromConversion.alt_qty;
+          }
+        }
+
+        // Then convert from base UOM to target UOM
+        if (toUOM !== baseUOM) {
+          const toConversion = table_uom_conversion.find(
+            (conv) => conv.alt_uom_id === toUOM
+          );
+          if (toConversion && toConversion.alt_qty) {
+            return Math.round(baseQty * toConversion.alt_qty * 1000) / 1000;
+          }
+        }
+
+        return baseQty;
+      };
+
+      const quantityFields = [
+        "blocked_qty",
+        "reserved_qty",
+        "unrestricted_qty",
+        "qualityinsp_qty",
+        "intransit_qty",
+        "balance_quantity",
+        "sa_quantity", // Include sa_quantity in conversion
+      ];
+
+      processedTemporaryData = temporaryData.map((record, index) => {
+        const convertedRecord = { ...record };
+
+        quantityFields.forEach((field) => {
+          if (convertedRecord[field]) {
+            const originalValue = convertedRecord[field];
+            convertedRecord[field] = convertQuantityFromTo(
+              convertedRecord[field],
+              tableUOMConversion,
+              selectedUOM,
+              quantityUOM,
+              baseUOM
+            );
+            console.log(
+              `Record ${index} ${field}: ${originalValue} -> ${convertedRecord[field]}`
+            );
+          }
+        });
+
+        return convertedRecord;
+      });
+
+      console.log(
+        "Converted temporary data back to quantityUOM:",
+        processedTemporaryData
+      );
+    }
+
     // Filter out items with quantity 0 and sum up sa_quantity values
-    const totalSaQuantity = temporaryData
+    const totalSaQuantity = processedTemporaryData
       .filter((item) => {
         const isValidItem =
           item.sa_quantity && item.sa_quantity > 0 ? true : false;
@@ -295,11 +384,14 @@
       }
     };
 
-    const formattedString = await formatFilteredData(temporaryData, itemData);
+    const formattedString = await formatFilteredData(
+      processedTemporaryData,
+      itemData
+    );
     console.log("📋 Formatted string:", formattedString); // Already present
 
-    // Filter temporaryData to only include items with sa_quantity > 0 for saving
-    const filteredDataForSave = temporaryData.filter(
+    // Filter processedTemporaryData to only include items with sa_quantity > 0 for saving
+    const filteredDataForSave = processedTemporaryData.filter(
       (item) => item.sa_quantity && item.sa_quantity > 0
     );
     console.log("Filtered data for saving:", filteredDataForSave); // Log filtered data for save
@@ -333,11 +425,13 @@
         this.disabled(`stock_adjustment.${rowIndex}.unit_price`, true);
       }
 
-      console.log("temporaryData:", temporaryData); // Already present
+      console.log("processedTemporaryData:", processedTemporaryData); // Already present
       console.log(
         "closeDialog exists:",
         typeof this.closeDialog === "function"
       ); // Log closeDialog check
+
+      this.models["previous_material_uom"] = undefined;
 
       // Clear the error message
       this.setData({

@@ -479,6 +479,8 @@
       balance_index: updatedBalanceIndex,
     });
 
+    this.models["previous_material_uom"] = undefined;
+
     // Clear the error message
     this.setData({
       error_message: "",

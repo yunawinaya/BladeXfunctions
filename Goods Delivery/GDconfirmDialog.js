@@ -472,5 +472,7 @@
     [`gd_total`]: newTotal,
   });
 
+  this.models["previous_material_uom"] = undefined;
+
   this.closeDialog("gd_item_balance");
 })();

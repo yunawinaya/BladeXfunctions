@@ -108,10 +108,65 @@
       [`sm_item_balance.table_item_balance`]: updatedTableItemBalance,
     });
 
+    this.models["previous_material_uom"] = selectedUOM;
+
     console.log(
       `Updated table_item_balance quantities from ${quantityUOM} to ${selectedUOM}`
     );
   } else {
-    console.log("UOMs are the same, no conversion needed");
+    console.log("UOMs are the same, converting tableItemBalance back to original UOM");
+
+    // Get the previous UOM that the table was converted to
+    const previousTableUOM = this.models["previous_material_uom"];
+
+    if (previousTableUOM && previousTableUOM !== quantityUOM) {
+      console.log(`Converting table back from ${previousTableUOM} to ${quantityUOM}`);
+
+      const quantityFields = [
+        "block_qty",
+        "reserved_qty",
+        "unrestricted_qty",
+        "qualityinsp_qty",
+        "intransit_qty",
+        "balance_quantity",
+        "sm_quantity",
+      ];
+
+      const updatedTableItemBalance = tableItemBalance.map((record, index) => {
+        const updatedRecord = { ...record };
+
+        console.log(`Processing record ${index}:`, record);
+
+        quantityFields.forEach((field) => {
+          if (updatedRecord[field]) {
+            const originalValue = updatedRecord[field];
+            updatedRecord[field] = convertQuantityFromTo(
+              updatedRecord[field],
+              tableUOMConversion,
+              previousTableUOM,
+              quantityUOM,
+              itemData.based_uom
+            );
+            console.log(`${field}: ${originalValue} -> ${updatedRecord[field]}`);
+          }
+        });
+
+        return updatedRecord;
+      });
+
+      console.log("Final updatedTableItemBalance:", updatedTableItemBalance);
+
+      await this.setData({
+        [`sm_item_balance.table_item_balance`]: updatedTableItemBalance,
+      });
+
+      this.models["previous_material_uom"] = quantityUOM;
+
+      console.log(
+        `Converted table_item_balance back from ${previousTableUOM} to ${quantityUOM}`
+      );
+    } else {
+      console.log("Table is already in correct UOM, no conversion needed");
+    }
   }
 })();

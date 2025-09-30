@@ -4,8 +4,26 @@ const rowIndex = arguments[0]?.rowIndex;
 const adjustment_type = allData.adjustment_type;
 const materialId = lineItemData.material_id;
 const plantId = allData.plant_id;
+const uomId = lineItemData.uom_id;
 
 console.log("materialId", materialId);
+
+const fetchUomData = async (uomIds) => {
+  if (!uomIds || uomIds.length === 0) return [];
+
+  try {
+    const resUOM = await Promise.all(
+      uomIds.map((id) =>
+        db.collection("unit_of_measurement").where({ id }).get()
+      )
+    );
+
+    return resUOM.map((response) => response.data[0]).filter(Boolean);
+  } catch (error) {
+    console.error("Error fetching UOM data:", error);
+    return [];
+  }
+};
 
 // Initially hide serial number column
 this.hide("sa_item_balance.table_item_balance.serial_number");
@@ -219,15 +237,27 @@ if (materialId) {
       id: materialId,
     })
     .get()
-    .then((response) => {
+    .then(async (response) => {
       console.log("response item", response);
       const itemData = response.data[0];
       console.log("itemData", itemData);
+
+      // Get UOM options and set up material UOM
+      const altUoms = itemData.table_uom_conversion?.map((data) => data.alt_uom_id);
+      let uomOptions = [];
+
+      const res = await fetchUomData(altUoms);
+      uomOptions.push(...res);
+
+      console.log("uomOptions", uomOptions);
+
+      await this.setOptionData([`sa_item_balance.material_uom`], uomOptions);
+
       this.setData({
         [`sa_item_balance.material_id`]: itemData.material_code,
         [`sa_item_balance.material_name`]: itemData.material_name,
         [`sa_item_balance.row_index`]: rowIndex,
-        [`sa_item_balance.material_uom`]: itemData.based_uom,
+        [`sa_item_balance.material_uom`]: uomId,
       });
 
       const previousBalanceData =

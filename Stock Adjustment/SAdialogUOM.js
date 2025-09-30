@@ -7,18 +7,18 @@
   const allData = this.getValues();
 
   const selectedUOM = arguments[0].value;
-  const rowIndex = allData.gd_item_balance.row_index;
+  const rowIndex = allData.sa_item_balance.row_index;
 
   console.log("DEBUG - UOM Change:");
   console.log("selectedUOM:", selectedUOM);
 
-  const goodDeliveryUOM = allData.table_gd[rowIndex].gd_order_uom_id;
-  const itemId = allData.table_gd[rowIndex].material_id;
+  const quantityUOM = allData.stock_adjustment[rowIndex].uom_id;
+  const itemId = allData.stock_adjustment[rowIndex].material_id;
   const itemData = await fetchItemData(itemId);
   const tableUOMConversion = itemData.table_uom_conversion;
-  const tableItemBalance = allData.gd_item_balance.table_item_balance;
+  const tableItemBalance = allData.sa_item_balance.table_item_balance;
 
-  console.log("goodDeliveryUOM:", goodDeliveryUOM);
+  console.log("quantityUOM:", quantityUOM);
   console.log("itemData.based_uom:", itemData.based_uom);
   console.log("tableItemBalance length:", tableItemBalance?.length);
   console.log("tableUOMConversion:", tableUOMConversion);
@@ -67,7 +67,7 @@
     return convertBaseToAlt(baseQty, table_uom_conversion, toUOM);
   };
 
-  if (goodDeliveryUOM !== selectedUOM) {
+  if (quantityUOM !== selectedUOM) {
     console.log("UOMs are different, proceeding with conversion...");
 
     const quantityFields = [
@@ -77,7 +77,7 @@
       "qualityinsp_qty",
       "intransit_qty",
       "balance_quantity",
-      "gd_quantity",
+      "sa_quantity",
     ];
 
     const updatedTableItemBalance = tableItemBalance.map((record, index) => {
@@ -91,7 +91,7 @@
           updatedRecord[field] = convertQuantityFromTo(
             updatedRecord[field],
             tableUOMConversion,
-            goodDeliveryUOM,
+            quantityUOM,
             selectedUOM,
             itemData.based_uom
           );
@@ -105,35 +105,31 @@
     console.log("Final updatedTableItemBalance:", updatedTableItemBalance);
 
     await this.setData({
-      [`gd_item_balance.table_item_balance`]: updatedTableItemBalance,
+      [`sa_item_balance.table_item_balance`]: updatedTableItemBalance,
     });
 
     this.models["previous_material_uom"] = selectedUOM;
 
     console.log(
-      `Updated table_item_balance quantities from ${goodDeliveryUOM} to ${selectedUOM}`
+      `Updated table_item_balance quantities from ${quantityUOM} to ${selectedUOM}`
     );
   } else {
-    console.log(
-      "UOMs are the same, converting tableItemBalance back to original UOM"
-    );
+    console.log("UOMs are the same, converting tableItemBalance back to original UOM");
 
     // Get the previous UOM that the table was converted to
     const previousTableUOM = this.models["previous_material_uom"];
 
-    if (previousTableUOM && previousTableUOM !== goodDeliveryUOM) {
-      console.log(
-        `Converting table back from ${previousTableUOM} to ${goodDeliveryUOM}`
-      );
+    if (previousTableUOM && previousTableUOM !== quantityUOM) {
+      console.log(`Converting table back from ${previousTableUOM} to ${quantityUOM}`);
 
       const quantityFields = [
-        "block_qty",
+        "blocked_qty",
         "reserved_qty",
         "unrestricted_qty",
         "qualityinsp_qty",
         "intransit_qty",
         "balance_quantity",
-        "gd_quantity",
+        "sa_quantity",
       ];
 
       const updatedTableItemBalance = tableItemBalance.map((record, index) => {
@@ -148,12 +144,10 @@
               updatedRecord[field],
               tableUOMConversion,
               previousTableUOM,
-              goodDeliveryUOM,
+              quantityUOM,
               itemData.based_uom
             );
-            console.log(
-              `${field}: ${originalValue} -> ${updatedRecord[field]}`
-            );
+            console.log(`${field}: ${originalValue} -> ${updatedRecord[field]}`);
           }
         });
 
@@ -163,12 +157,13 @@
       console.log("Final updatedTableItemBalance:", updatedTableItemBalance);
 
       await this.setData({
-        [`gd_item_balance.table_item_balance`]: updatedTableItemBalance,
-        [`gd_item_balance.previous_material_uom`]: goodDeliveryUOM,
+        [`sa_item_balance.table_item_balance`]: updatedTableItemBalance,
       });
 
+      this.models["previous_material_uom"] = quantityUOM;
+
       console.log(
-        `Converted table_item_balance back from ${previousTableUOM} to ${goodDeliveryUOM}`
+        `Converted table_item_balance back from ${previousTableUOM} to ${quantityUOM}`
       );
     } else {
       console.log("Table is already in correct UOM, no conversion needed");
