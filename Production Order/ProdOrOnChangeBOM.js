@@ -31,45 +31,47 @@ const main = async () => {
       bomDataRes.parent_mat_base_quantity.toFixed(3)
     );
 
-    const mappedBomData = await Promise.all(bomDataRes.subform_sub_material.map(async (item) => {
-      let materialQuantity = parseFloat(
-        (
-          (qtyToProduce / bomBaseQty) *
-          item.sub_material_qty *
-          (1 + item.sub_material_wastage / 100)
-        ).toFixed(3)
-      );
-
-      // Check if item is serialized and round up if needed
-      try {
-        const resItem = await db
-          .collection("Item")
-          .where({
-            id: item.bom_material_code,
-            serial_number_management: 1,
-          })
-          .get();
-
-        if (resItem.data && resItem.data[0]) {
-          materialQuantity = Math.ceil(materialQuantity);
-        }
-      } catch (error) {
-        console.warn(
-          `Error checking serialization for item ${item.bom_material_code}:`,
-          error
+    const mappedBomData = await Promise.all(
+      bomDataRes.subform_sub_material.map(async (item) => {
+        let materialQuantity = parseFloat(
+          (
+            (qtyToProduce / bomBaseQty) *
+            item.sub_material_qty *
+            (1 + item.sub_material_wastage / 100)
+          ).toFixed(3)
         );
-      }
 
-      return {
-        material_id: item.bom_material_code,
-        material_name: item.sub_material_name,
-        material_desc: item.sub_material_desc,
-        material_category: item.sub_material_category,
-        material_quantity: materialQuantity,
-        material_uom: item.sub_material_qty_uom,
-        item_remarks: item.sub_material_remark,
-      };
-    }));
+        // Check if item is serialized and round up if needed
+        try {
+          const resItem = await db
+            .collection("Item")
+            .where({
+              id: item.bom_material_code,
+              serial_number_management: 1,
+            })
+            .get();
+
+          if (resItem.data && resItem.data[0]) {
+            materialQuantity = Math.ceil(materialQuantity);
+          }
+        } catch (error) {
+          console.warn(
+            `Error checking serialization for item ${item.bom_material_code}:`,
+            error
+          );
+        }
+
+        return {
+          material_id: item.bom_material_code,
+          material_name: item.sub_material_name,
+          material_desc: item.sub_material_desc,
+          material_category: item.sub_material_category,
+          material_quantity: materialQuantity,
+          material_uom: item.sub_material_qty_uom,
+          item_remarks: item.sub_material_remark,
+        };
+      })
+    );
     await this.setData({
       table_bom: mappedBomData,
     });
@@ -91,9 +93,6 @@ const main = async () => {
             // Check if table_uom_conversion exists and is an array
             const uomConversions = itemData.table_uom_conversion || [];
             const altUoms = uomConversions.map((data) => data.alt_uom_id);
-            
-            // Add base UOM to the list
-            altUoms.push(itemData.based_uom);
 
             const res = await fetchUomData(altUoms);
             console.log("rowIndex", rowIndex);
@@ -103,7 +102,10 @@ const main = async () => {
             );
           }
         } catch (error) {
-          console.warn(`Error setting UOM options for material ${material.material_id}:`, error);
+          console.warn(
+            `Error setting UOM options for material ${material.material_id}:`,
+            error
+          );
         }
       }
     }

@@ -215,7 +215,6 @@
                 (data) => data.alt_uom_id
               );
               let uomOptions = [];
-              await altUoms.push(itemData.based_uom);
 
               const res = await fetchUomData(altUoms);
               uomOptions.push(...res);
@@ -281,7 +280,6 @@
               (data) => data.alt_uom_id
             );
             let uomOptions = [];
-            await altUoms.push(itemData.based_uom);
 
             const res = await fetchUomData(altUoms);
             uomOptions.push(...res);

@@ -3089,7 +3089,7 @@ const createICTPStockMovement = async (allData) => {
           for (const uom of materialData.table_uom_conversion) {
             if (mat.material_uom === uom.alt_uom_id) {
               baseQTY = parseFloat(
-                (parseFloat(matQTY) * uom.base_qty).toFixed(3)
+                (parseFloat(matQTY) / uom.alt_qty).toFixed(3)
               );
             }
           }
