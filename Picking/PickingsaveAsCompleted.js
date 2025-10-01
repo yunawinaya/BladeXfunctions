@@ -918,7 +918,7 @@ const processBalanceTable = async (
 
                 if (uomConversion) {
                   currentPrevBaseQty = roundQty(
-                    prevAltQty / uomConversion.alt_qty
+                    prevAltQty * uomConversion.base_qty
                   );
                 }
                 prevBaseQty += currentPrevBaseQty;
@@ -1092,7 +1092,7 @@ const processBalanceTable = async (
                       reserved: reservedQty,
                       individualQty: roundQty(temp.gd_quantity),
                       individualBaseQty: uomConversion
-                        ? roundQty(temp.gd_quantity / uomConversion.alt_qty)
+                        ? roundQty(temp.gd_quantity * uomConversion.base_qty)
                         : roundQty(temp.gd_quantity),
                     });
 
@@ -1411,7 +1411,7 @@ const processBalanceTable = async (
 
                   // Calculate alternative UOM for unused quantity
                   const unusedAltQty = uomConversion
-                    ? roundQty(unusedReservedQty * uomConversion.alt_qty)
+                    ? roundQty(unusedReservedQty / uomConversion.base_qty)
                     : unusedReservedQty;
 
                   // Create movement to release unused reserved back to unrestricted
@@ -1624,7 +1624,7 @@ const processBalanceTable = async (
                       let individualBaseQty = roundQty(temp.gd_quantity);
                       if (uomConversion) {
                         individualBaseQty = roundQty(
-                          individualBaseQty / uomConversion.alt_qty
+                          individualBaseQty * uomConversion.base_qty
                         );
                       }
 
@@ -2739,25 +2739,46 @@ const checkCreditLimitForAutoComplete = async (
 const updateGoodsDelivery = async (
   gdId,
   isAutoCompleteGD = 0,
-  organizationId
+  organizationId,
+  toData
 ) => {
   try {
     const gd = await db.collection("goods_delivery").doc(gdId).get();
-    const gdData = gd.data[0];
+    let gdData = gd.data[0];
     const pickingStatus = gdData.picking_status;
+    let newPickingStatus = "";
 
     if (pickingStatus === "Completed") {
       this.$message.error("Goods Delivery is already completed");
       return;
     }
 
-    const newPickingStatus = "Completed";
+    const isAllLineItemCompleted = gdData.table_gd.every(
+      (lineItem) => lineItem.picking_status === "Completed"
+    );
+
+    if (isAllLineItemCompleted) {
+      newPickingStatus = "Completed";
+    } else {
+      newPickingStatus = pickingStatus;
+    }
+
     await db.collection("goods_delivery").doc(gdId).update({
       picking_status: newPickingStatus,
     });
 
+    await Promise.all(
+      toData.table_picking_items.map((toItem) =>
+        db
+          .collection("goods_delivery_fwii8mvb_sub")
+          .doc(toItem.gd_line_id)
+          .update({ picking_status: "Completed" })
+      )
+    );
+
     // Check if we should auto-complete GD
-    let shouldAutoComplete = isAutoCompleteGD === 1;
+    let shouldAutoComplete =
+      isAutoCompleteGD === 1 && newPickingStatus === "Completed";
 
     if (shouldAutoComplete) {
       // Check credit limit before auto-completing GD
@@ -2808,9 +2829,6 @@ const updateGoodsDelivery = async (
       );
 
       await updateOnReserveGoodsDelivery(organizationId, gdData);
-      this.$message.success(
-        "Goods Delivery picking status updated successfully"
-      );
     }
   } catch (error) {
     this.$message.error("Error updating Goods Delivery picking status");
@@ -3208,13 +3226,23 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     if (page_status === "Add") {
       await addEntry(organizationId, toData);
       for (const gdId of data.gd_no) {
-        await updateGoodsDelivery(gdId, isAutoCompleteGD, organizationId);
+        await updateGoodsDelivery(
+          gdId,
+          isAutoCompleteGD,
+          organizationId,
+          toData
+        );
       }
     } else if (page_status === "Edit") {
       toId = data.id;
       await updateEntry(organizationId, toData, toId, originalToStatus);
       for (const gdId of data.gd_no) {
-        await updateGoodsDelivery(gdId, isAutoCompleteGD, organizationId);
+        await updateGoodsDelivery(
+          gdId,
+          isAutoCompleteGD,
+          organizationId,
+          toData
+        );
       }
     }
 
