@@ -1,11 +1,11 @@
 (async () => {
-  const customer_agent_id = arguments[0].value;
+  const value = arguments[0].value;
 
   let salesGroupData = [];
 
   const salesGroupFilter = new Filter("any")
     .eq("is_admin", 1)
-    .eq("agent_id", customer_agent_id)
+    .eq("agent_id", value)
     .build();
 
   await db
@@ -19,7 +19,9 @@
 
   const salesGroupIds = salesGroupData.map((item) => item.id);
 
-  await this.setData({
-    access_group: salesGroupIds,
-  });
+  if (salesGroupIds.length > 0 && value) {
+    await this.setData({
+      access_group: salesGroupIds,
+    });
+  }
 })();
