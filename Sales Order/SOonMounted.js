@@ -250,10 +250,6 @@ const displayDeliveryMethod = async () => {
 
     if (!selectedField) {
       this.hide(fields);
-    } else {
-      fields.forEach((field) => {
-        field === selectedField ? this.display(field) : this.hide(field);
-      });
     }
   } else {
     this.setData({ delivery_method_text: "" });
@@ -303,7 +299,7 @@ const checkAccIntegrationType = async (organizationId) => {
   }
 };
 
-const cloneResetQuantity = async (status) => {
+const cloneResetQuantity = async () => {
   const tableSO = this.getValue("table_so");
 
   for (const so of tableSO) {
@@ -340,6 +336,26 @@ const setPlant = (organizationId, pageStatus) => {
   }
 };
 
+const convertBaseToAlt = (baseQty, uomConversionTable, baseUOM) => {
+  if (
+    !Array.isArray(uomConversionTable) ||
+    uomConversionTable.length === 0 ||
+    !baseUOM
+  ) {
+    return baseQty;
+  }
+
+  const uomConversion = uomConversionTable.find(
+    (conv) => conv.alt_uom_id === baseUOM
+  );
+
+  if (!uomConversion || !uomConversion.alt_qty) {
+    return baseQty;
+  }
+
+  return Math.round(baseQty * uomConversion.alt_qty * 1000) / 1000;
+};
+
 const fetchUnrestrictedQty = async () => {
   try {
     console.log("fetchUnrestrictedQty");
@@ -358,6 +374,8 @@ const fetchUnrestrictedQty = async () => {
         let item_batch_management = 0;
         let serial_number_management = 0;
         let stock_control = 0;
+        let tableUOMConversion = [];
+        let baseUOM;
 
         await db
           .collection("Item")
@@ -368,6 +386,8 @@ const fetchUnrestrictedQty = async () => {
             item_batch_management = itemData.item_batch_management;
             serial_number_management = itemData.serial_number_management;
             stock_control = itemData.stock_control;
+            tableUOMConversion = itemData.table_uom_conversion;
+            baseUOM = itemData.based_uom;
           });
 
         if (serial_number_management === 1) {
@@ -442,6 +462,14 @@ const fetchUnrestrictedQty = async () => {
           totalUnrestrictedQtyBase = 0;
         }
 
+        if (so.so_item_uom !== baseUOM) {
+          const finalQty = await convertBaseToAlt(
+            totalUnrestrictedQtyBase,
+            tableUOMConversion,
+            so.so_item_uom
+          );
+          totalUnrestrictedQtyBase = finalQty;
+        }
         this.setData({
           [`table_so.${index}.unrestricted_qty`]: totalUnrestrictedQtyBase,
         });
