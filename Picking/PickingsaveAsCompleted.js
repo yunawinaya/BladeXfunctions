@@ -2760,7 +2760,7 @@ const updateGoodsDelivery = async (
     if (isAllLineItemCompleted) {
       newPickingStatus = "Completed";
     } else {
-      newPickingStatus = pickingStatus;
+      newPickingStatus = "In Progress";
     }
 
     await db.collection("goods_delivery").doc(gdId).update({
@@ -2810,23 +2810,20 @@ const updateGoodsDelivery = async (
         "Created"
       );
 
-      const { so_data_array } = await updateSalesOrderStatus(
-        gdData.so_id,
-        gdData.table_gd
-      );
+      await updateSalesOrderStatus(gdData.so_id, gdData.table_gd);
 
-      await this.runWorkflow(
-        "1918140858502557698",
-        { delivery_no: gdData.delivery_no, so_data: so_data_array },
-        async (res) => {
-          console.log("成功结果：", res);
-        },
-        (err) => {
-          alert();
-          console.error("失败结果：", err);
-          closeDialog();
-        }
-      );
+      // await this.runWorkflow(
+      //   "1918140858502557698",
+      //   { delivery_no: gdData.delivery_no, so_data: so_data_array },
+      //   async (res) => {
+      //     console.log("成功结果：", res);
+      //   },
+      //   (err) => {
+      //     alert();
+      //     console.error("失败结果：", err);
+      //     closeDialog();
+      //   }
+      // );
 
       await updateOnReserveGoodsDelivery(organizationId, gdData);
     }
@@ -2983,7 +2980,9 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
         ) {
           const extraRecord = existingReserved.data[i];
           updatePromises.push(
-            db.collection("on_reserved_gd").doc(extraRecord.id).delete()
+            db.collection("on_reserved_gd").doc(extraRecord.id).update({
+              is_deleted: 1,
+            })
           );
         }
       }

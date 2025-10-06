@@ -1511,22 +1511,9 @@ const updateEntryWithValidation = async (
       table_gd: gd.table_gd,
     });
 
-    const { so_data_array } = await updateSalesOrderStatus(
+    await updateSalesOrderStatus(
       gd.so_id.length > 0 ? gd.so_id.map((item) => item.id) : [],
       gd.table_gd
-    );
-
-    await this.runWorkflow(
-      "1918140858502557698",
-      { delivery_no: gd.delivery_no, so_data: so_data_array },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        alert();
-        console.error("失败结果：", err);
-        closeDialog();
-      }
     );
 
     this.$message.success("Update successfully");
