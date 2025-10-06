@@ -894,11 +894,15 @@ const addEntryWithValidation = async (organizationId, gd, gdStatus) => {
 
 const updateEntryWithValidation = async (
   organizationId,
-  gd,
+  gdForBalance, // Full GD with all items (for balance processing)
+  gdForUpdate, // Filtered GD (for database update)
   gdStatus,
   goodsDeliveryId
 ) => {
   try {
+    // Use filtered GD for all non-balance operations
+    const gd = gdForUpdate;
+
     // Step 1: Prepare prefix data for Draft status but don't update counter yet
     if (gdStatus === "Draft") {
       const prefixData = await getPrefixData(organizationId);
@@ -921,7 +925,7 @@ const updateEntryWithValidation = async (
       }
     }
 
-    // Step 2: VALIDATE INVENTORY AVAILABILITY FIRST
+    // Step 2: VALIDATE INVENTORY AVAILABILITY FIRST (use filtered GD)
     console.log("Validating inventory availability");
     const validationResult = await validateInventoryAvailabilityForCompleted(
       gd,
@@ -942,9 +946,17 @@ const updateEntryWithValidation = async (
     }
 
     // Step 3: Process balance table (inventory operations) AFTER validation passes
-    await processBalanceTable(gd, true, gd.plant_id, organizationId, gdStatus);
+    // IMPORTANT: Use gdForBalance (full GD) to process balance including 0-qty items for reservation release
+    await processBalanceTable(
+      gdForBalance,
+      true,
+      gd.plant_id,
+      organizationId,
+      gdStatus
+    );
 
     // Step 4: Update the record ONLY after inventory processing succeeds
+    // IMPORTANT: Use gdForUpdate (filtered GD) to update database - excludes 0-qty items
     await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
 
     // Step 6: Update related records
@@ -3771,15 +3783,63 @@ const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
   }
 
   if (zeroQtyArray.length > 0) {
-    // IMPORTANT: For Edit mode with Created status, we need to keep 0-qty items
-    // to release their reserved quantities. Don't prompt user to delete them.
+    // SPECIAL CASE: For Edit mode with Created status, create 2 entries
+    // fullEntry: keeps all items (including 0-qty) for reservation release
+    // filteredEntry: only items with qty > 0 for database update
     if (pageStatus === "Edit" && currentGdStatus === "Created") {
-      console.log(
-        `Edit mode with Created status: Keeping ${zeroQtyArray.length} item(s) with 0 qty to release reservations`
-      );
-      return entry; // Keep all items including 0-qty ones
+      try {
+        await this.$confirm(
+          `Line${zeroQtyArray.length > 1 ? "s" : ""} ${zeroQtyArray.join(
+            ", "
+          )} ha${
+            zeroQtyArray.length > 1 ? "ve" : "s"
+          } a zero deliver quantity, which may prevent processing.\nIf you proceed, it will delete the row with 0 deliver quantity. \nWould you like to proceed?`,
+          "Zero Deliver Quantity Detected",
+          {
+            confirmButtonText: "OK",
+            cancelButtonText: "Cancel",
+            type: "warning",
+            dangerouslyUseHTMLString: false,
+          }
+        );
+
+        console.log("User clicked OK - creating full and filtered entries");
+
+        // Full entry keeps all items (for balance processing)
+        const fullEntry = { ...entry, table_gd: [...entry.table_gd] };
+
+        // Filtered entry only has items with qty > 0 (for database update)
+        const filteredEntry = {
+          ...entry,
+          table_gd: entry.table_gd.filter((item) => item.gd_qty > 0),
+        };
+
+        let soID = [];
+        let salesOrderNumber = [];
+
+        for (const gd of filteredEntry.table_gd) {
+          soID.push(gd.line_so_id);
+          salesOrderNumber.push(gd.line_so_no);
+        }
+
+        soID = [...new Set(soID)];
+        salesOrderNumber = [...new Set(salesOrderNumber)];
+
+        filteredEntry.so_id = soID;
+        filteredEntry.so_no = salesOrderNumber.join(", ");
+
+        console.log(
+          `Full entry has ${fullEntry.table_gd.length} items, filtered entry has ${filteredEntry.table_gd.length} items`
+        );
+        return { fullEntry, filteredEntry };
+      } catch {
+        console.log("User clicked Cancel or closed the dialog");
+        this.hideLoading();
+        throw new Error("Saving goods delivery cancelled.");
+      }
     }
 
+    // Normal case: just show dialog and filter
     await this.$confirm(
       `Line${zeroQtyArray.length > 1 ? "s" : ""} ${zeroQtyArray.join(", ")} ha${
         zeroQtyArray.length > 1 ? "ve" : "s"
@@ -4140,7 +4200,26 @@ const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
       }
     });
 
-    const latestGD = await processGDLineItem(gd, page_status, gdStatus);
+    const processResult = await processGDLineItem(gd, page_status, gdStatus);
+
+    // Handle different return types from processGDLineItem
+    let fullGD, latestGD;
+    if (
+      processResult &&
+      processResult.fullEntry &&
+      processResult.filteredEntry
+    ) {
+      // Special case: Edit + Created with 0-qty items
+      fullGD = processResult.fullEntry;
+      latestGD = processResult.filteredEntry;
+      console.log(
+        "Using full entry for balance processing and filtered entry for database update"
+      );
+    } else {
+      // Normal case: single entry
+      fullGD = processResult;
+      latestGD = processResult;
+    }
 
     if (latestGD.table_gd.length === 0) {
       throw new Error(
@@ -4173,9 +4252,13 @@ const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
       await addEntryWithValidation(organizationId, latestGD, gdStatus);
     } else if (page_status === "Edit") {
       const goodsDeliveryId = data.id;
+
+      // IMPORTANT: Use fullGD for balance processing (includes 0-qty items for reservation release)
+      // but use latestGD for database update (only items with qty > 0)
       await updateEntryWithValidation(
         organizationId,
-        latestGD,
+        fullGD, // Use full entry for balance processing
+        latestGD, // Use filtered entry for database update
         gdStatus,
         goodsDeliveryId
       );
