@@ -858,23 +858,20 @@ const addEntryWithValidation = async (organizationId, gd, gdStatus) => {
     await db.collection("goods_delivery").add(gd);
 
     // Step 6: Update related records
-    const { so_data_array } = await updateSalesOrderStatus(
-      gd.so_id,
-      gd.table_gd
-    );
+    await updateSalesOrderStatus(gd.so_id, gd.table_gd);
 
-    await this.runWorkflow(
-      "1918140858502557698",
-      { delivery_no: gd.delivery_no, so_data: so_data_array },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        alert();
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
+    // await this.runWorkflow(
+    //   "1918140858502557698",
+    //   { delivery_no: gd.delivery_no, so_data: so_data_array },
+    //   async (res) => {
+    //     console.log("成功结果：", res);
+    //   },
+    //   (err) => {
+    //     alert();
+    //     console.error("失败结果：", err);
+    //     closeDialog();
+    //   }
+    // );
 
     this.$message.success("Add successfully");
     await closeDialog();
@@ -951,23 +948,20 @@ const updateEntryWithValidation = async (
     await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
 
     // Step 6: Update related records
-    const { so_data_array } = await updateSalesOrderStatus(
-      gd.so_id,
-      gd.table_gd
-    );
+    await updateSalesOrderStatus(gd.so_id, gd.table_gd);
 
-    await this.runWorkflow(
-      "1918140858502557698",
-      { delivery_no: gd.delivery_no, so_data: so_data_array },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        alert();
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
+    // await this.runWorkflow(
+    //   "1918140858502557698",
+    //   { delivery_no: gd.delivery_no, so_data: so_data_array },
+    //   async (res) => {
+    //     console.log("成功结果：", res);
+    //   },
+    //   (err) => {
+    //     alert();
+    //     console.error("失败结果：", err);
+    //     closeDialog();
+    //   }
+    // );
 
     this.$message.success("Update successfully");
     await closeDialog();
@@ -1074,8 +1068,8 @@ const processBalanceTable = async (
         : null;
 
       if (
-        temporaryData.length > 0 &&
-        (!isUpdate || (prevTempData && prevTempData.length > 0))
+        temporaryData.length > 0 ||
+        (isUpdate && prevTempData && prevTempData.length > 0)
       ) {
         // GROUP temp_qty_data by location + batch combination for movement consolidation
         const groupedTempData = new Map();
@@ -1101,6 +1095,29 @@ const processBalanceTable = async (
           const group = groupedTempData.get(groupKey);
           group.items.push(temp);
           group.totalQty += parseFloat(temp.gd_quantity || 0);
+        }
+
+        // IMPORTANT: For update mode, also create groups from prevTempData if they don't exist in current data
+        // This ensures we can release reserved quantities for items reduced to 0
+        if (isUpdate && prevTempData && prevTempData.length > 0) {
+          for (const prevTemp of prevTempData) {
+            let prevGroupKey;
+            if (isBatchManagedItem && prevTemp.batch_id) {
+              prevGroupKey = `${prevTemp.location_id}|${prevTemp.batch_id}`;
+            } else {
+              prevGroupKey = prevTemp.location_id;
+            }
+
+            // Only add if this group doesn't exist in current data
+            if (!groupedTempData.has(prevGroupKey)) {
+              groupedTempData.set(prevGroupKey, {
+                location_id: prevTemp.location_id,
+                batch_id: prevTemp.batch_id,
+                items: [],
+                totalQty: 0, // Current quantity is 0 for this group
+              });
+            }
+          }
         }
 
         console.log(
@@ -1448,7 +1465,8 @@ const processBalanceTable = async (
                 );
               }
 
-              if (availableReservedForThisGD >= baseQty) {
+              // Only create movements if baseQty > 0
+              if (baseQty > 0 && availableReservedForThisGD >= baseQty) {
                 // Sufficient reserved quantity from this GD - create single OUT movement from Reserved
                 console.log(
                   `Sufficient reserved quantity for this GD (${availableReservedForThisGD}) for ${baseQty}`
@@ -1498,7 +1516,7 @@ const processBalanceTable = async (
                     `Created consolidated OUT movement from Reserved for group ${groupKey}: ${baseQty}, ID: ${movementId}`
                   );
                 }
-              } else {
+              } else if (baseQty > 0) {
                 // Insufficient reserved quantity for this GD - split between Reserved and Unrestricted
                 const reservedQtyToMove = availableReservedForThisGD;
                 const unrestrictedQtyToMove = roundQty(
@@ -1765,7 +1783,7 @@ const processBalanceTable = async (
                   );
                 }
               }
-            } else {
+            } else if (baseQty > 0) {
               // For non-Created status (Unrestricted movement)
               console.log(
                 `Processing ${gdStatus} status - moving ${baseQty} OUT from Unrestricted for group ${groupKey}`
@@ -2010,92 +2028,95 @@ const processBalanceTable = async (
               );
 
               // Process each serial balance individually with proper distribution
-              for (const serialBalance of serialBalances) {
-                if (remainingToDeduct <= 0) break;
+              // Skip balance deduction if baseQty is 0 (item removed from GD)
+              if (baseQty > 0) {
+                for (const serialBalance of serialBalances) {
+                  if (remainingToDeduct <= 0) break;
 
-                const serialDoc = serialBalance.balance;
-                const currentSerialUnrestricted = serialBalance.unrestricted;
-                const currentSerialReserved = serialBalance.reserved;
-                const individualBaseQty = serialBalance.individualBaseQty;
+                  const serialDoc = serialBalance.balance;
+                  const currentSerialUnrestricted = serialBalance.unrestricted;
+                  const currentSerialReserved = serialBalance.reserved;
+                  const individualBaseQty = serialBalance.individualBaseQty;
 
-                // Calculate how much to deduct from this serial (proportional to its individual quantity)
-                const serialDeductionRatio = individualBaseQty / baseQty;
-                const serialReservedDeduction = roundQty(
-                  remainingReservedToDeduct * serialDeductionRatio
-                );
-                const serialUnrestrictedDeduction = roundQty(
-                  remainingUnrestrictedToDeduct * serialDeductionRatio
-                );
-
-                let finalSerialUnrestricted = roundQty(
-                  currentSerialUnrestricted - serialUnrestrictedDeduction
-                );
-                let finalSerialReserved = roundQty(
-                  currentSerialReserved - serialReservedDeduction
-                );
-
-                // Safety checks to prevent negative values
-                if (finalSerialUnrestricted < 0) {
-                  console.warn(
-                    `Serial ${serialBalance.serial}: Unrestricted would be negative (${finalSerialUnrestricted}), setting to 0`
+                  // Calculate how much to deduct from this serial (proportional to its individual quantity)
+                  const serialDeductionRatio = individualBaseQty / baseQty;
+                  const serialReservedDeduction = roundQty(
+                    remainingReservedToDeduct * serialDeductionRatio
                   );
-                  finalSerialUnrestricted = 0;
-                }
-                if (finalSerialReserved < 0) {
-                  console.warn(
-                    `Serial ${serialBalance.serial}: Reserved would be negative (${finalSerialReserved}), setting to 0`
-                  );
-                  finalSerialReserved = 0;
-                }
-
-                const originalData = {
-                  unrestricted_qty: currentSerialUnrestricted,
-                  reserved_qty: currentSerialReserved,
-                };
-
-                const updateData = {
-                  unrestricted_qty: finalSerialUnrestricted,
-                  reserved_qty: finalSerialReserved,
-                };
-
-                if (serialDoc.hasOwnProperty("balance_quantity")) {
-                  originalData.balance_quantity = roundQty(
-                    currentSerialUnrestricted + currentSerialReserved
-                  );
-                  updateData.balance_quantity = roundQty(
-                    finalSerialUnrestricted + finalSerialReserved
-                  );
-                }
-
-                updatedDocs.push({
-                  collection: "item_serial_balance",
-                  docId: serialDoc.id,
-                  originalData: originalData,
-                });
-
-                try {
-                  await db
-                    .collection("item_serial_balance")
-                    .doc(serialDoc.id)
-                    .update(updateData);
-
-                  console.log(
-                    `Updated serial balance for ${serialBalance.serial}: ` +
-                      `Unrestricted=${finalSerialUnrestricted}, Reserved=${finalSerialReserved}` +
-                      (updateData.balance_quantity
-                        ? `, Balance=${updateData.balance_quantity}`
-                        : "")
+                  const serialUnrestrictedDeduction = roundQty(
+                    remainingUnrestrictedToDeduct * serialDeductionRatio
                   );
 
-                  remainingToDeduct = roundQty(
-                    remainingToDeduct - individualBaseQty
+                  let finalSerialUnrestricted = roundQty(
+                    currentSerialUnrestricted - serialUnrestrictedDeduction
                   );
-                } catch (serialBalanceError) {
-                  console.error(
-                    `Error updating serial balance for ${serialBalance.serial}:`,
-                    serialBalanceError
+                  let finalSerialReserved = roundQty(
+                    currentSerialReserved - serialReservedDeduction
                   );
-                  throw serialBalanceError;
+
+                  // Safety checks to prevent negative values
+                  if (finalSerialUnrestricted < 0) {
+                    console.warn(
+                      `Serial ${serialBalance.serial}: Unrestricted would be negative (${finalSerialUnrestricted}), setting to 0`
+                    );
+                    finalSerialUnrestricted = 0;
+                  }
+                  if (finalSerialReserved < 0) {
+                    console.warn(
+                      `Serial ${serialBalance.serial}: Reserved would be negative (${finalSerialReserved}), setting to 0`
+                    );
+                    finalSerialReserved = 0;
+                  }
+
+                  const originalData = {
+                    unrestricted_qty: currentSerialUnrestricted,
+                    reserved_qty: currentSerialReserved,
+                  };
+
+                  const updateData = {
+                    unrestricted_qty: finalSerialUnrestricted,
+                    reserved_qty: finalSerialReserved,
+                  };
+
+                  if (serialDoc.hasOwnProperty("balance_quantity")) {
+                    originalData.balance_quantity = roundQty(
+                      currentSerialUnrestricted + currentSerialReserved
+                    );
+                    updateData.balance_quantity = roundQty(
+                      finalSerialUnrestricted + finalSerialReserved
+                    );
+                  }
+
+                  updatedDocs.push({
+                    collection: "item_serial_balance",
+                    docId: serialDoc.id,
+                    originalData: originalData,
+                  });
+
+                  try {
+                    await db
+                      .collection("item_serial_balance")
+                      .doc(serialDoc.id)
+                      .update(updateData);
+
+                    console.log(
+                      `Updated serial balance for ${serialBalance.serial}: ` +
+                        `Unrestricted=${finalSerialUnrestricted}, Reserved=${finalSerialReserved}` +
+                        (updateData.balance_quantity
+                          ? `, Balance=${updateData.balance_quantity}`
+                          : "")
+                    );
+
+                    remainingToDeduct = roundQty(
+                      remainingToDeduct - individualBaseQty
+                    );
+                  } catch (serialBalanceError) {
+                    console.error(
+                      `Error updating serial balance for ${serialBalance.serial}:`,
+                      serialBalanceError
+                    );
+                    throw serialBalanceError;
+                  }
                 }
               }
 
@@ -2435,20 +2456,23 @@ const processBalanceTable = async (
           }
 
           // Update costing method inventories (use total group quantity)
-          if (costingMethod === "First In First Out") {
-            await updateFIFOInventory(
-              item.material_id,
-              baseQty,
-              group.batch_id,
-              plantId
-            );
-          } else if (costingMethod === "Weighted Average") {
-            await updateWeightedAverage(
-              item,
-              group.batch_id,
-              baseWAQty,
-              plantId
-            );
+          // Skip if baseQty is 0 (item removed from GD)
+          if (baseQty > 0) {
+            if (costingMethod === "First In First Out") {
+              await updateFIFOInventory(
+                item.material_id,
+                baseQty,
+                group.batch_id,
+                plantId
+              );
+            } else if (costingMethod === "Weighted Average") {
+              await updateWeightedAverage(
+                item,
+                group.batch_id,
+                baseWAQty,
+                plantId
+              );
+            }
           }
         }
 
@@ -3588,7 +3612,9 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
         ) {
           const extraRecord = existingReserved.data[i];
           updatePromises.push(
-            db.collection("on_reserved_gd").doc(extraRecord.id).delete()
+            db.collection("on_reserved_gd").doc(extraRecord.id).update({
+              is_deleted: 1,
+            })
           );
         }
       }
@@ -3727,7 +3753,7 @@ const fillbackHeaderFields = async (gd) => {
   }
 };
 
-const processGDLineItem = async (entry) => {
+const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
   const totalQuantity = entry.table_gd.reduce((sum, item) => {
     const { gd_qty } = item;
     return sum + (gd_qty || 0); // Handle null/undefined received_qty
@@ -3745,6 +3771,15 @@ const processGDLineItem = async (entry) => {
   }
 
   if (zeroQtyArray.length > 0) {
+    // IMPORTANT: For Edit mode with Created status, we need to keep 0-qty items
+    // to release their reserved quantities. Don't prompt user to delete them.
+    if (pageStatus === "Edit" && currentGdStatus === "Created") {
+      console.log(
+        `Edit mode with Created status: Keeping ${zeroQtyArray.length} item(s) with 0 qty to release reservations`
+      );
+      return entry; // Keep all items including 0-qty ones
+    }
+
     await this.$confirm(
       `Line${zeroQtyArray.length > 1 ? "s" : ""} ${zeroQtyArray.join(", ")} ha${
         zeroQtyArray.length > 1 ? "ve" : "s"
@@ -4105,7 +4140,7 @@ const processGDLineItem = async (entry) => {
       }
     });
 
-    const latestGD = await processGDLineItem(gd);
+    const latestGD = await processGDLineItem(gd, page_status, gdStatus);
 
     if (latestGD.table_gd.length === 0) {
       throw new Error(
