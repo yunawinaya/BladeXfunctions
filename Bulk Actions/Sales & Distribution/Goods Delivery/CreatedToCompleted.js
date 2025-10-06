@@ -3320,7 +3320,9 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
         ) {
           const extraRecord = existingReserved.data[i];
           updatePromises.push(
-            db.collection("on_reserved_gd").doc(extraRecord.id).delete()
+            db.collection("on_reserved_gd").doc(extraRecord.id).update({
+              is_deleted: 1,
+            })
           );
         }
       }

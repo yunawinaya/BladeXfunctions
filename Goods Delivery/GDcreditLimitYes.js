@@ -858,23 +858,20 @@ const addEntryWithValidation = async (organizationId, gd, gdStatus) => {
     await db.collection("goods_delivery").add(gd);
 
     // Step 6: Update related records
-    const { so_data_array } = await updateSalesOrderStatus(
-      gd.so_id,
-      gd.table_gd
-    );
+    await updateSalesOrderStatus(gd.so_id, gd.table_gd);
 
-    await this.runWorkflow(
-      "1918140858502557698",
-      { delivery_no: gd.delivery_no, so_data: so_data_array },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        alert();
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
+    // await this.runWorkflow(
+    //   "1918140858502557698",
+    //   { delivery_no: gd.delivery_no, so_data: so_data_array },
+    //   async (res) => {
+    //     console.log("成功结果：", res);
+    //   },
+    //   (err) => {
+    //     alert();
+    //     console.error("失败结果：", err);
+    //     closeDialog();
+    //   }
+    // );
 
     this.$message.success("Add successfully");
     await closeDialog();
@@ -897,11 +894,15 @@ const addEntryWithValidation = async (organizationId, gd, gdStatus) => {
 
 const updateEntryWithValidation = async (
   organizationId,
-  gd,
+  gdForBalance, // Full GD with all items (for balance processing)
+  gdForUpdate, // Filtered GD (for database update)
   gdStatus,
   goodsDeliveryId
 ) => {
   try {
+    // Use filtered GD for all non-balance operations
+    const gd = gdForUpdate;
+
     // Step 1: Prepare prefix data for Draft status but don't update counter yet
     if (gdStatus === "Draft") {
       const prefixData = await getPrefixData(organizationId);
@@ -924,7 +925,7 @@ const updateEntryWithValidation = async (
       }
     }
 
-    // Step 2: VALIDATE INVENTORY AVAILABILITY FIRST
+    // Step 2: VALIDATE INVENTORY AVAILABILITY FIRST (use filtered GD)
     console.log("Validating inventory availability");
     const validationResult = await validateInventoryAvailabilityForCompleted(
       gd,
@@ -945,29 +946,34 @@ const updateEntryWithValidation = async (
     }
 
     // Step 3: Process balance table (inventory operations) AFTER validation passes
-    await processBalanceTable(gd, true, gd.plant_id, organizationId, gdStatus);
+    // IMPORTANT: Use gdForBalance (full GD) to process balance including 0-qty items for reservation release
+    await processBalanceTable(
+      gdForBalance,
+      true,
+      gd.plant_id,
+      organizationId,
+      gdStatus
+    );
 
     // Step 4: Update the record ONLY after inventory processing succeeds
+    // IMPORTANT: Use gdForUpdate (filtered GD) to update database - excludes 0-qty items
     await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
 
     // Step 6: Update related records
-    const { so_data_array } = await updateSalesOrderStatus(
-      gd.so_id,
-      gd.table_gd
-    );
+    await updateSalesOrderStatus(gd.so_id, gd.table_gd);
 
-    await this.runWorkflow(
-      "1918140858502557698",
-      { delivery_no: gd.delivery_no, so_data: so_data_array },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        alert();
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
+    // await this.runWorkflow(
+    //   "1918140858502557698",
+    //   { delivery_no: gd.delivery_no, so_data: so_data_array },
+    //   async (res) => {
+    //     console.log("成功结果：", res);
+    //   },
+    //   (err) => {
+    //     alert();
+    //     console.error("失败结果：", err);
+    //     closeDialog();
+    //   }
+    // );
 
     this.$message.success("Update successfully");
     await closeDialog();
@@ -1074,8 +1080,8 @@ const processBalanceTable = async (
         : null;
 
       if (
-        temporaryData.length > 0 &&
-        (!isUpdate || (prevTempData && prevTempData.length > 0))
+        temporaryData.length > 0 ||
+        (isUpdate && prevTempData && prevTempData.length > 0)
       ) {
         // GROUP temp_qty_data by location + batch combination for movement consolidation
         const groupedTempData = new Map();
@@ -1101,6 +1107,29 @@ const processBalanceTable = async (
           const group = groupedTempData.get(groupKey);
           group.items.push(temp);
           group.totalQty += parseFloat(temp.gd_quantity || 0);
+        }
+
+        // IMPORTANT: For update mode, also create groups from prevTempData if they don't exist in current data
+        // This ensures we can release reserved quantities for items reduced to 0
+        if (isUpdate && prevTempData && prevTempData.length > 0) {
+          for (const prevTemp of prevTempData) {
+            let prevGroupKey;
+            if (isBatchManagedItem && prevTemp.batch_id) {
+              prevGroupKey = `${prevTemp.location_id}|${prevTemp.batch_id}`;
+            } else {
+              prevGroupKey = prevTemp.location_id;
+            }
+
+            // Only add if this group doesn't exist in current data
+            if (!groupedTempData.has(prevGroupKey)) {
+              groupedTempData.set(prevGroupKey, {
+                location_id: prevTemp.location_id,
+                batch_id: prevTemp.batch_id,
+                items: [],
+                totalQty: 0, // Current quantity is 0 for this group
+              });
+            }
+          }
         }
 
         console.log(
@@ -1448,7 +1477,8 @@ const processBalanceTable = async (
                 );
               }
 
-              if (availableReservedForThisGD >= baseQty) {
+              // Only create movements if baseQty > 0
+              if (baseQty > 0 && availableReservedForThisGD >= baseQty) {
                 // Sufficient reserved quantity from this GD - create single OUT movement from Reserved
                 console.log(
                   `Sufficient reserved quantity for this GD (${availableReservedForThisGD}) for ${baseQty}`
@@ -1498,7 +1528,7 @@ const processBalanceTable = async (
                     `Created consolidated OUT movement from Reserved for group ${groupKey}: ${baseQty}, ID: ${movementId}`
                   );
                 }
-              } else {
+              } else if (baseQty > 0) {
                 // Insufficient reserved quantity for this GD - split between Reserved and Unrestricted
                 const reservedQtyToMove = availableReservedForThisGD;
                 const unrestrictedQtyToMove = roundQty(
@@ -1765,7 +1795,7 @@ const processBalanceTable = async (
                   );
                 }
               }
-            } else {
+            } else if (baseQty > 0) {
               // For non-Created status (Unrestricted movement)
               console.log(
                 `Processing ${gdStatus} status - moving ${baseQty} OUT from Unrestricted for group ${groupKey}`
@@ -2010,92 +2040,95 @@ const processBalanceTable = async (
               );
 
               // Process each serial balance individually with proper distribution
-              for (const serialBalance of serialBalances) {
-                if (remainingToDeduct <= 0) break;
+              // Skip balance deduction if baseQty is 0 (item removed from GD)
+              if (baseQty > 0) {
+                for (const serialBalance of serialBalances) {
+                  if (remainingToDeduct <= 0) break;
 
-                const serialDoc = serialBalance.balance;
-                const currentSerialUnrestricted = serialBalance.unrestricted;
-                const currentSerialReserved = serialBalance.reserved;
-                const individualBaseQty = serialBalance.individualBaseQty;
+                  const serialDoc = serialBalance.balance;
+                  const currentSerialUnrestricted = serialBalance.unrestricted;
+                  const currentSerialReserved = serialBalance.reserved;
+                  const individualBaseQty = serialBalance.individualBaseQty;
 
-                // Calculate how much to deduct from this serial (proportional to its individual quantity)
-                const serialDeductionRatio = individualBaseQty / baseQty;
-                const serialReservedDeduction = roundQty(
-                  remainingReservedToDeduct * serialDeductionRatio
-                );
-                const serialUnrestrictedDeduction = roundQty(
-                  remainingUnrestrictedToDeduct * serialDeductionRatio
-                );
-
-                let finalSerialUnrestricted = roundQty(
-                  currentSerialUnrestricted - serialUnrestrictedDeduction
-                );
-                let finalSerialReserved = roundQty(
-                  currentSerialReserved - serialReservedDeduction
-                );
-
-                // Safety checks to prevent negative values
-                if (finalSerialUnrestricted < 0) {
-                  console.warn(
-                    `Serial ${serialBalance.serial}: Unrestricted would be negative (${finalSerialUnrestricted}), setting to 0`
+                  // Calculate how much to deduct from this serial (proportional to its individual quantity)
+                  const serialDeductionRatio = individualBaseQty / baseQty;
+                  const serialReservedDeduction = roundQty(
+                    remainingReservedToDeduct * serialDeductionRatio
                   );
-                  finalSerialUnrestricted = 0;
-                }
-                if (finalSerialReserved < 0) {
-                  console.warn(
-                    `Serial ${serialBalance.serial}: Reserved would be negative (${finalSerialReserved}), setting to 0`
-                  );
-                  finalSerialReserved = 0;
-                }
-
-                const originalData = {
-                  unrestricted_qty: currentSerialUnrestricted,
-                  reserved_qty: currentSerialReserved,
-                };
-
-                const updateData = {
-                  unrestricted_qty: finalSerialUnrestricted,
-                  reserved_qty: finalSerialReserved,
-                };
-
-                if (serialDoc.hasOwnProperty("balance_quantity")) {
-                  originalData.balance_quantity = roundQty(
-                    currentSerialUnrestricted + currentSerialReserved
-                  );
-                  updateData.balance_quantity = roundQty(
-                    finalSerialUnrestricted + finalSerialReserved
-                  );
-                }
-
-                updatedDocs.push({
-                  collection: "item_serial_balance",
-                  docId: serialDoc.id,
-                  originalData: originalData,
-                });
-
-                try {
-                  await db
-                    .collection("item_serial_balance")
-                    .doc(serialDoc.id)
-                    .update(updateData);
-
-                  console.log(
-                    `Updated serial balance for ${serialBalance.serial}: ` +
-                      `Unrestricted=${finalSerialUnrestricted}, Reserved=${finalSerialReserved}` +
-                      (updateData.balance_quantity
-                        ? `, Balance=${updateData.balance_quantity}`
-                        : "")
+                  const serialUnrestrictedDeduction = roundQty(
+                    remainingUnrestrictedToDeduct * serialDeductionRatio
                   );
 
-                  remainingToDeduct = roundQty(
-                    remainingToDeduct - individualBaseQty
+                  let finalSerialUnrestricted = roundQty(
+                    currentSerialUnrestricted - serialUnrestrictedDeduction
                   );
-                } catch (serialBalanceError) {
-                  console.error(
-                    `Error updating serial balance for ${serialBalance.serial}:`,
-                    serialBalanceError
+                  let finalSerialReserved = roundQty(
+                    currentSerialReserved - serialReservedDeduction
                   );
-                  throw serialBalanceError;
+
+                  // Safety checks to prevent negative values
+                  if (finalSerialUnrestricted < 0) {
+                    console.warn(
+                      `Serial ${serialBalance.serial}: Unrestricted would be negative (${finalSerialUnrestricted}), setting to 0`
+                    );
+                    finalSerialUnrestricted = 0;
+                  }
+                  if (finalSerialReserved < 0) {
+                    console.warn(
+                      `Serial ${serialBalance.serial}: Reserved would be negative (${finalSerialReserved}), setting to 0`
+                    );
+                    finalSerialReserved = 0;
+                  }
+
+                  const originalData = {
+                    unrestricted_qty: currentSerialUnrestricted,
+                    reserved_qty: currentSerialReserved,
+                  };
+
+                  const updateData = {
+                    unrestricted_qty: finalSerialUnrestricted,
+                    reserved_qty: finalSerialReserved,
+                  };
+
+                  if (serialDoc.hasOwnProperty("balance_quantity")) {
+                    originalData.balance_quantity = roundQty(
+                      currentSerialUnrestricted + currentSerialReserved
+                    );
+                    updateData.balance_quantity = roundQty(
+                      finalSerialUnrestricted + finalSerialReserved
+                    );
+                  }
+
+                  updatedDocs.push({
+                    collection: "item_serial_balance",
+                    docId: serialDoc.id,
+                    originalData: originalData,
+                  });
+
+                  try {
+                    await db
+                      .collection("item_serial_balance")
+                      .doc(serialDoc.id)
+                      .update(updateData);
+
+                    console.log(
+                      `Updated serial balance for ${serialBalance.serial}: ` +
+                        `Unrestricted=${finalSerialUnrestricted}, Reserved=${finalSerialReserved}` +
+                        (updateData.balance_quantity
+                          ? `, Balance=${updateData.balance_quantity}`
+                          : "")
+                    );
+
+                    remainingToDeduct = roundQty(
+                      remainingToDeduct - individualBaseQty
+                    );
+                  } catch (serialBalanceError) {
+                    console.error(
+                      `Error updating serial balance for ${serialBalance.serial}:`,
+                      serialBalanceError
+                    );
+                    throw serialBalanceError;
+                  }
                 }
               }
 
@@ -2435,20 +2468,23 @@ const processBalanceTable = async (
           }
 
           // Update costing method inventories (use total group quantity)
-          if (costingMethod === "First In First Out") {
-            await updateFIFOInventory(
-              item.material_id,
-              baseQty,
-              group.batch_id,
-              plantId
-            );
-          } else if (costingMethod === "Weighted Average") {
-            await updateWeightedAverage(
-              item,
-              group.batch_id,
-              baseWAQty,
-              plantId
-            );
+          // Skip if baseQty is 0 (item removed from GD)
+          if (baseQty > 0) {
+            if (costingMethod === "First In First Out") {
+              await updateFIFOInventory(
+                item.material_id,
+                baseQty,
+                group.batch_id,
+                plantId
+              );
+            } else if (costingMethod === "Weighted Average") {
+              await updateWeightedAverage(
+                item,
+                group.batch_id,
+                baseWAQty,
+                plantId
+              );
+            }
           }
         }
 
@@ -3230,7 +3266,9 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
         ) {
           const extraRecord = existingReserved.data[i];
           updatePromises.push(
-            db.collection("on_reserved_gd").doc(extraRecord.id).delete()
+            db.collection("on_reserved_gd").doc(extraRecord.id).update({
+              is_deleted: 1,
+            })
           );
         }
       }
@@ -3369,7 +3407,7 @@ const fillbackHeaderFields = async (gd) => {
   }
 };
 
-const processGDLineItem = async (entry) => {
+const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
   const totalQuantity = entry.table_gd.reduce((sum, item) => {
     const { gd_qty } = item;
     return sum + (gd_qty || 0); // Handle null/undefined received_qty
@@ -3387,6 +3425,63 @@ const processGDLineItem = async (entry) => {
   }
 
   if (zeroQtyArray.length > 0) {
+    // SPECIAL CASE: For Edit mode with Created status, create 2 entries
+    // fullEntry: keeps all items (including 0-qty) for reservation release
+    // filteredEntry: only items with qty > 0 for database update
+    if (pageStatus === "Edit" && currentGdStatus === "Created") {
+      try {
+        await this.$confirm(
+          `Line${zeroQtyArray.length > 1 ? "s" : ""} ${zeroQtyArray.join(
+            ", "
+          )} ha${
+            zeroQtyArray.length > 1 ? "ve" : "s"
+          } a zero deliver quantity, which may prevent processing.\nIf you proceed, it will delete the row with 0 deliver quantity. \nWould you like to proceed?`,
+          "Zero Deliver Quantity Detected",
+          {
+            confirmButtonText: "OK",
+            cancelButtonText: "Cancel",
+            type: "warning",
+            dangerouslyUseHTMLString: false,
+          }
+        );
+
+        console.log("User clicked OK - creating full and filtered entries");
+
+        // Full entry keeps all items (for balance processing)
+        const fullEntry = { ...entry, table_gd: [...entry.table_gd] };
+
+        // Filtered entry only has items with qty > 0 (for database update)
+        const filteredEntry = {
+          ...entry,
+          table_gd: entry.table_gd.filter((item) => item.gd_qty > 0),
+        };
+
+        let soID = [];
+        let salesOrderNumber = [];
+
+        for (const gd of filteredEntry.table_gd) {
+          soID.push(gd.line_so_id);
+          salesOrderNumber.push(gd.line_so_no);
+        }
+
+        soID = [...new Set(soID)];
+        salesOrderNumber = [...new Set(salesOrderNumber)];
+
+        filteredEntry.so_id = soID;
+        filteredEntry.so_no = salesOrderNumber.join(", ");
+
+        console.log(
+          `Full entry has ${fullEntry.table_gd.length} items, filtered entry has ${filteredEntry.table_gd.length} items`
+        );
+        return { fullEntry, filteredEntry };
+      } catch {
+        console.log("User clicked Cancel or closed the dialog");
+        this.hideLoading();
+        throw new Error("Saving goods delivery cancelled.");
+      }
+    }
+
+    // Normal case: just show dialog and filter
     await this.$confirm(
       `Line${zeroQtyArray.length > 1 ? "s" : ""} ${zeroQtyArray.join(", ")} ha${
         zeroQtyArray.length > 1 ? "ve" : "s"
@@ -3730,7 +3825,26 @@ const processGDLineItem = async (entry) => {
       }
     });
 
-    const latestGD = await processGDLineItem(gd);
+    const processResult = await processGDLineItem(gd, page_status, gdStatus);
+
+    // Handle different return types from processGDLineItem
+    let fullGD, latestGD;
+    if (
+      processResult &&
+      processResult.fullEntry &&
+      processResult.filteredEntry
+    ) {
+      // Special case: Edit + Created with 0-qty items
+      fullGD = processResult.fullEntry;
+      latestGD = processResult.filteredEntry;
+      console.log(
+        "Using full entry for balance processing and filtered entry for database update"
+      );
+    } else {
+      // Normal case: single entry
+      fullGD = processResult;
+      latestGD = processResult;
+    }
 
     if (latestGD.table_gd.length === 0) {
       throw new Error(
@@ -3763,9 +3877,13 @@ const processGDLineItem = async (entry) => {
       await addEntryWithValidation(organizationId, latestGD, gdStatus);
     } else if (page_status === "Edit") {
       const goodsDeliveryId = data.id;
+
+      // IMPORTANT: Use fullGD for balance processing (includes 0-qty items for reservation release)
+      // but use latestGD for database update (only items with qty > 0)
       await updateEntryWithValidation(
         organizationId,
-        latestGD,
+        fullGD, // Use full entry for balance processing
+        latestGD, // Use filtered entry for database update
         gdStatus,
         goodsDeliveryId
       );
