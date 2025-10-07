@@ -211,6 +211,8 @@ const formatAddress = (address, state, country, addressTypeUpperCase) => {
         access_group: customerData.access_group || [],
       });
 
+      this.disabled(["so_sales_person"], false);
+
       const resAddress = await db
         .collection("Customer_skgkxqcn_sub")
         .where({
@@ -287,6 +289,8 @@ const formatAddress = (address, state, country, addressTypeUpperCase) => {
           is_accurate: customerData.is_accurate,
         });
       }
+    } else {
+      this.disabled(["so_sales_person"], true);
     }
   } catch (error) {
     this.$message.error(error.toString());

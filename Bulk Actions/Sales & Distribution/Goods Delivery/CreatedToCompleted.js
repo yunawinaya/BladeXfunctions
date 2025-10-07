@@ -3064,6 +3064,14 @@ const updateSalesOrderStatus = async (salesOrderId, tableGD) => {
       let partiallyDeliveredItems = 0;
       let fullyDeliveredItems = 0;
 
+      // Count items with "Completed" status as fully delivered
+      soItems.forEach((item) => {
+        if (item.line_status === "Completed") {
+          partiallyDeliveredItems++;
+          fullyDeliveredItems++;
+        }
+      });
+
       // Create a copy of the SO items to update later
       const updatedSoItems = JSON.parse(JSON.stringify(soItems));
 
