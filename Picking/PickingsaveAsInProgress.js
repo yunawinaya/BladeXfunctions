@@ -101,7 +101,11 @@ const checkUniqueness = async (
 ) => {
   const existingDoc = await db
     .collection(collection)
-    .where({ [prefix]: generatedPrefix, organization_id: organizationId })
+    .where({
+      [prefix]: generatedPrefix,
+      organization_id: organizationId,
+      is_deleted: 0,
+    })
     .get();
 
   return !existingDoc.data || existingDoc.data.length === 0;
@@ -336,6 +340,18 @@ const addEntry = async (organizationId, toData) => {
 
       await updatePrefix(organizationId, runningNumber, "Transfer Order");
       toData.to_id = prefixToShow;
+    } else {
+      const isUnique = await checkUniqueness(
+        toData.to_id,
+        organizationId,
+        "transfer_order",
+        "to_id"
+      );
+      if (!isUnique) {
+        throw new Error(
+          `Picking Number "${toData.to_id}" already exists. Please use a different number.`
+        );
+      }
     }
 
     for (const item of toData.table_picking_items) {
@@ -345,16 +361,7 @@ const addEntry = async (organizationId, toData) => {
     }
 
     // Add the record
-    await db.collection("transfer_order").add(toData);
-
-    // Fetch the created record to get its ID
-    const createdRecord = await db
-      .collection("transfer_order")
-      .where({
-        to_id: toData.to_id,
-        organization_id: organizationId,
-      })
-      .get();
+    const createdRecord = await db.collection("transfer_order").add(toData);
 
     if (!createdRecord.data || createdRecord.data.length === 0) {
       throw new Error("Failed to retrieve created transfer order record");
@@ -385,6 +392,18 @@ const updateEntry = async (organizationId, toData, toId, originalToStatus) => {
 
         await updatePrefix(organizationId, runningNumber, "Transfer Order");
         toData.to_id = prefixToShow;
+      } else {
+        const isUnique = await checkUniqueness(
+          toData.to_id,
+          organizationId,
+          "transfer_order",
+          "to_id"
+        );
+        if (!isUnique) {
+          throw new Error(
+            `Picking Number "${toData.to_id}" already exists. Please use a different number.`
+          );
+        }
       }
     }
 
@@ -430,21 +449,35 @@ const findFieldMessage = (obj) => {
   return null;
 };
 
-const updateGoodsDeliveryPickingStatus = async (gdId) => {
+const updateGoodsDeliveryPickingStatus = async (gdIDs, toData) => {
   try {
-    const gd = await db.collection("goods_delivery").doc(gdId).get();
-    const gdData = gd.data[0];
-    const pickingStatus = gdData.picking_status;
+    let newPickingStatus = "";
+    for (const gdId of gdIDs) {
+      const gd = await db.collection("goods_delivery").doc(gdId).get();
+      const gdData = gd.data[0];
+      const pickingStatus = gdData.picking_status;
 
-    if (pickingStatus === "Completed") {
-      this.$message.error("Goods Delivery is already completed");
-      return;
+      if (pickingStatus === "Completed") {
+        this.$message.error(
+          `Goods Delivery ${gdData.delivery_no} is already completed`
+        );
+        return;
+      }
+
+      newPickingStatus = "In Progress";
+      await db.collection("goods_delivery").doc(gdId).update({
+        picking_status: newPickingStatus,
+      });
     }
 
-    const newPickingStatus = "In Progress";
-    await db.collection("goods_delivery").doc(gdId).update({
-      picking_status: newPickingStatus,
-    });
+    await Promise.all(
+      toData.table_picking_items.map((toItem) =>
+        db
+          .collection("goods_delivery_fwii8mvb_sub")
+          .where({ id: toItem.gd_line_id })
+          .update({ picking_status: newPickingStatus })
+      )
+    );
 
     this.$message.success("Goods Delivery picking status updated successfully");
   } catch (error) {
@@ -462,6 +495,12 @@ const createPickingRecord = async (toData) => {
         item_name: item.item_name,
         item_desc: item.item_desc,
         batch_no: item.batch_no,
+        so_no: item.so_no,
+        gd_no: item.gd_no,
+        so_id: item.so_id,
+        gd_id: item.gd_id,
+        so_line_id: item.so_line_id,
+        gd_line_id: item.gd_line_id,
         target_batch: item.batch_no,
         store_out_qty: item.picked_qty,
         item_uom: item.item_uom,
@@ -592,6 +631,7 @@ const createPickingRecord = async (toData) => {
       gd_no: data.gd_no,
       delivery_no: data.delivery_no,
       so_no: data.so_no,
+      customer_id: data.customer_id,
       assigned_to: data.assigned_to,
       created_by: data.created_by,
       created_at: data.created_at,
@@ -616,11 +656,11 @@ const createPickingRecord = async (toData) => {
     // Perform action based on page status
     if (page_status === "Add") {
       await addEntry(organizationId, toData);
-      await updateGoodsDeliveryPickingStatus(data.gd_no);
+      await updateGoodsDeliveryPickingStatus(data.gd_no, toData);
     } else if (page_status === "Edit") {
       toId = data.id;
       await updateEntry(organizationId, toData, toId, originalToStatus);
-      await updateGoodsDeliveryPickingStatus(data.gd_no);
+      await updateGoodsDeliveryPickingStatus(data.gd_no, toData);
     }
 
     // Success message with status information
