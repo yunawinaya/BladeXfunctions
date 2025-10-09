@@ -680,17 +680,27 @@ const displayManufacturingAndExpiredDate = async (
   }
 };
 
-const setPlant = (organizationId, pageStatus) => {
+const setPlant = async (organizationId, pageStatus) => {
   const currentDept = this.getVarSystem("deptIds").split(",")[0];
+  let plantId = "";
 
   if (currentDept === organizationId) {
+    const resPlant = await db
+      .collection("blade_dept")
+      .where({ parent_id: currentDept })
+      .get();
+
+    if (!resPlant.data.length > 0) {
+      plantId = currentDept;
+    }
+
     this.disabled("issuing_operation_faci", false);
   } else {
     this.disabled("issuing_operation_faci", true);
+  }
 
-    if (pageStatus === "Add") {
-      this.setData({ issuing_operation_faci: currentDept });
-    }
+  if (pageStatus === "Add") {
+    this.setData({ issuing_operation_faci: plantId });
   }
 };
 

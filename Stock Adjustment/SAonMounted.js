@@ -184,6 +184,30 @@ const disabledEditField = async (stockAdjustmentStatus) => {
   }
 };
 
+const setPlant = async (organizationId, pageStatus) => {
+  const currentDept = this.getVarSystem("deptIds").split(",")[0];
+  let plantId = "";
+
+  if (currentDept === organizationId) {
+    const resPlant = await db
+      .collection("blade_dept")
+      .where({ parent_id: currentDept })
+      .get();
+
+    if (!resPlant.data.length > 0) {
+      plantId = currentDept;
+    }
+
+    this.disabled("plant_id", false);
+  } else {
+    this.disabled("plant_id", true);
+  }
+
+  if (pageStatus === "Add") {
+    this.setData({ plant_id: plantId });
+  }
+};
+
 (async () => {
   try {
     let pageStatus = "";
@@ -219,6 +243,7 @@ const disabledEditField = async (stockAdjustmentStatus) => {
           adjusted_by: this.getVarGlobal("nickname"),
           organization_id: organizationId,
         });
+        await setPlant(organizationId, pageStatus);
 
         this.disabled(["adjustment_type", "stock_adjustment"], true);
 
@@ -237,6 +262,10 @@ const disabledEditField = async (stockAdjustmentStatus) => {
 
         if (data.adjustment_type === "Write Off") {
           this.hide("stock_adjustment.unit_price");
+        }
+
+        if (data.stock_adjustment_status === "Draft") {
+          await setPlant(organizationId, pageStatus);
         }
 
         await showStatusHTML(data.stock_adjustment_status);
