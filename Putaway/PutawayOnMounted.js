@@ -167,6 +167,7 @@ const disabledField = async (status) => {
 
 const setPlant = async (organizationId) => {
   const deptId = this.getVarSystem("deptIds").split(",")[0];
+  console.log("JN Debugging", deptId, organizationId);
   let plantId = "";
   if (deptId === organizationId) {
     const resPlant = await db

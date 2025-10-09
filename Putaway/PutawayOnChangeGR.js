@@ -6,8 +6,11 @@
     const fetchSerialNumber = async () => {
       try {
         const table_putaway_item = this.getValue("table_putaway_item");
-        
-        if (!Array.isArray(table_putaway_item) || table_putaway_item.length === 0) {
+
+        if (
+          !Array.isArray(table_putaway_item) ||
+          table_putaway_item.length === 0
+        ) {
           console.log("No putaway items found for serial number fetching");
           return;
         }
@@ -163,7 +166,11 @@
       return;
     }
 
-    if (!grData.table_gr || !Array.isArray(grData.table_gr) || grData.table_gr.length === 0) {
+    if (
+      !grData.table_gr ||
+      !Array.isArray(grData.table_gr) ||
+      grData.table_gr.length === 0
+    ) {
       console.error("No GR items found in the goods receiving record");
       return;
     }
@@ -187,7 +194,7 @@
           .collection("Item")
           .where({ id: item.item_id })
           .get();
-          
+
         if (!resItem || !resItem.data || resItem.data.length === 0) {
           console.warn(`Item ${item.item_id} not found in Item collection`);
           continue;
@@ -212,7 +219,10 @@
                 .get();
               batchNo = resBatch?.data?.[0] || null;
             } catch (batchError) {
-              console.warn(`Error fetching batch ${item.item_batch_no}:`, batchError);
+              console.warn(
+                `Error fetching batch ${item.item_batch_no}:`,
+                batchError
+              );
             }
           }
 
@@ -258,15 +268,17 @@
       organization_id: organizationId,
     });
 
-    console.log(`Successfully created putaway with ${tablePutawayItem.length} items from GR ${grData.gr_no}`);
+    console.log(
+      `Successfully created putaway with ${tablePutawayItem.length} items from GR ${grData.gr_no}`
+    );
 
     // Wait for setData to complete (if needed by the platform)
     // Then process serial numbers in proper sequence
     try {
       await fetchSerialNumber();
-      await viewSerialNumber();  
+      await viewSerialNumber();
       await setSerialNumber();
-      
+
       // Trigger putaway strategy after all serial number processing is complete
       this.triggerEvent("func_getPutawayStrategy");
     } catch (serialError) {
