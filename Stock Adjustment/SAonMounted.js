@@ -184,27 +184,16 @@ const disabledEditField = async (stockAdjustmentStatus) => {
   }
 };
 
-const setPlant = async (organizationId, pageStatus) => {
+const setPlant = (organizationId, pageStatus) => {
   const currentDept = this.getVarSystem("deptIds").split(",")[0];
-  let plantId = "";
 
   if (currentDept === organizationId) {
-    const resPlant = await db
-      .collection("blade_dept")
-      .where({ parent_id: currentDept })
-      .get();
-
-    if (!resPlant.data.length > 0) {
-      plantId = currentDept;
-    }
-
     this.disabled("plant_id", false);
   } else {
     this.disabled("plant_id", true);
   }
-
   if (pageStatus === "Add") {
-    this.setData({ plant_id: plantId });
+    this.setData({ plant_id: currentDept });
   }
 };
 

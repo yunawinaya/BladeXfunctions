@@ -3068,6 +3068,7 @@ const fetchDeliveredQuantity = async () => {
         assigned_to: data.assigned_to,
         reference_type: data.reference_type,
         gd_created_by: data.gd_created_by,
+        from_convert: "",
       };
 
       // Clean up undefined/null values

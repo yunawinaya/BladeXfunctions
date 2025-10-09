@@ -2751,8 +2751,19 @@ const updateGoodsDelivery = async (
   toData
 ) => {
   try {
+    await Promise.all(
+      toData.table_picking_items.map(
+        async (toItem) =>
+          await db
+            .collection("goods_delivery_fwii8mvb_sub")
+            .doc(toItem.gd_line_id)
+            .update({ picking_status: "Completed" })
+      )
+    );
+
     const gd = await db.collection("goods_delivery").doc(gdId).get();
     let gdData = gd.data[0];
+
     const pickingStatus = gdData.picking_status;
     let newPickingStatus = "";
 
@@ -2774,15 +2785,6 @@ const updateGoodsDelivery = async (
     await db.collection("goods_delivery").doc(gdId).update({
       picking_status: newPickingStatus,
     });
-
-    await Promise.all(
-      toData.table_picking_items.map((toItem) =>
-        db
-          .collection("goods_delivery_fwii8mvb_sub")
-          .doc(toItem.gd_line_id)
-          .update({ picking_status: "Completed" })
-      )
-    );
 
     // Check if we should auto-complete GD
     let shouldAutoComplete =
