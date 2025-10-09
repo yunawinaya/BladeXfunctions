@@ -411,7 +411,7 @@ const filterIOFTReceivingCategory = async () => {
   );
 
   // Set category options
-  for (const [rowIndex, sm] of stockMovement.entries()) {
+  for (const [rowIndex, _sm] of stockMovement.entries()) {
     await this.setOptionData(
       [`stock_movement.${rowIndex}.category`],
       filteredCategories
@@ -461,6 +461,9 @@ const editDisabledField = async (data) => {
       "issued_by",
       "issuing_operation_faci",
       "remarks",
+      "remark",
+      "remark2",
+      "remark3",
       "delivery_method",
       "reference_documents",
       "receiving_operation_faci",
@@ -567,7 +570,7 @@ const filterInvCategory = async (movementType, stockMovement) => {
 
     console.log("filteredCategories", filteredCategories);
 
-    for (const [index, sm] of stockMovement.entries()) {
+    for (const [index, _sm] of stockMovement.entries()) {
       await this.setOptionData(
         [`stock_movement.${index}.category`],
         filteredCategories
@@ -622,6 +625,75 @@ const hideSerialNumberRecordTab = () => {
   }, 10); // Small delay to ensure DOM is ready
 };
 
+const displayManufacturingAndExpiredDate = async (
+  status,
+  pageStatus,
+  movementType
+) => {
+  const tableSM = this.getValue("stock_movement");
+  if (movementType === "Miscellaneous Receipt") {
+    if (pageStatus === "Edit") {
+      if (status === "Draft") {
+        for (const [index, item] of tableSM.entries()) {
+          if (item.batch_id !== "-") {
+            await this.display([
+              "stock_movement.manufacturing_date",
+              "stock_movement.expired_date",
+            ]);
+            await this.disabled(
+              [
+                `stock_movement.${index}.manufacturing_date`,
+                `stock_movement.${index}.expired_date`,
+              ],
+              false
+            );
+          } else {
+            await this.disabled(
+              [
+                `stock_movement.${index}.manufacturing_date`,
+                `stock_movement.${index}.expired_date`,
+              ],
+              true
+            );
+          }
+        }
+      } else {
+        for (const [_index, item] of tableSM.entries()) {
+          if (item.batch_id !== "-") {
+            await this.display([
+              "stock_movement.manufacturing_date",
+              "stock_movement.expired_date",
+            ]);
+          }
+        }
+      }
+    } else {
+      for (const [_index, item] of tableSM.entries()) {
+        if (item.item_batch_no !== "-") {
+          await this.display([
+            "stock_movement.manufacturing_date",
+            "stock_movement.expired_date",
+          ]);
+        }
+      }
+    }
+  }
+};
+
+const setPlant = (organizationId, pageStatus) => {
+  const currentDept = this.getVarSystem("deptIds").split(",")[0];
+
+  if (currentDept === organizationId) {
+    this.disabled("issuing_operation_faci", false);
+  } else {
+    this.disabled("issuing_operation_faci", true);
+
+    if (pageStatus === "Add") {
+      this.setData({ issuing_operation_faci: currentDept });
+    }
+  }
+};
+
 (async () => {
   try {
     const data = this.getValues();
@@ -661,7 +733,7 @@ const hideSerialNumberRecordTab = () => {
           "stock_movement.view_stock",
           "stock_movement.edit_stock",
         ]);
-
+        await setPlant(organizationId, pageStatus);
         await checkAccIntegrationType(organizationId);
         await filterMovementType();
         await hideSerialNumberRecordTab();
@@ -714,12 +786,20 @@ const hideSerialNumberRecordTab = () => {
         );
 
         this.hide(CONFIG.hideFields[pageStatus]);
+        if (data.stock_movement_status === "Draft") {
+          await setPlant(organizationId, pageStatus);
+        }
         await filterMovementType();
         await displayDeliveryField();
         await showProductionOrder(data);
         await showStatusHTML(data.stock_movement_status);
         await checkAccIntegrationType(organizationId);
         await hideSerialNumberRecordTab();
+        await displayManufacturingAndExpiredDate(
+          data.stock_movement_status,
+          pageStatus,
+          data.movement_type
+        );
 
         break;
 
@@ -741,6 +821,11 @@ const hideSerialNumberRecordTab = () => {
         await showProductionOrder(data);
         await checkAccIntegrationType(organizationId);
         await hideSerialNumberRecordTab();
+        await displayManufacturingAndExpiredDate(
+          data.stock_movement_status,
+          pageStatus,
+          data.movement_type
+        );
         break;
     }
   } catch (error) {

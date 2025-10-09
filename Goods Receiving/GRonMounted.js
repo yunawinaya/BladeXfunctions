@@ -190,8 +190,17 @@ const setPlant = async (organizationId) => {
 
   if (!hasPlant) {
     if (deptId === organizationId) {
-      plantId = "";
-      this.disabled(["table_gr"], true);
+      const resPlant = await db
+        .collection("blade_dept")
+        .where({ parent_id: deptId })
+        .get();
+
+      if (!resPlant || resPlant.data.length === 0) {
+        plantId = deptId;
+      } else {
+        plantId = "";
+        this.disabled("table_gr", true);
+      }
     } else {
       plantId = deptId;
     }
@@ -345,7 +354,7 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
         }
       }
     } else {
-      for (const [_index, item] of tableGR.entries()) {
+      for (const [index, item] of tableGR.entries()) {
         if (item.item_batch_no !== "-") {
           await this.display([
             "table_gr.manufacturing_date",
@@ -355,7 +364,7 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
       }
     }
   } else {
-    for (const [_index, item] of tableGR.entries()) {
+    for (const [index, item] of tableGR.entries()) {
       if (item.item_batch_no !== "-") {
         await this.display([
           "table_gr.manufacturing_date",
@@ -417,10 +426,18 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
         await hideSerialNumberRecordTab();
         await displayManufacturingAndExpiredDate(status, pageStatus);
         if (status === "Draft") {
-          this.triggerEvent("onChange_plant");
+          await this.triggerEvent("onChange_plant");
           this.hide("button_completed");
         } else {
           this.disabled("assigned_to", true);
+        }
+
+        const fromConvert = this.getValue("from_convert");
+
+        if (fromConvert === "Yes") {
+          console.log("trigger func_processGRLineItem");
+          await this.triggerEvent("func_processGRLineItem");
+          await this.triggerEvent("onChange_Supplier");
         }
         break;
 
