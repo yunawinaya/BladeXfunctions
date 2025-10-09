@@ -167,7 +167,6 @@ const disabledField = async (status) => {
 
 const setPlant = async (organizationId) => {
   const deptId = this.getVarSystem("deptIds").split(",")[0];
-  console.log("JN Debugging", deptId, organizationId);
   let plantId = "";
   if (deptId === organizationId) {
     const resPlant = await db
@@ -175,7 +174,7 @@ const setPlant = async (organizationId) => {
       .where({ parent_id: deptId })
       .get();
 
-    if (!resPlant && resPlant.data.length === 0) {
+    if (!resPlant.data.length > 0) {
       plantId = deptId;
     } else {
       plantId = "";
@@ -325,6 +324,13 @@ const setSerialNumber = async () => {
   }
 };
 
+const setDocType = async (plantId) => {
+  if (plantId) {
+    await this.disabled(["ref_doc_type", "gr_no"], false);
+    await this.setData({ ref_doc_type: "Goods Receiving" });
+  }
+};
+
 // Main execution function
 (async () => {
   try {
@@ -351,6 +357,7 @@ const setSerialNumber = async () => {
 
         await setPlant(organizationId);
         await setPrefix(organizationId);
+        await setDocType(this.getValue("plant_id"));
         break;
 
       case "Edit":
