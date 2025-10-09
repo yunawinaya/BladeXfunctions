@@ -1877,7 +1877,7 @@ const addEntry = async (organizationId, gd) => {
     const gdId = createdRecord.data[0].id;
     console.log("Goods delivery created successfully with ID:", gdId);
 
-    return gdId;
+    return createdRecord.data[0];
   } catch (error) {
     console.error("Error in addEntry:", error);
     throw error;
@@ -1942,7 +1942,10 @@ const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
     );
 
     // Step 4: Update the record ONLY after inventory processing succeeds
-    await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+    const gdData = await db
+      .collection("goods_delivery")
+      .doc(goodsDeliveryId)
+      .update(gd);
 
     // Step 5: Update prefix counter ONLY after record is successfully updated
     if (gdStatus === "Draft" && prefixData && runningNumber !== null) {
@@ -1956,7 +1959,7 @@ const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
     }
 
     console.log("Goods delivery updated successfully");
-    return goodsDeliveryId;
+    return gdData.data.modifiedResults[0];
   } catch (error) {
     console.error("Error in updateEntry:", error);
     throw error;
@@ -3102,10 +3105,12 @@ const fetchDeliveredQuantity = async () => {
       let gdId;
       let shouldHandlePicking = false;
       let isPickingUpdate = false;
+      let gdData;
 
       // Perform action based on page status
       if (page_status === "Add") {
-        gdId = await addEntry(organizationId, gd);
+        gdData = await addEntry(organizationId, gd);
+        gdId = gdData.id;
         shouldHandlePicking = true;
         isPickingUpdate = false;
       } else if (page_status === "Edit") {
@@ -3122,14 +3127,14 @@ const fetchDeliveredQuantity = async () => {
           isPickingUpdate = true;
         }
 
-        await updateEntry(organizationId, gd, gdId, data.gd_status);
+        gdData = await updateEntry(organizationId, gd, gdId, data.gd_status);
       }
 
       // Create or update picking if needed
       if (shouldHandlePicking && gdId) {
         try {
           const { pickingStatus } = await createOrUpdatePicking(
-            gd,
+            gdData,
             gdId,
             organizationId,
             isPickingUpdate,
