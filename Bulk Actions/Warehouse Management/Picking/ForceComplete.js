@@ -1927,12 +1927,6 @@ const createTempQtyDataSummary = async (
                             organization_id: balanceData.organization_id,
                             tenant_id: balanceData.tenant_id,
                             is_deleted: balanceData.is_deleted || 0,
-                            id: balanceData.id,
-                            create_user: balanceData.create_user,
-                            create_dept: balanceData.create_dept,
-                            create_time: balanceData.create_time,
-                            update_user: balanceData.update_user,
-                            update_time: balanceData.update_time,
                           };
                         } else {
                           console.warn(
@@ -1950,21 +1944,10 @@ const createTempQtyDataSummary = async (
                     })
                   );
 
-                  // Update the GD record with enriched temp_qty_data
-                  await db
-                    .collection("goods_delivery")
-                    .doc(gdId)
-                    .update({
-                      [`table_gd.${gdData.table_gd.indexOf(
-                        gdLineItem
-                      )}.temp_qty_data`]: JSON.stringify(enrichedTempQtyData),
-                    });
+                  console.log("enrichedTempQtyData", enrichedTempQtyData);
 
-                  console.log(
-                    `Updated temp_qty_data with balance information for line ${
-                      gdData.table_gd.indexOf(gdLineItem) + 1
-                    }`
-                  );
+                  gdLineItem.temp_qty_data =
+                    JSON.stringify(enrichedTempQtyData);
                 } catch (error) {
                   console.error(
                     "Error enriching temp_qty_data with balance:",
@@ -1973,6 +1956,22 @@ const createTempQtyDataSummary = async (
                 }
               }
             }
+
+            await db
+              .collection("goods_delivery")
+              .doc(gdId)
+              .update({ table_gd: gdData.table_gd })
+              .then(() => {
+                console.log(
+                  "Enriched temp_qty_data with balance updated successfully"
+                );
+              })
+              .catch((error) => {
+                console.error(
+                  "Error updating enriched temp_qty_data with balance:",
+                  error
+                );
+              });
           }
         }
       }

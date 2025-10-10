@@ -3354,21 +3354,43 @@ const checkPickingStatus = async (gdData, pageStatus, currentGdStatus) => {
         canProceed: false,
         message: "Picking is Required",
         title: "Create Goods Delivery to start picking process",
+        isForceComplete: false,
       };
     }
 
     // Scenario 2: Edit mode with Created status
-    // User can only proceed if picking_status is "Completed"
+    // User can only proceed if picking_status is "Completed" or "In Progress" (with confirmation)
     if (pageStatus === "Edit" && currentGdStatus === "Created") {
       if (gdData.picking_status === "Completed") {
         console.log("Picking completed, allowing GD completion");
-        return { canProceed: true, message: null };
+        return { canProceed: true, message: null, isForceComplete: false };
+      } else if (gdData.picking_status === "In Progress") {
+        const result = await this.$confirm(
+          "Picking is currently under In Progress status. \nProceeding will force complete picking process.\n\nWould you like to proceed?",
+          "Force Complete Picking",
+          {
+            confirmButtonText: "OK",
+            cancelButtonText: "Cancel",
+            type: "warning",
+          }
+        ).catch(() => {
+          console.log("User clicked Cancel or closed the dialog");
+          this.hideLoading();
+          throw new Error("Force complete picking process cancelled.");
+        });
+        if (result === "confirm") {
+          return { canProceed: true, message: null, isForceComplete: true };
+        } else {
+          this.hideLoading();
+          throw new Error("Force complete picking process cancelled.");
+        }
       } else {
         return {
           canProceed: false,
           message: "Picking is Required",
           title:
             "Complete all picking process before completing Goods Delivery",
+          isForceComplete: false,
         };
       }
     }
@@ -3379,24 +3401,26 @@ const checkPickingStatus = async (gdData, pageStatus, currentGdStatus) => {
         `Edit mode with status: ${currentGdStatus}, checking picking status`
       );
       if (gdData.picking_status === "Completed") {
-        return { canProceed: true, message: null };
+        return { canProceed: true, message: null, isForceComplete: false };
       } else {
         return {
           canProceed: false,
           message: "Picking process must be completed first",
           title: "Complete picking before proceeding",
+          isForceComplete: false,
         };
       }
     }
 
     // Default: allow if no specific blocking condition
-    return { canProceed: true, message: null };
+    return { canProceed: true, message: null, isForceComplete: false };
   } catch (error) {
     console.error("Error checking picking status:", error);
     return {
       canProceed: false,
       message: "Error checking picking requirements. Please try again.",
       title: "System Error",
+      isForceComplete: false,
     };
   }
 };
@@ -4244,6 +4268,67 @@ const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
       gdStatus
     );
 
+    if (pickingCheck.isForceComplete) {
+      fullGD.picking_status = "Completed";
+      latestGD.picking_status = "Completed";
+
+      for (const gdLineItem of latestGD.table_gd) {
+        gdLineItem.picking_status = "Completed";
+      }
+      for (const gdLineItem of fullGD.table_gd) {
+        gdLineItem.picking_status = "Completed";
+      }
+
+      const pickingResult = await db
+        .collection("transfer_order")
+        .filter([
+          {
+            type: "branch",
+            operator: "all",
+            children: [
+              {
+                prop: "gd_no",
+                operator: "in",
+                value: data.id,
+              },
+              {
+                prop: "to_status",
+                operator: "equal",
+                value: "In Progress",
+              },
+            ],
+          },
+        ])
+        .get();
+
+      if (pickingResult.data.length > 0) {
+        let pickingData = pickingResult.data[0];
+        for (const pickingLineItem of pickingData.table_picking_items) {
+          if (pickingLineItem.gd_id === data.id) {
+            pickingLineItem.line_status = "Completed";
+          }
+        }
+
+        //check if all pickingLineItem.line_status is "Completed" if yes then pickingData.to_status = "Completed"
+        let allPickingLineItemCompleted = true;
+        for (const pickingLineItem of pickingData.table_picking_items) {
+          if (pickingLineItem.line_status !== "Completed") {
+            allPickingLineItemCompleted = false;
+            break;
+          }
+        }
+
+        if (allPickingLineItemCompleted) {
+          pickingData.to_status = "Completed";
+        }
+
+        await db.collection("transfer_order").doc(pickingData.id).update({
+          table_picking_items: pickingData.table_picking_items,
+          to_status: pickingData.to_status,
+        });
+      }
+    }
+
     if (!pickingCheck.canProceed) {
       this.parentGenerateForm.$alert(pickingCheck.title, pickingCheck.message, {
         confirmButtonText: "OK",
@@ -4251,6 +4336,39 @@ const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
       });
       this.hideLoading();
       return;
+    }
+
+    let inventoryDataChanged = false;
+    let changedMaterialName = [];
+
+    for (const gdLineItem of data.table_gd) {
+      if (
+        gdLineItem.prev_temp_qty_data !== gdLineItem.temp_qty_data &&
+        gdLineItem.picking_status === "Completed"
+      ) {
+        inventoryDataChanged = true;
+        changedMaterialName.push(gdLineItem.material_name);
+      }
+    }
+
+    if (inventoryDataChanged) {
+      try {
+        await this.$confirm(
+          `Inventory data has changed for the following materials: ${changedMaterialName.join(
+            ", "
+          )}. \n\nNote: Picking has already been completed for this Goods Delivery. Proceeding will cause a mismatch between the GD quantities and the Picking records.\n\nWould you like to proceed?`,
+          "Inventory Data Changed - Picking Completed",
+          {
+            confirmButtonText: "Proceed Anyway",
+            cancelButtonText: "Cancel",
+            type: "warning",
+          }
+        );
+      } catch {
+        console.log("User clicked Cancel or closed the dialog");
+        this.hideLoading();
+        throw new Error("Saving goods delivery cancelled.");
+      }
     }
 
     await fetchDeliveredQuantity();
