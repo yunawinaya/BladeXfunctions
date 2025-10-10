@@ -1628,18 +1628,88 @@ const createTempQtyDataSummary = async (
 
         console.log(`Picking ${pickingNumber} updated to completed`);
 
-        //group tablePickingRecords
+        console.log("tablePickingRecords", tablePickingRecords);
+
+        // Get unique material IDs to fetch item data
+        const uniqueMaterialIds = [
+          ...new Set(tablePickingRecords.map((item) => item.item_code)),
+        ];
+
+        // Fetch item data to check if items are serialized
+        const itemDataMap = {};
+        for (const materialId of uniqueMaterialIds) {
+          const resItem = await db
+            .collection("Item")
+            .where({ id: materialId })
+            .get();
+          if (resItem.data && resItem.data[0]) {
+            itemDataMap[materialId] = resItem.data[0];
+          }
+        }
+
+        // Expand picking records - split serialized items by serial number
+        const expandedPickingRecords = [];
+        for (const record of tablePickingRecords) {
+          const itemData = itemDataMap[record.item_code];
+          const isSerializedItem =
+            itemData && itemData.serial_number_management === 1;
+
+          if (
+            isSerializedItem &&
+            Array.isArray(record.serial_numbers) &&
+            record.serial_numbers.length > 0
+          ) {
+            // For serialized items, create one record per serial number
+            console.log(
+              `Expanding serialized item ${record.item_code} with ${record.serial_numbers.length} serial numbers`
+            );
+
+            for (const serialNumber of record.serial_numbers) {
+              expandedPickingRecords.push({
+                ...record,
+                serial_numbers: serialNumber, // Convert array to single serial
+                store_out_qty: 1, // Each serial is quantity 1
+              });
+            }
+          } else {
+            // For non-serialized items, keep as is
+            expandedPickingRecords.push(record);
+          }
+        }
+
+        console.log(
+          `Expanded ${tablePickingRecords.length} records to ${expandedPickingRecords.length} records (including individual serials)`
+        );
+
+        //group expandedPickingRecords
         const groupedPickingRecords = Object.values(
-          tablePickingRecords.reduce((acc, item) => {
-            const key = `${item.so_line_id}|${item.target_location}|${
-              item.target_batch || "no-batch"
-            }`;
+          expandedPickingRecords.reduce((acc, item) => {
+            const itemData = itemDataMap[item.item_code];
+            const isSerializedItem =
+              itemData && itemData.serial_number_management === 1;
+
+            // For serialized items, include serial_number in the key to prevent grouping
+            // For non-serialized items, group by location and batch
+            let key;
+            if (isSerializedItem && item.serial_numbers) {
+              // Each serial number should be separate
+              key = `${item.so_line_id}|${item.target_location}|${
+                item.target_batch || "no-batch"
+              }|${item.serial_numbers}`;
+            } else {
+              key = `${item.so_line_id}|${item.target_location}|${
+                item.target_batch || "no-batch"
+              }`;
+            }
 
             if (acc[key]) {
-              acc[key].store_out_qty = roundQty(
-                parseFloat(acc[key].store_out_qty) +
-                  parseFloat(item.store_out_qty)
-              );
+              // Only group if not serialized
+              if (!isSerializedItem) {
+                acc[key].store_out_qty = roundQty(
+                  parseFloat(acc[key].store_out_qty) +
+                    parseFloat(item.store_out_qty)
+                );
+              }
             } else {
               acc[key] = {
                 ...item,
@@ -1658,19 +1728,26 @@ const createTempQtyDataSummary = async (
         for (const item of uniqueGdIds) {
           const gdId = item;
 
-          let gdData = await db.collection("goods_delivery").doc(gdId).get();
+          let gdDataResult = await db
+            .collection("goods_delivery")
+            .doc(gdId)
+            .get();
 
-          if (gdData.data && gdData.data.length > 0) {
-            const originalGD = gdData.data[0];
-
-            // Store the ORIGINAL quantities as previous
-            gdData.table_gd.forEach((item, index) => {
-              if (originalGD.table_gd && originalGD.table_gd[index]) {
-                item.prev_temp_qty_data =
-                  originalGD.table_gd[index].temp_qty_data;
-              }
-            });
+          if (!gdDataResult.data || gdDataResult.data.length === 0) {
+            console.error(`GD not found for ID: ${gdId}`);
+            continue;
           }
+
+          const gdData = gdDataResult.data[0];
+          const originalGD = JSON.parse(JSON.stringify(gdData)); // Deep copy
+
+          // Store the ORIGINAL quantities as previous
+          gdData.table_gd.forEach((item, index) => {
+            if (originalGD.table_gd && originalGD.table_gd[index]) {
+              item.prev_temp_qty_data =
+                originalGD.table_gd[index].temp_qty_data;
+            }
+          });
 
           let gdDataUpdated = false;
 
@@ -1686,16 +1763,27 @@ const createTempQtyDataSummary = async (
 
               console.log("filteredData", filteredData);
 
+              // Create temp_qty_data without balance fields first
               const updatedTempQtyData = filteredData.map((item) => {
-                return {
+                const tempQtyItem = {
                   material_id: item.item_code,
                   location_id: item.target_location,
                   batch_id: item.target_batch || undefined,
                   gd_quantity: item.store_out_qty,
                 };
+
+                // Add serial_number if it exists (for serialized items)
+                if (item.serial_numbers) {
+                  tempQtyItem.serial_number = item.serial_numbers;
+                }
+
+                return tempQtyItem;
               });
 
-              console.log("updatedTempQtyData", updatedTempQtyData);
+              console.log(
+                "updatedTempQtyData (before balance fetch)",
+                updatedTempQtyData
+              );
 
               const viewStockSummary = await createTempQtyDataSummary(
                 updatedTempQtyData,
@@ -1712,6 +1800,7 @@ const createTempQtyDataSummary = async (
                 (sum, item) => sum + parseFloat(item.store_out_qty),
                 0
               );
+              gdLineItem.base_qty = gdLineItem.gd_qty;
               gdLineItem.gd_delivered_qty =
                 gdLineItem.gd_qty + gdLineItem.gd_initial_delivered_qty;
               gdLineItem.gd_undelivered_qty =
@@ -1736,7 +1825,154 @@ const createTempQtyDataSummary = async (
 
           // Save the updated gdData back to database
           if (gdDataUpdated) {
+            console.log("gdData", gdData);
+
             await updateEntry(gdData.organization_id, gdData, gdId, "Created");
+
+            // After updateEntry completes, fetch fresh balance data and update temp_qty_data
+            console.log("Fetching updated balance data after GD update...");
+
+            for (const gdLineItem of gdData.table_gd) {
+              if (gdLineItem.temp_qty_data) {
+                try {
+                  let tempQtyDataArray = JSON.parse(gdLineItem.temp_qty_data);
+
+                  // Fetch balance for each temp_qty_data entry
+                  const enrichedTempQtyData = await Promise.all(
+                    tempQtyDataArray.map(async (tempItem) => {
+                      const itemData = itemDataMap[tempItem.material_id];
+                      const isSerializedItem =
+                        itemData && itemData.serial_number_management === 1;
+                      const isBatchManagedItem =
+                        itemData && itemData.item_batch_management === 1;
+
+                      let balanceData = null;
+
+                      try {
+                        if (isSerializedItem) {
+                          // Fetch from item_serial_balance
+                          const serialBalanceQuery = {
+                            material_id: tempItem.material_id,
+                            serial_number: tempItem.serial_number,
+                            plant_id: gdData.plant_id,
+                            organization_id: gdData.organization_id,
+                            location_id: tempItem.location_id,
+                          };
+
+                          if (isBatchManagedItem && tempItem.batch_id) {
+                            serialBalanceQuery.batch_id = tempItem.batch_id;
+                          }
+
+                          const serialBalanceRes = await db
+                            .collection("item_serial_balance")
+                            .where(serialBalanceQuery)
+                            .get();
+
+                          if (
+                            serialBalanceRes.data &&
+                            serialBalanceRes.data.length > 0
+                          ) {
+                            balanceData = serialBalanceRes.data[0];
+                          }
+                        } else if (isBatchManagedItem) {
+                          // Fetch from item_batch_balance
+                          const batchBalanceRes = await db
+                            .collection("item_batch_balance")
+                            .where({
+                              material_id: tempItem.material_id,
+                              batch_id: tempItem.batch_id,
+                              plant_id: gdData.plant_id,
+                              organization_id: gdData.organization_id,
+                              location_id: tempItem.location_id,
+                            })
+                            .get();
+
+                          if (
+                            batchBalanceRes.data &&
+                            batchBalanceRes.data.length > 0
+                          ) {
+                            balanceData = batchBalanceRes.data[0];
+                          }
+                        } else {
+                          // Fetch from item_balance
+                          const itemBalanceRes = await db
+                            .collection("item_balance")
+                            .where({
+                              material_id: tempItem.material_id,
+                              plant_id: gdData.plant_id,
+                              organization_id: gdData.organization_id,
+                              location_id: tempItem.location_id,
+                            })
+                            .get();
+
+                          if (
+                            itemBalanceRes.data &&
+                            itemBalanceRes.data.length > 0
+                          ) {
+                            balanceData = itemBalanceRes.data[0];
+                          }
+                        }
+
+                        // Merge balance data if found
+                        if (balanceData) {
+                          return {
+                            ...tempItem,
+                            unrestricted_qty: balanceData.unrestricted_qty || 0,
+                            reserved_qty: balanceData.reserved_qty || 0,
+                            block_qty: balanceData.block_qty || 0,
+                            qualityinsp_qty: balanceData.qualityinsp_qty || 0,
+                            intransit_qty: balanceData.intransit_qty || 0,
+                            balance_quantity: balanceData.balance_quantity || 0,
+                            plant_id: balanceData.plant_id,
+                            organization_id: balanceData.organization_id,
+                            tenant_id: balanceData.tenant_id,
+                            is_deleted: balanceData.is_deleted || 0,
+                            id: balanceData.id,
+                            create_user: balanceData.create_user,
+                            create_dept: balanceData.create_dept,
+                            create_time: balanceData.create_time,
+                            update_user: balanceData.update_user,
+                            update_time: balanceData.update_time,
+                          };
+                        } else {
+                          console.warn(
+                            `No balance data found for item ${tempItem.material_id} at location ${tempItem.location_id}`
+                          );
+                          return tempItem;
+                        }
+                      } catch (error) {
+                        console.error(
+                          `Error fetching balance for ${tempItem.material_id}:`,
+                          error
+                        );
+                        return tempItem;
+                      }
+                    })
+                  );
+
+                  // Update the GD record with enriched temp_qty_data
+                  await db
+                    .collection("goods_delivery")
+                    .doc(gdId)
+                    .update({
+                      [`table_gd.${gdData.table_gd.indexOf(
+                        gdLineItem
+                      )}.temp_qty_data`]: JSON.stringify(enrichedTempQtyData),
+                    });
+
+                  console.log(
+                    `Updated temp_qty_data with balance information for line ${
+                      gdData.table_gd.indexOf(gdLineItem) + 1
+                    }`
+                  );
+                } catch (error) {
+                  console.error(
+                    "Error enriching temp_qty_data with balance:",
+                    error
+                  );
+                }
+              }
+            }
           }
         }
       }
