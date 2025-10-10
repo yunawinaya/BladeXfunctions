@@ -1707,8 +1707,31 @@ const createTempQtyDataSummary = async (
 
               gdLineItem.temp_qty_data = JSON.stringify(updatedTempQtyData);
               gdLineItem.view_stock = viewStockSummary;
+              //sum filteredData.store_out_qty
+              gdLineItem.gd_qty = filteredData.reduce(
+                (sum, item) => sum + parseFloat(item.store_out_qty),
+                0
+              );
+              gdLineItem.gd_delivered_qty =
+                gdLineItem.gd_qty + gdLineItem.gd_initial_delivered_qty;
+              gdLineItem.gd_undelivered_qty =
+                gdLineItem.gd_order_quantity - gdLineItem.gd_delivered_qty;
+              gdLineItem.picking_status = "Completed";
               gdDataUpdated = true;
             }
+          }
+
+          // check if all gdLineItem.picking_status is "Completed" if yes then gdData.picking_status = "Completed"
+          let allPickingStatusCompleted = true;
+          for (const gdLineItem of gdData.table_gd) {
+            if (gdLineItem.picking_status !== "Completed") {
+              allPickingStatusCompleted = false;
+              break;
+            }
+          }
+
+          if (allPickingStatusCompleted) {
+            gdData.picking_status = "Completed";
           }
 
           // Save the updated gdData back to database
