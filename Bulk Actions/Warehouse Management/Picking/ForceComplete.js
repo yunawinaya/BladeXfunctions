@@ -1424,7 +1424,7 @@ const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
     await updateOnReserveGoodsDelivery(organizationId, gd);
 
     console.log("Goods delivery updated successfully");
-    return gdData.data.modifiedResults[0];
+    return gd;
   } catch (error) {
     console.error("Error in updateEntry:", error);
     throw error;
