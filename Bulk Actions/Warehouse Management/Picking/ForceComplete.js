@@ -1741,6 +1741,13 @@ const createTempQtyDataSummary = async (
           }
 
           const gdData = gdDataResult.data[0];
+
+          // Skip cancelled GDs
+          if (gdData.gd_status === "Cancelled") {
+            console.warn(`Skipping GD ${gdData.delivery_no} - Status is Cancelled`);
+            continue;
+          }
+
           const originalGD = JSON.parse(JSON.stringify(gdData)); // Deep copy
 
           // Store the ORIGINAL quantities as previous
