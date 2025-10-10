@@ -111,11 +111,7 @@ const showStatusHTML = (status) => {
 };
 
 const disabledField = async (status, pickingStatus) => {
-  if (
-    status === "Completed" ||
-    pickingStatus === "Completed" ||
-    pickingStatus === "In Progress"
-  ) {
+  if (status === "Completed") {
     this.disabled(
       [
         "gd_status",
@@ -190,6 +186,10 @@ const disabledField = async (status, pickingStatus) => {
   } else {
     if (status === "Created") {
       this.hide(["button_save_as_draft"]);
+
+      if (pickingStatus === "In Progress" || pickingStatus === "Completed") {
+        this.hide(["button_save_as_created"]);
+      }
     }
     this.disabled(
       [
@@ -274,26 +274,30 @@ const displayDeliveryMethod = async () => {
 const setPlant = async (organizationId) => {
   const deptId = this.getVarSystem("deptIds").split(",")[0];
   let plantId = "";
-  if (deptId === organizationId) {
-    const resPlant = await db
-      .collection("blade_dept")
-      .where({ parent_id: deptId })
-      .get();
+  const hasPlant = this.getValue("plant_id");
 
-    if (!resPlant && resPlant.data.length === 0) {
-      plantId = deptId;
+  if (!hasPlant) {
+    if (deptId === organizationId) {
+      const resPlant = await db
+        .collection("blade_dept")
+        .where({ parent_id: deptId })
+        .get();
+
+      if (!resPlant || resPlant.data.length === 0) {
+        plantId = deptId;
+      } else {
+        plantId = "";
+        this.disabled("table_gd", true);
+      }
     } else {
-      plantId = "";
-      this.disabled("table_gd", true);
+      plantId = deptId;
     }
-  } else {
-    plantId = deptId;
   }
 
   this.setData({
     organization_id: organizationId,
-    plant_id: plantId,
-    delivery_date: new Date().toISOString().split("T")[0],
+    ...(!hasPlant ? { plant_id: plantId } : {}),
+    delivery_date: new Date().toISOString().replace("T", " "),
     gd_created_by: this.getVarGlobal("nickname"),
   });
 };
@@ -411,7 +415,8 @@ const fetchDeliveredQuantity = async () => {
     const maxDeliverableQty = orderQty - totalDeliveredQuantity;
     return {
       ...item,
-      gd_undelivered_qty: maxDeliverableQty,
+      gd_undelivered_qty: maxDeliverableQty - item.gd_qty,
+      gd_initial_delivered_qty: totalDeliveredQuantity,
     };
   });
 
@@ -450,9 +455,32 @@ const fetchDeliveredQuantity = async () => {
         await setPlant(organizationId);
         // Set prefix for new document
         await setPrefix(organizationId);
+        await displayDeliveryMethod();
+        if (salesOrderId.length > 0) {
+          await this.display(["address_grid"]);
+        }
+
+        let allItems = this.getParamsVariables("allItems") || "";
+        if (allItems && allItems !== "") {
+          allItems = JSON.parse(allItems);
+          await this.triggerEvent("func_processGDLineItem", {
+            allItems,
+          });
+        }
         break;
 
       case "Edit":
+        console.log("Full data", data);
+        const fromConvert = this.getValue("from_convert");
+        if (fromConvert === "Yes") {
+          let allItem = this.getValue("all_item");
+          if (allItem !== "") {
+            allItem = JSON.parse(allItem);
+            await this.triggerEvent("func_processGDLineItem", {
+              allItems: allItem,
+            });
+          }
+        }
         if (status !== "Completed") {
           await getPrefixData(organizationId);
           await disabledSelectStock(data);

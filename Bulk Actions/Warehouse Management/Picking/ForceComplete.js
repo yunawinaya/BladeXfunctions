@@ -1793,6 +1793,11 @@ const createTempQtyDataSummary = async (
 
               console.log("viewStockSummary", viewStockSummary);
 
+              gdLineItem.plan_qty = gdLineItem.gd_qty;
+              gdLineItem.plan_temp_qty_data = gdLineItem.temp_qty_data;
+              gdLineItem.plan_view_stock = gdLineItem.view_stock;
+              gdLineItem.is_force_complete = 1;
+
               gdLineItem.temp_qty_data = JSON.stringify(updatedTempQtyData);
               gdLineItem.view_stock = viewStockSummary;
               //sum filteredData.store_out_qty

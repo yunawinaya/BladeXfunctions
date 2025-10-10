@@ -1,368 +1,20 @@
-const closeDialog = () => {
-  if (this.parentGenerateForm) {
-    this.parentGenerateForm.$refs.SuPageDialogRef.hide();
-    this.parentGenerateForm.refresh();
-    this.hideLoading();
-  }
+// For quantities - 3 decimal places
+const roundQty = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(3));
 };
 
-const getPrefixData = async (
-  organizationId,
-  documentType = "Transfer Order"
-) => {
-  console.log("Getting prefix data for organization:", organizationId);
+// For prices - 4 decimal places
+const roundPrice = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(4));
+};
+
+// Helper function to safely parse JSON
+const parseJsonSafely = (jsonString, defaultValue = []) => {
   try {
-    const prefixEntry = await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: documentType,
-        is_deleted: 0,
-        organization_id: organizationId,
-        is_active: 1,
-      })
-      .get();
-
-    console.log("Prefix data result:", prefixEntry);
-
-    if (!prefixEntry.data || prefixEntry.data.length === 0) {
-      console.log("No prefix configuration found");
-      return null;
-    }
-
-    return prefixEntry.data[0];
+    return jsonString ? JSON.parse(jsonString) : defaultValue;
   } catch (error) {
-    console.error("Error getting prefix data:", error);
-    throw error;
-  }
-};
-
-const updatePrefix = async (
-  organizationId,
-  runningNumber,
-  documentType = "Transfer Order"
-) => {
-  console.log(
-    "Updating prefix for organization:",
-    organizationId,
-    "with running number:",
-    runningNumber
-  );
-  try {
-    await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: documentType,
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .update({
-        running_number: parseInt(runningNumber) + 1,
-        has_record: 1,
-      });
-    console.log("Prefix update successful");
-  } catch (error) {
-    console.error("Error updating prefix:", error);
-    throw error;
-  }
-};
-
-const generatePrefix = (runNumber, now, prefixData) => {
-  console.log("Generating prefix with running number:", runNumber);
-  try {
-    let generated = prefixData.current_prefix_config;
-    generated = generated.replace("prefix", prefixData.prefix_value);
-    generated = generated.replace("suffix", prefixData.suffix_value);
-    generated = generated.replace(
-      "month",
-      String(now.getMonth() + 1).padStart(2, "0")
-    );
-    generated = generated.replace(
-      "day",
-      String(now.getDate()).padStart(2, "0")
-    );
-    generated = generated.replace("year", now.getFullYear());
-    generated = generated.replace(
-      "running_number",
-      String(runNumber).padStart(prefixData.padding_zeroes, "0")
-    );
-    console.log("Generated prefix:", generated);
-    return generated;
-  } catch (error) {
-    console.error("Error generating prefix:", error);
-    throw error;
-  }
-};
-
-const checkUniqueness = async (
-  generatedPrefix,
-  organizationId,
-  collection = "transfer_order",
-  prefix = "to_id"
-) => {
-  const existingDoc = await db
-    .collection(collection)
-    .where({
-      [prefix]: generatedPrefix,
-      organization_id: organizationId,
-      is_deleted: 0,
-    })
-    .get();
-
-  return !existingDoc.data || existingDoc.data.length === 0;
-};
-
-const findUniquePrefix = async (
-  prefixData,
-  organizationId,
-  collection = "transfer_order",
-  prefix = "to_id"
-) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number || 1;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(
-      prefixToShow,
-      organizationId,
-      collection,
-      prefix
-    );
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Transfer Order number after maximum attempts"
-    );
-  }
-
-  return { prefixToShow, runningNumber };
-};
-
-const validateForm = (data, requiredFields) => {
-  const missingFields = [];
-
-  requiredFields.forEach((field) => {
-    const value = data[field.name];
-
-    // Handle non-array fields (unchanged)
-    if (!field.isArray) {
-      if (validateField(value)) {
-        missingFields.push(field.label);
-      }
-      return;
-    }
-
-    // Handle array fields
-    if (!Array.isArray(value)) {
-      missingFields.push(`${field.label}`);
-      return;
-    }
-
-    if (value.length === 0) {
-      missingFields.push(`${field.label}`);
-      return;
-    }
-
-    // Check each item in the array
-    if (field.arrayType === "object" && field.arrayFields && value.length > 0) {
-      value.forEach((item, index) => {
-        field.arrayFields.forEach((subField) => {
-          const subValue = item[subField.name];
-          if (validateField(subValue)) {
-            missingFields.push(
-              `${subField.label} (in ${field.label} #${index + 1})`
-            );
-          }
-        });
-      });
-    }
-  });
-
-  return missingFields;
-};
-
-const validateField = (value) => {
-  if (value === undefined || value === null) return true;
-  if (typeof value === "string") return value.trim() === "";
-  if (typeof value === "number") return value <= 0;
-  if (Array.isArray(value)) return value.length === 0;
-  if (typeof value === "object") return Object.keys(value).length === 0;
-  return !value;
-};
-
-// Helper function to calculate leftover serial numbers after partial processing
-const calculateLeftoverSerialNumbers = (item) => {
-  // Only process serialized items
-  if (item.is_serialized_item !== 1) {
-    return item.serial_numbers; // Return original if not serialized
-  }
-
-  // Get the original serial numbers and processed serial numbers
-  const originalSerialNumbers = item.serial_numbers
-    ? item.serial_numbers
-        .split(",")
-        .map((sn) => sn.trim())
-        .filter((sn) => sn !== "")
-    : [];
-
-  const processedSerialNumbers = Array.isArray(item.select_serial_number)
-    ? item.select_serial_number.map((sn) => sn.trim()).filter((sn) => sn !== "")
-    : [];
-
-  console.log(
-    `Item ${
-      item.item_code || item.item_id
-    }: Original serial numbers: [${originalSerialNumbers.join(", ")}]`
-  );
-  console.log(
-    `Item ${
-      item.item_code || item.item_id
-    }: Processed serial numbers: [${processedSerialNumbers.join(", ")}]`
-  );
-
-  // Calculate leftover serial numbers by removing processed ones
-  const leftoverSerialNumbers = originalSerialNumbers.filter(
-    (originalSN) => !processedSerialNumbers.includes(originalSN)
-  );
-
-  console.log(
-    `Item ${
-      item.item_code || item.item_id
-    }: Leftover serial numbers: [${leftoverSerialNumbers.join(", ")}]`
-  );
-
-  // Return the leftover serial numbers as a comma-separated string
-  return leftoverSerialNumbers.length > 0
-    ? leftoverSerialNumbers.join(", ")
-    : "";
-};
-
-// Enhanced quantity validation and line status determination
-const validateAndUpdateLineStatuses = (pickingItems) => {
-  const errors = [];
-  const updatedItems = JSON.parse(JSON.stringify(pickingItems));
-
-  for (let index = 0; index < updatedItems.length; index++) {
-    const item = updatedItems[index];
-
-    // Safely parse quantities
-    const qtyToPick = parseFloat(item.qty_to_pick) || 0;
-    const pendingProcessQty = parseFloat(item.pending_process_qty) || 0;
-    const pickedQty = parseFloat(item.picked_qty) || 0;
-
-    console.log(
-      `Item ${
-        item.item_id || index
-      }: qtyToPick=${qtyToPick}, pendingProcessQty=${pendingProcessQty}, pickedQty=${pickedQty}`
-    );
-
-    // Validation checks
-    if (pickedQty < 0) {
-      errors.push(
-        `Picked quantity cannot be negative for item ${
-          item.item_id || `#${index + 1}`
-        }`
-      );
-      continue;
-    }
-
-    if (pickedQty > pendingProcessQty) {
-      errors.push(
-        `Picked quantity (${pickedQty}) cannot be greater than quantity to pick (${pendingProcessQty}) for item ${
-          item.item_id || `#${index + 1}`
-        }`
-      );
-      continue;
-    }
-
-    // Determine line status based on quantities
-    let lineStatus;
-    if (pickedQty === 0 && pendingProcessQty > 0) {
-      lineStatus = null;
-    } else if (pickedQty === pendingProcessQty) {
-      lineStatus = "Completed";
-    } else if (pickedQty < pendingProcessQty) {
-      lineStatus = "In Progress";
-    }
-
-    // Calculate pending process quantity
-    const pending_process_qty = pendingProcessQty - pickedQty;
-
-    // Update line status and pending process quantity
-    updatedItems[index].line_status = lineStatus;
-    updatedItems[index].pending_process_qty = pending_process_qty;
-
-    // Update serial numbers for serialized items - calculate leftover serial numbers
-    if (item.is_serialized_item === 1 && pending_process_qty > 0) {
-      const leftoverSerialNumbers = calculateLeftoverSerialNumbers(item);
-      updatedItems[index].serial_numbers = leftoverSerialNumbers;
-      console.log(
-        `Updated serial_numbers for partially processed item ${
-          item.item_code || item.item_id
-        }: "${leftoverSerialNumbers}"`
-      );
-    } else if (item.is_serialized_item === 1 && pending_process_qty === 0) {
-      // If fully processed, clear serial numbers
-      updatedItems[index].serial_numbers = "";
-      console.log(
-        `Cleared serial_numbers for fully processed item ${
-          item.item_code || item.item_id
-        }`
-      );
-    }
-
-    console.log(`Item ${item.item_id || index} line status: ${lineStatus}`);
-  }
-
-  return { updatedItems, errors };
-};
-
-// Determine overall transfer order status based on line statuses
-const determineTransferOrderStatus = (pickingItems) => {
-  if (!Array.isArray(pickingItems) || pickingItems.length === 0) {
-    return "Created";
-  }
-
-  const lineStatuses = pickingItems
-    .map((item) => item.line_status)
-    .filter((status) => status !== undefined);
-
-  console.log("Line statuses:", lineStatuses);
-
-  // Count statuses
-  const completedCount = lineStatuses.filter(
-    (status) => status === "Completed"
-  ).length;
-  const inProgressCount = lineStatuses.filter(
-    (status) => status === "In Progress"
-  ).length;
-  const nullCount = lineStatuses.filter(
-    (status) => status === null || status === undefined
-  ).length;
-  const totalItems = pickingItems.length;
-
-  console.log(
-    `Status counts - Completed: ${completedCount}, In Progress: ${inProgressCount}, Null: ${nullCount}, Total: ${totalItems}`
-  );
-
-  // Determine overall status
-  if (completedCount === totalItems) {
-    return "Completed";
-  } else if (inProgressCount > 0 || completedCount > 0) {
-    return "In Progress";
-  } else if (nullCount === totalItems) {
-    return "Created";
-  } else {
-    return "In Progress";
+    console.error("JSON parse error:", error);
+    return defaultValue;
   }
 };
 
@@ -802,24 +454,291 @@ const getFixedCostPrice = async (materialId) => {
   }
 };
 
-// For quantities - 3 decimal places
-const roundQty = (value) => {
-  return parseFloat(parseFloat(value || 0).toFixed(3));
-};
+const validateInventoryAvailabilityForCompleted = async (
+  data,
+  plantId,
+  organizationId
+) => {
+  console.log(
+    "Validating inventory availability for Completed GD (including serialized items)"
+  );
 
-// For prices - 4 decimal places
-const roundPrice = (value) => {
-  return parseFloat(parseFloat(value || 0).toFixed(4));
-};
-
-// Helper function to safely parse JSON
-const parseJsonSafely = (jsonString, defaultValue = []) => {
-  try {
-    return jsonString ? JSON.parse(jsonString) : defaultValue;
-  } catch (error) {
-    console.error("JSON parse error:", error);
-    return defaultValue;
+  const items = data.table_gd;
+  if (!Array.isArray(items) || items.length === 0) {
+    return { isValid: true };
   }
+
+  // Create a map to track total required quantities using pipe separator for keys
+  const requiredQuantities = new Map();
+
+  // First pass: Calculate total required quantities
+  for (const item of items) {
+    if (!item.material_id || !item.temp_qty_data) {
+      continue;
+    }
+
+    try {
+      // Get item data to check stock control, serialization, and UOM conversion
+      const itemRes = await db
+        .collection("Item")
+        .where({ id: item.material_id })
+        .get();
+
+      if (!itemRes.data || !itemRes.data.length) {
+        return {
+          isValid: false,
+          error: `Item not found: ${item.material_id}`,
+        };
+      }
+
+      const itemData = itemRes.data[0];
+
+      // Skip if stock control is disabled
+      if (itemData.stock_control === 0) {
+        continue;
+      }
+
+      const isSerializedItem = itemData.serial_number_management === 1;
+      const isBatchManagedItem = itemData.item_batch_management === 1;
+      const temporaryData = parseJsonSafely(item.temp_qty_data);
+
+      for (const temp of temporaryData) {
+        // Calculate base quantity with UOM conversion
+        let baseQty = roundQty(temp.gd_quantity);
+
+        if (
+          Array.isArray(itemData.table_uom_conversion) &&
+          itemData.table_uom_conversion.length > 0
+        ) {
+          const uomConversion = itemData.table_uom_conversion.find(
+            (conv) => conv.alt_uom_id === item.gd_order_uom_id
+          );
+
+          if (uomConversion) {
+            baseQty = roundQty(baseQty / uomConversion.alt_qty);
+          }
+        }
+
+        // Create unique key using pipe separator to avoid conflicts with hyphens in serial numbers
+        let key;
+        if (isSerializedItem) {
+          if (isBatchManagedItem && temp.batch_id) {
+            key = `${item.material_id}|${temp.location_id || "no-location"}|${
+              temp.batch_id
+            }|${temp.serial_number}`;
+          } else {
+            key = `${item.material_id}|${temp.location_id || "no-location"}|${
+              temp.serial_number
+            }`;
+          }
+        } else {
+          key = temp.batch_id
+            ? `${item.material_id}|${temp.location_id}|${temp.batch_id}`
+            : `${item.material_id}|${temp.location_id}`;
+        }
+
+        // Add to required quantities
+        const currentRequired = requiredQuantities.get(key) || 0;
+        requiredQuantities.set(key, currentRequired + baseQty);
+      }
+    } catch (error) {
+      console.error(`Error processing item ${item.material_id}:`, error);
+      return {
+        isValid: false,
+        error: `Error processing item ${item.material_id}: ${error.message}`,
+      };
+    }
+  }
+
+  // Second pass: Check availability against current balances
+  for (const [key, requiredQty] of requiredQuantities.entries()) {
+    const keyParts = key.split("|");
+    const materialId = keyParts[0];
+    const locationId = keyParts[1] !== "no-location" ? keyParts[1] : null;
+
+    let batchId, serialNumber;
+
+    // Determine if this is a serialized item key
+    const itemRes = await db.collection("Item").where({ id: materialId }).get();
+    if (!itemRes.data || !itemRes.data.length) {
+      continue;
+    }
+
+    const itemData = itemRes.data[0];
+    const isSerializedItem = itemData.serial_number_management === 1;
+    const isBatchManagedItem = itemData.item_batch_management === 1;
+
+    if (isSerializedItem) {
+      if (isBatchManagedItem) {
+        // serialized + batch: materialId|locationId|batchId|serialNumber
+        batchId = keyParts[2] !== "undefined" ? keyParts[2] : null;
+        serialNumber = keyParts[3];
+      } else {
+        // serialized only: materialId|locationId|serialNumber
+        serialNumber = keyParts[2];
+        batchId = null;
+      }
+    } else {
+      // non-serialized: materialId|locationId|batchId (or no batchId)
+      batchId = keyParts[2] !== "undefined" ? keyParts[2] : null;
+      serialNumber = null;
+    }
+
+    try {
+      let totalAvailableQty = 0;
+
+      if (isSerializedItem) {
+        // FOR SERIALIZED ITEMS: Check item_serial_balance
+        const itemBalanceParams = {
+          material_id: materialId,
+          serial_number: serialNumber,
+          plant_id: plantId,
+          organization_id: organizationId,
+        };
+
+        if (locationId) {
+          itemBalanceParams.location_id = locationId;
+        }
+
+        if (batchId && batchId !== "undefined") {
+          itemBalanceParams.batch_id = batchId;
+        }
+
+        const balanceQuery = await db
+          .collection("item_serial_balance")
+          .where(itemBalanceParams)
+          .get();
+
+        if (balanceQuery.data && balanceQuery.data.length > 0) {
+          const balance = balanceQuery.data[0];
+          const unrestrictedQty = roundQty(
+            parseFloat(balance.unrestricted_qty || 0)
+          );
+          const reservedQty = roundQty(parseFloat(balance.reserved_qty || 0));
+
+          // For Completed status, both unrestricted and reserved can be used
+          totalAvailableQty = roundQty(unrestrictedQty + reservedQty);
+
+          console.log(
+            `Serialized item ${materialId}, serial ${serialNumber}: Unrestricted=${unrestrictedQty}, Reserved=${reservedQty}, Total=${totalAvailableQty}`
+          );
+        }
+      } else {
+        // FOR NON-SERIALIZED ITEMS: Use existing logic
+        const itemBalanceParams = {
+          material_id: materialId,
+          plant_id: plantId,
+          organization_id: organizationId,
+        };
+
+        if (locationId) {
+          itemBalanceParams.location_id = locationId;
+        }
+
+        if (batchId && batchId !== "undefined") {
+          itemBalanceParams.batch_id = batchId;
+        }
+
+        const balanceCollection =
+          batchId && batchId !== "undefined"
+            ? "item_batch_balance"
+            : "item_balance";
+
+        const balanceQuery = await db
+          .collection(balanceCollection)
+          .where(itemBalanceParams)
+          .get();
+
+        if (balanceQuery.data && balanceQuery.data.length > 0) {
+          const balance = balanceQuery.data[0];
+          const unrestrictedQty = roundQty(
+            parseFloat(balance.unrestricted_qty || 0)
+          );
+          const reservedQty = roundQty(parseFloat(balance.reserved_qty || 0));
+
+          // For Completed status, both unrestricted and reserved can be used
+          totalAvailableQty = roundQty(unrestrictedQty + reservedQty);
+
+          console.log(
+            `Item ${materialId} at ${locationId}: Unrestricted=${unrestrictedQty}, Reserved=${reservedQty}, Total=${totalAvailableQty}`
+          );
+        }
+      }
+
+      if (totalAvailableQty < requiredQty) {
+        // Get item name for better error message
+        const itemName = itemData.material_name || materialId;
+
+        let errorMsg = `Insufficient total inventory for item "${itemName}". `;
+        errorMsg += `Required: ${requiredQty}, Available: ${totalAvailableQty}`;
+
+        if (isSerializedItem && serialNumber) {
+          errorMsg += `, Serial: "${serialNumber}"`;
+        }
+
+        if (locationId && !isSerializedItem) {
+          try {
+            const locationRes = await db
+              .collection("bin_location")
+              .where({ id: locationId })
+              .get();
+
+            const locationName =
+              locationRes.data && locationRes.data.length > 0
+                ? locationRes.data[0].bin_location_combine || locationId
+                : locationId;
+
+            errorMsg += `, Location: "${locationName}"`;
+          } catch {
+            errorMsg += `, Location: "${locationId}"`;
+          }
+        }
+
+        if (batchId && batchId !== "undefined") {
+          try {
+            const batchRes = await db
+              .collection("batch")
+              .where({ id: batchId })
+              .get();
+
+            const batchName =
+              batchRes.data && batchRes.data.length > 0
+                ? batchRes.data[0].batch_number || batchId
+                : batchId;
+
+            errorMsg += `, Batch: "${batchName}"`;
+          } catch {
+            errorMsg += `, Batch: "${batchId}"`;
+          }
+        }
+
+        return {
+          isValid: false,
+          error: errorMsg,
+          details: {
+            materialId,
+            itemName,
+            locationId: locationId || null,
+            batchId: batchId !== "undefined" ? batchId : null,
+            serialNumber: serialNumber || null,
+            requiredQty,
+            totalAvailableQty,
+          },
+        };
+      }
+    } catch (error) {
+      console.error(`Error checking balance for ${key}:`, error);
+      return {
+        isValid: false,
+        error: `Error checking inventory balance: ${error.message}`,
+      };
+    }
+  }
+
+  console.log(
+    "Inventory validation passed for Completed GD (including serialized items)"
+  );
+  return { isValid: true };
 };
 
 const processBalanceTable = async (
@@ -889,8 +808,8 @@ const processBalanceTable = async (
         : null;
 
       if (
-        temporaryData.length > 0 &&
-        (!isUpdate || (prevTempData && prevTempData.length > 0))
+        temporaryData.length > 0 ||
+        (isUpdate && prevTempData && prevTempData.length > 0)
       ) {
         // GROUP temp_qty_data by location + batch combination for movement consolidation
         const groupedTempData = new Map();
@@ -916,6 +835,29 @@ const processBalanceTable = async (
           const group = groupedTempData.get(groupKey);
           group.items.push(temp);
           group.totalQty += parseFloat(temp.gd_quantity || 0);
+        }
+
+        // IMPORTANT: For update mode, also create groups from prevTempData if they don't exist in current data
+        // This ensures we can release reserved quantities for items reduced to 0
+        if (isUpdate && prevTempData && prevTempData.length > 0) {
+          for (const prevTemp of prevTempData) {
+            let prevGroupKey;
+            if (isBatchManagedItem && prevTemp.batch_id) {
+              prevGroupKey = `${prevTemp.location_id}|${prevTemp.batch_id}`;
+            } else {
+              prevGroupKey = prevTemp.location_id;
+            }
+
+            // Only add if this group doesn't exist in current data
+            if (!groupedTempData.has(prevGroupKey)) {
+              groupedTempData.set(prevGroupKey, {
+                location_id: prevTemp.location_id,
+                batch_id: prevTemp.batch_id,
+                items: [],
+                totalQty: 0, // Current quantity is 0 for this group
+              });
+            }
+          }
         }
 
         console.log(
@@ -985,7 +927,7 @@ const processBalanceTable = async (
 
                 if (uomConversion) {
                   currentPrevBaseQty = roundQty(
-                    prevAltQty * uomConversion.base_qty
+                    prevAltQty / uomConversion.alt_qty
                   );
                 }
                 prevBaseQty += currentPrevBaseQty;
@@ -1159,7 +1101,7 @@ const processBalanceTable = async (
                       reserved: reservedQty,
                       individualQty: roundQty(temp.gd_quantity),
                       individualBaseQty: uomConversion
-                        ? roundQty(temp.gd_quantity * uomConversion.base_qty)
+                        ? roundQty(temp.gd_quantity / uomConversion.alt_qty)
                         : roundQty(temp.gd_quantity),
                     });
 
@@ -1263,7 +1205,8 @@ const processBalanceTable = async (
                 );
               }
 
-              if (availableReservedForThisGD >= baseQty) {
+              // Only create movements if baseQty > 0
+              if (baseQty > 0 && availableReservedForThisGD >= baseQty) {
                 // Sufficient reserved quantity from this GD - create single OUT movement from Reserved
                 console.log(
                   `Sufficient reserved quantity for this GD (${availableReservedForThisGD}) for ${baseQty}`
@@ -1313,7 +1256,7 @@ const processBalanceTable = async (
                     `Created consolidated OUT movement from Reserved for group ${groupKey}: ${baseQty}, ID: ${movementId}`
                   );
                 }
-              } else {
+              } else if (baseQty > 0) {
                 // Insufficient reserved quantity for this GD - split between Reserved and Unrestricted
                 const reservedQtyToMove = availableReservedForThisGD;
                 const unrestrictedQtyToMove = roundQty(
@@ -1478,7 +1421,7 @@ const processBalanceTable = async (
 
                   // Calculate alternative UOM for unused quantity
                   const unusedAltQty = uomConversion
-                    ? roundQty(unusedReservedQty / uomConversion.base_qty)
+                    ? roundQty(unusedReservedQty * uomConversion.alt_qty)
                     : unusedReservedQty;
 
                   // Create movement to release unused reserved back to unrestricted
@@ -1580,7 +1523,7 @@ const processBalanceTable = async (
                   );
                 }
               }
-            } else {
+            } else if (baseQty > 0) {
               // For non-Created status (Unrestricted movement)
               console.log(
                 `Processing ${gdStatus} status - moving ${baseQty} OUT from Unrestricted for group ${groupKey}`
@@ -1691,7 +1634,7 @@ const processBalanceTable = async (
                       let individualBaseQty = roundQty(temp.gd_quantity);
                       if (uomConversion) {
                         individualBaseQty = roundQty(
-                          individualBaseQty * uomConversion.base_qty
+                          individualBaseQty / uomConversion.alt_qty
                         );
                       }
 
@@ -1825,92 +1768,95 @@ const processBalanceTable = async (
               );
 
               // Process each serial balance individually with proper distribution
-              for (const serialBalance of serialBalances) {
-                if (remainingToDeduct <= 0) break;
+              // Skip balance deduction if baseQty is 0 (item removed from GD)
+              if (baseQty > 0) {
+                for (const serialBalance of serialBalances) {
+                  if (remainingToDeduct <= 0) break;
 
-                const serialDoc = serialBalance.balance;
-                const currentSerialUnrestricted = serialBalance.unrestricted;
-                const currentSerialReserved = serialBalance.reserved;
-                const individualBaseQty = serialBalance.individualBaseQty;
+                  const serialDoc = serialBalance.balance;
+                  const currentSerialUnrestricted = serialBalance.unrestricted;
+                  const currentSerialReserved = serialBalance.reserved;
+                  const individualBaseQty = serialBalance.individualBaseQty;
 
-                // Calculate how much to deduct from this serial (proportional to its individual quantity)
-                const serialDeductionRatio = individualBaseQty / baseQty;
-                const serialReservedDeduction = roundQty(
-                  remainingReservedToDeduct * serialDeductionRatio
-                );
-                const serialUnrestrictedDeduction = roundQty(
-                  remainingUnrestrictedToDeduct * serialDeductionRatio
-                );
-
-                let finalSerialUnrestricted = roundQty(
-                  currentSerialUnrestricted - serialUnrestrictedDeduction
-                );
-                let finalSerialReserved = roundQty(
-                  currentSerialReserved - serialReservedDeduction
-                );
-
-                // Safety checks to prevent negative values
-                if (finalSerialUnrestricted < 0) {
-                  console.warn(
-                    `Serial ${serialBalance.serial}: Unrestricted would be negative (${finalSerialUnrestricted}), setting to 0`
+                  // Calculate how much to deduct from this serial (proportional to its individual quantity)
+                  const serialDeductionRatio = individualBaseQty / baseQty;
+                  const serialReservedDeduction = roundQty(
+                    remainingReservedToDeduct * serialDeductionRatio
                   );
-                  finalSerialUnrestricted = 0;
-                }
-                if (finalSerialReserved < 0) {
-                  console.warn(
-                    `Serial ${serialBalance.serial}: Reserved would be negative (${finalSerialReserved}), setting to 0`
-                  );
-                  finalSerialReserved = 0;
-                }
-
-                const originalData = {
-                  unrestricted_qty: currentSerialUnrestricted,
-                  reserved_qty: currentSerialReserved,
-                };
-
-                const updateData = {
-                  unrestricted_qty: finalSerialUnrestricted,
-                  reserved_qty: finalSerialReserved,
-                };
-
-                if (serialDoc.hasOwnProperty("balance_quantity")) {
-                  originalData.balance_quantity = roundQty(
-                    currentSerialUnrestricted + currentSerialReserved
-                  );
-                  updateData.balance_quantity = roundQty(
-                    finalSerialUnrestricted + finalSerialReserved
-                  );
-                }
-
-                updatedDocs.push({
-                  collection: "item_serial_balance",
-                  docId: serialDoc.id,
-                  originalData: originalData,
-                });
-
-                try {
-                  await db
-                    .collection("item_serial_balance")
-                    .doc(serialDoc.id)
-                    .update(updateData);
-
-                  console.log(
-                    `Updated serial balance for ${serialBalance.serial}: ` +
-                      `Unrestricted=${finalSerialUnrestricted}, Reserved=${finalSerialReserved}` +
-                      (updateData.balance_quantity
-                        ? `, Balance=${updateData.balance_quantity}`
-                        : "")
+                  const serialUnrestrictedDeduction = roundQty(
+                    remainingUnrestrictedToDeduct * serialDeductionRatio
                   );
 
-                  remainingToDeduct = roundQty(
-                    remainingToDeduct - individualBaseQty
+                  let finalSerialUnrestricted = roundQty(
+                    currentSerialUnrestricted - serialUnrestrictedDeduction
                   );
-                } catch (serialBalanceError) {
-                  console.error(
-                    `Error updating serial balance for ${serialBalance.serial}:`,
-                    serialBalanceError
+                  let finalSerialReserved = roundQty(
+                    currentSerialReserved - serialReservedDeduction
                   );
-                  throw serialBalanceError;
+
+                  // Safety checks to prevent negative values
+                  if (finalSerialUnrestricted < 0) {
+                    console.warn(
+                      `Serial ${serialBalance.serial}: Unrestricted would be negative (${finalSerialUnrestricted}), setting to 0`
+                    );
+                    finalSerialUnrestricted = 0;
+                  }
+                  if (finalSerialReserved < 0) {
+                    console.warn(
+                      `Serial ${serialBalance.serial}: Reserved would be negative (${finalSerialReserved}), setting to 0`
+                    );
+                    finalSerialReserved = 0;
+                  }
+
+                  const originalData = {
+                    unrestricted_qty: currentSerialUnrestricted,
+                    reserved_qty: currentSerialReserved,
+                  };
+
+                  const updateData = {
+                    unrestricted_qty: finalSerialUnrestricted,
+                    reserved_qty: finalSerialReserved,
+                  };
+
+                  if (serialDoc.hasOwnProperty("balance_quantity")) {
+                    originalData.balance_quantity = roundQty(
+                      currentSerialUnrestricted + currentSerialReserved
+                    );
+                    updateData.balance_quantity = roundQty(
+                      finalSerialUnrestricted + finalSerialReserved
+                    );
+                  }
+
+                  updatedDocs.push({
+                    collection: "item_serial_balance",
+                    docId: serialDoc.id,
+                    originalData: originalData,
+                  });
+
+                  try {
+                    await db
+                      .collection("item_serial_balance")
+                      .doc(serialDoc.id)
+                      .update(updateData);
+
+                    console.log(
+                      `Updated serial balance for ${serialBalance.serial}: ` +
+                        `Unrestricted=${finalSerialUnrestricted}, Reserved=${finalSerialReserved}` +
+                        (updateData.balance_quantity
+                          ? `, Balance=${updateData.balance_quantity}`
+                          : "")
+                    );
+
+                    remainingToDeduct = roundQty(
+                      remainingToDeduct - individualBaseQty
+                    );
+                  } catch (serialBalanceError) {
+                    console.error(
+                      `Error updating serial balance for ${serialBalance.serial}:`,
+                      serialBalanceError
+                    );
+                    throw serialBalanceError;
+                  }
                 }
               }
 
@@ -2250,20 +2196,23 @@ const processBalanceTable = async (
           }
 
           // Update costing method inventories (use total group quantity)
-          if (costingMethod === "First In First Out") {
-            await updateFIFOInventory(
-              item.material_id,
-              baseQty,
-              group.batch_id,
-              plantId
-            );
-          } else if (costingMethod === "Weighted Average") {
-            await updateWeightedAverage(
-              item,
-              group.batch_id,
-              baseWAQty,
-              plantId
-            );
+          // Skip if baseQty is 0 (item removed from GD)
+          if (baseQty > 0) {
+            if (costingMethod === "First In First Out") {
+              await updateFIFOInventory(
+                item.material_id,
+                baseQty,
+                group.batch_id,
+                plantId
+              );
+            } else if (costingMethod === "Weighted Average") {
+              await updateWeightedAverage(
+                item,
+                group.batch_id,
+                baseWAQty,
+                plantId
+              );
+            }
           }
         }
 
@@ -2491,485 +2440,276 @@ const updateSalesOrderStatus = async (salesOrderId, tableGD) => {
   }
 };
 
-const addEntry = async (organizationId, toData) => {
-  try {
-    const prefixData = await getPrefixData(organizationId, "Transfer Order");
+// Validate bulk inventory availability for GDs (reused from CreatedToCompleted)
+const validateBulkGDInventoryAvailability = async (goodsDeliveryData) => {
+  console.log("Starting bulk GD inventory validation");
 
-    if (prefixData) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId,
-        "transfer_order",
-        "to_id"
-      );
+  const allValidationErrors = [];
 
-      await updatePrefix(organizationId, runningNumber, "Transfer Order");
-      toData.to_id = prefixToShow;
-    } else {
-      const isUnique = await checkUniqueness(
-        toData.to_id,
-        organizationId,
-        "transfer_order",
-        "to_id"
-      );
-      if (!isUnique) {
-        throw new Error(
-          `Picking Number "${toData.to_id}" already exists. Please use a different number.`
-        );
+  for (const gdItem of goodsDeliveryData) {
+    console.log(`Validating inventory for GD: ${gdItem.gd_id}`);
+
+    const items = gdItem.table_gd;
+    if (!Array.isArray(items) || items.length === 0) {
+      continue;
+    }
+
+    const requiredQuantities = new Map();
+
+    // First pass: Calculate total required quantities
+    for (const item of items) {
+      if (!item.material_id || !item.temp_qty_data) {
+        continue;
       }
-    }
 
-    for (const item of toData.table_picking_items) {
-      if (item.select_serial_number) {
-        item.select_serial_number = null;
-      }
-    }
+      try {
+        const itemRes = await db
+          .collection("Item")
+          .where({ id: item.material_id })
+          .get();
 
-    // Add the record
-    const createdRecord = await db.collection("transfer_order").add(toData);
-
-    if (!createdRecord.data || createdRecord.data.length === 0) {
-      throw new Error("Failed to retrieve created transfer order record");
-    }
-
-    const toId = createdRecord.data[0].id;
-    console.log("Transfer order created successfully with ID:", toId);
-  } catch (error) {
-    console.error("Error in addEntry:", error);
-    throw error;
-  }
-};
-
-const updateEntry = async (organizationId, toData, toId, originalToStatus) => {
-  try {
-    if (originalToStatus === "Draft") {
-      const prefixData = await getPrefixData(organizationId, "Transfer Order");
-
-      if (prefixData) {
-        const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData,
-          organizationId,
-          "transfer_order",
-          "to_id"
-        );
-
-        await updatePrefix(organizationId, runningNumber, "Transfer Order");
-        toData.to_id = prefixToShow;
-      } else {
-        const isUnique = await checkUniqueness(
-          toData.to_id,
-          organizationId,
-          "transfer_order",
-          "to_id"
-        );
-        if (!isUnique) {
-          throw new Error(
-            `Picking Number "${toData.to_id}" already exists. Please use a different number.`
-          );
+        if (!itemRes.data || !itemRes.data.length) {
+          allValidationErrors.push({
+            gdNo: gdItem.gd_id,
+            error: `Item not found: ${item.material_id}`,
+          });
+          continue;
         }
-      }
-    }
 
-    for (const item of toData.table_picking_items) {
-      if (item.select_serial_number) {
-        item.select_serial_number = null;
-      }
-    }
+        const itemData = itemRes.data[0];
 
-    await db.collection("transfer_order").doc(toId).update(toData);
+        if (itemData.stock_control === 0) {
+          continue;
+        }
 
-    console.log("Transfer order updated successfully");
-    return toId;
-  } catch (error) {
-    console.error("Error in updateEntry:", error);
-    throw error;
-  }
-};
+        const isSerializedItem = itemData.serial_number_management === 1;
+        const isBatchManagedItem = itemData.item_batch_management === 1;
+        const temporaryData = parseJsonSafely(item.temp_qty_data);
 
-const findFieldMessage = (obj) => {
-  // Base case: if current object has the structure we want
-  if (obj && typeof obj === "object") {
-    if (obj.field && obj.message) {
-      return obj.message;
-    }
+        for (const temp of temporaryData) {
+          let baseQty = roundQty(temp.gd_quantity);
 
-    // Check array elements
-    if (Array.isArray(obj)) {
-      for (const item of obj) {
-        const found = findFieldMessage(item);
-        if (found) return found;
-      }
-    }
+          if (
+            Array.isArray(itemData.table_uom_conversion) &&
+            itemData.table_uom_conversion.length > 0
+          ) {
+            const uomConversion = itemData.table_uom_conversion.find(
+              (conv) => conv.alt_uom_id === item.gd_order_uom_id
+            );
 
-    // Check all object properties
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        const found = findFieldMessage(obj[key]);
-        if (found) return found;
-      }
-    }
-  }
-  return null;
-};
-
-const setCreditLimitStatus = async (data, credit_limit_status) => {
-  if (data.id && (data.gd_status === "Created" || data.gd_status === "Draft")) {
-    await db.collection("goods_delivery").doc(data.id).update({
-      credit_limit_status: credit_limit_status,
-    });
-    console.log("Credit limit status set to: ", credit_limit_status);
-  }
-};
-
-// Simplified credit limit check without popups - for auto-complete GD only
-const checkCreditLimitForAutoComplete = async (
-  customer_name,
-  gd_total,
-  data
-) => {
-  try {
-    const fetchCustomer = await db
-      .collection("Customer")
-      .where({ id: customer_name, is_deleted: 0 })
-      .get();
-
-    const customerData = fetchCustomer.data[0];
-    if (!customerData) {
-      console.error(`Customer ${customer_name} not found`);
-      return false;
-    }
-
-    const controlTypes = customerData.control_type_list;
-
-    const outstandingAmount =
-      parseFloat(customerData.outstanding_balance || 0) || 0;
-    const overdueAmount =
-      parseFloat(customerData.overdue_inv_total_amount || 0) || 0;
-    const overdueLimit = parseFloat(customerData.overdue_limit || 0) || 0;
-    const creditLimit =
-      parseFloat(customerData.customer_credit_limit || 0) || 0;
-    const gdTotal = parseFloat(gd_total || 0) || 0;
-    const revisedOutstandingAmount = outstandingAmount + gdTotal;
-
-    // Check if accuracy flag is set
-    if (controlTypes && Array.isArray(controlTypes)) {
-      // Define control type behaviors according to specification
-      const controlTypeChecks = {
-        // Control Type 0: Ignore both checks (always pass)
-        0: () => {
-          console.log("Control Type 0: Ignoring all credit/overdue checks");
-          setCreditLimitStatus(data, "Passed");
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 1: Ignore credit, block overdue
-        1: () => {
-          if (overdueAmount > overdueLimit) {
-            setCreditLimitStatus(data, "Blocked");
-            return { result: false, priority: "block" };
+            if (uomConversion) {
+              baseQty = roundQty(baseQty / uomConversion.alt_qty);
+            }
           }
-          return { result: true, priority: "unblock" };
-        },
 
-        // Control Type 2: Ignore credit, override overdue
-        2: () => {
-          if (overdueAmount > overdueLimit) {
-            setCreditLimitStatus(data, "Override Required");
-            return { result: false, priority: "override" };
+          let key;
+          if (isSerializedItem) {
+            if (isBatchManagedItem && temp.batch_id) {
+              key = `${item.material_id}|${temp.location_id || "no-location"}|${
+                temp.batch_id
+              }|${temp.serial_number}`;
+            } else {
+              key = `${item.material_id}|${temp.location_id || "no-location"}|${
+                temp.serial_number
+              }`;
+            }
+          } else {
+            key = temp.batch_id
+              ? `${item.material_id}|${temp.location_id}|${temp.batch_id}`
+              : `${item.material_id}|${temp.location_id}`;
           }
-          return { result: true, priority: "unblock" };
-        },
 
-        // Control Type 3: Block credit, ignore overdue
-        3: () => {
-          if (revisedOutstandingAmount > creditLimit) {
-            setCreditLimitStatus(data, "Blocked");
-            return { result: false, priority: "block" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 4: Block both
-        4: () => {
-          const creditExceeded = revisedOutstandingAmount > creditLimit;
-          const overdueExceeded = overdueAmount > overdueLimit;
-
-          if (creditExceeded && overdueExceeded) {
-            setCreditLimitStatus(data, "Blocked");
-            return { result: false, priority: "block" };
-          } else if (creditExceeded) {
-            setCreditLimitStatus(data, "Blocked");
-            return { result: false, priority: "block" };
-          } else if (overdueExceeded) {
-            setCreditLimitStatus(data, "Blocked");
-            return { result: false, priority: "block" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 5: Block credit, override overdue
-        5: () => {
-          const creditExceeded = revisedOutstandingAmount > creditLimit;
-          const overdueExceeded = overdueAmount > overdueLimit;
-
-          // Credit limit block takes priority
-          if (creditExceeded) {
-            setCreditLimitStatus(data, "Blocked");
-            return { result: false, priority: "block" };
-          } else if (overdueExceeded) {
-            setCreditLimitStatus(data, "Override Required");
-            return { result: false, priority: "override" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 6: Override credit, ignore overdue
-        6: () => {
-          if (revisedOutstandingAmount > creditLimit) {
-            setCreditLimitStatus(data, "Override Required");
-            return { result: false, priority: "override" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 7: Override credit, block overdue
-        7: () => {
-          const creditExceeded = revisedOutstandingAmount > creditLimit;
-          const overdueExceeded = overdueAmount > overdueLimit;
-
-          // Overdue block takes priority over credit override
-          if (overdueExceeded) {
-            setCreditLimitStatus(data, "Blocked");
-            return { result: false, priority: "block" };
-          } else if (creditExceeded) {
-            setCreditLimitStatus(data, "Override Required");
-            return { result: false, priority: "override" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 8: Override both
-        8: () => {
-          const creditExceeded = revisedOutstandingAmount > creditLimit;
-          const overdueExceeded = overdueAmount > overdueLimit;
-
-          if (creditExceeded || overdueExceeded) {
-            setCreditLimitStatus(data, "Override Required");
-            return { result: false, priority: "override" };
-          }
-          return { result: true, priority: "unblock" };
-        },
-
-        // Control Type 9: Suspended customer
-        9: () => {
-          setCreditLimitStatus(data, "Blocked");
-          return { result: false, priority: "block" };
-        },
-      };
-
-      // First, collect all applicable control types for Goods Delivery
-      const applicableControls = controlTypes
-        .filter((ct) => ct.document_type === "Goods Delivery")
-        .map((ct) => {
-          const checkResult = controlTypeChecks[ct.control_type]
-            ? controlTypeChecks[ct.control_type]()
-            : { result: true, priority: "unblock" };
-          return {
-            ...checkResult,
-            control_type: ct.control_type,
-          };
+          const currentRequired = requiredQuantities.get(key) || 0;
+          requiredQuantities.set(key, currentRequired + baseQty);
+        }
+      } catch (error) {
+        console.error(`Error processing item ${item.material_id}:`, error);
+        allValidationErrors.push({
+          gdNo: gdItem.gd_id,
+          error: `Error processing item ${item.material_id}: ${error.message}`,
         });
-
-      // Sort by priority: blocks first, then overrides, then unblocks
-      const priorityOrder = { block: 1, override: 2, unblock: 3 };
-      applicableControls.sort(
-        (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
-      );
-
-      // Process in priority order
-      for (const control of applicableControls) {
-        if (control.result !== true) {
-          console.log(
-            `Control Type ${control.control_type} triggered with ${control.priority} - blocking auto-complete`
-          );
-          return false;
-        }
-      }
-
-      // All checks passed - set status as Passed since there are controlTypes
-      setCreditLimitStatus(data, "Passed");
-      return true;
-    } else {
-      console.log(
-        "No control type defined for customer or invalid control type format"
-      );
-      return true;
-    }
-  } catch (error) {
-    console.error("Error checking credit/overdue limits:", error);
-    return false;
-  }
-};
-
-const updateGoodsDelivery = async (
-  gdId,
-  isAutoCompleteGD = 0,
-  organizationId,
-  toData
-) => {
-  try {
-    // Update each line item's picking status based on its line_status
-    await Promise.all(
-      toData.table_picking_items.map(async (toItem) => {
-        // Map line_status to picking_status
-        let linePickingStatus = "Created"; // Default
-        if (toItem.line_status === "Completed") {
-          linePickingStatus = "Completed";
-        } else if (toItem.line_status === "In Progress") {
-          linePickingStatus = "In Progress";
-        }
-
-        return await db
-          .collection("goods_delivery_fwii8mvb_sub")
-          .doc(toItem.gd_line_id)
-          .update({ picking_status: linePickingStatus });
-      })
-    );
-
-    const gd = await db.collection("goods_delivery").doc(gdId).get();
-    let gdData = gd.data[0];
-
-    const pickingStatus = gdData.picking_status;
-    let newPickingStatus = "";
-
-    if (pickingStatus === "Completed") {
-      this.$message.error("Goods Delivery is already completed");
-      return;
-    }
-
-    const isAllLineItemCompleted = gdData.table_gd.every(
-      (lineItem) => lineItem.picking_status === "Completed"
-    );
-
-    if (isAllLineItemCompleted) {
-      newPickingStatus = "Completed";
-    } else {
-      newPickingStatus = "In Progress";
-    }
-
-    await db.collection("goods_delivery").doc(gdId).update({
-      picking_status: newPickingStatus,
-    });
-
-    // Check if we should auto-complete GD
-    let shouldAutoComplete =
-      isAutoCompleteGD === 1 && newPickingStatus === "Completed";
-
-    if (shouldAutoComplete) {
-      // Check credit limit before auto-completing GD
-      console.log("Checking credit limit for auto-complete GD...");
-      const creditCheckPassed = await checkCreditLimitForAutoComplete(
-        gdData.customer_name,
-        gdData.gd_total,
-        gdData
-      );
-
-      if (!creditCheckPassed) {
-        console.log(
-          "Credit limit check failed - treating as if auto_completed_gd is 0"
-        );
-        shouldAutoComplete = false;
+        continue;
       }
     }
 
-    if (shouldAutoComplete) {
-      console.log("Auto-completing GD (credit limit check passed)");
-      await db.collection("goods_delivery").doc(gdId).update({
-        gd_status: "Completed",
-      });
-      await processBalanceTable(
-        gdData,
-        false,
-        gdData.plant_id,
-        organizationId,
-        "Created"
-      );
+    // Second pass: Check availability
+    for (const [key, requiredQty] of requiredQuantities.entries()) {
+      const keyParts = key.split("|");
+      const materialId = keyParts[0];
+      const locationId = keyParts[1] !== "no-location" ? keyParts[1] : null;
 
-      await updateSalesOrderStatus(gdData.so_id, gdData.table_gd);
+      let batchId, serialNumber;
 
-      // await this.runWorkflow(
-      //   "1918140858502557698",
-      //   { delivery_no: gdData.delivery_no, so_data: so_data_array },
-      //   async (res) => {
-      //     console.log("成功结果：", res);
-      //   },
-      //   (err) => {
-      //     alert();
-      //     console.error("失败结果：", err);
-      //     closeDialog();
-      //   }
-      // );
-
-      await updateOnReserveGoodsDelivery(organizationId, gdData);
-    }
-  } catch (error) {
-    this.$message.error("Error updating Goods Delivery picking status");
-    console.error("Error flipping Goods Delivery picking status:", error);
-  }
-};
-
-const createPickingRecord = async (toData) => {
-  const pickingRecords = [];
-  for (const item of toData.table_picking_items) {
-    if (item.picked_qty > 0) {
-      const pickingRecord = {
-        item_code: item.item_code,
-        item_name: item.item_name,
-        item_desc: item.item_desc,
-        batch_no: item.batch_no,
-        target_batch: item.batch_no,
-        so_no: item.so_no,
-        gd_no: item.gd_no,
-        so_id: item.so_id,
-        gd_id: item.gd_id,
-        so_line_id: item.so_line_id,
-        gd_line_id: item.gd_line_id,
-        store_out_qty: item.picked_qty,
-        item_uom: item.item_uom,
-        source_bin: item.source_bin,
-        target_location: item.source_bin,
-        remark: item.remark,
-        confirmed_by: this.getVarGlobal("nickname"),
-        confirmed_at: new Date().toISOString().slice(0, 19).replace("T", " "),
-      };
-
-      // Add serial numbers for serialized items with line break formatting
-      if (
-        item.is_serialized_item === 1 &&
-        item.select_serial_number &&
-        Array.isArray(item.select_serial_number)
-      ) {
-        const trimmedSerialNumbers = item.select_serial_number
-          .map((sn) => sn.trim())
-          .filter((sn) => sn !== "");
-
-        if (trimmedSerialNumbers.length > 0) {
-          pickingRecord.serial_numbers = trimmedSerialNumbers.join("\n");
-
-          console.log(
-            `Added ${trimmedSerialNumbers.length} serial numbers to picking record for ${item.item_code}: ${pickingRecord.serial_numbers}`
-          );
-        }
+      const itemRes = await db
+        .collection("Item")
+        .where({ id: materialId })
+        .get();
+      if (!itemRes.data || !itemRes.data.length) {
+        continue;
       }
 
-      pickingRecords.push(pickingRecord);
+      const itemData = itemRes.data[0];
+      const isSerializedItem = itemData.serial_number_management === 1;
+      const isBatchManagedItem = itemData.item_batch_management === 1;
+
+      if (isSerializedItem) {
+        if (isBatchManagedItem) {
+          batchId = keyParts[2] !== "undefined" ? keyParts[2] : null;
+          serialNumber = keyParts[3];
+        } else {
+          serialNumber = keyParts[2];
+          batchId = null;
+        }
+      } else {
+        batchId = keyParts[2] !== "undefined" ? keyParts[2] : null;
+        serialNumber = null;
+      }
+
+      try {
+        let totalAvailableQty = 0;
+
+        if (isSerializedItem) {
+          const itemBalanceParams = {
+            material_id: materialId,
+            serial_number: serialNumber,
+            plant_id: gdItem.plant_id,
+            organization_id: gdItem.organization_id,
+          };
+
+          if (locationId) {
+            itemBalanceParams.location_id = locationId;
+          }
+
+          if (batchId && batchId !== "undefined") {
+            itemBalanceParams.batch_id = batchId;
+          }
+
+          const balanceQuery = await db
+            .collection("item_serial_balance")
+            .where(itemBalanceParams)
+            .get();
+
+          if (balanceQuery.data && balanceQuery.data.length > 0) {
+            const balance = balanceQuery.data[0];
+            const unrestrictedQty = roundQty(
+              parseFloat(balance.unrestricted_qty || 0)
+            );
+            const reservedQty = roundQty(parseFloat(balance.reserved_qty || 0));
+            totalAvailableQty = roundQty(unrestrictedQty + reservedQty);
+          }
+        } else {
+          const itemBalanceParams = {
+            material_id: materialId,
+            plant_id: gdItem.plant_id,
+            organization_id: gdItem.organization_id,
+          };
+
+          if (locationId) {
+            itemBalanceParams.location_id = locationId;
+          }
+
+          if (batchId && batchId !== "undefined") {
+            itemBalanceParams.batch_id = batchId;
+          }
+
+          const balanceCollection =
+            batchId && batchId !== "undefined"
+              ? "item_batch_balance"
+              : "item_balance";
+
+          const balanceQuery = await db
+            .collection(balanceCollection)
+            .where(itemBalanceParams)
+            .get();
+
+          if (balanceQuery.data && balanceQuery.data.length > 0) {
+            const balance = balanceQuery.data[0];
+            const unrestrictedQty = roundQty(
+              parseFloat(balance.unrestricted_qty || 0)
+            );
+            const reservedQty = roundQty(parseFloat(balance.reserved_qty || 0));
+            totalAvailableQty = roundQty(unrestrictedQty + reservedQty);
+          }
+        }
+
+        if (totalAvailableQty < requiredQty) {
+          const itemName = itemData.material_name || materialId;
+          let errorMsg = `Insufficient inventory for "${itemName}". Required: ${requiredQty}, Available: ${totalAvailableQty}`;
+
+          if (isSerializedItem && serialNumber) {
+            errorMsg += `, Serial: "${serialNumber}"`;
+          }
+
+          if (locationId && !isSerializedItem) {
+            try {
+              const locationRes = await db
+                .collection("bin_location")
+                .where({ id: locationId })
+                .get();
+              const locationName =
+                locationRes.data && locationRes.data.length > 0
+                  ? locationRes.data[0].bin_location_combine || locationId
+                  : locationId;
+              errorMsg += `, Location: "${locationName}"`;
+            } catch {
+              errorMsg += `, Location: "${locationId}"`;
+            }
+          }
+
+          if (batchId && batchId !== "undefined") {
+            try {
+              const batchRes = await db
+                .collection("batch")
+                .where({ id: batchId })
+                .get();
+              const batchName =
+                batchRes.data && batchRes.data.length > 0
+                  ? batchRes.data[0].batch_number || batchId
+                  : batchId;
+              errorMsg += `, Batch: "${batchName}"`;
+            } catch {
+              errorMsg += `, Batch: "${batchId}"`;
+            }
+          }
+
+          allValidationErrors.push({
+            gdNo: gdItem.gd_id,
+            error: errorMsg,
+            details: {
+              materialId,
+              itemName,
+              locationId: locationId || null,
+              batchId: batchId !== "undefined" ? batchId : null,
+              serialNumber: serialNumber || null,
+              requiredQty,
+              totalAvailableQty,
+            },
+          });
+        }
+      } catch (error) {
+        console.error(`Error checking balance for ${key}:`, error);
+        allValidationErrors.push({
+          gdNo: gdItem.gd_id,
+          error: `Error checking inventory balance: ${error.message}`,
+        });
+      }
     }
   }
 
-  toData.table_picking_records =
-    toData.table_picking_records.concat(pickingRecords);
+  if (allValidationErrors.length > 0) {
+    return {
+      isValid: false,
+      errors: allValidationErrors,
+      summary: `Found ${allValidationErrors.length} inventory error(s) across ${
+        new Set(allValidationErrors.map((e) => e.gdNo)).size
+      } GD(s).`,
+    };
+  }
+
+  return { isValid: true };
 };
 
+// Updated updateOnReserveGoodsDelivery function for Completed status with serial support
 const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
   try {
     console.log(
@@ -3123,184 +2863,350 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     throw error;
   }
 };
-// Main execution wrapped in an async IIFE
+
+const updateEntryWithValidation = async (
+  organizationId,
+  gdForBalance, // Full GD with all items (for balance processing)
+  gdForUpdate, // Filtered GD (for database update)
+  gdStatus,
+  goodsDeliveryId
+) => {
+  try {
+    // Use filtered GD for all non-balance operations
+    const gd = gdForUpdate;
+
+    // Step 2: VALIDATE INVENTORY AVAILABILITY FIRST (use filtered GD)
+    console.log("Validating inventory availability");
+    const validationResult = await validateInventoryAvailabilityForCompleted(
+      gd,
+      gd.plant_id,
+      organizationId
+    );
+
+    if (!validationResult.isValid) {
+      this.parentGenerateForm.$alert(
+        validationResult.error,
+        "Insufficient Total Inventory",
+        {
+          confirmButtonText: "OK",
+          type: "error",
+        }
+      );
+      throw new Error(`Inventory validation failed: ${validationResult.error}`);
+    }
+
+    // Step 3: Process balance table (inventory operations) AFTER validation passes
+    // IMPORTANT: Use gdForBalance (full GD) to process balance including 0-qty items for reservation release
+    await processBalanceTable(
+      gdForBalance,
+      true,
+      gd.plant_id,
+      organizationId,
+      gdStatus
+    );
+
+    await db.collection("goods_delivery").doc(goodsDeliveryId).update(gd);
+
+    await updateSalesOrderStatus(gd.so_id, gd.table_gd);
+
+    this.$message.success("Update successfully");
+    await closeDialog();
+  } catch (error) {
+    // Handle inventory validation gracefully
+    if (
+      error.message &&
+      error.message.includes("Inventory validation failed")
+    ) {
+      console.log(
+        "Inventory validation failed - user notified via alert dialog"
+      );
+      return;
+    }
+
+    this.$message.error(error);
+    throw error;
+  }
+};
+
 (async () => {
   try {
     this.showLoading();
-    const data = await this.getValues();
-    const page_status = data.page_status;
-    const originalToStatus = data.to_status;
+    const allListID = "custom_41s73hyl";
 
-    console.log(
-      `Page Status: ${page_status}, Original TO Status: ${originalToStatus}`
-    );
+    let selectedRecords;
 
-    // Define required fields
-    const requiredFields = [
-      { name: "plant_id", label: "Plant" },
-      { name: "to_id", label: "Transfer Order No" },
-      { name: "movement_type", label: "Movement Type" },
-      { name: "ref_doc_type", label: "Reference Document Type" },
-      { name: "gd_no", label: "Reference Document No" },
-      {
-        name: "table_picking_items",
-        label: "Picking Items",
-        isArray: true,
-        arrayType: "object",
-        arrayFields: [],
-      },
-    ];
+    selectedRecords = this.getComponent(allListID)?.$refs.crud.tableSelect;
 
-    // Validate items
-    for (const [index] of data.table_picking_items.entries()) {
-      await this.validate(`table_picking_items.${index}.picked_qty`);
-    }
+    console.log("selectedRecords", selectedRecords);
 
-    // Validate form
-    const missingFields = validateForm(data, requiredFields);
+    if (selectedRecords && selectedRecords.length > 0) {
+      const pickingIds = selectedRecords
+        .filter((item) => item.to_status === "In Progress")
+        .map((item) => item.id);
 
-    if (missingFields.length > 0) {
-      this.hideLoading();
-      this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
-      return;
-    }
-
-    // Get organization ID
-    let organizationId = this.getVarGlobal("deptParentId");
-    if (organizationId === "0") {
-      organizationId = this.getVarSystem("deptIds").split(",")[0];
-    }
-
-    // Validate quantities and update line statuses
-    const { updatedItems, errors } = validateAndUpdateLineStatuses(
-      data.table_picking_items
-    );
-
-    if (errors.length > 0) {
-      this.hideLoading();
-      this.$message.error(errors.join("; "));
-      return;
-    }
-
-    // Determine the new transfer order status dynamically based on picked quantities
-    const newTransferOrderStatus = determineTransferOrderStatus(updatedItems);
-    console.log(
-      `Determined new transfer order status: ${newTransferOrderStatus}`
-    );
-
-    // Update the form data with the new line statuses, pending process quantities, and serial numbers
-    for (let index = 0; index < updatedItems.length; index++) {
-      this.setData({
-        [`table_picking_items.${index}.line_status`]:
-          updatedItems[index].line_status,
-      });
-
-      // Update pending process quantity
-      this.setData({
-        [`table_picking_items.${index}.pending_process_qty`]:
-          updatedItems[index].pending_process_qty,
-      });
-
-      // Update serial numbers for serialized items
-      if (updatedItems[index].is_serialized_item === 1) {
-        this.setData({
-          [`table_picking_items.${index}.serial_numbers`]:
-            updatedItems[index].serial_numbers,
-        });
+      if (pickingIds.length === 0) {
+        this.$message.error("Please select at least one in progress picking.");
+        return;
       }
-    }
 
-    // Prepare transfer order object
-    const toData = {
-      to_status: newTransferOrderStatus,
-      plant_id: data.plant_id,
-      to_id: data.to_id,
-      movement_type: data.movement_type,
-      customer_id: data.customer_id,
-      ref_doc_type: data.ref_doc_type,
-      gd_no: data.gd_no,
-      delivery_no: data.delivery_no,
-      so_no: data.so_no,
-      assigned_to: data.assigned_to,
-      created_by: data.created_by,
-      created_at: data.created_at,
-      organization_id: organizationId,
-      ref_doc: data.ref_doc,
-      table_picking_items: updatedItems,
-      table_picking_records: data.table_picking_records,
-      remarks: data.remarks,
-    };
+      const pickingNumbers = selectedRecords
+        .filter((item) => item.to_status === "In Progress")
+        .map((item) => item.to_id);
 
-    await createPickingRecord(toData);
-
-    // Clean up undefined/null values
-    Object.keys(toData).forEach((key) => {
-      if (toData[key] === undefined || toData[key] === null) {
-        delete toData[key];
-      }
-    });
-
-    const isAutoCompleteGD = await db
-      .collection("picking_setup")
-      .where({ plant_id: toData.plant_id, organization_id: organizationId })
-      .get()
-      .then((res) => {
-        if (res.data.length > 0) {
-          return res.data[0].auto_completed_gd;
+      await this.$confirm(
+        `You've selected ${
+          pickingNumbers.length
+        } picking(s) to force complete. <br> <strong>Picking Numbers:</strong> <br>${pickingNumbers.join(
+          ", "
+        )} <br>Do you want to proceed?`,
+        "Picking Force Completion",
+        {
+          confirmButtonText: "Proceed",
+          cancelButtonText: "Cancel",
+          type: "warning",
+          dangerouslyUseHTMLString: true,
         }
+      ).catch(() => {
+        console.log("User clicked Cancel or closed the dialog");
+        throw new Error();
       });
 
-    let toId;
+      // PHASE 1: Validate all pickings before making any changes
+      const validationErrors = [];
+      const gdUpdates = []; // Store all GD updates to process
+      const gdDocumentsForInventoryCheck = []; // Store GD documents for bulk inventory validation
 
-    // Perform action based on page status
-    if (page_status === "Add") {
-      await addEntry(organizationId, toData);
-      for (const gdId of data.gd_no) {
-        await updateGoodsDelivery(
-          gdId,
-          isAutoCompleteGD,
-          organizationId,
-          toData
-        );
+      for (const selectedRecord of selectedRecords) {
+        const tablePickingItems = selectedRecord.table_picking_items;
+        const pickingNumber = selectedRecord.to_id;
+
+        for (const item of tablePickingItems) {
+          const gdId = item.gd_id;
+          const soLineId = item.so_line_id;
+          const qtyToPick = item.qty_to_pick;
+          const pendingProcessQty = item.pending_process_qty;
+          const locationId = item.source_bin;
+          const batchId = item.batch_no || undefined;
+
+          // Fetch GD data
+          const gdResponse = await db
+            .collection("goods_delivery")
+            .doc(gdId)
+            .get();
+
+          if (!gdResponse.data || gdResponse.data.length === 0) {
+            validationErrors.push(
+              `GD not found for Picking ${pickingNumber}, item ${item.item_code}`
+            );
+            continue;
+          }
+
+          const originalGD = gdResponse.data[0];
+          const gdDocument = JSON.parse(JSON.stringify(originalGD)); // Deep copy
+
+          // Store the ORIGINAL quantities as previous
+          gdDocument.table_gd.forEach((lineItem, index) => {
+            if (originalGD.table_gd && originalGD.table_gd[index]) {
+              lineItem.prev_temp_qty_data =
+                originalGD.table_gd[index].temp_qty_data;
+            }
+          });
+
+          let gdDataUpdated = false;
+          let matchFound = false;
+
+          // Find and update the matching line item
+          for (const gdLineItem of gdDocument.table_gd) {
+            if (gdLineItem.so_line_item_id === soLineId) {
+              const gdTempQtyData = JSON.parse(gdLineItem.temp_qty_data);
+
+              for (const gdTempQtyItem of gdTempQtyData) {
+                if (
+                  gdTempQtyItem.location_id === locationId &&
+                  (!gdTempQtyItem.batch_id ||
+                    gdTempQtyItem.batch_id === batchId)
+                ) {
+                  const gdTempQty = gdTempQtyItem.gd_quantity;
+
+                  // Validate quantity match
+                  if (gdTempQty !== qtyToPick) {
+                    validationErrors.push(
+                      `Picking ${pickingNumber}: Quantity mismatch - Expected ${qtyToPick}, Found ${gdTempQty} in GD ${originalGD.gd_id}`
+                    );
+                    matchFound = true;
+                    break;
+                  }
+
+                  // Calculate updated quantity
+                  const updatedGdQty = gdTempQty - pendingProcessQty;
+                  gdTempQtyItem.gd_quantity = updatedGdQty;
+
+                  console.log(
+                    `Picking ${pickingNumber}: Prepared GD update - Location: ${locationId}, Batch: ${
+                      batchId || "N/A"
+                    }, Old Qty: ${gdTempQty}, New Qty: ${updatedGdQty}`
+                  );
+
+                  // Update the temp_qty_data JSON string
+                  gdLineItem.temp_qty_data = JSON.stringify(gdTempQtyData);
+                  gdDataUpdated = true;
+                  matchFound = true;
+                  break;
+                }
+              }
+
+              if (matchFound) break;
+            }
+          }
+
+          // Store the update for later processing
+          if (gdDataUpdated) {
+            gdUpdates.push({
+              pickingNumber,
+              gdDocument,
+              gdId: originalGD.id,
+              organizationId: originalGD.organization_id,
+            });
+
+            // Add to inventory check list (avoid duplicates)
+            const existingGD = gdDocumentsForInventoryCheck.find(
+              (gd) => gd.id === originalGD.id
+            );
+            if (!existingGD) {
+              gdDocumentsForInventoryCheck.push(gdDocument);
+            }
+          }
+        }
       }
-    } else if (page_status === "Edit") {
-      toId = data.id;
-      await updateEntry(organizationId, toData, toId, originalToStatus);
-      for (const gdId of data.gd_no) {
-        await updateGoodsDelivery(
-          gdId,
-          isAutoCompleteGD,
-          organizationId,
-          toData
+
+      // Check if there were any validation errors
+      if (validationErrors.length > 0) {
+        this.$message.error(
+          `Validation failed:\n${validationErrors.join("\n")}`
         );
+        this.hideLoading();
+        return;
       }
-    }
 
-    // Success message with status information
-    const statusMessage =
-      newTransferOrderStatus !== originalToStatus
-        ? ` (Status updated to: ${newTransferOrderStatus})`
-        : "";
+      // PHASE 1B: Bulk inventory validation for all affected GDs
+      console.log(
+        `Running bulk inventory validation for ${gdDocumentsForInventoryCheck.length} unique GD(s)...`
+      );
+      const inventoryValidationResult =
+        await validateBulkGDInventoryAvailability(gdDocumentsForInventoryCheck);
 
-    this.$message.success(
-      `${
-        page_status === "Add" ? "Added" : "Updated"
-      } successfully${statusMessage}`
-    );
+      if (!inventoryValidationResult.isValid) {
+        // Format error message for display
+        const errorsByGD = {};
+        inventoryValidationResult.errors.forEach((error) => {
+          if (!errorsByGD[error.gdNo]) {
+            errorsByGD[error.gdNo] = [];
+          }
+          errorsByGD[error.gdNo].push(error.error);
+        });
 
-    this.hideLoading();
-    closeDialog();
-  } catch (error) {
-    this.hideLoading();
+        let detailedErrorMsg = `<strong>${inventoryValidationResult.summary}</strong><br><br>`;
+        detailedErrorMsg += `<strong>The following goods deliveries have insufficient inventory:</strong><br>`;
 
-    let errorMessage = "";
-    if (error && typeof error === "object") {
-      errorMessage = findFieldMessage(error) || "An error occurred";
+        for (const [gdNo, errors] of Object.entries(errorsByGD)) {
+          detailedErrorMsg += `<br><strong>GD ${gdNo}:</strong><br>`;
+          errors.forEach((error) => {
+            detailedErrorMsg += `• ${error}<br>`;
+          });
+        }
+
+        await this.$alert(detailedErrorMsg, "Inventory Validation Failed", {
+          confirmButtonText: "OK",
+          type: "error",
+          dangerouslyUseHTMLString: true,
+        });
+
+        this.hideLoading();
+        return;
+      }
+
+      console.log(
+        "Bulk inventory validation passed for all GDs - proceeding to force complete"
+      );
+
+      // PHASE 2: Update pickings and process GD updates
+      const updatedPickings = [];
+
+      try {
+        for (const selectedRecord of selectedRecords) {
+          const pickingId = selectedRecord.id;
+          const tablePickingItems = selectedRecord.table_picking_items;
+          const pickingNumber = selectedRecord.to_id;
+
+          // Mark all items as completed
+          for (const item of tablePickingItems) {
+            item.line_status = "Completed";
+          }
+
+          await db.collection("transfer_order").doc(pickingId).update({
+            to_status: "Completed",
+            table_picking_items: tablePickingItems,
+          });
+
+          updatedPickings.push({ pickingId, pickingNumber });
+          console.log(`Picking ${pickingNumber} updated to Completed`);
+        }
+
+        // PHASE 3: Process all GD updates
+        for (const update of gdUpdates) {
+          await updateEntryWithValidation(
+            update.organizationId,
+            update.gdDocument,
+            update.gdDocument,
+            "Created",
+            update.gdId
+          );
+
+          await updateOnReserveGoodsDelivery(
+            update.organizationId,
+            update.gdDocument
+          );
+
+          console.log(
+            `Picking ${update.pickingNumber}: Successfully updated GD ${update.gdDocument.gd_id}`
+          );
+        }
+      } catch (error) {
+        console.error("Error during force complete:", error);
+
+        // Rollback picking status changes
+        for (const { pickingId, pickingNumber } of updatedPickings) {
+          try {
+            await db.collection("transfer_order").doc(pickingId).update({
+              to_status: "In Progress",
+            });
+            console.log(`Rolled back Picking ${pickingNumber} to In Progress`);
+          } catch (rollbackError) {
+            console.error(
+              `Failed to rollback Picking ${pickingNumber}:`,
+              rollbackError
+            );
+          }
+        }
+
+        this.$message.error(
+          `Force complete failed: ${error.message}. Picking statuses have been rolled back.`
+        );
+        this.hideLoading();
+        return;
+      }
+
+      this.$message.success(
+        `Successfully force complete ${selectedRecords.length} picking(s).`
+      );
+      this.refresh();
     } else {
-      errorMessage = error;
+      this.$message.error("Please select at least one record.");
+      this.hideLoading();
     }
-
-    this.$message.error(errorMessage);
-    console.error(errorMessage);
+  } catch (error) {
+    console.error(error);
+  } finally {
+    this.hideLoading();
   }
 })();

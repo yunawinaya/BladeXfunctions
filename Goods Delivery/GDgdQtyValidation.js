@@ -80,8 +80,16 @@ for (let i = 0; i < data.table_gd.length; i++) {
 
     // Convert quantities to base UOM for validation
     const quantityBase = convertToBaseUOM(quantity, currentUOM, itemData);
-    const currentItemQtyTotalBase = convertToBaseUOM(currentItemQtyTotal, currentUOM, itemData);
-    const gdUndeliveredQtyBase = convertToBaseUOM(gdUndeliveredQty, currentUOM, itemData);
+    const currentItemQtyTotalBase = convertToBaseUOM(
+      currentItemQtyTotal,
+      currentUOM,
+      itemData
+    );
+    const gdUndeliveredQtyBase = convertToBaseUOM(
+      gdUndeliveredQty,
+      currentUOM,
+      itemData
+    );
 
     console.log("UOM Conversion Debug:", {
       originalQuantity: quantity,
@@ -89,7 +97,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
       currentUOM,
       baseUOM: itemData.based_uom,
       currentItemQtyTotal,
-      currentItemQtyTotalBase
+      currentItemQtyTotalBase,
     });
 
     // Skip validation if stock control is disabled
