@@ -1618,7 +1618,9 @@ const createTempQtyDataSummary = async (
         const pickingNumber = selectedRecord.to_id;
 
         for (const item of tablePickingItems) {
-          item.line_status = "Completed";
+          if (item.line_status !== "Cancelled") {
+            item.line_status = "Completed";
+          }
         }
 
         await db.collection("transfer_order").doc(pickingId).update({
