@@ -423,6 +423,16 @@ const fetchDeliveredQuantity = async () => {
   this.setData({ table_gd: updatedTableGD });
 };
 
+const displayPlanQty = async (data) => {
+  const tableGD = data.table_gd || [];
+
+  for (const item of tableGD) {
+    if (item.is_force_complete === 1) {
+      this.display(["table_gd.plan_qty"]);
+    }
+  }
+};
+
 // Main execution function
 (async () => {
   try {
@@ -494,12 +504,14 @@ const fetchDeliveredQuantity = async () => {
         }
         await displayDeliveryMethod();
         await fetchDeliveredQuantity();
+        await displayPlanQty(data);
         break;
 
       case "View":
         await showStatusHTML(status);
         await displayDeliveryMethod();
         await setDisplayAssignedTo(data);
+        await displayPlanQty(data);
         this.hide([
           "link_billing_address",
           "link_shipping_address",
