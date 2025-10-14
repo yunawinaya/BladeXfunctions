@@ -308,11 +308,14 @@ const setPlant = (organizationId, pageStatus) => {
 
   if (currentDept === organizationId) {
     this.disabled("sqt_plant", false);
-    this.disabled("table_sqt", true);
+
+    if (pageStatus === "Add" || pageStatus === "Clone") {
+      this.setData({ sqt_plant: currentDept });
+    }
   } else {
     this.disabled("sqt_plant", true);
 
-    if (pageStatus === "Add") {
+    if (pageStatus === "Add" || pageStatus === "Clone") {
       this.setData({ sqt_plant: currentDept });
     }
   }
@@ -328,6 +331,9 @@ const fetchUnrestrictedQty = async () => {
     console.log("tableSQT", tableSQT);
 
     if (tableSQT.length > 0) {
+      // 创建更新数据的对象，避免在循环中多次调用setData
+      const updateData = {};
+
       for (const [index, sqt] of tableSQT.entries()) {
         const itemId = sqt.material_id;
 
@@ -359,7 +365,7 @@ const fetchUnrestrictedQty = async () => {
               organization_id: organizationId,
             })
             .get();
-
+          console.log("wzplog", resSerialBalance);
           if (resSerialBalance && resSerialBalance.data.length > 0) {
             const serialBalanceData = resSerialBalance.data;
 
@@ -417,13 +423,20 @@ const fetchUnrestrictedQty = async () => {
             );
           }
         } else {
+          console.log("No stock control for item", itemId);
           totalUnrestrictedQtyBase = 0;
         }
 
-        this.setData({
-          [`table_sqt.${index}.unrestricted_qty`]: totalUnrestrictedQtyBase,
-        });
+        console.log("totalUnrestrictedQtyBase", totalUnrestrictedQtyBase);
+        console.log("index", index);
+
+        // 将更新数据添加到对象中，而不是立即调用setData
+        updateData[`table_sqt.${index}.unrestricted_qty`] =
+          totalUnrestrictedQtyBase;
       }
+
+      // 循环结束后一次性更新所有数据
+      this.setData(updateData);
     }
   } catch (error) {
     console.error(error);
@@ -484,6 +497,7 @@ const fetchUnrestrictedQty = async () => {
         await displayTax();
         await displayCurrency();
         await fixValidityPeriod();
+        await fetchUnrestrictedQty();
         //await setUOM();
         break;
 
@@ -494,21 +508,25 @@ const fetchUnrestrictedQty = async () => {
             this.display("address_grid");
           }
         }
+
+        console.log("Cloning record", this.getValues());
+        await setPlant(organizationId, pageStatus);
         this.setData({ sqt_date: new Date().toISOString().split("T")[0] });
         this.display(["draft_status"]);
         await checkAccIntegrationType(organizationId);
         await setPrefix(organizationId);
         await displayDeliveryMethod();
         await displayTax();
-        await enabledUOMField();
         await displayCustomerType();
         await displayCurrency();
         await fixValidityPeriod();
+        await enabledUOMField();
         await fetchUnrestrictedQty();
         //await setUOM();
         break;
 
       case "View":
+        console.log("Viewing record", this.getValues());
         if (customerType === "Existing Customer") {
           const sqtCustomer = this.getValue("sqt_customer_id");
           if (sqtCustomer) {

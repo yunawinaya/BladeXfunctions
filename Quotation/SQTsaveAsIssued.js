@@ -518,20 +518,16 @@ const addEntry = async (organizationId, entry) => {
       await updatePrefix(organizationId, runningNumber);
 
       entry.sqt_no = prefixToShow;
+    } else {
+      const isUnique = await checkUniqueness(entry.sqt_no, organizationId);
+      if (!isUnique) {
+        throw new Error(
+          `Quotation Number "${entry.sqt_no}" already exists. Please use a different number.`
+        );
+      }
     }
 
     await db.collection("Quotation").add(entry);
-    await this.runWorkflow(
-      "1917416112949374977",
-      { sqt_no: entry.sqt_no },
-      (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
 
     this.$message.success("Add successfully");
   } catch (error) {
@@ -556,21 +552,17 @@ const updateEntry = async (organizationId, entry, quotationId) => {
         await updatePrefix(organizationId, runningNumber);
 
         entry.sqt_no = prefixToShow;
+      } else {
+        const isUnique = await checkUniqueness(entry.sqt_no, organizationId);
+        if (!isUnique) {
+          throw new Error(
+            `Quotation Number "${entry.sqt_no}" already exists. Please use a different number.`
+          );
+        }
       }
     }
 
     await db.collection("Quotation").doc(quotationId).update(entry);
-    await this.runWorkflow(
-      "1917416112949374977",
-      { sqt_no: entry.sqt_no },
-      (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
 
     this.$message.success("Update successfully");
   } catch (error) {
@@ -585,7 +577,7 @@ const validateQuantity = async (tableSQT) => {
 
   tableSQT.forEach((item, index) => {
     if (item.material_id || item.sqt_desc) {
-      if (item.quantity <= 0) {
+      if (!item.quantity || item.quantity <= 0) {
         quantityFailValFields.push(`${item.material_name || item.sqt_desc}`);
       }
     } else {
@@ -620,6 +612,8 @@ const findFieldMessage = (obj) => {
         if (found) return found;
       }
     }
+
+    return obj.toString();
   }
   return null;
 };
@@ -654,6 +648,40 @@ const updateItemTransactionDate = async (entry) => {
   }
 };
 
+const fillbackHeaderFields = async (entry) => {
+  let customerName = "";
+  if (entry.customer_type === "Existing Customer") {
+    const resCustomer = await db
+      .collection("Customer")
+      .doc(entry.sqt_customer_id)
+      .get();
+
+    if (resCustomer && resCustomer.data.length > 0)
+      customerName = resCustomer.data[0].customer_com_name;
+  } else {
+    customerName = entry.sqt_new_customer;
+  }
+  try {
+    for (const [index, sqtLineItem] of entry.table_sqt.entries()) {
+      sqtLineItem.customer_id = entry.sqt_customer_id || null;
+      sqtLineItem.plant_id = entry.sqt_plant || null;
+      sqtLineItem.payment_term_id = entry.sqt_payment_term || null;
+      sqtLineItem.sales_person_id = entry.sales_person_id || null;
+      sqtLineItem.billing_state_id = entry.billing_address_state || null;
+      sqtLineItem.billing_country_id = entry.billing_address_country || null;
+      sqtLineItem.shipping_state_id = entry.shipping_address_state || null;
+      sqtLineItem.shipping_country_id = entry.shipping_address_country || null;
+      sqtLineItem.customer_name = customerName;
+      sqtLineItem.line_index = index + 1;
+      sqtLineItem.organization_id = entry.organization_id;
+      sqtLineItem.access_group = entry.access_group || [];
+    }
+    return entry.table_sqt;
+  } catch (error) {
+    throw new Error("Error processing quotation.");
+  }
+};
+
 // Main execution wrapped in an async IIFE
 (async () => {
   console.log("Starting Issued function");
@@ -671,6 +699,7 @@ const updateItemTransactionDate = async (entry) => {
       { name: "sqt_plant", label: "Plant" },
       { name: "sqt_date", label: "Quotation Date" },
       { name: "sqt_validity_period", label: "Validity Period" },
+      { name: "sqt_no", label: "Quotation Number" },
       {
         name: "table_sqt",
         label: "Item Information",
@@ -681,7 +710,6 @@ const updateItemTransactionDate = async (entry) => {
     ];
 
     // Validate form
-    await this.validate("sqt_no");
     const missingFields = validateForm(
       data,
       requiredFields,
@@ -691,11 +719,44 @@ const updateItemTransactionDate = async (entry) => {
       data.table_sqt
     );
 
-    if (
-      missingFields.length === 0 &&
-      quantityFailValFields.length === 0 &&
-      itemFailValFields.length === 0
-    ) {
+    if (missingFields.length > 0) {
+      this.hideLoading();
+      throw new Error(`Validation errors: ${missingFields.join(", ")}`);
+    } else {
+      if (quantityFailValFields.length > 0 || itemFailValFields.length > 0) {
+        this.hideLoading();
+        await this.$confirm(
+          `${
+            quantityFailValFields.length > 0
+              ? "The following items have quantity less than or equal to zero: " +
+                quantityFailValFields.join(", ") +
+                "<br><br>"
+              : ""
+          }
+          ${
+            itemFailValFields.length > 0
+              ? "The following items have quantity but missing item code / item description: Line " +
+                itemFailValFields.join(", Line ") +
+                "<br><br>"
+              : ""
+          }
+          <strong>If you proceed, these items will be removed from your order. Do you want to continue?</strong>`,
+          "Line Item Validation Failed",
+          {
+            confirmButtonText: "Proceed",
+            cancelButtonText: "Cancel",
+            type: "error",
+            dangerouslyUseHTMLString: true,
+          }
+        ).catch(() => {
+          console.log("User clicked Cancel or closed the dialog");
+          this.hideLoading();
+          throw new Error("Saving quotation cancelled.");
+        });
+      }
+
+      this.showLoading();
+
       // Check credit and overdue limits
       if (
         data.acc_integration_type !== null &&
@@ -762,6 +823,8 @@ const updateItemTransactionDate = async (entry) => {
         sqt_total_tax,
         sqt_totalsum,
         sqt_remarks,
+        sqt_remarks2,
+        sqt_remarks3,
         table_sqt,
         sqt_ref_no,
         exchange_rate,
@@ -802,6 +865,7 @@ const updateItemTransactionDate = async (entry) => {
         overdue_inv_total_amount,
         is_accurate,
         expected_shipment_date,
+        access_group,
       } = data;
 
       const entry = {
@@ -851,6 +915,8 @@ const updateItemTransactionDate = async (entry) => {
         sqt_total_tax,
         sqt_totalsum,
         sqt_remarks,
+        sqt_remarks2,
+        sqt_remarks3,
         table_sqt,
         sqt_ref_no,
         exchange_rate,
@@ -889,6 +955,7 @@ const updateItemTransactionDate = async (entry) => {
         overdue_inv_total_amount,
         is_accurate,
         expected_shipment_date,
+        access_group,
       };
 
       const latestSQT = entry.table_sqt.filter(
@@ -901,6 +968,8 @@ const updateItemTransactionDate = async (entry) => {
           "Item Information must not be empty. Please add at least one valid item with quantity > 0"
         );
       }
+
+      entry.table_sqt = await fillbackHeaderFields(entry);
 
       if (page_status === "Add" || page_status === "Clone") {
         await addEntry(organizationId, entry);
@@ -915,40 +984,6 @@ const updateItemTransactionDate = async (entry) => {
 
       await updateItemTransactionDate(entry);
       await closeDialog();
-    } else if (missingFields.length > 0) {
-      this.hideLoading();
-      this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
-    } else if (
-      quantityFailValFields.length > 0 ||
-      itemFailValFields.length > 0
-    ) {
-      this.hideLoading();
-      await this.openDialog("confirm_dialog");
-      this.setData({
-        [`confirm_dialog.quantity_message`]: "",
-        [`confirm_dialog.item_missing_message`]: "",
-      });
-      if (quantityFailValFields.length > 0) {
-        await this.display(`confirm_dialog.quantity_message`);
-        this.setData({
-          [`confirm_dialog.quantity_message`]: `The following items have quantity less than or equal to zero: ${quantityFailValFields.join(
-            `, `
-          )}`,
-        });
-      } else {
-        await this.hide(`confirm_dialog.quantity_message`);
-      }
-
-      if (itemFailValFields.length > 0) {
-        await this.display(`confirm_dialog.item_missing_message`);
-        this.setData({
-          [`confirm_dialog.item_missing_message`]: `The following items have quantity but missing item code / item description: Line ${itemFailValFields.join(
-            `, Line `
-          )}`,
-        });
-      } else {
-        await this.hide(`confirm_dialog.item_missing_message`);
-      }
     }
   } catch (error) {
     console.error("Error in main function:", error);
