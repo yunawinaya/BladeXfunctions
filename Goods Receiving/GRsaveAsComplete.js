@@ -551,14 +551,17 @@ const addInventory = async (
           updatedQualityInspQty +
           updatedIntransitQty;
 
-        await db.collection("item_balance").doc(existingDoc.id).update({
-          block_qty: updatedBlockQty,
-          reserved_qty: updatedReservedQty,
-          unrestricted_qty: updatedUnrestrictedQty,
-          qualityinsp_qty: updatedQualityInspQty,
-          intransit_qty: updatedIntransitQty,
-          balance_quantity: balance_quantity,
-        });
+        await db
+          .collection("item_balance")
+          .doc(existingDoc.id)
+          .update({
+            block_qty: updatedBlockQty,
+            reserved_qty: updatedReservedQty,
+            unrestricted_qty: updatedUnrestrictedQty,
+            qualityinsp_qty: updatedQualityInspQty,
+            intransit_qty: updatedIntransitQty,
+            balance_quantity: roundQty(balance_quantity),
+          });
 
         console.log(
           `Updated balance for item ${item.item_id}: ${balance_quantity}`
@@ -584,7 +587,7 @@ const addInventory = async (
           unrestricted_qty: unrestricted_qty,
           qualityinsp_qty: qualityinsp_qty,
           intransit_qty: intransit_qty,
-          balance_quantity: balance_quantity,
+          balance_quantity: roundQty(balance_quantity),
           plant_id: plantId,
           organization_id: organizationId,
         };
@@ -1867,7 +1870,7 @@ const addInventory = async (
               unrestricted_qty: unrestricted_qty,
               qualityinsp_qty: qualityinsp_qty,
               intransit_qty: intransit_qty,
-              balance_quantity: balance_quantity,
+              balance_quantity: roundQty(balance_quantity),
               plant_id: plantId,
               organization_id: organizationId,
               doc_date: data.gr_date,
@@ -3109,7 +3112,7 @@ const processGRLineItem = async (entry) => {
         organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
 
-      if (putAwaySetupData.putaway_required === 1) {
+      if (putAwaySetupData && putAwaySetupData.putaway_required === 1) {
         if (!data.assigned_to) {
           await this.$confirm(
             `Assigned To field is empty.\nIf you proceed, assigned person in putaway record will be empty. \nWould you like to proceed?`,
