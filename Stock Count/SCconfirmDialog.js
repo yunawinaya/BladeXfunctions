@@ -7,8 +7,13 @@
   const selectItems = this.models["itemList"] || [];
 
   // Check if both selectItems and selectBatchs are empty
-  if ((!selectItems || selectItems.length === 0) && (!selectBatchs || selectBatchs.length === 0)) {
-    this.$message.error("No item selected or select item button hasn't been pressed");
+  if (
+    (!selectItems || selectItems.length === 0) &&
+    (!selectBatchs || selectBatchs.length === 0)
+  ) {
+    this.$message.error(
+      "No item selected or select item button hasn't been pressed"
+    );
     return;
   }
 
@@ -61,6 +66,7 @@
         base_uom_id: item.uom_id,
         table_uom_conversion: item.table_uom_conversion,
         system_qty: item.balance_quantity,
+        variance_qty: item.balance_quantity,
         location_id: item.location_id,
         batch_id: item.batch_id,
         line_status: "Pending",
