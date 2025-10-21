@@ -10,7 +10,7 @@
       this.disabled(`table_stock_count.${rowIndex}.count_qty`, true);
       if (reviewStatus !== "Stock Adjust") {
         await this.setData({
-          [`table_stock_count.${rowIndex}.line_status`]: "Completed",
+          [`table_stock_count.${rowIndex}.line_status`]: "Counted",
         });
       }
     } else {

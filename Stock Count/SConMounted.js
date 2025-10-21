@@ -138,9 +138,12 @@ const setPlant = async (organizationId) => {
   }
 };
 
-const showStockCount = async (status, reviewStatus) => {
-  switch (status) {
-    case "Processing":
+const showStockCount = async (scStatus, reviewStatus) => {
+  switch (scStatus) {
+    case "Issued":
+      this.display(["issued_status"]);
+      break;
+    case "In Progress":
       this.display(["processing_status"]);
       break;
     case "Completed":
@@ -193,25 +196,38 @@ const showStockCount = async (status, reviewStatus) => {
       });
   }, 100);
 
-  if (status === "Processing" && reviewStatus === "Recount") {
-    this.display(["recount_status"]);
-    this.hide(["processing_status"]);
+  setTimeout(() => {
+    if (scStatus === "In Progress") {
+      const tableStockCount = this.getValue("table_stock_count");
 
-    const tableStockCount = this.getValue("table_stock_count");
-    this.models["tableStockCount"] = tableStockCount;
+      for (let index = 0; index < tableStockCount.length; index++) {
+        if (tableStockCount[index].line_status === "Counted") {
+          this.disabled(`table_stock_count.${index}.count_qty`, true);
+        } else {
+          this.disabled(`table_stock_count.${index}.count_qty`, false);
+        }
+      }
 
-    const filteredTableStockCount = tableStockCount.filter(
-      (item) => item.line_status === "Recount"
-    );
+      if (reviewStatus === "Recount") {
+        this.display(["recount_status"]);
+        this.hide(["processing_status"]);
 
-    await this.setData({
-      table_stock_count: filteredTableStockCount,
-    });
-  }
+        this.models["tableStockCount"] = tableStockCount;
+
+        const filteredTableStockCount = tableStockCount.filter(
+          (item) => item.line_status === "Recount"
+        );
+
+        this.setData({
+          table_stock_count: filteredTableStockCount,
+        });
+      }
+    }
+  }, 100);
 };
 
-const showReview = async (status) => {
-  switch (status) {
+const showReview = async (scStatus, reviewStatus) => {
+  switch (reviewStatus) {
     case "To Be Reviewed":
       this.display(["to_be_reviewed_status"]);
       break;
@@ -264,6 +280,20 @@ const showReview = async (status) => {
         button.setAttribute("aria-disabled", "true");
       });
   }, 100);
+
+  setTimeout(() => {
+    if (scStatus === "In Progress") {
+      const tableStockCount = this.getValue("table_stock_count");
+
+      for (let index = 0; index < tableStockCount.length; index++) {
+        if (tableStockCount[index].line_status === "Pending") {
+          this.disabled(`table_stock_count.${index}.review_status`, true);
+        } else {
+          this.disabled(`table_stock_count.${index}.review_status`, false);
+        }
+      }
+    }
+  }, 100);
 };
 
 (async () => {
@@ -290,7 +320,7 @@ const showReview = async (status) => {
   console.log("countType", countType);
   switch (pageStatus) {
     case "Add":
-      this.display(["draft_status"]);
+      this.display(["draft_status", "button_draft", "button_issued"]);
 
       let organizationId = this.getVarGlobal("deptParentId");
       if (organizationId === "0") {
@@ -305,7 +335,7 @@ const showReview = async (status) => {
       if (isStockCount) {
         await showStockCount(scStatus, reviewStatus);
       } else if (isReview) {
-        await showReview(reviewStatus);
+        await showReview(scStatus, reviewStatus);
       } else {
         if (countType) {
           this.display(["button_select_stock"]);

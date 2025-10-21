@@ -67,6 +67,12 @@ const updateEntry = async (entry, stockCountId) => {
       const total_variance = `${variancePercentage.toFixed(2)}%`;
 
       const entry = {
+        review_status:
+          data.review_status === "Recount" ||
+          !data.review_status ||
+          data.review_status === ""
+            ? "To Be Reviewed"
+            : data.review_status,
         adjustment_status: data.adjustment_status,
         plant_id: data.plant_id,
         organization_id: organizationId,
@@ -122,9 +128,8 @@ const updateEntry = async (entry, stockCountId) => {
           return;
         }
 
-        entry.stock_count_status = "Processing";
+        entry.stock_count_status = "In Progress";
       } else {
-        entry.review_status = "To Be Reviewed";
         entry.stock_count_status = "Completed";
       }
 

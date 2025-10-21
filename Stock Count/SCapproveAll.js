@@ -2,25 +2,49 @@
   try {
     const tableStockCount = this.getValue("table_stock_count") || [];
 
+    console.log("tableStockCount", tableStockCount);
+
     if (!tableStockCount || tableStockCount.length === 0) {
       this.$message.warning("No stock count items to approve");
       return;
     }
 
+    const filteredTableStockCount = tableStockCount.filter(
+      (item) => item.line_status !== "Pending"
+    );
+
+    if (filteredTableStockCount.length === 0) {
+      this.$message.warning("No stock count items to approve");
+      return;
+    }
+
     // Check if all items are already approved
-    const allApproved = tableStockCount.every(
+    const allApproved = filteredTableStockCount.every(
       (item) => item.review_status === "Approved"
     );
 
     // Toggle: if all approved, set to empty; if not all approved, set to "Approved"
     const newReviewStatus = allApproved ? "" : "Approved";
+    const newLineStatus = allApproved ? "Counted" : "Approved";
 
-    const updatedTableStockCount = tableStockCount.map((item) => ({
-      ...item,
-      review_status: newReviewStatus,
-    }));
+    // Create a Set of IDs from filtered items for quick lookup
+    const filteredIds = new Set(filteredTableStockCount.map((item) => item.id));
 
-    await this.setData({ table_stock_count: updatedTableStockCount });
+    // Update the entire table: modify filtered items, keep others unchanged
+    const allTableStockCount = tableStockCount.map((item) => {
+      if (filteredIds.has(item.id)) {
+        // This item should be updated
+        return {
+          ...item,
+          review_status: newReviewStatus,
+          line_status: newLineStatus,
+        };
+      }
+      // This item stays unchanged (e.g., Pending items)
+      return item;
+    });
+
+    await this.setData({ table_stock_count: allTableStockCount });
 
     const action = allApproved ? "unapproved" : "approved";
     this.$message.success(`All items have been ${action}`);
