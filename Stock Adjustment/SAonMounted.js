@@ -260,6 +260,10 @@ const setPlant = (organizationId, pageStatus) => {
         await showStatusHTML(data.stock_adjustment_status);
         await disabledEditField(data.stock_adjustment_status);
         await checkAccIntegrationType(organizationId);
+
+        if (data.stock_count_id && data.stock_count_id !== "") {
+          await this.display(["stock_count_id"]);
+        }
         break;
 
       case "View":
@@ -277,6 +281,10 @@ const setPlant = (organizationId, pageStatus) => {
         ]);
 
         await showStatusHTML(data.stock_adjustment_status);
+
+        if (data.stock_count_id && data.stock_count_id !== "") {
+          await this.display(["stock_count_id"]);
+        }
     }
   } catch (error) {
     console.error(error);

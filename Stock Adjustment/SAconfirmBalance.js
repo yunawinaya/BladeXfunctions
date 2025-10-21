@@ -336,9 +336,10 @@
               categoryAbbr,
             }); // Log item detail
 
+            const movementTypeLabel = item.movement_type === "In" ? "IN" : "OUT";
             let itemDetail = `${
               index + 1
-            }. ${locationName}: ${qty} ${gdUOM} (${categoryAbbr})`;
+            }. ${locationName}: ${qty} ${gdUOM} (${categoryAbbr}) - ${movementTypeLabel}`;
 
             // Add serial number info if item is serialized (following SMconfirmDialog pattern)
             if (

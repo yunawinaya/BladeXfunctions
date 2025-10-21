@@ -49,7 +49,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, _field) => {
+const validateField = (value, field) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "number") return value <= 0;
@@ -103,7 +103,7 @@ const fillbackHeaderFields = async (sa) => {
       saLineItem.line_index = index + 1;
     }
     return sa.stock_adjustment;
-  } catch {
+  } catch (error) {
     throw new Error("Error processing Stock Adjustment.");
   }
 };
@@ -137,6 +137,7 @@ const fillbackHeaderFields = async (sa) => {
       const {
         adjustment_no,
         organization_id,
+        stock_count_id,
         adjustment_date,
         adjustment_type,
         adjusted_by,
@@ -153,6 +154,7 @@ const fillbackHeaderFields = async (sa) => {
       const sa = {
         stock_adjustment_status: "Draft",
         organization_id,
+        stock_count_id,
         adjustment_no,
         adjustment_date,
         adjustment_type,

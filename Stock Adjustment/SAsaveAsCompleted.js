@@ -555,10 +555,13 @@ const updateSerialBalance = async (
           plant_id: plantId,
           organization_id: organizationId,
           balance_quantity: roundQty(qtyChange),
-          unrestricted_qty: categoryField === "unrestricted_qty" ? roundQty(qtyChange) : 0,
-          qualityinsp_qty: categoryField === "qualityinsp_qty" ? roundQty(qtyChange) : 0,
+          unrestricted_qty:
+            categoryField === "unrestricted_qty" ? roundQty(qtyChange) : 0,
+          qualityinsp_qty:
+            categoryField === "qualityinsp_qty" ? roundQty(qtyChange) : 0,
           block_qty: categoryField === "block_qty" ? roundQty(qtyChange) : 0,
-          reserved_qty: categoryField === "reserved_qty" ? roundQty(qtyChange) : 0,
+          reserved_qty:
+            categoryField === "reserved_qty" ? roundQty(qtyChange) : 0,
           intransit_qty: 0,
           create_time: new Date(),
           update_time: new Date(),
@@ -1364,7 +1367,10 @@ const updateInventory = async (allData) => {
           .update(updateData);
 
         // ✅ CRITICAL FIX: For batched items, also update item_balance (aggregated across all batches)
-        if (materialData.item_batch_management == "1" && collectionName === "item_batch_balance") {
+        if (
+          materialData.item_batch_management == "1" &&
+          collectionName === "item_batch_balance"
+        ) {
           try {
             const generalItemBalanceParams = {
               material_id: materialData.id,
@@ -1379,7 +1385,10 @@ const updateInventory = async (allData) => {
               .where(generalItemBalanceParams)
               .get();
 
-            if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
+            if (
+              generalBalanceQuery.data &&
+              generalBalanceQuery.data.length > 0
+            ) {
               // Update existing item_balance record
               const generalBalance = generalBalanceQuery.data[0];
 
@@ -1392,7 +1401,9 @@ const updateInventory = async (allData) => {
 
               const generalUpdateData = {
                 [qtyField]: roundQty(currentGeneralCategoryQty + qtyChange),
-                balance_quantity: roundQty(currentGeneralBalanceQty + qtyChange),
+                balance_quantity: roundQty(
+                  currentGeneralBalanceQty + qtyChange
+                ),
                 update_time: new Date().toISOString(),
               };
 
@@ -1412,10 +1423,13 @@ const updateInventory = async (allData) => {
                 plant_id: plant_id,
                 organization_id: organization_id,
                 balance_quantity: roundQty(qtyChange),
-                unrestricted_qty: qtyField === "unrestricted_qty" ? roundQty(qtyChange) : 0,
-                qualityinsp_qty: qtyField === "qualityinsp_qty" ? roundQty(qtyChange) : 0,
+                unrestricted_qty:
+                  qtyField === "unrestricted_qty" ? roundQty(qtyChange) : 0,
+                qualityinsp_qty:
+                  qtyField === "qualityinsp_qty" ? roundQty(qtyChange) : 0,
                 block_qty: qtyField === "block_qty" ? roundQty(qtyChange) : 0,
-                reserved_qty: qtyField === "reserved_qty" ? roundQty(qtyChange) : 0,
+                reserved_qty:
+                  qtyField === "reserved_qty" ? roundQty(qtyChange) : 0,
                 intransit_qty: 0,
                 create_time: new Date().toISOString(),
                 update_time: new Date().toISOString(),
@@ -2067,17 +2081,6 @@ const addEntry = async (organizationId, sa, self) => {
     await preCheckQuantitiesAndCosting(sa, self);
     await db.collection("stock_adjustment").add(sa);
     await updateInventory(sa);
-    await this.runWorkflow(
-      "1922123385857220609",
-      { adjustment_no: sa.adjustment_no },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
     this.$message.success("Add successfully");
     closeDialog();
   } catch (error) {
@@ -2102,17 +2105,12 @@ const updateEntry = async (organizationId, sa, self, stockAdjustmentId) => {
     await preCheckQuantitiesAndCosting(sa, self);
     await db.collection("stock_adjustment").doc(stockAdjustmentId).update(sa);
     await updateInventory(sa);
-    await this.runWorkflow(
-      "1922123385857220609",
-      { adjustment_no: sa.adjustment_no },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
+
+    if (sa.stock_count_id && sa.stock_count_id !== "") {
+      await db.collection("stock_count").doc(sa.stock_count_id).update({
+        adjustment_status: "Completed",
+      });
+    }
     this.$message.success("Update successfully");
     await closeDialog();
   } catch (error) {
@@ -2156,6 +2154,7 @@ const fillbackHeaderFields = async (sa) => {
     if (missingFields.length === 0) {
       const {
         organization_id,
+        stock_count_id,
         adjustment_date,
         adjustment_type,
         plant_id,
@@ -2173,6 +2172,7 @@ const fillbackHeaderFields = async (sa) => {
         stock_adjustment_status: "Completed",
         posted_status: "Unposted",
         organization_id,
+        stock_count_id,
         adjustment_no,
         adjustment_date,
         adjustment_type,

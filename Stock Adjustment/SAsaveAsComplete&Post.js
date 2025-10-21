@@ -2081,17 +2081,6 @@ const addEntry = async (organizationId, sa, self) => {
     await preCheckQuantitiesAndCosting(sa, self);
     await db.collection("stock_adjustment").add(sa);
     await updateInventory(sa);
-    await this.runWorkflow(
-      "1922123385857220609",
-      { adjustment_no: sa.adjustment_no },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
 
     const accIntegrationType = this.getValue("acc_integration_type");
 
@@ -2155,8 +2144,6 @@ const addEntry = async (organizationId, sa, self) => {
     } else {
       await closeDialog();
     }
-    this.$message.success("Add successfully");
-    closeDialog();
   } catch (error) {
     this.$message.error(error);
   }
@@ -2179,19 +2166,14 @@ const updateEntry = async (organizationId, sa, self, stockAdjustmentId) => {
     await preCheckQuantitiesAndCosting(sa, self);
     await db.collection("stock_adjustment").doc(stockAdjustmentId).update(sa);
     await updateInventory(sa);
-    await this.runWorkflow(
-      "1922123385857220609",
-      { adjustment_no: sa.adjustment_no },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
 
     const accIntegrationType = this.getValue("acc_integration_type");
+
+    if (sa.stock_count_id && sa.stock_count_id !== "") {
+      await db.collection("stock_count").doc(sa.stock_count_id).update({
+        adjustment_status: "Fully Posted",
+      });
+    }
 
     if (
       accIntegrationType === "SQL Accounting" &&
@@ -2253,8 +2235,6 @@ const updateEntry = async (organizationId, sa, self, stockAdjustmentId) => {
     } else {
       await closeDialog();
     }
-    this.$message.success("Update successfully");
-    await closeDialog();
   } catch (error) {
     this.$message.error(error);
   }
@@ -2296,6 +2276,7 @@ const fillbackHeaderFields = async (sa) => {
     if (missingFields.length === 0) {
       const {
         organization_id,
+        stock_count_id,
         adjustment_date,
         adjustment_type,
         plant_id,
@@ -2313,6 +2294,7 @@ const fillbackHeaderFields = async (sa) => {
         stock_adjustment_status: "Completed",
         posted_status: "Pending Post",
         organization_id,
+        stock_count_id,
         adjustment_no,
         adjustment_date,
         adjustment_type,
