@@ -46,11 +46,10 @@ const updateEntry = async (entry, stockCountId) => {
         organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
 
-      const approvedItems = this.models["approvedItems"] || [];
-
-      if (approvedItems.length > 0) {
-        data.table_stock_count = [...data.table_stock_count, ...approvedItems];
-      }
+      // Filter out canceled items
+      data.table_stock_count = data.table_stock_count.filter(
+        (item) => item.line_status !== "Cancel"
+      );
 
       // Calculate total_counted: locked items / total items
       const totalItems = data.table_stock_count.length;
@@ -73,12 +72,8 @@ const updateEntry = async (entry, stockCountId) => {
       const total_variance = `${variancePercentage.toFixed(2)}%`;
 
       const entry = {
-        review_status:
-          data.review_status === "Recount" ||
-          !data.review_status ||
-          data.review_status === ""
-            ? "To Be Reviewed"
-            : data.review_status,
+        review_status: "Completed",
+        stock_count_status: data.stock_count_status,
         adjustment_status: data.adjustment_status,
         plant_id: data.plant_id,
         organization_id: organizationId,
@@ -105,20 +100,34 @@ const updateEntry = async (entry, stockCountId) => {
         return;
       }
 
-      // Check if any item has is_counted = 0 (not locked)
-      const hasUnlockedItems = entry.table_stock_count.some(
-        (item) => item.is_counted === 0 || !item.is_counted
+      // Check again after filtering cancelled items
+      if (entry.table_stock_count.length === 0) {
+        this.$message.error(
+          "No valid stock count items (all items are cancelled)"
+        );
+        this.hideLoading();
+        return;
+      }
+
+      // Check if any item has line_status = Recount
+      const hasRecountItems = entry.table_stock_count.some(
+        (item) => item.line_status === "Recount"
       );
 
-      // Determine stock count status based on locked state
-      if (hasUnlockedItems) {
-        const unlockedCount = entry.table_stock_count.filter(
-          (item) => item.is_counted === 0 || !item.is_counted
+      // Check if all items are approved
+      const allApproved = entry.table_stock_count.every(
+        (item) => item.line_status === "Approved"
+      );
+
+      // Determine review status based on item statuses
+      if (hasRecountItems) {
+        const recountCount = entry.table_stock_count.filter(
+          (item) => item.line_status === "Recount"
         ).length;
 
         const result = await this.$confirm(
-          `Not all line items are locked. <br><br><strong>${unlockedCount} item(s)</strong> are not locked.<br><br>Stock Count status will be set to <strong>'In Progress'</strong>.<br><br>Do you want to proceed?`,
-          "Unlocked Line Items Warning",
+          `There are <strong>${recountCount} item(s)</strong> that need to be recounted.<br><br>Review status will be set to <strong>'Recount'</strong>.<br><br>Do you want to proceed?`,
+          "Recount Items Warning",
           {
             confirmButtonText: "Proceed",
             cancelButtonText: "Cancel",
@@ -134,9 +143,38 @@ const updateEntry = async (entry, stockCountId) => {
           return;
         }
 
+        entry.review_status = "Recount";
         entry.stock_count_status = "In Progress";
-      } else {
+      } else if (allApproved) {
+        // All items are approved - review is complete
+        entry.review_status = "Completed";
         entry.stock_count_status = "Completed";
+      } else {
+        // Some items are not approved and not recount
+        const pendingCount = entry.table_stock_count.filter(
+          (item) =>
+            item.line_status !== "Approved" && item.line_status !== "Recount"
+        ).length;
+
+        const result = await this.$confirm(
+          `There are <strong>${pendingCount} item(s)</strong> that are not approved.<br><br>Review status will be set to <strong>'In Review'</strong>.<br><br>Do you want to proceed?`,
+          "Pending Items Warning",
+          {
+            confirmButtonText: "Proceed",
+            cancelButtonText: "Cancel",
+            type: "warning",
+            dangerouslyUseHTMLString: true,
+          }
+        ).catch(() => {
+          this.hideLoading();
+          return null;
+        });
+
+        if (result !== "confirm") {
+          return;
+        }
+
+        entry.review_status = "In Review";
       }
 
       await updateEntry(entry, stockCountId);

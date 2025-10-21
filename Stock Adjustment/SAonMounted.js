@@ -192,7 +192,7 @@ const setPlant = (organizationId, pageStatus) => {
   } else {
     this.disabled("plant_id", true);
   }
-  if (pageStatus === "Add") {
+  if (pageStatus === "Add" && currentDept !== organizationId) {
     this.setData({ plant_id: currentDept });
   }
 };

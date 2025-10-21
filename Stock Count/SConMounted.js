@@ -208,20 +208,34 @@ const showStockCount = async (scStatus, reviewStatus) => {
         }
       }
 
-      if (reviewStatus === "Recount") {
-        this.display(["recount_status"]);
-        this.hide(["processing_status"]);
+      this.models["approvedItems"] = tableStockCount.filter(
+        (item) => item.line_status === "Approved"
+      );
 
-        this.models["tableStockCount"] = tableStockCount;
+      const filteredTableStockCount = tableStockCount.filter(
+        (item) => item.line_status !== "Approved"
+      );
 
-        const filteredTableStockCount = tableStockCount.filter(
-          (item) => item.line_status === "Recount"
-        );
+      this.setData({
+        table_stock_count: filteredTableStockCount,
+      });
+    }
 
-        this.setData({
-          table_stock_count: filteredTableStockCount,
-        });
-      }
+    if (reviewStatus === "Recount") {
+      this.display(["recount_status"]);
+      this.hide(["processing_status"]);
+
+      // unlock Recount
+      setTimeout(async () => {
+        const tableStockCount = this.getValue("table_stock_count");
+        for (let index = 0; index < tableStockCount.length; index++) {
+          if (tableStockCount[index].line_status === "Recount") {
+            await this.setData({
+              [`table_stock_count.${index}.is_counted`]: 0,
+            });
+          }
+        }
+      }, 100);
     }
   }, 100);
 };
@@ -291,6 +305,17 @@ const showReview = async (scStatus, reviewStatus) => {
         } else {
           this.disabled(`table_stock_count.${index}.review_status`, false);
         }
+      }
+    }
+  }, 100);
+
+  setTimeout(async () => {
+    const tableStockCount = this.getValue("table_stock_count");
+    for (let index = 0; index < tableStockCount.length; index++) {
+      if (tableStockCount[index].line_status === "Recounted") {
+        await this.setData({
+          [`table_stock_count.${index}.review_status`]: "",
+        });
       }
     }
   }, 100);

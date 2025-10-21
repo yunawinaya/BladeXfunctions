@@ -689,7 +689,7 @@ const setPlant = (organizationId, pageStatus) => {
     this.disabled("issuing_operation_faci", true);
   }
 
-  if (pageStatus === "Add") {
+  if (pageStatus === "Add" && currentDept !== organizationId) {
     this.setData({ issuing_operation_faci: currentDept });
   }
 };

@@ -9,12 +9,13 @@
       return;
     }
 
+    // Filter out Pending and Cancel items
     const filteredTableStockCount = tableStockCount.filter(
-      (item) => item.line_status !== "Pending"
+      (item) => item.line_status !== "Pending" && item.line_status !== "Cancel"
     );
 
     if (filteredTableStockCount.length === 0) {
-      this.$message.warning("No stock count items to approve");
+      this.$message.warning("No stock count items to approve (all items are pending or cancelled)");
       return;
     }
 
