@@ -343,6 +343,10 @@ const showReview = async (scStatus, reviewStatus) => {
 
   const countType = await this.getValue("count_type");
   console.log("countType", countType);
+
+  const scStatus = await this.getValue("stock_count_status");
+  const reviewStatus = await this.getValue("review_status");
+
   switch (pageStatus) {
     case "Add":
       this.display(["draft_status", "button_draft", "button_issued"]);
@@ -355,8 +359,6 @@ const showReview = async (scStatus, reviewStatus) => {
       await setPrefix(organizationId);
       break;
     case "Edit":
-      const scStatus = await this.getValue("stock_count_status");
-      const reviewStatus = await this.getValue("review_status");
       if (isStockCount) {
         await showStockCount(scStatus, reviewStatus);
       } else if (isReview) {
@@ -368,7 +370,21 @@ const showReview = async (scStatus, reviewStatus) => {
         showStatusHTML(scStatus);
       }
     case "View":
-      this.display(["table_stock_count"]);
+      await this.display(["table_stock_count"]);
+
+      if (scStatus && scStatus !== "") {
+        await this.display([
+          "table_stock_count.count_qty",
+          "table_stock_count.is_counted",
+          "table_stock_count.variance_qty",
+          "table_stock_count.variance_percentage",
+        ]);
+      }
+
+      if (reviewStatus && reviewStatus !== "") {
+        await this.display(["table_stock_count.review_status"]);
+      }
+
       break;
   }
 })();
