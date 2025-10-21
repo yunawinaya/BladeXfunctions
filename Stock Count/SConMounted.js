@@ -369,6 +369,7 @@ const showReview = async (scStatus, reviewStatus) => {
         }
         showStatusHTML(scStatus);
       }
+      break;
     case "View":
       await this.display(["table_stock_count"]);
 
