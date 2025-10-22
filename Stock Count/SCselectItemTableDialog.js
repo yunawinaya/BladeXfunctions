@@ -51,7 +51,7 @@ const displayTab = (tabName) => {
         item_code: item.material_id.material_code,
         material_desc: item.material_id.material_desc,
         item_category: item.material_id.item_category,
-        balance_quantity: item.balance_quantity,
+        balance_quantity: item.unrestricted_qty,
         location_id: item.location_id.id,
         uom_id: item.material_id.based_uom,
         table_uom_conversion: item.material_id.table_uom_conversion,
