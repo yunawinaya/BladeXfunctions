@@ -278,8 +278,6 @@ const updateEntry = async (entry, stockCountId) => {
     }
 
     await db.collection("stock_count").doc(stockCountId).update(entry);
-
-    this.$message.success("Update successfully");
   } catch (error) {
     this.hideLoading();
     this.$message.error(error);

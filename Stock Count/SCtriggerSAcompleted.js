@@ -8,14 +8,6 @@ const roundPrice = (value) => {
   return parseFloat(parseFloat(value || 0).toFixed(4));
 };
 
-const closeDialog = () => {
-  if (this.parentGenerateForm) {
-    this.parentGenerateForm.$refs.SuPageDialogRef.hide();
-    this.parentGenerateForm.refresh();
-    this.hideLoading();
-  }
-};
-
 const logTableState = async (collectionName, queryConditions, logMessage) => {
   try {
     let query = db.collection(collectionName);
@@ -2035,8 +2027,7 @@ const updateEntry = async (organizationId, sa, self, stockAdjustmentId) => {
         adjustment_status: "Completed",
       });
     }
-    this.$message.success("Update successfully");
-    await closeDialog();
+    this.$message.success("Successfully completed Stock Adjustment");
   } catch (error) {
     this.$message.error(error);
   }
