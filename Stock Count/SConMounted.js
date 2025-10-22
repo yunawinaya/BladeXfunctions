@@ -156,7 +156,6 @@ const showStockCount = async (scStatus, reviewStatus) => {
   await this.display([
     "table_stock_count",
     "table_stock_count.count_qty",
-    "table_stock_count.is_counted",
     "button_lock_all",
     "button_count",
   ]);
@@ -196,27 +195,27 @@ const showStockCount = async (scStatus, reviewStatus) => {
       });
   }, 100);
 
-  setTimeout(() => {
+  setTimeout(async () => {
     if (scStatus === "In Progress") {
-      const tableStockCount = this.getValue("table_stock_count");
+      const tableStockCount = await this.getValue("table_stock_count");
 
       for (let index = 0; index < tableStockCount.length; index++) {
-        if (tableStockCount[index].line_status === "Counted") {
-          this.disabled(`table_stock_count.${index}.count_qty`, true);
+        if (tableStockCount[index].line_status === "Approved") {
+          await this.disabled(`table_stock_count.${index}.count_qty`, true);
         } else {
-          this.disabled(`table_stock_count.${index}.count_qty`, false);
+          await this.disabled(`table_stock_count.${index}.count_qty`, false);
         }
       }
 
-      this.models["approvedItems"] = tableStockCount.filter(
+      this.models["approvedItems"] = await tableStockCount.filter(
         (item) => item.line_status === "Approved"
       );
 
-      const filteredTableStockCount = tableStockCount.filter(
+      const filteredTableStockCount = await tableStockCount.filter(
         (item) => item.line_status !== "Approved"
       );
 
-      this.setData({
+      await this.setData({
         table_stock_count: filteredTableStockCount,
       });
     }
@@ -227,7 +226,7 @@ const showStockCount = async (scStatus, reviewStatus) => {
 
       // unlock Recount
       setTimeout(async () => {
-        const tableStockCount = this.getValue("table_stock_count");
+        const tableStockCount = await this.getValue("table_stock_count");
         for (let index = 0; index < tableStockCount.length; index++) {
           if (tableStockCount[index].line_status === "Recount") {
             await this.setData({
@@ -261,10 +260,10 @@ const showReview = async (scStatus, reviewStatus) => {
   await this.display([
     "table_stock_count",
     "table_stock_count.count_qty",
-    "table_stock_count.is_counted",
+    "table_stock_count.adjusted_qty",
     "table_stock_count.variance_qty",
     "table_stock_count.variance_percentage",
-    "table_stock_count.review_status",
+    "table_stock_count.review_sub_button",
     "button_review",
     "button_approve_all",
   ]);
@@ -279,7 +278,6 @@ const showReview = async (scStatus, reviewStatus) => {
       "user_assignees",
       "work_group_assignees",
       "table_stock_count.count_qty",
-      "table_stock_count.is_counted",
     ],
     true
   );
@@ -295,22 +293,36 @@ const showReview = async (scStatus, reviewStatus) => {
       });
   }, 100);
 
-  setTimeout(() => {
+  setTimeout(async () => {
     if (scStatus === "In Progress") {
-      const tableStockCount = this.getValue("table_stock_count");
+      const tableStockCount = await this.getValue("table_stock_count");
 
       for (let index = 0; index < tableStockCount.length; index++) {
         if (tableStockCount[index].line_status === "Pending") {
-          this.disabled(`table_stock_count.${index}.review_status`, true);
+          await this.disabled(
+            [
+              `table_stock_count.${index}.review_status`,
+              `table_stock_count.${index}.adjusted_qty`,
+              `table_stock_count.${index}.review_sub_button`,
+            ],
+            true
+          );
         } else {
-          this.disabled(`table_stock_count.${index}.review_status`, false);
+          await this.disabled(
+            [
+              `table_stock_count.${index}.review_status`,
+              `table_stock_count.${index}.adjusted_qty`,
+              `table_stock_count.${index}.review_sub_button`,
+            ],
+            false
+          );
         }
       }
     }
   }, 100);
 
   setTimeout(async () => {
-    const tableStockCount = this.getValue("table_stock_count");
+    const tableStockCount = await this.getValue("table_stock_count");
     for (let index = 0; index < tableStockCount.length; index++) {
       if (tableStockCount[index].line_status === "Recounted") {
         await this.setData({
@@ -376,14 +388,16 @@ const showReview = async (scStatus, reviewStatus) => {
       if (scStatus && scStatus !== "") {
         await this.display([
           "table_stock_count.count_qty",
-          "table_stock_count.is_counted",
           "table_stock_count.variance_qty",
           "table_stock_count.variance_percentage",
         ]);
       }
 
       if (reviewStatus && reviewStatus !== "") {
-        await this.display(["table_stock_count.review_status"]);
+        await this.display([
+          "table_stock_count.review_status",
+          "table_stock_count.adjusted_qty",
+        ]);
       }
 
       break;
