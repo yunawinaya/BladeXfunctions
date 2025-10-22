@@ -69,6 +69,8 @@ const displayTab = (tabName) => {
         this.hide("dialog_select_stock.batch_balance");
         this.display("dialog_select_stock.batch_balance");
       }, 100);
+    } else {
+      this.triggerEvent("onClick_countStock");
     }
   }
 })();

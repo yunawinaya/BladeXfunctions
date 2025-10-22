@@ -62,7 +62,7 @@ const createDraftStockAdjustment = async (
   try {
     // Filter items with variance (variance_qty !== 0)
     const itemsWithVariance = entry.table_stock_count.filter(
-      (item) => item.variance_qty !== 0 && item.review_status === "Approved"
+      (item) => item.variance_qty !== 0 && item.line_status === "Approved"
     );
 
     if (itemsWithVariance.length === 0) {
@@ -239,12 +239,16 @@ const createDraftStockAdjustment = async (
     };
 
     // Save to database
-    await db.collection("stock_adjustment").add(stockAdjustmentDoc);
+    const stockAdjustmentResult = await db
+      .collection("stock_adjustment")
+      .add(stockAdjustmentDoc);
 
     console.log("Stock Adjustment Created:", stockAdjustmentDoc);
     this.$message.success(
       `Draft Stock Adjustment created: ${newPrefix} with ${stockAdjustmentTable.length} item(s)`
     );
+
+    return stockAdjustmentResult.data[0];
   } catch (error) {
     console.error("Error creating stock adjustment:", error);
     this.$message.error("Failed to create stock adjustment");
@@ -258,11 +262,19 @@ const updateEntry = async (entry, stockCountId) => {
       entry.stock_count_status === "Completed"
     ) {
       console.log("Process to create Stock Adjustment");
-      await createDraftStockAdjustment(
+      const stockAdjustmentResult = await createDraftStockAdjustment(
         entry,
         entry.organization_id,
         stockCountId
       );
+
+      console.log("stockAdjustmentResult", stockAdjustmentResult);
+      console.log("stockAdjustmentId", stockAdjustmentResult.id);
+
+      this.triggerEvent("SCtriggerSAcompleted", {
+        data: stockAdjustmentResult,
+        stockAdjustmentId: stockAdjustmentResult.id,
+      });
     }
 
     await db.collection("stock_count").doc(stockCountId).update(entry);
