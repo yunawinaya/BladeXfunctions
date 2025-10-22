@@ -88,6 +88,7 @@ const fetchAllLocations = async () => {
       selectTab("item_selection");
       hideTab("location_selection");
       hideTab("batch_selection");
+      this.hide("dialog_select_stock.batch_balance");
     }
 
     await this.openDialog("dialog_select_stock");

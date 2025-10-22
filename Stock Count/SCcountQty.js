@@ -5,7 +5,7 @@
     const systemQty =
       this.getValue(`table_stock_count.${rowIndex}.system_qty`) || 0;
 
-    const varianceQty = Math.abs(systemQty - countQty);
+    const varianceQty = countQty - systemQty;
 
     let variancePercentage;
     if (systemQty === 0) {

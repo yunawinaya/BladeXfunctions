@@ -58,7 +58,7 @@ const displayTab = (tabName) => {
       };
     });
 
-    this.setData({ item_list: this.models["itemList"] });
+    await this.setData({ item_list: this.models["itemList"] });
 
     if (
       selectItems.some((item) => item.material_id?.item_batch_management == 1)

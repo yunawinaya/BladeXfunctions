@@ -19,7 +19,7 @@
       });
     }
 
-    const varianceQty = Math.abs(systemQty - adjustedQty);
+    const varianceQty = adjustedQty - systemQty;
 
     let variancePercentage;
     if (systemQty === 0) {
