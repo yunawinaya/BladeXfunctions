@@ -371,6 +371,8 @@ const showReview = async (scStatus, reviewStatus) => {
       await setPrefix(organizationId);
       break;
     case "Edit":
+      await this.display(["table_stock_count"]);
+
       if (isStockCount) {
         await showStockCount(scStatus, reviewStatus);
       } else if (isReview) {

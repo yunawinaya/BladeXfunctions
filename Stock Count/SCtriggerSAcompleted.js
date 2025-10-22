@@ -2023,9 +2023,15 @@ const updateEntry = async (organizationId, sa, self, stockAdjustmentId) => {
     await updateInventory(sa);
 
     if (sa.stock_count_id && sa.stock_count_id !== "") {
-      await db.collection("stock_count").doc(sa.stock_count_id).update({
-        adjustment_status: "Completed",
-      });
+      await db
+        .collection("stock_count")
+        .doc(sa.stock_count_id)
+        .update({
+          adjustment_status: "Fully Adjusted",
+          table_stock_count: {
+            line_status: "Adjusted",
+          },
+        });
     }
     this.$message.success("Successfully completed Stock Adjustment");
   } catch (error) {
