@@ -36,12 +36,6 @@ const displayTab = (tabName) => {
   const selectItems = this.getComponent("dialog_select_stock.item_balance")
     ?.$refs.crud.tableSelect;
 
-  console.log(
-    "getComponent item",
-    this.getComponent("dialog_select_stock.item_balance")?.$refs.crud
-      .tableSelect
-  );
-
   this.models["itemList"] = [];
 
   if (selectItems && selectItems.length > 0) {
@@ -68,6 +62,11 @@ const displayTab = (tabName) => {
       setTimeout(() => {
         this.hide("dialog_select_stock.batch_balance");
         this.display("dialog_select_stock.batch_balance");
+        setTimeout(() => {
+          this.getComponent(
+            "dialog_select_stock.batch_balance"
+          )?.$refs.crud.toggleAllSelection();
+        }, 300);
       }, 100);
     } else {
       this.triggerEvent("onClick_countStock");

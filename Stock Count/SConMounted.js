@@ -208,11 +208,13 @@ const showStockCount = async (scStatus, reviewStatus) => {
       }
 
       this.models["approvedItems"] = await tableStockCount.filter(
-        (item) => item.line_status === "Approved"
+        (item) =>
+          item.line_status === "Approved" || item.line_status === "Adjusted"
       );
 
       const filteredTableStockCount = await tableStockCount.filter(
-        (item) => item.line_status !== "Approved"
+        (item) =>
+          item.line_status !== "Approved" && item.line_status !== "Adjusted"
       );
 
       await this.setData({
@@ -328,6 +330,9 @@ const showReview = async (scStatus, reviewStatus) => {
         await this.setData({
           [`table_stock_count.${index}.review_status`]: "",
         });
+      }
+      if (tableStockCount[index].line_status === "Adjusted") {
+        await this.disabled([`table_stock_count.${index}.adjusted_qty`], true);
       }
     }
   }, 100);

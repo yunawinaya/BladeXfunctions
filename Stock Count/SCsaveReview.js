@@ -257,26 +257,6 @@ const createDraftStockAdjustment = async (
 
 const updateEntry = async (entry, stockCountId) => {
   try {
-    if (
-      entry.review_status === "Completed" &&
-      entry.stock_count_status === "Completed"
-    ) {
-      console.log("Process to create Stock Adjustment");
-      const stockAdjustmentResult = await createDraftStockAdjustment(
-        entry,
-        entry.organization_id,
-        stockCountId
-      );
-
-      console.log("stockAdjustmentResult", stockAdjustmentResult);
-      console.log("stockAdjustmentId", stockAdjustmentResult.id);
-
-      this.triggerEvent("SCtriggerSAcompleted", {
-        data: stockAdjustmentResult,
-        stockAdjustmentId: stockAdjustmentResult.id,
-      });
-    }
-
     await db.collection("stock_count").doc(stockCountId).update(entry);
   } catch (error) {
     this.hideLoading();
@@ -410,7 +390,8 @@ const updateEntry = async (entry, stockCountId) => {
         // Some items are not approved and not recount
         const pendingCount = entry.table_stock_count.filter(
           (item) =>
-            item.line_status !== "Approved" && item.line_status !== "Recount"
+            item.review_status !== "Approved" &&
+            item.review_status !== "Recount"
         ).length;
 
         const result = await this.$confirm(
@@ -432,6 +413,111 @@ const updateEntry = async (entry, stockCountId) => {
         }
 
         entry.review_status = "In Review";
+      }
+
+      // Check if there are approved items that can be adjusted
+      const approvedItems = entry.table_stock_count.filter(
+        (item) =>
+          item.review_status === "Approved" && item.line_status !== "Adjusted"
+      );
+
+      // Only show confirmation for partial adjustments (not fully approved)
+      if (approvedItems.length > 0 && !allApproved) {
+        const adjustResult = await this.$confirm(
+          `There are <strong>${approvedItems.length} approved item(s)</strong> ready for adjustment.<br><br>Do you want to create Stock Adjustment and mark them as 'Adjusted'?`,
+          "Create Stock Adjustment",
+          {
+            confirmButtonText: "Yes, Create Adjustment",
+            cancelButtonText: "No, Skip",
+            type: "info",
+            dangerouslyUseHTMLString: true,
+          }
+        ).catch(() => {
+          return null;
+        });
+
+        if (adjustResult === "confirm") {
+          // Create stock adjustment for approved items only
+          const approvedEntry = {
+            ...entry,
+            table_stock_count: approvedItems,
+          };
+
+          const stockAdjustmentResult = await createDraftStockAdjustment(
+            approvedEntry,
+            organizationId,
+            stockCountId
+          );
+
+          console.log("stockAdjustmentResult", stockAdjustmentResult);
+          console.log("stockAdjustmentId", stockAdjustmentResult.id);
+
+          this.triggerEvent("SCtriggerSAcompleted", {
+            data: stockAdjustmentResult,
+            stockAdjustmentId: stockAdjustmentResult.id,
+          });
+
+          // Mark approved items as "Adjusted"
+          entry.table_stock_count = entry.table_stock_count.map((item) => {
+            if (
+              item.review_status === "Approved" &&
+              item.line_status !== "Adjusted"
+            ) {
+              return {
+                ...item,
+                line_status: "Adjusted",
+              };
+            }
+            return item;
+          });
+
+          // Check if all items are now adjusted
+          const allAdjusted = entry.table_stock_count.every(
+            (item) => item.line_status === "Adjusted"
+          );
+
+          if (allAdjusted) {
+            entry.adjustment_status = "Fully Adjusted";
+          } else {
+            entry.adjustment_status = "Partially Adjusted";
+          }
+        }
+      } else if (approvedItems.length > 0 && allApproved) {
+        // If all items are approved, create stock adjustment automatically without confirmation
+        const approvedEntry = {
+          ...entry,
+          table_stock_count: approvedItems,
+        };
+
+        const stockAdjustmentResult = await createDraftStockAdjustment(
+          approvedEntry,
+          organizationId,
+          stockCountId
+        );
+
+        console.log("stockAdjustmentResult", stockAdjustmentResult);
+        console.log("stockAdjustmentId", stockAdjustmentResult.id);
+
+        this.triggerEvent("SCtriggerSAcompleted", {
+          data: stockAdjustmentResult,
+          stockAdjustmentId: stockAdjustmentResult.id,
+        });
+
+        // Mark all items as "Adjusted"
+        entry.table_stock_count = entry.table_stock_count.map((item) => {
+          if (
+            item.review_status === "Approved" &&
+            item.line_status !== "Adjusted"
+          ) {
+            return {
+              ...item,
+              line_status: "Adjusted",
+            };
+          }
+          return item;
+        });
+
+        entry.adjustment_status = "Fully Adjusted";
       }
 
       await updateEntry(entry, stockCountId);
