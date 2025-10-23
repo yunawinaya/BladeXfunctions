@@ -351,9 +351,9 @@ const updateEntry = async (entry, stockCountId) => {
         (item) => item.line_status === "Recount"
       );
 
-      // Check if all items are approved
+      // Check if all items are approved or adjusted (considered completed)
       const allApproved = entry.table_stock_count.every(
-        (item) => item.line_status === "Approved"
+        (item) => item.line_status === "Approved" || item.line_status === "Adjusted"
       );
 
       // Determine review status based on item statuses
@@ -387,11 +387,12 @@ const updateEntry = async (entry, stockCountId) => {
         entry.review_status = "Completed";
         entry.stock_count_status = "Completed";
       } else {
-        // Some items are not approved and not recount
+        // Some items are not approved/adjusted and not recount
         const pendingCount = entry.table_stock_count.filter(
           (item) =>
-            item.review_status !== "Approved" &&
-            item.review_status !== "Recount"
+            item.line_status !== "Approved" &&
+            item.line_status !== "Adjusted" &&
+            item.line_status !== "Recount"
         ).length;
 
         const result = await this.$confirm(

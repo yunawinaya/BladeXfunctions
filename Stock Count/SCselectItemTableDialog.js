@@ -62,12 +62,13 @@ const displayTab = (tabName) => {
       setTimeout(() => {
         this.hide("dialog_select_stock.batch_balance");
         this.display("dialog_select_stock.batch_balance");
-        setTimeout(() => {
-          this.getComponent(
-            "dialog_select_stock.batch_balance"
-          )?.$refs.crud.toggleAllSelection();
-        }, 300);
       }, 100);
+
+      setTimeout(() => {
+        this.getComponent(
+          "dialog_select_stock.batch_balance"
+        )?.$refs.crud.toggleAllSelection();
+      }, 500);
     } else {
       this.triggerEvent("onClick_countStock");
     }
