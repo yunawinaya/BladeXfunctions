@@ -97,26 +97,78 @@ const createDraftStockAdjustment = async (
         let varianceQtyInBaseUOM = item.variance_qty;
 
         if (item.uom_id !== item.base_uom_id) {
-          console.log(`Converting variance_qty from ${item.uom_id} to base UOM ${item.base_uom_id}`);
+          console.log(
+            `Converting variance_qty from ${item.uom_id} to base UOM ${item.base_uom_id}`
+          );
 
-          // Use stored table_uom_conversion to avoid fetching Item collection
-          const tableUOMConversion = item.table_uom_conversion;
+          // Check if table_uom_conversion is already stored (from UOM change)
+          let tableUOMConversion = item.table_uom_conversion;
+
+          // If not available, fetch from Item collection
+          if (!tableUOMConversion) {
+            console.log(
+              `table_uom_conversion not found in item data, fetching from database for item ${item.material_id}`
+            );
+            const itemData = await db
+              .collection("Item")
+              .where({ id: item.material_id })
+              .get();
+
+            if (itemData.data && itemData.data.length > 0) {
+              tableUOMConversion = itemData.data[0].table_uom_conversion;
+              console.log("Fetched table_uom_conversion from database");
+            } else {
+              console.warn(
+                `Could not fetch item data for ${item.material_id}, using original value`
+              );
+            }
+          }
+
+          // Handle different data formats
+          if (typeof tableUOMConversion === "string") {
+            try {
+              tableUOMConversion = JSON.parse(tableUOMConversion);
+              console.log("✅ Parsed table_uom_conversion from JSON string");
+              console.log("Parsed array length:", tableUOMConversion?.length);
+            } catch (e) {
+              console.warn("❌ Failed to parse table_uom_conversion as JSON:", e);
+              tableUOMConversion = null;
+            }
+          }
+
+          // If it's a single object (not array), wrap it in an array
+          if (tableUOMConversion && !Array.isArray(tableUOMConversion)) {
+            console.log("Converting single object to array");
+            tableUOMConversion = [tableUOMConversion];
+          }
 
           if (tableUOMConversion && Array.isArray(tableUOMConversion)) {
+            console.log(`Searching for conversion: alt_uom_id === ${item.uom_id}`);
+
             // Find the conversion for current UOM
             const currentUOMConversion = tableUOMConversion.find(
               (conv) => conv.alt_uom_id === item.uom_id
             );
 
+            console.log("Found conversion:", currentUOMConversion);
+
             if (currentUOMConversion && currentUOMConversion.alt_qty) {
               // Convert from alt UOM back to base UOM
-              varianceQtyInBaseUOM = item.variance_qty / currentUOMConversion.alt_qty;
-              console.log(`Converted variance_qty: ${item.variance_qty} -> ${varianceQtyInBaseUOM}`);
+              varianceQtyInBaseUOM =
+                item.variance_qty / currentUOMConversion.alt_qty;
+              console.log(
+                `✅ Converted variance_qty: ${item.variance_qty} ÷ ${currentUOMConversion.alt_qty} = ${varianceQtyInBaseUOM}`
+              );
             } else {
-              console.warn(`No conversion found for UOM ${item.uom_id}, using original value`);
+              console.warn(
+                `⚠️ No conversion found for UOM ${item.uom_id}, using original value`
+              );
+              console.log("Available conversions:", tableUOMConversion.map(c => c.alt_uom_id));
             }
           } else {
-            console.warn(`No table_uom_conversion data found for item, using original value`);
+            console.warn(
+              `⚠️ No valid table_uom_conversion data available, using original value`
+            );
           }
         }
 
@@ -380,7 +432,8 @@ const updateEntry = async (entry, stockCountId) => {
 
       // Check if all items are approved or adjusted (considered completed)
       const allApproved = entry.table_stock_count.every(
-        (item) => item.line_status === "Approved" || item.line_status === "Adjusted"
+        (item) =>
+          item.line_status === "Approved" || item.line_status === "Adjusted"
       );
 
       // Determine review status based on item statuses

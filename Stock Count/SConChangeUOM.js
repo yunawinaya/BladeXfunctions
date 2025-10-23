@@ -21,9 +21,35 @@
     .get()
     .then((res) => res.data[0]);
 
-  const tableUOMConversion = itemData.table_uom_conversion;
+  console.log("Full itemData from DB:", itemData);
 
-  console.log("tableUOMConversion:", tableUOMConversion);
+  let tableUOMConversion = itemData.table_uom_conversion;
+
+  console.log("Raw tableUOMConversion from DB:", tableUOMConversion);
+  console.log("Type:", typeof tableUOMConversion);
+  console.log("Is Array:", Array.isArray(tableUOMConversion));
+
+  // Handle if table_uom_conversion is stored as JSON string in database
+  if (typeof tableUOMConversion === "string") {
+    try {
+      tableUOMConversion = JSON.parse(tableUOMConversion);
+      console.log("Parsed tableUOMConversion:", tableUOMConversion);
+    } catch (e) {
+      console.error("Failed to parse table_uom_conversion:", e);
+    }
+  }
+
+  // Ensure it's an array
+  if (tableUOMConversion && !Array.isArray(tableUOMConversion)) {
+    console.log("Converting single object to array");
+    tableUOMConversion = [tableUOMConversion];
+  }
+
+  console.log("Final tableUOMConversion (array):", tableUOMConversion);
+  console.log("Array length:", tableUOMConversion?.length);
+
+  // IMPORTANT: Store as JSON string to prevent platform from double-stringifying
+  const tableUOMConversionString = JSON.stringify(tableUOMConversion);
 
   const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
     if (
@@ -82,8 +108,11 @@
 
       console.log(`Processing record ${index}:`, record);
 
-      // Store table_uom_conversion for later use in SCsaveReview
-      updatedRecord.table_uom_conversion = tableUOMConversion;
+      // Store table_uom_conversion as JSON string for later use in SCsaveReview
+      // This prevents the low-code platform from double-stringifying it
+      updatedRecord.table_uom_conversion = tableUOMConversionString;
+
+      console.log("Storing table_uom_conversion as:", updatedRecord.table_uom_conversion);
 
       quantityFields.forEach((field) => {
         if (updatedRecord[field]) {
