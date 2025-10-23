@@ -93,6 +93,33 @@ const createDraftStockAdjustment = async (
       const adjSummaryDetails = [];
 
       for (const item of items) {
+        // Convert variance_qty to base UOM if needed
+        let varianceQtyInBaseUOM = item.variance_qty;
+
+        if (item.uom_id !== item.base_uom_id) {
+          console.log(`Converting variance_qty from ${item.uom_id} to base UOM ${item.base_uom_id}`);
+
+          // Use stored table_uom_conversion to avoid fetching Item collection
+          const tableUOMConversion = item.table_uom_conversion;
+
+          if (tableUOMConversion && Array.isArray(tableUOMConversion)) {
+            // Find the conversion for current UOM
+            const currentUOMConversion = tableUOMConversion.find(
+              (conv) => conv.alt_uom_id === item.uom_id
+            );
+
+            if (currentUOMConversion && currentUOMConversion.alt_qty) {
+              // Convert from alt UOM back to base UOM
+              varianceQtyInBaseUOM = item.variance_qty / currentUOMConversion.alt_qty;
+              console.log(`Converted variance_qty: ${item.variance_qty} -> ${varianceQtyInBaseUOM}`);
+            } else {
+              console.warn(`No conversion found for UOM ${item.uom_id}, using original value`);
+            }
+          } else {
+            console.warn(`No table_uom_conversion data found for item, using original value`);
+          }
+        }
+
         // Fetch the item balance record
         // Use item_batch_balance for batched items, item_balance for non-batched
         const collectionName = item.batch_id
@@ -116,9 +143,9 @@ const createDraftStockAdjustment = async (
         if (itemBalanceResult.data && itemBalanceResult.data.length > 0) {
           const balanceData = itemBalanceResult.data[0];
 
-          // Determine movement type based on variance
-          const movementType = item.variance_qty > 0 ? "In" : "Out";
-          const saQuantity = Math.abs(item.variance_qty);
+          // Determine movement type based on variance (using base UOM quantity)
+          const movementType = varianceQtyInBaseUOM > 0 ? "In" : "Out";
+          const saQuantity = Math.abs(varianceQtyInBaseUOM);
 
           totalQuantity += saQuantity;
 
@@ -158,10 +185,10 @@ const createDraftStockAdjustment = async (
           const locationName =
             locationResult.data?.[0]?.bin_location_combine || item.location_id;
 
-          // Get UOM name
+          // Get base UOM name (Stock Adjustment uses base UOM)
           const uomResult = await db
             .collection("unit_of_measurement")
-            .where({ id: item.uom_id })
+            .where({ id: item.base_uom_id })
             .get();
           const uomName = uomResult.data?.[0]?.uom_name || "";
 
@@ -186,15 +213,15 @@ const createDraftStockAdjustment = async (
         }
       }
 
-      // Get UOM name for summary
-      const uomResult = await db
+      // Get base UOM name for summary (Stock Adjustment always uses base UOM)
+      const baseUomResult = await db
         .collection("unit_of_measurement")
-        .where({ id: firstItem.uom_id })
+        .where({ id: firstItem.base_uom_id })
         .get();
-      const uomName = uomResult.data?.[0]?.uom_name || "";
+      const baseUomName = baseUomResult.data?.[0]?.uom_name || "";
 
       // Build adjustment summary
-      const adjSummary = `Total: ${totalQuantity} ${uomName}\nDETAILS:\n${adjSummaryDetails
+      const adjSummary = `Total: ${totalQuantity} ${baseUomName}\nDETAILS:\n${adjSummaryDetails
         .map((detail, idx) => `${idx + 1}. ${detail}`)
         .join("\n")}`;
 
@@ -205,10 +232,10 @@ const createDraftStockAdjustment = async (
         .get();
       const materialName = materialResult.data?.[0]?.material_code || "";
 
-      // Create stock adjustment entry
+      // Create stock adjustment entry (always use base UOM)
       stockAdjustmentTable.push({
         material_id: materialId,
-        uom_id: firstItem.uom_id,
+        uom_id: firstItem.base_uom_id,
         material_name: materialName,
         item_category: firstItem.item_category,
         is_serialized_item: firstItem.is_serialized || 0,

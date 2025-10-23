@@ -184,6 +184,8 @@ const showStockCount = async (scStatus, reviewStatus) => {
     true
   );
 
+  await this.disabled(["table_stock_count.uom_id"], false);
+
   setTimeout(() => {
     document
       .querySelectorAll(
