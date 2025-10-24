@@ -25,7 +25,8 @@
     if (systemQty === 0) {
       variancePercentage = adjustedQty > 0 ? "100.00%" : "0.00%";
     } else {
-      variancePercentage = ((adjustedQty / systemQty) * 100).toFixed(2) + "%";
+      variancePercentage =
+        (Math.abs(varianceQty / systemQty) * 100).toFixed(2) + "%";
     }
 
     await this.setData({

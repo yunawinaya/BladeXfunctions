@@ -59,7 +59,7 @@ const updateEntry = async (entry, stockCountId) => {
       ).length;
       const total_counted = `${lockedItems} / ${totalItems}`;
 
-      // Calculate total_variance: (total count_qty / total system_qty) * 100
+      // Calculate total_variance: (total variance_qty / total system_qty) * 100
       const totalCountQty = data.table_stock_count.reduce(
         (sum, item) => sum + (parseFloat(item.count_qty) || 0),
         0
@@ -68,8 +68,13 @@ const updateEntry = async (entry, stockCountId) => {
         (sum, item) => sum + (parseFloat(item.system_qty) || 0),
         0
       );
+
+      const totalVarianceQty = totalCountQty - totalSystemQty;
+
       const variancePercentage =
-        totalSystemQty > 0 ? (totalCountQty / totalSystemQty) * 100 : 0;
+        totalSystemQty > 0
+          ? Math.abs(totalVarianceQty / totalSystemQty) * 100
+          : 0;
       const total_variance = `${variancePercentage.toFixed(2)}%`;
 
       const entry = {

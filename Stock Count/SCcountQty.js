@@ -5,13 +5,22 @@
     const systemQty =
       this.getValue(`table_stock_count.${rowIndex}.system_qty`) || 0;
 
-    const varianceQty = countQty - systemQty;
+    let varianceQty = 0;
+    if (
+      countQty &&
+      countQty !== null &&
+      countQty !== undefined &&
+      countQty !== ""
+    ) {
+      varianceQty = countQty - systemQty;
+    }
 
     let variancePercentage;
     if (systemQty === 0) {
       variancePercentage = countQty > 0 ? "100.00%" : "0.00%";
     } else {
-      variancePercentage = ((countQty / systemQty) * 100).toFixed(2) + "%";
+      variancePercentage =
+        (Math.abs(varianceQty / systemQty) * 100).toFixed(2) + "%";
     }
 
     // Auto-lock: if count_qty is not empty/null, set is_counted = 1 (locked)

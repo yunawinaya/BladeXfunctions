@@ -30,7 +30,7 @@
 
       return {
         item_id: item.item_id,
-        item_code: item.item_code,
+        item_name: item.item_name,
         balance_quantity: parseFloat(item.balance_quantity),
         location_id: item.location_id,
         batch_id: item.batch_id,
@@ -59,14 +59,13 @@
     allData.forEach((item) => {
       table_stock_count.push({
         material_id: item.item_id,
-        material_code: item.item_code,
+        material_name: item.item_name,
         material_desc: item.material_desc,
         item_category: item.item_category,
         uom_id: item.uom_id,
         base_uom_id: item.uom_id,
         table_uom_conversion: item.table_uom_conversion,
         system_qty: item.balance_quantity,
-        variance_qty: item.balance_quantity,
         location_id: item.location_id,
         batch_id: item.batch_id,
         line_status: "Pending",

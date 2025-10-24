@@ -42,7 +42,7 @@ const displayTab = (tabName) => {
     this.models["itemList"] = selectItems.map((item) => {
       return {
         item_id: item.material_id.id,
-        item_code: item.material_id.material_code,
+        item_name: item.material_id.material_name,
         material_desc: item.material_id.material_desc,
         item_category: item.material_id.item_category,
         balance_quantity: item.unrestricted_qty,
