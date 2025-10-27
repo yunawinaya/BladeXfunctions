@@ -122,8 +122,8 @@ const updateEntry = async (entry, stockCountId) => {
         ).length;
 
         const result = await this.$confirm(
-          `Not all line items are locked. <br><br><strong>${unlockedCount} item(s)</strong> are not locked.<br><br>Stock Count status will be set to <strong>'In Progress'</strong>.<br><br>Do you want to proceed?`,
-          "Unlocked Line Items Warning",
+          `Not all line items are counted. <br><br><strong>${unlockedCount} item(s)</strong> are not counted.<br><br>Stock Count status will be set to <strong>'In Progress'</strong>.<br><br>Do you want to proceed?`,
+          "Uncounted Line Items Warning",
           {
             confirmButtonText: "Proceed",
             cancelButtonText: "Cancel",
