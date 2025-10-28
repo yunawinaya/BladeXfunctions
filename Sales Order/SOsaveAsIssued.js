@@ -511,20 +511,17 @@ const addEntry = async (organizationId, entry) => {
 
       entry.so_no = prefixToShow;
       await updatePrefix(organizationId, runningNumber);
+    } else {
+      const isUnique = await checkUniqueness(entry.so_no, organizationId);
+      if (!isUnique) {
+        throw new Error(
+          `SO Number "${entry.so_no}" already exists. Please use a different number.`
+        );
+      }
     }
 
     await db.collection("sales_order").add(entry);
-    await this.runWorkflow(
-      "1917416028010524674",
-      { so_no: entry.so_no },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
+
     this.$message.success("Add successfully");
   } catch (error) {
     console.error("Error in addEntry:", error);
@@ -548,22 +545,17 @@ const updateEntry = async (organizationId, entry, salesOrderId) => {
         await updatePrefix(organizationId, runningNumber);
 
         entry.so_no = prefixToShow;
+      } else {
+        const isUnique = await checkUniqueness(entry.so_no, organizationId);
+        if (!isUnique) {
+          throw new Error(
+            `SO Number "${entry.so_no}" already exists. Please use a different number.`
+          );
+        }
       }
     }
 
     await db.collection("sales_order").doc(salesOrderId).update(entry);
-    await this.runWorkflow(
-      "1917416028010524674",
-      { so_no: entry.so_no },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        alert();
-        console.error("失败结果：", err);
-        closeDialog();
-      }
-    );
 
     this.$message.success("Update successfully");
   } catch (error) {
@@ -594,6 +586,8 @@ const findFieldMessage = (obj) => {
         if (found) return found;
       }
     }
+
+    return obj.toString();
   }
   return null;
 };
@@ -604,7 +598,7 @@ const validateQuantity = async (tableSO) => {
 
   tableSO.forEach((item, index) => {
     if (item.item_name || item.so_desc) {
-      if (item.so_quantity <= 0) {
+      if (!item.so_quantity || item.so_quantity <= 0) {
         quantityFailValFields.push(`${item.material_name || item.so_desc}`);
       }
     } else {
@@ -627,7 +621,7 @@ const updateItemTransactionDate = async (entry) => {
       ),
     ];
 
-    const date = new Date().toISOString();
+    const date = new Date().toISOString().split("T")[0];
     for (const [index, item] of uniqueItemIds.entries()) {
       try {
         await db
@@ -652,9 +646,20 @@ const checkExistingGoodsDelivery = async () => {
     .collection("goods_delivery")
     .filter([
       {
-        prop: "so_id",
-        operator: "in",
-        value: soID,
+        type: "branch",
+        operator: "all",
+        children: [
+          {
+            prop: "so_id",
+            operator: "in",
+            value: soID,
+          },
+          {
+            prop: "gd_status",
+            operator: "equal",
+            value: "Draft",
+          },
+        ],
       },
     ])
     .get();
@@ -670,9 +675,20 @@ const checkExistingSalesInvoice = async () => {
     .collection("sales_invoice")
     .filter([
       {
-        prop: "so_id",
-        operator: "in",
-        value: soID,
+        type: "branch",
+        operator: "all",
+        children: [
+          {
+            prop: "so_id",
+            operator: "in",
+            value: soID,
+          },
+          {
+            prop: "si_status",
+            operator: "equal",
+            value: "Draft",
+          },
+        ],
       },
     ])
     .get();
@@ -680,6 +696,52 @@ const checkExistingSalesInvoice = async () => {
   if (!resSI || resSI.data.length === 0) return [];
 
   return resSI.data;
+};
+
+const fillbackHeaderFields = async (entry) => {
+  try {
+    for (const [index, soLineItem] of entry.table_so.entries()) {
+      soLineItem.plant_id = entry.plant_name || "";
+      soLineItem.customer_id = entry.customer_name || "";
+      soLineItem.payment_term_id = entry.so_payment_term || "";
+      soLineItem.sales_person_id = entry.so_sales_person || "";
+      soLineItem.billing_state_id = entry.billing_address_state || "";
+      soLineItem.billing_country_id = entry.billing_address_country || "";
+      soLineItem.shipping_state_id = entry.shipping_address_state || "";
+      soLineItem.shipping_country_id = entry.shipping_address_country || "";
+      soLineItem.line_index = index + 1;
+      soLineItem.organization_id = entry.organization_id;
+      soLineItem.line_status = entry.so_status;
+      soLineItem.access_group = entry.access_group || [];
+    }
+    return entry.table_so;
+  } catch (error) {
+    throw new Error("Error processing sales order.");
+  }
+};
+
+const deleteRelatedGD = async (existingGD) => {
+  try {
+    for (const gd of existingGD) {
+      await db.collection("goods_delivery").doc(gd.id).update({
+        is_deleted: 1,
+      });
+    }
+  } catch (error) {
+    throw new Error("Error in deleting associated goods delivery.");
+  }
+};
+
+const deleteRelatedSI = async (existingSI) => {
+  try {
+    for (const si of existingSI) {
+      await db.collection("sales_invoice").doc(si.id).update({
+        is_deleted: 1,
+      });
+    }
+  } catch (error) {
+    throw new Error("Error in deleting associated sales invoice.");
+  }
 };
 
 // Main execution wrapped in an async IIFE
@@ -715,13 +777,44 @@ const checkExistingSalesInvoice = async () => {
       data.table_so
     );
 
-    await this.validate("so_no");
+    if (missingFields.length > 0) {
+      this.hideLoading();
+      throw new Error(`Validation errors: ${missingFields.join(", ")}`);
+    } else {
+      if (quantityFailValFields.length > 0 || itemFailValFields.length > 0) {
+        this.hideLoading();
+        await this.$confirm(
+          `${
+            quantityFailValFields.length > 0
+              ? "The following items have quantity less than or equal to zero: " +
+                quantityFailValFields.join(", ") +
+                "<br><br>"
+              : ""
+          }
+          ${
+            itemFailValFields.length > 0
+              ? "The following items have quantity but missing item code / item description: Line " +
+                itemFailValFields.join(", Line ") +
+                "<br><br>"
+              : ""
+          }
+          <strong>If you proceed, these items will be removed from your order. Do you want to continue?</strong>`,
+          "Line Item Validation Failed",
+          {
+            confirmButtonText: "Proceed",
+            cancelButtonText: "Cancel",
+            type: "error",
+            dangerouslyUseHTMLString: true,
+          }
+        ).catch(() => {
+          console.log("User clicked Cancel or closed the dialog");
+          this.hideLoading();
+          throw new Error("Saving sales order cancelled.");
+        });
+      }
 
-    if (
-      missingFields.length === 0 &&
-      quantityFailValFields.length === 0 &&
-      itemFailValFields.length === 0
-    ) {
+      this.showLoading();
+
       // Check credit and overdue limits
       if (data.acc_integration_type !== null) {
         const canProceed = await checkCreditOverdueLimit(
@@ -786,6 +879,10 @@ const checkExistingSalesInvoice = async () => {
         so_total_tax,
         so_total,
         so_remarks,
+        so_remarks2,
+        so_remarks3,
+        cust_po,
+        cust_po_date,
         so_tnc,
         so_payment_details,
         billing_address_line_1,
@@ -807,6 +904,7 @@ const checkExistingSalesInvoice = async () => {
         exchange_rate,
         myr_total_amount,
         sqt_no,
+        sqt_id,
         tpt_vehicle_number,
         tpt_transport_name,
         tpt_ic_no,
@@ -820,11 +918,13 @@ const checkExistingSalesInvoice = async () => {
         shipping_attention,
         acc_integration_type,
         last_sync_date,
+        price_tag_id,
         customer_credit_limit,
         overdue_limit,
         outstanding_balance,
         overdue_inv_total_amount,
         is_accurate,
+        access_group,
       } = data;
 
       const entry = {
@@ -878,6 +978,10 @@ const checkExistingSalesInvoice = async () => {
         so_total_tax,
         so_total,
         so_remarks,
+        so_remarks2,
+        so_remarks3,
+        cust_po,
+        cust_po_date,
         so_tnc,
         so_payment_details,
         billing_address_line_1,
@@ -899,6 +1003,7 @@ const checkExistingSalesInvoice = async () => {
         exchange_rate,
         myr_total_amount,
         sqt_no,
+        sqt_id,
         tpt_vehicle_number,
         tpt_transport_name,
         tpt_ic_no,
@@ -913,9 +1018,12 @@ const checkExistingSalesInvoice = async () => {
         last_sync_date,
         customer_credit_limit,
         overdue_limit,
+        price_tag_id,
         outstanding_balance,
         overdue_inv_total_amount,
         is_accurate,
+        so_created_by: this.getVarGlobal("nickname"),
+        access_group,
       };
 
       const latestSO = entry.table_so.filter(
@@ -929,8 +1037,14 @@ const checkExistingSalesInvoice = async () => {
         );
       }
 
+      entry.table_so = await fillbackHeaderFields(entry);
+      for (const [index, lineItem] of entry.table_so.entries()) {
+        await this.validate(`table_so.${index}.so_item_price`);
+      }
+
       // Add or update based on page status
       if (page_status === "Add" || page_status === "Clone") {
+        console.log("entry", entry);
         await addEntry(organizationId, entry);
       } else if (page_status === "Edit") {
         const currentSOStatus = this.getValue("so_status");
@@ -941,22 +1055,42 @@ const checkExistingSalesInvoice = async () => {
 
           if (existingGD.length > 0 || existingSI.length > 0) {
             this.hideLoading();
-            this.openDialog("auto_delete_dialog");
+            await this.$confirm(
+              `${
+                existingGD.length > 0
+                  ? "The sales order has existing goods delivery records in draft status. Proceeding will delete all associated goods delivery records.<br><br>"
+                  : ""
+              }
+                ${
+                  existingSI.length > 0
+                    ? "The sales order has existing sales invoice records in draft status. Proceeding will delete all associated sales invoice records.<br><br>"
+                    : ""
+                }
+                <strong>Do you wish to continue?</strong>`,
+              `Existing ${
+                existingGD.length && existingSI.length > 0
+                  ? "GD and SI"
+                  : existingGD.length > 0
+                  ? "GD"
+                  : existingSI.length > 0
+                  ? "SI"
+                  : ""
+              } detected`,
+              {
+                confirmButtonText: "Proceed",
+                cancelButtonText: "Cancel",
+                type: "error",
+                dangerouslyUseHTMLString: true,
+              }
+            ).catch(() => {
+              console.log("User clicked Cancel or closed the dialog");
+              this.hideLoading();
+              throw new Error("Saving sales order cancelled.");
+            });
 
-            if (existingGD.length > 0 && existingSI.length === 0) {
-              this.display("auto_delete_dialog.text_gd");
-              this.hide("auto_delete_dialog.text_si");
-            } else if (existingGD.length === 0 && existingSI.length > 0) {
-              this.display("auto_delete_dialog.text_si");
-              this.hide("auto_delete_dialog.text_gd");
-            } else {
-              this.display([
-                "auto_delete_dialog.text_si",
-                "auto_delete_dialog.text_gd",
-              ]);
-            }
-
-            return;
+            this.showLoading();
+            await deleteRelatedGD(existingGD);
+            await deleteRelatedSI(existingSI);
           }
         }
 
@@ -969,41 +1103,17 @@ const checkExistingSalesInvoice = async () => {
       }
 
       await updateItemTransactionDate(entry);
+      if (entry.sqt_id && entry.sqt_id !== "") {
+        const sqtID = entry.sqt_id;
+        await Promise.all(
+          sqtID.map((id) =>
+            db.collection("Quotation").doc(id).update({
+              sqt_status: "Completed",
+            })
+          )
+        );
+      }
       await closeDialog();
-    } else if (missingFields.length > 0) {
-      this.hideLoading();
-      this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
-    } else if (
-      quantityFailValFields.length > 0 ||
-      itemFailValFields.length > 0
-    ) {
-      this.hideLoading();
-      await this.openDialog("confirm_dialog");
-      this.setData({
-        [`confirm_dialog.quantity_message`]: "",
-        [`confirm_dialog.item_missing_message`]: "",
-      });
-      if (quantityFailValFields.length > 0) {
-        await this.display(`confirm_dialog.quantity_message`);
-        this.setData({
-          [`confirm_dialog.quantity_message`]: `The following items have quantity less than or equal to zero: ${quantityFailValFields.join(
-            `, `
-          )}`,
-        });
-      } else {
-        await this.hide(`confirm_dialog.quantity_message`);
-      }
-
-      if (itemFailValFields.length > 0) {
-        await this.display(`confirm_dialog.item_missing_message`);
-        this.setData({
-          [`confirm_dialog.item_missing_message`]: `The following items have quantity but missing item code / item description: Line ${itemFailValFields.join(
-            `, Line `
-          )}`,
-        });
-      } else {
-        await this.hide(`confirm_dialog.item_missing_message`);
-      }
     }
   } catch (error) {
     this.hideLoading();

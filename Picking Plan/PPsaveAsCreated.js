@@ -26,31 +26,6 @@ const parseJsonSafely = (jsonString, defaultValue = []) => {
   }
 };
 
-// Helper function to collect all SO numbers from data
-const collectAllSoNumbers = (data) => {
-  const soNumbers = new Set();
-
-  // From header
-  if (data.so_no) {
-    if (typeof data.so_no === "string") {
-      data.so_no.split(",").forEach((so) => soNumbers.add(so.trim()));
-    } else {
-      soNumbers.add(data.so_no.toString());
-    }
-  }
-
-  // From line items
-  if (Array.isArray(data.table_to)) {
-    data.table_to.forEach((item) => {
-      if (item.line_so_no) {
-        soNumbers.add(item.line_so_no.toString().trim());
-      }
-    });
-  }
-
-  return Array.from(soNumbers).filter((so) => so.length > 0);
-};
-
 // Function to get latest FIFO cost price with available quantity check
 const getLatestFIFOCostPrice = async (
   materialId,
@@ -2417,130 +2392,6 @@ const createOrUpdatePicking = async (
   }
 };
 
-const checkExistingReservedGoods = async (
-  soNumbers,
-  currentToId = null,
-  organizationId
-) => {
-  try {
-    // Handle multiple SO numbers - convert to array if it's a string
-    let soArray = [];
-
-    if (typeof soNumbers === "string") {
-      // Split by comma and clean up whitespace
-      soArray = soNumbers
-        .split(",")
-        .map((so) => so.trim())
-        .filter((so) => so.length > 0);
-    } else if (Array.isArray(soNumbers)) {
-      soArray = soNumbers.filter((so) => so && so.toString().trim().length > 0);
-    } else if (soNumbers) {
-      // Single SO number
-      soArray = [soNumbers.toString().trim()];
-    }
-
-    if (soArray.length === 0) {
-      console.log("No valid SO numbers provided for reserved goods check");
-      return { hasConflict: false };
-    }
-
-    console.log(
-      `Checking existing reserved goods for SOs: ${soArray.join(", ")}`
-    );
-
-    // Check each SO number for conflicts
-    for (const soNo of soArray) {
-      const query = {
-        parent_no: soNo,
-        organization_id: organizationId,
-        is_deleted: 0,
-      };
-
-      // If updating an existing TO, exclude its records from the check
-      if (currentToId) {
-        // Get the current TO's to_no to exclude it
-        const currentToResponse = await db
-          .collection("picking_plan")
-          .where({
-            id: currentToId,
-            organization_id: organizationId,
-            is_deleted: 0,
-          })
-          .get();
-
-        if (currentToResponse.data && currentToResponse.data.length > 0) {
-          const currentToNo = currentToResponse.data[0].to_no;
-          console.log(
-            `Excluding current TO ${currentToNo} from validation check for SO ${soNo}`
-          );
-
-          // Get all reserved goods for this specific SO
-          const allReservedResponse = await db
-            .collection("on_reserved_gd")
-            .where(query)
-            .get();
-
-          if (allReservedResponse.data && allReservedResponse.data.length > 0) {
-            // Filter out records belonging to the current TO
-            const otherReservedRecords = allReservedResponse.data.filter(
-              (record) => record.doc_no !== currentToNo
-            );
-
-            // Check if any other TO has open quantities for this SO
-            const hasOpenQty = otherReservedRecords.some(
-              (record) => parseFloat(record.open_qty || 0) > 0
-            );
-
-            if (hasOpenQty) {
-              // Get the TO number that has open quantities
-              const conflictingRecord = otherReservedRecords.find(
-                (record) => parseFloat(record.open_qty || 0) > 0
-              );
-              return {
-                hasConflict: true,
-                conflictingToNo: conflictingRecord.doc_no,
-                conflictingSoNo: soNo,
-              };
-            }
-          }
-        }
-      } else {
-        // For new TO creation, check all reserved goods for this specific SO
-        const reservedResponse = await db
-          .collection("on_reserved_gd")
-          .where(query)
-          .get();
-
-        if (reservedResponse.data && reservedResponse.data.length > 0) {
-          // Check if any record has open_qty > 0 for this SO
-          const hasOpenQty = reservedResponse.data.some(
-            (record) => parseFloat(record.open_qty || 0) > 0
-          );
-
-          if (hasOpenQty) {
-            // Get the TO number that has open quantities
-            const conflictingRecord = reservedResponse.data.find(
-              (record) => parseFloat(record.open_qty || 0) > 0
-            );
-            return {
-              hasConflict: true,
-              conflictingToNo: conflictingRecord.doc_no,
-              conflictingSoNo: soNo,
-            };
-          }
-        }
-      }
-    }
-
-    // No conflicts found for any SO
-    return { hasConflict: false };
-  } catch (error) {
-    console.error("Error checking existing reserved goods:", error);
-    // Return no conflict on error to allow process to continue
-    return { hasConflict: false };
-  }
-};
-
 const createOnReserveGoodsDelivery = async (organizationId, toData) => {
   try {
     const reservedDataBatch = [];
@@ -2828,13 +2679,13 @@ const fetchDeliveredQuantity = async () => {
     if (soLine) {
       const tolerance = itemInfo ? itemInfo.over_delivery_tolerance || 0 : 0;
       const maxDeliverableQty =
-        ((soLine.so_quantity || 0) - (soLine.delivered_qty || 0)) *
+        ((soLine.so_quantity || 0) - (soLine.planned_qty || 0)) *
         ((100 + tolerance) / 100);
       if ((item.to_qty || 0) > maxDeliverableQty) {
         inValidDeliverQty.push(`#${index + 1}`);
         this.setData({
           [`table_to.${index}.to_undelivered_qty`]:
-            (soLine.so_quantity || 0) - (soLine.delivered_qty || 0),
+            (soLine.so_quantity || 0) - (soLine.planned_qty || 0),
         });
       }
     }
@@ -2846,15 +2697,15 @@ const fetchDeliveredQuantity = async () => {
         ", "
       )} ha${
         inValidDeliverQty.length > 1 ? "ve" : "s"
-      } an expected deliver quantity exceeding the maximum deliverable quantity.`,
-      "Invalid Deliver Quantity",
+      } an expected plan quantity exceeding the maximum planable quantity.`,
+      "Invalid Plan Quantity",
       {
         confirmButtonText: "OK",
         type: "error",
       }
     );
 
-    throw new Error("Invalid deliver quantity detected.");
+    throw new Error("Invalid plan quantity detected.");
   }
 };
 
@@ -2897,46 +2748,6 @@ const fetchDeliveredQuantity = async () => {
     const missingFields = validateForm(data, requiredFields);
 
     if (missingFields.length === 0) {
-      let needsReservedGoodsCheck = false;
-      let currentToId = null;
-
-      if (page_status === "Add") {
-        needsReservedGoodsCheck = true;
-      } else if (page_status === "Edit" && data.to_status === "Draft") {
-        needsReservedGoodsCheck = true;
-        currentToId = data.id;
-      }
-
-      // Check for existing reserved goods conflicts
-      if (needsReservedGoodsCheck) {
-        const allSoNumbers = collectAllSoNumbers(data);
-
-        if (allSoNumbers.length > 0) {
-          const reservedCheck = await checkExistingReservedGoods(
-            allSoNumbers,
-            currentToId,
-            organizationId
-          );
-
-          if (reservedCheck.hasConflict) {
-            const conflictMessage = reservedCheck.conflictingSoNo
-              ? `A Picking Plan (No: ${reservedCheck.conflictingToNo}) is already in Created status for Sales Order ${reservedCheck.conflictingSoNo}. To proceed, either: Edit that Picking Plan to update the quantity or details, or Cancel it to create a new Picking Plan.`
-              : `A Picking Plan (No: ${reservedCheck.conflictingToNo}) is already in Created status for the Sales Orders. To proceed, either: Edit that Picking Plan to update the quantity or details, or Cancel it to create a new Picking Plan.`;
-
-            this.parentGenerateForm.$alert(
-              conflictMessage,
-              "Existing Picking Plan Found",
-              {
-                confirmButtonText: "OK",
-                type: "warning",
-              }
-            );
-            this.hideLoading();
-            return;
-          }
-        }
-      }
-
       // Get picking setup
       const pickingSetupResponse = await db
         .collection("picking_setup")
@@ -2996,8 +2807,6 @@ const fetchDeliveredQuantity = async () => {
         picking_status: data.picking_status,
         so_id: data.so_id,
         so_no: data.so_no,
-        to_billing_address: data.to_billing_address,
-        to_shipping_address: data.to_shipping_address,
         to_no: data.to_no,
         plant_id: data.plant_id,
         organization_id: organizationId,
