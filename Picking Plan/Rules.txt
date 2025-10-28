@@ -1,0 +1,82 @@
+We are going to create Picking Plan, it's basically really similar like GD but with couple of adjustment. So we inherit GD codes and tweak some of them. Thing that I could think of right now: 
+- No Credit Limit,
+- Multiple customers instead of 1 same customer from SO,
+- No address related from customer since we are storing multiple customers, 
+- No relation with Sales Invoice and Sales Return
+
+customer_name will be an array, because we are able to store multiple SOs even with different customers
+
+table name will be picking_plan instead of goods_delivery, and for prefix document_types will be Transfer Order. But when we tried to fetch picking_setup, movement_type will still be Good Delivery
+
+Removed (removed means that we don't use this data anymore, so we should remove this within the code):
+si_status
+sr_status
+credit_limit_status
+has_sr
+currency_code
+gd_billing_address
+gd_shipping_address
+gd_contact_name
+contact_number
+email_address
+last_sync_date
+customer_credit_limit
+overdue_limit
+outstanding_balance
+overdue_inv_total_amount
+is_accurate
+dialog_credit_limit
+dialog_accurate
+table_gd.return_qty
+table_gd.si_status
+table_gd.sr_status
+button_save_as_completed
+billing_state_id
+shipping_state_id
+billing_country_id
+shipping_country_id
+billing_address_name
+billing_address_phone
+billing_address_line_1
+billing_address_line_2
+billing_address_line_3
+billing_address_line_4
+billing_address_city
+billing_postal_code
+billing_address_state
+billing_address_country
+billing_attention
+shipping_address_name
+shipping_address_phone
+shipping_address_line_1
+shipping_address_line_2
+shipping_address_line_3
+shipping_address_line_4
+shipping_address_city
+shipping_postal_code
+shipping_address_state
+shipping_address_country
+shipping_attention
+
+Changed (changed means we change the name of the value in the db to match transfer order picking or to, since we inherit all the codes from gd so we have to change it):
+gd_status -> to_status
+gd_no -> to_no
+gd_delivery_method -> to_delivery_method
+delivery_date -> to_date
+gd_created_by -> to_created_by
+gd_dockey -> to_dockey
+gd_ref_doc -> to_ref_doc
+table_gd -> table_to
+table_gd.gd_order_quantity -> table_to.to_order_quantity
+table_gd.gd_order_uom_id -> table_to.to_order_uom_id
+table_gd.gd_delivered_qty -> table_to.to_delivered_qty
+table_gd.gd_undelivered_qty -> table_to.to_undelivered_qty
+table_gd.gd_delivery_qty -> table_to.to_delivery_qty
+table_gd.gd_qty -> table_to.to_qty
+table_gd.gd_uom_id -> table_to.to_uom_id
+table_gd.gd_initial_delivered_qty -> table_to.to_initial_delivered_qty
+gd_total -> to_total
+gd_item_balance -> to_item_balance
+gd_item_balance.table_item_balance.gd_quantity -> to_item_balance.table_item_balance.to_quantity
+dialog_select_item.gd_line_data -> dialog_select_item.to_line_data
+
