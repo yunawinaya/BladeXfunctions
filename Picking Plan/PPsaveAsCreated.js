@@ -2586,22 +2586,92 @@ const updateOnReserveGoodsDelivery = async (organizationId, toData) => {
   }
 };
 
-const updateSalesOrderStatus = async (salesOrderId) => {
+const updateSalesOrderStatus = async (salesOrderId, tableTO) => {
   try {
-    for (const soId of salesOrderId) {
+    // Group table_to items by SO ID
+    const itemsBySoId = {};
+
+    tableTO.forEach((item) => {
+      if (!item.line_so_id || !item.so_line_item_id) return;
+
+      if (!itemsBySoId[item.line_so_id]) {
+        itemsBySoId[item.line_so_id] = [];
+      }
+
+      itemsBySoId[item.line_so_id].push({
+        so_line_item_id: item.so_line_item_id,
+        to_qty: parseFloat(item.to_qty || 0),
+      });
+    });
+
+    // Process each Sales Order
+    const updatePromises = salesOrderId.map(async (soId) => {
       const resSO = await db.collection("sales_order").doc(soId).get();
 
-      if (resSO && resSO?.data.length > 0) {
-        if (!resSO.data[0].to_status || resSO.data[0].to_status === null) {
-          await db
-            .collection("sales_order")
-            .doc(soId)
-            .update({ to_status: "Created" });
-        }
+      if (!resSO || !resSO?.data || resSO.data.length === 0) {
+        console.log(`Sales Order ${soId} not found`);
+        return { soId, success: false };
       }
-    }
+
+      const soDoc = resSO.data[0];
+      const soItems = soDoc.table_so || [];
+
+      // Create a copy of the SO items to update
+      const updatedSoItems = JSON.parse(JSON.stringify(soItems));
+
+      // Get items for this SO from table_to
+      const toItemsForThisSo = itemsBySoId[soId] || [];
+
+      // Update planned_qty for each line item
+      toItemsForThisSo.forEach((toItem) => {
+        const soLineIndex = updatedSoItems.findIndex(
+          (soLine) => soLine.id === toItem.so_line_item_id
+        );
+
+        if (soLineIndex !== -1) {
+          const currentPlannedQty = parseFloat(
+            updatedSoItems[soLineIndex].planned_qty || 0
+          );
+          const newPlannedQty = currentPlannedQty + toItem.to_qty;
+
+          // Update planned_qty
+          updatedSoItems[soLineIndex].planned_qty = newPlannedQty;
+
+          console.log(
+            `SO ${soId} Line ${soLineIndex + 1}: Updated planned_qty from ${currentPlannedQty} to ${newPlannedQty} (added ${toItem.to_qty})`
+          );
+        }
+      });
+
+      // Prepare update data
+      const updateData = {
+        table_so: updatedSoItems,
+      };
+
+      // Set to_status if not already set
+      if (!soDoc.to_status || soDoc.to_status === null) {
+        updateData.to_status = "Created";
+      }
+
+      // Execute database update
+      await db.collection("sales_order").doc(soId).update(updateData);
+
+      console.log(`Updated Sales Order ${soId} with planned quantities`);
+
+      return { soId, success: true };
+    });
+
+    const results = await Promise.all(updatePromises);
+    const successCount = results.filter((r) => r && r.success).length;
+
+    console.log(
+      `Successfully updated ${successCount} of ${salesOrderId.length} Sales Orders with planned quantities`
+    );
+
+    return results;
   } catch (error) {
-    throw new Error("Error updating sales order.", error);
+    console.error("Error updating sales order:", error);
+    throw new Error("Error updating sales order: " + error.message);
   }
 };
 
@@ -2935,7 +3005,7 @@ const fetchDeliveredQuantity = async () => {
       this.$message.success(
         page_status === "Add" ? "Added successfully" : "Updated successfully"
       );
-      await updateSalesOrderStatus(to.so_id);
+      await updateSalesOrderStatus(to.so_id, to.table_to);
       this.hideLoading();
       closeDialog();
     } else {
