@@ -125,9 +125,6 @@ const disabledField = async (status, pickingStatus) => {
         "to_no",
         "to_ref_doc",
         "customer_name",
-        "to_contact_name",
-        "contact_number",
-        "email_address",
         "document_description",
         "plant_id",
         "organization_id",
@@ -148,22 +145,6 @@ const disabledField = async (status, pickingStatus) => {
         "shipping_company",
         "shipping_method",
         "order_remark",
-        "billing_address_line_1",
-        "billing_address_line_2",
-        "billing_address_line_3",
-        "billing_address_line_4",
-        "billing_address_city",
-        "billing_address_state",
-        "billing_address_country",
-        "billing_postal_code",
-        "shipping_address_line_1",
-        "shipping_address_line_2",
-        "shipping_address_line_3",
-        "shipping_address_line_4",
-        "shipping_address_city",
-        "shipping_address_state",
-        "shipping_address_country",
-        "shipping_postal_code",
         "to_item_balance.table_item_balance",
       ],
       true
@@ -252,6 +233,14 @@ const displayDeliveryMethod = async () => {
 
     if (!selectedField) {
       this.hide(fields);
+    } else {
+      fields.forEach((field) => {
+        if (field === selectedField) {
+          this.display(field);
+        } else {
+          this.hide(field);
+        }
+      });
     }
   } else {
     this.setData({ delivery_method_text: "" });
@@ -293,7 +282,7 @@ const setPlant = async (organizationId) => {
   this.setData({
     organization_id: organizationId,
     ...(!hasPlant ? { plant_id: plantId } : {}),
-    delivery_date: new Date().toISOString().replace("T", " "),
+    to_date: new Date().toISOString().replace("T", " "),
     to_created_by: this.getVarGlobal("nickname"),
   });
 };
@@ -356,7 +345,7 @@ const disabledSelectStock = async (data) => {
         } else if (itemData.item_batch_management === 1) {
           const resItemBatchBalance = await db
             .collection("item_batch_balance")
-            .where({ material_id: materialId, plant_id: plant })
+            .where({ material_id: item.material_id, plant_id: plant })
             .get();
 
           if (resItemBatchBalance && resItemBatchBalance.data.length === 1) {

@@ -70,6 +70,7 @@ table_gd -> table_to
 table_gd.gd_order_quantity -> table_to.to_order_quantity
 table_gd.gd_order_uom_id -> table_to.to_order_uom_id
 table_gd.gd_delivered_qty -> table_to.to_delivered_qty
+table_gd.good_delivery_uom_id -> table_to.to_uom_id
 table_gd.gd_undelivered_qty -> table_to.to_undelivered_qty
 table_gd.gd_delivery_qty -> table_to.to_delivery_qty
 table_gd.gd_qty -> table_to.to_qty
