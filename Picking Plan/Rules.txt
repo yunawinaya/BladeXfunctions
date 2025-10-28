@@ -19,6 +19,7 @@ gd_shipping_address
 gd_contact_name
 contact_number
 email_address
+acc_integration_type
 last_sync_date
 customer_credit_limit
 overdue_limit

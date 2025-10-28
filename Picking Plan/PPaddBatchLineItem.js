@@ -1779,42 +1779,25 @@ const createTableToWithBaseUOM = async (allItems) => {
     existingTO = [];
   }
 
-  const uniqueCustomer = new Set(
-    currentItemArray.map((so) =>
-      referenceType === "Document" ? so.customer_id : so.customer_id.id
-    )
-  );
-  const allSameCustomer = uniqueCustomer.size === 1;
+  // Collect all unique customer IDs from the selected items
+  const newCustomerIds = [
+    ...new Set(
+      currentItemArray.map((so) =>
+        referenceType === "Document" ? so.customer_id : so.customer_id.id
+      )
+    ),
+  ];
 
-  if (!allSameCustomer) {
-    this.$alert(
-      "Deliver item(s) to more than two different customers is not allowed.",
-      "Error",
-      {
-        confirmButtonText: "OK",
-        type: "error",
-      }
-    );
-    return;
-  }
-
-  if (customerName && customerName !== [...uniqueCustomer][0]) {
-    await this.$confirm(
-      `You've selected a different customer than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,
-      "Different Customer Detected",
-      {
-        confirmButtonText: "Proceed",
-        cancelButtonText: "Cancel",
-        type: "error",
-        dangerouslyUseHTMLString: true,
-      }
-    ).catch(() => {
-      console.log("User clicked Cancel or closed the dialog");
-      throw new Error();
-    });
-
-    existingTO = [];
-  }
+  // Merge with existing customer IDs if any
+  const existingCustomerIds = customerName || [];
+  const allCustomerIds = [
+    ...new Set([
+      ...(Array.isArray(existingCustomerIds)
+        ? existingCustomerIds
+        : [existingCustomerIds]),
+      ...newCustomerIds,
+    ]),
+  ];
 
   this.closeDialog("dialog_select_item");
   this.showLoading();
@@ -1894,10 +1877,7 @@ const createTableToWithBaseUOM = async (allItems) => {
       referenceType === "Document"
         ? currentItemArray[0].currency
         : currentItemArray[0].sales_order.so_currency,
-    customer_name:
-      referenceType === "Document"
-        ? currentItemArray[0].customer_id
-        : currentItemArray[0].customer_id.id,
+    customer_name: allCustomerIds,
     table_to: latestTableTO,
     so_no: salesOrderNumber.join(", "),
     so_id: soId,
