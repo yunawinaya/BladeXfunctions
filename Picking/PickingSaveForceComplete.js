@@ -343,6 +343,86 @@ const updateEntry = async (toData, toId) => {
   }
 };
 
+// Update Transfer Order's table_picking_items based on actual picked quantities
+const updateTransferOrderPickingItems = async (toId, pickingRecords) => {
+  try {
+    console.log("Starting updateTransferOrderPickingItems for TO:", toId);
+
+    // Fetch current Transfer Order
+    const toResponse = await db.collection("transfer_order").doc(toId).get();
+    if (!toResponse.data || toResponse.data.length === 0) {
+      console.warn(`Transfer Order ${toId} not found`);
+      return;
+    }
+
+    const toData = toResponse.data[0];
+    const pickingItems = toData.table_picking_items || [];
+
+    console.log(`Found ${pickingItems.length} picking items in Transfer Order`);
+
+    // Build a map of actual picked quantities by to_line_id
+    const pickedQtyByLineId = {};
+    const targetLocationByLineId = {};
+
+    for (const record of pickingRecords) {
+      const lineId = record.to_line_id;
+      if (!pickedQtyByLineId[lineId]) {
+        pickedQtyByLineId[lineId] = 0;
+        targetLocationByLineId[lineId] = record.target_location;
+      }
+      pickedQtyByLineId[lineId] += parseFloat(record.store_out_qty || 0);
+    }
+
+    console.log("Picked quantities by line ID:", pickedQtyByLineId);
+
+    // Update each picking item
+    const updatedPickingItems = [];
+
+    for (const item of pickingItems) {
+      const lineId = item.to_line_id;
+      const actualPickedQty = pickedQtyByLineId[lineId] || 0;
+
+      if (actualPickedQty > 0) {
+        // Item was picked (fully or partially)
+        console.log(
+          `Updating picking item for line ${lineId}: original qty=${item.qty_to_pick}, picked=${actualPickedQty}`
+        );
+
+        const updatedItem = {
+          ...item,
+          qty_to_pick: roundQty(actualPickedQty),
+          pending_process_qty: roundQty(actualPickedQty), // Reset to picked qty
+          source_bin: targetLocationByLineId[lineId] || item.source_bin,
+          undelivered_qty: roundQty(actualPickedQty), // For GD to consume
+          delivered_qty: 0, // Will be updated by GD
+        };
+
+        updatedPickingItems.push(updatedItem);
+      } else {
+        // Item was not picked at all
+        console.log(
+          `Removing unpicked item for line ${lineId} (qty_to_pick=${item.qty_to_pick}, picked=0)`
+        );
+        // Don't add to updatedPickingItems (effectively removes it)
+      }
+    }
+
+    console.log(
+      `Updated picking items: ${updatedPickingItems.length} items (removed ${pickingItems.length - updatedPickingItems.length} unpicked items)`
+    );
+
+    // Update Transfer Order with modified table_picking_items
+    await db.collection("transfer_order").doc(toId).update({
+      table_picking_items: updatedPickingItems,
+    });
+
+    console.log("Transfer Order picking items updated successfully");
+  } catch (error) {
+    console.error("Error in updateTransferOrderPickingItems:", error);
+    throw error;
+  }
+};
+
 const findFieldMessage = (obj) => {
   // Base case: if current object has the structure we want
   if (obj && typeof obj === "object") {
@@ -614,8 +694,36 @@ const updatePickingPlanWithPickedQty = async (ppId, pickingRecords) => {
         `Line item ${ppLineItem.id}: Original qty=${ppLineItem.to_qty}, Picked qty=${totalPickedQty}`
       );
 
-      // Only update if picked quantity is less than planned quantity (partial picking)
-      if (totalPickedQty < parseFloat(ppLineItem.to_qty || 0)) {
+      // Handle different picking scenarios
+      if (totalPickedQty === 0) {
+        // Zero picking - nothing was picked at all
+        console.log(
+          `Zero picking for line item ${ppLineItem.id}, marking as cancelled...`
+        );
+
+        // Store original values
+        ppLineItem.plan_qty = ppLineItem.to_qty;
+        ppLineItem.plan_temp_qty_data = ppLineItem.temp_qty_data;
+        ppLineItem.plan_view_stock = ppLineItem.view_stock;
+        ppLineItem.is_force_complete = 1;
+
+        // Set to zero
+        ppLineItem.to_qty = 0;
+        ppLineItem.base_qty = 0;
+        ppLineItem.temp_qty_data = JSON.stringify([]);
+        ppLineItem.view_stock = "Total: 0\n\nDETAILS:\n(No items picked)";
+        ppLineItem.to_delivered_qty = roundQty(
+          parseFloat(ppLineItem.to_initial_delivered_qty || 0)
+        );
+        ppLineItem.to_undelivered_qty = roundQty(
+          parseFloat(ppLineItem.to_order_quantity || 0) - ppLineItem.to_delivered_qty
+        );
+        ppLineItem.picking_status = "Cancelled"; // Mark as cancelled
+
+        console.log(`Line item ${ppLineItem.id} marked as cancelled (zero picking)`);
+        ppDataUpdated = true;
+      } else if (totalPickedQty < parseFloat(ppLineItem.to_qty || 0)) {
+        // Partial picking - some was picked but not all
         console.log(
           `Partial picking detected for line item ${ppLineItem.id}, updating...`
         );
@@ -757,12 +865,13 @@ const updateOnReservedForPartialPicking = async (
       // Parse the updated temp_qty_data (contains actual picked quantities)
       const temp_qty_data = parseJsonSafely(ppLineItem.temp_qty_data);
 
-      if (!ppLineItem.material_id || temp_qty_data.length === 0) {
-        console.log(
-          `Skipping line item ${ppLineItem.id}, no material or temp_qty_data`
-        );
+      if (!ppLineItem.material_id) {
+        console.log(`Skipping line item ${ppLineItem.id}, no material`);
         continue;
       }
+
+      // For zero-picked items, temp_qty_data will be empty
+      // We still need to process them to remove on_reserved_gd records
 
       // Find line number for this item (1-indexed)
       const lineNo =
@@ -1409,6 +1518,11 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
             "No partial picking detected, skipping force complete logic"
           );
         }
+
+        // Step 5: Update Transfer Order's table_picking_items
+        // This applies to both partial and full picking
+        await updateTransferOrderPickingItems(toId, toData.table_picking_records);
+        console.log("Transfer Order picking items updated");
       }
     } else {
       console.log("Not a Picking Plan transfer, skipping force complete logic");

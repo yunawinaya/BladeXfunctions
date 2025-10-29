@@ -2247,6 +2247,7 @@ const createOrUpdatePicking = async (
 
       const transferOrder = {
         to_status: "Created",
+        to_id: toData.to_no,
         plant_id: toData.plant_id,
         organization_id: organizationId,
         movement_type: "Picking",
@@ -2334,19 +2335,7 @@ const createOrUpdatePicking = async (
         transferOrder.table_picking_items.push(group);
       });
 
-      const prefixData = await getPrefixData(organizationId, "Transfer Order");
-
-      if (prefixData) {
-        const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData,
-          organizationId,
-          "transfer_order",
-          "to_id"
-        );
-
-        await updatePrefix(organizationId, runningNumber, "Transfer Order");
-        transferOrder.to_id = prefixToShow;
-      }
+      // Transfer Order uses the same to_no as Picking Plan - no separate prefix needed
 
       await db
         .collection("transfer_order")
@@ -2983,7 +2972,10 @@ const fetchDeliveredQuantity = async () => {
           // Update TO with picking status if applicable
           if (pickingStatus) {
             // Fetch current PP data to get table_to
-            const currentPP = await db.collection("picking_plan").doc(toId).get();
+            const currentPP = await db
+              .collection("picking_plan")
+              .doc(toId)
+              .get();
             if (currentPP.data && currentPP.data.length > 0) {
               const ppData = currentPP.data[0];
               const tableTo = ppData.table_to || [];
