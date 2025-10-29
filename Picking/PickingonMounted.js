@@ -173,24 +173,28 @@ const disableTableRows = () => {
 const setPlant = async (organizationId) => {
   const deptId = this.getVarSystem("deptIds").split(",")[0];
   let plantId = "";
-  if (deptId === organizationId) {
-    const resPlant = await db
-      .collection("blade_dept")
-      .where({ parent_id: deptId })
-      .get();
+  const plant = this.getValue("plant_id");
 
-    if (!resPlant && resPlant.data.length === 0) {
-      plantId = deptId;
+  if (!plant) {
+    if (deptId === organizationId) {
+      const resPlant = await db
+        .collection("blade_dept")
+        .where({ parent_id: deptId })
+        .get();
+
+      if (!resPlant && resPlant.data.length === 0) {
+        plantId = deptId;
+      } else {
+        plantId = "";
+      }
     } else {
-      plantId = "";
+      plantId = deptId;
     }
-  } else {
-    plantId = deptId;
   }
 
   this.setData({
     organization_id: organizationId,
-    plant_id: plantId,
+    ...(!plant ? { plant_id: plantId } : {}),
     created_at: new Date().toISOString().split("T")[0],
   });
 };
@@ -304,6 +308,43 @@ const setSerialNumber = async () => {
   }
 };
 
+const disabledPickedQtyField = async () => {
+  const gdIDs = await this.getValue("gd_no");
+
+  const resGD = await Promise.all(
+    gdIDs.map((gdId) => db.collection("goods_delivery").doc(gdId).get())
+  );
+
+  const gdData = resGD.map((gd) => gd.data[0]);
+  const cancelledGD = gdData.filter((gd) => gd.picking_status === "Cancelled");
+  const tablePickingItems = this.getValue("table_picking_items");
+  if (tablePickingItems.length > 0) {
+    for (const [index, picking] of tablePickingItems.entries()) {
+      const cancelGD = cancelledGD.find((gd) => gd.id === picking.gd_id);
+      console.log("cancelGD", cancelGD);
+      if (picking.line_status === "Cancelled" || cancelGD) {
+        setTimeout(async () => {
+          this.disabled(
+            [
+              `table_picking_items.${index}.picked_qty`,
+              `table_picking_items.${index}.remark`,
+              `table_picking_items.${index}.select_serial_number`,
+            ],
+            true
+          );
+        }, 100);
+      }
+    }
+  }
+};
+
+const refDocTypePickingPlan = async () => {
+  const refDocType = await this.getValue("ref_doc_type");
+  if (refDocType === "Picking Plan") {
+    await this.hide(["gd_no", "delivery_no"]);
+  }
+};
+
 // Main execution function
 (async () => {
   try {
@@ -327,14 +368,24 @@ const setSerialNumber = async () => {
       case "Add":
         // Add mode
         this.display(["draft_status"]);
+        this.disabled("assigned_to", false);
         this.setData({
           "table_picking_items.picked_qty": 0,
           created_by: this.getVarGlobal("nickname"),
           movement_type: "Picking",
+          ref_doc_type: "Goods Delivery",
         });
 
         await setPlant(organizationId);
+
+        const convertFromGD = this.getValue("plant_id");
+
+        if (convertFromGD) {
+          await viewSerialNumber();
+          await setSerialNumber();
+        }
         await setPrefix(organizationId);
+        await refDocTypePickingPlan();
         break;
 
       case "Edit":
@@ -353,11 +404,21 @@ const setSerialNumber = async () => {
           this.hide(["gd_no"]);
           this.hide(["button_save_as_draft"]);
           this.display(["delivery_no"]);
+
+          if (status !== "Created") {
+            this.hide(["button_created"]);
+          }
         }
         await disabledField(status);
         await showStatusHTML(status);
+        await disabledPickedQtyField();
         await viewSerialNumber();
         await setSerialNumber();
+        console.log(
+          "table_picking_item onMounted",
+          this.getValue("table_picking_items")
+        );
+        await refDocTypePickingPlan();
         break;
 
       case "View":
@@ -366,10 +427,12 @@ const setSerialNumber = async () => {
         await showStatusHTML(status);
         this.hide([
           "button_save_as_draft",
+          "button_created",
           "button_inprogress",
           "button_completed",
         ]);
         await viewSerialNumber();
+        await refDocTypePickingPlan();
         break;
     }
   } catch (error) {

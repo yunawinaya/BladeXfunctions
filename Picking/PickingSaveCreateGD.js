@@ -3139,7 +3139,6 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
       { name: "to_id", label: "Transfer Order No" },
       { name: "movement_type", label: "Movement Type" },
       { name: "ref_doc_type", label: "Reference Document Type" },
-      { name: "gd_no", label: "Reference Document No" },
       {
         name: "table_picking_items",
         label: "Picking Items",

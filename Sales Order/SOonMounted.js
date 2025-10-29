@@ -275,6 +275,7 @@ const displayTax = async () => {
 
 const enabledUOMField = async () => {
   const tableSO = this.getValue("table_so");
+  console.log("enabledUOMField", tableSO);
 
   tableSO.forEach((so, rowIndex) => {
     if (so.item_name || so.so_desc !== "") {
@@ -304,6 +305,7 @@ const cloneResetQuantity = async () => {
 
   for (const so of tableSO) {
     so.delivered_qty = 0;
+    so.planned_qty = 0;
     so.return_qty = 0;
     so.invoice_qty = 0;
     so.posted_qty = 0;
@@ -462,16 +464,18 @@ const fetchUnrestrictedQty = async () => {
           totalUnrestrictedQtyBase = 0;
         }
 
+        let finalQty = 0;
+
         if (so.so_item_uom !== baseUOM) {
-          const finalQty = await convertBaseToAlt(
+          finalQty = await convertBaseToAlt(
             totalUnrestrictedQtyBase,
             tableUOMConversion,
             so.so_item_uom
           );
-          totalUnrestrictedQtyBase = finalQty;
         }
         this.setData({
-          [`table_so.${index}.unrestricted_qty`]: totalUnrestrictedQtyBase,
+          [`table_so.${index}.unrestricted_qty`]: finalQty,
+          [`table_so.${index}.base_unrestricted_qty`]: totalUnrestrictedQtyBase,
         });
       }
     }
@@ -510,12 +514,12 @@ const fetchUnrestrictedQty = async () => {
       "total_amount_myr",
     ]);
 
-    const customerName = this.getValue("customer_name");
+    // const customerName = this.getValue("customer_name");
 
-    if (customerName) {
-      await this.setData({ customer_name: undefined });
-      await this.setData({ customer_name: customerName });
-    }
+    // if (customerName) {
+    //   await this.setData({ customer_name: undefined });
+    //   await this.setData({ customer_name: customerName });
+    // }
 
     switch (pageStatus) {
       case "Add":
@@ -527,27 +531,42 @@ const fetchUnrestrictedQty = async () => {
         if (this.getValue("sqt_no")) {
           this.display("sqt_no");
         }
+
+        const customerID = this.getValue("customer_name");
+
+        if (customerID) {
+          this.disabled("table_so", false);
+          this.display("price_history");
+        } else {
+          this.disabled("table_so", true);
+        }
+
         await displayCurrency();
         await displayTax();
         await displayDeliveryMethod();
         await enabledUOMField();
-        await fetchUnrestrictedQty();
+        //await fetchUnrestrictedQty();
         break;
 
       case "Edit":
+        console.log("onmounted so", this.getValue("table_so"));
+        await setPlant(organizationId, pageStatus);
+        if (this.getValue("sqt_no")) {
+          this.display("sqt_no");
+        }
         await checkAccIntegrationType(organizationId);
-        await enabledUOMField();
         await disabledField(status);
         await getPrefixData(organizationId);
         await showStatusHTML(status);
         await displayCurrency();
         await displayTax();
         await displayDeliveryMethod();
-        await fetchUnrestrictedQty();
-        await setPlant(organizationId, pageStatus);
-        if (this.getValue("sqt_no")) {
-          this.display("sqt_no");
-        }
+        setTimeout(async () => {
+          await enabledUOMField();
+        }, 50);
+
+        this.display("price_history");
+        //await fetchUnrestrictedQty();
         break;
 
       case "Clone":
@@ -564,7 +583,9 @@ const fetchUnrestrictedQty = async () => {
         await displayCurrency();
         await displayTax();
         await displayDeliveryMethod();
-        await fetchUnrestrictedQty();
+
+        this.display("price_history");
+        //await fetchUnrestrictedQty();
 
         console.log("delivered quantity", this.getValue("partially_delivered"));
         break;

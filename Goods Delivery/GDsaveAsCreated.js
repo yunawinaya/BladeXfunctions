@@ -2395,7 +2395,7 @@ const createOrUpdatePicking = async (
             throw error;
           });
 
-        if (transferOrder.assigned_to) {
+        if (transferOrder.assigned_to && transferOrder.assigned_to.length > 0) {
           const notificationParam = {
             title: "New Picking Assignment",
             body: `You have been assigned a picking task for Goods Delivery: ${gdData.delivery_no}. Transfer Order: ${transferOrder.to_id}`,

@@ -2021,367 +2021,354 @@ const createOrUpdatePicking = async (
     let pickingStatus = null;
 
     if (pickingSetupData) {
-      if (pickingSetupData.auto_trigger_to === 1) {
-        pickingStatus = "Created";
-      } else {
-        pickingStatus = "Not Created";
-      }
+      // For Picking Plan, ALWAYS create picking (ignore auto_trigger_to setting)
+      // This is different from Goods Delivery where auto_trigger_to is respected
+      pickingStatus = "Created";
 
-      if (pickingSetupData.auto_trigger_to === 1) {
-        // Check if we need to update existing Transfer Order
-        if (isUpdate) {
-          try {
-            // Find existing Transfer Order for this TO
-            const existingTOResponse = await db
-              .collection("transfer_order")
-              .where({
-                ref_doc_type: "Good Delivery",
-                to_no: toId,
-                movement_type: "Picking",
-                is_deleted: 0,
-              })
-              .get();
+      // Always create/update picking for Picking Plan
+      // Check if we need to update existing Transfer Order
+      if (isUpdate) {
+        try {
+          // Find existing Transfer Order for this TO
+          const existingTOResponse = await db
+            .collection("transfer_order")
+            .where({
+              ref_doc_type: "Picking Plan",
+              to_no: toId,
+              movement_type: "Picking",
+              is_deleted: 0,
+            })
+            .get();
 
-            if (existingTOResponse.data && existingTOResponse.data.length > 0) {
-              const existingTO = existingTOResponse.data[0];
-              console.log(`Found existing Transfer Order: ${existingTO.to_id}`);
+          if (existingTOResponse.data && existingTOResponse.data.length > 0) {
+            const existingTO = existingTOResponse.data[0];
+            console.log(`Found existing Transfer Order: ${existingTO.to_id}`);
 
-              // Prepare updated picking items with grouping for serialized items
-              const updatedPickingItemGroups = new Map();
+            // Prepare updated picking items with grouping for serialized items
+            const updatedPickingItemGroups = new Map();
 
-              toData.table_to.forEach((item, toLineIndex) => {
-                if (item.temp_qty_data && item.material_id) {
-                  try {
-                    const tempData = parseJsonSafely(item.temp_qty_data);
-
-                    tempData.forEach((tempItem) => {
-                      const materialId =
-                        tempItem.material_id || item.material_id;
-                      // Create a grouping key based on item, batch, location, and TO line index to prevent merging separate lines
-                      const groupKey = `${materialId}_${
-                        tempItem.batch_id || "no-batch"
-                      }_${tempItem.location_id}_line${toLineIndex}`;
-
-                      if (!updatedPickingItemGroups.has(groupKey)) {
-                        // Create new group
-                        updatedPickingItemGroups.set(groupKey, {
-                          item_code: String(materialId),
-                          item_name: item.material_name,
-                          item_desc: item.to_material_desc || "",
-                          batch_no: tempItem.batch_id
-                            ? String(tempItem.batch_id)
-                            : null,
-                          so_no: item.line_so_no,
-                          to_no: toData.to_no,
-                          so_id: item.line_so_id,
-                          so_line_id: item.so_line_item_id,
-                          to_id: toId,
-                          to_line_id: item.id,
-                          qty_to_pick: 0,
-                          item_uom: String(item.to_order_uom_id),
-                          source_bin: String(tempItem.location_id),
-                          pending_process_qty: 0,
-                          line_status: "Open",
-                          serial_numbers: [],
-                        });
-                      }
-
-                      const group = updatedPickingItemGroups.get(groupKey);
-                      group.qty_to_pick += parseFloat(tempItem.to_quantity);
-                      group.pending_process_qty += parseFloat(
-                        tempItem.to_quantity
-                      );
-
-                      // Add serial number if exists
-                      if (tempItem.serial_number) {
-                        group.serial_numbers.push(
-                          String(tempItem.serial_number)
-                        );
-                      }
-                    });
-                  } catch (error) {
-                    console.error(
-                      `Error parsing temp_qty_data for picking: ${error.message}`
-                    );
-                  }
-                }
-              });
-
-              // Convert grouped items to picking items array
-              const updatedPickingItems = [];
-              updatedPickingItemGroups.forEach((group) => {
-                // Format serial numbers with line breaks if any exist
-                if (group.serial_numbers.length > 0) {
-                  group.serial_numbers = group.serial_numbers.join(", ");
-                  group.is_serialized_item = 1;
-                } else {
-                  delete group.serial_numbers;
-                  group.is_serialized_item = 0;
-                }
-
-                updatedPickingItems.push(group);
-              });
-
-              let soNOs = [
-                ...new Set(updatedPickingItems.map((pi) => pi.so_no)),
-              ];
-
-              // Update the existing Transfer Order
-              await db
-                .collection("transfer_order")
-                .doc(existingTO.id)
-                .update({
-                  assigned_to: toData.assigned_to,
-                  table_picking_items: updatedPickingItems,
-                  updated_by: this.getVarGlobal("nickname"),
-                  updated_at: new Date().toISOString(),
-                  ref_doc: toData.to_ref_doc,
-                  so_no: soNOs.join(", "),
-                  customerIDs: [toData.customer_name],
-                })
-                .then(() => {
-                  console.log(
-                    `Transfer order ${existingTO.to_id} updated successfully`
-                  );
-                })
-                .catch((error) => {
-                  console.error("Error updating transfer order:", error);
-                  throw error;
-                });
-
-              // Notification handling (existing code remains the same)
-              if (existingTO.assigned_to && toData.assigned_to) {
-                const oldAssigned = Array.isArray(existingTO.assigned_to)
-                  ? existingTO.assigned_to
-                  : [existingTO.assigned_to];
-
-                const newAssigned = Array.isArray(toData.assigned_to)
-                  ? toData.assigned_to
-                  : [toData.assigned_to];
-
-                // Users who were removed
-                const removedUsers = oldAssigned.filter(
-                  (userId) => !newAssigned.includes(userId)
-                );
-
-                // Users who were added
-                const addedUsers = newAssigned.filter(
-                  (userId) => !oldAssigned.includes(userId)
-                );
-
-                console.log(`Removed users: ${removedUsers.join(", ")}`);
-                console.log(`Added users: ${addedUsers.join(", ")}`);
-
-                // Send cancellation notifications to removed users
-                const cancellationPromises = removedUsers.map(
-                  async (userId) => {
-                    const notificationParam = {
-                      title: "Picking Assignment Cancelled",
-                      body: `Your picking task for Transfer Order: ${existingTO.to_id} has been cancelled.`,
-                      userId: [userId],
-                      data: {
-                        docId: existingTO.to_id,
-                        deepLink: `sudumobileexpo://picking/batch/${existingTO.to_id}`,
-                        action: "cancelled",
-                      },
-                    };
-
-                    try {
-                      await sendNotification(notificationParam);
-                      console.log(
-                        `Cancellation notification sent to user: ${userId}`
-                      );
-                    } catch (error) {
-                      console.error(
-                        `Failed to send cancellation notification to ${userId}:`,
-                        error
-                      );
-                    }
-                  }
-                );
-
-                // Send new assignment notifications to added users
-                const assignmentPromises = addedUsers.map(async (userId) => {
-                  const notificationParam = {
-                    title: "New Picking Assignment",
-                    body: `You have been assigned a picking task for Picking Plan: ${toData.to_no}. Transfer Order: ${existingTO.to_id}`,
-                    userId: [userId],
-                    data: {
-                      docId: existingTO.to_id,
-                      deepLink: `sudumobileexpo://picking/batch/${existingTO.to_id}`,
-                      action: "assigned",
-                    },
-                  };
-
-                  try {
-                    await sendNotification(notificationParam);
-                    console.log(
-                      `Assignment notification sent to user: ${userId}`
-                    );
-                  } catch (error) {
-                    console.error(
-                      `Failed to send assignment notification to ${userId}:`,
-                      error
-                    );
-                  }
-                });
-
+            toData.table_to.forEach((item, toLineIndex) => {
+              if (item.temp_qty_data && item.material_id) {
                 try {
-                  await Promise.all([
-                    ...cancellationPromises,
-                    ...assignmentPromises,
-                  ]);
-                  console.log("All notifications sent successfully");
+                  const tempData = parseJsonSafely(item.temp_qty_data);
+
+                  tempData.forEach((tempItem) => {
+                    const materialId = tempItem.material_id || item.material_id;
+                    // Create a grouping key based on item, batch, location, and TO line index to prevent merging separate lines
+                    const groupKey = `${materialId}_${
+                      tempItem.batch_id || "no-batch"
+                    }_${tempItem.location_id}_line${toLineIndex}`;
+
+                    if (!updatedPickingItemGroups.has(groupKey)) {
+                      // Create new group
+                      updatedPickingItemGroups.set(groupKey, {
+                        item_code: String(materialId),
+                        item_name: item.material_name,
+                        item_desc: item.to_material_desc || "",
+                        batch_no: tempItem.batch_id
+                          ? String(tempItem.batch_id)
+                          : null,
+                        so_no: item.line_so_no,
+                        so_id: item.line_so_id,
+                        so_line_id: item.so_line_item_id,
+                        to_id: toId,
+                        to_line_id: item.id,
+                        customer_id: item.customer_id,
+                        qty_to_pick: 0,
+                        item_uom: String(item.to_order_uom_id),
+                        source_bin: String(tempItem.location_id),
+                        pending_process_qty: 0,
+                        line_status: "Open",
+                        serial_numbers: [],
+                      });
+                    }
+
+                    const group = updatedPickingItemGroups.get(groupKey);
+                    group.qty_to_pick += parseFloat(tempItem.to_quantity);
+                    group.pending_process_qty += parseFloat(
+                      tempItem.to_quantity
+                    );
+
+                    // Add serial number if exists
+                    if (tempItem.serial_number) {
+                      group.serial_numbers.push(String(tempItem.serial_number));
+                    }
+                  });
                 } catch (error) {
-                  console.error("Some notifications failed to send:", error);
+                  console.error(
+                    `Error parsing temp_qty_data for picking: ${error.message}`
+                  );
                 }
               }
+            });
 
-              return { pickingStatus };
-            } else {
-              console.log(
-                "No existing Transfer Order found for update, creating new one"
+            // Convert grouped items to picking items array
+            const updatedPickingItems = [];
+            updatedPickingItemGroups.forEach((group) => {
+              // Format serial numbers with line breaks if any exist
+              if (group.serial_numbers.length > 0) {
+                group.serial_numbers = group.serial_numbers.join(", ");
+                group.is_serialized_item = 1;
+              } else {
+                delete group.serial_numbers;
+                group.is_serialized_item = 0;
+              }
+
+              updatedPickingItems.push(group);
+            });
+
+            let soNOs = [...new Set(updatedPickingItems.map((pi) => pi.so_no))];
+
+            // Update the existing Transfer Order
+            await db
+              .collection("transfer_order")
+              .doc(existingTO.id)
+              .update({
+                assigned_to: toData.assigned_to,
+                table_picking_items: updatedPickingItems,
+                updated_by: this.getVarGlobal("nickname"),
+                updated_at: new Date().toISOString(),
+                ref_doc: toData.to_ref_doc,
+                so_no: soNOs.join(", "),
+                customer_id: toData.customer_name,
+              })
+              .then(() => {
+                console.log(
+                  `Transfer order ${existingTO.to_id} updated successfully`
+                );
+              })
+              .catch((error) => {
+                console.error("Error updating transfer order:", error);
+                throw error;
+              });
+
+            // Notification handling (existing code remains the same)
+            if (existingTO.assigned_to && toData.assigned_to) {
+              const oldAssigned = Array.isArray(existingTO.assigned_to)
+                ? existingTO.assigned_to
+                : [existingTO.assigned_to];
+
+              const newAssigned = Array.isArray(toData.assigned_to)
+                ? toData.assigned_to
+                : [toData.assigned_to];
+
+              // Users who were removed
+              const removedUsers = oldAssigned.filter(
+                (userId) => !newAssigned.includes(userId)
               );
-            }
-          } catch (error) {
-            console.error(
-              "Error checking/updating existing Transfer Order:",
-              error
-            );
-            throw error;
-          }
-        }
 
-        const transferOrder = {
-          to_status: "Created",
-          plant_id: toData.plant_id,
-          organization_id: organizationId,
-          movement_type: "Picking",
-          ref_doc_type: "Good Delivery",
-          to_no: toData.to_no,
-          so_no: toData.so_no,
-          customer_id: [toData.customer_name],
-          created_by: this.getVarGlobal("nickname"),
-          created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
-          ref_doc: toData.to_ref_doc,
-          assigned_to: toData.assigned_to,
-          table_picking_items: [],
-          is_deleted: 0,
-        };
+              // Users who were added
+              const addedUsers = newAssigned.filter(
+                (userId) => !oldAssigned.includes(userId)
+              );
 
-        // Process table items with grouping for serialized items
-        const pickingItemGroups = new Map();
+              console.log(`Removed users: ${removedUsers.join(", ")}`);
+              console.log(`Added users: ${addedUsers.join(", ")}`);
 
-        toData.table_to.forEach((item, toLineIndex) => {
-          if (item.temp_qty_data && item.material_id) {
-            try {
-              const tempData = parseJsonSafely(item.temp_qty_data);
+              // Send cancellation notifications to removed users
+              const cancellationPromises = removedUsers.map(async (userId) => {
+                const notificationParam = {
+                  title: "Picking Assignment Cancelled",
+                  body: `Your picking task for Transfer Order: ${existingTO.to_id} has been cancelled.`,
+                  userId: [userId],
+                  data: {
+                    docId: existingTO.to_id,
+                    deepLink: `sudumobileexpo://picking/batch/${existingTO.to_id}`,
+                    action: "cancelled",
+                  },
+                };
 
-              tempData.forEach((tempItem) => {
-                // Create a grouping key based on item, batch, location, and TO line index to prevent merging separate lines
-                const groupKey = `${item.material_id}_${
-                  tempItem.batch_id || "no-batch"
-                }_${tempItem.location_id}_line${toLineIndex}`;
-
-                if (!pickingItemGroups.has(groupKey)) {
-                  // Create new group
-                  pickingItemGroups.set(groupKey, {
-                    item_code: item.material_id,
-                    item_name: item.material_name,
-                    item_desc: item.to_material_desc || "",
-                    batch_no: tempItem.batch_id
-                      ? String(tempItem.batch_id)
-                      : null,
-                    item_batch_id: tempItem.batch_id
-                      ? String(tempItem.batch_id)
-                      : null,
-                    qty_to_pick: 0,
-                    item_uom: String(item.to_order_uom_id),
-                    pending_process_qty: 0,
-                    source_bin: String(tempItem.location_id),
-                    line_status: "Open",
-                    so_no: item.line_so_no,
-                    so_id: item.line_so_id,
-                    so_line_id: item.so_line_item_id,
-                    to_id: toId,
-                    to_line_id: item.id,
-                    customer_id: item.customer_id,
-                    serial_numbers: [],
-                  });
-                }
-
-                const group = pickingItemGroups.get(groupKey);
-                group.qty_to_pick += parseFloat(tempItem.to_quantity);
-                group.pending_process_qty += parseFloat(tempItem.to_quantity);
-
-                // Add serial number if exists
-                if (tempItem.serial_number) {
-                  group.serial_numbers.push(String(tempItem.serial_number));
+                try {
+                  await sendNotification(notificationParam);
+                  console.log(
+                    `Cancellation notification sent to user: ${userId}`
+                  );
+                } catch (error) {
+                  console.error(
+                    `Failed to send cancellation notification to ${userId}:`,
+                    error
+                  );
                 }
               });
-            } catch (error) {
-              console.error(
-                `Error parsing temp_qty_data for new TO: ${error.message}`
-              );
+
+              // Send new assignment notifications to added users
+              const assignmentPromises = addedUsers.map(async (userId) => {
+                const notificationParam = {
+                  title: "New Picking Assignment",
+                  body: `You have been assigned a picking task for Picking Plan: ${toData.to_no}. Transfer Order: ${existingTO.to_id}`,
+                  userId: [userId],
+                  data: {
+                    docId: existingTO.to_id,
+                    deepLink: `sudumobileexpo://picking/batch/${existingTO.to_id}`,
+                    action: "assigned",
+                  },
+                };
+
+                try {
+                  await sendNotification(notificationParam);
+                  console.log(
+                    `Assignment notification sent to user: ${userId}`
+                  );
+                } catch (error) {
+                  console.error(
+                    `Failed to send assignment notification to ${userId}:`,
+                    error
+                  );
+                }
+              });
+
+              try {
+                await Promise.all([
+                  ...cancellationPromises,
+                  ...assignmentPromises,
+                ]);
+                console.log("All notifications sent successfully");
+              } catch (error) {
+                console.error("Some notifications failed to send:", error);
+              }
             }
-          }
-        });
 
-        // Convert grouped items to picking items array
-        pickingItemGroups.forEach((group) => {
-          // Format serial numbers with line breaks if any exist
-          if (group.serial_numbers.length > 0) {
-            group.serial_numbers = group.serial_numbers.join(", ");
-            group.is_serialized_item = 1;
+            return { pickingStatus };
           } else {
-            delete group.serial_numbers;
-            group.is_serialized_item = 0;
+            console.log(
+              "No existing Transfer Order found for update, creating new one"
+            );
           }
+        } catch (error) {
+          console.error(
+            "Error checking/updating existing Transfer Order:",
+            error
+          );
+          throw error;
+        }
+      }
 
-          transferOrder.table_picking_items.push(group);
-        });
+      const transferOrder = {
+        to_status: "Created",
+        plant_id: toData.plant_id,
+        organization_id: organizationId,
+        movement_type: "Picking",
+        ref_doc_type: "Picking Plan",
+        to_no: toData.to_no,
+        so_no: toData.so_no,
+        customer_id: toData.customer_name,
+        created_by: this.getVarGlobal("nickname"),
+        created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+        ref_doc: toData.to_ref_doc,
+        assigned_to: toData.assigned_to,
+        table_picking_items: [],
+        is_deleted: 0,
+      };
 
-        const prefixData = await getPrefixData(
+      // Process table items with grouping for serialized items
+      const pickingItemGroups = new Map();
+
+      toData.table_to.forEach((item, toLineIndex) => {
+        if (item.temp_qty_data && item.material_id) {
+          try {
+            const tempData = parseJsonSafely(item.temp_qty_data);
+
+            tempData.forEach((tempItem) => {
+              // Create a grouping key based on item, batch, location, and TO line index to prevent merging separate lines
+              const groupKey = `${item.material_id}_${
+                tempItem.batch_id || "no-batch"
+              }_${tempItem.location_id}_line${toLineIndex}`;
+
+              if (!pickingItemGroups.has(groupKey)) {
+                // Create new group
+                pickingItemGroups.set(groupKey, {
+                  item_code: item.material_id,
+                  item_name: item.material_name,
+                  item_desc: item.to_material_desc || "",
+                  batch_no: tempItem.batch_id
+                    ? String(tempItem.batch_id)
+                    : null,
+                  item_batch_id: tempItem.batch_id
+                    ? String(tempItem.batch_id)
+                    : null,
+                  qty_to_pick: 0,
+                  item_uom: String(item.to_order_uom_id),
+                  pending_process_qty: 0,
+                  source_bin: String(tempItem.location_id),
+                  line_status: "Open",
+                  so_no: item.line_so_no,
+                  so_id: item.line_so_id,
+                  so_line_id: item.so_line_item_id,
+                  to_id: toId,
+                  to_line_id: item.id,
+                  customer_id: item.customer_id,
+                  serial_numbers: [],
+                });
+              }
+
+              const group = pickingItemGroups.get(groupKey);
+              group.qty_to_pick += parseFloat(tempItem.to_quantity);
+              group.pending_process_qty += parseFloat(tempItem.to_quantity);
+
+              // Add serial number if exists
+              if (tempItem.serial_number) {
+                group.serial_numbers.push(String(tempItem.serial_number));
+              }
+            });
+          } catch (error) {
+            console.error(
+              `Error parsing temp_qty_data for new TO: ${error.message}`
+            );
+          }
+        }
+      });
+
+      // Convert grouped items to picking items array
+      pickingItemGroups.forEach((group) => {
+        // Format serial numbers with line breaks if any exist
+        if (group.serial_numbers.length > 0) {
+          group.serial_numbers = group.serial_numbers.join(", ");
+          group.is_serialized_item = 1;
+        } else {
+          delete group.serial_numbers;
+          group.is_serialized_item = 0;
+        }
+
+        transferOrder.table_picking_items.push(group);
+      });
+
+      const prefixData = await getPrefixData(organizationId, "Transfer Order");
+
+      if (prefixData) {
+        const { prefixToShow, runningNumber } = await findUniquePrefix(
+          prefixData,
           organizationId,
-          "Transfer Order"
+          "transfer_order",
+          "to_id"
         );
 
-        if (prefixData) {
-          const { prefixToShow, runningNumber } = await findUniquePrefix(
-            prefixData,
-            organizationId,
-            "transfer_order",
-            "to_id"
-          );
+        await updatePrefix(organizationId, runningNumber, "Transfer Order");
+        transferOrder.to_id = prefixToShow;
+      }
 
-          await updatePrefix(organizationId, runningNumber, "Transfer Order");
-          transferOrder.to_id = prefixToShow;
-        }
+      await db
+        .collection("transfer_order")
+        .add(transferOrder)
+        .then((res) => {
+          console.log("Transfer order created:", res.id);
+        })
+        .catch((error) => {
+          console.error("Error creating transfer order:", error);
+          throw error;
+        });
 
-        await db
-          .collection("transfer_order")
-          .add(transferOrder)
-          .then((res) => {
-            console.log("Transfer order created:", res.id);
-          })
-          .catch((error) => {
-            console.error("Error creating transfer order:", error);
-            throw error;
-          });
+      if (transferOrder.assigned_to && transferOrder.assigned_to.length > 0) {
+        const notificationParam = {
+          title: "New Picking Assignment",
+          body: `You have been assigned a picking task for Picking Plan: ${toData.to_no}. Transfer Order: ${transferOrder.to_id}`,
+          userId: transferOrder.assigned_to,
+          data: {
+            docId: transferOrder.to_id,
+            deepLink: `sudumobileexpo://picking/batch/${transferOrder.to_id}`,
+          },
+        };
 
-        if (transferOrder.assigned_to) {
-          const notificationParam = {
-            title: "New Picking Assignment",
-            body: `You have been assigned a picking task for Picking Plan: ${toData.to_no}. Transfer Order: ${transferOrder.to_id}`,
-            userId: transferOrder.assigned_to,
-            data: {
-              docId: transferOrder.to_id,
-              deepLink: `sudumobileexpo://picking/batch/${transferOrder.to_id}`,
-            },
-          };
-
-          await sendNotification(notificationParam);
-        }
+        await sendNotification(notificationParam);
       }
     }
 
