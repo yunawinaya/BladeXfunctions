@@ -1165,8 +1165,172 @@ const createInventoryReadjustmentMovements = async (
         });
 
         console.log(
-          `Created PP IN movement to Unrestricted: ${baseQty} base qty`
+          `Created PP-ADJ IN movement to Unrestricted: ${baseQty} base qty`
         );
+
+        // Update balance tables based on item type
+        if (isSerializedItem) {
+          // For serialized items: Update aggregate item_balance (without batch_id)
+          const aggregateBalanceParams = {
+            material_id: ppLineItem.material_id,
+            location_id: originalTemp.location_id,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+          // Note: Don't include batch_id for aggregate balance, even if item has batches
+
+          const aggregateBalanceQuery = await db
+            .collection("item_balance")
+            .where(aggregateBalanceParams)
+            .get();
+
+          if (aggregateBalanceQuery.data && aggregateBalanceQuery.data.length > 0) {
+            const aggregateDoc = aggregateBalanceQuery.data[0];
+            const currentUnrestrictedQty = roundQty(
+              parseFloat(aggregateDoc.unrestricted_qty || 0)
+            );
+            const currentReservedQty = roundQty(
+              parseFloat(aggregateDoc.reserved_qty || 0)
+            );
+            const currentBalanceQty = roundQty(
+              parseFloat(aggregateDoc.balance_quantity || 0)
+            );
+
+            // Move quantity from Reserved back to Unrestricted
+            const finalUnrestrictedQty = roundQty(
+              currentUnrestrictedQty + baseQty
+            );
+            const finalReservedQty = roundQty(currentReservedQty - baseQty);
+            // balance_quantity stays the same
+
+            await db
+              .collection("item_balance")
+              .doc(aggregateDoc.id)
+              .update({
+                unrestricted_qty: finalUnrestrictedQty,
+                reserved_qty: finalReservedQty,
+                balance_quantity: currentBalanceQty,
+              });
+
+            console.log(
+              `Updated aggregate item_balance for serialized item: moved ${baseQty} from Reserved (${currentReservedQty}→${finalReservedQty}) to Unrestricted (${currentUnrestrictedQty}→${finalUnrestrictedQty})`
+            );
+          } else {
+            console.warn(
+              `Aggregate item_balance not found for serialized item ${ppLineItem.material_id} at location ${originalTemp.location_id}`
+            );
+          }
+        } else {
+          // For non-serialized items: Update item_balance or item_batch_balance
+          const itemBalanceParams = {
+            material_id: ppLineItem.material_id,
+            location_id: originalTemp.location_id,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+
+          if (originalTemp.batch_id) {
+            itemBalanceParams.batch_id = originalTemp.batch_id;
+          }
+
+          const balanceCollection = originalTemp.batch_id
+            ? "item_batch_balance"
+            : "item_balance";
+
+          const balanceQuery = await db
+            .collection(balanceCollection)
+            .where(itemBalanceParams)
+            .get();
+
+          if (balanceQuery.data && balanceQuery.data.length > 0) {
+            const existingDoc = balanceQuery.data[0];
+            const currentUnrestrictedQty = roundQty(
+              parseFloat(existingDoc.unrestricted_qty || 0)
+            );
+            const currentReservedQty = roundQty(
+              parseFloat(existingDoc.reserved_qty || 0)
+            );
+
+            // Move quantity from Reserved back to Unrestricted
+            const finalUnrestrictedQty = roundQty(
+              currentUnrestrictedQty + baseQty
+            );
+            const finalReservedQty = roundQty(currentReservedQty - baseQty);
+
+            await db
+              .collection(balanceCollection)
+              .doc(existingDoc.id)
+              .update({
+                unrestricted_qty: finalUnrestrictedQty,
+                reserved_qty: finalReservedQty,
+              });
+
+            console.log(
+              `Updated ${balanceCollection}: moved ${baseQty} from Reserved (${currentReservedQty}→${finalReservedQty}) to Unrestricted (${currentUnrestrictedQty}→${finalUnrestrictedQty})`
+            );
+
+            // For batch items, also update aggregate item_balance
+            if (balanceCollection === "item_batch_balance" && originalTemp.batch_id) {
+              const aggregateBatchBalanceParams = {
+                material_id: ppLineItem.material_id,
+                location_id: originalTemp.location_id,
+                plant_id: plantId,
+                organization_id: organizationId,
+              };
+              // Don't include batch_id for aggregate balance
+
+              const aggregateBatchBalanceQuery = await db
+                .collection("item_balance")
+                .where(aggregateBatchBalanceParams)
+                .get();
+
+              if (
+                aggregateBatchBalanceQuery.data &&
+                aggregateBatchBalanceQuery.data.length > 0
+              ) {
+                const aggregateBatchDoc = aggregateBatchBalanceQuery.data[0];
+                const currentAggUnrestrictedQty = roundQty(
+                  parseFloat(aggregateBatchDoc.unrestricted_qty || 0)
+                );
+                const currentAggReservedQty = roundQty(
+                  parseFloat(aggregateBatchDoc.reserved_qty || 0)
+                );
+                const currentAggBalanceQty = roundQty(
+                  parseFloat(aggregateBatchDoc.balance_quantity || 0)
+                );
+
+                // Move from Reserved back to Unrestricted
+                const finalAggUnrestrictedQty = roundQty(
+                  currentAggUnrestrictedQty + baseQty
+                );
+                const finalAggReservedQty = roundQty(
+                  currentAggReservedQty - baseQty
+                );
+
+                await db
+                  .collection("item_balance")
+                  .doc(aggregateBatchDoc.id)
+                  .update({
+                    unrestricted_qty: finalAggUnrestrictedQty,
+                    reserved_qty: finalAggReservedQty,
+                    balance_quantity: currentAggBalanceQty,
+                  });
+
+                console.log(
+                  `Updated aggregate item_balance for batch item: moved ${baseQty} from Reserved (${currentAggReservedQty}→${finalAggReservedQty}) to Unrestricted (${currentAggUnrestrictedQty}→${finalAggUnrestrictedQty})`
+                );
+              } else {
+                console.warn(
+                  `Aggregate item_balance not found for batch item ${ppLineItem.material_id} at location ${originalTemp.location_id}`
+                );
+              }
+            }
+          } else {
+            console.warn(
+              `${balanceCollection} record not found for material ${ppLineItem.material_id} at location ${originalTemp.location_id}`
+            );
+          }
+        }
 
         // Handle serialized items - create inv_serial_movement records
         if (isSerializedItem && originalTemp.serial_number) {
@@ -1251,6 +1415,59 @@ const createInventoryReadjustmentMovements = async (
             console.log(
               `Created inv_serial_movement records for ${serialNumbers.length} serial numbers`
             );
+
+            // Update item_serial_balance for each serial number
+            for (const serialNumber of serialNumbers) {
+              const serialBalanceParams = {
+                material_id: ppLineItem.material_id,
+                serial_number: serialNumber,
+                plant_id: plantId,
+                organization_id: organizationId,
+                location_id: originalTemp.location_id,
+              };
+
+              // Add batch_id if item has batch management
+              if (originalTemp.batch_id) {
+                serialBalanceParams.batch_id = originalTemp.batch_id;
+              }
+
+              const serialBalanceQuery = await db
+                .collection("item_serial_balance")
+                .where(serialBalanceParams)
+                .get();
+
+              if (serialBalanceQuery.data && serialBalanceQuery.data.length > 0) {
+                const serialDoc = serialBalanceQuery.data[0];
+                const currentUnrestrictedQty = roundQty(
+                  parseFloat(serialDoc.unrestricted_qty || 0)
+                );
+                const currentReservedQty = roundQty(
+                  parseFloat(serialDoc.reserved_qty || 0)
+                );
+
+                // Move 1 unit from Reserved back to Unrestricted (serial = 1 qty)
+                const finalUnrestrictedQty = roundQty(
+                  currentUnrestrictedQty + 1
+                );
+                const finalReservedQty = roundQty(currentReservedQty - 1);
+
+                await db
+                  .collection("item_serial_balance")
+                  .doc(serialDoc.id)
+                  .update({
+                    unrestricted_qty: finalUnrestrictedQty,
+                    reserved_qty: finalReservedQty,
+                  });
+
+                console.log(
+                  `Updated item_serial_balance for ${serialNumber}: Reserved ${currentReservedQty}→${finalReservedQty}, Unrestricted ${currentUnrestrictedQty}→${finalUnrestrictedQty}`
+                );
+              } else {
+                console.warn(
+                  `item_serial_balance not found for serial ${serialNumber}`
+                );
+              }
+            }
           }
         }
       }
