@@ -1,3 +1,27 @@
+/*
+ * IMPORTANT NOTE: Variable Naming Convention
+ * ==========================================
+ * Throughout this file, variable names containing "delivered" (e.g., deliveredQty,
+ * deliveredQtyFromSource, to_delivered_qty, to_undelivered_qty) actually represent
+ * "PLANNED" quantities for Picking Plan, NOT delivered quantities.
+ *
+ * Why? This code is inherited from Goods Delivery (GD) module. To minimize risk and
+ * reduce changes, we kept the original variable names but changed the data source:
+ *
+ * - Source Data: soItem.planned_qty (from Sales Order)
+ * - Internal Variables: deliveredQtyFromSource (represents already planned qty)
+ * - Calculations: undeliveredQty = orderedQty - deliveredQty (actually: available to plan)
+ * - Display Fields: to_delivered_qty (shows already planned quantity)
+ *
+ * Example Flow:
+ * - SO has so_quantity = 100, planned_qty = 30
+ * - deliveredQtyFromSource = 30 (reads from planned_qty)
+ * - undeliveredQty = 100 - 30 = 70 (available to plan)
+ * - User can create PP for up to 70 units
+ *
+ * See PPsaveAsCreated.js for how planned_qty gets updated when PP is saved.
+ */
+
 const checkInventoryWithDuplicates = async (
   allItems,
   plantId,
@@ -1714,6 +1738,7 @@ const createTableToWithBaseUOM = async (allItems) => {
         to_material_desc: item.itemDesc || "",
         to_order_quantity: item.orderedQty,
         to_delivered_qty: item.deliveredQtyFromSource,
+        // Calculate available to plan: SO quantity - already planned quantity
         to_undelivered_qty: item.orderedQty - item.sourceItem.planned_qty,
         to_order_uom_id: item.altUOM,
         to_uom_id: item.altUOM,
@@ -1814,6 +1839,8 @@ const createTableToWithBaseUOM = async (allItems) => {
             orderedQty: parseFloat(soItem.so_quantity || 0),
             altUOM: soItem.so_item_uom || "",
             sourceItem: soItem,
+            // NOTE: deliveredQtyFromSource reads from planned_qty (not delivered_qty)
+            // This represents how much has already been planned in other Picking Plans
             deliveredQtyFromSource: parseFloat(soItem.planned_qty || 0),
             original_so_id: so.sales_order_id,
             so_no: so.sales_order_number,
@@ -1834,6 +1861,8 @@ const createTableToWithBaseUOM = async (allItems) => {
           orderedQty: parseFloat(soItem.so_quantity || 0),
           altUOM: soItem.so_item_uom || "",
           sourceItem: soItem,
+          // NOTE: deliveredQtyFromSource reads from planned_qty (not delivered_qty)
+          // This represents how much has already been planned in other Picking Plans
           deliveredQtyFromSource: parseFloat(soItem.planned_qty || 0),
           original_so_id: soItem.sales_order.id,
           so_no: soItem.sales_order.so_no,
@@ -1845,6 +1874,9 @@ const createTableToWithBaseUOM = async (allItems) => {
   }
 
   console.log("allItems", allItems);
+  // Filter out items that are:
+  // 1. Fully planned (planned_qty === so_quantity)
+  // 2. Already in the current Picking Plan (existingTO)
   allItems = allItems.filter(
     (to) =>
       to.deliveredQtyFromSource !== to.orderedQty &&
