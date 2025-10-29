@@ -713,6 +713,7 @@ const updatePickingPlanWithPickedQty = async (ppId, pickingRecords) => {
 // Update on_reserved_gd records to reflect actual picked quantities
 const updateOnReservedForPartialPicking = async (
   ppNo,
+  plantId,
   organizationId,
   ppLineItems
 ) => {
@@ -788,7 +789,7 @@ const updateOnReservedForPartialPicking = async (
             .toISOString()
             .slice(0, 19)
             .replace("T", " "),
-          plant_id: ppLineItem.plant_id,
+          plant_id: plantId,
           organization_id: organizationId,
         };
 
@@ -1319,7 +1320,6 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
       movement_type: data.movement_type,
       customer_id: data.customer_id,
       ref_doc_type: data.ref_doc_type,
-      pp_id: data.pp_id,
       so_no: data.so_no,
       assigned_to: data.assigned_to,
       created_by: data.created_by,
@@ -1340,46 +1340,76 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
       }
     });
 
-    const toId = data.id;
-    const ppId = data.pp_id;
-    const ppNo = data.to_no;
+    const toId = data.id; // Transfer Order (Picking) document ID
     const plantId = data.plant_id;
 
     await updateEntry(toData, toId);
 
-    // Call the new force complete functions
-    console.log("Starting force complete processing...");
+    // For Picking Plan transfers, we need to fetch PP data using the TO's to_no field
+    // The Transfer Order's to_no field stores the PP's to_no
+    if (data.ref_doc_type === "Picking Plan" && data.to_no) {
+      console.log("Starting force complete processing for Picking Plan...");
+      console.log("Transfer Order to_no (PP to_no):", data.to_no);
 
-    // Step 1: Update Picking Plan with actual picked quantities
-    const { ppDataUpdated, ppLineItems } = await updatePickingPlanWithPickedQty(
-      ppId,
-      toData.table_picking_records
-    );
+      // Fetch Picking Plan using the to_no stored in Transfer Order
+      const ppResponse = await db
+        .collection("picking_plan")
+        .where({
+          to_no: data.to_no,
+          organization_id: organizationId,
+          is_deleted: 0,
+        })
+        .get();
 
-    if (ppDataUpdated) {
-      console.log("Picking Plan updated with partial quantities");
+      if (!ppResponse.data || ppResponse.data.length === 0) {
+        console.warn(
+          `Picking Plan with to_no ${data.to_no} not found, skipping force complete`
+        );
+      } else {
+        const ppData = ppResponse.data[0];
+        const ppId = ppData.id;
+        const ppNo = ppData.to_no;
 
-      // Step 2: Update on_reserved_gd records
-      await updateOnReservedForPartialPicking(
-        ppNo,
-        organizationId,
-        ppLineItems
-      );
+        console.log(`Found Picking Plan: ID=${ppId}, to_no=${ppNo}`);
 
-      // Step 3: Create inventory readjustment movements
-      await createInventoryReadjustmentMovements(
-        ppNo,
-        ppLineItems,
-        plantId,
-        organizationId
-      );
+        // Step 1: Update Picking Plan with actual picked quantities
+        const { ppDataUpdated, ppLineItems } =
+          await updatePickingPlanWithPickedQty(
+            ppId,
+            toData.table_picking_records
+          );
 
-      // Step 4: Reverse unrealized planned_qty in Sales Orders
-      await reversePlannedQtyInSO(ppLineItems);
+        if (ppDataUpdated) {
+          console.log("Picking Plan updated with partial quantities");
 
-      console.log("Force complete processing completed successfully");
+          // Step 2: Update on_reserved_gd records
+          await updateOnReservedForPartialPicking(
+            ppNo,
+            plantId,
+            organizationId,
+            ppLineItems
+          );
+
+          // Step 3: Create inventory readjustment movements
+          await createInventoryReadjustmentMovements(
+            ppNo,
+            ppLineItems,
+            plantId,
+            organizationId
+          );
+
+          // Step 4: Reverse unrealized planned_qty in Sales Orders
+          await reversePlannedQtyInSO(ppLineItems);
+
+          console.log("Force complete processing completed successfully");
+        } else {
+          console.log(
+            "No partial picking detected, skipping force complete logic"
+          );
+        }
+      }
     } else {
-      console.log("No partial picking detected, skipping force complete logic");
+      console.log("Not a Picking Plan transfer, skipping force complete logic");
     }
 
     // Success message with status information
