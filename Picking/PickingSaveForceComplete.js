@@ -1456,17 +1456,17 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
 
     await updateEntry(toData, toId);
 
-    // For Picking Plan transfers, we need to fetch PP data using the TO's to_no field
-    // The Transfer Order's to_no field stores the PP's to_no
-    if (data.ref_doc_type === "Picking Plan" && data.to_no) {
+    // For Picking Plan transfers, we need to fetch PP data using the TO's to_id field
+    // The Transfer Order's to_id field stores the same number as PP's to_no
+    if (data.ref_doc_type === "Picking Plan" && data.to_id) {
       console.log("Starting force complete processing for Picking Plan...");
-      console.log("Transfer Order to_no (PP to_no):", data.to_no);
+      console.log("Transfer Order to_id (PP to_no):", data.to_id);
 
-      // Fetch Picking Plan using the to_no stored in Transfer Order
+      // Fetch Picking Plan using the to_id (which matches PP's to_no)
       const ppResponse = await db
         .collection("picking_plan")
         .where({
-          to_no: data.to_no,
+          to_no: data.to_id,
           organization_id: organizationId,
           is_deleted: 0,
         })
@@ -1474,7 +1474,7 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
 
       if (!ppResponse.data || ppResponse.data.length === 0) {
         console.warn(
-          `Picking Plan with to_no ${data.to_no} not found, skipping force complete`
+          `Picking Plan with to_no ${data.to_id} not found, skipping force complete`
         );
       } else {
         const ppData = ppResponse.data[0];
