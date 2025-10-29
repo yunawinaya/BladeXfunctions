@@ -106,7 +106,7 @@ const calculateLeftoverSerialNumbers = (item) => {
 };
 
 // Enhanced quantity validation and line status determination
-const validateAndUpdateLineStatuses = (pickingItems) => {
+const validateAndUpdateTablePickingItems = (pickingItems) => {
   const errors = [];
   const updatedItems = pickingItems;
 
@@ -119,7 +119,7 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
 
     console.log(
       `Item ${
-        item.item_id || index
+        item.item_name || index
       }: qtyToPick=${qtyToPick}, pendingProcessQty=${pendingProcessQty}, pickedQty=${pickedQty}`
     );
 
@@ -127,7 +127,7 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
     if (pickedQty < 0) {
       errors.push(
         `Picked quantity cannot be negative for item ${
-          item.item_id || `#${index + 1}`
+          item.item_name || `#${index + 1}`
         }`
       );
       continue;
@@ -136,28 +136,16 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
     if (pickedQty > pendingProcessQty) {
       errors.push(
         `Picked quantity (${pickedQty}) cannot be greater than quantity to pick (${pendingProcessQty}) for item ${
-          item.item_id || `#${index + 1}`
+          item.item_name || `#${index + 1}`
         }`
       );
       continue;
     }
 
-    // Determine line status based on quantities
-    let lineStatus;
-    if (item.line_status === "Cancelled") {
-      lineStatus = "Cancelled";
-    } else if (pickedQty === 0 && pendingProcessQty > 0) {
-      lineStatus = "Open";
-    } else if (pickedQty === pendingProcessQty) {
-      lineStatus = "Completed";
-    } else if (pickedQty < pendingProcessQty) {
-      lineStatus = "In Progress";
-    }
-
     // Calculate pending process quantity
     const pending_process_qty = pendingProcessQty - pickedQty;
 
-    updatedItems[index].line_status = lineStatus;
+    updatedItems[index].line_status = "Completed";
     updatedItems[index].pending_process_qty = pending_process_qty;
 
     // Update serial numbers for serialized items - calculate leftover serial numbers
@@ -165,21 +153,17 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
       const leftoverSerialNumbers = calculateLeftoverSerialNumbers(item);
       updatedItems[index].serial_numbers = leftoverSerialNumbers;
       console.log(
-        `Updated serial_numbers for partially processed item ${
-          item.item_code || item.item_id
-        }: "${leftoverSerialNumbers}"`
+        `Updated serial_numbers for partially processed item ${item.item_name}: "${leftoverSerialNumbers}"`
       );
     } else if (item.is_serialized_item === 1 && pending_process_qty === 0) {
       // If fully processed, clear serial numbers
       updatedItems[index].serial_numbers = "";
       console.log(
-        `Cleared serial_numbers for fully processed item ${
-          item.item_code || item.item_id
-        }`
+        `Cleared serial_numbers for fully processed item ${item.item_name}`
       );
     }
 
-    console.log(`Item ${item.item_id || index} line status: ${lineStatus}`);
+    console.log(`Item ${item.item_name || index} line status: Completed`);
   }
 
   return { updatedItems, errors };
@@ -211,7 +195,6 @@ const updateEntry = async (toData, toId) => {
       if (item.select_serial_number) {
         item.select_serial_number = null;
       }
-      item.line_status = "Completed";
     }
 
     await db.collection("transfer_order").doc(toId).update(toData);
@@ -389,7 +372,7 @@ const createPickingRecord = async (toData) => {
     console.log("Table Picking Items:", tablePickingItems);
     // Validate quantities and update line statuses
     const { updatedItems, errors } =
-      validateAndUpdateLineStatuses(tablePickingItems);
+      validateAndUpdateTablePickingItems(tablePickingItems);
 
     console.log("Updated items:", updatedItems);
 
