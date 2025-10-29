@@ -1847,7 +1847,7 @@ const addEntry = async (organizationId, to) => {
       throw new Error("Failed to retrieve created picking plan record");
     }
 
-    await createOnReserveGoodsDelivery(organizationId, to);
+    await createOnReservePickingPlan(organizationId, to);
 
     const toId = createdRecord.data[0].id;
     console.log("Picking plan created successfully with ID:", toId);
@@ -1928,9 +1928,9 @@ const updateEntry = async (organizationId, to, pickingPlanId, toStatus) => {
     }
 
     if (toStatus === "Draft" && to.to_status === "Created") {
-      await createOnReserveGoodsDelivery(organizationId, to);
+      await createOnReservePickingPlan(organizationId, to);
     } else if (toStatus === "Created" && to.to_status === "Created") {
-      await updateOnReserveGoodsDelivery(organizationId, to);
+      await updateOnReservePickingPlan(organizationId, to);
     }
 
     console.log("Picking plan updated successfully");
@@ -2379,7 +2379,7 @@ const createOrUpdatePicking = async (
   }
 };
 
-const createOnReserveGoodsDelivery = async (organizationId, toData) => {
+const createOnReservePickingPlan = async (organizationId, toData) => {
   try {
     const reservedDataBatch = [];
 
@@ -2401,7 +2401,7 @@ const createOnReserveGoodsDelivery = async (organizationId, toData) => {
         const soNumber = toLineItem.line_so_no || toData.so_no;
 
         const reservedRecord = {
-          doc_type: "Good Delivery",
+          doc_type: "Picking Plan",
           parent_no: soNumber,
           doc_no: toData.to_no,
           material_id: toLineItem.material_id,
@@ -2440,17 +2440,20 @@ const createOnReserveGoodsDelivery = async (organizationId, toData) => {
 
     await Promise.all(createPromises);
     console.log(
-      `Created ${reservedDataBatch.length} reserved goods records (including serialized items)`
+      `Created ${reservedDataBatch.length} reserved picking plan records (including serialized items)`
     );
   } catch (error) {
-    console.error("Error in createOnReserveGoodsDelivery:", error);
+    console.error("Error in createOnReservePickingPlan:", error);
     throw error;
   }
 };
 
-const updateOnReserveGoodsDelivery = async (organizationId, toData) => {
+const updateOnReservePickingPlan = async (organizationId, toData) => {
   try {
-    console.log("Updating on_reserved_gd records for delivery:", toData.to_no);
+    console.log(
+      "Updating on_reserved_gd records for picking plan:",
+      toData.to_no
+    );
 
     // Get existing records for this TO
     const existingReserved = await db
@@ -2563,10 +2566,10 @@ const updateOnReserveGoodsDelivery = async (organizationId, toData) => {
     } else {
       // No existing records, create new ones
       console.log("No existing records found, creating new ones");
-      await createOnReserveGoodsDelivery(organizationId, toData);
+      await createOnReservePickingPlan(organizationId, toData);
     }
 
-    console.log("Updated reserved goods records successfully");
+    console.log("Updated reserved picking plan records successfully");
   } catch (error) {
     console.error("Error updating reserved picking plan:", error);
     throw error;
