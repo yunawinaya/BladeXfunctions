@@ -205,7 +205,10 @@ const viewSerialNumber = async () => {
   if (table_picking_items.length > 0) {
     for (const picking of table_picking_items) {
       if (picking.is_serialized_item === 1) {
-        await this.display("table_picking_items.select_serial_number");
+        await this.display([
+          "table_picking_items.select_serial_number",
+          "table_picking_items.serial_numbers",
+        ]);
       }
     }
   }

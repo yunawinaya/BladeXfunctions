@@ -2456,7 +2456,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, toData) => {
     const existingReserved = await db
       .collection("on_reserved_gd")
       .where({
-        doc_type: "Good Delivery",
+        doc_type: "Picking Plan",
         doc_no: toData.to_no,
         organization_id: organizationId,
       })
@@ -2471,7 +2471,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, toData) => {
         const tempItem = temp_qty_data[j];
 
         const reservedRecord = {
-          doc_type: "Good Delivery",
+          doc_type: "Picking Plan",
           parent_no: toLineItem.line_so_no,
           doc_no: toData.to_no,
           material_id: toLineItem.material_id,
