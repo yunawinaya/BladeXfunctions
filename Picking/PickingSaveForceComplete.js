@@ -408,7 +408,9 @@ const updateTransferOrderPickingItems = async (toId, pickingRecords) => {
     }
 
     console.log(
-      `Updated picking items: ${updatedPickingItems.length} items (removed ${pickingItems.length - updatedPickingItems.length} unpicked items)`
+      `Updated picking items: ${updatedPickingItems.length} items (removed ${
+        pickingItems.length - updatedPickingItems.length
+      } unpicked items)`
     );
 
     // Update Transfer Order with modified table_picking_items
@@ -716,11 +718,14 @@ const updatePickingPlanWithPickedQty = async (ppId, pickingRecords) => {
           parseFloat(ppLineItem.to_initial_delivered_qty || 0)
         );
         ppLineItem.to_undelivered_qty = roundQty(
-          parseFloat(ppLineItem.to_order_quantity || 0) - ppLineItem.to_delivered_qty
+          parseFloat(ppLineItem.to_order_quantity || 0) -
+            ppLineItem.to_delivered_qty
         );
         ppLineItem.picking_status = "Cancelled"; // Mark as cancelled
 
-        console.log(`Line item ${ppLineItem.id} marked as cancelled (zero picking)`);
+        console.log(
+          `Line item ${ppLineItem.id} marked as cancelled (zero picking)`
+        );
         ppDataUpdated = true;
       } else if (totalPickedQty < parseFloat(ppLineItem.to_qty || 0)) {
         // Partial picking - some was picked but not all
@@ -801,6 +806,7 @@ const updatePickingPlanWithPickedQty = async (ppId, pickingRecords) => {
 
     if (allLineItemsCompleted) {
       updateData.picking_status = "Completed";
+      updateData.to_status = "Completed";
       console.log("All PP line items completed, updating header");
     }
 
@@ -1521,7 +1527,10 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
 
         // Step 5: Update Transfer Order's table_picking_items
         // This applies to both partial and full picking
-        await updateTransferOrderPickingItems(toId, toData.table_picking_records);
+        await updateTransferOrderPickingItems(
+          toId,
+          toData.table_picking_records
+        );
         console.log("Transfer Order picking items updated");
       }
     } else {
