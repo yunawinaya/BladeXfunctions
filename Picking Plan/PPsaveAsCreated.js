@@ -2982,14 +2982,23 @@ const fetchDeliveredQuantity = async () => {
 
           // Update TO with picking status if applicable
           if (pickingStatus) {
-            await db.collection("picking_plan").doc(toId).update({
-              picking_status: pickingStatus,
-            });
+            // Fetch current PP data to get table_to
+            const currentPP = await db.collection("picking_plan").doc(toId).get();
+            if (currentPP.data && currentPP.data.length > 0) {
+              const ppData = currentPP.data[0];
+              const tableTo = ppData.table_to || [];
 
-            await db
-              .collection("picking_plan_fwii8mvb_sub")
-              .where({ picking_plan_id: toId })
-              .update({ picking_status: pickingStatus });
+              // Update picking_status for all line items
+              tableTo.forEach((item) => {
+                item.picking_status = pickingStatus;
+              });
+
+              // Update PP with modified table_to and header picking_status
+              await db.collection("picking_plan").doc(toId).update({
+                picking_status: pickingStatus,
+                table_to: tableTo,
+              });
+            }
           }
         } catch (pickingError) {
           console.error("Error handling picking:", pickingError);

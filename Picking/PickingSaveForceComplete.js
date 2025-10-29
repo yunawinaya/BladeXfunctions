@@ -189,6 +189,142 @@ const parseJsonSafely = (jsonString, defaultValue = []) => {
   }
 };
 
+// Function to get FIFO cost price
+const getFIFOCostPrice = async (
+  materialId,
+  deductionQty,
+  plantId,
+  locationId,
+  organizationId,
+  batchId = null
+) => {
+  try {
+    const query = batchId
+      ? db.collection("fifo_costing_history").where({
+          material_id: materialId,
+          batch_id: batchId,
+          plant_id: plantId,
+        })
+      : db
+          .collection("fifo_costing_history")
+          .where({ material_id: materialId, plant_id: plantId });
+
+    const response = await query.get();
+    const result = response.data;
+
+    if (result && Array.isArray(result) && result.length > 0) {
+      const sortedRecords = result.sort(
+        (a, b) => a.fifo_sequence - b.fifo_sequence
+      );
+
+      if (!deductionQty) {
+        for (const record of sortedRecords) {
+          const availableQty = roundQty(record.fifo_available_quantity || 0);
+          if (availableQty > 0) {
+            return roundPrice(record.fifo_cost_price || 0);
+          }
+        }
+        return roundPrice(
+          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+        );
+      }
+
+      let remainingQtyToDeduct = roundQty(deductionQty);
+      let totalCost = 0;
+      let totalDeductedQty = 0;
+
+      for (const record of sortedRecords) {
+        if (remainingQtyToDeduct <= 0) break;
+
+        const availableQty = roundQty(record.fifo_available_quantity || 0);
+        if (availableQty <= 0) continue;
+
+        const costPrice = roundPrice(record.fifo_cost_price || 0);
+        const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
+        const costContribution = roundPrice(qtyToDeduct * costPrice);
+
+        totalCost = roundPrice(totalCost + costContribution);
+        totalDeductedQty = roundQty(totalDeductedQty + qtyToDeduct);
+        remainingQtyToDeduct = roundQty(remainingQtyToDeduct - qtyToDeduct);
+      }
+
+      if (remainingQtyToDeduct > 0 && sortedRecords.length > 0) {
+        const lastRecord = sortedRecords[sortedRecords.length - 1];
+        const lastCostPrice = roundPrice(lastRecord.fifo_cost_price || 0);
+        const additionalCost = roundPrice(remainingQtyToDeduct * lastCostPrice);
+        totalCost = roundPrice(totalCost + additionalCost);
+        totalDeductedQty = roundQty(totalDeductedQty + remainingQtyToDeduct);
+      }
+
+      if (totalDeductedQty > 0) {
+        return roundPrice(totalCost / totalDeductedQty);
+      }
+
+      return roundPrice(sortedRecords[0].fifo_cost_price || 0);
+    }
+
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving FIFO cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
+// Function to get Weighted Average cost price
+const getWeightedAverageCostPrice = async (
+  materialId,
+  plantId,
+  organizationId
+) => {
+  try {
+    const query = db.collection("wa_costing_method").where({
+      material_id: materialId,
+      plant_id: plantId,
+      organization_id: organizationId,
+    });
+
+    const response = await query.get();
+    const waData = response.data;
+
+    if (waData && Array.isArray(waData) && waData.length > 0) {
+      waData.sort((a, b) => {
+        if (a.created_at && b.created_at) {
+          return new Date(b.created_at) - new Date(a.created_at);
+        }
+        return 0;
+      });
+
+      return roundPrice(waData[0].wa_cost_price || 0);
+    }
+
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving WA cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
+// Function to get Fixed Cost price
+const getFixedCostPrice = async (materialId) => {
+  try {
+    const query = db.collection("Item").where({ id: materialId });
+    const response = await query.get();
+    const result = response.data;
+
+    if (result && result.length > 0) {
+      return roundPrice(parseFloat(result[0].purchase_unit_price || 0));
+    }
+
+    return 0;
+  } catch (error) {
+    console.error(
+      `Error retrieving fixed cost price for ${materialId}:`,
+      error
+    );
+    return 0;
+  }
+};
+
 const updateEntry = async (toData, toId) => {
   try {
     for (const item of toData.table_picking_items) {
@@ -231,42 +367,6 @@ const findFieldMessage = (obj) => {
     }
   }
   return null;
-};
-
-const updatePickingPlan = async (ppId, toData) => {
-  try {
-    // Update each line item's picking status based on its line_status
-    await Promise.all(
-      toData.table_picking_items.map(async (toItem) => {
-        return await db
-          .collection("picking_plan_fwii8mvb_sub")
-          .doc(toItem.to_line_id)
-          .update({ picking_status: "Completed" });
-      })
-    );
-
-    const pp = await db.collection("picking_plan").doc(ppId).get();
-    let ppData = pp.data[0];
-
-    if (ppData.to_status === "Cancelled") {
-      console.log("Picking Plan is already cancelled");
-      return;
-    }
-
-    const pickingStatus = ppData.picking_status;
-
-    if (pickingStatus === "Completed") {
-      this.$message.error("Picking Plan is already completed");
-      return;
-    }
-
-    await db.collection("picking_plan").doc(toId).update({
-      picking_status: "Completed",
-    });
-  } catch (error) {
-    this.$message.error("Error updating Picking Plan");
-    console.error("Error updating Picking Plan:", error);
-  }
 };
 
 const createPickingRecord = async (toData) => {
@@ -319,6 +419,835 @@ const createPickingRecord = async (toData) => {
 
   toData.table_picking_records =
     toData.table_picking_records.concat(pickingRecords);
+};
+
+const createTempQtyDataSummary = async (
+  updatedTempQtyData,
+  toLineItem,
+  materialId
+) => {
+  // Get item data to check if it's serialized
+  let isSerializedItem = false;
+  let toUOM = "";
+
+  if (materialId) {
+    const resItem = await db.collection("Item").where({ id: materialId }).get();
+    if (resItem.data && resItem.data[0]) {
+      isSerializedItem = resItem.data[0].serial_number_management === 1;
+    }
+  }
+
+  // Get UOM name
+  if (toLineItem.to_order_uom_id) {
+    const uomRes = await db
+      .collection("unit_of_measurement")
+      .where({ id: toLineItem.to_order_uom_id })
+      .get();
+    if (uomRes.data && uomRes.data[0]) {
+      toUOM = uomRes.data[0].uom_name;
+    }
+  }
+
+  // Get unique location IDs
+  const locationIds = [
+    ...new Set(updatedTempQtyData.map((item) => item.location_id)),
+  ];
+
+  // Get unique batch IDs (filter out null/undefined values)
+  const batchIds = [
+    ...new Set(
+      updatedTempQtyData
+        .map((item) => item.batch_id)
+        .filter((batchId) => batchId != null && batchId !== "")
+    ),
+  ];
+
+  // Fetch locations in parallel
+  const locationPromises = locationIds.map(async (locationId) => {
+    try {
+      const resBinLocation = await db
+        .collection("bin_location")
+        .where({ id: locationId })
+        .get();
+
+      return {
+        id: locationId,
+        name:
+          resBinLocation.data?.[0]?.bin_location_combine ||
+          `Location ID: ${locationId}`,
+      };
+    } catch (error) {
+      console.error(`Error fetching location ${locationId}:`, error);
+      return { id: locationId, name: `${locationId} (Error)` };
+    }
+  });
+
+  // Fetch batches in parallel (only if there are batch IDs)
+  const batchPromises = batchIds.map(async (batchId) => {
+    try {
+      const resBatch = await db
+        .collection("batch")
+        .where({ id: batchId })
+        .get();
+
+      return {
+        id: batchId,
+        name: resBatch.data?.[0]?.batch_number || `Batch ID: ${batchId}`,
+      };
+    } catch (error) {
+      console.error(`Error fetching batch ${batchId}:`, error);
+      return { id: batchId, name: `${batchId} (Error)` };
+    }
+  });
+
+  // Wait for both location and batch data
+  const [locations, batches] = await Promise.all([
+    Promise.all(locationPromises),
+    Promise.all(batchPromises),
+  ]);
+
+  // Create lookup maps
+  const locationMap = locations.reduce((map, loc) => {
+    map[loc.id] = loc.name;
+    return map;
+  }, {});
+
+  const batchMap = batches.reduce((map, batch) => {
+    map[batch.id] = batch.name;
+    return map;
+  }, {});
+
+  const totalQty = updatedTempQtyData.reduce(
+    (sum, item) => sum + parseFloat(item.to_quantity || 0),
+    0
+  );
+
+  let summary = `Total: ${totalQty} ${toUOM}\n\nDETAILS:\n`;
+
+  const details = updatedTempQtyData
+    .map((item, index) => {
+      const locationName = locationMap[item.location_id] || item.location_id;
+      const qty = item.to_quantity || 0;
+
+      let itemDetail = `${index + 1}. ${locationName}: ${qty} ${toUOM}`;
+
+      // Add serial number if serialized item
+      if (isSerializedItem) {
+        if (item.serial_number && item.serial_number.trim() !== "") {
+          itemDetail += ` [Serial: ${item.serial_number.trim()}]`;
+        } else {
+          itemDetail += ` [Serial: NOT SET]`;
+        }
+      }
+
+      // Add batch info if batch exists
+      if (item.batch_id) {
+        const batchName = batchMap[item.batch_id] || item.batch_id;
+        if (isSerializedItem) {
+          itemDetail += `\n   [Batch: ${batchName}]`;
+        } else {
+          itemDetail += `\n[Batch: ${batchName}]`;
+        }
+      }
+
+      return itemDetail;
+    })
+    .join("\n");
+
+  return summary + details;
+};
+
+// Update Picking Plan with picked quantities from picking records
+const updatePickingPlanWithPickedQty = async (ppId, pickingRecords) => {
+  try {
+    console.log("Starting updatePickingPlanWithPickedQty for PP:", ppId);
+
+    // Fetch PP data
+    const ppResponse = await db.collection("picking_plan").doc(ppId).get();
+    if (!ppResponse.data || ppResponse.data.length === 0) {
+      throw new Error(`Picking Plan ${ppId} not found`);
+    }
+
+    const ppData = ppResponse.data[0];
+    console.log("PP Data fetched:", ppData);
+
+    // Get table_to from PP data (embedded array)
+    const ppLineItems = ppData.table_to || [];
+
+    if (ppLineItems.length === 0) {
+      console.log("No PP line items found in table_to");
+      return { ppDataUpdated: false, ppLineItems: [] };
+    }
+
+    console.log(`Found ${ppLineItems.length} PP line items`);
+
+    let ppDataUpdated = false;
+
+    // Process each PP line item
+    for (const ppLineItem of ppLineItems) {
+      console.log(`Processing PP line item: ${ppLineItem.id}`);
+
+      // Find picking records for this line item
+      const filteredPickingRecords = pickingRecords.filter(
+        (record) =>
+          record.to_line_id === ppLineItem.id && record.store_out_qty > 0
+      );
+
+      if (filteredPickingRecords.length === 0) {
+        console.log(`No picking records found for line item ${ppLineItem.id}`);
+        continue;
+      }
+
+      console.log(
+        `Found ${filteredPickingRecords.length} picking records for line item ${ppLineItem.id}`
+      );
+
+      // Calculate total picked quantity
+      const totalPickedQty = filteredPickingRecords.reduce(
+        (sum, record) => sum + parseFloat(record.store_out_qty || 0),
+        0
+      );
+
+      console.log(
+        `Line item ${ppLineItem.id}: Original qty=${ppLineItem.to_qty}, Picked qty=${totalPickedQty}`
+      );
+
+      // Only update if picked quantity is less than planned quantity (partial picking)
+      if (totalPickedQty < parseFloat(ppLineItem.to_qty || 0)) {
+        console.log(
+          `Partial picking detected for line item ${ppLineItem.id}, updating...`
+        );
+
+        // Build updated temp_qty_data from picking records
+        const updatedTempQtyData = filteredPickingRecords.map((record) => {
+          const tempQtyItem = {
+            material_id: record.item_code,
+            location_id: record.target_location,
+            batch_id: record.target_batch || undefined,
+            to_quantity: record.store_out_qty,
+          };
+
+          // Add serial_number if it exists (for serialized items)
+          if (record.serial_numbers) {
+            tempQtyItem.serial_number = record.serial_numbers;
+          }
+
+          return tempQtyItem;
+        });
+
+        console.log("Updated temp_qty_data for line item:", updatedTempQtyData);
+
+        // Create human-readable summary
+        const viewStockSummary = await createTempQtyDataSummary(
+          updatedTempQtyData,
+          ppLineItem,
+          ppLineItem.material_id
+        );
+
+        console.log("View stock summary:", viewStockSummary);
+
+        // Store original values
+        ppLineItem.plan_qty = ppLineItem.to_qty;
+        ppLineItem.plan_temp_qty_data = ppLineItem.temp_qty_data;
+        ppLineItem.plan_view_stock = ppLineItem.view_stock;
+        ppLineItem.is_force_complete = 1;
+
+        // Update with actual picked values
+        ppLineItem.temp_qty_data = JSON.stringify(updatedTempQtyData);
+        ppLineItem.view_stock = viewStockSummary;
+        ppLineItem.to_qty = roundQty(totalPickedQty);
+        ppLineItem.base_qty = ppLineItem.to_qty;
+        ppLineItem.to_delivered_qty = roundQty(
+          ppLineItem.to_qty +
+            parseFloat(ppLineItem.to_initial_delivered_qty || 0)
+        );
+        ppLineItem.to_undelivered_qty = roundQty(
+          parseFloat(ppLineItem.to_order_quantity || 0) -
+            ppLineItem.to_delivered_qty
+        );
+        ppLineItem.picking_status = "Completed";
+
+        console.log(`Updated PP line item ${ppLineItem.id} successfully`);
+        ppDataUpdated = true;
+      } else {
+        console.log(
+          `Line item ${ppLineItem.id}: Fully picked, no force complete needed`
+        );
+
+        // Just update picking_status to Completed
+        ppLineItem.picking_status = "Completed";
+      }
+    }
+
+    // Check if all line items are completed
+    const allLineItemsCompleted = ppLineItems.every(
+      (item) => item.picking_status === "Completed"
+    );
+
+    // Update the entire PP document with modified table_to
+    const updateData = {
+      table_to: ppLineItems,
+    };
+
+    if (allLineItemsCompleted) {
+      updateData.picking_status = "Completed";
+      console.log("All PP line items completed, updating header");
+    }
+
+    await db.collection("picking_plan").doc(ppId).update(updateData);
+    console.log("PP document updated with modified table_to");
+
+    if (ppDataUpdated) {
+      console.log("Picking Plan updated with partial picked quantities");
+    } else {
+      console.log("No partial picking detected, no updates needed");
+    }
+
+    return { ppDataUpdated, ppLineItems };
+  } catch (error) {
+    console.error("Error in updatePickingPlanWithPickedQty:", error);
+    throw error;
+  }
+};
+
+// Update on_reserved_gd records to reflect actual picked quantities
+const updateOnReservedForPartialPicking = async (
+  ppNo,
+  organizationId,
+  ppLineItems
+) => {
+  try {
+    console.log("Starting updateOnReservedForPartialPicking for PP:", ppNo);
+
+    // Get existing on_reserved_gd records for this PP
+    const existingReserved = await db
+      .collection("on_reserved_gd")
+      .where({
+        doc_type: "Picking Plan",
+        doc_no: ppNo,
+        organization_id: organizationId,
+      })
+      .get();
+
+    if (!existingReserved.data || existingReserved.data.length === 0) {
+      console.log("No existing on_reserved_gd records found");
+      return;
+    }
+
+    console.log(
+      `Found ${existingReserved.data.length} existing on_reserved_gd records`
+    );
+
+    // Build new reserved data from actual picked quantities
+    const newReservedDataBatch = [];
+
+    for (const ppLineItem of ppLineItems) {
+      // Only process items that were force completed (partial picking)
+      if (ppLineItem.is_force_complete !== 1) {
+        continue;
+      }
+
+      console.log(
+        `Processing line item ${ppLineItem.id} for on_reserved_gd update`
+      );
+
+      // Parse the updated temp_qty_data (contains actual picked quantities)
+      const temp_qty_data = parseJsonSafely(ppLineItem.temp_qty_data);
+
+      if (!ppLineItem.material_id || temp_qty_data.length === 0) {
+        console.log(
+          `Skipping line item ${ppLineItem.id}, no material or temp_qty_data`
+        );
+        continue;
+      }
+
+      // Find line number for this item (1-indexed)
+      const lineNo =
+        ppLineItems.findIndex((item) => item.id === ppLineItem.id) + 1;
+
+      // Get SO number from line item or header
+      const soNumber = ppLineItem.line_so_no || ppLineItem.so_no;
+
+      // Build reserved records from actual picked data
+      for (const tempItem of temp_qty_data) {
+        const reservedRecord = {
+          doc_type: "Picking Plan",
+          parent_no: soNumber,
+          doc_no: ppNo,
+          material_id: ppLineItem.material_id,
+          item_name: ppLineItem.material_name,
+          item_desc: ppLineItem.to_material_desc || "",
+          batch_id: tempItem.batch_id || null,
+          bin_location: tempItem.location_id,
+          item_uom: ppLineItem.to_order_uom_id,
+          line_no: lineNo,
+          reserved_qty: tempItem.to_quantity,
+          delivered_qty: 0,
+          open_qty: tempItem.to_quantity,
+          reserved_date: new Date()
+            .toISOString()
+            .slice(0, 19)
+            .replace("T", " "),
+          plant_id: ppLineItem.plant_id,
+          organization_id: organizationId,
+        };
+
+        // Add serial number for serialized items
+        if (tempItem.serial_number) {
+          reservedRecord.serial_number = tempItem.serial_number;
+        }
+
+        newReservedDataBatch.push(reservedRecord);
+      }
+    }
+
+    console.log(
+      `Built ${newReservedDataBatch.length} new reserved records from picked quantities`
+    );
+
+    // Update strategy: Update existing records with new data, mark extras as deleted
+    const updatePromises = [];
+
+    // Update existing records with new data (up to the number of new records)
+    const updateCount = Math.min(
+      existingReserved.data.length,
+      newReservedDataBatch.length
+    );
+
+    for (let i = 0; i < updateCount; i++) {
+      const existingRecord = existingReserved.data[i];
+      const newData = newReservedDataBatch[i];
+
+      updatePromises.push(
+        db.collection("on_reserved_gd").doc(existingRecord.id).update(newData)
+      );
+    }
+
+    console.log(`Updating ${updateCount} existing on_reserved_gd records`);
+
+    // If there are more existing records than new records, mark extras as deleted
+    if (existingReserved.data.length > newReservedDataBatch.length) {
+      for (
+        let i = newReservedDataBatch.length;
+        i < existingReserved.data.length;
+        i++
+      ) {
+        const extraRecord = existingReserved.data[i];
+        updatePromises.push(
+          db.collection("on_reserved_gd").doc(extraRecord.id).update({
+            is_deleted: 1,
+          })
+        );
+      }
+      console.log(
+        `Marking ${
+          existingReserved.data.length - newReservedDataBatch.length
+        } extra records as deleted`
+      );
+    }
+
+    // If there are more new records than existing records, create new ones
+    if (newReservedDataBatch.length > existingReserved.data.length) {
+      for (
+        let i = existingReserved.data.length;
+        i < newReservedDataBatch.length;
+        i++
+      ) {
+        const extraData = {
+          ...newReservedDataBatch[i],
+          created_by: this.getVarGlobal("nickname"),
+          created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+        };
+        updatePromises.push(db.collection("on_reserved_gd").add(extraData));
+      }
+      console.log(
+        `Creating ${
+          newReservedDataBatch.length - existingReserved.data.length
+        } new records`
+      );
+    }
+
+    // Execute all updates/creates/deletes in parallel
+    await Promise.all(updatePromises);
+    console.log("on_reserved_gd records updated successfully");
+  } catch (error) {
+    console.error("Error in updateOnReservedForPartialPicking:", error);
+    throw error;
+  }
+};
+
+// Create inventory readjustment movements for unpicked quantities
+const createInventoryReadjustmentMovements = async (
+  ppNo,
+  ppLineItems,
+  plantId,
+  organizationId
+) => {
+  try {
+    console.log("Starting createInventoryReadjustmentMovements for PP:", ppNo);
+
+    for (const ppLineItem of ppLineItems) {
+      // Only process items that were force completed (partial picking)
+      if (ppLineItem.is_force_complete !== 1) {
+        continue;
+      }
+
+      // Calculate unpicked quantity
+      const plannedQty = parseFloat(ppLineItem.plan_qty || 0);
+      const pickedQty = parseFloat(ppLineItem.to_qty || 0);
+      const unpickedQty = roundQty(plannedQty - pickedQty);
+
+      if (unpickedQty <= 0) {
+        console.log(`Line item ${ppLineItem.id}: No unpicked quantity`);
+        continue;
+      }
+
+      console.log(
+        `Line item ${ppLineItem.id}: Unpicked qty=${unpickedQty} (planned=${plannedQty}, picked=${pickedQty})`
+      );
+
+      // Parse original temp_qty_data to get location/batch/serial details
+      const originalTempQtyData = parseJsonSafely(
+        ppLineItem.plan_temp_qty_data
+      );
+      const pickedTempQtyData = parseJsonSafely(ppLineItem.temp_qty_data);
+
+      // Get item details for costing
+      const resItem = await db
+        .collection("Item")
+        .where({ id: ppLineItem.material_id })
+        .get();
+
+      if (!resItem.data || resItem.data.length === 0) {
+        console.log(`Item ${ppLineItem.material_id} not found`);
+        continue;
+      }
+
+      const itemData = resItem.data[0];
+      const isSerializedItem = itemData.serial_number_management === 1;
+      const baseUOM = itemData.base_unit_of_measurement;
+      const altUOM = ppLineItem.to_order_uom_id;
+      const costingMethod = itemData.item_costing_method;
+
+      // Process each original temp_qty_data to find unpicked items
+      for (const originalTemp of originalTempQtyData) {
+        // Calculate how much was picked from this location/batch
+        const pickedFromThisLocation = pickedTempQtyData
+          .filter(
+            (picked) =>
+              picked.location_id === originalTemp.location_id &&
+              picked.batch_id === originalTemp.batch_id &&
+              (!isSerializedItem ||
+                picked.serial_number === originalTemp.serial_number)
+          )
+          .reduce((sum, item) => sum + parseFloat(item.to_quantity || 0), 0);
+
+        const unpickedFromThisLocation = roundQty(
+          parseFloat(originalTemp.to_quantity || 0) - pickedFromThisLocation
+        );
+
+        if (unpickedFromThisLocation <= 0) {
+          continue;
+        }
+
+        console.log(
+          `Creating readjustment for location ${originalTemp.location_id}, batch ${originalTemp.batch_id}, unpicked qty: ${unpickedFromThisLocation}`
+        );
+
+        // Calculate base_qty from the ratio in original temp_qty_data
+        // The unpickedFromThisLocation is already in the order UOM
+        // We need to calculate the corresponding base_qty
+        const originalQtyInOrderUOM = parseFloat(originalTemp.to_quantity || 0);
+        const originalBaseQtyFromTemp = parseFloat(
+          originalTemp.base_qty || originalQtyInOrderUOM
+        ); // Use base_qty if available
+
+        // Calculate the base_qty for unpicked amount proportionally
+        const baseQty =
+          originalQtyInOrderUOM > 0
+            ? roundQty(
+                (unpickedFromThisLocation / originalQtyInOrderUOM) *
+                  originalBaseQtyFromTemp
+              )
+            : roundQty(unpickedFromThisLocation);
+
+        // Get costing price
+        let unitPrice = 0;
+        let totalPrice = 0;
+
+        if (costingMethod === "FIFO") {
+          const fifoCostPrice = await getFIFOCostPrice(
+            ppLineItem.material_id,
+            baseQty,
+            plantId,
+            originalTemp.location_id,
+            organizationId,
+            originalTemp.batch_id
+          );
+          unitPrice = roundPrice(fifoCostPrice);
+          totalPrice = roundPrice(fifoCostPrice * baseQty);
+        } else if (costingMethod === "Weighted Average") {
+          const waCostPrice = await getWeightedAverageCostPrice(
+            ppLineItem.material_id,
+            plantId,
+            organizationId
+          );
+          unitPrice = roundPrice(waCostPrice);
+          totalPrice = roundPrice(waCostPrice * baseQty);
+        } else if (costingMethod === "Fixed Cost") {
+          const fixedCostPrice = await getFixedCostPrice(
+            ppLineItem.material_id
+          );
+          unitPrice = roundPrice(fixedCostPrice);
+          totalPrice = roundPrice(fixedCostPrice * baseQty);
+        }
+
+        // Get SO number from line item
+        const soNumber = ppLineItem.line_so_no || ppLineItem.so_no;
+
+        // Create base inventory movement data
+        const baseInventoryMovement = {
+          transaction_type: "PP",
+          trx_no: ppNo,
+          parent_trx_no: soNumber,
+          unit_price: unitPrice,
+          total_price: totalPrice,
+          quantity: unpickedFromThisLocation,
+          item_id: ppLineItem.material_id,
+          uom_id: altUOM,
+          base_qty: baseQty,
+          base_uom_id: baseUOM,
+          bin_location_id: originalTemp.location_id,
+          batch_number_id: originalTemp.batch_id || null,
+          costing_method_id: costingMethod,
+          plant_id: plantId,
+          organization_id: organizationId,
+          is_deleted: 0,
+        };
+
+        // Create OUT movement from Reserved
+        await db.collection("inventory_movement").add({
+          ...baseInventoryMovement,
+          movement: "OUT",
+          inventory_category: "Reserved",
+        });
+
+        console.log(
+          `Created PP OUT movement from Reserved: ${baseQty} base qty`
+        );
+
+        // Wait a bit before creating IN movement
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        // Create IN movement to Unrestricted
+        await db.collection("inventory_movement").add({
+          ...baseInventoryMovement,
+          movement: "IN",
+          inventory_category: "Unrestricted",
+        });
+
+        console.log(
+          `Created PP IN movement to Unrestricted: ${baseQty} base qty`
+        );
+
+        // Handle serialized items - create inv_serial_movement records
+        if (isSerializedItem && originalTemp.serial_number) {
+          // Query the movements we just created
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          // Get OUT movement ID
+          const outMovementQuery = await db
+            .collection("inventory_movement")
+            .where({
+              transaction_type: "PP",
+              trx_no: ppNo,
+              parent_trx_no: soNumber,
+              movement: "OUT",
+              inventory_category: "Reserved",
+              item_id: ppLineItem.material_id,
+              bin_location_id: originalTemp.location_id,
+              base_qty: baseQty,
+            })
+            .get();
+
+          let outMovementId = null;
+          if (outMovementQuery.data && outMovementQuery.data.length > 0) {
+            outMovementId = outMovementQuery.data.sort(
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+            )[0].id;
+          }
+
+          // Get IN movement ID
+          const inMovementQuery = await db
+            .collection("inventory_movement")
+            .where({
+              transaction_type: "PP",
+              trx_no: ppNo,
+              parent_trx_no: soNumber,
+              movement: "IN",
+              inventory_category: "Unrestricted",
+              item_id: ppLineItem.material_id,
+              bin_location_id: originalTemp.location_id,
+              base_qty: baseQty,
+            })
+            .get();
+
+          let inMovementId = null;
+          if (inMovementQuery.data && inMovementQuery.data.length > 0) {
+            inMovementId = inMovementQuery.data.sort(
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+            )[0].id;
+          }
+
+          // Create inv_serial_movement records if we have movement IDs
+          if (outMovementId && inMovementId) {
+            const serialNumbers = originalTemp.serial_number
+              .split("\n")
+              .map((sn) => sn.trim())
+              .filter((sn) => sn !== "");
+
+            for (const serialNumber of serialNumbers) {
+              // OUT serial movement
+              await db.collection("inv_serial_movement").add({
+                inventory_movement_id: outMovementId,
+                serial_number: serialNumber,
+                item_id: ppLineItem.material_id,
+                batch_id: originalTemp.batch_id || null,
+                bin_location_id: originalTemp.location_id,
+                movement: "OUT",
+                inventory_category: "Reserved",
+              });
+
+              // IN serial movement
+              await db.collection("inv_serial_movement").add({
+                inventory_movement_id: inMovementId,
+                serial_number: serialNumber,
+                item_id: ppLineItem.material_id,
+                batch_id: originalTemp.batch_id || null,
+                bin_location_id: originalTemp.location_id,
+                movement: "IN",
+                inventory_category: "Unrestricted",
+              });
+            }
+
+            console.log(
+              `Created inv_serial_movement records for ${serialNumbers.length} serial numbers`
+            );
+          }
+        }
+      }
+    }
+
+    console.log("Inventory readjustment movements created successfully");
+  } catch (error) {
+    console.error("Error in createInventoryReadjustmentMovements:", error);
+    throw error;
+  }
+};
+
+// Reverse unrealized planned_qty in Sales Orders
+const reversePlannedQtyInSO = async (ppLineItems) => {
+  try {
+    console.log("Starting reversePlannedQtyInSO");
+
+    // Group line items by SO ID
+    const soGrouped = {};
+
+    for (const ppLineItem of ppLineItems) {
+      // Only process items that were force completed (partial picking)
+      if (ppLineItem.is_force_complete !== 1) {
+        continue;
+      }
+
+      const soId = ppLineItem.so_id;
+      const soLineId = ppLineItem.so_line_item_id;
+
+      if (!soId || !soLineId) {
+        console.log(`Line item ${ppLineItem.id}: Missing SO ID or SO Line ID`);
+        continue;
+      }
+
+      // Calculate unrealized quantity (planned but not picked)
+      const plannedQty = parseFloat(ppLineItem.plan_qty || 0);
+      const pickedQty = parseFloat(ppLineItem.to_qty || 0);
+      const unrealizedQty = roundQty(plannedQty - pickedQty);
+
+      if (unrealizedQty <= 0) {
+        console.log(`Line item ${ppLineItem.id}: No unrealized quantity`);
+        continue;
+      }
+
+      console.log(
+        `Line item ${ppLineItem.id}: Unrealized qty=${unrealizedQty} (planned=${plannedQty}, picked=${pickedQty})`
+      );
+
+      // Group by SO ID
+      if (!soGrouped[soId]) {
+        soGrouped[soId] = [];
+      }
+
+      soGrouped[soId].push({
+        soLineId: soLineId,
+        unrealizedQty: unrealizedQty,
+        ppLineItemId: ppLineItem.id,
+      });
+    }
+
+    // Process each SO
+    for (const soId of Object.keys(soGrouped)) {
+      console.log(`Processing SO: ${soId}`);
+
+      // Fetch SO line items
+      const soLineItemsResponse = await db
+        .collection("sales_order_axszx8cj_sub")
+        .where({ sales_order_id: soId })
+        .get();
+
+      if (!soLineItemsResponse.data || soLineItemsResponse.data.length === 0) {
+        console.log(`No line items found for SO ${soId}`);
+        continue;
+      }
+
+      const soLineItems = soLineItemsResponse.data;
+
+      // Update each SO line item
+      for (const item of soGrouped[soId]) {
+        const soLineItem = soLineItems.find((so) => so.id === item.soLineId);
+
+        if (!soLineItem) {
+          console.log(`SO line item ${item.soLineId} not found`);
+          continue;
+        }
+
+        // Reverse the unrealized planned_qty
+        const currentPlannedQty = parseFloat(soLineItem.planned_qty || 0);
+        const newPlannedQty = roundQty(currentPlannedQty - item.unrealizedQty);
+
+        console.log(
+          `SO line ${item.soLineId}: Current planned_qty=${currentPlannedQty}, Unrealized=${item.unrealizedQty}, New planned_qty=${newPlannedQty}`
+        );
+
+        // Update the SO line item
+        await db
+          .collection("sales_order_axszx8cj_sub")
+          .doc(item.soLineId)
+          .update({
+            planned_qty: newPlannedQty,
+          });
+
+        console.log(
+          `Updated SO line ${item.soLineId} planned_qty to ${newPlannedQty}`
+        );
+      }
+
+      console.log(`Completed reversing planned_qty for SO ${soId}`);
+    }
+
+    console.log("Successfully reversed planned_qty in all affected SOs");
+  } catch (error) {
+    console.error("Error in reversePlannedQtyInSO:", error);
+    throw error;
+  }
 };
 
 // Main execution wrapped in an async IIFE
@@ -413,8 +1342,45 @@ const createPickingRecord = async (toData) => {
 
     const toId = data.id;
     const ppId = data.pp_id;
-    await updateEntry(organizationId, toData, toId, originalToStatus);
-    await updatePickingPlan(ppId, toData);
+    const ppNo = data.to_no;
+    const plantId = data.plant_id;
+
+    await updateEntry(toData, toId);
+
+    // Call the new force complete functions
+    console.log("Starting force complete processing...");
+
+    // Step 1: Update Picking Plan with actual picked quantities
+    const { ppDataUpdated, ppLineItems } = await updatePickingPlanWithPickedQty(
+      ppId,
+      toData.table_picking_records
+    );
+
+    if (ppDataUpdated) {
+      console.log("Picking Plan updated with partial quantities");
+
+      // Step 2: Update on_reserved_gd records
+      await updateOnReservedForPartialPicking(
+        ppNo,
+        organizationId,
+        ppLineItems
+      );
+
+      // Step 3: Create inventory readjustment movements
+      await createInventoryReadjustmentMovements(
+        ppNo,
+        ppLineItems,
+        plantId,
+        organizationId
+      );
+
+      // Step 4: Reverse unrealized planned_qty in Sales Orders
+      await reversePlannedQtyInSO(ppLineItems);
+
+      console.log("Force complete processing completed successfully");
+    } else {
+      console.log("No partial picking detected, skipping force complete logic");
+    }
 
     // Success message with status information
     this.$message.success(
