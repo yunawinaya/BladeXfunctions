@@ -2301,11 +2301,11 @@ const createOrUpdatePicking = async (
                     source_bin: String(tempItem.location_id),
                     line_status: "Open",
                     so_no: item.line_so_no,
-                    to_no: toData.to_no,
                     so_id: item.line_so_id,
                     so_line_id: item.so_line_item_id,
                     to_id: toId,
                     to_line_id: item.id,
+                    customer_id: item.customer_id,
                     serial_numbers: [],
                   });
                 }
@@ -2638,7 +2638,11 @@ const updateSalesOrderStatus = async (salesOrderId, tableTO) => {
           updatedSoItems[soLineIndex].planned_qty = newPlannedQty;
 
           console.log(
-            `SO ${soId} Line ${soLineIndex + 1}: Updated planned_qty from ${currentPlannedQty} to ${newPlannedQty} (added ${toItem.to_qty})`
+            `SO ${soId} Line ${
+              soLineIndex + 1
+            }: Updated planned_qty from ${currentPlannedQty} to ${newPlannedQty} (added ${
+              toItem.to_qty
+            })`
           );
         }
       });
@@ -2678,7 +2682,11 @@ const updateSalesOrderStatus = async (salesOrderId, tableTO) => {
 const fillbackHeaderFields = async (to) => {
   try {
     for (const [index, toLineItem] of to.table_to.entries()) {
-      toLineItem.customer_id = to.customer_name || null;
+      // Only set customer_id if it's not already set (preserve line-specific customer)
+      // Each line item should have its own customer_id from the SO it came from
+      if (!toLineItem.customer_id) {
+        toLineItem.customer_id = null;
+      }
       toLineItem.organization_id = to.organization_id;
       toLineItem.plant_id = to.plant_id || null;
       toLineItem.assigned_to = to.assigned_to || null;

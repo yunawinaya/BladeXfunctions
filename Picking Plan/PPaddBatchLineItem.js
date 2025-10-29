@@ -1729,6 +1729,7 @@ const createTableToWithBaseUOM = async (allItems) => {
         so_line_item_id: item.so_line_item_id,
         item_category_id: item.item_category_id,
         base_uom_id: itemData.based_uom,
+        customer_id: item.customer_id,
       });
     } else {
       // Non-serialized items keep original UOM
@@ -1751,6 +1752,7 @@ const createTableToWithBaseUOM = async (allItems) => {
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
         item_category_id: item.item_category_id,
+        customer_id: item.customer_id,
       });
     }
   }
@@ -1846,6 +1848,7 @@ const createTableToWithBaseUOM = async (allItems) => {
             so_no: so.sales_order_number,
             so_line_item_id: soItem.id,
             item_category_id: soItem.item_category_id,
+            customer_id: so.customer_id,
           });
         }
       }
@@ -1868,6 +1871,7 @@ const createTableToWithBaseUOM = async (allItems) => {
           so_no: soItem.sales_order.so_no,
           so_line_item_id: soItem.sales_order_line_id,
           item_category_id: soItem.item.item_category,
+          customer_id: soItem.customer_id,
         });
       }
       break;
