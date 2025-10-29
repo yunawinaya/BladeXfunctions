@@ -404,7 +404,7 @@ const findUniquePrefix = async (
 // NEW FUNCTION: Handle existing inventory movements for updates
 const handleExistingInventoryMovements = async (
   plantId,
-  deliveryNo,
+  pickingPlanNo,
   isUpdate = false
 ) => {
   if (!isUpdate) {
@@ -416,7 +416,7 @@ const handleExistingInventoryMovements = async (
 
   try {
     console.log(
-      `Handling existing inventory movements for delivery: ${deliveryNo}`
+      `Handling existing inventory movements for picking plan: ${pickingPlanNo}`
     );
 
     // Find all existing inventory movements for this TO
@@ -424,8 +424,8 @@ const handleExistingInventoryMovements = async (
       .collection("inventory_movement")
       .where({
         plant_id: plantId,
-        transaction_type: "TOL",
-        trx_no: deliveryNo,
+        transaction_type: "PP",
+        trx_no: pickingPlanNo,
         is_deleted: 0,
       })
       .get();
@@ -447,7 +447,9 @@ const handleExistingInventoryMovements = async (
         "Successfully marked existing inventory movements as deleted"
       );
     } else {
-      console.log("No existing inventory movements found for this delivery");
+      console.log(
+        "No existing inventory movements found for this picking plan"
+      );
     }
 
     // Also handle existing inv_serial_movement records
@@ -504,7 +506,7 @@ const handleExistingInventoryMovements = async (
         await Promise.all(serialUpdatePromises);
         console.log("Successfully marked existing serial movements as deleted");
       } else {
-        console.log("No existing serial movements found for this delivery");
+        console.log("No existing serial movements found for this picking plan");
       }
     }
   } catch (error) {
@@ -937,7 +939,7 @@ const validateInventoryAvailability = async (data, organizationId) => {
 const processBalanceTableWithValidation = async (
   data,
   isUpdate = false,
-  oldDeliveryNo = null,
+  oldPickingPlanNo = null,
   toStatus = null,
   organizationId
 ) => {
@@ -947,7 +949,7 @@ const processBalanceTableWithValidation = async (
   if (isUpdate && toStatus === "Created") {
     await handleExistingInventoryMovements(
       data.plant_id,
-      oldDeliveryNo,
+      oldPickingPlanNo,
       isUpdate
     );
     await reverseBalanceChanges(data, isUpdate, organizationId);
@@ -1149,7 +1151,7 @@ const processItemBalance = async (
 
       // Create base inventory movement data (CONSOLIDATED)
       const baseInventoryMovement = {
-        transaction_type: "TOL",
+        transaction_type: "PP",
         trx_no: data.to_no,
         parent_trx_no: item.line_so_no || data.so_no,
         unit_price: unitPrice,
@@ -1180,7 +1182,7 @@ const processItemBalance = async (
       const outMovementQuery = await db
         .collection("inventory_movement")
         .where({
-          transaction_type: "TOL",
+          transaction_type: "PP",
           trx_no: data.to_no,
           parent_trx_no: item.line_so_no || data.so_no,
           movement: "OUT",
@@ -1220,7 +1222,7 @@ const processItemBalance = async (
       const inMovementQuery = await db
         .collection("inventory_movement")
         .where({
-          transaction_type: "TOL",
+          transaction_type: "PP",
           trx_no: data.to_no,
           parent_trx_no: item.line_so_no || data.so_no,
           movement: "IN",
@@ -1735,7 +1737,7 @@ const validateForm = (data, requiredFields) => {
 
       if (!hasValidQuantity) {
         missingFields.push(
-          "All delivery quantities are zero - please allocate stock or set delivery quantities"
+          "All picking plan quantities are zero - please allocate stock or set picking plan quantities"
         );
       }
 
@@ -1861,7 +1863,7 @@ const addEntry = async (organizationId, to) => {
 
 const updateEntry = async (organizationId, to, pickingPlanId, toStatus) => {
   try {
-    let oldDeliveryNo = to.to_no;
+    let oldPickingPlanNo = to.to_no;
     let prefixData = null;
     let runningNumber = null;
 
@@ -1911,7 +1913,7 @@ const updateEntry = async (organizationId, to, pickingPlanId, toStatus) => {
     await processBalanceTableWithValidation(
       to,
       true,
-      oldDeliveryNo,
+      oldPickingPlanNo,
       toStatus,
       organizationId
     );
