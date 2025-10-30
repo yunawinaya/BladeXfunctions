@@ -642,7 +642,7 @@ const createTempQtyDataSummary = async (
 };
 
 // Update Picking Plan with picked quantities from picking records
-const updatePickingPlanWithPickedQty = async (ppId, pickingRecords) => {
+const updatePickingPlanWithPickedQty = async (ppId, pickingRecords, pickingItems) => {
   try {
     console.log("Starting updatePickingPlanWithPickedQty for PP:", ppId);
 
@@ -671,25 +671,41 @@ const updatePickingPlanWithPickedQty = async (ppId, pickingRecords) => {
     for (const ppLineItem of ppLineItems) {
       console.log(`Processing PP line item: ${ppLineItem.id}`);
 
-      // Find picking records for this line item
-      const filteredPickingRecords = pickingRecords.filter(
-        (record) =>
-          record.to_line_id === ppLineItem.id && record.store_out_qty > 0
+      // Find ALL picking records for this line item (including qty=0)
+      const allPickingRecords = pickingRecords.filter(
+        (record) => record.to_line_id === ppLineItem.id
       );
 
-      if (filteredPickingRecords.length === 0) {
-        console.log(`No picking records found for line item ${ppLineItem.id}`);
+      // Calculate total picked quantity from all records
+      const totalPickedQty = allPickingRecords.reduce(
+        (sum, record) => sum + parseFloat(record.store_out_qty || 0),
+        0
+      );
+
+      console.log(
+        `Line item ${ppLineItem.id}: Found ${allPickingRecords.length} picking records, total picked qty=${totalPickedQty}`
+      );
+
+      // Check if this item exists in picking items (to detect zero-picked items)
+      const pickingItem = pickingItems.find(
+        (item) => item.to_line_id === ppLineItem.id
+      );
+
+      // If no picking records AND no picking item exists, skip (item was never in picking)
+      if (allPickingRecords.length === 0 && !pickingItem) {
+        console.log(`Line item ${ppLineItem.id} not found in picking records or items, skipping`);
         continue;
       }
 
-      console.log(
-        `Found ${filteredPickingRecords.length} picking records for line item ${ppLineItem.id}`
-      );
+      // If no picking records but item exists in picking items, this is a zero-picked item
+      if (allPickingRecords.length === 0 && pickingItem) {
+        console.log(`Line item ${ppLineItem.id} found in picking items but no picking records - treating as zero-picked`);
+        // Set totalPickedQty will remain 0, will be handled by the zero-picking logic below
+      }
 
-      // Calculate total picked quantity
-      const totalPickedQty = filteredPickingRecords.reduce(
-        (sum, record) => sum + parseFloat(record.store_out_qty || 0),
-        0
+      // Filter to only records with picked qty > 0 for building updated temp_qty_data
+      const filteredPickingRecords = allPickingRecords.filter(
+        (record) => record.store_out_qty > 0
       );
 
       console.log(
@@ -794,24 +810,40 @@ const updatePickingPlanWithPickedQty = async (ppId, pickingRecords) => {
       }
     }
 
-    // Check if all line items are completed
-    const allLineItemsCompleted = ppLineItems.every(
+    // Filter out cancelled items (items with zero picked quantity)
+    const activePPLineItems = ppLineItems.filter(
+      (item) => item.picking_status !== "Cancelled"
+    );
+
+    console.log(
+      `Filtered PP line items: ${ppLineItems.length} total, ${activePPLineItems.length} active (${
+        ppLineItems.length - activePPLineItems.length
+      } cancelled)`
+    );
+
+    // Check if all ACTIVE line items are completed
+    const allLineItemsCompleted = activePPLineItems.every(
       (item) => item.picking_status === "Completed"
     );
 
-    // Update the entire PP document with modified table_to
+    // Update the entire PP document with only active items (cancelled items removed)
     const updateData = {
-      table_to: ppLineItems,
+      table_to: activePPLineItems,
     };
 
-    if (allLineItemsCompleted) {
+    if (allLineItemsCompleted && activePPLineItems.length > 0) {
       updateData.picking_status = "Completed";
       updateData.to_status = "Completed";
-      console.log("All PP line items completed, updating header");
+      console.log("All active PP line items completed, updating header status");
+    } else if (activePPLineItems.length === 0) {
+      // All items were cancelled
+      updateData.picking_status = "Cancelled";
+      updateData.to_status = "Cancelled";
+      console.log("All PP line items cancelled, marking entire PP as cancelled");
     }
 
     await db.collection("picking_plan").doc(ppId).update(updateData);
-    console.log("PP document updated with modified table_to");
+    console.log("PP document updated with modified table_to (cancelled items removed)");
 
     if (ppDataUpdated) {
       console.log("Picking Plan updated with partial picked quantities");
@@ -819,7 +851,12 @@ const updatePickingPlanWithPickedQty = async (ppId, pickingRecords) => {
       console.log("No partial picking detected, no updates needed");
     }
 
-    return { ppDataUpdated, ppLineItems };
+    // Return both ALL line items (including cancelled for readjustment) and active items only
+    return {
+      ppDataUpdated,
+      ppLineItems,  // All items including cancelled (for readjustment processing)
+      activePPLineItems  // Only active items (for reference)
+    };
   } catch (error) {
     console.error("Error in updatePickingPlanWithPickedQty:", error);
     throw error;
@@ -1494,11 +1531,12 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
         continue;
       }
 
-      const soId = ppLineItem.so_id;
+      // PP line item fields: line_so_id (SO header ID), so_line_item_id (SO line item ID)
+      const soId = ppLineItem.line_so_id;
       const soLineId = ppLineItem.so_line_item_id;
 
       if (!soId || !soLineId) {
-        console.log(`Line item ${ppLineItem.id}: Missing SO ID or SO Line ID`);
+        console.log(`Line item ${ppLineItem.id}: Missing SO ID (${soId}) or SO Line ID (${soLineId})`);
         continue;
       }
 
@@ -1528,59 +1566,131 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
       });
     }
 
-    // Process each SO
+    // Process each SO line item directly
     for (const soId of Object.keys(soGrouped)) {
-      console.log(`Processing SO: ${soId}`);
-
-      // Fetch SO line items
-      const soLineItemsResponse = await db
-        .collection("sales_order_axszx8cj_sub")
-        .where({ sales_order_id: soId })
-        .get();
-
-      if (!soLineItemsResponse.data || soLineItemsResponse.data.length === 0) {
-        console.log(`No line items found for SO ${soId}`);
-        continue;
-      }
-
-      const soLineItems = soLineItemsResponse.data;
+      console.log(`Processing SO: ${soId} with ${soGrouped[soId].length} line items`);
 
       // Update each SO line item
       for (const item of soGrouped[soId]) {
-        const soLineItem = soLineItems.find((so) => so.id === item.soLineId);
+        try {
+          // Fetch the SO line item by ID
+          const soLineItemResponse = await db
+            .collection("sales_order_axszx8cj_sub")
+            .where({ id: item.soLineId })
+            .get();
 
-        if (!soLineItem) {
-          console.log(`SO line item ${item.soLineId} not found`);
-          continue;
+          if (!soLineItemResponse.data || soLineItemResponse.data.length === 0) {
+            console.log(`SO line item ${item.soLineId} not found`);
+            continue;
+          }
+
+          const soLineItem = soLineItemResponse.data[0];
+
+          // Reverse the unrealized planned_qty
+          const currentPlannedQty = parseFloat(soLineItem.planned_qty || 0);
+          const newPlannedQty = roundQty(currentPlannedQty - item.unrealizedQty);
+
+          console.log(
+            `SO line ${item.soLineId}: Current planned_qty=${currentPlannedQty}, Unrealized=${item.unrealizedQty}, New planned_qty=${newPlannedQty}`
+          );
+
+          // Update the SO line item
+          await db
+            .collection("sales_order_axszx8cj_sub")
+            .doc(item.soLineId)
+            .update({
+              planned_qty: newPlannedQty,
+            });
+
+          console.log(
+            `Updated SO line ${item.soLineId} planned_qty to ${newPlannedQty}`
+          );
+        } catch (error) {
+          console.error(`Error updating SO line item ${item.soLineId}:`, error);
         }
-
-        // Reverse the unrealized planned_qty
-        const currentPlannedQty = parseFloat(soLineItem.planned_qty || 0);
-        const newPlannedQty = roundQty(currentPlannedQty - item.unrealizedQty);
-
-        console.log(
-          `SO line ${item.soLineId}: Current planned_qty=${currentPlannedQty}, Unrealized=${item.unrealizedQty}, New planned_qty=${newPlannedQty}`
-        );
-
-        // Update the SO line item
-        await db
-          .collection("sales_order_axszx8cj_sub")
-          .doc(item.soLineId)
-          .update({
-            planned_qty: newPlannedQty,
-          });
-
-        console.log(
-          `Updated SO line ${item.soLineId} planned_qty to ${newPlannedQty}`
-        );
       }
 
       console.log(`Completed reversing planned_qty for SO ${soId}`);
     }
 
     console.log("Successfully reversed planned_qty in all affected SOs");
+
+    // Update SO header to_status based on whether all items are fully planned
+    await updateSOHeaderStatus(soGrouped);
   } catch (error) {
     console.error("Error in reversePlannedQtyInSO:", error);
+    throw error;
+  }
+};
+
+// Update Sales Order header to_status based on planned_qty vs so_quantity
+const updateSOHeaderStatus = async (soGrouped) => {
+  try {
+    console.log("Starting updateSOHeaderStatus");
+
+    for (const soId of Object.keys(soGrouped)) {
+      // Fetch all line items for this SO
+      const soResponse = await db
+        .collection("sales_order")
+        .where({ id: soId })
+        .get();
+
+      if (!soResponse.data || soResponse.data.length === 0) {
+        console.log(`Sales Order ${soId} not found`);
+        continue;
+      }
+
+      const soData = soResponse.data[0];
+      const soLineItems = soData.table_so || [];
+
+      if (soLineItems.length === 0) {
+        console.log(`No line items found for SO ${soId}`);
+        continue;
+      }
+
+      // Check if all line items are fully planned
+      const allFullyPlanned = soLineItems.every((lineItem) => {
+        const soQuantity = parseFloat(lineItem.so_quantity || 0);
+        const plannedQty = parseFloat(lineItem.planned_qty || 0);
+        return plannedQty >= soQuantity;
+      });
+
+      // Determine new to_status
+      let newToStatus;
+      if (allFullyPlanned) {
+        newToStatus = "Completed";
+        console.log(`SO ${soId}: All items fully planned, setting to_status=Completed`);
+      } else {
+        // Check if any items have been partially planned
+        const anyPlanned = soLineItems.some((lineItem) => {
+          const plannedQty = parseFloat(lineItem.planned_qty || 0);
+          return plannedQty > 0;
+        });
+
+        if (anyPlanned) {
+          newToStatus = "In Progress";
+          console.log(`SO ${soId}: Some items planned, setting to_status=In Progress`);
+        } else {
+          // No items planned at all, keep original status or set to null
+          console.log(`SO ${soId}: No items planned, keeping original to_status`);
+          continue; // Don't update
+        }
+      }
+
+      // Update SO header
+      await db
+        .collection("sales_order")
+        .doc(soId)
+        .update({
+          to_status: newToStatus,
+        });
+
+      console.log(`Updated SO ${soId} to_status to ${newToStatus}`);
+    }
+
+    console.log("Successfully updated SO header statuses");
+  } catch (error) {
+    console.error("Error in updateSOHeaderStatus:", error);
     throw error;
   }
 };
@@ -1710,7 +1820,8 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
         const { ppDataUpdated, ppLineItems } =
           await updatePickingPlanWithPickedQty(
             ppId,
-            toData.table_picking_records
+            toData.table_picking_records,
+            toData.table_picking_items
           );
 
         if (ppDataUpdated) {

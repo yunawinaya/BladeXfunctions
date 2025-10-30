@@ -2669,10 +2669,13 @@ const updateSalesOrderStatus = async (salesOrderId, tableTO) => {
         table_so: updatedSoItems,
       };
 
-      // Set to_status if not already set
-      if (!soDoc.to_status || soDoc.to_status === null) {
+      // Set to_status only if not already set or if current status is less than "Created"
+      // Don't downgrade status from "In Progress" or "Completed" back to "Created"
+      const currentStatus = soDoc.to_status;
+      if (!currentStatus || currentStatus === null || currentStatus === "Draft") {
         updateData.to_status = "Created";
       }
+      // If status is already "In Progress" or "Completed", keep it as is
 
       // Execute database update
       await db.collection("sales_order").doc(soId).update(updateData);
