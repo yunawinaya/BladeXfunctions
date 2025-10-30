@@ -39,34 +39,50 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
     // GD Quantity Logic for PP:
     // - gd_order_quantity = Original SO qty (to_order_quantity)
-    // - plan_qty = Remaining to deliver (to_qty - to_delivered_qty)
+    // - plan_qty = Remaining to deliver (to_qty - gd_delivered_qty)
     // - gd_qty = Auto-allocated to remaining qty
-    // - gd_initial_delivered_qty = Already delivered (to_delivered_qty)
+    // - gd_initial_delivered_qty = Already delivered (gd_delivered_qty from PP)
     // - gd_delivered_qty = Total picked qty (to_qty)
     // - gd_undelivered_qty = SO qty - picked qty (gap between ordered and picked)
 
     const soOrderedQty = item.orderedQty; // to_order_quantity (10)
     const pickedQty = item.pickedQty; // to_qty (8)
-    const alreadyDelivered = item.deliveredQty || 0; // to_delivered_qty (5 after first GD)
+    const alreadyDelivered = item.deliveredQty || 0; // gd_delivered_qty from PP (5 after first GD)
     const remainingToDeliver = pickedQty - alreadyDelivered; // 8 - 5 = 3
     const undeliveredQty = soOrderedQty - pickedQty; // 10 - 8 = 2
 
     // If serialized, convert to base UOM
     if (itemData?.serial_number_management === 1) {
-      const soOrderedQtyBase = convertToBaseUOM(soOrderedQty, item.altUOM, itemData);
+      const soOrderedQtyBase = convertToBaseUOM(
+        soOrderedQty,
+        item.altUOM,
+        itemData
+      );
       const pickedQtyBase = convertToBaseUOM(pickedQty, item.altUOM, itemData);
-      const alreadyDeliveredBase = convertToBaseUOM(alreadyDelivered, item.altUOM, itemData);
-      const remainingToDeliverBase = convertToBaseUOM(remainingToDeliver, item.altUOM, itemData);
-      const undeliveredQtyBase = convertToBaseUOM(undeliveredQty, item.altUOM, itemData);
+      const alreadyDeliveredBase = convertToBaseUOM(
+        alreadyDelivered,
+        item.altUOM,
+        itemData
+      );
+      const remainingToDeliverBase = convertToBaseUOM(
+        remainingToDeliver,
+        item.altUOM,
+        itemData
+      );
+      const undeliveredQtyBase = convertToBaseUOM(
+        undeliveredQty,
+        item.altUOM,
+        itemData
+      );
 
       processedItems.push({
         material_id: item.itemId || "",
         material_name: item.itemName || "",
         gd_material_desc: item.itemDesc || "",
         gd_order_quantity: soOrderedQtyBase, // Original SO qty in base UOM
-        plan_qty: remainingToDeliverBase, // Remaining to deliver (to_qty - to_delivered_qty)
+        plan_qty: remainingToDeliverBase, // Remaining to deliver (to_qty - gd_delivered_qty)
         gd_qty: remainingToDeliverBase, // Auto-allocated to remaining qty
-        gd_initial_delivered_qty: alreadyDeliveredBase, // Already delivered (to_delivered_qty)
+        gd_initial_delivered_qty: alreadyDeliveredBase, // Already delivered (gd_delivered_qty)
         gd_delivered_qty: pickedQtyBase, // Total picked qty (to_qty)
         gd_undelivered_qty: undeliveredQtyBase, // Gap between SO and picked
         gd_order_uom_id: itemData.based_uom, // Base UOM
@@ -97,9 +113,9 @@ const createTableGdWithBaseUOM = async (allItems) => {
         material_name: item.itemName || "",
         gd_material_desc: item.itemDesc || "",
         gd_order_quantity: soOrderedQty, // Original SO qty
-        plan_qty: remainingToDeliver, // Remaining to deliver (to_qty - to_delivered_qty)
+        plan_qty: remainingToDeliver, // Remaining to deliver (to_qty - gd_delivered_qty)
         gd_qty: remainingToDeliver, // Auto-allocated to remaining qty
-        gd_initial_delivered_qty: alreadyDelivered, // Already delivered (to_delivered_qty)
+        gd_initial_delivered_qty: alreadyDelivered, // Already delivered (gd_delivered_qty)
         gd_delivered_qty: pickedQty, // Total picked qty (to_qty)
         gd_undelivered_qty: undeliveredQty, // Gap between SO and picked
         gd_order_uom_id: item.altUOM,
@@ -232,7 +248,9 @@ const createTableGdWithBaseUOM = async (allItems) => {
         );
 
         console.log(
-          `PP ${pp.to_no}: ${pp.table_to.length} total items, ${availableLineItems.length} available (${
+          `PP ${pp.to_no}: ${pp.table_to.length} total items, ${
+            availableLineItems.length
+          } available (${
             pp.table_to.length - availableLineItems.length
           } fully delivered)`
         );
@@ -245,7 +263,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
             itemDesc: ppItem.to_material_desc || "",
             orderedQty: parseFloat(ppItem.to_order_quantity || 0), // Original SO quantity
             pickedQty: parseFloat(ppItem.to_qty || 0), // Actually picked quantity
-            deliveredQty: parseFloat(ppItem.to_delivered_qty || 0), // Already delivered via GD
+            deliveredQty: parseFloat(ppItem.gd_delivered_qty || 0), // Already delivered via GD (field from PP)
             delivery_status: ppItem.delivery_status || "", // Line item delivery status
             altUOM: ppItem.to_order_uom_id || "",
             baseUOM: ppItem.base_uom_id || "",
@@ -321,10 +339,14 @@ const createTableGdWithBaseUOM = async (allItems) => {
     );
 
     if (fullyDelivered) {
-      console.log(`Filtering out ${item.itemName}: ${item.delivery_status} (${item.deliveredQty}/${item.pickedQty})`);
+      console.log(
+        `Filtering out ${item.itemName}: ${item.delivery_status} (${item.deliveredQty}/${item.pickedQty})`
+      );
     }
     if (alreadyInGD) {
-      console.log(`Filtering out ${item.itemName}: already in GD (pp_line_id: ${item.pp_line_id})`);
+      console.log(
+        `Filtering out ${item.itemName}: already in GD (pp_line_id: ${item.pp_line_id})`
+      );
     }
 
     return !fullyDelivered && !alreadyInGD;
@@ -340,13 +362,13 @@ const createTableGdWithBaseUOM = async (allItems) => {
   salesOrderNumber = [...new Set(latestTableGD.map((gr) => gr.line_so_no))];
 
   // Collect unique PP numbers for reference
-  const ppNumbers = [...new Set(latestTableGD.map((gr) => gr.pp_no).filter(Boolean))];
+  const ppNumbers = [
+    ...new Set(latestTableGD.map((gr) => gr.pp_no).filter(Boolean)),
+  ];
 
   await this.setData({
     currency_code:
-      referenceType === "Document"
-        ? currentItemArray[0].so_currency[0]
-        : null, // PP might not have currency info
+      referenceType === "Document" ? currentItemArray[0].so_currency[0] : null, // PP might not have currency info
     customer_name:
       referenceType === "Document"
         ? currentItemArray[0].customer_id[0]
