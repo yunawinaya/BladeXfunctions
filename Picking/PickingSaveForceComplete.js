@@ -1614,9 +1614,6 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
     }
 
     console.log("Successfully reversed planned_qty in all affected SOs");
-
-    // Update SO header to_status based on whether all items are fully planned
-    await updateSOHeaderStatus(soGrouped);
   } catch (error) {
     console.error("Error in reversePlannedQtyInSO:", error);
     throw error;
@@ -1624,11 +1621,15 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
 };
 
 // Update Sales Order header to_status based on planned_qty vs so_quantity
-const updateSOHeaderStatus = async (soGrouped) => {
+// Accepts either soGrouped object or array of SO IDs
+const updateSOHeaderStatus = async (soIds) => {
   try {
     console.log("Starting updateSOHeaderStatus");
 
-    for (const soId of Object.keys(soGrouped)) {
+    // Handle both object (from soGrouped) and array (from PP line items)
+    const soIdArray = Array.isArray(soIds) ? soIds : Object.keys(soIds);
+
+    for (const soId of soIdArray) {
       // Fetch all line items for this SO
       const soResponse = await db
         .collection("sales_order")
@@ -1860,6 +1861,21 @@ const updateSOHeaderStatus = async (soGrouped) => {
           toData.table_picking_records
         );
         console.log("Transfer Order picking items updated");
+
+        // Step 6: Update SO header status (for both partial and full picking)
+        // Collect unique SO IDs from PP line items
+        const soIds = [...new Set(
+          ppLineItems
+            .map(item => item.line_so_id)
+            .filter(id => id != null && id !== "")
+        )];
+
+        if (soIds.length > 0) {
+          console.log(`Updating SO header status for ${soIds.length} Sales Orders: ${soIds.join(", ")}`);
+          await updateSOHeaderStatus(soIds);
+        } else {
+          console.log("No SO IDs found in PP line items, skipping SO status update");
+        }
       }
     } else {
       console.log("Not a Picking Plan transfer, skipping force complete logic");
