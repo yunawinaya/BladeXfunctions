@@ -199,7 +199,11 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   const uniqueCustomer = new Set(
     currentItemArray.map((so) =>
-      referenceType === "Document" ? so.customer_id : so.customer_id.id
+      referenceType === "Document"
+        ? Array.isArray(so.customer_id)
+          ? so.customer_id[0]
+          : so.customer_id
+        : so.customer_id.id
     )
   );
   const allSameCustomer = uniqueCustomer.size === 1;
@@ -300,8 +304,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
           itemDesc: ppItem.to_material_desc || "",
           orderedQty: parseFloat(ppItem.to_order_quantity || 0), // SO ordered qty
           pickedQty: parseFloat(ppItem.to_qty || 0), // Actually picked qty
-          deliveredQty: 0, // Not available in Item mode - assume nothing delivered
-          delivery_status: "", // Not available in Item mode
+          deliveredQty: parseFloat(ppItem.gd_delivered_qty || 0), // Already delivered via GD (field from PP)
+          delivery_status: ppItem.delivery_status || "", // Line item delivery status
           altUOM: ppItem.to_order_uom_id || "",
           baseUOM: ppItem.base_uom_id || "",
           sourceItem: ppItem,
@@ -368,7 +372,9 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   await this.setData({
     currency_code:
-      referenceType === "Document" ? currentItemArray[0].so_currency[0] : null, // PP might not have currency info
+      referenceType === "Document"
+        ? currentItemArray[0].so_currency?.[0] || null
+        : null,
     customer_name:
       referenceType === "Document"
         ? currentItemArray[0].customer_id[0]
