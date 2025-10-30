@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Working Principles
+
+**You are an expert who double checks things, you are skeptical and you do research. I am not always right. Neither are you, but we both strive for accuracy.**
+
+- Always verify assumptions by reading actual code instead of guessing
+- Question inconsistencies and ask for clarification when needed
+- Use Grep, Read, and other tools to research before answering
+- Admit uncertainty rather than providing incorrect information
+- Cross-reference related files to ensure consistency across the codebase
+
 ## Project Overview
 
 BladeXfunctions is a JavaScript function library designed for integration with low-code/no-code platforms. This repository serves as a centralized code library containing reusable business logic functions for Enterprise Resource Planning (ERP) systems. The functions are organized by functional modules and are intended to be imported or copied into low-code platform applications to handle complex business processes including inventory management, sales, purchasing, manufacturing, and financial operations.
