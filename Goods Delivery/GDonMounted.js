@@ -383,20 +383,24 @@ const disabledSelectStock = async (data) => {
   });
 };
 
-const setDisplayAssignedTo = async (data) => {
+const setPickingSetup = async (data) => {
   const pickingSetupResponse = await db
     .collection("picking_setup")
     .where({
       plant_id: data.plant_id,
-      movement_type: "Good Delivery",
       picking_required: 1,
     })
     .get();
 
   if (pickingSetupResponse.data.length > 0) {
-    this.display("assigned_to");
+    if (pickingSetupResponse.data[0].picking_after === "Good Delivery") {
+      this.display("assigned_to");
+    } else if (pickingSetupResponse.data[0].picking_after === "Sales Order") {
+      this.setData({ is_select_picking: 1 });
+    }
   }
 };
+
 const fetchDeliveredQuantity = async () => {
   const tableGD = this.getValue("table_gd") || [];
 
@@ -494,7 +498,7 @@ const displayPlanQty = async (data) => {
         if (status !== "Completed") {
           await getPrefixData(organizationId);
           await disabledSelectStock(data);
-          await setDisplayAssignedTo(data);
+          await setPickingSetup(data);
         }
         await checkAccIntegrationType(organizationId);
         await disabledField(status, pickingStatus);
@@ -510,7 +514,7 @@ const displayPlanQty = async (data) => {
       case "View":
         await showStatusHTML(status);
         await displayDeliveryMethod();
-        await setDisplayAssignedTo(data);
+        await setPickingSetup(data);
         await displayPlanQty(data);
         this.hide([
           "link_billing_address",

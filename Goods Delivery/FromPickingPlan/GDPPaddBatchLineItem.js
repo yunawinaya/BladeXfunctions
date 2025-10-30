@@ -93,12 +93,14 @@ const createTableGdWithBaseUOM = async (allItems) => {
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
-        pp_id: item.pp_id,
-        pp_no: item.pp_no,
-        pp_line_id: item.pp_line_id,
+        line_to_id: item.pp_id,
+        line_to_no: item.pp_no,
+        to_line_item_id: item.pp_line_id,
         item_category_id: item.item_category_id,
-        temp_qty_data: item.temp_qty_data, // Pass through location/batch data
+        temp_qty_data: item.temp_qty_data,
+        plan_temp_qty_data: item.temp_qty_data,
         view_stock: item.view_stock,
+        plan_view_stock: item.view_stock,
         fifo_sequence: item.fifo_sequence,
         item_costing_method: item.item_costing_method,
         plant_id: item.plant_id,
@@ -126,12 +128,14 @@ const createTableGdWithBaseUOM = async (allItems) => {
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
-        pp_id: item.pp_id,
-        pp_no: item.pp_no,
-        pp_line_id: item.pp_line_id,
+        line_to_id: item.pp_id,
+        line_to_no: item.pp_no,
+        to_line_item_id: item.pp_line_id,
         item_category_id: item.item_category_id,
-        temp_qty_data: item.temp_qty_data, // Pass through location/batch data
+        temp_qty_data: item.temp_qty_data,
+        plan_temp_qty_data: item.temp_qty_data,
         view_stock: item.view_stock,
+        plan_view_stock: item.view_stock,
         fifo_sequence: item.fifo_sequence,
         item_costing_method: item.item_costing_method,
         plant_id: item.plant_id,
@@ -385,6 +389,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
     pp_no: ppNumbers.join(", "), // Add PP reference
     reference_type: referenceType,
   });
+
+  await this.display(["table_gd.line_to_no", "table_gd.plan_qty"]);
 
   this.hideLoading();
 })();
