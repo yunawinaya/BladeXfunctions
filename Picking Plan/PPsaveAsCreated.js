@@ -664,6 +664,42 @@ const reverseBalanceChanges = async (
             console.log(
               `Reversed balance for item ${item.material_id}, location ${prevTemp.location_id}`
             );
+
+            // ADDED: For batch items, also update aggregate item_balance (without batch_id)
+            if (balanceCollection === "item_batch_balance" && prevTemp.batch_id) {
+              const aggregateBalanceParams = {
+                material_id: item.material_id,
+                location_id: prevTemp.location_id,
+                plant_id: data.plant_id,
+                organization_id: organizationId,
+              };
+              // Don't include batch_id for aggregate balance
+
+              const aggregateBalanceQuery = await db
+                .collection("item_balance")
+                .where(aggregateBalanceParams)
+                .get();
+
+              if (aggregateBalanceQuery.data && aggregateBalanceQuery.data.length > 0) {
+                const aggregateDoc = aggregateBalanceQuery.data[0];
+
+                await db
+                  .collection("item_balance")
+                  .doc(aggregateDoc.id)
+                  .update({
+                    unrestricted_qty: roundQty(
+                      parseFloat(aggregateDoc.unrestricted_qty || 0) + prevBaseQty
+                    ),
+                    reserved_qty: roundQty(
+                      parseFloat(aggregateDoc.reserved_qty || 0) - prevBaseQty
+                    ),
+                  });
+
+                console.log(
+                  `Reversed aggregate item_balance for batch item ${item.material_id}, location ${prevTemp.location_id}`
+                );
+              }
+            }
           }
         }
       }
