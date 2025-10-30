@@ -37,38 +37,58 @@ const createTableGdWithBaseUOM = async (allItems) => {
       }
     }
 
+    // GD Quantity Logic for PP:
+    // - gd_order_quantity = Original SO qty (to_order_quantity)
+    // - plan_qty = Remaining to deliver (to_qty - to_delivered_qty)
+    // - gd_qty = Auto-allocated to remaining qty
+    // - gd_initial_delivered_qty = Already delivered (to_delivered_qty)
+    // - gd_delivered_qty = Total picked qty (to_qty)
+    // - gd_undelivered_qty = SO qty - picked qty (gap between ordered and picked)
+
+    const soOrderedQty = item.orderedQty; // to_order_quantity (10)
+    const pickedQty = item.pickedQty; // to_qty (8)
+    const alreadyDelivered = item.deliveredQty || 0; // to_delivered_qty (5 after first GD)
+    const remainingToDeliver = pickedQty - alreadyDelivered; // 8 - 5 = 3
+    const undeliveredQty = soOrderedQty - pickedQty; // 10 - 8 = 2
+
     // If serialized, convert to base UOM
     if (itemData?.serial_number_management === 1) {
-      const orderedQtyBase = convertToBaseUOM(
-        item.orderedQty,
-        item.altUOM,
-        itemData
-      );
-      const deliveredQtyBase = convertToBaseUOM(
-        item.deliveredQtyFromSource,
-        item.altUOM,
-        itemData
-      );
+      const soOrderedQtyBase = convertToBaseUOM(soOrderedQty, item.altUOM, itemData);
+      const pickedQtyBase = convertToBaseUOM(pickedQty, item.altUOM, itemData);
+      const alreadyDeliveredBase = convertToBaseUOM(alreadyDelivered, item.altUOM, itemData);
+      const remainingToDeliverBase = convertToBaseUOM(remainingToDeliver, item.altUOM, itemData);
+      const undeliveredQtyBase = convertToBaseUOM(undeliveredQty, item.altUOM, itemData);
 
       processedItems.push({
         material_id: item.itemId || "",
         material_name: item.itemName || "",
         gd_material_desc: item.itemDesc || "",
-        gd_order_quantity: orderedQtyBase, // Base UOM
-        gd_delivered_qty: deliveredQtyBase, // Base UOM
-        gd_undelivered_qty: orderedQtyBase - deliveredQtyBase, // Base UOM
+        gd_order_quantity: soOrderedQtyBase, // Original SO qty in base UOM
+        plan_qty: remainingToDeliverBase, // Remaining to deliver (to_qty - to_delivered_qty)
+        gd_qty: remainingToDeliverBase, // Auto-allocated to remaining qty
+        gd_initial_delivered_qty: alreadyDeliveredBase, // Already delivered (to_delivered_qty)
+        gd_delivered_qty: pickedQtyBase, // Total picked qty (to_qty)
+        gd_undelivered_qty: undeliveredQtyBase, // Gap between SO and picked
         gd_order_uom_id: itemData.based_uom, // Base UOM
         good_delivery_uom_id: itemData.based_uom, // Base UOM
-        unit_price: item.sourceItem.so_item_price || 0,
-        total_price: item.sourceItem.so_amount || 0,
-        more_desc: item.sourceItem.more_desc || "",
-        line_remark_1: item.sourceItem.line_remark_1 || "",
-        line_remark_2: item.sourceItem.line_remark_2 || "",
+        base_uom_id: itemData.based_uom,
+        unit_price: item.unit_price || 0,
+        total_price: item.total_price || 0,
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
+        pp_id: item.pp_id,
+        pp_no: item.pp_no,
+        pp_line_id: item.pp_line_id,
         item_category_id: item.item_category_id,
-        base_uom_id: itemData.based_uom,
+        temp_qty_data: item.temp_qty_data, // Pass through location/batch data
+        view_stock: item.view_stock,
+        fifo_sequence: item.fifo_sequence,
+        item_costing_method: item.item_costing_method,
+        plant_id: item.plant_id,
+        customer_id: item.customer_id,
+        is_force_complete: item.is_force_complete,
+        picking_status: item.picking_status,
       });
     } else {
       // Non-serialized items keep original UOM
@@ -76,20 +96,32 @@ const createTableGdWithBaseUOM = async (allItems) => {
         material_id: item.itemId || "",
         material_name: item.itemName || "",
         gd_material_desc: item.itemDesc || "",
-        gd_order_quantity: item.orderedQty,
-        gd_delivered_qty: item.deliveredQtyFromSource,
-        gd_undelivered_qty: item.orderedQty - item.sourceItem.delivered_qty,
+        gd_order_quantity: soOrderedQty, // Original SO qty
+        plan_qty: remainingToDeliver, // Remaining to deliver (to_qty - to_delivered_qty)
+        gd_qty: remainingToDeliver, // Auto-allocated to remaining qty
+        gd_initial_delivered_qty: alreadyDelivered, // Already delivered (to_delivered_qty)
+        gd_delivered_qty: pickedQty, // Total picked qty (to_qty)
+        gd_undelivered_qty: undeliveredQty, // Gap between SO and picked
         gd_order_uom_id: item.altUOM,
         good_delivery_uom_id: item.altUOM,
-        unit_price: item.sourceItem.so_item_price || 0,
-        total_price: item.sourceItem.so_amount || 0,
-        more_desc: item.sourceItem.more_desc || "",
-        line_remark_1: item.sourceItem.line_remark_1 || "",
-        line_remark_2: item.sourceItem.line_remark_2 || "",
+        base_uom_id: item.baseUOM,
+        unit_price: item.unit_price || 0,
+        total_price: item.total_price || 0,
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
+        pp_id: item.pp_id,
+        pp_no: item.pp_no,
+        pp_line_id: item.pp_line_id,
         item_category_id: item.item_category_id,
+        temp_qty_data: item.temp_qty_data, // Pass through location/batch data
+        view_stock: item.view_stock,
+        fifo_sequence: item.fifo_sequence,
+        item_costing_method: item.item_costing_method,
+        plant_id: item.plant_id,
+        customer_id: item.customer_id,
+        is_force_complete: item.is_force_complete,
+        picking_status: item.picking_status,
       });
     }
   }
@@ -191,54 +223,112 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   switch (referenceType) {
     case "Document":
-      for (const so of currentItemArray) {
-        for (const soItem of so.table_so) {
-          console.log("soItem", soItem);
+      // Document mode: Take all items from selected Picking Plan(s)
+      // Filter out fully delivered line items from table_to
+      for (const pp of currentItemArray) {
+        // Filter table_to to exclude fully delivered line items
+        const availableLineItems = (pp.table_to || []).filter(
+          (lineItem) => lineItem.delivery_status !== "Fully Delivered"
+        );
+
+        console.log(
+          `PP ${pp.to_no}: ${pp.table_to.length} total items, ${availableLineItems.length} available (${
+            pp.table_to.length - availableLineItems.length
+          } fully delivered)`
+        );
+
+        for (const ppItem of availableLineItems) {
+          console.log("ppItem", ppItem);
           allItems.push({
-            itemId: soItem.item_name,
-            itemName: soItem.item_id,
-            itemDesc: soItem.so_desc,
-            orderedQty: parseFloat(soItem.so_quantity || 0),
-            altUOM: soItem.so_item_uom || "",
-            sourceItem: soItem,
-            deliveredQtyFromSource: parseFloat(soItem.delivered_qty || 0),
-            original_so_id: so.sales_order_id,
-            so_no: so.sales_order_number,
-            so_line_item_id: soItem.id,
-            item_category_id: soItem.item_category_id,
+            itemId: ppItem.material_id,
+            itemName: ppItem.material_name,
+            itemDesc: ppItem.to_material_desc || "",
+            orderedQty: parseFloat(ppItem.to_order_quantity || 0), // Original SO quantity
+            pickedQty: parseFloat(ppItem.to_qty || 0), // Actually picked quantity
+            deliveredQty: parseFloat(ppItem.to_delivered_qty || 0), // Already delivered via GD
+            delivery_status: ppItem.delivery_status || "", // Line item delivery status
+            altUOM: ppItem.to_order_uom_id || "",
+            baseUOM: ppItem.base_uom_id || "",
+            sourceItem: ppItem,
+            original_so_id: ppItem.line_so_id, // SO header ID
+            so_no: ppItem.line_so_no, // SO number
+            so_line_item_id: ppItem.so_line_item_id, // SO line item ID
+            pp_id: pp.picking_plan_id,
+            pp_no: pp.to_no,
+            pp_line_id: ppItem.id,
+            item_category_id: ppItem.item_category_id,
+            temp_qty_data: ppItem.temp_qty_data, // Location/batch details
+            view_stock: ppItem.view_stock,
+            fifo_sequence: ppItem.fifo_sequence,
+            unit_price: ppItem.unit_price,
+            total_price: ppItem.total_price,
+            item_costing_method: ppItem.item_costing_method,
+            plant_id: ppItem.plant_id,
+            customer_id: ppItem.customer_id,
+            is_force_complete: ppItem.is_force_complete || 0,
+            picking_status: ppItem.picking_status,
           });
         }
       }
-
       break;
 
     case "Item":
-      for (const soItem of currentItemArray) {
+      // Item mode: Take selected individual PP line items
+      for (const ppItem of currentItemArray) {
+        console.log("ppItem (Item mode)", ppItem);
         allItems.push({
-          itemId: soItem.item.id,
-          itemName: soItem.item.material_name,
-          itemDesc: soItem.so_desc,
-          orderedQty: parseFloat(soItem.so_quantity || 0),
-          altUOM: soItem.so_item_uom || "",
-          sourceItem: soItem,
-          deliveredQtyFromSource: parseFloat(soItem.delivered_qty || 0),
-          original_so_id: soItem.sales_order.id,
-          so_no: soItem.sales_order.so_no,
-          so_line_item_id: soItem.sales_order_line_id,
-          item_category_id: soItem.item.item_category,
+          itemId: ppItem.item.id,
+          itemName: ppItem.item.material_code,
+          itemDesc: ppItem.to_material_desc || "",
+          orderedQty: parseFloat(ppItem.to_order_quantity || 0), // SO ordered qty
+          pickedQty: parseFloat(ppItem.to_qty || 0), // Actually picked qty
+          deliveredQty: 0, // Not available in Item mode - assume nothing delivered
+          delivery_status: "", // Not available in Item mode
+          altUOM: ppItem.to_order_uom_id || "",
+          baseUOM: ppItem.base_uom_id || "",
+          sourceItem: ppItem,
+          original_so_id: ppItem.line_so_id,
+          so_no: ppItem.line_so_no,
+          so_line_item_id: ppItem.so_line_item_id,
+          pp_id: ppItem.picking_plan.id,
+          pp_no: ppItem.picking_plan.to_no,
+          pp_line_id: ppItem.picking_plan_line_id,
+          item_category_id: ppItem.item_category_id,
+          temp_qty_data: ppItem.temp_qty_data,
+          view_stock: ppItem.view_stock,
+          fifo_sequence: ppItem.fifo_sequence,
+          unit_price: ppItem.unit_price,
+          total_price: ppItem.total_price,
+          item_costing_method: ppItem.item_costing_method,
+          plant_id: ppItem.plant_id,
+          customer_id: ppItem.customer_id.id,
+          is_force_complete: ppItem.is_force_complete || 0,
+          picking_status: ppItem.picking_plan.picking_status,
         });
       }
       break;
   }
 
   console.log("allItems", allItems);
-  allItems = allItems.filter(
-    (gd) =>
-      gd.deliveredQtyFromSource !== gd.orderedQty &&
-      !existingGD.find(
-        (gdItem) => gdItem.so_line_item_id === gd.so_line_item_id
-      )
-  );
+
+  // Filter out items that:
+  // 1. Are fully delivered (delivery_status === "Fully Delivered")
+  // 2. Are already in the existing GD (match by pp_line_id to avoid duplicates)
+  allItems = allItems.filter((item) => {
+    const fullyDelivered = item.delivery_status === "Fully Delivered";
+    const alreadyInGD = existingGD.find(
+      (gdItem) => gdItem.pp_line_id === item.pp_line_id
+    );
+
+    if (fullyDelivered) {
+      console.log(`Filtering out ${item.itemName}: ${item.delivery_status} (${item.deliveredQty}/${item.pickedQty})`);
+    }
+    if (alreadyInGD) {
+      console.log(`Filtering out ${item.itemName}: already in GD (pp_line_id: ${item.pp_line_id})`);
+    }
+
+    return !fullyDelivered && !alreadyInGD;
+  });
 
   console.log("allItems after filter", allItems);
 
@@ -249,18 +339,22 @@ const createTableGdWithBaseUOM = async (allItems) => {
   soId = [...new Set(latestTableGD.map((gr) => gr.line_so_id))];
   salesOrderNumber = [...new Set(latestTableGD.map((gr) => gr.line_so_no))];
 
+  // Collect unique PP numbers for reference
+  const ppNumbers = [...new Set(latestTableGD.map((gr) => gr.pp_no).filter(Boolean))];
+
   await this.setData({
     currency_code:
       referenceType === "Document"
-        ? currentItemArray[0].currency
-        : currentItemArray[0].sales_order.so_currency,
+        ? currentItemArray[0].so_currency[0]
+        : null, // PP might not have currency info
     customer_name:
       referenceType === "Document"
-        ? currentItemArray[0].customer_id
+        ? currentItemArray[0].customer_id[0]
         : currentItemArray[0].customer_id.id,
     table_gd: latestTableGD,
     so_no: salesOrderNumber.join(", "),
     so_id: soId,
+    pp_no: ppNumbers.join(", "), // Add PP reference
     reference_type: referenceType,
   });
 
