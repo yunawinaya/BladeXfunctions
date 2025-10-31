@@ -413,5 +413,33 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   await this.display(["table_gd.line_to_no", "table_gd.plan_qty"]);
 
+  // GDPP: Enable/disable fields based on temp_qty_data length
+  for (let i = 0; i < latestTableGD.length; i++) {
+    const item = latestTableGD[i];
+    const tempQtyData = item.temp_qty_data;
+
+    if (!tempQtyData || tempQtyData === "[]" || tempQtyData.trim() === "") {
+      continue;
+    }
+
+    try {
+      const tempDataArray = JSON.parse(tempQtyData);
+
+      if (tempDataArray.length === 1) {
+        // Single location: Disable dialog button, enable gd_qty field
+        this.disabled([`table_gd.${i}.gd_delivery_qty`], true);
+        this.disabled([`table_gd.${i}.gd_qty`], false);
+        console.log(`Item ${i}: Single location - direct edit enabled`);
+      } else {
+        // Multiple locations: Enable dialog button, disable gd_qty field
+        this.disabled([`table_gd.${i}.gd_delivery_qty`], false);
+        this.disabled([`table_gd.${i}.gd_qty`], true);
+        console.log(`Item ${i}: Multiple locations (${tempDataArray.length}) - dialog required`);
+      }
+    } catch (error) {
+      console.error(`Error parsing temp_qty_data for item ${i}:`, error);
+    }
+  }
+
   this.hideLoading();
 })();
