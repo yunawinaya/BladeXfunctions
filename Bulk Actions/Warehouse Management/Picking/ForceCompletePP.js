@@ -184,86 +184,6 @@ const findFieldMessage = (obj) => {
   return null;
 };
 
-const updateTransferOrderPickingItems = async (toId, pickingRecords) => {
-  try {
-    console.log("Starting updateTransferOrderPickingItems for TO:", toId);
-
-    // Fetch current Transfer Order
-    const toResponse = await db.collection("transfer_order").doc(toId).get();
-    if (!toResponse.data || toResponse.data.length === 0) {
-      console.warn(`Transfer Order ${toId} not found`);
-      return;
-    }
-
-    const toData = toResponse.data[0];
-    const pickingItems = toData.table_picking_items || [];
-
-    console.log(`Found ${pickingItems.length} picking items in Transfer Order`);
-
-    // Build a map of actual picked quantities by to_line_id
-    const pickedQtyByLineId = {};
-    const targetLocationByLineId = {};
-
-    for (const record of pickingRecords) {
-      const lineId = record.to_line_id;
-      if (!pickedQtyByLineId[lineId]) {
-        pickedQtyByLineId[lineId] = 0;
-        targetLocationByLineId[lineId] = record.target_location;
-      }
-      pickedQtyByLineId[lineId] += parseFloat(record.store_out_qty || 0);
-    }
-
-    console.log("Picked quantities by line ID:", pickedQtyByLineId);
-
-    // Update each picking item
-    const updatedPickingItems = [];
-
-    for (const item of pickingItems) {
-      const lineId = item.to_line_id;
-      const actualPickedQty = pickedQtyByLineId[lineId] || 0;
-
-      if (actualPickedQty > 0) {
-        // Item was picked (fully or partially)
-        console.log(
-          `Updating picking item for line ${lineId}: original qty=${item.qty_to_pick}, picked=${actualPickedQty}`
-        );
-
-        const updatedItem = {
-          ...item,
-          qty_to_pick: roundQty(actualPickedQty),
-          pending_process_qty: roundQty(actualPickedQty), // Reset to picked qty
-          source_bin: targetLocationByLineId[lineId] || item.source_bin,
-          undelivered_qty: roundQty(actualPickedQty), // For GD to consume
-          delivered_qty: 0, // Will be updated by GD
-        };
-
-        updatedPickingItems.push(updatedItem);
-      } else {
-        // Item was not picked at all
-        console.log(
-          `Removing unpicked item for line ${lineId} (qty_to_pick=${item.qty_to_pick}, picked=0)`
-        );
-        // Don't add to updatedPickingItems (effectively removes it)
-      }
-    }
-
-    console.log(
-      `Updated picking items: ${updatedPickingItems.length} items (removed ${
-        pickingItems.length - updatedPickingItems.length
-      } unpicked items)`
-    );
-
-    // Update Transfer Order with modified table_picking_items
-    await db.collection("transfer_order").doc(toId).update({
-      table_picking_items: updatedPickingItems,
-    });
-
-    console.log("Transfer Order picking items updated successfully");
-  } catch (error) {
-    console.error("Error in updateTransferOrderPickingItems:", error);
-    throw error;
-  }
-};
 const createTempQtyDataSummary = async (
   updatedTempQtyData,
   toLineItem,
@@ -1510,70 +1430,103 @@ const updateSOHeaderStatus = async (soIds) => {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
+    const pickingIds = selectedRecords
+      .filter((item) => item.to_status === "In Progress")
+      .map((item) => item.id);
+
+    if (pickingIds.length === 0) {
+      this.$message.error("Please select at least one in progress picking.");
+      return;
+    }
+
+    const pickingNumbers = selectedRecords
+      .filter((item) => item.to_status === "In Progress")
+      .map((item) => item.to_id);
+
+    await this.$confirm(
+      `You've selected ${
+        pickingNumbers.length
+      } picking(s) to force complete. <br> <strong>Picking Numbers:</strong> <br>${pickingNumbers.join(
+        ", "
+      )} <br>Do you want to proceed?`,
+      "Picking Force Completion",
+      {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "warning",
+        dangerouslyUseHTMLString: true,
+      }
+    ).catch(() => {
+      console.log("User clicked Cancel or closed the dialog");
+      throw new Error();
+    });
+
     for (const record of selectedRecords) {
       try {
+        const refDocType = record.ref_doc_type;
+        const tablePickingItems = record.table_picking_items;
+        const tablePickingRecords = record.table_picking_records;
+        const pickingNumber = record.to_id;
+        const toPlantId = record.plant_id;
+
         console.log(
-          `\n========== Processing Picking: ${record.to_id} ==========`
+          `\n========== Processing Picking: ${pickingNumber} ==========`
         );
 
-        // Fetch Transfer Order data
-        const toResponse = await db
-          .collection("transfer_order")
-          .doc(record.id)
-          .get();
-
-        if (!toResponse.data || toResponse.data.length === 0) {
-          console.warn(`Transfer Order ${record.to_id} not found`);
-          errors.push(`${record.to_id}: Not found`);
-          errorCount++;
-          continue;
-        }
-
-        const toData = toResponse.data[0];
-
         // Only process Picking Plan pickings
-        if (toData.ref_doc_type !== "Picking Plan") {
+        if (refDocType !== "Picking Plan") {
           console.log(
-            `Skipping ${toData.to_id} - not a Picking Plan picking (ref_doc_type: ${toData.ref_doc_type})`
+            `Skipping ${pickingNumber} - not a Picking Plan picking (ref_doc_type: ${refDocType})`
           );
-          errors.push(`${toData.to_id}: Not a Picking Plan picking`);
+          errors.push(`${pickingNumber}: Not a Picking Plan picking`);
           errorCount++;
           continue;
         }
 
-        // Verify picking has been completed/processed
-        if (toData.to_status !== "In Progress") {
-          console.log(
-            `Skipping ${toData.to_id} - status is ${toData.to_status} (must be In Progress)`
-          );
-          errors.push(`${toData.to_id}: Invalid status (${toData.to_status})`);
-          errorCount++;
-          continue;
+        for (const item of tablePickingItems) {
+          if (item.line_status !== "Cancelled") {
+            item.line_status = "Completed";
+          }
         }
 
-        console.log(`Processing Picking Plan picking: ${toData.to_id}`);
+        await db.collection("transfer_order").doc(pickingId).update({
+          to_status: "Completed",
+          table_picking_items: tablePickingItems,
+        });
+
+        console.log(`Picking ${pickingNumber} updated to completed`);
 
         // Fetch Picking Plan using the to_id (which matches PP's to_no)
         const ppResponse = await db
           .collection("picking_plan")
           .where({
-            to_no: toData.to_id,
-            organization_id: toData.organization_id,
+            to_no: pickingNumber,
+            organization_id: organizationId,
             is_deleted: 0,
           })
           .get();
 
         if (!ppResponse.data || ppResponse.data.length === 0) {
-          console.warn(`Picking Plan with to_no ${toData.to_id} not found`);
-          errors.push(`${toData.to_id}: Picking Plan not found`);
+          console.warn(`Picking Plan with to_no ${pickingNumber} not found`);
+          errors.push(`${pickingNumber}: Picking Plan not found`);
           errorCount++;
           continue;
         }
 
         const ppData = ppResponse.data[0];
+
+        if (ppData.to_status === "Cancelled") {
+          console.warn(
+            `Skipping Picking Plan ${pickingNumber} - Status is Cancelled`
+          );
+          errors.push(`${pickingNumber}: Picking Plan status is Cancelled`);
+          errorCount++;
+          continue;
+        }
+
         const ppId = ppData.id;
         const ppNo = ppData.to_no;
-        const plantId = toData.plant_id;
+        const plantId = toPlantId;
 
         console.log(`Found Picking Plan: ID=${ppId}, to_no=${ppNo}`);
 
@@ -1581,8 +1534,8 @@ const updateSOHeaderStatus = async (soIds) => {
         const { ppDataUpdated, ppLineItems } =
           await updatePickingPlanWithPickedQty(
             ppId,
-            toData.table_picking_records || [],
-            toData.table_picking_items || []
+            tablePickingRecords || [],
+            tablePickingItems || []
           );
 
         if (ppDataUpdated) {
@@ -1592,7 +1545,7 @@ const updateSOHeaderStatus = async (soIds) => {
           await updateOnReservedForPartialPicking(
             ppNo,
             plantId,
-            toData.organization_id,
+            organizationId,
             ppLineItems
           );
 
@@ -1601,7 +1554,7 @@ const updateSOHeaderStatus = async (soIds) => {
             ppNo,
             ppLineItems,
             plantId,
-            toData.organization_id
+            organizationId
           );
 
           // Step 4: Reverse unrealized planned_qty in Sales Orders
@@ -1614,14 +1567,7 @@ const updateSOHeaderStatus = async (soIds) => {
           );
         }
 
-        // Step 5: Update Transfer Order's table_picking_items (remove unpicked items)
-        await updateTransferOrderPickingItems(
-          record.id,
-          toData.table_picking_records || []
-        );
-        console.log("Transfer Order picking items updated");
-
-        // Step 6: Update SO header status
+        // Step 5: Update SO header status
         const soIds = [
           ...new Set(
             ppLineItems
@@ -1644,7 +1590,7 @@ const updateSOHeaderStatus = async (soIds) => {
         }
 
         successCount++;
-        console.log(`✓ Successfully force completed: ${toData.to_id}`);
+        console.log(`✓ Successfully force completed: ${pickingNumber}`);
       } catch (error) {
         console.error(`Error processing ${record.to_id}:`, error);
         const errorMessage = findFieldMessage(error) || error.message || error;
