@@ -1,10 +1,5 @@
-(async () => {
-  const plant = arguments[0]?.value;
-
-  this.hide("address_grid");
-
+const resetFormData = () => {
   this.setData({
-    fake_so_id: "",
     so_id: "",
     customer_name: "",
     currency_code: "",
@@ -30,18 +25,7 @@
     "gd_item_balance.material_uom": "",
     "gd_item_balance.row_index": "",
 
-    driver_name: "",
-    ic_no: "",
-    driver_contact_no: "",
-    vehicle_no: "",
-    pickup_date: "",
-    validity_of_collection: "",
-
-    courier_company: "",
-    shipping_date: "",
-    tracking_number: "",
-    est_arrival_date: "",
-    freight_charges: "",
+    delivery_method_text: "",
 
     driver_name: "",
     driver_contact_no: "",
@@ -84,39 +68,52 @@
 
     order_remark: "",
   });
+};
+
+(async () => {
+  const plant = this.getValue("plant_id");
 
   if (plant) {
+    this.hide("address_grid");
+    if (arguments[0].fieldModel) {
+      await resetFormData();
+      this.hide([
+        "so_id",
+        "self_pickup",
+        "courier_service",
+        "company_truck",
+        "shipping_service",
+        "third_party_transporter",
+      ]);
+    }
+
     this.disabled(
       [
         "fake_so_id",
         "gd_ref_doc",
+        "table_gd",
         "gd_delivery_method",
         "document_description",
         "order_remark",
       ],
       false
     );
-    this.display("fake_so_id");
-    this.hide([
-      "so_id",
-      "self_pickup",
-      "courier_service",
-      "company_truck",
-      "shipping_service",
-      "third_party_transporter",
-    ]);
 
     const pickingSetupResponse = await db
       .collection("picking_setup")
       .where({
         plant_id: plant,
-        movement_type: "Good Delivery",
         picking_required: 1,
       })
       .get();
 
     if (pickingSetupResponse.data.length > 0) {
-      this.display("assigned_to");
+      if (pickingSetupResponse.data[0].picking_after === "Good Delivery") {
+        this.display("assigned_to");
+      } else if (pickingSetupResponse.data[0].picking_after === "Sales Order") {
+        this.setData({ is_select_picking: 1 });
+        this.hide("button_save_as_created");
+      }
     }
   }
 })();
