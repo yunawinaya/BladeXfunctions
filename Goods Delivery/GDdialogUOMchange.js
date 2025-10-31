@@ -78,6 +78,7 @@
       "intransit_qty",
       "balance_quantity",
       "gd_quantity",
+      "to_quantity", // Include to_quantity for GDPP mode
     ];
 
     const updatedTableItemBalance = tableItemBalance.map((record, index) => {
@@ -134,6 +135,7 @@
         "intransit_qty",
         "balance_quantity",
         "gd_quantity",
+        "to_quantity", // Include to_quantity for GDPP mode
       ];
 
       const updatedTableItemBalance = tableItemBalance.map((record, index) => {

@@ -22,6 +22,27 @@ if (!window.globalAllocationTracker) {
 const createTableGdWithBaseUOM = async (allItems) => {
   const processedItems = [];
 
+  // Helper function to add gd_quantity to temp_qty_data
+  const addGdQuantityToTempData = (tempQtyDataString) => {
+    if (!tempQtyDataString) return null;
+
+    try {
+      const tempDataArray = JSON.parse(tempQtyDataString);
+
+      // Add gd_quantity to each item in temp_qty_data
+      // For GDPP, gd_quantity should match to_quantity from PP (the picked quantity per location)
+      const updatedTempData = tempDataArray.map(item => ({
+        ...item,
+        gd_quantity: item.to_quantity || 0, // Initialize gd_quantity with to_quantity from PP
+      }));
+
+      return JSON.stringify(updatedTempData);
+    } catch (error) {
+      console.error("Error parsing temp_qty_data:", error);
+      return tempQtyDataString; // Return original if parse fails
+    }
+  };
+
   for (const item of allItems) {
     // Check if item is serialized
     let itemData = null;
@@ -97,7 +118,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         line_to_no: item.pp_no,
         to_line_item_id: item.pp_line_id,
         item_category_id: item.item_category_id,
-        temp_qty_data: item.temp_qty_data,
+        temp_qty_data: addGdQuantityToTempData(item.temp_qty_data),
         plan_temp_qty_data: item.temp_qty_data,
         view_stock: item.view_stock,
         plan_view_stock: item.view_stock,
@@ -132,7 +153,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         line_to_no: item.pp_no,
         to_line_item_id: item.pp_line_id,
         item_category_id: item.item_category_id,
-        temp_qty_data: item.temp_qty_data,
+        temp_qty_data: addGdQuantityToTempData(item.temp_qty_data),
         plan_temp_qty_data: item.temp_qty_data,
         view_stock: item.view_stock,
         plan_view_stock: item.view_stock,

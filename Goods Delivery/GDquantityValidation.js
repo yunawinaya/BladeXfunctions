@@ -5,6 +5,7 @@
     const index = fieldParts[2];
     const rowIndex = data.gd_item_balance.row_index;
     const gdStatus = data.gd_status;
+    const isSelectPicking = data.is_select_picking;
 
     const materialId = data.table_gd[rowIndex].material_id;
     const gd_order_quantity = parseFloat(
@@ -34,6 +35,8 @@
       data.gd_item_balance.table_item_balance[index].unrestricted_qty;
     const reserved_field =
       data.gd_item_balance.table_item_balance[index].reserved_qty;
+    const to_quantity_field =
+      data.gd_item_balance.table_item_balance[index].to_quantity;
 
     if (!window.validationState) {
       window.validationState = {};
@@ -59,17 +62,31 @@
             (100 + resItem.data[0].over_delivery_tolerance)) /
           100;
 
-        if (
-          gdStatus === "Created" &&
-          reserved_field + unrestricted_field < parsedValue
-        ) {
-          window.validationState[index] = false;
-          callback("Quantity is not enough");
-          return;
-        } else if (gdStatus !== "Created" && unrestricted_field < parsedValue) {
-          window.validationState[index] = false;
-          callback("Unrestricted quantity is not enough");
-          return;
+        // GDPP mode: Validate against to_quantity (picked qty from PP)
+        if (isSelectPicking === 1) {
+          console.log("GDPP mode validation - checking against to_quantity");
+
+          if (to_quantity_field < parsedValue) {
+            window.validationState[index] = false;
+            callback("Quantity exceeds picked quantity from Picking Plan");
+            return;
+          }
+        } else {
+          // Regular GD mode: Validate against balance quantities
+          console.log("Regular GD mode validation - checking against balance");
+
+          if (
+            gdStatus === "Created" &&
+            reserved_field + unrestricted_field < parsedValue
+          ) {
+            window.validationState[index] = false;
+            callback("Quantity is not enough");
+            return;
+          } else if (gdStatus !== "Created" && unrestricted_field < parsedValue) {
+            window.validationState[index] = false;
+            callback("Unrestricted quantity is not enough");
+            return;
+          }
         }
 
         console.log("Order limit with tolerance:", orderLimit);

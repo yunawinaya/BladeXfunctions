@@ -5,6 +5,7 @@
   const selectedUOM = data.gd_item_balance.material_uom;
   const materialId = data.table_gd[rowIndex].material_id;
   const goodDeliveryUOM = data.table_gd[rowIndex].gd_order_uom_id;
+  const isSelectPicking = data.is_select_picking;
 
   const gdUOM = await db
     .collection("unit_of_measurement")
@@ -74,73 +75,104 @@
       continue;
     }
 
-    // For serialized items, validate differently
-    if (isSerializedItem) {
-      // For serialized items, check if serial number exists and is valid
-      if (!item.serial_number || item.serial_number.trim() === "") {
-        console.log(`Row ${idx} validation failed: Serial number missing`);
-        alert(`Row ${idx + 1}: Serial number is required for serialized items`);
+    // GDPP mode: Only validate against to_quantity
+    if (isSelectPicking === 1) {
+      console.log(`Row ${idx}: GDPP mode validation - checking against to_quantity`);
+
+      const to_quantity_field = item.to_quantity;
+
+      if (to_quantity_field < quantity) {
+        console.log(`Row ${idx} validation failed: Exceeds picked quantity`);
+        alert(`Row ${idx + 1}: Quantity exceeds picked quantity from Picking Plan (${to_quantity_field})`);
         return;
       }
 
-      // For serialized items, quantity should typically be 1 (whole units)
-      if (quantity !== Math.floor(quantity)) {
-        console.log(
-          `Row ${idx} validation failed: Serialized items must be whole units`
-        );
-        alert(
-          `Row ${idx + 1}: Serialized items must be delivered in whole units`
-        );
-        return;
-      }
-
-      // Check unrestricted quantity for serialized items
-      const unrestricted_field = item.unrestricted_qty;
-      if (gdStatus === "Created") {
-        // For Created status, allow more flexibility
-        if (unrestricted_field < quantity) {
-          console.log(
-            `Row ${idx} validation failed: Serial item not available`
-          );
-          alert(
-            `Row ${idx + 1}: Serial number ${
-              item.serial_number
-            } is not available`
-          );
+      // For serialized items, still check serial number and whole units
+      if (isSerializedItem) {
+        if (!item.serial_number || item.serial_number.trim() === "") {
+          console.log(`Row ${idx} validation failed: Serial number missing`);
+          alert(`Row ${idx + 1}: Serial number is required for serialized items`);
           return;
         }
-      } else {
-        // For other statuses, check unrestricted quantity
-        if (unrestricted_field < quantity) {
-          console.log(
-            `Row ${idx} validation failed: Serial item unrestricted quantity insufficient`
-          );
-          alert(
-            `Row ${idx + 1}: Serial number ${
-              item.serial_number
-            } unrestricted quantity is insufficient`
-          );
+
+        if (quantity !== Math.floor(quantity)) {
+          console.log(`Row ${idx} validation failed: Serialized items must be whole units`);
+          alert(`Row ${idx + 1}: Serialized items must be delivered in whole units`);
           return;
         }
       }
     } else {
-      // For non-serialized items, use existing validation logic
-      const unrestricted_field = item.unrestricted_qty;
-      const reserved_field = item.reserved_qty;
+      // Regular GD mode: Validate against balance quantities
+      console.log(`Row ${idx}: Regular GD mode validation - checking against balance`);
 
-      if (
-        gdStatus === "Created" &&
-        reserved_field + unrestricted_field < quantity
-      ) {
-        console.log(`Row ${idx} validation failed: Quantity is not enough`);
-        alert(`Row ${idx + 1}: Quantity is not enough`);
-        return;
-      } else if (gdStatus !== "Created" && unrestricted_field < quantity) {
-        console.log(
-          `Row ${idx} validation failed: Unrestricted quantity is not enough`
-        );
-        alert(`Row ${idx + 1}: Unrestricted quantity is not enough`);
-        return;
+      // For serialized items, validate differently
+      if (isSerializedItem) {
+        // For serialized items, check if serial number exists and is valid
+        if (!item.serial_number || item.serial_number.trim() === "") {
+          console.log(`Row ${idx} validation failed: Serial number missing`);
+          alert(`Row ${idx + 1}: Serial number is required for serialized items`);
+          return;
+        }
+
+        // For serialized items, quantity should typically be 1 (whole units)
+        if (quantity !== Math.floor(quantity)) {
+          console.log(
+            `Row ${idx} validation failed: Serialized items must be whole units`
+          );
+          alert(
+            `Row ${idx + 1}: Serialized items must be delivered in whole units`
+          );
+          return;
+        }
+
+        // Check unrestricted quantity for serialized items
+        const unrestricted_field = item.unrestricted_qty;
+        if (gdStatus === "Created") {
+          // For Created status, allow more flexibility
+          if (unrestricted_field < quantity) {
+            console.log(
+              `Row ${idx} validation failed: Serial item not available`
+            );
+            alert(
+              `Row ${idx + 1}: Serial number ${
+                item.serial_number
+              } is not available`
+            );
+            return;
+          }
+        } else {
+          // For other statuses, check unrestricted quantity
+          if (unrestricted_field < quantity) {
+            console.log(
+              `Row ${idx} validation failed: Serial item unrestricted quantity insufficient`
+            );
+            alert(
+              `Row ${idx + 1}: Serial number ${
+                item.serial_number
+              } unrestricted quantity is insufficient`
+            );
+            return;
+          }
+        }
+      } else {
+        // For non-serialized items, use existing validation logic
+        const unrestricted_field = item.unrestricted_qty;
+        const reserved_field = item.reserved_qty;
+
+        if (
+          gdStatus === "Created" &&
+          reserved_field + unrestricted_field < quantity
+        ) {
+          console.log(`Row ${idx} validation failed: Quantity is not enough`);
+          alert(`Row ${idx + 1}: Quantity is not enough`);
+          return;
+        } else if (gdStatus !== "Created" && unrestricted_field < quantity) {
+          console.log(
+            `Row ${idx} validation failed: Unrestricted quantity is not enough`
+          );
+          alert(`Row ${idx + 1}: Unrestricted quantity is not enough`);
+          return;
+        }
       }
     }
 
@@ -212,6 +244,7 @@
       "intransit_qty",
       "balance_quantity",
       "gd_quantity", // Include gd_quantity in conversion
+      "to_quantity", // Include to_quantity for GDPP mode
     ];
 
     processedTemporaryData = temporaryData.map((record, index) => {

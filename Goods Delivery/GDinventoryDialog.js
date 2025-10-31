@@ -1,6 +1,7 @@
 const data = this.getValues();
 const lineItemData = arguments[0]?.row;
 const rowIndex = arguments[0]?.rowIndex;
+const isSelectPicking = data.is_select_picking;
 
 console.log("lineItemData", lineItemData);
 
@@ -11,6 +12,16 @@ const plantId = data.plant_id;
 const tempQtyData = lineItemData.temp_qty_data;
 
 this.hide("gd_item_balance.table_item_balance.serial_number");
+
+// GDPP mode: Show to_quantity, hide balance columns
+if (isSelectPicking === 1) {
+  console.log("GDPP mode: Showing to_quantity, hiding balance columns");
+  this.display("gd_item_balance.table_item_balance.to_quantity");
+} else {
+  // Regular SO -> GD flow: Hide to_quantity, show balance columns
+  console.log("Regular GD mode: Hiding to_quantity, showing balance columns");
+  this.hide("gd_item_balance.table_item_balance.to_quantity");
+}
 
 const fetchUomData = async (uomIds) => {
   try {
@@ -263,6 +274,43 @@ db.collection("Item")
       return mergedData;
     };
 
+    // Helper function to process temp_qty_data directly for GDPP mode
+    const processTempQtyDataOnly = (tempDataArray) => {
+      console.log("GDPP mode: Using temp_qty_data directly without DB fetch");
+
+      if (!tempDataArray || tempDataArray.length === 0) {
+        console.log("No temp data available");
+        return [];
+      }
+
+      // Process temp data with UOM conversion if needed
+      return tempDataArray.map((record) => {
+        const processedRecord = { ...record };
+
+        // Convert quantities from base UOM to alt UOM if different
+        if (altUOM !== baseUOM) {
+          if (processedRecord.unrestricted_qty) {
+            processedRecord.unrestricted_qty = convertBaseToAlt(
+              processedRecord.unrestricted_qty,
+              itemData,
+              altUOM
+            );
+          }
+          if (processedRecord.balance_quantity) {
+            processedRecord.balance_quantity = convertBaseToAlt(
+              processedRecord.balance_quantity,
+              itemData,
+              altUOM
+            );
+          }
+          // Other quantity fields from temp_qty_data typically don't need conversion
+          // as they're already in the correct UOM from picking
+        }
+
+        return processedRecord;
+      });
+    };
+
     const filterZeroQuantityRecords = (data) => {
       return data.filter((record) => {
         // For serialized items, check both serial number existence AND quantity > 0
@@ -329,51 +377,82 @@ db.collection("Item")
         );
       }
 
-      db.collection("item_serial_balance")
-        .where({
-          material_id: materialId,
-          plant_id: plantId,
-        })
-        .get()
-        .then((response) => {
-          console.log("response item_serial_balance", response);
-          let freshDbData = response.data || [];
+      // GDPP mode: Use temp_qty_data directly without fetching balance
+      if (isSelectPicking === 1) {
+        console.log("GDPP mode: Skipping item_serial_balance fetch");
 
-          const processedFreshData = processItemBalanceData(freshDbData);
-
-          let tempDataArray = [];
-          if (tempQtyData) {
-            try {
-              tempDataArray = JSON.parse(tempQtyData);
-              console.log("Parsed temp data:", tempDataArray);
-            } catch (error) {
-              console.error("Error parsing temp_qty_data:", error);
-              tempDataArray = [];
-            }
+        let tempDataArray = [];
+        if (tempQtyData) {
+          try {
+            tempDataArray = JSON.parse(tempQtyData);
+            console.log("Parsed temp data:", tempDataArray);
+          } catch (error) {
+            console.error("Error parsing temp_qty_data:", error);
+            tempDataArray = [];
           }
+        }
 
-          const finalData = mergeWithTempData(
-            processedFreshData,
-            tempDataArray
-          );
+        const finalData = processTempQtyDataOnly(tempDataArray);
+        const filteredData = filterZeroQuantityRecords(finalData);
 
-          // Filter out records with no serial numbers
-          const filteredData = filterZeroQuantityRecords(finalData);
+        console.log("Final filtered serialized data (GDPP):", filteredData);
 
-          console.log("Final filtered serialized data:", filteredData);
-
-          this.setData({
-            [`gd_item_balance.table_item_balance`]: filteredData,
-          });
-
-          this.setData({
-            [`gd_item_balance.table_item_balance_raw`]:
-              JSON.stringify(filteredData),
-          });
-        })
-        .catch((error) => {
-          console.error("Error fetching item serial balance data:", error);
+        this.setData({
+          [`gd_item_balance.table_item_balance`]: filteredData,
         });
+
+        this.setData({
+          [`gd_item_balance.table_item_balance_raw`]:
+            JSON.stringify(filteredData),
+        });
+      } else {
+        // Regular SO -> GD flow: Fetch balance and merge with temp data
+        db.collection("item_serial_balance")
+          .where({
+            material_id: materialId,
+            plant_id: plantId,
+          })
+          .get()
+          .then((response) => {
+            console.log("response item_serial_balance", response);
+            let freshDbData = response.data || [];
+
+            const processedFreshData = processItemBalanceData(freshDbData);
+
+            let tempDataArray = [];
+            if (tempQtyData) {
+              try {
+                tempDataArray = JSON.parse(tempQtyData);
+                console.log("Parsed temp data:", tempDataArray);
+              } catch (error) {
+                console.error("Error parsing temp_qty_data:", error);
+                tempDataArray = [];
+              }
+            }
+
+            const finalData = mergeWithTempData(
+              processedFreshData,
+              tempDataArray
+            );
+
+            // Filter out records with no serial numbers
+            const filteredData = filterZeroQuantityRecords(finalData);
+
+            console.log("Final filtered serialized data:", filteredData);
+
+            this.setData({
+              [`gd_item_balance.table_item_balance`]: filteredData,
+            });
+
+            this.setData({
+              [`gd_item_balance.table_item_balance_raw`]:
+                JSON.stringify(filteredData),
+            });
+          })
+          .catch((error) => {
+            console.error("Error fetching item serial balance data:", error);
+          });
+      }
 
       // Handle Batch Items (only if not serialized)
     } else if (itemData.item_batch_management === 1) {
@@ -383,46 +462,72 @@ db.collection("Item")
       this.display("gd_item_balance.table_item_balance.batch_id");
       this.hide("gd_item_balance.table_item_balance.serial_number");
 
-      db.collection("item_batch_balance")
-        .where({
-          material_id: materialId,
-          plant_id: plantId,
-        })
-        .get()
-        .then((response) => {
-          console.log("response item_batch_balance", response);
-          let freshDbData = response.data || [];
+      // GDPP mode: Use temp_qty_data directly without fetching balance
+      if (isSelectPicking === 1) {
+        console.log("GDPP mode: Skipping item_batch_balance fetch");
 
-          const processedFreshData = processItemBalanceData(freshDbData);
-
-          let tempDataArray = [];
-          if (tempQtyData) {
-            try {
-              tempDataArray = JSON.parse(tempQtyData);
-              console.log("Parsed temp data:", tempDataArray);
-            } catch (error) {
-              console.error("Error parsing temp_qty_data:", error);
-              tempDataArray = [];
-            }
+        let tempDataArray = [];
+        if (tempQtyData) {
+          try {
+            tempDataArray = JSON.parse(tempQtyData);
+            console.log("Parsed temp data:", tempDataArray);
+          } catch (error) {
+            console.error("Error parsing temp_qty_data:", error);
+            tempDataArray = [];
           }
+        }
 
-          const finalData = mergeWithTempData(
-            processedFreshData,
-            tempDataArray
-          );
+        const finalData = processTempQtyDataOnly(tempDataArray);
+        const filteredData = filterZeroQuantityRecords(finalData);
 
-          // Filter out records with all zero quantities
-          const filteredData = filterZeroQuantityRecords(finalData);
+        console.log("Final filtered batch data (GDPP):", filteredData);
 
-          console.log("Final filtered batch data:", filteredData);
-
-          this.setData({
-            [`gd_item_balance.table_item_balance`]: filteredData,
-          });
-        })
-        .catch((error) => {
-          console.error("Error fetching item batch balance data:", error);
+        this.setData({
+          [`gd_item_balance.table_item_balance`]: filteredData,
         });
+      } else {
+        // Regular SO -> GD flow: Fetch balance and merge with temp data
+        db.collection("item_batch_balance")
+          .where({
+            material_id: materialId,
+            plant_id: plantId,
+          })
+          .get()
+          .then((response) => {
+            console.log("response item_batch_balance", response);
+            let freshDbData = response.data || [];
+
+            const processedFreshData = processItemBalanceData(freshDbData);
+
+            let tempDataArray = [];
+            if (tempQtyData) {
+              try {
+                tempDataArray = JSON.parse(tempQtyData);
+                console.log("Parsed temp data:", tempDataArray);
+              } catch (error) {
+                console.error("Error parsing temp_qty_data:", error);
+                tempDataArray = [];
+              }
+            }
+
+            const finalData = mergeWithTempData(
+              processedFreshData,
+              tempDataArray
+            );
+
+            // Filter out records with all zero quantities
+            const filteredData = filterZeroQuantityRecords(finalData);
+
+            console.log("Final filtered batch data:", filteredData);
+
+            this.setData({
+              [`gd_item_balance.table_item_balance`]: filteredData,
+            });
+          })
+          .catch((error) => {
+            console.error("Error fetching item batch balance data:", error);
+          });
+      }
 
       // Handle Regular Items (no batch, no serial)
     } else {
@@ -432,46 +537,72 @@ db.collection("Item")
       this.hide("gd_item_balance.table_item_balance.batch_id");
       this.hide("gd_item_balance.table_item_balance.serial_number");
 
-      db.collection("item_balance")
-        .where({
-          material_id: materialId,
-          plant_id: plantId,
-        })
-        .get()
-        .then((response) => {
-          console.log("response item_balance", response);
-          let freshDbData = response.data || [];
+      // GDPP mode: Use temp_qty_data directly without fetching balance
+      if (isSelectPicking === 1) {
+        console.log("GDPP mode: Skipping item_balance fetch");
 
-          const processedFreshData = processItemBalanceData(freshDbData);
-
-          let tempDataArray = [];
-          if (tempQtyData) {
-            try {
-              tempDataArray = JSON.parse(tempQtyData);
-              console.log("Parsed temp data:", tempDataArray);
-            } catch (error) {
-              console.error("Error parsing temp_qty_data:", error);
-              tempDataArray = [];
-            }
+        let tempDataArray = [];
+        if (tempQtyData) {
+          try {
+            tempDataArray = JSON.parse(tempQtyData);
+            console.log("Parsed temp data:", tempDataArray);
+          } catch (error) {
+            console.error("Error parsing temp_qty_data:", error);
+            tempDataArray = [];
           }
+        }
 
-          const finalData = mergeWithTempData(
-            processedFreshData,
-            tempDataArray
-          );
+        const finalData = processTempQtyDataOnly(tempDataArray);
+        const filteredData = filterZeroQuantityRecords(finalData);
 
-          // Filter out records with all zero quantities
-          const filteredData = filterZeroQuantityRecords(finalData);
+        console.log("Final filtered regular data (GDPP):", filteredData);
 
-          console.log("Final filtered regular data:", filteredData);
-
-          this.setData({
-            [`gd_item_balance.table_item_balance`]: filteredData,
-          });
-        })
-        .catch((error) => {
-          console.error("Error fetching item balance data:", error);
+        this.setData({
+          [`gd_item_balance.table_item_balance`]: filteredData,
         });
+      } else {
+        // Regular SO -> GD flow: Fetch balance and merge with temp data
+        db.collection("item_balance")
+          .where({
+            material_id: materialId,
+            plant_id: plantId,
+          })
+          .get()
+          .then((response) => {
+            console.log("response item_balance", response);
+            let freshDbData = response.data || [];
+
+            const processedFreshData = processItemBalanceData(freshDbData);
+
+            let tempDataArray = [];
+            if (tempQtyData) {
+              try {
+                tempDataArray = JSON.parse(tempQtyData);
+                console.log("Parsed temp data:", tempDataArray);
+              } catch (error) {
+                console.error("Error parsing temp_qty_data:", error);
+                tempDataArray = [];
+              }
+            }
+
+            const finalData = mergeWithTempData(
+              processedFreshData,
+              tempDataArray
+            );
+
+            // Filter out records with all zero quantities
+            const filteredData = filterZeroQuantityRecords(finalData);
+
+            console.log("Final filtered regular data:", filteredData);
+
+            this.setData({
+              [`gd_item_balance.table_item_balance`]: filteredData,
+            });
+          })
+          .catch((error) => {
+            console.error("Error fetching item balance data:", error);
+          });
+      }
     }
   })
   .catch((error) => {

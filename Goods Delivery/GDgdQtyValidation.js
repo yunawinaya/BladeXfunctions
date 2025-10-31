@@ -2,6 +2,7 @@ const data = this.getValues();
 const fieldParts = rule.field.split(".");
 const index = fieldParts[1];
 const gdStatus = data.gd_status;
+const isSelectPicking = data.is_select_picking;
 const order_quantity = parseFloat(data.table_gd[index].gd_order_quantity || 0);
 const gd_initial_delivered_qty = parseFloat(
   data.table_gd[index].gd_initial_delivered_qty || 0
@@ -148,7 +149,57 @@ for (let i = 0; i < data.table_gd.length; i++) {
       return;
     }
 
-    // Check inventory availability based on GD status
+    // GDPP mode: Validate against to_quantity from PP's temp_qty_data
+    if (isSelectPicking === 1) {
+      console.log(`GDPP mode validation for item ${materialId}`);
+
+      const tempQtyData = data.table_gd[index].temp_qty_data;
+
+      if (!tempQtyData || tempQtyData === "[]" || tempQtyData.trim() === "") {
+        console.warn(`Row ${index}: No temp_qty_data from PP`);
+        window.validationState[index] = true;
+        callback();
+        return;
+      }
+
+      try {
+        const tempDataArray = JSON.parse(tempQtyData);
+
+        // Calculate total to_quantity (ceiling from PP) in base UOM
+        const totalToQuantityBase = tempDataArray.reduce((sum, item) => {
+          const itemToQty = parseFloat(item.to_quantity || 0);
+          // temp_qty_data is in goodDeliveryUOM, convert to base
+          return sum + convertToBaseUOM(itemToQty, currentUOM, itemData);
+        }, 0);
+
+        console.log(`GDPP validation for ${materialId}:`, {
+          quantityBase,
+          totalToQuantityBase,
+          currentItemQtyTotalBase,
+        });
+
+        // Validate: total gd_qty cannot exceed total to_quantity from PP
+        if (currentItemQtyTotalBase > totalToQuantityBase) {
+          window.validationState[index] = false;
+          callback("Quantity exceeds picked quantity from Picking Plan");
+          return;
+        }
+
+        // All validations passed for GDPP mode
+        console.log("GDPP validation passed for:", materialId);
+        window.validationState[index] = true;
+        callback();
+        return;
+
+      } catch (error) {
+        console.error(`Error parsing temp_qty_data for GDPP validation:`, error);
+        window.validationState[index] = false;
+        callback("Error validating quantity");
+        return;
+      }
+    }
+
+    // Regular GD mode: Check inventory availability based on GD status
     if (gdStatus === "Created") {
       // For Created status: Check temp_qty_data from existing GD
       const resGD = await db
