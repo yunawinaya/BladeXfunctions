@@ -666,7 +666,10 @@ const reverseBalanceChanges = async (
             );
 
             // ADDED: For batch items, also update aggregate item_balance (without batch_id)
-            if (balanceCollection === "item_batch_balance" && prevTemp.batch_id) {
+            if (
+              balanceCollection === "item_batch_balance" &&
+              prevTemp.batch_id
+            ) {
               const aggregateBalanceParams = {
                 material_id: item.material_id,
                 location_id: prevTemp.location_id,
@@ -680,7 +683,10 @@ const reverseBalanceChanges = async (
                 .where(aggregateBalanceParams)
                 .get();
 
-              if (aggregateBalanceQuery.data && aggregateBalanceQuery.data.length > 0) {
+              if (
+                aggregateBalanceQuery.data &&
+                aggregateBalanceQuery.data.length > 0
+              ) {
                 const aggregateDoc = aggregateBalanceQuery.data[0];
 
                 await db
@@ -688,7 +694,8 @@ const reverseBalanceChanges = async (
                   .doc(aggregateDoc.id)
                   .update({
                     unrestricted_qty: roundQty(
-                      parseFloat(aggregateDoc.unrestricted_qty || 0) + prevBaseQty
+                      parseFloat(aggregateDoc.unrestricted_qty || 0) +
+                        prevBaseQty
                     ),
                     reserved_qty: roundQty(
                       parseFloat(aggregateDoc.reserved_qty || 0) - prevBaseQty
@@ -2672,7 +2679,11 @@ const updateSalesOrderStatus = async (salesOrderId, tableTO) => {
       // Set to_status only if not already set or if current status is less than "Created"
       // Don't downgrade status from "In Progress" or "Completed" back to "Created"
       const currentStatus = soDoc.to_status;
-      if (!currentStatus || currentStatus === null || currentStatus === "Draft") {
+      if (
+        !currentStatus ||
+        currentStatus === null ||
+        currentStatus === "Draft"
+      ) {
         updateData.to_status = "Created";
       }
       // If status is already "In Progress" or "Completed", keep it as is
@@ -2907,6 +2918,7 @@ const fetchDeliveredQuantity = async () => {
         so_no: data.so_no,
         to_no: data.to_no,
         plant_id: data.plant_id,
+        plant_name: data.plant_name,
         organization_id: organizationId,
         to_ref_doc: data.to_ref_doc,
         customer_name: data.customer_name,

@@ -156,6 +156,7 @@ const fillbackHeaderFields = async (to) => {
         so_id: data.so_id,
         so_no: data.so_no,
         plant_id: data.plant_id,
+        plant_name: data.plant_name,
         organization_id: organizationId,
         from_convert: "",
 
