@@ -1463,11 +1463,12 @@ const updateSOHeaderStatus = async (soIds) => {
 
     for (const record of selectedRecords) {
       try {
+        const pickingId = record.id;
         const refDocType = record.ref_doc_type;
         const tablePickingItems = record.table_picking_items;
         const tablePickingRecords = record.table_picking_records;
         const pickingNumber = record.to_id;
-        const toPlantId = record.plant_id;
+        const toPlantId = record.plant_id.id;
 
         console.log(
           `\n========== Processing Picking: ${pickingNumber} ==========`
