@@ -20,12 +20,12 @@
         this.display("tabs_picking");
         this.hide("custom_41s73hyl");
       } else {
-        this.display("custom_41s73hyl");
-        this.hide("tabs_picking");
+        this.display("tabs_picking");
+        this.hide("custom_41s73hyl");
       }
     } else {
-      this.display("custom_41s73hyl");
-      this.hide("tabs_picking");
+      this.display("tabs_picking");
+      this.hide("custom_41s73hyl");
     }
   } catch (error) {
     console.error("Error in PPonMountedListPage:", error);

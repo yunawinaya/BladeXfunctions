@@ -231,6 +231,65 @@ const determineTransferOrderStatus = (pickingItems) => {
   }
 };
 
+const updatePickingPlan = async (toData) => {
+  try {
+    // Update each line item's picking status based on its line_status
+    let ppId = toData.table_picking_items[0].to_id;
+
+    await Promise.all(
+      toData.table_picking_items.map(async (toItem) => {
+        // Map line_status to picking_status
+        let linePickingStatus = "Created"; // Default
+        if (toItem.line_status === "Completed") {
+          linePickingStatus = "Completed";
+        } else if (toItem.line_status === "In Progress") {
+          linePickingStatus = "In Progress";
+        } else if (toItem.line_status === "Cancelled") {
+          linePickingStatus = "Cancelled";
+        }
+
+        return await db
+          .collection("picking_plan_fwii8mvb_sub")
+          .doc(toItem.to_line_id)
+          .update({ picking_status: linePickingStatus });
+      })
+    );
+
+    const pp = await db.collection("picking_plan").doc(ppId).get();
+    let ppData = pp.data[0];
+
+    if (ppData.to_status === "Cancelled") {
+      console.log("PP is already cancelled");
+      return;
+    }
+
+    const pickingStatus = ppData.picking_status;
+    let newPickingStatus = "";
+
+    if (pickingStatus === "Completed") {
+      this.$message.error("Picking Plan is already completed");
+      return;
+    }
+
+    const isAllLineItemCompleted = ppData.table_to.every(
+      (lineItem) => lineItem.picking_status === "Completed"
+    );
+
+    if (isAllLineItemCompleted) {
+      newPickingStatus = "Completed";
+    } else {
+      newPickingStatus = "In Progress";
+    }
+
+    await db.collection("picking_plan").doc(ppId).update({
+      picking_status: newPickingStatus,
+    });
+  } catch (error) {
+    this.$message.error("Error updating Picking Plan picking status");
+    console.error("Error updating Picking Plan picking status:", error);
+  }
+};
+
 const updateEntry = async (toData, toId) => {
   try {
     for (const item of toData.table_picking_items) {
@@ -240,6 +299,8 @@ const updateEntry = async (toData, toId) => {
     }
 
     await db.collection("transfer_order").doc(toId).update(toData);
+
+    await updatePickingPlan(toData);
 
     console.log("Transfer order updated successfully");
     return toId;

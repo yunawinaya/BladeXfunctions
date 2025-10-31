@@ -399,7 +399,11 @@ const createTempQtyDataSummary = async (
 
   return summary + details;
 };
-const updatePickingPlanWithPickedQty = async (ppId, pickingRecords, pickingItems) => {
+const updatePickingPlanWithPickedQty = async (
+  ppId,
+  pickingRecords,
+  pickingItems
+) => {
   try {
     console.log("Starting updatePickingPlanWithPickedQty for PP:", ppId);
 
@@ -450,13 +454,17 @@ const updatePickingPlanWithPickedQty = async (ppId, pickingRecords, pickingItems
 
       // If no picking records AND no picking item exists, skip (item was never in picking)
       if (allPickingRecords.length === 0 && !pickingItem) {
-        console.log(`Line item ${ppLineItem.id} not found in picking records or items, skipping`);
+        console.log(
+          `Line item ${ppLineItem.id} not found in picking records or items, skipping`
+        );
         continue;
       }
 
       // If no picking records but item exists in picking items, this is a zero-picked item
       if (allPickingRecords.length === 0 && pickingItem) {
-        console.log(`Line item ${ppLineItem.id} found in picking items but no picking records - treating as zero-picked`);
+        console.log(
+          `Line item ${ppLineItem.id} found in picking items but no picking records - treating as zero-picked`
+        );
         // Set totalPickedQty will remain 0, will be handled by the zero-picking logic below
       }
 
@@ -573,9 +581,9 @@ const updatePickingPlanWithPickedQty = async (ppId, pickingRecords, pickingItems
     );
 
     console.log(
-      `Filtered PP line items: ${ppLineItems.length} total, ${activePPLineItems.length} active (${
-        ppLineItems.length - activePPLineItems.length
-      } cancelled)`
+      `Filtered PP line items: ${ppLineItems.length} total, ${
+        activePPLineItems.length
+      } active (${ppLineItems.length - activePPLineItems.length} cancelled)`
     );
 
     // Check if all ACTIVE line items are completed
@@ -596,11 +604,15 @@ const updatePickingPlanWithPickedQty = async (ppId, pickingRecords, pickingItems
       // All items were cancelled
       updateData.picking_status = "Cancelled";
       updateData.to_status = "Cancelled";
-      console.log("All PP line items cancelled, marking entire PP as cancelled");
+      console.log(
+        "All PP line items cancelled, marking entire PP as cancelled"
+      );
     }
 
     await db.collection("picking_plan").doc(ppId).update(updateData);
-    console.log("PP document updated with modified table_to (cancelled items removed)");
+    console.log(
+      "PP document updated with modified table_to (cancelled items removed)"
+    );
 
     if (ppDataUpdated) {
       console.log("Picking Plan updated with partial picked quantities");
@@ -611,8 +623,8 @@ const updatePickingPlanWithPickedQty = async (ppId, pickingRecords, pickingItems
     // Return both ALL line items (including cancelled for readjustment) and active items only
     return {
       ppDataUpdated,
-      ppLineItems,  // All items including cancelled (for readjustment processing)
-      activePPLineItems  // Only active items (for reference)
+      ppLineItems, // All items including cancelled (for readjustment processing)
+      activePPLineItems, // Only active items (for reference)
     };
   } catch (error) {
     console.error("Error in updatePickingPlanWithPickedQty:", error);
@@ -977,7 +989,10 @@ const createInventoryReadjustmentMovements = async (
             .where(aggregateBalanceParams)
             .get();
 
-          if (aggregateBalanceQuery.data && aggregateBalanceQuery.data.length > 0) {
+          if (
+            aggregateBalanceQuery.data &&
+            aggregateBalanceQuery.data.length > 0
+          ) {
             const aggregateDoc = aggregateBalanceQuery.data[0];
             const currentUnrestrictedQty = roundQty(
               parseFloat(aggregateDoc.unrestricted_qty || 0)
@@ -996,14 +1011,11 @@ const createInventoryReadjustmentMovements = async (
             const finalReservedQty = roundQty(currentReservedQty - baseQty);
             // balance_quantity stays the same
 
-            await db
-              .collection("item_balance")
-              .doc(aggregateDoc.id)
-              .update({
-                unrestricted_qty: finalUnrestrictedQty,
-                reserved_qty: finalReservedQty,
-                balance_quantity: currentBalanceQty,
-              });
+            await db.collection("item_balance").doc(aggregateDoc.id).update({
+              unrestricted_qty: finalUnrestrictedQty,
+              reserved_qty: finalReservedQty,
+              balance_quantity: currentBalanceQty,
+            });
 
             console.log(
               `Updated aggregate item_balance for serialized item: moved ${baseQty} from Reserved (${currentReservedQty}→${finalReservedQty}) to Unrestricted (${currentUnrestrictedQty}→${finalUnrestrictedQty})`
@@ -1050,20 +1062,20 @@ const createInventoryReadjustmentMovements = async (
             );
             const finalReservedQty = roundQty(currentReservedQty - baseQty);
 
-            await db
-              .collection(balanceCollection)
-              .doc(existingDoc.id)
-              .update({
-                unrestricted_qty: finalUnrestrictedQty,
-                reserved_qty: finalReservedQty,
-              });
+            await db.collection(balanceCollection).doc(existingDoc.id).update({
+              unrestricted_qty: finalUnrestrictedQty,
+              reserved_qty: finalReservedQty,
+            });
 
             console.log(
               `Updated ${balanceCollection}: moved ${baseQty} from Reserved (${currentReservedQty}→${finalReservedQty}) to Unrestricted (${currentUnrestrictedQty}→${finalUnrestrictedQty})`
             );
 
             // For batch items, also update aggregate item_balance
-            if (balanceCollection === "item_batch_balance" && originalTemp.batch_id) {
+            if (
+              balanceCollection === "item_batch_balance" &&
+              originalTemp.batch_id
+            ) {
               const aggregateBatchBalanceParams = {
                 material_id: ppLineItem.material_id,
                 location_id: originalTemp.location_id,
@@ -1229,7 +1241,10 @@ const createInventoryReadjustmentMovements = async (
                 .where(serialBalanceParams)
                 .get();
 
-              if (serialBalanceQuery.data && serialBalanceQuery.data.length > 0) {
+              if (
+                serialBalanceQuery.data &&
+                serialBalanceQuery.data.length > 0
+              ) {
                 const serialDoc = serialBalanceQuery.data[0];
                 const currentUnrestrictedQty = roundQty(
                   parseFloat(serialDoc.unrestricted_qty || 0)
@@ -1291,7 +1306,9 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
       const soLineId = ppLineItem.so_line_item_id;
 
       if (!soId || !soLineId) {
-        console.log(`Line item ${ppLineItem.id}: Missing SO ID (${soId}) or SO Line ID (${soLineId})`);
+        console.log(
+          `Line item ${ppLineItem.id}: Missing SO ID (${soId}) or SO Line ID (${soLineId})`
+        );
         continue;
       }
 
@@ -1323,7 +1340,9 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
 
     // Process each SO line item directly
     for (const soId of Object.keys(soGrouped)) {
-      console.log(`Processing SO: ${soId} with ${soGrouped[soId].length} line items`);
+      console.log(
+        `Processing SO: ${soId} with ${soGrouped[soId].length} line items`
+      );
 
       // Update each SO line item
       for (const item of soGrouped[soId]) {
@@ -1334,7 +1353,10 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
             .where({ id: item.soLineId })
             .get();
 
-          if (!soLineItemResponse.data || soLineItemResponse.data.length === 0) {
+          if (
+            !soLineItemResponse.data ||
+            soLineItemResponse.data.length === 0
+          ) {
             console.log(`SO line item ${item.soLineId} not found`);
             continue;
           }
@@ -1343,7 +1365,9 @@ const reversePlannedQtyInSO = async (ppLineItems) => {
 
           // Reverse the unrealized planned_qty
           const currentPlannedQty = parseFloat(soLineItem.planned_qty || 0);
-          const newPlannedQty = roundQty(currentPlannedQty - item.unrealizedQty);
+          const newPlannedQty = roundQty(
+            currentPlannedQty - item.unrealizedQty
+          );
 
           console.log(
             `SO line ${item.soLineId}: Current planned_qty=${currentPlannedQty}, Unrealized=${item.unrealizedQty}, New planned_qty=${newPlannedQty}`
@@ -1414,7 +1438,9 @@ const updateSOHeaderStatus = async (soIds) => {
       let newToStatus;
       if (allFullyPlanned) {
         newToStatus = "Completed";
-        console.log(`SO ${soId}: All items fully planned, setting to_status=Completed`);
+        console.log(
+          `SO ${soId}: All items fully planned, setting to_status=Completed`
+        );
       } else {
         // Check if any items have been partially planned
         const anyPlanned = soLineItems.some((lineItem) => {
@@ -1424,21 +1450,22 @@ const updateSOHeaderStatus = async (soIds) => {
 
         if (anyPlanned) {
           newToStatus = "In Progress";
-          console.log(`SO ${soId}: Some items planned, setting to_status=In Progress`);
+          console.log(
+            `SO ${soId}: Some items planned, setting to_status=In Progress`
+          );
         } else {
           // No items planned at all, keep original status or set to null
-          console.log(`SO ${soId}: No items planned, keeping original to_status`);
+          console.log(
+            `SO ${soId}: No items planned, keeping original to_status`
+          );
           continue; // Don't update
         }
       }
 
       // Update SO header
-      await db
-        .collection("sales_order")
-        .doc(soId)
-        .update({
-          to_status: newToStatus,
-        });
+      await db.collection("sales_order").doc(soId).update({
+        to_status: newToStatus,
+      });
 
       console.log(`Updated SO ${soId} to_status to ${newToStatus}`);
     }
@@ -1455,8 +1482,13 @@ const updateSOHeaderStatus = async (soIds) => {
   try {
     this.showLoading();
 
-    // Get selected picking records from bulk action
-    const selectedRecords = this.getTableData();
+    const allListID = "custom_9zz4lqcj";
+
+    let selectedRecords;
+
+    selectedRecords = this.getComponent(allListID)?.$refs.crud.tableSelect;
+
+    console.log("selectedRecords", selectedRecords);
 
     if (!selectedRecords || selectedRecords.length === 0) {
       this.$message.warning("No picking records selected");
@@ -1464,7 +1496,9 @@ const updateSOHeaderStatus = async (soIds) => {
       return;
     }
 
-    console.log(`Processing ${selectedRecords.length} picking records for force complete`);
+    console.log(
+      `Processing ${selectedRecords.length} picking records for force complete`
+    );
 
     let successCount = 0;
     let errorCount = 0;
@@ -1478,10 +1512,15 @@ const updateSOHeaderStatus = async (soIds) => {
 
     for (const record of selectedRecords) {
       try {
-        console.log(`\n========== Processing Picking: ${record.to_id} ==========`);
+        console.log(
+          `\n========== Processing Picking: ${record.to_id} ==========`
+        );
 
         // Fetch Transfer Order data
-        const toResponse = await db.collection("transfer_order").doc(record.id).get();
+        const toResponse = await db
+          .collection("transfer_order")
+          .doc(record.id)
+          .get();
 
         if (!toResponse.data || toResponse.data.length === 0) {
           console.warn(`Transfer Order ${record.to_id} not found`);
@@ -1494,15 +1533,19 @@ const updateSOHeaderStatus = async (soIds) => {
 
         // Only process Picking Plan pickings
         if (toData.ref_doc_type !== "Picking Plan") {
-          console.log(`Skipping ${toData.to_id} - not a Picking Plan picking (ref_doc_type: ${toData.ref_doc_type})`);
+          console.log(
+            `Skipping ${toData.to_id} - not a Picking Plan picking (ref_doc_type: ${toData.ref_doc_type})`
+          );
           errors.push(`${toData.to_id}: Not a Picking Plan picking`);
           errorCount++;
           continue;
         }
 
         // Verify picking has been completed/processed
-        if (toData.to_status !== "Completed" && toData.to_status !== "In Progress") {
-          console.log(`Skipping ${toData.to_id} - status is ${toData.to_status} (must be Completed or In Progress)`);
+        if (toData.to_status !== "In Progress") {
+          console.log(
+            `Skipping ${toData.to_id} - status is ${toData.to_status} (must be In Progress)`
+          );
           errors.push(`${toData.to_id}: Invalid status (${toData.to_status})`);
           errorCount++;
           continue;
@@ -1535,11 +1578,12 @@ const updateSOHeaderStatus = async (soIds) => {
         console.log(`Found Picking Plan: ID=${ppId}, to_no=${ppNo}`);
 
         // Step 1: Update Picking Plan with actual picked quantities
-        const { ppDataUpdated, ppLineItems } = await updatePickingPlanWithPickedQty(
-          ppId,
-          toData.table_picking_records || [],
-          toData.table_picking_items || []
-        );
+        const { ppDataUpdated, ppLineItems } =
+          await updatePickingPlanWithPickedQty(
+            ppId,
+            toData.table_picking_records || [],
+            toData.table_picking_items || []
+          );
 
         if (ppDataUpdated) {
           console.log("Picking Plan updated with partial quantities");
@@ -1565,7 +1609,9 @@ const updateSOHeaderStatus = async (soIds) => {
 
           console.log("Force complete processing completed successfully");
         } else {
-          console.log("No partial picking detected, skipping force complete logic");
+          console.log(
+            "No partial picking detected, skipping force complete logic"
+          );
         }
 
         // Step 5: Update Transfer Order's table_picking_items (remove unpicked items)
@@ -1576,22 +1622,29 @@ const updateSOHeaderStatus = async (soIds) => {
         console.log("Transfer Order picking items updated");
 
         // Step 6: Update SO header status
-        const soIds = [...new Set(
-          ppLineItems
-            .map(item => item.line_so_id)
-            .filter(id => id != null && id !== "")
-        )];
+        const soIds = [
+          ...new Set(
+            ppLineItems
+              .map((item) => item.line_so_id)
+              .filter((id) => id != null && id !== "")
+          ),
+        ];
 
         if (soIds.length > 0) {
-          console.log(`Updating SO header status for ${soIds.length} Sales Orders: ${soIds.join(", ")}`);
+          console.log(
+            `Updating SO header status for ${
+              soIds.length
+            } Sales Orders: ${soIds.join(", ")}`
+          );
           await updateSOHeaderStatus(soIds);
         } else {
-          console.log("No SO IDs found in PP line items, skipping SO status update");
+          console.log(
+            "No SO IDs found in PP line items, skipping SO status update"
+          );
         }
 
         successCount++;
         console.log(`✓ Successfully force completed: ${toData.to_id}`);
-
       } catch (error) {
         console.error(`Error processing ${record.to_id}:`, error);
         const errorMessage = findFieldMessage(error) || error.message || error;
@@ -1623,7 +1676,6 @@ const updateSOHeaderStatus = async (soIds) => {
 
     this.hideLoading();
     this.refresh(); // Refresh the bulk action grid
-
   } catch (error) {
     this.hideLoading();
 
