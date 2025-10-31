@@ -434,19 +434,26 @@ const updatePickingPlanWithPickedQty = async (
           `Partial picking detected for line item ${ppLineItem.id}, updating...`
         );
 
-        // Build updated temp_qty_data from picking records
-        const updatedTempQtyData = filteredPickingRecords.map((record) => {
-          const tempQtyItem = {
-            material_id: record.item_code,
-            location_id: record.target_location,
-            batch_id: record.target_batch || undefined,
-            to_quantity: record.store_out_qty,
-          };
+        // Keep original temp_qty_data structure but update quantities to reflect picked amounts
+        // This preserves all allocated locations for GD creation
+        const originalTempQtyData = parseJsonSafely(ppLineItem.temp_qty_data);
 
-          // Add serial_number if it exists (for serialized items)
-          if (record.serial_numbers) {
-            tempQtyItem.serial_number = record.serial_numbers;
-          }
+        const updatedTempQtyData = originalTempQtyData.map((originalItem) => {
+          // Find matching picking record for this location/batch/serial
+          const matchingRecord = filteredPickingRecords.find((record) => {
+            const locationMatch = record.target_location === originalItem.location_id;
+            const batchMatch = (!record.target_batch && !originalItem.batch_id) ||
+                               record.target_batch === originalItem.batch_id;
+            const serialMatch = (!record.serial_numbers && !originalItem.serial_number) ||
+                                record.serial_numbers === originalItem.serial_number;
+            return locationMatch && batchMatch && serialMatch;
+          });
+
+          // If picked from this location, use picked quantity; otherwise keep original
+          const tempQtyItem = {
+            ...originalItem,
+            to_quantity: matchingRecord ? matchingRecord.store_out_qty : originalItem.to_quantity,
+          };
 
           return tempQtyItem;
         });
