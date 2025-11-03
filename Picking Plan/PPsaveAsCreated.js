@@ -2295,7 +2295,7 @@ const createOrUpdatePicking = async (
         organization_id: organizationId,
         movement_type: "Picking",
         ref_doc_type: "Picking Plan",
-        to_no: toData.to_no,
+        to_no: toId,
         so_no: toData.so_no,
         customer_id: toData.customer_name,
         created_by: this.getVarGlobal("nickname"),
