@@ -3221,7 +3221,11 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
 
     const isAutoCompleteGD = await db
       .collection("picking_setup")
-      .where({ plant_id: toData.plant_id, organization_id: organizationId })
+      .where({
+        plant_id: toData.plant_id,
+        picking_after: "Goods Delivery",
+        organization_id: organizationId,
+      })
       .get()
       .then((res) => {
         if (res.data.length > 0) {

@@ -809,7 +809,7 @@ const validateInventoryAvailabilityForCompleted = async (
   return { isValid: true };
 };
 
-const addEntryWithValidation = async (organizationId, gd, gdStatus) => {
+const addEntryWithValidation = async (organizationId, gd, gdStatus, isGDPP) => {
   try {
     // Step 1: Prepare prefix data but don't update counter yet
     const prefixData = await getPrefixData(organizationId);
@@ -852,7 +852,14 @@ const addEntryWithValidation = async (organizationId, gd, gdStatus) => {
     }
 
     // Step 3: Process balance table (inventory operations) AFTER validation passes
-    await processBalanceTable(gd, false, gd.plant_id, organizationId, gdStatus);
+    await processBalanceTable(
+      gd,
+      false,
+      gd.plant_id,
+      organizationId,
+      gdStatus,
+      isGDPP
+    );
 
     // Step 4: Add the record ONLY after inventory processing succeeds
     await db.collection("goods_delivery").add(gd);
@@ -897,7 +904,8 @@ const updateEntryWithValidation = async (
   gdForBalance, // Full GD with all items (for balance processing)
   gdForUpdate, // Filtered GD (for database update)
   gdStatus,
-  goodsDeliveryId
+  goodsDeliveryId,
+  isGDPP
 ) => {
   try {
     // Use filtered GD for all non-balance operations
@@ -952,7 +960,8 @@ const updateEntryWithValidation = async (
       true,
       gd.plant_id,
       organizationId,
-      gdStatus
+      gdStatus,
+      isGDPP
     );
 
     // Step 4: Update the record ONLY after inventory processing succeeds
@@ -999,7 +1008,8 @@ const processBalanceTable = async (
   isUpdate,
   plantId,
   organizationId,
-  gdStatus
+  gdStatus,
+  isGDPP
 ) => {
   console.log(
     "Processing balance table with grouped movements (including serialized items)"
@@ -1455,8 +1465,9 @@ const processBalanceTable = async (
             console.log(`  Total Balance: ${currentBalanceQty}`);
 
             // Smart movement logic based on status and available quantities
-            if (gdStatus === "Created") {
-              // For Created status, we need to move OUT from Reserved
+            // For Created status OR GDPP Draft→Completed, we need to move OUT from Reserved
+            if (gdStatus === "Created" || (isGDPP && gdStatus === "Draft")) {
+              // For Created status or GDPP, we need to move OUT from Reserved
               console.log(
                 `Processing Created status - moving ${baseQty} OUT from Reserved for group ${groupKey}`
               );
@@ -1687,112 +1698,120 @@ const processBalanceTable = async (
                 console.log(`  Unused reserved: ${unusedReservedQty}`);
 
                 if (unusedReservedQty > 0) {
-                  console.log(
-                    `Releasing ${unusedReservedQty} unused reserved quantity back to unrestricted for group ${groupKey}`
-                  );
+                  // For GDPP, keep unused reserved in PP (do NOT return to Unrestricted)
+                  // For regular GD, return unused reserved to Unrestricted
+                  if (!isGDPP) {
+                    console.log(
+                      `Regular GD: Releasing ${unusedReservedQty} unused reserved quantity back to unrestricted for group ${groupKey}`
+                    );
 
-                  // Calculate alternative UOM for unused quantity
-                  const unusedAltQty = uomConversion
-                    ? roundQty(unusedReservedQty * uomConversion.alt_qty)
-                    : unusedReservedQty;
+                    // Calculate alternative UOM for unused quantity
+                    const unusedAltQty = uomConversion
+                      ? roundQty(unusedReservedQty * uomConversion.alt_qty)
+                      : unusedReservedQty;
 
-                  // Create movement to release unused reserved back to unrestricted
-                  const releaseReservedMovementData = {
-                    ...baseInventoryMovement,
-                    movement: "OUT",
-                    inventory_category: "Reserved",
-                    quantity: unusedAltQty,
-                    total_price: roundPrice(unitPrice * unusedAltQty),
-                    base_qty: unusedReservedQty,
-                  };
-
-                  const returnUnrestrictedMovementData = {
-                    ...baseInventoryMovement,
-                    movement: "IN",
-                    inventory_category: "Unrestricted",
-                    quantity: unusedAltQty,
-                    total_price: roundPrice(unitPrice * unusedAltQty),
-                    base_qty: unusedReservedQty,
-                  };
-
-                  // Add the release movements
-                  await db
-                    .collection("inventory_movement")
-                    .add(releaseReservedMovementData);
-                  await new Promise((resolve) => setTimeout(resolve, 100));
-
-                  const releaseMovementQuery = await db
-                    .collection("inventory_movement")
-                    .where({
-                      transaction_type: "GDL",
-                      trx_no: data.delivery_no,
-                      parent_trx_no: item.line_so_no,
+                    // Create movement to release unused reserved back to unrestricted
+                    const releaseReservedMovementData = {
+                      ...baseInventoryMovement,
                       movement: "OUT",
                       inventory_category: "Reserved",
-                      item_id: item.material_id,
-                      bin_location_id: group.location_id,
+                      quantity: unusedAltQty,
+                      total_price: roundPrice(unitPrice * unusedAltQty),
                       base_qty: unusedReservedQty,
-                      plant_id: plantId,
-                      organization_id: organizationId,
-                    })
-                    .get();
+                    };
 
-                  if (
-                    releaseMovementQuery.data &&
-                    releaseMovementQuery.data.length > 0
-                  ) {
-                    const movementId = releaseMovementQuery.data.sort(
-                      (a, b) =>
-                        new Date(b.create_time) - new Date(a.create_time)
-                    )[0].id;
-
-                    createdDocs.push({
-                      collection: "inventory_movement",
-                      docId: movementId,
-                      groupKey: groupKey,
-                    });
-                  }
-
-                  await db
-                    .collection("inventory_movement")
-                    .add(returnUnrestrictedMovementData);
-                  await new Promise((resolve) => setTimeout(resolve, 100));
-
-                  const returnMovementQuery = await db
-                    .collection("inventory_movement")
-                    .where({
-                      transaction_type: "GDL",
-                      trx_no: data.delivery_no,
-                      parent_trx_no: item.line_so_no,
+                    const returnUnrestrictedMovementData = {
+                      ...baseInventoryMovement,
                       movement: "IN",
                       inventory_category: "Unrestricted",
-                      item_id: item.material_id,
-                      bin_location_id: group.location_id,
+                      quantity: unusedAltQty,
+                      total_price: roundPrice(unitPrice * unusedAltQty),
                       base_qty: unusedReservedQty,
-                      plant_id: plantId,
-                      organization_id: organizationId,
-                    })
-                    .get();
+                    };
 
-                  if (
-                    returnMovementQuery.data &&
-                    returnMovementQuery.data.length > 0
-                  ) {
-                    const movementId = returnMovementQuery.data.sort(
-                      (a, b) =>
-                        new Date(b.create_time) - new Date(a.create_time)
-                    )[0].id;
+                    // Add the release movements
+                    await db
+                      .collection("inventory_movement")
+                      .add(releaseReservedMovementData);
+                    await new Promise((resolve) => setTimeout(resolve, 100));
 
-                    createdDocs.push({
-                      collection: "inventory_movement",
-                      docId: movementId,
-                      groupKey: groupKey,
-                    });
+                    const releaseMovementQuery = await db
+                      .collection("inventory_movement")
+                      .where({
+                        transaction_type: "GDL",
+                        trx_no: data.delivery_no,
+                        parent_trx_no: item.line_so_no,
+                        movement: "OUT",
+                        inventory_category: "Reserved",
+                        item_id: item.material_id,
+                        bin_location_id: group.location_id,
+                        base_qty: unusedReservedQty,
+                        plant_id: plantId,
+                        organization_id: organizationId,
+                      })
+                      .get();
+
+                    if (
+                      releaseMovementQuery.data &&
+                      releaseMovementQuery.data.length > 0
+                    ) {
+                      const movementId = releaseMovementQuery.data.sort(
+                        (a, b) =>
+                          new Date(b.create_time) - new Date(a.create_time)
+                      )[0].id;
+
+                      createdDocs.push({
+                        collection: "inventory_movement",
+                        docId: movementId,
+                        groupKey: groupKey,
+                      });
+                    }
+
+                    await db
+                      .collection("inventory_movement")
+                      .add(returnUnrestrictedMovementData);
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+
+                    const returnMovementQuery = await db
+                      .collection("inventory_movement")
+                      .where({
+                        transaction_type: "GDL",
+                        trx_no: data.delivery_no,
+                        parent_trx_no: item.line_so_no,
+                        movement: "IN",
+                        inventory_category: "Unrestricted",
+                        item_id: item.material_id,
+                        bin_location_id: group.location_id,
+                        base_qty: unusedReservedQty,
+                        plant_id: plantId,
+                        organization_id: organizationId,
+                      })
+                      .get();
+
+                    if (
+                      returnMovementQuery.data &&
+                      returnMovementQuery.data.length > 0
+                    ) {
+                      const movementId = returnMovementQuery.data.sort(
+                        (a, b) =>
+                          new Date(b.create_time) - new Date(a.create_time)
+                      )[0].id;
+
+                      createdDocs.push({
+                        collection: "inventory_movement",
+                        docId: movementId,
+                        groupKey: groupKey,
+                      });
+                    }
+
+                    console.log(
+                      `Created unused reserved release movements for group ${groupKey}: ${unusedReservedQty}`
+                    );
+                  } else {
+                    console.log(
+                      `GDPP Mode: Keeping ${unusedReservedQty} unused reserved in Picking Plan (not returning to Unrestricted) for group ${groupKey}`
+                    );
                   }
-
-                  console.log(
-                    `Created unused reserved release movements for group ${groupKey}: ${unusedReservedQty}`
-                  );
                 }
               }
             } else if (baseQty > 0) {
@@ -2001,7 +2020,8 @@ const processBalanceTable = async (
               let remainingReservedToDeduct = 0;
               let remainingUnrestrictedToDeduct = 0;
 
-              if (gdStatus === "Created") {
+              // For Created status OR GDPP Draft→Completed, use Reserved deduction logic
+              if (gdStatus === "Created" || (isGDPP && gdStatus === "Draft")) {
                 // Determine how much comes from reserved vs unrestricted based on our movement logic
                 let availableReservedForThisGD = totalGroupReserved;
                 if (isUpdate && prevBaseQty > 0) {
@@ -2165,7 +2185,11 @@ const processBalanceTable = async (
                 let finalGeneralUnrestrictedQty = currentGeneralUnrestrictedQty;
                 let finalGeneralReservedQty = currentGeneralReservedQty;
 
-                if (gdStatus === "Created") {
+                // For Created status OR GDPP Draft→Completed, use Reserved deduction logic
+                if (
+                  gdStatus === "Created" ||
+                  (isGDPP && gdStatus === "Draft")
+                ) {
                   // Apply the smart deduction logic
                   let availableReservedForThisGD = currentGeneralReservedQty;
                   if (isUpdate && prevBaseQty > 0) {
@@ -2181,8 +2205,8 @@ const processBalanceTable = async (
                       finalGeneralReservedQty - baseQty
                     );
 
-                    // Handle unused reservations
-                    if (isUpdate && prevBaseQty > 0) {
+                    // Handle unused reservations - but NOT for GDPP (keep in PP)
+                    if (!isGDPP && isUpdate && prevBaseQty > 0) {
                       const unusedReservedQty = roundQty(prevBaseQty - baseQty);
                       if (unusedReservedQty > 0) {
                         finalGeneralReservedQty = roundQty(
@@ -2265,7 +2289,8 @@ const processBalanceTable = async (
               let finalReservedQty = currentReservedQty;
               let finalBalanceQty = currentBalanceQty;
 
-              if (gdStatus === "Created") {
+              // For Created status OR GDPP Draft→Completed, use Reserved deduction logic
+              if (gdStatus === "Created" || (isGDPP && gdStatus === "Draft")) {
                 // Apply the smart deduction logic
                 let availableReservedForThisGD = currentReservedQty;
                 if (isUpdate && prevBaseQty > 0) {
@@ -2279,8 +2304,8 @@ const processBalanceTable = async (
                   // All quantity can come from Reserved
                   finalReservedQty = roundQty(finalReservedQty - baseQty);
 
-                  // Handle unused reservations
-                  if (isUpdate && prevBaseQty > 0) {
+                  // Handle unused reservations - but NOT for GDPP (keep in PP)
+                  if (!isGDPP && isUpdate && prevBaseQty > 0) {
                     const unusedReservedQty = roundQty(prevBaseQty - baseQty);
                     if (unusedReservedQty > 0) {
                       finalReservedQty = roundQty(
@@ -2378,7 +2403,11 @@ const processBalanceTable = async (
                     currentGeneralUnrestrictedQty;
                   let finalGeneralReservedQty = currentGeneralReservedQty;
 
-                  if (gdStatus === "Created") {
+                  // For Created status OR GDPP Draft→Completed, use Reserved deduction logic
+                  if (
+                    gdStatus === "Created" ||
+                    (isGDPP && gdStatus === "Draft")
+                  ) {
                     // Apply the smart deduction logic
                     let availableReservedForThisGD = currentGeneralReservedQty;
                     if (isUpdate && prevBaseQty > 0) {
@@ -2394,8 +2423,8 @@ const processBalanceTable = async (
                         finalGeneralReservedQty - baseQty
                       );
 
-                      // Handle unused reservations
-                      if (isUpdate && prevBaseQty > 0) {
+                      // Handle unused reservations - but NOT for GDPP (keep in PP)
+                      if (!isGDPP && isUpdate && prevBaseQty > 0) {
                         const unusedReservedQty = roundQty(
                           prevBaseQty - baseQty
                         );
@@ -2965,7 +2994,7 @@ const checkPickingStatus = async (gdData, pageStatus, currentGdStatus) => {
       .collection("picking_setup")
       .where({
         plant_id: gdData.plant_id,
-        movement_type: "Good Delivery",
+        picking_after: "Goods Delivery",
         picking_required: 1,
       })
       .get();
@@ -2996,21 +3025,43 @@ const checkPickingStatus = async (gdData, pageStatus, currentGdStatus) => {
         canProceed: false,
         message: "Picking is Required",
         title: "Create Goods Delivery to start picking process",
+        isForceComplete: false,
       };
     }
 
     // Scenario 2: Edit mode with Created status
-    // User can only proceed if picking_status is "Completed"
+    // User can only proceed if picking_status is "Completed" or "In Progress" (with confirmation)
     if (pageStatus === "Edit" && currentGdStatus === "Created") {
       if (gdData.picking_status === "Completed") {
         console.log("Picking completed, allowing GD completion");
-        return { canProceed: true, message: null };
+        return { canProceed: true, message: null, isForceComplete: false };
+      } else if (gdData.picking_status === "In Progress") {
+        const result = await this.$confirm(
+          "Picking is currently under In Progress status. \nProceeding will force complete picking process.\n\nWould you like to proceed?",
+          "Force Complete Picking",
+          {
+            confirmButtonText: "OK",
+            cancelButtonText: "Cancel",
+            type: "warning",
+          }
+        ).catch(() => {
+          console.log("User clicked Cancel or closed the dialog");
+          this.hideLoading();
+          throw new Error("Force complete picking process cancelled.");
+        });
+        if (result === "confirm") {
+          return { canProceed: true, message: null, isForceComplete: true };
+        } else {
+          this.hideLoading();
+          throw new Error("Force complete picking process cancelled.");
+        }
       } else {
         return {
           canProceed: false,
           message: "Picking is Required",
           title:
             "Complete all picking process before completing Goods Delivery",
+          isForceComplete: false,
         };
       }
     }
@@ -3021,24 +3072,26 @@ const checkPickingStatus = async (gdData, pageStatus, currentGdStatus) => {
         `Edit mode with status: ${currentGdStatus}, checking picking status`
       );
       if (gdData.picking_status === "Completed") {
-        return { canProceed: true, message: null };
+        return { canProceed: true, message: null, isForceComplete: false };
       } else {
         return {
           canProceed: false,
           message: "Picking process must be completed first",
           title: "Complete picking before proceeding",
+          isForceComplete: false,
         };
       }
     }
 
     // Default: allow if no specific blocking condition
-    return { canProceed: true, message: null };
+    return { canProceed: true, message: null, isForceComplete: false };
   } catch (error) {
     console.error("Error checking picking status:", error);
     return {
       canProceed: false,
       message: "Error checking picking requirements. Please try again.",
       title: "System Error",
+      isForceComplete: false,
     };
   }
 };
@@ -3169,7 +3222,7 @@ const checkExistingReservedGoods = async (
 };
 
 // Updated updateOnReserveGoodsDelivery function for Completed status with serial support
-const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
+const updateOnReserveGoodsDelivery = async (organizationId, gdData, isGDPP) => {
   try {
     console.log(
       "Updating on_reserved_gd records for delivery (including serialized items):",
@@ -3185,6 +3238,136 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
         return defaultValue;
       }
     };
+
+    // ===== GDPP MODE: Update existing PP records (supports multiple PPs) =====
+    if (isGDPP) {
+      console.log(
+        "GDPP Mode: Updating existing on_reserved_gd records for Picking Plan(s)"
+      );
+
+      // Group GD line items by PP number to handle multiple PPs
+      const gdLinesByPPNo = {};
+      for (const gdLineItem of gdData.table_gd) {
+        const ppNoOrObject = gdLineItem.line_to_id;
+        const ppNo =
+          typeof ppNoOrObject === "object" ? ppNoOrObject.to_no : ppNoOrObject;
+
+        if (!ppNo) {
+          console.warn(
+            `No PP number found for GD line item ${gdLineItem.id}, skipping`
+          );
+          continue;
+        }
+
+        if (!gdLinesByPPNo[ppNo]) {
+          gdLinesByPPNo[ppNo] = [];
+        }
+        gdLinesByPPNo[ppNo].push(gdLineItem);
+      }
+
+      const ppNumbers = Object.keys(gdLinesByPPNo);
+      console.log(
+        `Found ${ppNumbers.length} Picking Plan(s) to update in on_reserved_gd`
+      );
+
+      const allUpdatePromises = [];
+
+      // Process each PP
+      for (const ppNo of ppNumbers) {
+        console.log(`\nQuerying on_reserved_gd for PP: ${ppNo}`);
+
+        // Fetch existing PP records
+        const existingReserved = await db
+          .collection("on_reserved_gd")
+          .where({
+            doc_type: "Picking Plan",
+            doc_no: ppNo,
+            organization_id: organizationId,
+          })
+          .get();
+
+        if (!existingReserved.data || existingReserved.data.length === 0) {
+          console.warn(`No on_reserved_gd records found for PP ${ppNo}`);
+          continue;
+        }
+
+        console.log(
+          `Found ${existingReserved.data.length} existing reserved records for PP ${ppNo}`
+        );
+
+        const gdLinesForThisPP = gdLinesByPPNo[ppNo];
+
+        // Build updates from GD line items for this PP
+        for (const gdLineItem of gdLinesForThisPP) {
+          const temp_qty_data = parseJsonSafely(gdLineItem.temp_qty_data);
+
+          for (const tempItem of temp_qty_data) {
+            // Find matching on_reserved_gd record
+            const matchingRecord = existingReserved.data.find((record) => {
+              const materialMatch =
+                record.material_id === gdLineItem.material_id;
+              const locationMatch =
+                record.bin_location === tempItem.location_id;
+              const batchMatch =
+                (!record.batch_id && !tempItem.batch_id) ||
+                record.batch_id === tempItem.batch_id;
+              const serialMatch =
+                (!record.serial_number && !tempItem.serial_number) ||
+                record.serial_number === tempItem.serial_number;
+              return (
+                materialMatch && locationMatch && batchMatch && serialMatch
+              );
+            });
+
+            if (matchingRecord) {
+              // Calculate new quantities
+              const deliveredQty = parseFloat(tempItem.gd_quantity || 0);
+              const newDeliveredQty =
+                parseFloat(matchingRecord.delivered_qty || 0) + deliveredQty;
+              const reservedQty = parseFloat(matchingRecord.reserved_qty || 0);
+              const newOpenQty = Math.max(0, reservedQty - newDeliveredQty);
+
+              console.log(
+                `  Updating on_reserved_gd for ${gdLineItem.material_id} @ ${tempItem.location_id}: ` +
+                  `delivered_qty: ${matchingRecord.delivered_qty} → ${newDeliveredQty}, ` +
+                  `open_qty: ${matchingRecord.open_qty} → ${newOpenQty}`
+              );
+
+              allUpdatePromises.push(
+                db
+                  .collection("on_reserved_gd")
+                  .doc(matchingRecord.id)
+                  .update({
+                    delivered_qty: newDeliveredQty,
+                    open_qty: newOpenQty,
+                    updated_by: this.getVarGlobal("nickname"),
+                    updated_at: new Date()
+                      .toISOString()
+                      .slice(0, 19)
+                      .replace("T", " "),
+                  })
+              );
+            } else {
+              console.warn(
+                `  No matching on_reserved_gd record found for ${gdLineItem.material_id} @ ${tempItem.location_id}`
+              );
+            }
+          }
+        }
+      }
+
+      await Promise.all(allUpdatePromises);
+      console.log(
+        `\nUpdated ${allUpdatePromises.length} on_reserved_gd records across ${ppNumbers.length} PP(s)`
+      );
+      return;
+    }
+
+    // ===== REGULAR GD MODE: Create/update GD records (existing logic) =====
+    console.log(
+      "Regular GD Mode: Updating on_reserved_gd records for delivery:",
+      gdData.delivery_no
+    );
 
     // Get existing records for this GD
     const existingReserved = await db
@@ -3535,6 +3718,138 @@ const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
   return entry;
 };
 
+// Update Picking Plan after GDPP completion (supports multiple PPs in one GD)
+const updatePickingPlanAfterGDPP = async (gdData) => {
+  try {
+    console.log("Updating Picking Plan(s) after GDPP completion");
+
+    // Group GD line items by PP ID
+    const gdLinesByPP = {};
+    for (const gdLineItem of gdData.table_gd) {
+      const ppIdOrObject = gdLineItem.line_to_id;
+      const ppId =
+        typeof ppIdOrObject === "object" ? ppIdOrObject.id : ppIdOrObject;
+
+      if (!ppId) {
+        console.warn(
+          `No PP ID found for GD line item ${gdLineItem.id}, skipping`
+        );
+        continue;
+      }
+
+      if (!gdLinesByPP[ppId]) {
+        gdLinesByPP[ppId] = [];
+      }
+      gdLinesByPP[ppId].push(gdLineItem);
+    }
+
+    const ppIds = Object.keys(gdLinesByPP);
+    console.log(`Found ${ppIds.length} Picking Plan(s) to update`);
+
+    // Update each PP
+    for (const ppId of ppIds) {
+      try {
+        console.log(`\n--- Updating Picking Plan ${ppId} ---`);
+
+        // Fetch PP
+        const ppResponse = await db.collection("picking_plan").doc(ppId).get();
+        if (!ppResponse.data || ppResponse.data.length === 0) {
+          console.warn(`Picking Plan ${ppId} not found, skipping`);
+          continue;
+        }
+
+        const ppData = ppResponse.data[0];
+        const ppLineItems = ppData.table_to || [];
+        const gdLinesForThisPP = gdLinesByPP[ppId];
+
+        console.log(
+          `Updating ${gdLinesForThisPP.length} line item(s) in PP ${ppData.to_no}`
+        );
+
+        // Update each PP line item's delivered quantities and status
+        for (const gdLineItem of gdLinesForThisPP) {
+          const ppLineItemId = gdLineItem.to_line_item_id;
+          const ppLineItem = ppLineItems.find(
+            (item) => item.id === ppLineItemId
+          );
+
+          if (!ppLineItem) {
+            console.warn(
+              `PP line item ${ppLineItemId} not found in PP ${ppId}, skipping`
+            );
+            continue;
+          }
+
+          // Calculate new quantities
+          const deliveredQty = parseFloat(gdLineItem.gd_qty || 0);
+          const currentDelivered = parseFloat(ppLineItem.gd_delivered_qty || 0);
+          const newDeliveredQty = roundQty(currentDelivered + deliveredQty);
+          const toQty = parseFloat(ppLineItem.to_qty || 0);
+          const newUndeliveredQty = roundQty(
+            Math.max(0, toQty - newDeliveredQty)
+          );
+
+          // Update quantities
+          ppLineItem.gd_delivered_qty = newDeliveredQty;
+          ppLineItem.gd_undelivered_qty = newUndeliveredQty;
+
+          // Update line delivery status
+          if (newUndeliveredQty === 0) {
+            ppLineItem.delivery_status = "Fully Delivered";
+          } else if (newDeliveredQty > 0) {
+            ppLineItem.delivery_status = "Partially Delivered";
+          } else {
+            ppLineItem.delivery_status = "Open";
+          }
+
+          console.log(
+            `  Updated PP line ${ppLineItem.id}: ` +
+              `delivered=${newDeliveredQty}, undelivered=${newUndeliveredQty}, ` +
+              `status="${ppLineItem.delivery_status}"`
+          );
+        }
+
+        // Determine PP header delivery status
+        const allFullyDelivered = ppLineItems.every(
+          (item) => item.delivery_status === "Fully Delivered"
+        );
+        const anyPartiallyDelivered = ppLineItems.some(
+          (item) =>
+            item.delivery_status === "Partially Delivered" ||
+            item.delivery_status === "Fully Delivered"
+        );
+
+        let headerDeliveryStatus = "Open";
+        if (allFullyDelivered) {
+          headerDeliveryStatus = "Fully Delivered";
+        } else if (anyPartiallyDelivered) {
+          headerDeliveryStatus = "Partially Delivered";
+        }
+
+        // Save updated PP
+        await db.collection("picking_plan").doc(ppId).update({
+          table_to: ppLineItems,
+          delivery_status: headerDeliveryStatus,
+        });
+
+        console.log(
+          `✓ Picking Plan ${ppData.to_no} updated successfully. Header status: "${headerDeliveryStatus}"`
+        );
+      } catch (ppError) {
+        console.error(`Error updating Picking Plan ${ppId}:`, ppError);
+        // Continue with next PP
+      }
+    }
+
+    console.log(
+      `\nCompleted updating ${ppIds.length} Picking Plan(s) for GDPP`
+    );
+  } catch (error) {
+    console.error("Error in updatePickingPlanAfterGDPP:", error);
+    // Don't throw - log only, GD completion should still succeed
+  }
+};
+
 // Main execution wrapped in an async IIFE
 (async () => {
   // Prevent duplicate processing
@@ -3551,8 +3866,12 @@ const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
     const gdStatus = data.gd_status;
     const targetStatus = "Completed";
 
+    // Detect GDPP mode (Goods Delivery from Picking Plan)
+    const isSelectPicking = data.is_select_picking;
+    const isGDPP = isSelectPicking === 1;
+
     console.log(
-      `Page Status: ${page_status}, Current GD Status: ${gdStatus}, Target Status: ${targetStatus}`
+      `Page Status: ${page_status}, Current GD Status: ${gdStatus}, Target Status: ${targetStatus}, GDPP Mode: ${isGDPP}`
     );
 
     // Define required fields
@@ -3661,6 +3980,7 @@ const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
 
     const {
       picking_status,
+      credit_limit_status,
       so_id,
       so_no,
       gd_billing_address,
@@ -3745,7 +4065,7 @@ const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
     const gd = {
       gd_status: targetStatus,
       picking_status,
-      credit_limit_status: "Overridden",
+      credit_limit_status,
       so_id,
       so_no,
       gd_billing_address,
@@ -3869,6 +4189,67 @@ const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
       gdStatus
     );
 
+    if (pickingCheck.isForceComplete) {
+      fullGD.picking_status = "Completed";
+      latestGD.picking_status = "Completed";
+
+      for (const gdLineItem of latestGD.table_gd) {
+        gdLineItem.picking_status = "Completed";
+      }
+      for (const gdLineItem of fullGD.table_gd) {
+        gdLineItem.picking_status = "Completed";
+      }
+
+      const pickingResult = await db
+        .collection("transfer_order")
+        .filter([
+          {
+            type: "branch",
+            operator: "all",
+            children: [
+              {
+                prop: "gd_no",
+                operator: "in",
+                value: data.id,
+              },
+              {
+                prop: "to_status",
+                operator: "equal",
+                value: "In Progress",
+              },
+            ],
+          },
+        ])
+        .get();
+
+      if (pickingResult.data.length > 0) {
+        let pickingData = pickingResult.data[0];
+        for (const pickingLineItem of pickingData.table_picking_items) {
+          if (pickingLineItem.gd_id === data.id) {
+            pickingLineItem.line_status = "Completed";
+          }
+        }
+
+        //check if all pickingLineItem.line_status is "Completed" if yes then pickingData.to_status = "Completed"
+        let allPickingLineItemCompleted = true;
+        for (const pickingLineItem of pickingData.table_picking_items) {
+          if (pickingLineItem.line_status !== "Completed") {
+            allPickingLineItemCompleted = false;
+            break;
+          }
+        }
+
+        if (allPickingLineItemCompleted) {
+          pickingData.to_status = "Completed";
+        }
+
+        await db.collection("transfer_order").doc(pickingData.id).update({
+          table_picking_items: pickingData.table_picking_items,
+          to_status: pickingData.to_status,
+        });
+      }
+    }
+
     if (!pickingCheck.canProceed) {
       this.parentGenerateForm.$alert(pickingCheck.title, pickingCheck.message, {
         confirmButtonText: "OK",
@@ -3878,11 +4259,44 @@ const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
       return;
     }
 
+    let inventoryDataChanged = false;
+    let changedMaterialName = [];
+
+    for (const gdLineItem of data.table_gd) {
+      if (
+        gdLineItem.prev_temp_qty_data !== gdLineItem.temp_qty_data &&
+        gdLineItem.picking_status === "Completed"
+      ) {
+        inventoryDataChanged = true;
+        changedMaterialName.push(gdLineItem.material_name);
+      }
+    }
+
+    if (inventoryDataChanged && !isGDPP) {
+      try {
+        await this.$confirm(
+          `Inventory data has changed for the following materials: ${changedMaterialName.join(
+            ", "
+          )}. \n\nNote: Picking has already been completed for this Goods Delivery. Proceeding will cause a mismatch between the GD quantities and the Picking records.\n\nWould you like to proceed?`,
+          "Inventory Data Changed - Picking Completed",
+          {
+            confirmButtonText: "Proceed Anyway",
+            cancelButtonText: "Cancel",
+            type: "warning",
+          }
+        );
+      } catch {
+        console.log("User clicked Cancel or closed the dialog");
+        this.hideLoading();
+        throw new Error("Saving goods delivery cancelled.");
+      }
+    }
+
     await fetchDeliveredQuantity();
 
     // Perform action based on page status
     if (page_status === "Add") {
-      await addEntryWithValidation(organizationId, latestGD, gdStatus);
+      await addEntryWithValidation(organizationId, latestGD, gdStatus, isGDPP);
     } else if (page_status === "Edit") {
       const goodsDeliveryId = data.id;
 
@@ -3893,11 +4307,18 @@ const processGDLineItem = async (entry, pageStatus, currentGdStatus) => {
         fullGD, // Use full entry for balance processing
         latestGD, // Use filtered entry for database update
         gdStatus,
-        goodsDeliveryId
+        goodsDeliveryId,
+        isGDPP
       );
-      if (gdStatus === "Created") {
-        await updateOnReserveGoodsDelivery(organizationId, latestGD);
+      // Update on_reserved_gd for Created status OR GDPP Draft→Completed
+      if (gdStatus === "Created" || (isGDPP && gdStatus === "Draft")) {
+        await updateOnReserveGoodsDelivery(organizationId, latestGD, isGDPP);
       }
+    }
+
+    // Update Picking Plan if this is a GDPP completion
+    if (isGDPP) {
+      await updatePickingPlanAfterGDPP(latestGD);
     }
   } catch (error) {
     this.hideLoading();

@@ -274,7 +274,7 @@ const checkInventoryWithDuplicates = async (
       // Get picking setup
       const pickingSetupResponse = await db
         .collection("picking_setup")
-        .where({ plant_id: plantId, movement_type: "Good Delivery" })
+        .where({ plant_id: plantId, picking_after: "Sales Order" })
         .get();
 
       // Handle case where no picking setup exists for the plant
@@ -928,7 +928,7 @@ const performAutomaticAllocation = async (
     // Get picking setup
     const pickingSetupResponse = await db
       .collection("picking_setup")
-      .where({ plant_id: plantId, movement_type: "Good Delivery" })
+      .where({ plant_id: plantId, picking_after: "Sales Order" })
       .get();
 
     let pickingMode, defaultStrategy, fallbackStrategy;

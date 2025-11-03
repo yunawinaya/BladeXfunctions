@@ -857,7 +857,7 @@ const checkBulkPickingStatus = async (goodsDeliveryData) => {
         .collection("picking_setup")
         .where({
           plant_id: gdData.plant_id.id,
-          movement_type: "Good Delivery",
+          picking_after: "Goods Delivery",
           picking_required: 1,
         })
         .get();

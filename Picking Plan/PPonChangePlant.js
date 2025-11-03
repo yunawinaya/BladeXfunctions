@@ -79,7 +79,7 @@ const resetFormData = () => {
       .collection("picking_setup")
       .where({
         plant_id: plant,
-        movement_type: "Good Delivery",
+        picking_after: "Sales Order",
         picking_required: 1,
       })
       .get();
