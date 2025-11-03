@@ -9,13 +9,11 @@
     console.log("selectedRecords", selectedRecords);
 
     if (selectedRecords && selectedRecords.length > 0) {
-      const pickingPlanIds = selectedRecords
-        .filter(
-          (item) => item.to_status === "Draft" || item.to_status === "Cancelled"
-        )
-        .map((item) => item.id);
+      const pickingPlanData = selectedRecords.filter(
+        (item) => item.to_status === "Draft" || item.to_status === "Cancelled"
+      );
 
-      if (pickingPlanIds.length === 0) {
+      if (pickingPlanData.length === 0) {
         this.$message.error(
           "Please select at least one draft or cancelled picking plan."
         );
@@ -46,21 +44,39 @@
         throw new Error();
       });
 
-      for (const id of pickingPlanIds) {
-        db.collection("picking_plan")
-          .doc(id)
+      for (const ppItem of pickingPlanData) {
+        await db
+          .collection("picking_plan")
+          .doc(ppItem.id)
           .update({
             is_deleted: 1,
           })
-          .then(() => this.refresh())
           .catch((error) => {
             console.error("Error in deletion process:", error);
             alert("An error occurred during deletion. Please try again.");
+          });
+
+        await db
+          .collection("transfer_order")
+          .where({
+            to_id: ppItem.to_no,
+            organization_id: ppItem.organization_id,
+          })
+          .get()
+          .then(async (res) => {
+            if (res.data && res.data.length > 0) {
+              await db.collection("transfer_order").doc(res.data[0].id).update({
+                is_deleted: 1,
+              });
+            }
           });
       }
     } else {
       this.$message.error("Please select at least one record.");
     }
+
+    this.refresh();
+    this.$message.success("Picking plans deleted successfully");
   } catch (error) {
     console.error(error);
   }
