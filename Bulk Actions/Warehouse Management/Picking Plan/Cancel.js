@@ -608,6 +608,7 @@
             const reservedGoodsQuery = await db
               .collection("on_reserved_gd")
               .where({
+                doc_type: "Picking Plan",
                 doc_no: ppItem.to_no,
                 organization_id: ppItem.organization_id,
               })
@@ -646,7 +647,10 @@
           if (ppItem.picking_status === "Created") {
             const toResult = await db
               .collection("transfer_order")
-              .where({ to_no: ppItem.to_no })
+              .where({
+                to_id: ppItem.to_no,
+                organization_id: ppItem.organization_id,
+              })
               .get();
 
             if (toResult.data && toResult.data.length > 0) {
@@ -670,11 +674,40 @@
               .update({ to_status: null });
           }
 
+          // Decrement planned_qty from SO line items
           for (const ppLineItem of ppItem.table_to) {
-            await db
-              .collection("sales_order_axszx8cj_sub")
-              .doc(ppLineItem.so_line_item_id)
-              .update({ planned_qty: null });
+            try {
+              // Get current SO line item
+              const soLineRes = await db
+                .collection("sales_order_axszx8cj_sub")
+                .doc(ppLineItem.so_line_item_id)
+                .get();
+
+              if (soLineRes.data && soLineRes.data.length > 0) {
+                const soLine = soLineRes.data[0];
+                const currentPlannedQty = parseFloat(soLine.planned_qty || 0);
+                const ppQty = parseFloat(ppLineItem.to_qty || 0);
+                const newPlannedQty = Math.max(0, currentPlannedQty - ppQty);
+
+                await db
+                  .collection("sales_order_axszx8cj_sub")
+                  .doc(ppLineItem.so_line_item_id)
+                  .update({ planned_qty: newPlannedQty });
+
+                console.log(
+                  `SO Line ${ppLineItem.so_line_item_id}: Reduced planned_qty from ${currentPlannedQty} to ${newPlannedQty} (subtracted ${ppQty})`
+                );
+              } else {
+                console.warn(
+                  `SO line item not found: ${ppLineItem.so_line_item_id}`
+                );
+              }
+            } catch (lineError) {
+              console.error(
+                `Error updating SO line item ${ppLineItem.so_line_item_id}:`,
+                lineError
+              );
+            }
           }
 
           console.log("Picking Plan successfully cancelled");
