@@ -108,7 +108,7 @@ const resetFormData = () => {
       .get();
 
     if (pickingSetupResponse.data.length > 0) {
-      if (pickingSetupResponse.data[0].picking_after === "Good Delivery") {
+      if (pickingSetupResponse.data[0].picking_after === "Goods Delivery") {
         this.display("assigned_to");
       } else if (pickingSetupResponse.data[0].picking_after === "Sales Order") {
         this.setData({ is_select_picking: 1 });

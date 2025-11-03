@@ -13,7 +13,7 @@
       .get();
 
     if (pickingSetupResponse.data.length > 0) {
-      if (pickingSetupResponse.data[0].picking_after === "Good Delivery") {
+      if (pickingSetupResponse.data[0].picking_after === "Goods Delivery") {
         this.display("custom_41s73hyl");
         this.hide("tabs_picking");
       } else if (pickingSetupResponse.data[0].picking_after === "Sales Order") {
