@@ -341,10 +341,36 @@ const disabledPickedQtyField = async () => {
   }
 };
 
-const refDocTypePickingPlan = async () => {
-  const refDocType = await this.getValue("ref_doc_type");
-  if (refDocType === "Picking Plan") {
-    await this.hide(["gd_no", "delivery_no"]);
+const PickingPlan = async () => {
+  try {
+    const refDocType = await this.getValue("ref_doc_type");
+    if (refDocType === "Picking Plan") {
+      await this.hide(["gd_no", "delivery_no"]);
+    }
+
+    const pickingSetup = await db
+      .collection("picking_setup")
+      .where({
+        plant_id: this.getValue("plant_id"),
+        picking_required: 1,
+      })
+      .get();
+
+    if (pickingSetup.data && pickingSetup.data.length > 0) {
+      if (pickingSetup.data[0].picking_after === "Goods Delivery") {
+        await this.display(["button_completed"]);
+        await this.hide(["button_complete_pp"]);
+      } else if (pickingSetup.data[0].picking_after === "Sales Order") {
+        await this.display(["button_complete_pp"]);
+        await this.hide(["button_completed"]);
+      } else {
+        await this.display(["button_completed"]);
+        await this.hide(["button_complete_pp"]);
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    this.$message.error(error.message || "An error occurred");
   }
 };
 
@@ -388,7 +414,7 @@ const refDocTypePickingPlan = async () => {
           await setSerialNumber();
         }
         await setPrefix(organizationId);
-        await refDocTypePickingPlan();
+        await PickingPlan();
         break;
 
       case "Edit":
@@ -421,7 +447,7 @@ const refDocTypePickingPlan = async () => {
           "table_picking_item onMounted",
           this.getValue("table_picking_items")
         );
-        await refDocTypePickingPlan();
+        await PickingPlan();
         break;
 
       case "View":
@@ -435,7 +461,7 @@ const refDocTypePickingPlan = async () => {
           "button_completed",
         ]);
         await viewSerialNumber();
-        await refDocTypePickingPlan();
+        await PickingPlan();
         break;
     }
   } catch (error) {

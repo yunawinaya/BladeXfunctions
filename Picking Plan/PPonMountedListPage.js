@@ -1,13 +1,14 @@
 (async () => {
   try {
-    const plantId = await this.getVarSystem("deptIds").split(",")[0];
-
-    console.log(plantId, "plantId");
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
+    }
 
     const pickingSetupResponse = await db
       .collection("picking_setup")
       .where({
-        plant_id: plantId,
+        organization_id: organizationId,
         picking_required: 1,
       })
       .get();
