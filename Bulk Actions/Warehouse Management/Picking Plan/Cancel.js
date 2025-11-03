@@ -152,7 +152,7 @@
             const generalItemBalanceParams = {
               material_id: materialId,
               location_id: locationId,
-              plant_id: ppItem.plant_id.id,
+              plant_id: ppItem.plant_id,
             };
 
             const generalBalanceQuery = await db
@@ -324,7 +324,7 @@
                     bin_location_id: temp.location_id,
                     batch_number_id: temp.batch_id ? temp.batch_id : null,
                     costing_method_id: item.item_costing_method,
-                    plant_id: ppItem.plant_id.id,
+                    plant_id: ppItem.plant_id,
                     organization_id: ppItem.organization_id,
                   };
 
@@ -344,7 +344,7 @@
                     bin_location_id: temp.location_id,
                     batch_number_id: temp.batch_id ? temp.batch_id : null,
                     costing_method_id: item.item_costing_method,
-                    plant_id: ppItem.plant_id.id,
+                    plant_id: ppItem.plant_id,
                     organization_id: ppItem.organization_id,
                   };
 
@@ -373,7 +373,7 @@
                     const serialBalanceParams = {
                       material_id: item.material_id,
                       serial_number: temp.serial_number,
-                      plant_id: ppItem.plant_id.id,
+                      plant_id: ppItem.plant_id,
                       organization_id: ppItem.organization_id,
                       location_id: temp.location_id,
                     };
@@ -443,7 +443,7 @@
                             item_id: item.material_id,
                             bin_location_id: temp.location_id,
                             base_qty: baseQty,
-                            plant_id: ppItem.plant_id.id,
+                            plant_id: ppItem.plant_id,
                             organization_id: ppItem.organization_id,
                           })
                           .get();
@@ -472,7 +472,7 @@
                               batch_id: temp.batch_id || null,
                               base_qty: 1,
                               base_uom: baseUOM,
-                              plant_id: ppItem.plant_id.id,
+                              plant_id: ppItem.plant_id,
                               organization_id: ppItem.organization_id,
                               created_at: new Date(),
                             });
@@ -488,7 +488,7 @@
                               batch_id: temp.batch_id || null,
                               base_qty: 1,
                               base_uom: baseUOM,
-                              plant_id: ppItem.plant_id.id,
+                              plant_id: ppItem.plant_id,
                               organization_id: ppItem.organization_id,
                               created_at: new Date(),
                             });
@@ -528,7 +528,7 @@
                   const itemBalanceParams = {
                     material_id: item.material_id,
                     location_id: temp.location_id,
-                    plant_id: ppItem.plant_id.id,
+                    plant_id: ppItem.plant_id,
                   };
 
                   if (temp.batch_id) {
