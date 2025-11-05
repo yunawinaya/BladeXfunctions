@@ -2860,12 +2860,15 @@ const fetchDeliveredQuantity = async () => {
   const resItem = await Promise.all(
     tableGD
       .filter(
-        (item) => item.material_id !== null && item.material_id !== undefined
+        (item) =>
+          item.material_id &&
+          item.material_id !== null &&
+          item.material_id !== undefined
       )
       .map((item) => db.collection("Item").doc(item.material_id).get())
   );
 
-  const itemData = resItem.map((response) => response.data[0]);
+  const itemData = resItem.map((response) => response?.data[0]);
 
   const inValidDeliverQty = [];
 

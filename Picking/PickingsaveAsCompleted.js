@@ -2859,9 +2859,15 @@ const updateGoodsDelivery = async (
       return;
     }
 
-    const isAllLineItemCompleted = gdData.table_gd.every(
-      (lineItem) => lineItem.picking_status === "Completed"
-    );
+    const isAllLineItemCompleted = gdData.table_gd
+      .filter((lineItem) => {
+        return (
+          lineItem.material_id &&
+          lineItem.material_id !== "" &&
+          lineItem.material_id !== null
+        );
+      })
+      .every((lineItem) => lineItem.picking_status === "Completed");
 
     if (isAllLineItemCompleted) {
       newPickingStatus = "Completed";

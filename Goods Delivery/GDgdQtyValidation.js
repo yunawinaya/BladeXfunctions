@@ -190,9 +190,11 @@ for (let i = 0; i < data.table_gd.length; i++) {
         window.validationState[index] = true;
         callback();
         return;
-
       } catch (error) {
-        console.error(`Error parsing temp_qty_data for GDPP validation:`, error);
+        console.error(
+          `Error parsing temp_qty_data for GDPP validation:`,
+          error
+        );
         window.validationState[index] = false;
         callback("Error validating quantity");
         return;
