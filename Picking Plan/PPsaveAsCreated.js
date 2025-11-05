@@ -2,6 +2,7 @@ const closeDialog = () => {
   if (this.parentGenerateForm) {
     this.parentGenerateForm.$refs.SuPageDialogRef.hide();
     this.parentGenerateForm.refresh();
+    this.parentGenerateForm.hide("custom_41s73hyl");
     this.hideLoading();
   }
 };
@@ -2009,7 +2010,7 @@ const findFieldMessage = (obj) => {
       }
     }
   }
-  return null;
+  return obj.toString();
 };
 
 const sendNotification = async (notificationParam) => {

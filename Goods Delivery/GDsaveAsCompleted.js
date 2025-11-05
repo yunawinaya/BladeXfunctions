@@ -852,7 +852,14 @@ const addEntryWithValidation = async (organizationId, gd, gdStatus, isGDPP) => {
     }
 
     // Step 3: Process balance table (inventory operations) AFTER validation passes
-    await processBalanceTable(gd, false, gd.plant_id, organizationId, gdStatus, isGDPP);
+    await processBalanceTable(
+      gd,
+      false,
+      gd.plant_id,
+      organizationId,
+      gdStatus,
+      isGDPP
+    );
 
     // Step 4: Add the record ONLY after inventory processing succeeds
     await db.collection("goods_delivery").add(gd);
@@ -4426,6 +4433,14 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
       gd_total,
       reference_type,
       gd_created_by,
+
+      select_vehicle_id,
+      gd_vehicle_type,
+      gd_vehicle_capacity,
+      gd_vehicle_cap_uom,
+      select_driver_id,
+      gd_driver_contact,
+      gd_driver_ic,
     } = data;
 
     // Prepare goods delivery object
@@ -4511,6 +4526,14 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
       gd_total: parseFloat(gd_total.toFixed(3)),
       reference_type,
       gd_created_by,
+
+      select_vehicle_id,
+      gd_vehicle_type,
+      gd_vehicle_capacity,
+      gd_vehicle_cap_uom,
+      select_driver_id,
+      gd_driver_contact,
+      gd_driver_ic,
     };
 
     // Clean up undefined/null values

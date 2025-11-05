@@ -441,18 +441,23 @@ const updatePickingPlanWithPickedQty = async (
         const updatedTempQtyData = originalTempQtyData.map((originalItem) => {
           // Find matching picking record for this location/batch/serial
           const matchingRecord = filteredPickingRecords.find((record) => {
-            const locationMatch = record.target_location === originalItem.location_id;
-            const batchMatch = (!record.target_batch && !originalItem.batch_id) ||
-                               record.target_batch === originalItem.batch_id;
-            const serialMatch = (!record.serial_numbers && !originalItem.serial_number) ||
-                                record.serial_numbers === originalItem.serial_number;
+            const locationMatch =
+              record.target_location === originalItem.location_id;
+            const batchMatch =
+              (!record.target_batch && !originalItem.batch_id) ||
+              record.target_batch === originalItem.batch_id;
+            const serialMatch =
+              (!record.serial_numbers && !originalItem.serial_number) ||
+              record.serial_numbers === originalItem.serial_number;
             return locationMatch && batchMatch && serialMatch;
           });
 
           // If picked from this location, use picked quantity; otherwise keep original
           const tempQtyItem = {
             ...originalItem,
-            to_quantity: matchingRecord ? matchingRecord.store_out_qty : originalItem.to_quantity,
+            to_quantity: matchingRecord
+              ? matchingRecord.store_out_qty
+              : originalItem.to_quantity,
           };
 
           return tempQtyItem;
@@ -1630,6 +1635,7 @@ const updateSOHeaderStatus = async (soIds) => {
 
     this.hideLoading();
     this.refresh(); // Refresh the bulk action grid
+    this.hide("custom_9zz4lqcj");
   } catch (error) {
     this.hideLoading();
 

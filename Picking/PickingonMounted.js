@@ -362,7 +362,11 @@ const PickingPlan = async () => {
         await this.hide(["button_complete_pp"]);
       } else if (pickingSetup.data[0].picking_after === "Sales Order") {
         await this.display(["button_complete_pp"]);
-        await this.hide(["button_completed"]);
+        await this.hide([
+          "button_completed",
+          "button_created",
+          "button_save_as_draft",
+        ]);
       } else {
         await this.display(["button_completed"]);
         await this.hide(["button_complete_pp"]);
@@ -379,6 +383,7 @@ const PickingPlan = async () => {
   try {
     let pageStatus = "";
     const status = await this.getValue("to_status");
+    console.log("Debug", this.getValues());
 
     if (this.isAdd) pageStatus = "Add";
     else if (this.isEdit) pageStatus = "Edit";

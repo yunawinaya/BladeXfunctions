@@ -2,6 +2,7 @@ const closeDialog = () => {
   if (this.parentGenerateForm) {
     this.parentGenerateForm.$refs.SuPageDialogRef.hide();
     this.parentGenerateForm.refresh();
+    this.parentGenerateForm.hide("custom_41s73hyl");
     this.hideLoading();
   }
 };
@@ -283,6 +284,7 @@ const updatePickingPlan = async (toData) => {
 
     await db.collection("picking_plan").doc(ppId).update({
       picking_status: newPickingStatus,
+      to_status: newPickingStatus,
     });
   } catch (error) {
     this.$message.error("Error updating Picking Plan picking status");
@@ -313,9 +315,15 @@ const updateSalesOrder = async (toData) => {
 
       // Check line status distribution
       const allOpen = lineStatuses.every((status) => status === "Open");
-      const allCompleted = lineStatuses.every((status) => status === "Completed");
-      const hasInProgress = lineStatuses.some((status) => status === "In Progress");
-      const hasCompleted = lineStatuses.some((status) => status === "Completed");
+      const allCompleted = lineStatuses.every(
+        (status) => status === "Completed"
+      );
+      const hasInProgress = lineStatuses.some(
+        (status) => status === "In Progress"
+      );
+      const hasCompleted = lineStatuses.some(
+        (status) => status === "Completed"
+      );
       const hasNonOpen = lineStatuses.some((status) => status !== "Open");
 
       // Case A: All line_status = "Open" - Don't update SO
@@ -360,13 +368,17 @@ const updateSalesOrder = async (toData) => {
           await db.collection("sales_order").doc(soId).update({
             to_status: "Completed",
           });
-          console.log(`SO ${soId}: Set to_status = "Completed" (all quantities matched)`);
+          console.log(
+            `SO ${soId}: Set to_status = "Completed" (all quantities matched)`
+          );
         } else {
           // Some quantities don't match - set SO to In Progress
           await db.collection("sales_order").doc(soId).update({
             to_status: "In Progress",
           });
-          console.log(`SO ${soId}: Set to_status = "In Progress" (quantities mismatch)`);
+          console.log(
+            `SO ${soId}: Set to_status = "In Progress" (quantities mismatch)`
+          );
         }
         continue;
       }
@@ -376,7 +388,9 @@ const updateSalesOrder = async (toData) => {
         await db.collection("sales_order").doc(soId).update({
           to_status: "In Progress",
         });
-        console.log(`SO ${soId}: Set to_status = "In Progress" (mixed or in progress statuses)`);
+        console.log(
+          `SO ${soId}: Set to_status = "In Progress" (mixed or in progress statuses)`
+        );
       }
     }
   } catch (error) {

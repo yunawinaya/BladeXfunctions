@@ -1744,7 +1744,9 @@ const createTempQtyDataSummary = async (
 
           // Skip cancelled GDs
           if (gdData.gd_status === "Cancelled") {
-            console.warn(`Skipping GD ${gdData.delivery_no} - Status is Cancelled`);
+            console.warn(
+              `Skipping GD ${gdData.delivery_no} - Status is Cancelled`
+            );
             continue;
           }
 
@@ -1994,6 +1996,7 @@ const createTempQtyDataSummary = async (
         `Successfully force complete ${selectedRecords.length} picking(s).`
       );
       this.refresh();
+      this.hide("tabs_picking");
     } else {
       this.$message.error("Please select at least one record.");
       this.hideLoading();

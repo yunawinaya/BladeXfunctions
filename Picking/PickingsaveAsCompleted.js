@@ -2,6 +2,7 @@ const closeDialog = () => {
   if (this.parentGenerateForm) {
     this.parentGenerateForm.$refs.SuPageDialogRef.hide();
     this.parentGenerateForm.refresh();
+    this.parentGenerateForm.hide("tabs_picking");
     this.hideLoading();
   }
 };

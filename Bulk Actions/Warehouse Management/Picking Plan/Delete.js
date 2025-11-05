@@ -76,6 +76,7 @@
     }
 
     this.refresh();
+    this.hide("custom_41s73hyl");
     this.$message.success("Picking plans deleted successfully");
   } catch (error) {
     console.error(error);
