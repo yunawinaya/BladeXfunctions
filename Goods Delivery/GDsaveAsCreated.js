@@ -2032,7 +2032,7 @@ const findFieldMessage = (obj) => {
       }
     }
   }
-  return null;
+  return obj.toString();
 };
 
 const sendNotification = async (notificationParam) => {
@@ -3115,6 +3115,13 @@ const fetchDeliveredQuantity = async () => {
         reference_type: data.reference_type,
         gd_created_by: data.gd_created_by,
         from_convert: "",
+        select_vehicle_id: data.select_vehicle_id,
+        gd_vehicle_type: data.gd_vehicle_type,
+        gd_vehicle_capacity: data.gd_vehicle_capacity,
+        gd_vehicle_cap_uom: data.gd_vehicle_cap_uom,
+        select_driver_id: data.select_driver_id,
+        gd_driver_contact: data.gd_driver_contact,
+        gd_driver_ic: data.gd_driver_ic,
       };
 
       // Clean up undefined/null values
