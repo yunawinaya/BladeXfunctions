@@ -3606,9 +3606,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData, isGDPP) => {
       // Group GD line items by PP number to handle multiple PPs
       const gdLinesByPPNo = {};
       for (const gdLineItem of gdData.table_gd) {
-        const ppNoOrObject = gdLineItem.line_to_id;
-        const ppNo =
-          typeof ppNoOrObject === "object" ? ppNoOrObject.to_no : ppNoOrObject;
+        const ppNo = gdLineItem.line_to_no;
 
         if (!ppNo) {
           console.warn(
@@ -3620,7 +3618,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData, isGDPP) => {
         if (!gdLinesByPPNo[ppNo]) {
           gdLinesByPPNo[ppNo] = [];
         }
-        gdLinesByPPNo[ppNo].push(gdLineItem);
+        gdLinesByPPNo[ppNo].push(ppNo);
       }
 
       const ppNumbers = Object.keys(gdLinesByPPNo);
@@ -4446,7 +4444,7 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
     // Prepare goods delivery object
     const gd = {
       gd_status: targetStatus,
-      picking_status,
+      picking_status: isGDPP ? "Completed" : picking_status,
       credit_limit_status,
       so_id,
       so_no,
@@ -4687,6 +4685,9 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
     // Perform action based on page status
     if (page_status === "Add") {
       await addEntryWithValidation(organizationId, latestGD, gdStatus, isGDPP);
+      if (isGDPP) {
+        await updateOnReserveGoodsDelivery(organizationId, latestGD, isGDPP);
+      }
     } else if (page_status === "Edit") {
       const goodsDeliveryId = data.id;
 
