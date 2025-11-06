@@ -4317,6 +4317,8 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
         console.log("Credit/overdue limit check failed");
         this.hideLoading();
         return;
+      } else if (canProceed) {
+        data.credit_limit_status = "Passed";
       }
     }
 
