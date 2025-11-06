@@ -16,6 +16,23 @@
       activeTab === "Uncompleted" ? unCompletedListID : allListID
     )?.$refs.crud.tableSelect;
 
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
+    }
+
+    const pickingSetupResponse = await db
+      .collection("picking_setup")
+      .where({
+        organization_id: organizationId,
+        picking_required: 1,
+      })
+      .get();
+
+    const isSOPP =
+      pickingSetupResponse.data.length > 0 &&
+      pickingSetupResponse.data[0].picking_after === "Sales Order";
+
     if (selectedRecords && selectedRecords.length > 0) {
       let salesOrderData = selectedRecords.filter(
         (item) => item.so_status === "Issued"
@@ -26,13 +43,15 @@
         return;
       }
 
-      const salesOrderWithCreatedGD = [];
-      const createdGdDataMap = new Map();
+      const collectionName = isSOPP ? "picking_plan" : "goods_delivery";
+
+      const salesOrderWithCreatedGDorPP = [];
+      const createdGdOrPpDataMap = new Map();
 
       for (const soItem of salesOrderData) {
         try {
-          const GDResults = await db
-            .collection("goods_delivery")
+          const GDorPPResults = await db
+            .collection(collectionName)
             .filter([
               {
                 type: "branch",
@@ -44,7 +63,7 @@
                     value: soItem.id,
                   },
                   {
-                    prop: "gd_status",
+                    prop: isSOPP ? "to_status" : "gd_status",
                     operator: "equal",
                     value: "Created",
                   },
@@ -53,27 +72,34 @@
             ])
             .get();
 
-          if (GDResults.data && GDResults.data.length > 0) {
-            createdGdDataMap.set(soItem.id, GDResults.data);
-            salesOrderWithCreatedGD.push(soItem);
+          if (GDorPPResults.data && GDorPPResults.data.length > 0) {
+            createdGdOrPpDataMap.set(soItem.id, GDorPPResults.data);
+            salesOrderWithCreatedGDorPP.push(soItem);
           }
         } catch (error) {
           console.error("Error querying GD:", error);
         }
       }
 
-      if (salesOrderWithCreatedGD.length > 0) {
-        const createdGdInfo = salesOrderWithCreatedGD.map((soItem) => {
-          const gdList = createdGdDataMap.get(soItem.id) || [];
-          const gdNumbers = gdList.map((gd) => gd.delivery_no).join(", ");
-          return `SO: ${soItem.so_no} → GD: ${gdNumbers}`;
+      if (salesOrderWithCreatedGDorPP.length > 0) {
+        const createdGdOrPpInfo = salesOrderWithCreatedGDorPP.map((soItem) => {
+          const docList = createdGdOrPpDataMap.get(soItem.id) || [];
+          const documentNumbers = docList
+            .map((doc) => (isSOPP ? doc.to_no : doc.delivery_no))
+            .join(", ");
+          return `SO: ${soItem.so_no} → ${
+            isSOPP ? "PP" : "GD"
+          }: ${documentNumbers}`;
         });
 
+        const documentType = isSOPP ? "picking plan" : "goods delivery";
+        const documentTypeTitle = isSOPP ? "Picking Plan" : "Goods Delivery";
+
         await this.$alert(
-          `These sales orders have created goods delivery. <br> <strong>Sales Order → Goods Delivery:</strong> <br>${createdGdInfo.join(
+          `These sales orders have created ${documentType}. <br> <strong>Sales Order → ${documentTypeTitle}:</strong> <br>${createdGdOrPpInfo.join(
             "<br>"
-          )} <br><br>Please cancel the goods delivery first.`,
-          "Sales Order with Created Goods Delivery",
+          )} <br><br>Please cancel the ${documentType} first.`,
+          `Sales Order with Created ${documentTypeTitle}`,
           {
             confirmButtonText: "OK",
             type: "warning",
@@ -81,7 +107,9 @@
           }
         );
 
-        const createdGdSOIds = salesOrderWithCreatedGD.map((item) => item.id);
+        const createdGdSOIds = salesOrderWithCreatedGDorPP.map(
+          (item) => item.id
+        );
         salesOrderData = salesOrderData.filter(
           (item) => !createdGdSOIds.includes(item.id)
         );
@@ -150,13 +178,13 @@
         }
       }
 
-      const gdDataMap = new Map();
-      const salesOrderwithDraftGD = [];
+      const gdOrPpDataMap = new Map();
+      const salesOrderwithDraftGDorPP = [];
 
       for (const soItem of salesOrderData) {
         try {
-          const GDResults = await db
-            .collection("goods_delivery")
+          const GDorPPResults = await db
+            .collection(collectionName)
             .filter([
               {
                 type: "branch",
@@ -168,7 +196,7 @@
                     value: soItem.id,
                   },
                   {
-                    prop: "gd_status",
+                    prop: isSOPP ? "to_status" : "gd_status",
                     operator: "equal",
                     value: "Draft",
                   },
@@ -177,27 +205,34 @@
             ])
             .get();
 
-          if (GDResults.data && GDResults.data.length > 0) {
-            gdDataMap.set(soItem.id, GDResults.data);
-            salesOrderwithDraftGD.push(soItem);
+          if (GDorPPResults.data && GDorPPResults.data.length > 0) {
+            gdOrPpDataMap.set(soItem.id, GDorPPResults.data);
+            salesOrderwithDraftGDorPP.push(soItem);
           }
         } catch (error) {
-          console.error("Error querying GD:", error);
+          console.error(`Error querying ${collectionName}:`, error);
         }
       }
 
-      if (salesOrderwithDraftGD.length > 0) {
-        const soAndGdInfo = salesOrderwithDraftGD.map((soItem) => {
-          const gdList = gdDataMap.get(soItem.id) || [];
-          const gdNumbers = gdList.map((gd) => gd.delivery_no).join(", ");
-          return `SO: ${soItem.so_no} → GD: ${gdNumbers}`;
+      if (salesOrderwithDraftGDorPP.length > 0) {
+        const soAndGdOrPpInfo = salesOrderwithDraftGDorPP.map((soItem) => {
+          const gdOrPpList = gdOrPpDataMap.get(soItem.id) || [];
+          const documentNumbers = gdOrPpList
+            .map((doc) => (isSOPP ? doc.to_no : doc.delivery_no))
+            .join(", ");
+          return `SO: ${soItem.so_no} → ${
+            isSOPP ? "PP" : "GD"
+          }: ${documentNumbers}`;
         });
 
+        const documentType = isSOPP ? "picking plan" : "goods delivery";
+        const documentTypeTitle = isSOPP ? "Picking Plan" : "Goods Delivery";
+
         const result = await this.$confirm(
-          `These sales orders have draft goods delivery. <br> <strong>Sales Order → Goods Delivery:</strong> <br>${soAndGdInfo.join(
+          `These sales orders have draft ${documentType}. <br> <strong>Sales Order → ${documentTypeTitle}:</strong> <br>${soAndGdOrPpInfo.join(
             "<br>"
-          )} <br><br>Do you wish to delete the goods delivery first?`,
-          "Sales Order with Draft Goods Delivery",
+          )} <br><br>Do you wish to delete the ${documentType} first?`,
+          `Sales Order with Draft ${documentTypeTitle}`,
           {
             confirmButtonText: "Proceed",
             cancelButtonText: "Cancel",
@@ -209,18 +244,18 @@
         });
 
         if (result === "confirm") {
-          for (const soItem of salesOrderwithDraftGD) {
-            const gdList = gdDataMap.get(soItem.id) || [];
-            for (const gdItem of gdList) {
-              await db.collection("goods_delivery").doc(gdItem.id).update({
+          for (const soItem of salesOrderwithDraftGDorPP) {
+            const docList = gdOrPpDataMap.get(soItem.id) || [];
+            for (const docItem of docList) {
+              await db.collection(collectionName).doc(docItem.id).update({
                 is_deleted: 1,
               });
             }
           }
         } else {
-          const draftGDIds = salesOrderwithDraftGD.map((item) => item.id);
+          const draftDocIds = salesOrderwithDraftGDorPP.map((item) => item.id);
           salesOrderData = salesOrderData.filter(
-            (item) => !draftGDIds.includes(item.id)
+            (item) => !draftDocIds.includes(item.id)
           );
         }
 

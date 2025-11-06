@@ -1,6 +1,6 @@
-const checkExistingGoodsDelivery = async (soID) => {
+const checkExistingGoodsDelivery = async (soID, collectionName, isSOPP) => {
   const resGD = await db
-    .collection("goods_delivery")
+    .collection(collectionName)
     .filter([
       {
         type: "branch",
@@ -12,7 +12,7 @@ const checkExistingGoodsDelivery = async (soID) => {
             value: soID,
           },
           {
-            prop: "gd_status",
+            prop: isSOPP ? "to_status" : "gd_status",
             operator: "equal",
             value: "Draft",
           },
@@ -25,9 +25,9 @@ const checkExistingGoodsDelivery = async (soID) => {
   return resGD.data;
 };
 
-const checkExistingCreatedGoodsDelivery = async (soID) => {
+const checkExistingCreatedGoodsDelivery = async (soID, collectionName, isSOPP) => {
   const resGD = await db
-    .collection("goods_delivery")
+    .collection(collectionName)
     .filter([
       {
         type: "branch",
@@ -39,7 +39,7 @@ const checkExistingCreatedGoodsDelivery = async (soID) => {
             value: soID,
           },
           {
-            prop: "gd_status",
+            prop: isSOPP ? "to_status" : "gd_status",
             operator: "equal",
             value: "Created",
           },
@@ -79,15 +79,15 @@ const checkExistingSalesInvoice = async (soID) => {
   return resSI.data;
 };
 
-const deleteRelatedGD = async (existingGD) => {
+const deleteRelatedGD = async (existingGD, collectionName) => {
   try {
     for (const gd of existingGD) {
-      await db.collection("goods_delivery").doc(gd.id).update({
+      await db.collection(collectionName).doc(gd.id).update({
         is_deleted: 1,
       });
     }
   } catch {
-    throw new Error("Error in deleting associated goods delivery.");
+    throw new Error(`Error in deleting associated ${collectionName === "picking_plan" ? "picking plan" : "goods delivery"}.`);
   }
 };
 
@@ -132,6 +132,25 @@ const completeSO = async (salesOrderId) => {
       activeTab === "Uncompleted" ? unCompletedListID : allListID
     )?.$refs.crud.tableSelect;
 
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
+    }
+
+    const pickingSetupResponse = await db
+      .collection("picking_setup")
+      .where({
+        organization_id: organizationId,
+        picking_required: 1,
+      })
+      .get();
+
+    const isSOPP =
+      pickingSetupResponse.data.length > 0 &&
+      pickingSetupResponse.data[0].picking_after === "Sales Order";
+
+    const collectionName = isSOPP ? "picking_plan" : "goods_delivery";
+
     if (selectedRecords && selectedRecords.length > 0) {
       let salesOrderData = selectedRecords.filter(
         (item) => item.so_status === "Processing" || item.so_status === "Issued"
@@ -144,16 +163,18 @@ const completeSO = async (salesOrderId) => {
         return;
       }
 
-      // Check for existing GD/SI across all selected SOs
+      // Check for existing GD/PP/SI across all selected SOs
       let allExistingGD = [];
       let allExistingSI = [];
       let allExistingCreatedGD = [];
 
       for (const soItem of salesOrderData) {
-        const existingGD = await checkExistingGoodsDelivery(soItem.id);
+        const existingGD = await checkExistingGoodsDelivery(soItem.id, collectionName, isSOPP);
         const existingSI = await checkExistingSalesInvoice(soItem.id);
         const existingCreatedGD = await checkExistingCreatedGoodsDelivery(
-          soItem.id
+          soItem.id,
+          collectionName,
+          isSOPP
         );
 
         allExistingGD = allExistingGD.concat(existingGD);
@@ -161,14 +182,16 @@ const completeSO = async (salesOrderId) => {
         allExistingCreatedGD = allExistingCreatedGD.concat(existingCreatedGD);
       }
 
-      // Check for created GD - block operation if any exist
+      // Check for created GD/PP - block operation if any exist
       if (allExistingCreatedGD.length > 0) {
-        const createdGDInfo = allExistingCreatedGD
-          .map((gd) => gd.delivery_no)
+        const createdDocInfo = allExistingCreatedGD
+          .map((doc) => (isSOPP ? doc.to_no : doc.delivery_no))
           .join(", ");
+        const documentType = isSOPP ? "picking plan" : "goods delivery";
+        const documentTypeTitle = isSOPP ? "PP" : "GD";
         await this.$alert(
-          `These sales orders have existing goods delivery records in created status: <br><strong>GD Numbers:</strong> <br>${createdGDInfo}<br><br>Please cancel all associated goods delivery records before proceeding.`,
-          "Existing Created GD detected",
+          `These sales orders have existing ${documentType} records in created status: <br><strong>${documentTypeTitle} Numbers:</strong> <br>${createdDocInfo}<br><br>Please cancel all associated ${documentType} records before proceeding.`,
+          `Existing Created ${documentTypeTitle} detected`,
           {
             confirmButtonText: "OK",
             type: "error",
@@ -178,11 +201,14 @@ const completeSO = async (salesOrderId) => {
         return;
       }
 
-      // Handle draft GD/SI - ask for confirmation to delete
+      // Handle draft GD/PP/SI - ask for confirmation to delete
       if (allExistingGD.length > 0 || allExistingSI.length > 0) {
+        const documentType = isSOPP ? "picking plan" : "goods delivery";
+        const documentTypeTitle = isSOPP ? "PP" : "GD";
+
         const gdInfo =
           allExistingGD.length > 0
-            ? allExistingGD.map((gd) => gd.delivery_no).join(", ")
+            ? allExistingGD.map((doc) => (isSOPP ? doc.to_no : doc.delivery_no)).join(", ")
             : "";
         const siInfo =
           allExistingSI.length > 0
@@ -192,7 +218,7 @@ const completeSO = async (salesOrderId) => {
         await this.$confirm(
           `${
             allExistingGD.length > 0
-              ? `The selected sales orders have existing goods delivery records in draft status: <br><strong>GD Numbers:</strong> ${gdInfo}<br>Proceeding will delete all associated goods delivery records.<br><br>`
+              ? `The selected sales orders have existing ${documentType} records in draft status: <br><strong>${documentTypeTitle} Numbers:</strong> ${gdInfo}<br>Proceeding will delete all associated ${documentType} records.<br><br>`
               : ""
           }${
             allExistingSI.length > 0
@@ -201,9 +227,9 @@ const completeSO = async (salesOrderId) => {
           }<strong>Do you wish to continue?</strong>`,
           `Existing ${
             allExistingGD.length > 0 && allExistingSI.length > 0
-              ? "GD and SI"
+              ? `${documentTypeTitle} and SI`
               : allExistingGD.length > 0
-              ? "GD"
+              ? documentTypeTitle
               : "SI"
           } detected`,
           {
@@ -217,8 +243,8 @@ const completeSO = async (salesOrderId) => {
           throw new Error();
         });
 
-        // Delete related GD and SI
-        await deleteRelatedGD(allExistingGD);
+        // Delete related GD/PP and SI
+        await deleteRelatedGD(allExistingGD, collectionName);
         await deleteRelatedSI(allExistingSI);
       }
 
