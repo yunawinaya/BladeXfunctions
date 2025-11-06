@@ -25,7 +25,11 @@ const checkExistingGoodsDelivery = async (soID, collectionName, isSOPP) => {
   return resGD.data;
 };
 
-const checkExistingCreatedGoodsDelivery = async (soID, collectionName, isSOPP) => {
+const checkExistingCreatedGoodsDelivery = async (
+  soID,
+  collectionName,
+  isSOPP
+) => {
   const resGD = await db
     .collection(collectionName)
     .filter([
@@ -87,7 +91,11 @@ const deleteRelatedGD = async (existingGD, collectionName) => {
       });
     }
   } catch {
-    throw new Error(`Error in deleting associated ${collectionName === "picking_plan" ? "picking plan" : "goods delivery"}.`);
+    throw new Error(
+      `Error in deleting associated ${
+        collectionName === "picking_plan" ? "picking plan" : "goods delivery"
+      }.`
+    );
   }
 };
 
@@ -169,7 +177,11 @@ const completeSO = async (salesOrderId) => {
       let allExistingCreatedGD = [];
 
       for (const soItem of salesOrderData) {
-        const existingGD = await checkExistingGoodsDelivery(soItem.id, collectionName, isSOPP);
+        const existingGD = await checkExistingGoodsDelivery(
+          soItem.id,
+          collectionName,
+          isSOPP
+        );
         const existingSI = await checkExistingSalesInvoice(soItem.id);
         const existingCreatedGD = await checkExistingCreatedGoodsDelivery(
           soItem.id,
@@ -208,7 +220,9 @@ const completeSO = async (salesOrderId) => {
 
         const gdInfo =
           allExistingGD.length > 0
-            ? allExistingGD.map((doc) => (isSOPP ? doc.to_no : doc.delivery_no)).join(", ")
+            ? allExistingGD
+                .map((doc) => (isSOPP ? doc.to_no : doc.delivery_no))
+                .join(", ")
             : "";
         const siInfo =
           allExistingSI.length > 0
@@ -283,8 +297,5 @@ const completeSO = async (salesOrderId) => {
     }
   } catch (error) {
     console.error(error);
-    if (error.message !== "") {
-      this.$message.error("An error occurred during force completion.");
-    }
   }
 })();

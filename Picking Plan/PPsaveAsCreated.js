@@ -2925,7 +2925,6 @@ const fetchDeliveredQuantity = async () => {
         customer_name: data.customer_name,
         document_description: data.document_description,
         to_delivery_method: data.to_delivery_method,
-        to_date: data.to_date,
         driver_name: data.driver_name,
         driver_contact_no: data.driver_contact_no,
         ic_no: data.ic_no,

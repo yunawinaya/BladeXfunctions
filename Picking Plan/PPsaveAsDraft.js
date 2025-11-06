@@ -167,7 +167,6 @@ const fillbackHeaderFields = async (to) => {
 
         document_description: data.document_description,
         to_delivery_method: data.to_delivery_method,
-        to_date: data.to_date,
         assigned_to: data.assigned_to,
 
         driver_name: data.driver_name,

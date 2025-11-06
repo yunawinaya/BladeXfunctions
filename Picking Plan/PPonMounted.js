@@ -129,7 +129,6 @@ const disabledField = async (status, pickingStatus) => {
         "plant_id",
         "organization_id",
         "to_delivery_method",
-        "to_date",
         "driver_name",
         "driver_contact_no",
         "validity_of_collection",
@@ -282,7 +281,6 @@ const setPlant = async (organizationId) => {
   this.setData({
     organization_id: organizationId,
     ...(!hasPlant ? { plant_id: plantId } : {}),
-    to_date: new Date().toISOString().replace("T", " "),
     to_created_by: this.getVarGlobal("nickname"),
   });
 };
