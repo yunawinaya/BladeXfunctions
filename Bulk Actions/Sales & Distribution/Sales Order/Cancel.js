@@ -52,7 +52,7 @@
               },
             ])
             .get();
-          
+
           if (GDResults.data && GDResults.data.length > 0) {
             createdGdDataMap.set(soItem.id, GDResults.data);
             salesOrderWithCreatedGD.push(soItem);
@@ -95,7 +95,10 @@
       const invoicedSiDataMap = new Map();
 
       for (const soItem of salesOrderData) {
-        if (soItem.si_status === "Partially Invoiced" || soItem.si_status === "Fully Invoiced") {
+        if (
+          soItem.si_status === "Partially Invoiced" ||
+          soItem.si_status === "Fully Invoiced"
+        ) {
           try {
             const SIResults = await db
               .collection("sales_invoice")
@@ -107,7 +110,7 @@
                 },
               ])
               .get();
-            
+
             if (SIResults.data && SIResults.data.length > 0) {
               invoicedSiDataMap.set(soItem.id, SIResults.data);
               salesOrderWithInvoicing.push(soItem);
@@ -173,7 +176,7 @@
               },
             ])
             .get();
-          
+
           if (GDResults.data && GDResults.data.length > 0) {
             gdDataMap.set(soItem.id, GDResults.data);
             salesOrderwithDraftGD.push(soItem);
@@ -253,7 +256,7 @@
               },
             ])
             .get();
-          
+
           if (SIResults.data && SIResults.data.length > 0) {
             siDataMap.set(soItem.id, SIResults.data);
             salesOrderwithDraftSI.push(soItem);
