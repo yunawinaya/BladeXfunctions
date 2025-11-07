@@ -1466,7 +1466,7 @@ const processBalanceTable = async (
 
             // Smart movement logic based on status and available quantities
             // For Created status OR GDPP Draft→Completed, we need to move OUT from Reserved
-            if (gdStatus === "Created" || (isGDPP && gdStatus === "Draft")) {
+            if (gdStatus === "Created" || isGDPP) {
               // For Created status or GDPP, we need to move OUT from Reserved
               console.log(
                 `Processing Created status - moving ${baseQty} OUT from Reserved for group ${groupKey}`
@@ -2021,7 +2021,7 @@ const processBalanceTable = async (
               let remainingUnrestrictedToDeduct = 0;
 
               // For Created status OR GDPP Draft→Completed, use Reserved deduction logic
-              if (gdStatus === "Created" || (isGDPP && gdStatus === "Draft")) {
+              if (gdStatus === "Created" || isGDPP) {
                 // Determine how much comes from reserved vs unrestricted based on our movement logic
                 let availableReservedForThisGD = totalGroupReserved;
                 if (isUpdate && prevBaseQty > 0) {
@@ -2186,10 +2186,7 @@ const processBalanceTable = async (
                 let finalGeneralReservedQty = currentGeneralReservedQty;
 
                 // For Created status OR GDPP Draft→Completed, use Reserved deduction logic
-                if (
-                  gdStatus === "Created" ||
-                  (isGDPP && gdStatus === "Draft")
-                ) {
+                if (gdStatus === "Created" || isGDPP) {
                   // Apply the smart deduction logic
                   let availableReservedForThisGD = currentGeneralReservedQty;
                   if (isUpdate && prevBaseQty > 0) {
@@ -2290,7 +2287,7 @@ const processBalanceTable = async (
               let finalBalanceQty = currentBalanceQty;
 
               // For Created status OR GDPP Draft→Completed, use Reserved deduction logic
-              if (gdStatus === "Created" || (isGDPP && gdStatus === "Draft")) {
+              if (gdStatus === "Created" || isGDPP) {
                 // Apply the smart deduction logic
                 let availableReservedForThisGD = currentReservedQty;
                 if (isUpdate && prevBaseQty > 0) {
@@ -2404,10 +2401,7 @@ const processBalanceTable = async (
                   let finalGeneralReservedQty = currentGeneralReservedQty;
 
                   // For Created status OR GDPP Draft→Completed, use Reserved deduction logic
-                  if (
-                    gdStatus === "Created" ||
-                    (isGDPP && gdStatus === "Draft")
-                  ) {
+                  if (gdStatus === "Created" || isGDPP) {
                     // Apply the smart deduction logic
                     let availableReservedForThisGD = currentGeneralReservedQty;
                     if (isUpdate && prevBaseQty > 0) {
@@ -4706,7 +4700,7 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
         isGDPP
       );
       // Update on_reserved_gd for Created status OR GDPP Draft→Completed
-      if (gdStatus === "Created" || (isGDPP && gdStatus === "Draft")) {
+      if (gdStatus === "Created" || isGDPP) {
         await updateOnReserveGoodsDelivery(organizationId, latestGD, isGDPP);
       }
     }
