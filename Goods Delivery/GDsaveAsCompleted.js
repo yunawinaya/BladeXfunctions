@@ -4155,7 +4155,7 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
           } else if (newDeliveredQty > 0) {
             ppLineItem.delivery_status = "Partially Delivered";
           } else {
-            ppLineItem.delivery_status = "Open";
+            ppLineItem.delivery_status = "";
           }
 
           console.log(
@@ -4357,6 +4357,7 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
       credit_limit_status,
       so_id,
       so_no,
+      pp_no,
       gd_billing_address,
       gd_shipping_address,
       delivery_no,
@@ -4450,6 +4451,7 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
       credit_limit_status,
       so_id,
       so_no,
+      pp_no,
       gd_billing_address,
       gd_shipping_address,
       delivery_no,

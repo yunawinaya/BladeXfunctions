@@ -6,105 +6,6 @@ const closeDialog = () => {
   }
 };
 
-// Updated to handle array of sales order IDs
-const updateSalesOrderStatus = async (
-  salesOrderIds,
-  tableSI,
-  goodsDeliveryNo
-) => {
-  try {
-    // Ensure salesOrderIds is an array
-    const soIds = Array.isArray(salesOrderIds)
-      ? salesOrderIds
-      : [salesOrderIds];
-
-    const updatePromises = soIds.map(async (salesOrderId) => {
-      const resSO = await db
-        .collection("sales_order")
-        .where({ id: salesOrderId })
-        .get();
-
-      if (!resSO && resSO.data.length === 0) return;
-
-      const soDoc = resSO.data[0];
-      const soItems = soDoc.table_so || [];
-      const filteredSI = tableSI.filter(
-        (item) => item.line_so_no === soDoc.so_no
-      );
-
-      const filteredSO = soItems
-        .map((item, index) => ({ ...item, originalIndex: index }))
-        .filter((item) => item.item_name !== "" || item.so_desc !== "");
-
-      // Initialize tracking objects
-      let totalItems = soItems.length;
-      let partiallyInvoicedItems = 0;
-      let fullyInvoicedItems = 0;
-
-      const updatedSoItems = soItems.map((item) => ({ ...item }));
-
-      filteredSO.forEach((filteredItem, filteredIndex) => {
-        const originalIndex = filteredItem.originalIndex;
-        const orderQty = parseFloat(filteredItem.so_quantity || 0);
-        const siInvoicedQty = parseFloat(
-          filteredSI[filteredIndex]?.invoice_qty || 0
-        );
-        const currentInvoicedQty = parseFloat(
-          updatedSoItems[originalIndex].invoice_qty || 0
-        );
-        const totalInvoicedQty = currentInvoicedQty + siInvoicedQty;
-
-        // Update the quantity in the original soItems structure
-        updatedSoItems[originalIndex].invoice_qty = totalInvoicedQty;
-
-        // Add ratio for tracking purposes
-        updatedSoItems[originalIndex].invoice_ratio =
-          orderQty > 0 ? totalInvoicedQty / orderQty : 0;
-
-        if (totalInvoicedQty > 0) {
-          partiallyInvoicedItems++;
-
-          // Count fully delivered items separately
-          if (totalInvoicedQty >= orderQty) {
-            fullyInvoicedItems++;
-          }
-        }
-      });
-
-      let allItemsComplete = fullyInvoicedItems === totalItems;
-      let anyItemProcessing = partiallyInvoicedItems > 0;
-
-      let newSIStatus = soDoc.si_status;
-
-      if (allItemsComplete) {
-        newSIStatus = "Fully Invoiced";
-      } else if (anyItemProcessing) {
-        newSIStatus = "Partially Invoiced";
-      }
-
-      const updateData = {
-        table_so: updatedSoItems,
-      };
-
-      updateData.si_status = newSIStatus;
-
-      await db.collection("sales_order").doc(soDoc.id).update(updateData);
-    });
-
-    await Promise.all(updatePromises);
-
-    if (goodsDeliveryNo) {
-      goodsDeliveryNo.forEach((gd) => {
-        db.collection("goods_delivery").doc(gd).update({
-          si_status: "Fully Invoiced",
-        });
-      });
-    }
-  } catch (error) {
-    throw new Error("An error occurred.");
-  }
-};
-
 const validateForm = (data, requiredFields) => {
   const missingFields = [];
 
@@ -600,6 +501,7 @@ const findFieldMessage = (obj) => {
         if (found) return found;
       }
     }
+    return obj.toString();
   }
   return null;
 };
@@ -617,32 +519,21 @@ const addEntry = async (organizationId, entry) => {
       await updatePrefix(organizationId, runningNumber);
 
       entry.sales_invoice_no = prefixToShow;
+    } else {
+      const isUnique = await checkUniqueness(
+        entry.sales_invoice_no,
+        organizationId
+      );
+      if (!isUnique) {
+        throw new Error(
+          `SI Number "${entry.sales_invoice_no}" already exists. Please use a different number.`
+        );
+      }
     }
 
     await db.collection("sales_invoice").add(entry);
     // Handle multiple SO IDs and GD numbers
-    await updateSalesOrderStatus(
-      entry.so_id,
-      entry.table_si,
-      entry.goods_delivery_number
-    );
-
-    try {
-      await this.runWorkflow(
-        "1917950696199892993",
-        { sales_invoice_no: entry.sales_invoice_no },
-        async (res) => {
-          console.log("Workflow success:", res);
-        },
-        (err) => {
-          console.error("Workflow error:", err);
-          closeDialog();
-          throw new Error("An error occurred.");
-        }
-      );
-    } catch (workflowError) {
-      console.error("Error running workflow:", workflowError);
-    }
+    await updateReferenceDocStatus(entry);
 
     this.$message.success("Add successfully");
     closeDialog();
@@ -666,32 +557,21 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
       await updatePrefix(organizationId, runningNumber);
 
       entry.sales_invoice_no = prefixToShow;
+    } else {
+      const isUnique = await checkUniqueness(
+        entry.sales_invoice_no,
+        organizationId
+      );
+      if (!isUnique) {
+        throw new Error(
+          `SI Number "${entry.sales_invoice_no}" already exists. Please use a different number.`
+        );
+      }
     }
 
     await db.collection("sales_invoice").doc(salesInvoiceId).update(entry);
     // Handle multiple SO IDs and GD numbers
-    await updateSalesOrderStatus(
-      entry.so_id,
-      entry.table_si,
-      entry.goods_delivery_number
-    );
-
-    try {
-      await this.runWorkflow(
-        "1917950696199892993",
-        { sales_invoice_no: entry.sales_invoice_no },
-        async (res) => {
-          console.log("Workflow success:", res);
-        },
-        (err) => {
-          console.error("Workflow error:", err);
-          closeDialog();
-          throw new Error("An error occurred.");
-        }
-      );
-    } catch (workflowError) {
-      console.error("Error running workflow:", workflowError);
-    }
+    await updateReferenceDocStatus(entry);
 
     this.$message.success("Update successfully");
     closeDialog();
@@ -702,6 +582,263 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
   }
 };
 
+const fillbackHeaderFields = async (entry) => {
+  try {
+    for (const [index, siLineItem] of entry.table_si.entries()) {
+      siLineItem.customer_id = entry.customer_id || null;
+      siLineItem.plant_id = entry.plant_id || null;
+      siLineItem.payment_term_id = entry.si_payment_term_id || null;
+      siLineItem.billing_state_id = entry.billing_address_state || null;
+      siLineItem.billing_country_id = entry.billing_address_country || null;
+      siLineItem.shipping_state_id = entry.shipping_address_state || null;
+      siLineItem.shipping_country_id = entry.shipping_address_country || null;
+      siLineItem.line_index = index + 1;
+      siLineItem.agent_id = entry.sales_person_id;
+    }
+    return entry.table_si;
+  } catch (error) {
+    throw new Error("Error processing sales invoice.");
+  }
+};
+
+const processSILineItem = async (entry) => {
+  const totalQuantity = entry.table_si.reduce((sum, item) => {
+    const { invoice_qty } = item;
+    return sum + (invoice_qty || 0); // Handle null/undefined received_qty
+  }, 0);
+
+  if (totalQuantity === 0) {
+    throw new Error("Total invoiced quantity is 0.");
+  }
+
+  const zeroQtyArray = [];
+  for (const [index, si] of entry.table_si.entries()) {
+    if (si.invoice_qty <= 0) {
+      zeroQtyArray.push(`#${index + 1}`);
+    }
+  }
+
+  if (zeroQtyArray.length > 0) {
+    await this.$confirm(
+      `Line${zeroQtyArray.length > 1 ? "s" : ""} ${zeroQtyArray.join(", ")} ha${
+        zeroQtyArray.length > 1 ? "ve" : "s"
+      } a zero invoice quantity, which may prevent processing.\nIf you proceed, it will delete the row with 0 invoice quantity. \nWould you like to proceed?`,
+      "Zero Invoice Quantity Detected",
+      {
+        confirmButtonText: "OK",
+        cancelButtonText: "Cancel",
+        type: "warning",
+        dangerouslyUseHTMLString: false,
+      }
+    )
+      .then(async () => {
+        console.log("User clicked OK");
+        entry.table_si = entry.table_si.filter((item) => item.invoice_qty > 0);
+        let soID = [];
+        let gdID = [];
+        let salesOrderNumber = [];
+        let goodsDeliveryNumber = [];
+        for (const si of entry.table_si) {
+          if (si.line_gd_id && si.line_gd_id !== "") {
+            gdID.push(si.line_gd_id);
+            goodsDeliveryNumber.push(si.line_gd_no);
+          }
+
+          soID.push(si.line_so_id);
+          salesOrderNumber.push(si.line_so_no);
+        }
+
+        soID = [...new Set(soID)];
+        gdID = [...new Set(gdID)];
+        salesOrderNumber = [...new Set(salesOrderNumber)];
+        goodsDeliveryNumber = [...new Set(goodsDeliveryNumber)];
+
+        entry.so_id = soID;
+        entry.gd_id = gdID;
+        entry.so_no_display = salesOrderNumber.join(", ");
+        entry.gd_no_display = goodsDeliveryNumber.join(", ");
+
+        return entry;
+      })
+      .catch(() => {
+        // Function to execute when the user clicks "Cancel" or closes the dialog
+        console.log("User clicked Cancel or closed the dialog");
+        this.hideLoading();
+        throw new Error("Saving sales invoice cancelled.");
+        // Add your logic to stop or handle cancellation here
+        // Example: this.stopFunction();
+      });
+  }
+
+  return entry;
+};
+
+const updateReferenceDocStatus = async (data) => {
+  // Validate input data
+  if (!data || !data.so_id || !data.table_si) {
+    throw new Error("Invalid input data: so_id and table_si are required");
+  }
+
+  const soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];
+
+  // Process Goods Receiving (GR) documents if doc_type is "Goods Receiving"
+  if (data.gd_id.length > 0) {
+    const gdIds = Array.isArray(data.gd_id) ? data.gd_id : [data.gd_id];
+    await updateGoodsDelivery(gdIds, data.table_si);
+  }
+
+  // Process Purchase Order (PO) documents
+  await updateSalesOrder(soIds, data.table_si);
+};
+
+const updateGoodsDelivery = async (gdIds, tableSi) => {
+  const updateGDPromises = gdIds.map(async (goodsDeliveryId) => {
+    try {
+      // Fetch GR document
+      const resGD = await db
+        .collection("goods_delivery")
+        .where({ id: goodsDeliveryId })
+        .field("table_gd,si_status")
+        .get();
+
+      if (!resGD || !resGD.data || resGD.data.length === 0) {
+        console.warn(
+          `No Goods Delivery document found for ID: ${goodsDeliveryId}`
+        );
+        return;
+      }
+
+      const gdDoc = resGD.data[0];
+      const gdItems = gdDoc.table_gd || [];
+
+      // Process GR items
+      const { updatedItems, newSIStatus } = processItems(
+        gdItems,
+        tableSi,
+        gdDoc.id,
+        "line_gd_id",
+        "gd_line_id",
+        "gd_qty"
+      );
+
+      // Update GR document
+      await db.collection("goods_delivery").doc(gdDoc.id).update({
+        table_gd: updatedItems,
+        si_status: newSIStatus,
+      });
+    } catch (error) {
+      console.error(
+        `Error updating Goods Delivery ID ${goodsDeliveryId}:`,
+        error
+      );
+      throw error;
+    }
+  });
+
+  await Promise.all(updateGDPromises);
+};
+
+const updateSalesOrder = async (soIds, tableSi) => {
+  const updateSOPromises = soIds.map(async (salesOrderId) => {
+    try {
+      // Fetch PO document
+      const resSO = await db
+        .collection("sales_order")
+        .where({ id: salesOrderId })
+        .field("table_so,si_status")
+        .get();
+
+      if (!resSO || !resSO.data || resSO.data.length === 0) {
+        console.warn(`No Sales Order document found for ID: ${salesOrderId}`);
+        return;
+      }
+
+      const soDoc = resSO.data[0];
+      const soItems = soDoc.table_so || [];
+
+      // Process PO items
+      const { updatedItems, newSIStatus } = processItems(
+        soItems,
+        tableSi,
+        soDoc.id,
+        "line_so_id",
+        "so_line_id",
+        "so_quantity"
+      );
+
+      // Update PO document
+      await db.collection("sales_order").doc(soDoc.id).update({
+        table_so: updatedItems,
+        si_status: newSIStatus,
+      });
+    } catch (error) {
+      console.error(`Error updating Sales Order ID ${salesOrderId}:`, error);
+      throw error;
+    }
+  });
+
+  await Promise.all(updateSOPromises);
+};
+
+const processItems = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey) => {
+  // Filter PI items for the current document
+  const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);
+
+  // Filter items where item.id matches any siLineIdKey in filteredSI
+  const filteredItems = items.filter((item) =>
+    filteredSI.some((pi) => pi[siLineIdKey] === item.id)
+  );
+
+  // Initialize tracking
+  let totalItems = items.length;
+  let partiallyInvoicedItems = 0;
+  let fullyInvoicedItems = 0;
+  const updatedItems = items.map((item) => ({ ...item }));
+
+  // Update invoice quantities
+  filteredItems.forEach((filteredItem, filteredIndex) => {
+    const originalIndex = updatedItems.findIndex(
+      (item) => item.id === filteredItem.id
+    );
+
+    if (originalIndex === -1) return;
+
+    const itemQty = parseFloat(filteredItem[qtyKey] || 0);
+    const piInvoicedQty = parseFloat(
+      filteredSI[filteredIndex]?.invoice_qty || 0
+    );
+    const currentInvoicedQty = parseFloat(
+      updatedItems[originalIndex].invoice_qty || 0
+    );
+    const totalInvoicedQty = currentInvoicedQty + piInvoicedQty;
+
+    // Update invoice quantity
+    updatedItems[originalIndex].invoice_qty = totalInvoicedQty;
+  });
+
+  for (const [index, item] of updatedItems.entries()) {
+    if (item.invoice_qty > 0) {
+      partiallyInvoicedItems++;
+      updatedItems[index].si_status = "Partially Invoiced";
+      if (item.invoice_qty >= item[qtyKey]) {
+        fullyInvoicedItems++;
+        updatedItems[index].si_status = "Fully Invoiced";
+      }
+    }
+  }
+
+  // Determine new PI status
+  const allItemsComplete = fullyInvoicedItems === totalItems;
+  const anyItemProcessing = partiallyInvoicedItems > 0;
+  let newSIStatus = anyItemProcessing
+    ? allItemsComplete
+      ? "Fully Invoiced"
+      : "Partially Invoiced"
+    : "";
+
+  return { updatedItems, newSIStatus };
+};
+
 // Main execution
 (async () => {
   try {
@@ -710,7 +847,6 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
 
     const requiredFields = [
       { name: "plant_id", label: "Plant" },
-      { name: "so_id", label: "SO Number" },
       { name: "sales_invoice_no", label: "Sales Invoice Number " },
       { name: "sales_invoice_date", label: "Sales Invoice Date" },
       { name: "si_description", label: "Description" },
@@ -722,8 +858,6 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         arrayFields: [],
       },
     ];
-
-    await this.validate("sales_invoice_no");
     const missingFields = validateForm(data, requiredFields);
 
     if (data.acc_integration_type !== null) {
@@ -749,10 +883,9 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
       }
 
       const {
-        fake_so_id,
         so_id,
         customer_id,
-        goods_delivery_number,
+        gd_id,
         sales_invoice_no,
         sales_invoice_date,
         sales_person_id,
@@ -767,6 +900,8 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         invoice_taxes_amount,
         invoice_total,
         remarks,
+        remarks2,
+        remarks3,
         si_shipping_address,
         si_billing_address,
         gd_no_display,
@@ -806,21 +941,18 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         outstanding_balance,
         overdue_inv_total_amount,
         is_accurate,
+        reference_type,
       } = data;
 
       // Ensure SO IDs and GD numbers are properly handled as arrays
       const soIdArray = Array.isArray(so_id) ? so_id : [so_id];
-      const gdArray = Array.isArray(goods_delivery_number)
-        ? goods_delivery_number
-        : [goods_delivery_number];
 
       const entry = {
         si_status: "Completed",
         posted_status: "Unposted",
-        fake_so_id,
         so_id: soIdArray,
         customer_id,
-        goods_delivery_number: gdArray,
+        gd_id,
         sales_invoice_no,
         sales_invoice_date,
         sales_person_id,
@@ -835,6 +967,8 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         invoice_taxes_amount,
         invoice_total,
         remarks,
+        remarks2,
+        remarks3,
         si_shipping_address,
         si_billing_address,
         gd_no_display,
@@ -874,13 +1008,25 @@ const updateEntry = async (organizationId, entry, salesInvoiceId) => {
         outstanding_balance,
         overdue_inv_total_amount,
         is_accurate,
+        reference_type,
       };
 
+      const latestSI = await processSILineItem(entry);
+
+      if (latestSI.table_si.length === 0) {
+        throw new Error(
+          "All Invoiced Quantity must not be 0. Please add at lease one item with invoice quantity > 0."
+        );
+      }
+
+      latestSI.table_si = await fillbackHeaderFields(latestSI);
+      console.log("latestSI", latestSI);
+
       if (page_status === "Add") {
-        await addEntry(organizationId, entry);
+        await addEntry(organizationId, latestSI);
       } else if (page_status === "Edit") {
         const salesInvoiceId = this.getValue("id");
-        await updateEntry(organizationId, entry, salesInvoiceId);
+        await updateEntry(organizationId, latestSI, salesInvoiceId);
       }
     } else {
       this.hideLoading();

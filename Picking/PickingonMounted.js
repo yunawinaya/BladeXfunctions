@@ -361,7 +361,7 @@ const PickingPlan = async () => {
         await this.display(["button_completed"]);
         await this.hide(["button_complete_pp"]);
       } else if (pickingSetup.data[0].picking_after === "Sales Order") {
-        await this.display(["button_complete_pp"]);
+        await this.display(["button_complete_pp", "to_validity_period"]);
         await this.hide([
           "button_completed",
           "button_created",

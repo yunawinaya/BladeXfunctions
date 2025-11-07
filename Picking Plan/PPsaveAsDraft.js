@@ -162,6 +162,7 @@ const fillbackHeaderFields = async (to) => {
         from_convert: "",
 
         to_no: data.to_no,
+        to_validity_period: data.to_validity_period,
         to_ref_doc: data.to_ref_doc,
         customer_name: data.customer_name,
 

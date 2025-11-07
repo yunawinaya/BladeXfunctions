@@ -575,6 +575,7 @@ const createPickingRecord = async (toData) => {
       to_id: data.to_id,
       movement_type: data.movement_type,
       customer_id: data.customer_id,
+      to_validity_period: data.to_validity_period,
       ref_doc_type: data.ref_doc_type,
       to_no: data.to_no,
       so_no: data.so_no,

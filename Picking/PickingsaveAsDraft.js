@@ -2,6 +2,7 @@ const closeDialog = () => {
   if (this.parentGenerateForm) {
     this.parentGenerateForm.$refs.SuPageDialogRef.hide();
     this.parentGenerateForm.refresh();
+    this.parentGenerateForm.hide("tabs_picking");
     this.hideLoading();
   }
 };
@@ -49,7 +50,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, field) => {
+const validateField = (value, _field) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "number") return value <= 0;
@@ -148,6 +149,8 @@ const generateDraftPrefix = async (organizationId) => {
         ref_doc_type: data.ref_doc_type,
         gd_no: data.gd_no,
         to_no: data.to_no,
+        customer_id: data.customer_id,
+        to_validity_period: data.to_validity_period,
         delivery_no: data.delivery_no,
         so_no: data.so_no,
         assigned_to: data.assigned_to,

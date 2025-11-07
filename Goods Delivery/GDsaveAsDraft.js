@@ -96,6 +96,25 @@ const generateDraftPrefix = async (organizationId) => {
   }
 };
 
+const fillbackHeaderFields = async (gd) => {
+  try {
+    for (const [index, gdLineItem] of gd.table_gd.entries()) {
+      gdLineItem.customer_id = gd.customer_name || null;
+      gdLineItem.organization_id = gd.organization_id;
+      gdLineItem.plant_id = gd.plant_id || null;
+      gdLineItem.billing_state_id = gd.billing_address_state || null;
+      gdLineItem.billing_country_id = gd.billing_address_country || null;
+      gdLineItem.shipping_state_id = gd.shipping_address_state || null;
+      gdLineItem.shipping_country_id = gd.shipping_address_country || null;
+      gdLineItem.assigned_to = gd.assigned_to || null;
+      gdLineItem.line_index = index + 1;
+    }
+    return gd.table_gd;
+  } catch (error) {
+    throw new Error("Error processing goods delivery.");
+  }
+};
+
 // Main execution wrapped in an async IIFE
 (async () => {
   try {
@@ -138,11 +157,12 @@ const generateDraftPrefix = async (organizationId) => {
       // Prepare goods delivery object
       const gd = {
         gd_status: "Draft",
-        fake_so_id: data.fake_so_id,
         so_id: data.so_id,
         so_no: data.so_no,
+        pp_no: data.pp_no,
         plant_id: data.plant_id,
         organization_id: organizationId,
+        from_convert: "",
         gd_billing_address: data.gd_billing_address,
         gd_shipping_address: data.gd_shipping_address,
         delivery_no: data.delivery_no,
@@ -155,6 +175,7 @@ const generateDraftPrefix = async (organizationId) => {
         gd_delivery_method: data.gd_delivery_method,
         delivery_date: data.delivery_date,
         assigned_to: data.assigned_to,
+        currency_code: data.currency_code,
 
         driver_name: data.driver_name,
         driver_contact_no: data.driver_contact_no,
@@ -180,8 +201,18 @@ const generateDraftPrefix = async (organizationId) => {
         tpt_ic_no: data.tpt_ic_no,
         tpt_driver_contact_no: data.tpt_driver_contact_no,
 
+        select_vehicle_id: data.select_vehicle_id,
+        gd_vehicle_type: data.gd_vehicle_type,
+        gd_vehicle_capacity: data.gd_vehicle_capacity,
+        gd_vehicle_cap_uom: data.gd_vehicle_cap_uom,
+        select_driver_id: data.select_driver_id,
+        gd_driver_contact: data.gd_driver_contact,
+        gd_driver_ic: data.gd_driver_ic,
+
         table_gd: data.table_gd,
         order_remark: data.order_remark,
+        order_remark2: data.order_remark2,
+        order_remark3: data.order_remark3,
         billing_address_line_1: data.billing_address_line_1,
         billing_address_line_2: data.billing_address_line_2,
         billing_address_line_3: data.billing_address_line_3,
@@ -213,6 +244,8 @@ const generateDraftPrefix = async (organizationId) => {
         overdue_inv_total_amount: data.overdue_inv_total_amount,
         is_accurate: data.is_accurate,
         gd_total: parseFloat(data.gd_total.toFixed(3)),
+        reference_type: data.reference_type,
+        gd_created_by: data.gd_created_by,
       };
 
       // Clean up undefined/null values
@@ -221,6 +254,8 @@ const generateDraftPrefix = async (organizationId) => {
           delete gd[key];
         }
       });
+
+      await fillbackHeaderFields(gd);
 
       // Add or update based on page status
       if (page_status === "Add") {

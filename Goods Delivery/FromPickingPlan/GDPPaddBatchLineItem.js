@@ -391,9 +391,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
   salesOrderNumber = [...new Set(latestTableGD.map((gr) => gr.line_so_no))];
 
   // Collect unique PP numbers for reference
-  const ppNumbers = [
-    ...new Set(latestTableGD.map((gr) => gr.pp_no).filter(Boolean)),
-  ];
+  const ppNumbers = [...new Set(latestTableGD.map((gr) => gr.line_to_no))];
 
   await this.setData({
     currency_code:

@@ -165,6 +165,8 @@ const disabledField = async (status, pickingStatus) => {
         "shipping_address_country",
         "shipping_postal_code",
         "gd_item_balance.table_item_balance",
+        "select_vehicle_id",
+        "select_driver_id",
       ],
       true
     );
@@ -197,6 +199,8 @@ const disabledField = async (status, pickingStatus) => {
         "gd_delivery_method",
         "document_description",
         "order_remark",
+        "select_vehicle_id",
+        "select_driver_id",
       ],
       false
     );
@@ -397,6 +401,7 @@ const setPickingSetup = async (data) => {
       this.display("assigned_to");
     } else if (pickingSetupResponse.data[0].picking_after === "Sales Order") {
       this.setData({ is_select_picking: 1 });
+      this.display("pp_no");
       this.hide("button_save_as_created");
     }
   }
@@ -445,6 +450,8 @@ const displayPlanQty = async (data) => {
     const status = await this.getValue("gd_status");
     const pickingStatus = await this.getValue("picking_status");
     const data = this.getValues();
+
+    console.log("Debug", data);
 
     if (this.isAdd) pageStatus = "Add";
     else if (this.isEdit) pageStatus = "Edit";

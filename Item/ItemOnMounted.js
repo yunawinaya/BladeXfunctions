@@ -101,17 +101,6 @@ const enabledBatchManagement = async () => {
   } else if (stockControl === 1) {
     this.hide("show_delivery");
     this.hide("show_receiving");
-
-    const lastTransactionDate = this.getValue("last_transaction_date");
-    if (!lastTransactionDate || lastTransactionDate === null) {
-      this.display("batch_number_genaration");
-      this.disabled(
-        ["item_batch_management", "batch_number_genaration"],
-        false
-      );
-    } else {
-      this.disabled(["item_batch_management", "batch_number_genaration"], true);
-    }
   }
 };
 
@@ -127,6 +116,63 @@ const enabledSerialNumberManagement = async () => {
   }
 };
 
+const checkLastTransactionDate = async () => {
+  const lastTransactionDate = this.getValue("last_transaction_date");
+  const integrationType = this.getValue("acc_integration_type");
+  console.log("lastTransactionDate", lastTransactionDate);
+  if (!lastTransactionDate || lastTransactionDate === null) {
+    this.display("batch_number_genaration");
+    this.disabled(
+      [
+        "item_batch_management",
+        "batch_number_genaration",
+        "serial_number_management",
+        "item_category",
+        "stock_control",
+        "based_uom",
+        `table_uom_conversion.alt_uom_id`,
+        `table_uom_conversion.alt_qty`,
+      ],
+      false
+    );
+
+    this.disabled(
+      [`table_uom_conversion.0.alt_uom_id`, `table_uom_conversion.0.alt_qty`],
+      true
+    );
+
+    this.setData({ previous_based_uom: this.getValue("based_uom") });
+    await enabledSerialNumberManagement();
+    await enabledBatchManagement();
+
+    if (integrationType === "AutoCount Accounting") {
+      this.disabled(["material_costing_method"], false);
+    }
+  } else {
+    this.disabled(
+      [
+        "item_batch_management",
+        "batch_number_genaration",
+        "serial_number_management",
+        "item_category",
+        "stock_control",
+        "based_uom",
+        `table_uom_conversion`,
+      ],
+      true
+    );
+  }
+
+  document
+    .querySelectorAll(
+      "#pane-tab_uom_conversion button.el-button--danger.el-button--small"
+    )
+    .forEach((button) => {
+      button.disabled = true;
+      button.setAttribute("aria-disabled", "true");
+    });
+};
+
 const checkAccIntegrationType = async (organizationId) => {
   if (organizationId) {
     const resAI = await db
@@ -137,9 +183,11 @@ const checkAccIntegrationType = async (organizationId) => {
     if (resAI && resAI.data.length > 0) {
       const aiData = resAI.data[0];
 
+      this.setData({ acc_integration_type: aiData.acc_integration_type });
+
       if (aiData.acc_integration_type === "No Accounting Integration") {
         this.hide("button_save_post");
-      } else {
+      } else if (aiData.acc_integration_type === "SQL Accounting") {
         await getIsBaseValue(organizationId);
       }
     }
@@ -182,6 +230,25 @@ const enabledDefaultUOM = async () => {
   }
 };
 
+const rearrangeTableUOMConversion = async () => {
+  const tableUOMConversion = this.getValue("table_uom_conversion");
+
+  const basedUOMConversion = tableUOMConversion.find(
+    (uom) => uom.alt_uom_id === uom.base_uom_id
+  );
+
+  if (basedUOMConversion) {
+    this.setData({
+      table_uom_conversion: [
+        basedUOMConversion,
+        ...tableUOMConversion.filter(
+          (uom) => uom.alt_uom_id !== uom.base_uom_id
+        ),
+      ],
+    });
+  }
+};
+
 (async () => {
   try {
     const activeStatus = await this.getValue("is_active");
@@ -207,11 +274,26 @@ const enabledDefaultUOM = async () => {
         await setPrefix(organizationId);
         await checkAccIntegrationType(organizationId);
 
+        setTimeout(() => {
+          const integrationType = this.getValue("acc_integration_type");
+          if (integrationType === "AutoCount Accounting") {
+            this.disabled(["material_costing_method"], false);
+          }
+        }, 50);
+        this.disabled(
+          [
+            "table_uom_conversion",
+            "table_supplier_price",
+            "table_customer_price",
+          ],
+          true
+        );
         this.disabled(["purchase_default_uom", "sales_default_uom"], false);
         break;
 
       case "Edit":
         showStatusHTML(activeStatus);
+        await rearrangeTableUOMConversion();
         await enabledBatchManagement();
         await enabledSerialNumberManagement();
         this.triggerEvent("onChange_batch_management");
@@ -222,16 +304,17 @@ const enabledDefaultUOM = async () => {
           [
             "material_type",
             "material_code",
-            "material_name",
             "item_category",
             "material_costing_method",
             "stock_control",
             "based_uom",
             "barcode_number",
+            "table_uom_conversion.0.alt_uom_id",
           ],
           true
         );
 
+        await checkLastTransactionDate();
         break;
 
       case "Clone":
@@ -240,6 +323,7 @@ const enabledDefaultUOM = async () => {
         break;
 
       case "View":
+        await rearrangeTableUOMConversion();
         await enabledBatchManagement();
         await enabledSerialNumberManagement();
         this.triggerEvent("onChange_batch_management");
