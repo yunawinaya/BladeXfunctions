@@ -179,7 +179,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
         });
 
         // Validate: total gd_qty cannot exceed total to_quantity from PP
-        if (currentItemQtyTotalBase > totalToQuantityBase) {
+        if (quantityBase > totalToQuantityBase) {
           window.validationState[index] = false;
           callback("Quantity exceeds picked quantity from Picking Plan");
           return;

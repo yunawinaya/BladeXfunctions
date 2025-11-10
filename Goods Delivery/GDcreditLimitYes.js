@@ -3260,7 +3260,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData, isGDPP) => {
         if (!gdLinesByPPNo[ppNo]) {
           gdLinesByPPNo[ppNo] = [];
         }
-        gdLinesByPPNo[ppNo].push(ppNo);
+        gdLinesByPPNo[ppNo].push(gdLineItem); // ✅ FIX: Push the GD line item, not the PP number
       }
 
       const ppNumbers = Object.keys(gdLinesByPPNo);
