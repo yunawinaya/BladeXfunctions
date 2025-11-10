@@ -39,6 +39,7 @@ const showStatusHTML = (status) => {
             bin_status,
             is_default,
             plant_id,
+            storage_location_id,
             organization_id,
             bin_name,
             bin_label_tier_1,
@@ -70,6 +71,7 @@ const showStatusHTML = (status) => {
             plant_id,
             organization_id,
             bin_name,
+            storage_location_id,
             bin_label_tier_1,
             bin_label_tier_2,
             bin_label_tier_3,
@@ -106,6 +108,7 @@ const showStatusHTML = (status) => {
                 "plant_id",
                 "organization_id",
                 "bin_name",
+                "storage_location_id",
                 "bin_label_tier_1",
                 "bin_label_tier_2",
                 "bin_label_tier_3",
@@ -140,10 +143,26 @@ const showStatusHTML = (status) => {
         this.$message.error(`Error loading bin location: ${error.message}`);
       }
     } else {
+      let organizationId = this.getVarGlobal("deptParentId");
+      if (organizationId === "0") {
+        organizationId = this.getVarSystem("deptIds").split(",")[0];
+      }
+
       this.setData({
         bin_status: 0,
-        organization_id: this.getVarGlobal("deptParentId"),
+        organization_id: organizationId,
       });
+
+      this.disabled(
+        [
+          "is_default",
+          "bin_name",
+          "storage_location_id",
+          "bin_code_tier_1",
+          "bin_description",
+        ],
+        true
+      );
       showStatusHTML(0);
     }
   } catch (error) {

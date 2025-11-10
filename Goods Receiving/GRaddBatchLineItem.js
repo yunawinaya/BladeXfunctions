@@ -116,6 +116,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
   const supplierName = this.getValue("supplier_name");
 
   const putawaySetupData = predefinedData[0].putawaySetup;
+  const defaultStorageLocationID = predefinedData[0].defaultStorageLocation;
   const defaultBinLocationID = predefinedData[0].defaultBinLocation;
   const invCategoryData = predefinedData[0].invCategory;
 
@@ -223,6 +224,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
               (poItem.quantity - (poItem.received_qty || 0)).toFixed(3)
             ),
             item_uom: poItem.quantity_uom || null,
+            storage_location_id: defaultStorageLocationID,
             location_id: defaultBinLocationID,
             item_batch_no: itemData
               ? itemData?.item_batch_management === 0
@@ -340,6 +342,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
             (poItem.ordered_qty - (poItem.received_qty || 0)).toFixed(3)
           ),
           item_uom: poItem.item_uom || null,
+          storage_location_id: defaultStorageLocationID,
           location_id: defaultBinLocationID,
           item_batch_no: poItem.item
             ? poItem.item?.item_batch_management === 0
