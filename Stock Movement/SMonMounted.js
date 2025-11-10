@@ -41,6 +41,7 @@ const CONFIG = {
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.location_id",
+      "stock_movement.storage_location_id",
       "stock_movement.batch_id",
       "stock_movement.category",
       "stock_movement.stock_summary",
@@ -70,6 +71,7 @@ const CONFIG = {
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.location_id",
+      "stock_movement.storage_location_id",
       "is_production_order",
       "stock_movement.to_recv_qty",
       "stock_movement.batch_id",
@@ -94,6 +96,7 @@ const CONFIG = {
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.location_id",
+      "stock_movement.storage_location_id",
       "is_production_order",
       "stock_movement.to_recv_qty",
       "stock_movement.batch_id",
@@ -119,6 +122,7 @@ const CONFIG = {
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.location_id",
+      "stock_movement.storage_location_id",
       "is_production_order",
       "stock_movement.to_recv_qty",
       "stock_movement.batch_id",
@@ -133,6 +137,7 @@ const CONFIG = {
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.location_id",
+      "stock_movement.storage_location_id",
       "is_production_order",
       "stock_movement.to_recv_qty",
       "stock_movement.batch_id",
@@ -157,6 +162,7 @@ const CONFIG = {
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.location_id",
+      "stock_movement.storage_location_id",
       "stock_movement.to_recv_qty",
       "stock_movement.batch_id",
     ],
@@ -423,7 +429,11 @@ const showProductionOrder = (data) => {
   if (data.is_production_order === 1) {
     this.display(["production_order_id", "is_production_order"]);
     this.disabled(
-      ["stock_movement.item_selection", "stock_movement.location_id"],
+      [
+        "stock_movement.item_selection",
+        "stock_movement.location_id",
+        "stock_movement.storage_location_id",
+      ],
       true
     );
   }
@@ -512,6 +522,7 @@ const editDisabledField = async (data) => {
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.location_id",
+      "stock_movement.storage_location_id",
       "stock_movement.batch_id",
     ],
     true

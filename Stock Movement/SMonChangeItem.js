@@ -39,14 +39,49 @@ const handleBatchManagement = (movementType, itemData, rowIndex) => {
   }
 };
 
-const handleBinLocation = (defaultBin, rowIndex) => {
+const handleManufacturingAndExpiredDate = async () => {
+  const tableSM = this.getValue("stock_movement");
+
+  const hasBatch = tableSM.some((item) => item.batch_id !== "-");
+  if (hasBatch) {
+    await this.display([
+      "stock_movement.manufacturing_date",
+      "stock_movement.expired_date",
+    ]);
+  }
+
+  for (const [index, item] of tableSM.entries()) {
+    if (item.batch_id !== "-") {
+      await this.disabled(
+        [
+          `stock_movement.${index}.manufacturing_date`,
+          `stock_movement.${index}.expired_date`,
+        ],
+        false
+      );
+    } else {
+      await this.disabled(
+        [
+          `stock_movement.${index}.manufacturing_date`,
+          `stock_movement.${index}.expired_date`,
+        ],
+        true
+      );
+    }
+  }
+};
+
+const handleBinLocation = (defaultBin, defaultStorageLocation, rowIndex) => {
   if (defaultBin) {
     this.setData({
       [`stock_movement.${rowIndex}.location_id`]: defaultBin,
+      [`stock_movement.${rowIndex}.storage_location_id`]:
+        defaultStorageLocation,
     });
   }
 
   this.disabled(`stock_movement.${rowIndex}.location_id`, false);
+  this.disabled(`stock_movement.${rowIndex}.storage_location_id`, false);
 };
 
 const handleInvCategory = async (rowIndex, movementType) => {
@@ -136,16 +171,17 @@ const handleSerialNumberManagement = async (
 
     const movementType = allData.movement_type;
     const defaultBin = allData.default_bin;
+    const defaultStorageLocation = allData.default_storage_location;
     const itemData = arguments[0]?.fieldModel?.item;
 
     if (itemData) {
       await handleBatchManagement(movementType, itemData, rowIndex);
-      await handleBinLocation(defaultBin, rowIndex);
+      await handleBinLocation(defaultBin, defaultStorageLocation, rowIndex);
       await handleInvCategory(rowIndex, movementType);
       await handleUOM(itemData, rowIndex);
       await handleSerialNumberManagement(itemData, rowIndex, movementType);
 
-      this.setData({
+      await this.setData({
         [`stock_movement.${rowIndex}.stock_summary`]: "",
         [`stock_movement.${rowIndex}.received_quantity_uom`]:
           itemData.based_uom,
@@ -154,6 +190,8 @@ const handleSerialNumberManagement = async (
         [`stock_movement.${rowIndex}.quantity_uom`]: itemData.based_uom,
         [`stock_movement.${rowIndex}.unit_price`]: itemData.purchase_unit_price,
       });
+
+      await handleManufacturingAndExpiredDate();
     } else {
       const tableSM = this.getValue("stock_movement");
       for (const [rowIndex, sm] of tableSM.entries()) {
@@ -178,6 +216,7 @@ const handleSerialNumberManagement = async (
       [`stock_movement.${rowIndex}.quantity_uom`]: "",
       [`stock_movement.${rowIndex}.unit_price`]: 0,
       [`stock_movement.${rowIndex}.amount`]: 0,
+      [`stock_movement.${rowIndex}.storage_location_id`]: "",
       [`stock_movement.${rowIndex}.location_id`]: "",
       [`stock_movement.${rowIndex}.batch_id`]: "-",
       [`stock_movement.${rowIndex}.category`]: "",
@@ -192,6 +231,7 @@ const handleSerialNumberManagement = async (
       [
         `stock_movement.${rowIndex}.category`,
         `stock_movement.${rowIndex}.location_id`,
+        `stock_movement.${rowIndex}.storage_location_id`,
       ],
       true
     );

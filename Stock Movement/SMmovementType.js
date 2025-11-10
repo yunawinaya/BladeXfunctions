@@ -12,6 +12,7 @@ const CONFIG = {
       "stock_movement.quantity_uom",
       "stock_movement.unit_price",
       "stock_movement.amount",
+      "stock_movement.storage_location_id",
       "stock_movement.location_id",
       "stock_movement.batch_id",
       "stock_movement.category",
@@ -41,6 +42,7 @@ const CONFIG = {
       "stock_movement.received_quantity_uom",
       "stock_movement.unit_price",
       "stock_movement.amount",
+      "stock_movement.storage_location_id",
       "stock_movement.location_id",
       "stock_movement.select_serial_number",
       "is_production_order",
@@ -67,6 +69,7 @@ const CONFIG = {
       "stock_movement.received_quantity_uom",
       "stock_movement.unit_price",
       "stock_movement.amount",
+      "stock_movement.storage_location_id",
       "stock_movement.location_id",
       "stock_movement.select_serial_number",
       "is_production_order",
@@ -93,6 +96,7 @@ const CONFIG = {
       "stock_movement.received_quantity_uom",
       "stock_movement.unit_price",
       "stock_movement.amount",
+      "stock_movement.storage_location_id",
       "stock_movement.location_id",
       "stock_movement.select_serial_number",
       "is_production_order",
@@ -108,6 +112,7 @@ const CONFIG = {
       "stock_movement.received_quantity_uom",
       "stock_movement.unit_price",
       "stock_movement.amount",
+      "stock_movement.storage_location_id",
       "stock_movement.location_id",
       "stock_movement.select_serial_number",
       "is_production_order",
@@ -134,6 +139,7 @@ const CONFIG = {
       "stock_movement.received_quantity_uom",
       "stock_movement.unit_price",
       "stock_movement.amount",
+      "stock_movement.storage_location_id",
       "stock_movement.location_id",
       "stock_movement.select_serial_number",
       "stock_movement.to_recv_qty",
@@ -390,11 +396,11 @@ const configureButtons = (movementType, pageStatus, stockMovementStatus) => {
       await init(movementType, pageStatus);
       this.triggerEvent("onChange_delivery_method");
     } else {
+      this.disabled("stock_movement", true);
       await this.setData({
         movement_reason: "",
         delivery_method: "",
         stock_movement_no: "",
-        issuing_operation_faci: "",
         sm_item_balance: [],
         table_item_balance: [],
         stock_movement: [],

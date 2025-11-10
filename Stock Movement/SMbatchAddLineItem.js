@@ -12,19 +12,26 @@ const movementTypeCategories = {
   "Inventory Category Transfer Posting": ["Unrestricted", "Blocked"],
 };
 
-const handleBatchManagement = (movementType, currentItemArray, smLineItem) => {
+const handleBatchManagement = async (
+  movementType,
+  currentItemArray,
+  smLineItem,
+  allSMLineItem
+) => {
   if (movementType === "Miscellaneous Receipt") {
     this.display("stock_movement.batch_id");
+    const hasBatch = allSMLineItem.some((item) => item.batch_id !== "-");
+    if (hasBatch) {
+      await this.display([
+        "stock_movement.manufacturing_date",
+        "stock_movement.expired_date",
+      ]);
+    }
 
     for (const [index, item] of currentItemArray.entries()) {
       const rowIndex = smLineItem.length + index;
 
       if (item.item_batch_management === 1) {
-        this.display([
-          "stock_movement.manufacturing_date",
-          "stock_movement.expired_date",
-        ]);
-
         switch (item.batch_number_genaration) {
           case "According To System Settings":
             this.setData({
@@ -32,38 +39,39 @@ const handleBatchManagement = (movementType, currentItemArray, smLineItem) => {
                 "Auto-generated batch number",
             });
             this.disabled(`stock_movement.${rowIndex}.batch_id`, true);
-            this.disabled(
-              [
-                `stock_movement.${rowIndex}.manufacturing_date`,
-                `stock_movement.${rowIndex}.expired_date`,
-              ],
-              false
-            );
+
             break;
 
           case "Manual Input":
             this.disabled(`stock_movement.${rowIndex}.batch_id`, false);
-            this.disabled(
-              [
-                `stock_movement.${rowIndex}.manufacturing_date`,
-                `stock_movement.${rowIndex}.expired_date`,
-              ],
-              false
-            );
             break;
         }
       } else {
         this.setData({ [`stock_movement.${rowIndex}.batch_id`]: "-" });
-        this.disabled(
-          [
-            `stock_movement.${rowIndex}.manufacturing_date`,
-            `stock_movement.${rowIndex}.expired_date`,
-            `stock_movement.${rowIndex}.batch_id`,
-          ],
-          true
-        );
       }
     }
+
+    setTimeout(async () => {
+      for (const [index, item] of allSMLineItem.entries()) {
+        if (item.batch_id !== "-") {
+          await this.disabled(
+            [
+              `stock_movement.${index}.manufacturing_date`,
+              `stock_movement.${index}.expired_date`,
+            ],
+            false
+          );
+        } else {
+          await this.disabled(
+            [
+              `stock_movement.${index}.manufacturing_date`,
+              `stock_movement.${index}.expired_date`,
+            ],
+            true
+          );
+        }
+      }
+    }, 50);
   } else {
     this.hide([
       "stock_movement.manufacturing_date",
@@ -73,17 +81,25 @@ const handleBatchManagement = (movementType, currentItemArray, smLineItem) => {
   }
 };
 
-const handleBinLocation = (defaultBin, currentItemArray, smLineItem) => {
+const handleBinLocation = (
+  defaultBin,
+  defaultStorageLocation,
+  currentItemArray,
+  smLineItem
+) => {
   for (const [index, _item] of currentItemArray.entries()) {
     const rowIndex = smLineItem.length + index;
 
-    if (defaultBin) {
+    if (defaultBin && defaultStorageLocation) {
       this.setData({
         [`stock_movement.${rowIndex}.location_id`]: defaultBin,
+        [`stock_movement.${rowIndex}.storage_location_id`]:
+          defaultStorageLocation,
       });
     }
 
     this.disabled(`stock_movement.${rowIndex}.location_id`, false);
+    this.disabled(`stock_movement.${rowIndex}.storage_location_id`, false);
   }
 };
 
@@ -188,10 +204,11 @@ const handleSerialNumberManagement = async (
 };
 
 (async () => {
-  const currentItemArray = this.getValue(`dialog_item_selection.item_array`);
+  const currentItemArray = arguments[0].itemArray;
   const smLineItem = this.getValue("stock_movement");
   const movementType = this.getValue("movement_type");
   const defaultBin = this.getValue("default_bin");
+  const defaultStorageLocation = this.getValue("default_storage_location");
   const itemArray = [];
 
   if (currentItemArray.length === 0) {
@@ -223,15 +240,20 @@ const handleSerialNumberManagement = async (
 
   await this.setData({
     stock_movement: [...smLineItem, ...itemArray],
-    [`dialog_item_selection.item_array`]: [],
-    [`dialog_item_selection.item_code_array`]: "",
-    [`dialog_item_selection.item_code`]: "",
   });
 
   this.closeDialog("dialog_item_selection");
 
-  await handleBatchManagement(movementType, currentItemArray, smLineItem);
-  await handleBinLocation(defaultBin, currentItemArray, smLineItem);
+  await handleBatchManagement(movementType, currentItemArray, smLineItem, [
+    ...smLineItem,
+    ...itemArray,
+  ]);
+  await handleBinLocation(
+    defaultBin,
+    defaultStorageLocation,
+    currentItemArray,
+    smLineItem
+  );
   await handleInvCategory(currentItemArray, smLineItem, movementType);
   await handleUOM(currentItemArray, smLineItem);
   await handleSerialNumberManagement(
