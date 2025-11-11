@@ -343,6 +343,8 @@ const checkAccIntegrationType = async (organizationId) => {
             "button_completed_posted",
           ]);
 
+          this.disabled("table_si.invoice_qty", true);
+
           setTimeout(() => {
             document
               .querySelectorAll(

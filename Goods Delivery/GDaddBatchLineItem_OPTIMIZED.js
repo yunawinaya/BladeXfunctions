@@ -13,7 +13,9 @@
 
 const batchFetchItems = async (materialIds) => {
   if (!materialIds || materialIds.length === 0) return new Map();
-  const uniqueIds = [...new Set(materialIds.filter(id => id && id !== "undefined"))];
+  const uniqueIds = [
+    ...new Set(materialIds.filter((id) => id && id !== "undefined")),
+  ];
   if (uniqueIds.length === 0) return new Map();
 
   try {
@@ -41,11 +43,13 @@ const batchFetchItems = async (materialIds) => {
       .get();
 
     const itemMap = new Map();
-    (result.data || []).forEach(item => {
+    (result.data || []).forEach((item) => {
       itemMap.set(item.id, item);
     });
 
-    console.log(`✅ Batch fetched ${itemMap.size} items in SINGLE query (was ${uniqueIds.length} queries)`);
+    console.log(
+      `✅ Batch fetched ${itemMap.size} items in SINGLE query (was ${uniqueIds.length} queries)`
+    );
     return itemMap;
   } catch (error) {
     console.error("Error batch fetching items:", error);
@@ -58,7 +62,9 @@ const batchFetchBalanceData = async (materialIds, plantId) => {
     return { serial: new Map(), batch: new Map(), regular: new Map() };
   }
 
-  const uniqueIds = [...new Set(materialIds.filter(id => id && id !== "undefined"))];
+  const uniqueIds = [
+    ...new Set(materialIds.filter((id) => id && id !== "undefined")),
+  ];
   if (uniqueIds.length === 0) {
     return { serial: new Map(), batch: new Map(), regular: new Map() };
   }
@@ -66,7 +72,8 @@ const batchFetchBalanceData = async (materialIds, plantId) => {
   try {
     // Fetch all balance types in parallel - 3 queries total (was 150 queries)
     const [serialResult, batchResult, regularResult] = await Promise.all([
-      db.collection("item_serial_balance")
+      db
+        .collection("item_serial_balance")
         .filter([
           {
             type: "branch",
@@ -79,7 +86,8 @@ const batchFetchBalanceData = async (materialIds, plantId) => {
           },
         ])
         .get(),
-      db.collection("item_batch_balance")
+      db
+        .collection("item_batch_balance")
         .filter([
           {
             type: "branch",
@@ -92,7 +100,8 @@ const batchFetchBalanceData = async (materialIds, plantId) => {
           },
         ])
         .get(),
-      db.collection("item_balance")
+      db
+        .collection("item_balance")
         .filter([
           {
             type: "branch",
@@ -104,7 +113,7 @@ const batchFetchBalanceData = async (materialIds, plantId) => {
             ],
           },
         ])
-        .get()
+        .get(),
     ]);
 
     const serialMap = new Map();
@@ -112,7 +121,7 @@ const batchFetchBalanceData = async (materialIds, plantId) => {
     const regularMap = new Map();
 
     // Group serial balances by material_id
-    (serialResult.data || []).forEach(balance => {
+    (serialResult.data || []).forEach((balance) => {
       if (!serialMap.has(balance.material_id)) {
         serialMap.set(balance.material_id, []);
       }
@@ -120,7 +129,7 @@ const batchFetchBalanceData = async (materialIds, plantId) => {
     });
 
     // Group batch balances by material_id
-    (batchResult.data || []).forEach(balance => {
+    (batchResult.data || []).forEach((balance) => {
       if (!batchMap.has(balance.material_id)) {
         batchMap.set(balance.material_id, []);
       }
@@ -128,14 +137,20 @@ const batchFetchBalanceData = async (materialIds, plantId) => {
     });
 
     // Group regular balances by material_id
-    (regularResult.data || []).forEach(balance => {
+    (regularResult.data || []).forEach((balance) => {
       if (!regularMap.has(balance.material_id)) {
         regularMap.set(balance.material_id, []);
       }
       regularMap.get(balance.material_id).push(balance);
     });
 
-    console.log(`✅ Batch fetched balance data: ${serialMap.size} serial, ${batchMap.size} batch, ${regularMap.size} regular in 3 queries (was ${uniqueIds.length * 3} queries)`);
+    console.log(
+      `✅ Batch fetched balance data: ${serialMap.size} serial, ${
+        batchMap.size
+      } batch, ${regularMap.size} regular in 3 queries (was ${
+        uniqueIds.length * 3
+      } queries)`
+    );
     return { serial: serialMap, batch: batchMap, regular: regularMap };
   } catch (error) {
     console.error("Error batch fetching balance data:", error);
@@ -154,7 +169,7 @@ const fetchPickingSetup = async (plantId) => {
       return {
         pickingMode: "Manual",
         defaultStrategy: "RANDOM",
-        fallbackStrategy: "RANDOM"
+        fallbackStrategy: "RANDOM",
       };
     }
 
@@ -162,21 +177,21 @@ const fetchPickingSetup = async (plantId) => {
     return {
       pickingMode: setup.picking_mode || "Manual",
       defaultStrategy: setup.default_strategy_id || "RANDOM",
-      fallbackStrategy: setup.fallback_strategy_id || "RANDOM"
+      fallbackStrategy: setup.fallback_strategy_id || "RANDOM",
     };
   } catch (error) {
     console.error("Error fetching picking setup:", error);
     return {
       pickingMode: "Manual",
       defaultStrategy: "RANDOM",
-      fallbackStrategy: "RANDOM"
+      fallbackStrategy: "RANDOM",
     };
   }
 };
 
 const batchFetchBinLocations = async (locationIds) => {
   if (!locationIds || locationIds.length === 0) return new Map();
-  const uniqueIds = [...new Set(locationIds.filter(id => id))];
+  const uniqueIds = [...new Set(locationIds.filter((id) => id))];
   if (uniqueIds.length === 0) return new Map();
 
   try {
@@ -196,11 +211,13 @@ const batchFetchBinLocations = async (locationIds) => {
       .get();
 
     const binMap = new Map();
-    (result.data || []).forEach(bin => {
+    (result.data || []).forEach((bin) => {
       binMap.set(bin.id, bin);
     });
 
-    console.log(`✅ Batch fetched ${binMap.size} bin locations in SINGLE query (was ${uniqueIds.length} queries)`);
+    console.log(
+      `✅ Batch fetched ${binMap.size} bin locations in SINGLE query (was ${uniqueIds.length} queries)`
+    );
     return binMap;
   } catch (error) {
     console.error("Error batch fetching bin locations:", error);
@@ -210,7 +227,9 @@ const batchFetchBinLocations = async (locationIds) => {
 
 const batchFetchBatchData = async (materialIds, plantId) => {
   if (!materialIds || materialIds.length === 0) return new Map();
-  const uniqueIds = [...new Set(materialIds.filter(id => id && id !== "undefined"))];
+  const uniqueIds = [
+    ...new Set(materialIds.filter((id) => id && id !== "undefined")),
+  ];
   if (uniqueIds.length === 0) return new Map();
 
   try {
@@ -231,14 +250,16 @@ const batchFetchBatchData = async (materialIds, plantId) => {
       .get();
 
     const batchMap = new Map();
-    (result.data || []).forEach(batch => {
+    (result.data || []).forEach((batch) => {
       if (!batchMap.has(batch.material_id)) {
         batchMap.set(batch.material_id, []);
       }
       batchMap.get(batch.material_id).push(batch);
     });
 
-    console.log(`✅ Batch fetched batch data for ${batchMap.size} materials in SINGLE query (was ${uniqueIds.length} queries)`);
+    console.log(
+      `✅ Batch fetched batch data for ${batchMap.size} materials in SINGLE query (was ${uniqueIds.length} queries)`
+    );
     return batchMap;
   } catch (error) {
     console.error("Error batch fetching batch data:", error);
@@ -293,23 +314,31 @@ const checkInventoryWithDuplicates = async (
 
   const insufficientItems = [];
   const itemsForAllocation = [];
+  const insufficientDialogData = []; // Build insufficient dialog table entries
 
   // ========================================================================
   // STEP 1: Batch fetch ALL data upfront (replaces 100s of individual queries)
   // ========================================================================
-  const materialIds = Object.keys(materialGroups).filter(id => id !== "undefined");
+  const materialIds = Object.keys(materialGroups).filter(
+    (id) => id !== "undefined"
+  );
 
   console.log(`🚀 Fetching data for ${materialIds.length} unique materials...`);
   const fetchStart = Date.now();
 
-  const [itemDataMap, balanceDataMaps, pickingSetup, batchDataMap] = await Promise.all([
-    batchFetchItems(materialIds),
-    batchFetchBalanceData(materialIds, plantId),
-    fetchPickingSetup(plantId),
-    batchFetchBatchData(materialIds, plantId)
-  ]);
+  const [itemDataMap, balanceDataMaps, pickingSetup, batchDataMap] =
+    await Promise.all([
+      batchFetchItems(materialIds),
+      batchFetchBalanceData(materialIds, plantId),
+      fetchPickingSetup(plantId),
+      batchFetchBatchData(materialIds, plantId),
+    ]);
 
-  console.log(`✅ All data fetched in ${Date.now() - fetchStart}ms (was 500+ queries, now 4-5 queries)`);
+  console.log(
+    `✅ All data fetched in ${
+      Date.now() - fetchStart
+    }ms (was 500+ queries, now 4-5 queries)`
+  );
 
   // Extract for easier access
   const { pickingMode, defaultStrategy, fallbackStrategy } = pickingSetup;
@@ -318,14 +347,16 @@ const checkInventoryWithDuplicates = async (
   // STEP 2: Collect all location IDs for batch bin location fetch
   // ========================================================================
   const allLocationIds = new Set();
-  balanceDataMaps.serial.forEach(balances => {
-    balances.forEach(b => allLocationIds.add(b.location_id || b.bin_location_id));
+  balanceDataMaps.serial.forEach((balances) => {
+    balances.forEach((b) =>
+      allLocationIds.add(b.location_id || b.bin_location_id)
+    );
   });
-  balanceDataMaps.batch.forEach(balances => {
-    balances.forEach(b => allLocationIds.add(b.location_id));
+  balanceDataMaps.batch.forEach((balances) => {
+    balances.forEach((b) => allLocationIds.add(b.location_id));
   });
-  balanceDataMaps.regular.forEach(balances => {
-    balances.forEach(b => allLocationIds.add(b.location_id));
+  balanceDataMaps.regular.forEach((balances) => {
+    balances.forEach((b) => allLocationIds.add(b.location_id));
   });
 
   // Batch fetch ALL bin locations (replaces 250+ individual queries)
@@ -421,7 +452,10 @@ const checkInventoryWithDuplicates = async (
         };
 
         if (undeliveredQty <= 0) {
-          fieldsToDisable.push(`table_gd.${index}.gd_qty`, `table_gd.${index}.gd_delivery_qty`);
+          fieldsToDisable.push(
+            `table_gd.${index}.gd_qty`,
+            `table_gd.${index}.gd_delivery_qty`
+          );
         } else {
           fieldsToDisable.push(`table_gd.${index}.gd_delivery_qty`);
           fieldsToEnable.push(`table_gd.${index}.gd_qty`);
@@ -453,8 +487,12 @@ const checkInventoryWithDuplicates = async (
 
     // Subtract existing allocations
     let totalPreviousAllocations = 0;
-    if (window.globalAllocationTracker && window.globalAllocationTracker.has(materialId)) {
-      const materialAllocations = window.globalAllocationTracker.get(materialId);
+    if (
+      window.globalAllocationTracker &&
+      window.globalAllocationTracker.has(materialId)
+    ) {
+      const materialAllocations =
+        window.globalAllocationTracker.get(materialId);
       materialAllocations.forEach((rowAllocations) => {
         rowAllocations.forEach((qty) => {
           totalPreviousAllocations += qty;
@@ -524,7 +562,9 @@ const checkInventoryWithDuplicates = async (
     const totalShortfallBase = totalDemandBase - availableStockAfterAllocations;
 
     if (totalShortfallBase > 0) {
-      console.log(`❌ Insufficient stock for material ${materialId}: Shortfall=${totalShortfallBase}`);
+      console.log(
+        `❌ Insufficient stock for material ${materialId}: Shortfall=${totalShortfallBase}`
+      );
 
       // Handle insufficient stock (serialized vs non-serialized)
       if (itemData.serial_number_management === 1) {
@@ -537,16 +577,43 @@ const checkInventoryWithDuplicates = async (
           const deliveredQty = item.deliveredQtyFromSource;
           const undeliveredQty = orderedQty - deliveredQty;
 
-          const orderedQtyBase = convertToBaseUOM(orderedQty, item.altUOM, itemData);
-          const deliveredQtyBase = convertToBaseUOM(deliveredQty, item.altUOM, itemData);
-          const undeliveredQtyBase = convertToBaseUOM(undeliveredQty, item.altUOM, itemData);
+          const orderedQtyBase = convertToBaseUOM(
+            orderedQty,
+            item.altUOM,
+            itemData
+          );
+          const deliveredQtyBase = convertToBaseUOM(
+            deliveredQty,
+            item.altUOM,
+            itemData
+          );
+          const undeliveredQtyBase = convertToBaseUOM(
+            undeliveredQty,
+            item.altUOM,
+            itemData
+          );
 
           let availableQtyBase = 0;
           if (remainingSerialCount > 0 && undeliveredQtyBase > 0) {
             const requiredUnitsBase = Math.floor(undeliveredQtyBase);
-            availableQtyBase = Math.min(remainingSerialCount, requiredUnitsBase);
+            availableQtyBase = Math.min(
+              remainingSerialCount,
+              requiredUnitsBase
+            );
             remainingSerialCount -= availableQtyBase;
           }
+
+          // Add to insufficient dialog data (in base UOM for serialized items)
+          insufficientDialogData.push({
+            material_id: materialId,
+            material_name: item.itemName,
+            material_uom: itemData.based_uom,
+            order_quantity: orderedQtyBase,
+            undelivered_qty: undeliveredQtyBase,
+            available_qty: availableQtyBase,
+            shortfall_qty: undeliveredQtyBase - availableQtyBase,
+            fm_key: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+          });
 
           // Update table array with base UOM
           tableGdArray[index] = {
@@ -559,7 +626,8 @@ const checkInventoryWithDuplicates = async (
           };
 
           if (pickingMode === "Manual") {
-            tableGdArray[index].gd_qty = balanceData.length === 1 ? availableQtyBase : 0;
+            tableGdArray[index].gd_qty =
+              balanceData.length === 1 ? availableQtyBase : 0;
           } else {
             // Auto mode - check eligibility
             const isEligible =
@@ -606,7 +674,10 @@ const checkInventoryWithDuplicates = async (
               }
             }
 
-            const allocatedBase = Math.min(remainingStockBase, undeliveredQtyBase);
+            const allocatedBase = Math.min(
+              remainingStockBase,
+              undeliveredQtyBase
+            );
             const uomConversion = itemData.table_uom_conversion?.find(
               (conv) => conv.alt_uom_id === item.altUOM
             );
@@ -618,8 +689,21 @@ const checkInventoryWithDuplicates = async (
             remainingStockBase -= allocatedBase;
           }
 
+          // Add to insufficient dialog data
+          insufficientDialogData.push({
+            material_id: materialId,
+            material_name: item.itemName,
+            material_uom: item.altUOM,
+            order_quantity: orderedQty,
+            undelivered_qty: undeliveredQty,
+            available_qty: availableQtyAlt,
+            shortfall_qty: undeliveredQty - availableQtyAlt,
+            fm_key: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+          });
+
           if (pickingMode === "Manual") {
-            tableGdArray[index].gd_qty = balanceData.length === 1 ? availableQtyAlt : 0;
+            tableGdArray[index].gd_qty =
+              balanceData.length === 1 ? availableQtyAlt : 0;
           } else {
             const isEligible =
               availableQtyAlt > 0 &&
@@ -673,14 +757,29 @@ const checkInventoryWithDuplicates = async (
         const undeliveredQty = orderedQty - deliveredQty;
 
         if (undeliveredQty <= 0) {
-          fieldsToDisable.push(`table_gd.${index}.gd_qty`, `table_gd.${index}.gd_delivery_qty`);
+          fieldsToDisable.push(
+            `table_gd.${index}.gd_qty`,
+            `table_gd.${index}.gd_delivery_qty`
+          );
           tableGdArray[index].gd_qty = 0;
         } else {
           if (itemData.serial_number_management === 1) {
             // Serialized - use base UOM
-            const orderedQtyBase = convertToBaseUOM(orderedQty, item.altUOM, itemData);
-            const deliveredQtyBase = convertToBaseUOM(deliveredQty, item.altUOM, itemData);
-            const undeliveredQtyBase = convertToBaseUOM(undeliveredQty, item.altUOM, itemData);
+            const orderedQtyBase = convertToBaseUOM(
+              orderedQty,
+              item.altUOM,
+              itemData
+            );
+            const deliveredQtyBase = convertToBaseUOM(
+              deliveredQty,
+              item.altUOM,
+              itemData
+            );
+            const undeliveredQtyBase = convertToBaseUOM(
+              undeliveredQty,
+              item.altUOM,
+              itemData
+            );
 
             tableGdArray[index] = {
               ...tableGdArray[index],
@@ -692,7 +791,8 @@ const checkInventoryWithDuplicates = async (
             };
 
             if (pickingMode === "Manual") {
-              tableGdArray[index].gd_qty = balanceData.length === 1 ? undeliveredQtyBase : 0;
+              tableGdArray[index].gd_qty =
+                balanceData.length === 1 ? undeliveredQtyBase : 0;
             } else {
               tableGdArray[index].gd_qty = undeliveredQtyBase;
 
@@ -717,7 +817,8 @@ const checkInventoryWithDuplicates = async (
           } else {
             // Non-serialized
             if (pickingMode === "Manual") {
-              tableGdArray[index].gd_qty = balanceData.length === 1 ? undeliveredQty : 0;
+              tableGdArray[index].gd_qty =
+                balanceData.length === 1 ? undeliveredQty : 0;
             } else {
               tableGdArray[index].gd_qty = undeliveredQty;
 
@@ -758,8 +859,20 @@ const checkInventoryWithDuplicates = async (
   // ========================================================================
   // STEP 4: Single setData call with complete table array
   // ========================================================================
-  console.log("🚀 OPTIMIZATION: Applying all updates in single setData call...");
+  console.log(
+    "🚀 OPTIMIZATION: Applying all updates in single setData call..."
+  );
   await this.setData({ table_gd: tableGdArray });
+
+  // Apply insufficient dialog data if any
+  if (insufficientDialogData.length > 0) {
+    await this.setData({
+      "dialog_insufficient.table_insufficient": insufficientDialogData
+    });
+    console.log(
+      `✅ Updated insufficient dialog with ${insufficientDialogData.length} items`
+    );
+  }
 
   // Apply field enable/disable
   if (fieldsToDisable.length > 0) {
@@ -774,7 +887,9 @@ const checkInventoryWithDuplicates = async (
   // ========================================================================
   // STEP 5: Process allocations sequentially (keep existing logic)
   // ========================================================================
-  console.log(`Processing ${itemsForAllocation.length} items for allocation...`);
+  console.log(
+    `Processing ${itemsForAllocation.length} items for allocation...`
+  );
 
   itemsForAllocation.sort((a, b) => a.rowIndex - b.rowIndex);
 
@@ -790,7 +905,9 @@ const checkInventoryWithDuplicates = async (
     );
   }
 
-  console.log(`✅ OPTIMIZATION COMPLETE: Total time ${Date.now() - overallStart}ms`);
+  console.log(
+    `✅ OPTIMIZATION COMPLETE: Total time ${Date.now() - overallStart}ms`
+  );
   console.log("All allocations completed");
   return insufficientItems;
 };
@@ -907,7 +1024,9 @@ const performAutomaticAllocation = async (
     if (itemData.serial_number_management === 1) {
       const serialBalances = balanceDataMaps.serial.get(materialId) || [];
       const batchDataArray =
-        itemData.item_batch_management === 1 ? batchDataMap.get(materialId) || [] : null;
+        itemData.item_batch_management === 1
+          ? batchDataMap.get(materialId) || []
+          : null;
 
       const adjustedBalances = applyAllocationsToBalances(
         serialBalances,
@@ -1708,16 +1827,6 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   const latestTableGD = [...existingGD, ...newTableGd];
 
-  const newTableInsufficient = allItems.map((item) => ({
-    material_id: item.itemId,
-    material_name: item.itemName,
-    material_uom: item.altUOM,
-    order_quantity: item.orderedQty,
-    available_qty: "",
-    shortfall_qty: "",
-    fm_key: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-  }));
-
   soId = [...new Set(latestTableGD.map((gr) => gr.line_so_id))];
   salesOrderNumber = [...new Set(latestTableGD.map((gr) => gr.line_so_no))];
 
@@ -1735,7 +1844,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
     so_id: soId,
     reference_type: referenceType,
     dialog_insufficient: {
-      table_insufficient: newTableInsufficient,
+      table_insufficient: [], // Will be populated by checkInventoryWithDuplicates
     },
   });
 

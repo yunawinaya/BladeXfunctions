@@ -2,6 +2,7 @@ const setPutawayItemData = async (
   itemData,
   lineIndex,
   qtyToPutaway,
+  storageLocation,
   targetBin,
   remark,
   isSplit,
@@ -29,6 +30,7 @@ const setPutawayItemData = async (
       isSplit === "No" && parentOrChild === "Parent"
         ? itemData.putaway_qty
         : qtyToPutaway,
+    storage_location: storageLocation,
     target_location: targetBin,
     remark: remark,
     line_status: itemData.line_status,
@@ -86,6 +88,7 @@ const setPutawayItemData = async (
             paItem,
             `${paItem.parent_index + 1} - ${dialogLineIndex + 1}`,
             dialogItem.store_in_qty,
+            dialogItem.storage_location,
             dialogItem.target_bin,
             dialogItem.remark,
             "No",
@@ -100,6 +103,7 @@ const setPutawayItemData = async (
           paItem,
           paItem.line_index,
           paItem.qty_to_putaway,
+          paItem.storage_location,
           paItem.target_location,
           paItem.remark,
           paItem.is_split,
@@ -134,13 +138,17 @@ const setPutawayItemData = async (
             `table_putaway_item.${index}.qty_to_putaway`,
             `table_putaway_item.${index}.pending_process_qty`,
             `table_putaway_item.${index}.putaway_qty`,
+            `table_putaway_item.${index}.storage_location`,
             `table_putaway_item.${index}.target_location`,
             `table_putaway_item.${index}.remark`,
           ],
           true
         );
 
-        this.setData({ [`table_putaway_item.${index}.target_location`]: "" });
+        this.setData({
+          [`table_putaway_item.${index}.storage_location`]: "",
+          [`table_putaway_item.${index}.target_location`]: "",
+        });
       } else if (paItem.parent_or_child === "Child") {
         if (!paItem.qi_no || paItem.qi_no === null) {
           this.disabled(
@@ -179,8 +187,6 @@ const setPutawayItemData = async (
         }
       }
     }
-
-    console.log("JN Debugging", this.getValue("table_putaway_item"));
 
     await this.closeDialog("split_dialog");
     await this.triggerEvent("func_reset_split_dialog");

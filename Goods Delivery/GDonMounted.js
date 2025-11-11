@@ -172,7 +172,7 @@ const disabledField = async (status, pickingStatus) => {
     );
 
     // Disable table rows
-    disableTableRows();
+    await disableTableRows();
 
     // Hide buttons and links
     this.hide([
@@ -180,11 +180,8 @@ const disabledField = async (status, pickingStatus) => {
       "link_shipping_address",
       "button_save_as_draft",
       "button_save_as_created",
+      "button_save_as_completed",
     ]);
-
-    if (status === "Completed") {
-      this.hide(["button_save_as_completed"]);
-    }
   } else {
     if (status === "Created") {
       this.hide(["button_save_as_draft"]);
@@ -207,23 +204,31 @@ const disabledField = async (status, pickingStatus) => {
   }
 };
 
-const disableTableRows = () => {
-  setTimeout(() => {
-    const data = this.getValues();
-    const rows = data.table_gd || [];
+const disableTableRows = async () => {
+  return new Promise((resolve) => {
+    setTimeout(async () => {
+      try {
+        const data = await this.getValues();
+        const rows = data.table_gd || [];
 
-    rows.forEach((row, index) => {
-      const fieldNames = Object.keys(row).filter(
-        (key) => key !== "gd_delivery_qty"
-      );
+        rows.forEach((row, index) => {
+          const fieldNames = Object.keys(row).filter(
+            (key) => key !== "gd_delivery_qty"
+          );
 
-      const fieldsToDisable = fieldNames.map(
-        (field) => `table_gd.${index}.${field}`
-      );
+          const fieldsToDisable = fieldNames.map(
+            (field) => `table_gd.${index}.${field}`
+          );
 
-      this.disabled(fieldsToDisable, true);
-    });
-  }, 1000);
+          this.disabled(fieldsToDisable, true);
+        });
+        resolve();
+      } catch (error) {
+        console.error("Error disabling table rows:", error);
+        resolve();
+      }
+    }, 1000);
+  });
 };
 
 const displayDeliveryMethod = async () => {
@@ -322,69 +327,79 @@ const checkAccIntegrationType = async (organizationId) => {
 };
 
 const disabledSelectStock = async (data) => {
-  data.table_gd.forEach(async (item, index) => {
+  const tableGD = data.table_gd || [];
+
+  for (let index = 0; index < tableGD.length; index++) {
+    const item = tableGD[index];
+
     if (item.material_id && item.material_id !== "") {
-      const resItem = await db
-        .collection("Item")
-        .where({ id: item.material_id, is_deleted: 0 })
-        .get();
-      if (resItem && resItem.data.length > 0) {
-        const plant = data.plant_id;
-        const itemData = resItem.data[0];
+      try {
+        const resItem = await db
+          .collection("Item")
+          .where({ id: item.material_id, is_deleted: 0 })
+          .get();
 
-        if (itemData.stock_control === 0 && itemData.show_delivery === 0) {
-          this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-          this.disabled([`table_gd.${index}.gd_qty`], false);
-        }
+        if (resItem && resItem.data.length > 0) {
+          const plant = data.plant_id;
+          const itemData = resItem.data[0];
 
-        if (itemData.item_batch_management === 0) {
-          if (plant) {
-            const resItemBalance = await db
-              .collection("item_balance")
-              .where({
-                plant_id: plant,
-                material_id: item.material_id,
-                is_deleted: 0,
-              })
-              .get();
+          if (itemData.stock_control === 0 && itemData.show_delivery === 0) {
+            this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+            this.disabled([`table_gd.${index}.gd_qty`], false);
+            continue;
+          }
 
-            if (resItemBalance && resItemBalance.data.length === 1) {
-              if (
-                data.picking_status === "Completed" ||
-                data.picking_status === "In Progress"
-              ) {
+          if (itemData.item_batch_management === 0) {
+            if (plant) {
+              const resItemBalance = await db
+                .collection("item_balance")
+                .where({
+                  plant_id: plant,
+                  material_id: item.material_id,
+                  is_deleted: 0,
+                })
+                .get();
+
+              if (resItemBalance && resItemBalance.data.length === 1) {
+                const isPickingInProgress =
+                  data.picking_status === "Completed" ||
+                  data.picking_status === "In Progress";
+
                 this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-                this.disabled([`table_gd.${index}.gd_qty`], true);
-              } else {
-                this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-                this.disabled([`table_gd.${index}.gd_qty`], false);
+                this.disabled(
+                  [`table_gd.${index}.gd_qty`],
+                  isPickingInProgress
+                );
               }
             }
-          }
-        } else if (itemData.item_batch_management === 1) {
-          const resItemBatchBalance = await db
-            .collection("item_batch_balance")
-            .where({ material_id: materialId, plant_id: plant })
-            .get();
+          } else if (itemData.item_batch_management === 1) {
+            const resItemBatchBalance = await db
+              .collection("item_batch_balance")
+              .where({ material_id: item.material_id, plant_id: plant })
+              .get();
 
-          if (resItemBatchBalance && resItemBatchBalance.data.length === 1) {
-            if (
-              data.picking_status === "Completed" ||
-              data.picking_status === "In Progress"
-            ) {
+            if (resItemBatchBalance && resItemBatchBalance.data.length === 1) {
+              const isPickingInProgress =
+                data.picking_status === "Completed" ||
+                data.picking_status === "In Progress";
+
               this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-              this.disabled([`table_gd.${index}.gd_qty`], true);
-            } else {
-              this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-              this.disabled([`table_gd.${index}.gd_qty`], false);
+              this.disabled([`table_gd.${index}.gd_qty`], isPickingInProgress);
             }
+          } else {
+            console.error(
+              `Item batch management is not found for item: ${item.material_id}`
+            );
           }
-        } else {
-          console.error("Item batch management is not found.");
         }
+      } catch (error) {
+        console.error(
+          `Error processing item ${item.material_id} at index ${index}:`,
+          error
+        );
       }
     }
-  });
+  }
 };
 
 const setPickingSetup = async (data) => {
@@ -408,29 +423,51 @@ const setPickingSetup = async (data) => {
 };
 
 const fetchDeliveredQuantity = async () => {
-  const tableGD = this.getValue("table_gd") || [];
+  try {
+    const tableGD = this.getValue("table_gd") || [];
 
-  const resSOLineData = await Promise.all(
-    tableGD.map((item) =>
-      db.collection("sales_order_axszx8cj_sub").doc(item.so_line_item_id).get()
-    )
-  );
+    if (tableGD.length === 0) {
+      return;
+    }
 
-  const soLineItemData = resSOLineData.map((response) => response.data[0]);
+    const resSOLineData = await Promise.all(
+      tableGD.map((item) =>
+        item.so_line_item_id
+          ? db
+              .collection("sales_order_axszx8cj_sub")
+              .doc(item.so_line_item_id)
+              .get()
+              .catch((error) => {
+                console.error(
+                  `Error fetching SO line item ${item.so_line_item_id}:`,
+                  error
+                );
+                return { data: [null] };
+              })
+          : Promise.resolve({ data: [null] })
+      )
+    );
 
-  const updatedTableGD = tableGD.map((item, index) => {
-    const soLine = soLineItemData[index];
-    const totalDeliveredQuantity = soLine ? soLine.delivered_qty || 0 : 0;
-    const orderQty = soLine ? soLine.so_quantity || 0 : 0;
-    const maxDeliverableQty = orderQty - totalDeliveredQuantity;
-    return {
-      ...item,
-      gd_undelivered_qty: maxDeliverableQty - item.gd_qty,
-      gd_initial_delivered_qty: totalDeliveredQuantity,
-    };
-  });
+    const soLineItemData = resSOLineData.map((response) =>
+      response.data ? response.data[0] : null
+    );
 
-  this.setData({ table_gd: updatedTableGD });
+    const updatedTableGD = tableGD.map((item, index) => {
+      const soLine = soLineItemData[index];
+      const totalDeliveredQuantity = soLine ? soLine.delivered_qty || 0 : 0;
+      const orderQty = soLine ? soLine.so_quantity || 0 : 0;
+      const maxDeliverableQty = orderQty - totalDeliveredQuantity;
+      return {
+        ...item,
+        gd_undelivered_qty: maxDeliverableQty - item.gd_qty,
+        gd_initial_delivered_qty: totalDeliveredQuantity,
+      };
+    });
+
+    this.setData({ table_gd: updatedTableGD });
+  } catch (error) {
+    console.error("Error fetching delivered quantity:", error);
+  }
 };
 
 const displayPlanQty = async (data) => {
