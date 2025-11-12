@@ -1,82 +1,3 @@
-const generatePrefix = (runNumber, now, prefixData) => {
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0")
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0")
-  );
-  return generated;
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("sales_order")
-    .where({ so_no: generatedPrefix, organization_id: organizationId })
-    .get();
-  return existingDoc.data[0] ? false : true;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Sales Order number after maximum attempts"
-    );
-  }
-  return { prefixToShow, runningNumber };
-};
-
-const setPrefix = async (organizationId) => {
-  const prefixData = await getPrefixData(organizationId);
-  let newPrefix = "";
-
-  if (prefixData.is_active === 1) {
-    const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
-    newPrefix = prefixToShow;
-  }
-  this.setData({ so_no: newPrefix });
-};
-
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Sales Orders",
-      is_deleted: 0,
-      organization_id: organizationId,
-    })
-    .get();
-  const prefixData = prefixEntry.data[0];
-
-  if (prefixData.is_active === 0) {
-    this.disabled(["so_no"], false);
-  }
-
-  return prefixData;
-};
-
 const showStatusHTML = async (status) => {
   switch (status) {
     case "Draft":
@@ -314,6 +235,13 @@ const cloneResetQuantity = async () => {
   }
 
   this.setData({
+    gd_status: "",
+    to_status: "",
+    production_status: "",
+    si_posted_status: "",
+    si_status: "",
+    sr_status: "",
+    srr_status: "",
     table_so: tableSO,
     partially_delivered: `0 / ${tableSO.length}`,
     fully_delivered: `0 / ${tableSO.length}`,
@@ -484,6 +412,25 @@ const fetchUnrestrictedQty = async () => {
   }
 };
 
+const setDefaultDocNo = async (organizationID) => {
+  const defaultDocFormatFilter = new Filter("all")
+    .equal("organization_id", organizationID)
+    .equal("document_types", "Sales Orders")
+    .numberEqual("is_default", 1)
+    .build();
+  const resDefaultDocFormat = await db
+    .collection("document_number")
+    .filter(defaultDocFormatFilter)
+    .get();
+
+  if (resDefaultDocFormat && resDefaultDocFormat.data.length > 0) {
+    this.setData({
+      document_no_format: resDefaultDocFormat.data[0].id,
+      so_no: "<<new>>",
+    });
+  }
+};
+
 (async () => {
   try {
     const status = await this.getValue("so_status");
@@ -514,20 +461,16 @@ const fetchUnrestrictedQty = async () => {
       "total_amount_myr",
     ]);
 
-    // const customerName = this.getValue("customer_name");
-
-    // if (customerName) {
-    //   await this.setData({ customer_name: undefined });
-    //   await this.setData({ customer_name: customerName });
-    // }
-
     switch (pageStatus) {
       case "Add":
         this.display(["draft_status"]);
         await checkAccIntegrationType(organizationId);
-        await setPrefix(organizationId);
+        await setDefaultDocNo(organizationId);
         await setPlant(organizationId, pageStatus);
-        this.setData({ so_date: new Date().toISOString().split("T")[0] });
+        this.setData({
+          so_date: new Date().toISOString().split("T")[0],
+          so_created_by: this.getVarGlobal("nickname"),
+        });
         if (this.getValue("sqt_no")) {
           this.display("sqt_no");
         }
@@ -554,9 +497,12 @@ const fetchUnrestrictedQty = async () => {
         if (this.getValue("sqt_no")) {
           this.display("sqt_no");
         }
+
+        if (status !== "Draft") {
+          this.disabled(["so_no", "document_no_format"], true);
+        }
         await checkAccIntegrationType(organizationId);
         await disabledField(status);
-        await getPrefixData(organizationId);
         await showStatusHTML(status);
         await displayCurrency();
         await displayTax();
@@ -573,7 +519,7 @@ const fetchUnrestrictedQty = async () => {
         this.display(["draft_status"]);
         this.setData({ so_date: new Date().toISOString().split("T")[0] });
         await setPlant(organizationId, pageStatus);
-        await setPrefix(organizationId);
+        await setDefaultDocNo(organizationId);
         if (this.getValue("sqt_no")) {
           this.display("sqt_no");
         }

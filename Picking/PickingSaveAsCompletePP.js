@@ -421,6 +421,1033 @@ const updateEntry = async (toData, toId) => {
   }
 };
 
+// For quantities - 3 decimal places
+const roundQty = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(3));
+};
+
+// For prices - 4 decimal places
+const roundPrice = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(4));
+};
+
+// Helper function to safely parse JSON
+const parseJsonSafely = (jsonString, defaultValue = []) => {
+  try {
+    return jsonString ? JSON.parse(jsonString) : defaultValue;
+  } catch (error) {
+    console.error("JSON parse error:", error);
+    return defaultValue;
+  }
+};
+
+// Function to get FIFO cost price
+const getFIFOCostPrice = async (
+  materialId,
+  deductionQty,
+  plantId,
+  locationId,
+  organizationId,
+  batchId = null
+) => {
+  try {
+    const query = batchId
+      ? db.collection("fifo_costing_history").where({
+          material_id: materialId,
+          batch_id: batchId,
+          plant_id: plantId,
+        })
+      : db
+          .collection("fifo_costing_history")
+          .where({ material_id: materialId, plant_id: plantId });
+
+    const response = await query.get();
+    const result = response.data;
+
+    if (result && Array.isArray(result) && result.length > 0) {
+      const sortedRecords = result.sort(
+        (a, b) => a.fifo_sequence - b.fifo_sequence
+      );
+
+      if (!deductionQty) {
+        for (const record of sortedRecords) {
+          const availableQty = roundQty(record.fifo_available_quantity || 0);
+          if (availableQty > 0) {
+            return roundPrice(record.fifo_cost_price || 0);
+          }
+        }
+        return roundPrice(
+          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+        );
+      }
+
+      let remainingQtyToDeduct = roundQty(deductionQty);
+      let totalCost = 0;
+      let totalDeductedQty = 0;
+
+      for (const record of sortedRecords) {
+        if (remainingQtyToDeduct <= 0) break;
+
+        const availableQty = roundQty(record.fifo_available_quantity || 0);
+        if (availableQty <= 0) continue;
+
+        const costPrice = roundPrice(record.fifo_cost_price || 0);
+        const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
+        const costContribution = roundPrice(qtyToDeduct * costPrice);
+
+        totalCost = roundPrice(totalCost + costContribution);
+        totalDeductedQty = roundQty(totalDeductedQty + qtyToDeduct);
+        remainingQtyToDeduct = roundQty(remainingQtyToDeduct - qtyToDeduct);
+      }
+
+      if (remainingQtyToDeduct > 0 && sortedRecords.length > 0) {
+        const lastRecord = sortedRecords[sortedRecords.length - 1];
+        const lastCostPrice = roundPrice(lastRecord.fifo_cost_price || 0);
+        const additionalCost = roundPrice(remainingQtyToDeduct * lastCostPrice);
+        totalCost = roundPrice(totalCost + additionalCost);
+        totalDeductedQty = roundQty(totalDeductedQty + remainingQtyToDeduct);
+      }
+
+      if (totalDeductedQty > 0) {
+        return roundPrice(totalCost / totalDeductedQty);
+      }
+
+      return roundPrice(sortedRecords[0].fifo_cost_price || 0);
+    }
+
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving FIFO cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
+// Function to get Weighted Average cost price
+const getWeightedAverageCostPrice = async (
+  materialId,
+  plantId,
+  organizationId
+) => {
+  try {
+    const query = db.collection("wa_costing_method").where({
+      material_id: materialId,
+      plant_id: plantId,
+      organization_id: organizationId,
+    });
+
+    const response = await query.get();
+    const waData = response.data;
+
+    if (waData && Array.isArray(waData) && waData.length > 0) {
+      waData.sort((a, b) => {
+        if (a.created_at && b.created_at) {
+          return new Date(b.created_at) - new Date(a.created_at);
+        }
+        return 0;
+      });
+
+      return roundPrice(waData[0].wa_cost_price || 0);
+    }
+
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving WA cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
+// Function to get Fixed Cost price
+const getFixedCostPrice = async (materialId) => {
+  try {
+    const query = db.collection("Item").where({ id: materialId });
+    const response = await query.get();
+    const result = response.data;
+
+    if (result && result.length > 0) {
+      return roundPrice(parseFloat(result[0].purchase_unit_price || 0));
+    }
+
+    return 0;
+  } catch (error) {
+    console.error(
+      `Error retrieving fixed cost price for ${materialId}:`,
+      error
+    );
+    return 0;
+  }
+};
+
+const createTempQtyDataSummary = async (
+  updatedTempQtyData,
+  toLineItem,
+  materialId
+) => {
+  // Get item data to check if it's serialized
+  let isSerializedItem = false;
+  let toUOM = "";
+
+  if (materialId) {
+    const resItem = await db.collection("Item").where({ id: materialId }).get();
+    if (resItem.data && resItem.data[0]) {
+      isSerializedItem = resItem.data[0].serial_number_management === 1;
+    }
+  }
+
+  // Get UOM name
+  if (toLineItem.to_order_uom_id) {
+    const uomRes = await db
+      .collection("unit_of_measurement")
+      .where({ id: toLineItem.to_order_uom_id })
+      .get();
+    if (uomRes.data && uomRes.data[0]) {
+      toUOM = uomRes.data[0].uom_name;
+    }
+  }
+
+  // Get unique location IDs
+  const locationIds = [
+    ...new Set(updatedTempQtyData.map((item) => item.location_id)),
+  ];
+
+  // Get unique batch IDs (filter out null/undefined values)
+  const batchIds = [
+    ...new Set(
+      updatedTempQtyData
+        .map((item) => item.batch_id)
+        .filter((batchId) => batchId != null && batchId !== "")
+    ),
+  ];
+
+  // Fetch locations in parallel
+  const locationPromises = locationIds.map(async (locationId) => {
+    try {
+      const resBinLocation = await db
+        .collection("bin_location")
+        .where({ id: locationId })
+        .get();
+
+      return {
+        id: locationId,
+        name:
+          resBinLocation.data?.[0]?.bin_location_combine ||
+          `Location ID: ${locationId}`,
+      };
+    } catch (error) {
+      console.error(`Error fetching location ${locationId}:`, error);
+      return { id: locationId, name: `${locationId} (Error)` };
+    }
+  });
+
+  // Fetch batches in parallel (only if there are batch IDs)
+  const batchPromises = batchIds.map(async (batchId) => {
+    try {
+      const resBatch = await db
+        .collection("batch")
+        .where({ id: batchId })
+        .get();
+
+      return {
+        id: batchId,
+        name: resBatch.data?.[0]?.batch_number || `Batch ID: ${batchId}`,
+      };
+    } catch (error) {
+      console.error(`Error fetching batch ${batchId}:`, error);
+      return { id: batchId, name: `${batchId} (Error)` };
+    }
+  });
+
+  // Wait for both location and batch data
+  const [locations, batches] = await Promise.all([
+    Promise.all(locationPromises),
+    Promise.all(batchPromises),
+  ]);
+
+  // Create lookup maps
+  const locationMap = locations.reduce((map, loc) => {
+    map[loc.id] = loc.name;
+    return map;
+  }, {});
+
+  const batchMap = batches.reduce((map, batch) => {
+    map[batch.id] = batch.name;
+    return map;
+  }, {});
+
+  const totalQty = updatedTempQtyData.reduce(
+    (sum, item) => sum + parseFloat(item.to_quantity || 0),
+    0
+  );
+
+  let summary = `Total: ${totalQty} ${toUOM}\n\nDETAILS:\n`;
+
+  const details = updatedTempQtyData
+    .map((item, index) => {
+      const locationName = locationMap[item.location_id] || item.location_id;
+      const qty = item.to_quantity || 0;
+
+      let itemDetail = `${index + 1}. ${locationName}: ${qty} ${toUOM}`;
+
+      // Add serial number if serialized item
+      if (isSerializedItem) {
+        if (item.serial_number && item.serial_number.trim() !== "") {
+          itemDetail += ` [Serial: ${item.serial_number.trim()}]`;
+        } else {
+          itemDetail += ` [Serial: NOT SET]`;
+        }
+      }
+
+      // Add batch info if batch exists
+      if (item.batch_id) {
+        const batchName = batchMap[item.batch_id] || item.batch_id;
+        if (isSerializedItem) {
+          itemDetail += `\n   [Batch: ${batchName}]`;
+        } else {
+          itemDetail += `\n[Batch: ${batchName}]`;
+        }
+      }
+
+      return itemDetail;
+    })
+    .join("\n");
+
+  return summary + details;
+};
+
+// Handle loading bay inventory movement - move Reserved inventory from source to target location
+const handleLoadingBayInventoryMovement = async (
+  ppNo,
+  ppId,
+  pickingItems,
+  plantId,
+  organizationId
+) => {
+  try {
+    console.log("Starting handleLoadingBayInventoryMovement for PP:", ppNo);
+
+    // Fetch PP data to get current state
+    const ppResponse = await db.collection("picking_plan").doc(ppId).get();
+
+    if (!ppResponse.data || ppResponse.data.length === 0) {
+      console.warn(`Picking Plan ${ppId} not found`);
+      return;
+    }
+
+    const ppData = ppResponse.data[0];
+    const ppTableTo = ppData.table_to || [];
+
+    console.log(`Found Picking Plan: ID=${ppId}, to_no=${ppNo}`);
+
+    // Create a map of picking items by to_line_id for quick lookup
+    const pickingItemsMap = {};
+    for (const pickingItem of pickingItems) {
+      pickingItemsMap[pickingItem.to_line_id] = pickingItem;
+    }
+
+    // Process each PP line item
+    for (const ppLineItem of ppTableTo) {
+      const pickingItem = pickingItemsMap[ppLineItem.id];
+
+      if (!pickingItem) {
+        console.log(
+          `No picking item found for PP line item ${ppLineItem.id}, skipping`
+        );
+        continue;
+      }
+
+      const targetLocation = pickingItem.target_location;
+
+      if (!targetLocation) {
+        console.log(
+          `No target location for PP line item ${ppLineItem.id}, skipping`
+        );
+        continue;
+      }
+
+      console.log(
+        `Processing PP line item ${ppLineItem.id} - moving to target location ${targetLocation}`
+      );
+
+      // Parse temp_qty_data
+      const tempQtyData = parseJsonSafely(ppLineItem.temp_qty_data);
+
+      if (!tempQtyData || tempQtyData.length === 0) {
+        console.log(
+          `No temp_qty_data for line item ${ppLineItem.id}, skipping`
+        );
+        continue;
+      }
+
+      // Get item details for costing and type checking
+      const resItem = await db
+        .collection("Item")
+        .where({ id: ppLineItem.material_id })
+        .get();
+
+      if (!resItem.data || resItem.data.length === 0) {
+        console.log(`Item ${ppLineItem.material_id} not found, skipping`);
+        continue;
+      }
+
+      const itemData = resItem.data[0];
+      const isSerializedItem = itemData.serial_number_management === 1;
+      const baseUOM = itemData.base_unit_of_measurement;
+      const altUOM = ppLineItem.to_order_uom_id;
+      const costingMethod = itemData.item_costing_method;
+
+      // Get SO number from line item
+      const soNumber = ppLineItem.line_so_no || ppLineItem.so_no;
+
+      // Process each temp_qty_data item (each location/batch/serial)
+      const updatedTempQtyData = [];
+
+      for (const tempItem of tempQtyData) {
+        const sourceLocation = tempItem.location_id;
+        const batchId = tempItem.batch_id || null;
+        const quantityInOrderUOM = parseFloat(tempItem.to_quantity || 0);
+        const baseQty = parseFloat(tempItem.base_qty || quantityInOrderUOM);
+
+        console.log(
+          `Moving ${baseQty} base qty from location ${sourceLocation} to ${targetLocation}`
+        );
+
+        // Get costing price
+        let unitPrice = 0;
+        let totalPrice = 0;
+
+        if (costingMethod === "FIFO") {
+          const fifoCostPrice = await getFIFOCostPrice(
+            ppLineItem.material_id,
+            baseQty,
+            plantId,
+            sourceLocation,
+            organizationId,
+            batchId
+          );
+          unitPrice = roundPrice(fifoCostPrice);
+          totalPrice = roundPrice(fifoCostPrice * baseQty);
+        } else if (costingMethod === "Weighted Average") {
+          const waCostPrice = await getWeightedAverageCostPrice(
+            ppLineItem.material_id,
+            plantId,
+            organizationId
+          );
+          unitPrice = roundPrice(waCostPrice);
+          totalPrice = roundPrice(waCostPrice * baseQty);
+        } else if (costingMethod === "Fixed Cost") {
+          const fixedCostPrice = await getFixedCostPrice(
+            ppLineItem.material_id
+          );
+          unitPrice = roundPrice(fixedCostPrice);
+          totalPrice = roundPrice(fixedCostPrice * baseQty);
+        }
+
+        // Create base inventory movement data
+        const baseInventoryMovement = {
+          transaction_type: "TO - PICK",
+          trx_no: ppNo,
+          parent_trx_no: soNumber,
+          unit_price: unitPrice,
+          total_price: totalPrice,
+          quantity: quantityInOrderUOM,
+          item_id: ppLineItem.material_id,
+          uom_id: altUOM,
+          base_qty: baseQty,
+          base_uom_id: baseUOM,
+          batch_number_id: batchId,
+          costing_method_id: costingMethod,
+          plant_id: plantId,
+          organization_id: organizationId,
+          is_deleted: 0,
+        };
+
+        // Create OUT movement from source Reserved
+        await db.collection("inventory_movement").add({
+          ...baseInventoryMovement,
+          movement: "OUT",
+          inventory_category: "Reserved",
+          bin_location_id: sourceLocation,
+        });
+
+        console.log(
+          `Created OUT movement from Reserved at ${sourceLocation}: ${baseQty} base qty`
+        );
+
+        // Wait before creating IN movement
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        // Create IN movement to target Reserved
+        await db.collection("inventory_movement").add({
+          ...baseInventoryMovement,
+          movement: "IN",
+          inventory_category: "Reserved",
+          bin_location_id: targetLocation,
+        });
+
+        console.log(
+          `Created IN movement to Reserved at ${targetLocation}: ${baseQty} base qty`
+        );
+
+        // Update balance tables based on item type
+        if (isSerializedItem) {
+          // For serialized items: Update aggregate item_balance (without batch_id)
+          // Update source location - decrement Reserved
+          const sourceBalanceParams = {
+            material_id: ppLineItem.material_id,
+            location_id: sourceLocation,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+
+          const sourceBalanceQuery = await db
+            .collection("item_balance")
+            .where(sourceBalanceParams)
+            .get();
+
+          if (sourceBalanceQuery.data && sourceBalanceQuery.data.length > 0) {
+            const sourceDoc = sourceBalanceQuery.data[0];
+            const currentReservedQty = roundQty(
+              parseFloat(sourceDoc.reserved_qty || 0)
+            );
+            const currentBalanceQty = roundQty(
+              parseFloat(sourceDoc.balance_quantity || 0)
+            );
+
+            const finalReservedQty = roundQty(currentReservedQty - baseQty);
+            const finalBalanceQty = roundQty(currentBalanceQty - baseQty);
+
+            await db.collection("item_balance").doc(sourceDoc.id).update({
+              reserved_qty: finalReservedQty,
+              balance_quantity: finalBalanceQty,
+            });
+
+            console.log(
+              `Updated source item_balance: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`
+            );
+          }
+
+          // Update target location - increment Reserved
+          const targetBalanceParams = {
+            material_id: ppLineItem.material_id,
+            location_id: targetLocation,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+
+          const targetBalanceQuery = await db
+            .collection("item_balance")
+            .where(targetBalanceParams)
+            .get();
+
+          if (targetBalanceQuery.data && targetBalanceQuery.data.length > 0) {
+            const targetDoc = targetBalanceQuery.data[0];
+            const currentReservedQty = roundQty(
+              parseFloat(targetDoc.reserved_qty || 0)
+            );
+            const currentBalanceQty = roundQty(
+              parseFloat(targetDoc.balance_quantity || 0)
+            );
+
+            const finalReservedQty = roundQty(currentReservedQty + baseQty);
+            const finalBalanceQty = roundQty(currentBalanceQty + baseQty);
+
+            await db.collection("item_balance").doc(targetDoc.id).update({
+              reserved_qty: finalReservedQty,
+              balance_quantity: finalBalanceQty,
+            });
+
+            console.log(
+              `Updated target item_balance: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`
+            );
+          } else {
+            // Create new item_balance record for target location
+            await db.collection("item_balance").add({
+              material_id: ppLineItem.material_id,
+              location_id: targetLocation,
+              plant_id: plantId,
+              organization_id: organizationId,
+              reserved_qty: baseQty,
+              unrestricted_qty: 0,
+              balance_quantity: baseQty,
+            });
+
+            console.log(
+              `Created new item_balance at target location with Reserved ${baseQty}`
+            );
+          }
+        } else {
+          // For non-serialized items: Update item_balance or item_batch_balance
+          const balanceCollection = batchId
+            ? "item_batch_balance"
+            : "item_balance";
+
+          // Update source location
+          const sourceBalanceParams = {
+            material_id: ppLineItem.material_id,
+            location_id: sourceLocation,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+
+          if (batchId) {
+            sourceBalanceParams.batch_id = batchId;
+          }
+
+          const sourceBalanceQuery = await db
+            .collection(balanceCollection)
+            .where(sourceBalanceParams)
+            .get();
+
+          if (sourceBalanceQuery.data && sourceBalanceQuery.data.length > 0) {
+            const sourceDoc = sourceBalanceQuery.data[0];
+            const currentReservedQty = roundQty(
+              parseFloat(sourceDoc.reserved_qty || 0)
+            );
+            const currentBalanceQty = roundQty(
+              parseFloat(sourceDoc.balance_quantity || 0)
+            );
+
+            const finalReservedQty = roundQty(currentReservedQty - baseQty);
+            const finalBalanceQty = roundQty(currentBalanceQty - baseQty);
+
+            await db.collection(balanceCollection).doc(sourceDoc.id).update({
+              reserved_qty: finalReservedQty,
+              balance_quantity: finalBalanceQty,
+            });
+
+            console.log(
+              `Updated source ${balanceCollection}: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`
+            );
+          }
+
+          // Update target location
+          const targetBalanceParams = {
+            material_id: ppLineItem.material_id,
+            location_id: targetLocation,
+            plant_id: plantId,
+            organization_id: organizationId,
+          };
+
+          if (batchId) {
+            targetBalanceParams.batch_id = batchId;
+          }
+
+          const targetBalanceQuery = await db
+            .collection(balanceCollection)
+            .where(targetBalanceParams)
+            .get();
+
+          if (targetBalanceQuery.data && targetBalanceQuery.data.length > 0) {
+            const targetDoc = targetBalanceQuery.data[0];
+            const currentReservedQty = roundQty(
+              parseFloat(targetDoc.reserved_qty || 0)
+            );
+            const currentBalanceQty = roundQty(
+              parseFloat(targetDoc.balance_quantity || 0)
+            );
+
+            const finalReservedQty = roundQty(currentReservedQty + baseQty);
+            const finalBalanceQty = roundQty(currentBalanceQty + baseQty);
+
+            await db.collection(balanceCollection).doc(targetDoc.id).update({
+              reserved_qty: finalReservedQty,
+              balance_quantity: finalBalanceQty,
+            });
+
+            console.log(
+              `Updated target ${balanceCollection}: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`
+            );
+          } else {
+            // Create new balance record
+            const newBalanceRecord = {
+              material_id: ppLineItem.material_id,
+              location_id: targetLocation,
+              plant_id: plantId,
+              organization_id: organizationId,
+              reserved_qty: baseQty,
+              unrestricted_qty: 0,
+              balance_quantity: baseQty,
+            };
+
+            if (batchId) {
+              newBalanceRecord.batch_id = batchId;
+            }
+
+            await db.collection(balanceCollection).add(newBalanceRecord);
+
+            console.log(
+              `Created new ${balanceCollection} at target with Reserved ${baseQty}`
+            );
+          }
+
+          // For batch items, also update aggregate item_balance
+          if (batchId) {
+            // Update source aggregate
+            const sourceAggParams = {
+              material_id: ppLineItem.material_id,
+              location_id: sourceLocation,
+              plant_id: plantId,
+              organization_id: organizationId,
+            };
+
+            const sourceAggQuery = await db
+              .collection("item_balance")
+              .where(sourceAggParams)
+              .get();
+
+            if (sourceAggQuery.data && sourceAggQuery.data.length > 0) {
+              const sourceAggDoc = sourceAggQuery.data[0];
+              const currentReservedQty = roundQty(
+                parseFloat(sourceAggDoc.reserved_qty || 0)
+              );
+              const currentBalanceQty = roundQty(
+                parseFloat(sourceAggDoc.balance_quantity || 0)
+              );
+
+              const finalReservedQty = roundQty(currentReservedQty - baseQty);
+              const finalBalanceQty = roundQty(currentBalanceQty - baseQty);
+
+              await db.collection("item_balance").doc(sourceAggDoc.id).update({
+                reserved_qty: finalReservedQty,
+                balance_quantity: finalBalanceQty,
+              });
+
+              console.log(
+                `Updated source aggregate item_balance: Reserved ${currentReservedQty}→${finalReservedQty}`
+              );
+            }
+
+            // Update target aggregate
+            const targetAggParams = {
+              material_id: ppLineItem.material_id,
+              location_id: targetLocation,
+              plant_id: plantId,
+              organization_id: organizationId,
+            };
+
+            const targetAggQuery = await db
+              .collection("item_balance")
+              .where(targetAggParams)
+              .get();
+
+            if (targetAggQuery.data && targetAggQuery.data.length > 0) {
+              const targetAggDoc = targetAggQuery.data[0];
+              const currentReservedQty = roundQty(
+                parseFloat(targetAggDoc.reserved_qty || 0)
+              );
+              const currentBalanceQty = roundQty(
+                parseFloat(targetAggDoc.balance_quantity || 0)
+              );
+
+              const finalReservedQty = roundQty(currentReservedQty + baseQty);
+              const finalBalanceQty = roundQty(currentBalanceQty + baseQty);
+
+              await db.collection("item_balance").doc(targetAggDoc.id).update({
+                reserved_qty: finalReservedQty,
+                balance_quantity: finalBalanceQty,
+              });
+
+              console.log(
+                `Updated target aggregate item_balance: Reserved ${currentReservedQty}→${finalReservedQty}`
+              );
+            } else {
+              // Create new aggregate
+              await db.collection("item_balance").add({
+                material_id: ppLineItem.material_id,
+                location_id: targetLocation,
+                plant_id: plantId,
+                organization_id: organizationId,
+                reserved_qty: baseQty,
+                unrestricted_qty: 0,
+                balance_quantity: baseQty,
+              });
+
+              console.log(
+                `Created new aggregate item_balance at target with Reserved ${baseQty}`
+              );
+            }
+          }
+        }
+
+        // Handle serialized items - create inv_serial_movement records
+        if (isSerializedItem && tempItem.serial_number) {
+          // Wait for movements to be created
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          // Get OUT movement ID
+          const outMovementQuery = await db
+            .collection("inventory_movement")
+            .where({
+              transaction_type: "TO - PICK",
+              trx_no: ppNo,
+              parent_trx_no: soNumber,
+              movement: "OUT",
+              inventory_category: "Reserved",
+              item_id: ppLineItem.material_id,
+              bin_location_id: sourceLocation,
+              base_qty: baseQty,
+            })
+            .get();
+
+          let outMovementId = null;
+          if (outMovementQuery.data && outMovementQuery.data.length > 0) {
+            outMovementId = outMovementQuery.data.sort(
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+            )[0].id;
+          }
+
+          // Get IN movement ID
+          const inMovementQuery = await db
+            .collection("inventory_movement")
+            .where({
+              transaction_type: "TO - PICK",
+              trx_no: ppNo,
+              parent_trx_no: soNumber,
+              movement: "IN",
+              inventory_category: "Reserved",
+              item_id: ppLineItem.material_id,
+              bin_location_id: targetLocation,
+              base_qty: baseQty,
+            })
+            .get();
+
+          let inMovementId = null;
+          if (inMovementQuery.data && inMovementQuery.data.length > 0) {
+            inMovementId = inMovementQuery.data.sort(
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+            )[0].id;
+          }
+
+          // Create inv_serial_movement records if we have movement IDs
+          if (outMovementId && inMovementId) {
+            const serialNumbers = tempItem.serial_number
+              .split("\n")
+              .map((sn) => sn.trim())
+              .filter((sn) => sn !== "");
+
+            for (const serialNumber of serialNumbers) {
+              // OUT serial movement
+              await db.collection("inv_serial_movement").add({
+                inventory_movement_id: outMovementId,
+                serial_number: serialNumber,
+                item_id: ppLineItem.material_id,
+                batch_id: batchId,
+                bin_location_id: sourceLocation,
+                movement: "OUT",
+                inventory_category: "Reserved",
+              });
+
+              // IN serial movement
+              await db.collection("inv_serial_movement").add({
+                inventory_movement_id: inMovementId,
+                serial_number: serialNumber,
+                item_id: ppLineItem.material_id,
+                batch_id: batchId,
+                bin_location_id: targetLocation,
+                movement: "IN",
+                inventory_category: "Reserved",
+              });
+            }
+
+            console.log(
+              `Created inv_serial_movement records for ${serialNumbers.length} serial numbers`
+            );
+
+            // Update item_serial_balance for each serial number
+            for (const serialNumber of serialNumbers) {
+              // Update source location - decrement Reserved
+              const sourceSerialParams = {
+                material_id: ppLineItem.material_id,
+                serial_number: serialNumber,
+                plant_id: plantId,
+                organization_id: organizationId,
+                location_id: sourceLocation,
+              };
+
+              if (batchId) {
+                sourceSerialParams.batch_id = batchId;
+              }
+
+              const sourceSerialQuery = await db
+                .collection("item_serial_balance")
+                .where(sourceSerialParams)
+                .get();
+
+              if (sourceSerialQuery.data && sourceSerialQuery.data.length > 0) {
+                const sourceSerialDoc = sourceSerialQuery.data[0];
+                const currentReservedQty = roundQty(
+                  parseFloat(sourceSerialDoc.reserved_qty || 0)
+                );
+
+                const finalReservedQty = roundQty(currentReservedQty - 1);
+
+                await db
+                  .collection("item_serial_balance")
+                  .doc(sourceSerialDoc.id)
+                  .update({
+                    reserved_qty: finalReservedQty,
+                  });
+
+                console.log(
+                  `Updated source item_serial_balance for ${serialNumber}: Reserved ${currentReservedQty}→${finalReservedQty}`
+                );
+              }
+
+              // Update target location - increment Reserved
+              const targetSerialParams = {
+                material_id: ppLineItem.material_id,
+                serial_number: serialNumber,
+                plant_id: plantId,
+                organization_id: organizationId,
+                location_id: targetLocation,
+              };
+
+              if (batchId) {
+                targetSerialParams.batch_id = batchId;
+              }
+
+              const targetSerialQuery = await db
+                .collection("item_serial_balance")
+                .where(targetSerialParams)
+                .get();
+
+              if (targetSerialQuery.data && targetSerialQuery.data.length > 0) {
+                const targetSerialDoc = targetSerialQuery.data[0];
+                const currentReservedQty = roundQty(
+                  parseFloat(targetSerialDoc.reserved_qty || 0)
+                );
+
+                const finalReservedQty = roundQty(currentReservedQty + 1);
+
+                await db
+                  .collection("item_serial_balance")
+                  .doc(targetSerialDoc.id)
+                  .update({
+                    reserved_qty: finalReservedQty,
+                  });
+
+                console.log(
+                  `Updated target item_serial_balance for ${serialNumber}: Reserved ${currentReservedQty}→${finalReservedQty}`
+                );
+              } else {
+                // Create new serial balance at target
+                const newSerialBalance = {
+                  material_id: ppLineItem.material_id,
+                  serial_number: serialNumber,
+                  plant_id: plantId,
+                  organization_id: organizationId,
+                  location_id: targetLocation,
+                  reserved_qty: 1,
+                  unrestricted_qty: 0,
+                };
+
+                if (batchId) {
+                  newSerialBalance.batch_id = batchId;
+                }
+
+                await db
+                  .collection("item_serial_balance")
+                  .add(newSerialBalance);
+
+                console.log(
+                  `Created new item_serial_balance for ${serialNumber} at target with Reserved 1`
+                );
+              }
+            }
+          }
+        }
+
+        // Build updated temp_qty_data with new location
+        const updatedTempItem = {
+          ...tempItem,
+          location_id: targetLocation,
+        };
+
+        updatedTempQtyData.push(updatedTempItem);
+      }
+
+      // Update PP line item with new temp_qty_data
+      const updatedTempQtyDataJson = JSON.stringify(updatedTempQtyData);
+
+      // Create updated view_stock summary
+      const updatedViewStock = await createTempQtyDataSummary(
+        updatedTempQtyData,
+        ppLineItem,
+        ppLineItem.material_id
+      );
+
+      // Find the line item in ppTableTo and update it
+      const lineItemIndex = ppTableTo.findIndex(
+        (item) => item.id === ppLineItem.id
+      );
+
+      if (lineItemIndex !== -1) {
+        ppTableTo[lineItemIndex].temp_qty_data = updatedTempQtyDataJson;
+        ppTableTo[lineItemIndex].view_stock = updatedViewStock;
+
+        console.log(
+          `Updated PP line item ${ppLineItem.id} temp_qty_data and view_stock`
+        );
+      }
+    }
+
+    // Update the entire PP document with modified table_to
+    await db.collection("picking_plan").doc(ppId).update({
+      table_to: ppTableTo,
+    });
+
+    console.log("Updated Picking Plan with new location data");
+
+    // Update on_reserved_gd records
+    const existingReserved = await db
+      .collection("on_reserved_gd")
+      .where({
+        doc_type: "Picking Plan",
+        doc_no: ppNo,
+        organization_id: organizationId,
+      })
+      .get();
+
+    if (existingReserved.data && existingReserved.data.length > 0) {
+      console.log(
+        `Found ${existingReserved.data.length} on_reserved_gd records to update`
+      );
+
+      const updatePromises = [];
+
+      for (const reservedRecord of existingReserved.data) {
+        // Find the corresponding line item in ppTableTo
+        const matchingPPLineItem = ppTableTo.find(
+          (item, index) => index + 1 === reservedRecord.line_no
+        );
+
+        if (matchingPPLineItem) {
+          const matchingPickingItem = pickingItemsMap[matchingPPLineItem.id];
+
+          if (matchingPickingItem && matchingPickingItem.target_location) {
+            updatePromises.push(
+              db.collection("on_reserved_gd").doc(reservedRecord.id).update({
+                bin_location: matchingPickingItem.target_location,
+              })
+            );
+
+            console.log(
+              `Updating on_reserved_gd record ${reservedRecord.id} bin_location to ${matchingPickingItem.target_location}`
+            );
+          }
+        }
+      }
+
+      await Promise.all(updatePromises);
+      console.log("Updated on_reserved_gd records with new bin locations");
+    }
+
+    console.log("Loading bay inventory movement completed successfully");
+  } catch (error) {
+    console.error("Error in handleLoadingBayInventoryMovement:", error);
+    throw error;
+  }
+};
+
 const findFieldMessage = (obj) => {
   // Base case: if current object has the structure we want
   if (obj && typeof obj === "object") {
@@ -508,6 +1535,7 @@ const createPickingRecord = async (toData) => {
     const data = this.getValues();
     const page_status = data.page_status;
     const originalToStatus = data.to_status;
+    const isLoadingBay = this.models["is_loading_bay"];
 
     console.log(
       `Page Status: ${page_status}, Original TO Status: ${originalToStatus}`
@@ -599,8 +1627,51 @@ const createPickingRecord = async (toData) => {
     });
 
     const toId = data.id; // Transfer Order (Picking) document ID
+    const plantId = data.plant_id;
 
     await updateEntry(toData, toId);
+
+    // Handle loading bay inventory movement if applicable
+    if (
+      isLoadingBay === 1 &&
+      newTransferOrderStatus === "Completed" &&
+      data.ref_doc_type === "Picking Plan" &&
+      data.to_id
+    ) {
+      console.log(
+        "Loading bay enabled and status is Completed, initiating inventory movement"
+      );
+
+      // Get PP ID from the to_id
+      const ppResponse = await db
+        .collection("picking_plan")
+        .where({
+          id: data.to_no,
+        })
+        .get();
+
+      if (ppResponse.data && ppResponse.data.length > 0) {
+        const ppData = ppResponse.data[0];
+        const ppId = ppData.id;
+        const ppNo = ppData.to_no;
+
+        console.log(
+          `Found Picking Plan for loading bay: ID=${ppId}, to_no=${ppNo}`
+        );
+
+        await handleLoadingBayInventoryMovement(
+          ppNo,
+          ppId,
+          updatedItems,
+          plantId,
+          organizationId
+        );
+
+        console.log("Loading bay inventory movement completed");
+      } else {
+        console.log("Picking Plan not found for loading bay movement");
+      }
+    }
 
     // Success message with status information
     this.$message.success(
