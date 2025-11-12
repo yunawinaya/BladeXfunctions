@@ -1,72 +1,97 @@
-const data = this.getValues();
-const lineItemData = arguments[0]?.row;
-const rowIndex = arguments[0]?.rowIndex;
-
-console.log("lineItemData", lineItemData);
-
-const materialId = lineItemData.material_id;
-const altUOM = lineItemData.to_order_uom_id;
-const plantId = data.plant_id;
-
-const tempQtyData = lineItemData.temp_qty_data;
-
-this.hide("to_item_balance.table_item_balance.serial_number");
-
-const fetchUomData = async (uomIds) => {
+(async () => {
   try {
-    const resUOM = await Promise.all(
-      uomIds.map((id) =>
-        db.collection("unit_of_measurement").where({ id }).get()
-      )
-    );
+    const data = this.getValues();
+    const lineItemData = arguments[0]?.row;
+    const rowIndex = arguments[0]?.rowIndex;
 
-    const uomData = resUOM.map((response) => response.data[0]);
+    if (!lineItemData) {
+      console.error("Missing line item data");
+      return;
+    }
 
-    return uomData;
-  } catch (error) {
-    console.error("Error fetching UOM data:", error);
-    return [];
-  }
-};
+    const materialId = lineItemData.material_id;
+    const altUOM = lineItemData.to_order_uom_id;
+    const plantId = data.plant_id;
+    const tempQtyData = lineItemData.temp_qty_data;
 
-db.collection("Item")
-  .where({
-    id: materialId,
-  })
-  .get()
-  .then(async (response) => {
-    console.log("response item", response);
-    const itemData = response.data[0];
-    const baseUOM = itemData.based_uom;
+    console.log("lineItemData", lineItemData);
 
-    const altUoms = itemData.table_uom_conversion?.map(
-      (data) => data.alt_uom_id
-    );
-    let uomOptions = [];
+    if (!materialId || !plantId) {
+      console.error("Missing required material_id or plant_id");
+      return;
+    }
 
-    const res = await fetchUomData(altUoms);
-    uomOptions.push(...res);
+    this.hide("to_item_balance.table_item_balance.serial_number");
 
-    await this.setOptionData([`to_item_balance.material_uom`], uomOptions);
+    const fetchDefaultStorageLocation = async (itemData) => {
+      const defaultBin = itemData?.table_default_bin?.find(
+        (bin) => bin.plant_id === plantId
+      );
 
-    this.setData({
-      [`to_item_balance.material_code`]: itemData.material_code,
-      [`to_item_balance.material_name`]: itemData.material_name,
-      [`to_item_balance.row_index`]: rowIndex,
-      [`to_item_balance.material_uom`]: altUOM,
-    });
+      const defaultStorageLocationId = defaultBin?.storage_location_id;
 
-    this.setData({
-      [`to_item_balance.table_item_balance`]: [],
-    });
+      let defaultStorageLocation = null;
+
+      if (!defaultStorageLocationId || defaultStorageLocationId === "") {
+        defaultStorageLocation = await db
+          .collection("storage_location")
+          .where({
+            plant_id: plantId,
+            storage_status: 1,
+            location_type: "Common",
+            is_deleted: 0,
+            is_default: 1,
+          })
+          .get()
+          .then((res) => res.data[0]);
+      } else {
+        defaultStorageLocation = await db
+          .collection("storage_location")
+          .where({ id: defaultStorageLocationId })
+          .get()
+          .then((res) => res.data[0]);
+      }
+
+      if (!defaultStorageLocation) {
+        console.error("Default storage location not found");
+        return null;
+      }
+
+      return defaultStorageLocation;
+    };
+
+    const fetchUomData = async (uomIds) => {
+      if (!Array.isArray(uomIds) || uomIds.length === 0) {
+        console.warn("No UOM IDs provided to fetchUomData");
+        return [];
+      }
+
+      try {
+        const resUOM = await Promise.all(
+          uomIds.map((id) =>
+            db.collection("unit_of_measurement").where({ id }).get()
+          )
+        );
+
+        const uomData = resUOM
+          .map((response) => response.data?.[0])
+          .filter(Boolean);
+
+        return uomData;
+      } catch (error) {
+        console.error("Error fetching UOM data:", error);
+        return [];
+      }
+    };
 
     const convertBaseToAlt = (baseQty, itemData, altUOM) => {
       if (
+        !baseQty ||
         !Array.isArray(itemData.table_uom_conversion) ||
         itemData.table_uom_conversion.length === 0 ||
         !altUOM
       ) {
-        return baseQty;
+        return baseQty || 0;
       }
 
       const uomConversion = itemData.table_uom_conversion.find(
@@ -80,119 +105,80 @@ db.collection("Item")
       return Math.round(baseQty * uomConversion.alt_qty * 1000) / 1000;
     };
 
-    const processItemBalanceData = (itemBalanceData) => {
+    const processItemBalanceData = (
+      itemBalanceData,
+      itemData,
+      altUOM,
+      baseUOM
+    ) => {
+      if (!Array.isArray(itemBalanceData)) {
+        return [];
+      }
+
       return itemBalanceData.map((record) => {
         const processedRecord = { ...record };
 
         if (altUOM !== baseUOM) {
-          if (processedRecord.block_qty) {
-            processedRecord.block_qty = convertBaseToAlt(
-              processedRecord.block_qty,
-              itemData,
-              altUOM
-            );
-          }
+          const quantityFields = [
+            "block_qty",
+            "reserved_qty",
+            "unrestricted_qty",
+            "qualityinsp_qty",
+            "intransit_qty",
+            "balance_quantity",
+          ];
 
-          if (processedRecord.reserved_qty) {
-            processedRecord.reserved_qty = convertBaseToAlt(
-              processedRecord.reserved_qty,
-              itemData,
-              altUOM
-            );
-          }
-
-          if (processedRecord.unrestricted_qty) {
-            processedRecord.unrestricted_qty = convertBaseToAlt(
-              processedRecord.unrestricted_qty,
-              itemData,
-              altUOM
-            );
-          }
-
-          if (processedRecord.qualityinsp_qty) {
-            processedRecord.qualityinsp_qty = convertBaseToAlt(
-              processedRecord.qualityinsp_qty,
-              itemData,
-              altUOM
-            );
-          }
-
-          if (processedRecord.intransit_qty) {
-            processedRecord.intransit_qty = convertBaseToAlt(
-              processedRecord.intransit_qty,
-              itemData,
-              altUOM
-            );
-          }
-
-          if (processedRecord.balance_quantity) {
-            processedRecord.balance_quantity = convertBaseToAlt(
-              processedRecord.balance_quantity,
-              itemData,
-              altUOM
-            );
-          }
+          quantityFields.forEach((field) => {
+            if (processedRecord[field]) {
+              processedRecord[field] = convertBaseToAlt(
+                processedRecord[field],
+                itemData,
+                altUOM
+              );
+            }
+          });
         }
 
         return processedRecord;
       });
     };
 
-    const mergeWithTempData = (freshDbData, tempDataArray) => {
-      if (!tempDataArray || tempDataArray.length === 0) {
+    const generateRecordKey = (item, itemData) => {
+      if (itemData.serial_number_management === 1) {
+        if (itemData.item_batch_management === 1) {
+          return `${item.location_id}-${item.serial_number || "no_serial"}-${
+            item.batch_id || "no_batch"
+          }`;
+        } else {
+          return `${item.location_id}-${item.serial_number || "no_serial"}`;
+        }
+      } else if (itemData.item_batch_management === 1) {
+        return `${item.location_id}-${item.batch_id || "no_batch"}`;
+      } else {
+        return `${item.location_id}`;
+      }
+    };
+
+    const mergeWithTempData = (freshDbData, tempDataArray, itemData) => {
+      if (!Array.isArray(tempDataArray) || tempDataArray.length === 0) {
         console.log("No temp data to merge, using fresh DB data");
-        return freshDbData;
+        return freshDbData.map((item) => ({ ...item, to_quantity: 0 }));
       }
 
       console.log("Merging fresh DB data with existing temp data");
 
       const tempDataMap = new Map();
       tempDataArray.forEach((tempItem) => {
-        let key;
-        if (itemData.serial_number_management === 1) {
-          this.display("to_item_balance.table_item_balance.serial_number");
-
-          // For serialized items, always use serial number as primary key
-          // Include batch_id if item also has batch management
-          if (itemData.item_batch_management === 1) {
-            key = `${tempItem.location_id}-${
-              tempItem.serial_number || "no_serial"
-            }-${tempItem.batch_id || "no_batch"}`;
-          } else {
-            key = `${tempItem.location_id}-${
-              tempItem.serial_number || "no_serial"
-            }`;
-          }
-        } else if (itemData.item_batch_management === 1) {
-          // For batch items (non-serialized), use batch as key
-          key = `${tempItem.location_id}-${tempItem.batch_id || "no_batch"}`;
-        } else {
-          // For regular items, use only location
-          key = `${tempItem.location_id}`;
-        }
+        const key = generateRecordKey(tempItem, itemData);
         tempDataMap.set(key, tempItem);
       });
 
-      const mergedData = freshDbData.map((dbItem) => {
-        let key;
-        if (itemData.serial_number_management === 1) {
-          // For serialized items, always use serial number as primary key
-          // Include batch_id if item also has batch management
-          if (itemData.item_batch_management === 1) {
-            key = `${dbItem.location_id}-${
-              dbItem.serial_number || "no_serial"
-            }-${dbItem.batch_id || "no_batch"}`;
-          } else {
-            key = `${dbItem.location_id}-${
-              dbItem.serial_number || "no_serial"
-            }`;
-          }
-        } else if (itemData.item_batch_management === 1) {
-          key = `${dbItem.location_id}-${dbItem.batch_id || "no_batch"}`;
-        } else {
-          key = `${dbItem.location_id}`;
-        }
+      if (itemData.serial_number_management === 1) {
+        this.display("to_item_balance.table_item_balance.serial_number");
+      }
 
+      const mergedData = freshDbData.map((dbItem) => {
+        const key = generateRecordKey(dbItem, itemData);
         const tempItem = tempDataMap.get(key);
 
         if (tempItem) {
@@ -213,49 +199,15 @@ db.collection("Item")
       });
 
       tempDataArray.forEach((tempItem) => {
-        let key;
-        if (itemData.serial_number_management === 1) {
-          // For serialized items, always use serial number as primary key
-          // Include batch_id if item also has batch management
-          if (itemData.item_batch_management === 1) {
-            key = `${tempItem.location_id}-${
-              tempItem.serial_number || "no_serial"
-            }-${tempItem.batch_id || "no_batch"}`;
-          } else {
-            key = `${tempItem.location_id}-${
-              tempItem.serial_number || "no_serial"
-            }`;
-          }
-        } else if (itemData.item_batch_management === 1) {
-          key = `${tempItem.location_id}-${tempItem.batch_id || "no_batch"}`;
-        } else {
-          key = `${tempItem.location_id}`;
-        }
+        const tempKey = generateRecordKey(tempItem, itemData);
 
         const existsInDb = freshDbData.some((dbItem) => {
-          let dbKey;
-          if (itemData.serial_number_management === 1) {
-            // For serialized items, always use serial number as primary key
-            // Include batch_id if item also has batch management
-            if (itemData.item_batch_management === 1) {
-              dbKey = `${dbItem.location_id}-${
-                dbItem.serial_number || "no_serial"
-              }-${dbItem.batch_id || "no_batch"}`;
-            } else {
-              dbKey = `${dbItem.location_id}-${
-                dbItem.serial_number || "no_serial"
-              }`;
-            }
-          } else if (itemData.item_batch_management === 1) {
-            dbKey = `${dbItem.location_id}-${dbItem.batch_id || "no_batch"}`;
-          } else {
-            dbKey = `${dbItem.location_id}`;
-          }
-          return dbKey === key;
+          const dbKey = generateRecordKey(dbItem, itemData);
+          return dbKey === tempKey;
         });
 
         if (!existsInDb) {
-          console.log(`Adding temp-only data for ${key}`);
+          console.log(`Adding temp-only data for ${tempKey}`);
           mergedData.push(tempItem);
         }
       });
@@ -263,19 +215,20 @@ db.collection("Item")
       return mergedData;
     };
 
-    const filterZeroQuantityRecords = (data) => {
+    const filterZeroQuantityRecords = (data, itemData) => {
+      if (!Array.isArray(data)) {
+        return [];
+      }
+
       return data.filter((record) => {
-        // For serialized items, check both serial number existence AND quantity > 0
         if (itemData.serial_number_management === 1) {
-          // First check if serial number exists and is not empty
           const hasValidSerial =
             record.serial_number && record.serial_number.trim() !== "";
 
           if (!hasValidSerial) {
-            return false; // Exclude if no valid serial number
+            return false;
           }
 
-          // Then check if any quantity fields have value > 0
           const hasQuantity =
             (record.block_qty && record.block_qty > 0) ||
             (record.reserved_qty && record.reserved_qty > 0) ||
@@ -288,10 +241,9 @@ db.collection("Item")
             `Serial ${record.serial_number}: hasQuantity=${hasQuantity}, unrestricted=${record.unrestricted_qty}, reserved=${record.reserved_qty}, balance=${record.balance_quantity}`
           );
 
-          return hasQuantity; // Only include if both serial exists AND has quantity > 0
+          return hasQuantity;
         }
 
-        // For batch and regular items, check if any quantity fields have value > 0
         const hasQuantity =
           (record.block_qty && record.block_qty > 0) ||
           (record.reserved_qty && record.reserved_qty > 0) ||
@@ -304,19 +256,164 @@ db.collection("Item")
       });
     };
 
-    // Handle Serialized Items (takes priority over batch management)
+    const parseTempQtyData = (tempQtyData) => {
+      if (!tempQtyData) {
+        return [];
+      }
+
+      try {
+        const parsed = JSON.parse(tempQtyData);
+        console.log("Parsed temp data:", parsed);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        console.error("Error parsing temp_qty_data:", error);
+        return [];
+      }
+    };
+
+    const setTableBalanceData = async (
+      filteredData,
+      includeRawData = false
+    ) => {
+      this.models["full_balance_data"] = filteredData;
+
+      const defaultStorageLocation = this.models["default_storage_location"];
+
+      let finalData = filteredData;
+
+      if (defaultStorageLocation) {
+        const binLocationList =
+          defaultStorageLocation.table_bin_location?.map(
+            (bin) => bin.bin_location_id
+          ) || [];
+
+        console.log("binLocationList", binLocationList);
+
+        const matchedBalanceData = filteredData.filter((data) => {
+          const hasAllocation = (data.to_quantity || 0) > 0;
+          const inStorageLocation = binLocationList.includes(data.location_id);
+
+          return hasAllocation || inStorageLocation;
+        });
+
+        console.log("matchedBalanceData", matchedBalanceData);
+
+        if (matchedBalanceData.length > 0) {
+          finalData = matchedBalanceData;
+        }
+      }
+
+      await this.setData({
+        [`to_item_balance.table_item_balance`]: finalData,
+      });
+
+      if (includeRawData) {
+        this.setData({
+          [`to_item_balance.table_item_balance_raw`]:
+            JSON.stringify(filteredData),
+        });
+      }
+    };
+
+    const processRegularMode = async (
+      collectionName,
+      materialId,
+      plantId,
+      tempQtyData,
+      itemData,
+      altUOM,
+      baseUOM,
+      includeRawData = false
+    ) => {
+      try {
+        const response = await db
+          .collection(collectionName)
+          .where({
+            material_id: materialId,
+            plant_id: plantId,
+          })
+          .get();
+
+        console.log(`response ${collectionName}`, response);
+
+        const freshDbData = response.data || [];
+        const processedFreshData = processItemBalanceData(
+          freshDbData,
+          itemData,
+          altUOM,
+          baseUOM
+        );
+        const tempDataArray = parseTempQtyData(tempQtyData);
+        const finalData = mergeWithTempData(
+          processedFreshData,
+          tempDataArray,
+          itemData
+        );
+        const filteredData = filterZeroQuantityRecords(finalData, itemData);
+
+        console.log("Final filtered data:", filteredData);
+        setTableBalanceData(filteredData, includeRawData);
+      } catch (error) {
+        console.error(`Error fetching ${collectionName} data:`, error);
+      }
+    };
+
+    const response = await db
+      .collection("Item")
+      .where({ id: materialId })
+      .get();
+
+    console.log("response item", response);
+
+    if (!response.data || response.data.length === 0) {
+      console.error("Item not found:", materialId);
+      return;
+    }
+
+    const itemData = response.data[0];
+    const baseUOM = itemData.based_uom;
+
+    const defaultStorageLocation = await fetchDefaultStorageLocation(itemData);
+
+    if (defaultStorageLocation) {
+      this.models["default_storage_location"] = defaultStorageLocation;
+      this.models["previous_storage_location_id"] = defaultStorageLocation.id;
+
+      const currentStorageLocationId = data.to_item_balance?.storage_location;
+
+      if (currentStorageLocationId !== defaultStorageLocation.id) {
+        await this.setData({
+          [`to_item_balance.storage_location`]: defaultStorageLocation.id,
+        });
+      }
+    }
+
+    const altUoms =
+      itemData.table_uom_conversion?.map((data) => data.alt_uom_id) || [];
+    const uomOptions = await fetchUomData(altUoms);
+    await this.setOptionData([`to_item_balance.material_uom`], uomOptions);
+
+    this.setData({
+      [`to_item_balance.material_code`]: itemData.material_code,
+      [`to_item_balance.material_name`]: itemData.material_name,
+      [`to_item_balance.row_index`]: rowIndex,
+      [`to_item_balance.material_uom`]: altUOM,
+    });
+
+    this.setData({
+      [`to_item_balance.table_item_balance`]: [],
+    });
+
     if (itemData.serial_number_management === 1) {
       console.log(
         "Processing serialized item (may also have batch management)"
       );
 
-      // Show serial number column
       this.display("to_item_balance.table_item_balance.serial_number");
       this.display("to_item_balance.search_serial_number");
       this.display("to_item_balance.confirm_search");
       this.display("to_item_balance.reset_search");
 
-      // Show or hide batch column based on whether item also has batch management
       if (itemData.item_batch_management === 1) {
         this.display("to_item_balance.table_item_balance.batch_id");
         console.log(
@@ -329,162 +426,64 @@ db.collection("Item")
         );
       }
 
-      db.collection("item_serial_balance")
-        .where({
-          material_id: materialId,
-          plant_id: plantId,
-        })
-        .get()
-        .then((response) => {
-          console.log("response item_serial_balance", response);
-          let freshDbData = response.data || [];
-
-          const processedFreshData = processItemBalanceData(freshDbData);
-
-          let tempDataArray = [];
-          if (tempQtyData) {
-            try {
-              tempDataArray = JSON.parse(tempQtyData);
-              console.log("Parsed temp data:", tempDataArray);
-            } catch (error) {
-              console.error("Error parsing temp_qty_data:", error);
-              tempDataArray = [];
-            }
-          }
-
-          const finalData = mergeWithTempData(
-            processedFreshData,
-            tempDataArray
-          );
-
-          // Filter out records with no serial numbers
-          const filteredData = filterZeroQuantityRecords(finalData);
-
-          console.log("Final filtered serialized data:", filteredData);
-
-          this.setData({
-            [`to_item_balance.table_item_balance`]: filteredData,
-          });
-
-          this.setData({
-            [`to_item_balance.table_item_balance_raw`]:
-              JSON.stringify(filteredData),
-          });
-        })
-        .catch((error) => {
-          console.error("Error fetching item serial balance data:", error);
-        });
-
-      // Handle Batch Items (only if not serialized)
+      await processRegularMode(
+        "item_serial_balance",
+        materialId,
+        plantId,
+        tempQtyData,
+        itemData,
+        altUOM,
+        baseUOM,
+        true
+      );
     } else if (itemData.item_batch_management === 1) {
       console.log("Processing batch item (non-serialized)");
 
-      // Show batch column and hide serial number column
       this.display("to_item_balance.table_item_balance.batch_id");
       this.hide("to_item_balance.table_item_balance.serial_number");
 
-      db.collection("item_batch_balance")
-        .where({
-          material_id: materialId,
-          plant_id: plantId,
-        })
-        .get()
-        .then((response) => {
-          console.log("response item_batch_balance", response);
-          let freshDbData = response.data || [];
-
-          const processedFreshData = processItemBalanceData(freshDbData);
-
-          let tempDataArray = [];
-          if (tempQtyData) {
-            try {
-              tempDataArray = JSON.parse(tempQtyData);
-              console.log("Parsed temp data:", tempDataArray);
-            } catch (error) {
-              console.error("Error parsing temp_qty_data:", error);
-              tempDataArray = [];
-            }
-          }
-
-          const finalData = mergeWithTempData(
-            processedFreshData,
-            tempDataArray
-          );
-
-          // Filter out records with all zero quantities
-          const filteredData = filterZeroQuantityRecords(finalData);
-
-          console.log("Final filtered batch data:", filteredData);
-
-          this.setData({
-            [`to_item_balance.table_item_balance`]: filteredData,
-          });
-        })
-        .catch((error) => {
-          console.error("Error fetching item batch balance data:", error);
-        });
-
-      // Handle Regular Items (no batch, no serial)
+      await processRegularMode(
+        "item_batch_balance",
+        materialId,
+        plantId,
+        tempQtyData,
+        itemData,
+        altUOM,
+        baseUOM,
+        false
+      );
     } else {
       console.log("Processing regular item (no batch, no serial)");
 
-      // Hide both batch and serial columns
       this.hide("to_item_balance.table_item_balance.batch_id");
       this.hide("to_item_balance.table_item_balance.serial_number");
 
-      db.collection("item_balance")
-        .where({
-          material_id: materialId,
-          plant_id: plantId,
-        })
-        .get()
-        .then((response) => {
-          console.log("response item_balance", response);
-          let freshDbData = response.data || [];
-
-          const processedFreshData = processItemBalanceData(freshDbData);
-
-          let tempDataArray = [];
-          if (tempQtyData) {
-            try {
-              tempDataArray = JSON.parse(tempQtyData);
-              console.log("Parsed temp data:", tempDataArray);
-            } catch (error) {
-              console.error("Error parsing temp_qty_data:", error);
-              tempDataArray = [];
-            }
-          }
-
-          const finalData = mergeWithTempData(
-            processedFreshData,
-            tempDataArray
-          );
-
-          // Filter out records with all zero quantities
-          const filteredData = filterZeroQuantityRecords(finalData);
-
-          console.log("Final filtered regular data:", filteredData);
-
-          this.setData({
-            [`to_item_balance.table_item_balance`]: filteredData,
-          });
-        })
-        .catch((error) => {
-          console.error("Error fetching item balance data:", error);
-        });
+      await processRegularMode(
+        "item_balance",
+        materialId,
+        plantId,
+        tempQtyData,
+        itemData,
+        altUOM,
+        baseUOM,
+        false
+      );
     }
-  })
-  .catch((error) => {
-    console.error("Error fetching item data:", error);
-  });
 
-window.validationState = {};
+    window.validationState = window.validationState || {};
 
-setTimeout(() => {
-  const currentData = this.getValues();
-  const rowCount = currentData.to_item_balance?.table_item_balance?.length || 0;
-  for (let i = 0; i < rowCount; i++) {
-    window.validationState[i] = true;
+    setTimeout(() => {
+      const currentData = this.getValues();
+      const rowCount =
+        currentData.to_item_balance?.table_item_balance?.length || 0;
+
+      for (let i = 0; i < rowCount; i++) {
+        window.validationState[i] = true;
+      }
+
+      console.log(`Initialized validation state for ${rowCount} rows`);
+    }, 100);
+  } catch (error) {
+    console.error("Error in PP inventory dialog:", error);
   }
-  console.log(`Initialized validation state for ${rowCount} rows`);
-}, 100);
+})();
