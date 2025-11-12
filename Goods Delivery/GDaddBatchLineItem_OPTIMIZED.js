@@ -612,7 +612,8 @@ const checkInventoryWithDuplicates = async (
             undelivered_qty: undeliveredQtyBase,
             available_qty: availableQtyBase,
             shortfall_qty: undeliveredQtyBase - availableQtyBase,
-            fm_key: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+            fm_key:
+              Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
 
           // Update table array with base UOM
@@ -698,7 +699,8 @@ const checkInventoryWithDuplicates = async (
             undelivered_qty: undeliveredQty,
             available_qty: availableQtyAlt,
             shortfall_qty: undeliveredQty - availableQtyAlt,
-            fm_key: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+            fm_key:
+              Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
 
           if (pickingMode === "Manual") {
@@ -867,7 +869,7 @@ const checkInventoryWithDuplicates = async (
   // Apply insufficient dialog data if any
   if (insufficientDialogData.length > 0) {
     await this.setData({
-      "dialog_insufficient.table_insufficient": insufficientDialogData
+      "dialog_insufficient.table_insufficient": insufficientDialogData,
     });
     console.log(
       `✅ Updated insufficient dialog with ${insufficientDialogData.length} items`
@@ -1293,8 +1295,10 @@ const processAutoAllocationForSerializedItems = async (
           const batchA = findBatchData(a.batch_id);
           const batchB = findBatchData(b.batch_id);
 
-          if (batchA?.expiry_date && batchB?.expiry_date) {
-            return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+          if (batchA?.expired_date && batchB?.expired_date) {
+            return (
+              new Date(batchA.expired_date) - new Date(batchB.expired_date)
+            );
           }
           return (a.serial_number || "").localeCompare(b.serial_number || "");
         });
@@ -1342,8 +1346,10 @@ const processAutoAllocationForSerializedItems = async (
           const batchA = findBatchData(a.batch_id);
           const batchB = findBatchData(b.batch_id);
 
-          if (batchA?.expiry_date && batchB?.expiry_date) {
-            return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+          if (batchA?.expired_date && batchB?.expired_date) {
+            return (
+              new Date(batchA.expired_date) - new Date(batchB.expired_date)
+            );
           }
           return (a.serial_number || "").localeCompare(b.serial_number || "");
         });
@@ -1385,8 +1391,8 @@ const processAutoAllocationForSerializedItems = async (
         const batchA = findBatchData(a.batch_id);
         const batchB = findBatchData(b.batch_id);
 
-        if (batchA?.expiry_date && batchB?.expiry_date) {
-          return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+        if (batchA?.expired_date && batchB?.expired_date) {
+          return new Date(batchA.expired_date) - new Date(batchB.expired_date);
         }
         return (a.serial_number || "").localeCompare(b.serial_number || "");
       });
@@ -1467,8 +1473,10 @@ const processAutoAllocation = async (
           const batchA = findBatchData(a.batch_id);
           const batchB = findBatchData(b.batch_id);
 
-          if (batchA?.expiry_date && batchB?.expiry_date) {
-            return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+          if (batchA?.expired_date && batchB?.expired_date) {
+            return (
+              new Date(batchA.expired_date) - new Date(batchB.expired_date)
+            );
           }
           return (batchA?.batch_number || "").localeCompare(
             batchB?.batch_number || ""
@@ -1513,8 +1521,10 @@ const processAutoAllocation = async (
           const batchA = findBatchData(a.batch_id);
           const batchB = findBatchData(b.batch_id);
 
-          if (batchA?.expiry_date && batchB?.expiry_date) {
-            return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+          if (batchA?.expired_date && batchB?.expired_date) {
+            return (
+              new Date(batchA.expired_date) - new Date(batchB.expired_date)
+            );
           }
           return (batchA?.batch_number || "").localeCompare(
             batchB?.batch_number || ""
@@ -1560,8 +1570,8 @@ const processAutoAllocation = async (
         const batchA = findBatchData(a.batch_id);
         const batchB = findBatchData(b.batch_id);
 
-        if (batchA?.expiry_date && batchB?.expiry_date) {
-          return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+        if (batchA?.expired_date && batchB?.expired_date) {
+          return new Date(batchA.expired_date) - new Date(batchB.expired_date);
         }
         return (batchA?.batch_number || "").localeCompare(
           batchB?.batch_number || ""

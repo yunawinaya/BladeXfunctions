@@ -34,18 +34,34 @@
       this.hide("gd_item_balance.table_item_balance.to_quantity");
     }
 
-    const fetchDefaultStorageLocation = async () => {
-      const defaultStorageLocation = await db
-        .collection("storage_location")
-        .where({
-          plant_id: plantId,
-          storage_status: 1,
-          location_type: "Common",
-          is_deleted: 0,
-          is_default: 1,
-        })
-        .get()
-        .then((res) => res.data[0]);
+    const fetchDefaultStorageLocation = async (itemData) => {
+      const defaultBin = itemData?.table_default_bin?.find(
+        (bin) => bin.plant_id === plantId
+      );
+
+      const defaultStorageLocationId = defaultBin?.storage_location_id;
+
+      let defaultStorageLocation = null;
+
+      if (!defaultStorageLocationId || defaultStorageLocationId === "") {
+        defaultStorageLocation = await db
+          .collection("storage_location")
+          .where({
+            plant_id: plantId,
+            storage_status: 1,
+            location_type: "Common",
+            is_deleted: 0,
+            is_default: 1,
+          })
+          .get()
+          .then((res) => res.data[0]);
+      } else {
+        defaultStorageLocation = await db
+          .collection("storage_location")
+          .where({ id: defaultStorageLocationId })
+          .get()
+          .then((res) => res.data[0]);
+      }
 
       if (!defaultStorageLocation) {
         console.error("Default storage location not found");
@@ -314,9 +330,10 @@
       let finalData = filteredData;
 
       if (defaultStorageLocation) {
-        const binLocationList = defaultStorageLocation.table_bin_location?.map(
-          (bin) => bin.bin_location_id
-        ) || [];
+        const binLocationList =
+          defaultStorageLocation.table_bin_location?.map(
+            (bin) => bin.bin_location_id
+          ) || [];
 
         console.log("binLocationList", binLocationList);
 
@@ -337,7 +354,8 @@
 
       if (includeRawData) {
         this.setData({
-          [`gd_item_balance.table_item_balance_raw`]: JSON.stringify(filteredData),
+          [`gd_item_balance.table_item_balance_raw`]:
+            JSON.stringify(filteredData),
         });
       }
     };
@@ -405,20 +423,6 @@
       }
     };
 
-    const defaultStorageLocation = await fetchDefaultStorageLocation();
-
-    if (defaultStorageLocation) {
-      this.models["default_storage_location"] = defaultStorageLocation;
-
-      const currentStorageLocationId = data.gd_item_balance?.storage_location;
-
-      if (currentStorageLocationId !== defaultStorageLocation.id) {
-        await this.setData({
-          [`gd_item_balance.storage_location`]: defaultStorageLocation.id,
-        });
-      }
-    }
-
     const response = await db
       .collection("Item")
       .where({ id: materialId })
@@ -433,6 +437,20 @@
 
     const itemData = response.data[0];
     const baseUOM = itemData.based_uom;
+
+    const defaultStorageLocation = await fetchDefaultStorageLocation(itemData);
+
+    if (defaultStorageLocation) {
+      this.models["default_storage_location"] = defaultStorageLocation;
+
+      const currentStorageLocationId = data.gd_item_balance?.storage_location;
+
+      if (currentStorageLocationId !== defaultStorageLocation.id) {
+        await this.setData({
+          [`gd_item_balance.storage_location`]: defaultStorageLocation.id,
+        });
+      }
+    }
 
     const altUoms =
       itemData.table_uom_conversion?.map((data) => data.alt_uom_id) || [];

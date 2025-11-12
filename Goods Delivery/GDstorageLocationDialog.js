@@ -23,7 +23,7 @@
       ) || [];
 
     const filteredBalanceData =
-      fullBalanceData.filter((data) =>
+      fullBalanceData?.filter((data) =>
         binLocationList.includes(data.location_id)
       ) || [];
 
