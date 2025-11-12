@@ -1,83 +1,92 @@
-const data = this.getValues();
-const lineItemData = arguments[0]?.row;
-const rowIndex = arguments[0]?.rowIndex;
-const isSelectPicking = data.is_select_picking;
-
-console.log("lineItemData", lineItemData);
-
-const materialId = lineItemData.material_id;
-const altUOM = lineItemData.gd_order_uom_id;
-const plantId = data.plant_id;
-
-const tempQtyData = lineItemData.temp_qty_data;
-
-this.hide("gd_item_balance.table_item_balance.serial_number");
-
-// GDPP mode: Show to_quantity, hide balance columns
-if (isSelectPicking === 1) {
-  console.log("GDPP mode: Showing to_quantity, hiding balance columns");
-  this.display("gd_item_balance.table_item_balance.to_quantity");
-} else {
-  // Regular SO -> GD flow: Hide to_quantity, show balance columns
-  console.log("Regular GD mode: Hiding to_quantity, showing balance columns");
-  this.hide("gd_item_balance.table_item_balance.to_quantity");
-}
-
-const fetchUomData = async (uomIds) => {
+(async () => {
   try {
-    const resUOM = await Promise.all(
-      uomIds.map((id) =>
-        db.collection("unit_of_measurement").where({ id }).get()
-      )
-    );
+    const data = this.getValues();
+    const lineItemData = arguments[0]?.row;
+    const rowIndex = arguments[0]?.rowIndex;
 
-    const uomData = resUOM.map((response) => response.data[0]);
+    if (!lineItemData) {
+      console.error("Missing line item data");
+      return;
+    }
 
-    return uomData;
-  } catch (error) {
-    console.error("Error fetching UOM data:", error);
-    return [];
-  }
-};
+    const isSelectPicking = data.is_select_picking === 1;
+    const materialId = lineItemData.material_id;
+    const altUOM = lineItemData.gd_order_uom_id;
+    const plantId = data.plant_id;
+    const tempQtyData = lineItemData.temp_qty_data;
 
-db.collection("Item")
-  .where({
-    id: materialId,
-  })
-  .get()
-  .then(async (response) => {
-    console.log("response item", response);
-    const itemData = response.data[0];
-    const baseUOM = itemData.based_uom;
+    console.log("lineItemData", lineItemData);
 
-    const altUoms = itemData.table_uom_conversion?.map(
-      (data) => data.alt_uom_id
-    );
-    let uomOptions = [];
+    if (!materialId || !plantId) {
+      console.error("Missing required material_id or plant_id");
+      return;
+    }
 
-    const res = await fetchUomData(altUoms);
-    uomOptions.push(...res);
+    this.hide("gd_item_balance.table_item_balance.serial_number");
 
-    await this.setOptionData([`gd_item_balance.material_uom`], uomOptions);
+    if (isSelectPicking) {
+      console.log("GDPP mode: Showing to_quantity, hiding balance columns");
+      this.display("gd_item_balance.table_item_balance.to_quantity");
+    } else {
+      console.log(
+        "Regular GD mode: Hiding to_quantity, showing balance columns"
+      );
+      this.hide("gd_item_balance.table_item_balance.to_quantity");
+    }
 
-    this.setData({
-      [`gd_item_balance.material_code`]: itemData.material_code,
-      [`gd_item_balance.material_name`]: itemData.material_name,
-      [`gd_item_balance.row_index`]: rowIndex,
-      [`gd_item_balance.material_uom`]: altUOM,
-    });
+    const fetchDefaultStorageLocation = async () => {
+      const defaultStorageLocation = await db
+        .collection("storage_location")
+        .where({
+          plant_id: plantId,
+          storage_status: 1,
+          location_type: "Common",
+          is_deleted: 0,
+          is_default: 1,
+        })
+        .get()
+        .then((res) => res.data[0]);
 
-    this.setData({
-      [`gd_item_balance.table_item_balance`]: [],
-    });
+      if (!defaultStorageLocation) {
+        console.error("Default storage location not found");
+        return null;
+      }
+
+      return defaultStorageLocation;
+    };
+
+    const fetchUomData = async (uomIds) => {
+      if (!Array.isArray(uomIds) || uomIds.length === 0) {
+        console.warn("No UOM IDs provided to fetchUomData");
+        return [];
+      }
+
+      try {
+        const resUOM = await Promise.all(
+          uomIds.map((id) =>
+            db.collection("unit_of_measurement").where({ id }).get()
+          )
+        );
+
+        const uomData = resUOM
+          .map((response) => response.data?.[0])
+          .filter(Boolean);
+
+        return uomData;
+      } catch (error) {
+        console.error("Error fetching UOM data:", error);
+        return [];
+      }
+    };
 
     const convertBaseToAlt = (baseQty, itemData, altUOM) => {
       if (
+        !baseQty ||
         !Array.isArray(itemData.table_uom_conversion) ||
         itemData.table_uom_conversion.length === 0 ||
         !altUOM
       ) {
-        return baseQty;
+        return baseQty || 0;
       }
 
       const uomConversion = itemData.table_uom_conversion.find(
@@ -91,119 +100,80 @@ db.collection("Item")
       return Math.round(baseQty * uomConversion.alt_qty * 1000) / 1000;
     };
 
-    const processItemBalanceData = (itemBalanceData) => {
+    const processItemBalanceData = (
+      itemBalanceData,
+      itemData,
+      altUOM,
+      baseUOM
+    ) => {
+      if (!Array.isArray(itemBalanceData)) {
+        return [];
+      }
+
       return itemBalanceData.map((record) => {
         const processedRecord = { ...record };
 
         if (altUOM !== baseUOM) {
-          if (processedRecord.block_qty) {
-            processedRecord.block_qty = convertBaseToAlt(
-              processedRecord.block_qty,
-              itemData,
-              altUOM
-            );
-          }
+          const quantityFields = [
+            "block_qty",
+            "reserved_qty",
+            "unrestricted_qty",
+            "qualityinsp_qty",
+            "intransit_qty",
+            "balance_quantity",
+          ];
 
-          if (processedRecord.reserved_qty) {
-            processedRecord.reserved_qty = convertBaseToAlt(
-              processedRecord.reserved_qty,
-              itemData,
-              altUOM
-            );
-          }
-
-          if (processedRecord.unrestricted_qty) {
-            processedRecord.unrestricted_qty = convertBaseToAlt(
-              processedRecord.unrestricted_qty,
-              itemData,
-              altUOM
-            );
-          }
-
-          if (processedRecord.qualityinsp_qty) {
-            processedRecord.qualityinsp_qty = convertBaseToAlt(
-              processedRecord.qualityinsp_qty,
-              itemData,
-              altUOM
-            );
-          }
-
-          if (processedRecord.intransit_qty) {
-            processedRecord.intransit_qty = convertBaseToAlt(
-              processedRecord.intransit_qty,
-              itemData,
-              altUOM
-            );
-          }
-
-          if (processedRecord.balance_quantity) {
-            processedRecord.balance_quantity = convertBaseToAlt(
-              processedRecord.balance_quantity,
-              itemData,
-              altUOM
-            );
-          }
+          quantityFields.forEach((field) => {
+            if (processedRecord[field]) {
+              processedRecord[field] = convertBaseToAlt(
+                processedRecord[field],
+                itemData,
+                altUOM
+              );
+            }
+          });
         }
 
         return processedRecord;
       });
     };
 
-    const mergeWithTempData = (freshDbData, tempDataArray) => {
-      if (!tempDataArray || tempDataArray.length === 0) {
+    const generateRecordKey = (item, itemData) => {
+      if (itemData.serial_number_management === 1) {
+        if (itemData.item_batch_management === 1) {
+          return `${item.location_id}-${item.serial_number || "no_serial"}-${
+            item.batch_id || "no_batch"
+          }`;
+        } else {
+          return `${item.location_id}-${item.serial_number || "no_serial"}`;
+        }
+      } else if (itemData.item_batch_management === 1) {
+        return `${item.location_id}-${item.batch_id || "no_batch"}`;
+      } else {
+        return `${item.location_id}`;
+      }
+    };
+
+    const mergeWithTempData = (freshDbData, tempDataArray, itemData) => {
+      if (!Array.isArray(tempDataArray) || tempDataArray.length === 0) {
         console.log("No temp data to merge, using fresh DB data");
-        return freshDbData;
+        return freshDbData.map((item) => ({ ...item, gd_quantity: 0 }));
       }
 
       console.log("Merging fresh DB data with existing temp data");
 
       const tempDataMap = new Map();
       tempDataArray.forEach((tempItem) => {
-        let key;
-        if (itemData.serial_number_management === 1) {
-          this.display("gd_item_balance.table_item_balance.serial_number");
-
-          // For serialized items, always use serial number as primary key
-          // Include batch_id if item also has batch management
-          if (itemData.item_batch_management === 1) {
-            key = `${tempItem.location_id}-${
-              tempItem.serial_number || "no_serial"
-            }-${tempItem.batch_id || "no_batch"}`;
-          } else {
-            key = `${tempItem.location_id}-${
-              tempItem.serial_number || "no_serial"
-            }`;
-          }
-        } else if (itemData.item_batch_management === 1) {
-          // For batch items (non-serialized), use batch as key
-          key = `${tempItem.location_id}-${tempItem.batch_id || "no_batch"}`;
-        } else {
-          // For regular items, use only location
-          key = `${tempItem.location_id}`;
-        }
+        const key = generateRecordKey(tempItem, itemData);
         tempDataMap.set(key, tempItem);
       });
 
-      const mergedData = freshDbData.map((dbItem) => {
-        let key;
-        if (itemData.serial_number_management === 1) {
-          // For serialized items, always use serial number as primary key
-          // Include batch_id if item also has batch management
-          if (itemData.item_batch_management === 1) {
-            key = `${dbItem.location_id}-${
-              dbItem.serial_number || "no_serial"
-            }-${dbItem.batch_id || "no_batch"}`;
-          } else {
-            key = `${dbItem.location_id}-${
-              dbItem.serial_number || "no_serial"
-            }`;
-          }
-        } else if (itemData.item_batch_management === 1) {
-          key = `${dbItem.location_id}-${dbItem.batch_id || "no_batch"}`;
-        } else {
-          key = `${dbItem.location_id}`;
-        }
+      if (itemData.serial_number_management === 1) {
+        this.display("gd_item_balance.table_item_balance.serial_number");
+      }
 
+      const mergedData = freshDbData.map((dbItem) => {
+        const key = generateRecordKey(dbItem, itemData);
         const tempItem = tempDataMap.get(key);
 
         if (tempItem) {
@@ -224,49 +194,15 @@ db.collection("Item")
       });
 
       tempDataArray.forEach((tempItem) => {
-        let key;
-        if (itemData.serial_number_management === 1) {
-          // For serialized items, always use serial number as primary key
-          // Include batch_id if item also has batch management
-          if (itemData.item_batch_management === 1) {
-            key = `${tempItem.location_id}-${
-              tempItem.serial_number || "no_serial"
-            }-${tempItem.batch_id || "no_batch"}`;
-          } else {
-            key = `${tempItem.location_id}-${
-              tempItem.serial_number || "no_serial"
-            }`;
-          }
-        } else if (itemData.item_batch_management === 1) {
-          key = `${tempItem.location_id}-${tempItem.batch_id || "no_batch"}`;
-        } else {
-          key = `${tempItem.location_id}`;
-        }
+        const tempKey = generateRecordKey(tempItem, itemData);
 
         const existsInDb = freshDbData.some((dbItem) => {
-          let dbKey;
-          if (itemData.serial_number_management === 1) {
-            // For serialized items, always use serial number as primary key
-            // Include batch_id if item also has batch management
-            if (itemData.item_batch_management === 1) {
-              dbKey = `${dbItem.location_id}-${
-                dbItem.serial_number || "no_serial"
-              }-${dbItem.batch_id || "no_batch"}`;
-            } else {
-              dbKey = `${dbItem.location_id}-${
-                dbItem.serial_number || "no_serial"
-              }`;
-            }
-          } else if (itemData.item_batch_management === 1) {
-            dbKey = `${dbItem.location_id}-${dbItem.batch_id || "no_batch"}`;
-          } else {
-            dbKey = `${dbItem.location_id}`;
-          }
-          return dbKey === key;
+          const dbKey = generateRecordKey(dbItem, itemData);
+          return dbKey === tempKey;
         });
 
         if (!existsInDb) {
-          console.log(`Adding temp-only data for ${key}`);
+          console.log(`Adding temp-only data for ${tempKey}`);
           mergedData.push(tempItem);
         }
       });
@@ -274,20 +210,22 @@ db.collection("Item")
       return mergedData;
     };
 
-    // Helper function to process temp_qty_data directly for GDPP mode
-    const processTempQtyDataOnly = (tempDataArray) => {
+    const processTempQtyDataOnly = (
+      tempDataArray,
+      itemData,
+      altUOM,
+      baseUOM
+    ) => {
       console.log("GDPP mode: Using temp_qty_data directly without DB fetch");
 
-      if (!tempDataArray || tempDataArray.length === 0) {
+      if (!Array.isArray(tempDataArray) || tempDataArray.length === 0) {
         console.log("No temp data available");
         return [];
       }
 
-      // Process temp data with UOM conversion if needed
       return tempDataArray.map((record) => {
         const processedRecord = { ...record };
 
-        // Convert quantities from base UOM to alt UOM if different
         if (altUOM !== baseUOM) {
           if (processedRecord.unrestricted_qty) {
             processedRecord.unrestricted_qty = convertBaseToAlt(
@@ -303,27 +241,26 @@ db.collection("Item")
               altUOM
             );
           }
-          // Other quantity fields from temp_qty_data typically don't need conversion
-          // as they're already in the correct UOM from picking
         }
 
         return processedRecord;
       });
     };
 
-    const filterZeroQuantityRecords = (data) => {
+    const filterZeroQuantityRecords = (data, itemData) => {
+      if (!Array.isArray(data)) {
+        return [];
+      }
+
       return data.filter((record) => {
-        // For serialized items, check both serial number existence AND quantity > 0
         if (itemData.serial_number_management === 1) {
-          // First check if serial number exists and is not empty
           const hasValidSerial =
             record.serial_number && record.serial_number.trim() !== "";
 
           if (!hasValidSerial) {
-            return false; // Exclude if no valid serial number
+            return false;
           }
 
-          // Then check if any quantity fields have value > 0
           const hasQuantity =
             (record.block_qty && record.block_qty > 0) ||
             (record.reserved_qty && record.reserved_qty > 0) ||
@@ -336,10 +273,9 @@ db.collection("Item")
             `Serial ${record.serial_number}: hasQuantity=${hasQuantity}, unrestricted=${record.unrestricted_qty}, reserved=${record.reserved_qty}, balance=${record.balance_quantity}`
           );
 
-          return hasQuantity; // Only include if both serial exists AND has quantity > 0
+          return hasQuantity;
         }
 
-        // For batch and regular items, check if any quantity fields have value > 0
         const hasQuantity =
           (record.block_qty && record.block_qty > 0) ||
           (record.reserved_qty && record.reserved_qty > 0) ||
@@ -352,19 +288,178 @@ db.collection("Item")
       });
     };
 
-    // Handle Serialized Items (takes priority over batch management)
+    const parseTempQtyData = (tempQtyData) => {
+      if (!tempQtyData) {
+        return [];
+      }
+
+      try {
+        const parsed = JSON.parse(tempQtyData);
+        console.log("Parsed temp data:", parsed);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        console.error("Error parsing temp_qty_data:", error);
+        return [];
+      }
+    };
+
+    const setTableBalanceData = async (
+      filteredData,
+      includeRawData = false
+    ) => {
+      this.models["full_balance_data"] = filteredData;
+
+      const defaultStorageLocation = this.models["default_storage_location"];
+
+      let finalData = filteredData;
+
+      if (defaultStorageLocation) {
+        const binLocationList = defaultStorageLocation.table_bin_location?.map(
+          (bin) => bin.bin_location_id
+        ) || [];
+
+        console.log("binLocationList", binLocationList);
+
+        const matchedBalanceData = filteredData.filter((data) =>
+          binLocationList.includes(data.location_id)
+        );
+
+        console.log("matchedBalanceData", matchedBalanceData);
+
+        if (matchedBalanceData.length > 0) {
+          finalData = matchedBalanceData;
+        }
+      }
+
+      await this.setData({
+        [`gd_item_balance.table_item_balance`]: finalData,
+      });
+
+      if (includeRawData) {
+        this.setData({
+          [`gd_item_balance.table_item_balance_raw`]: JSON.stringify(filteredData),
+        });
+      }
+    };
+
+    const processGDPPMode = (
+      tempQtyData,
+      itemData,
+      altUOM,
+      baseUOM,
+      includeRawData = false
+    ) => {
+      const tempDataArray = parseTempQtyData(tempQtyData);
+      const finalData = processTempQtyDataOnly(
+        tempDataArray,
+        itemData,
+        altUOM,
+        baseUOM
+      );
+      const filteredData = filterZeroQuantityRecords(finalData, itemData);
+
+      console.log("Final filtered data (GDPP):", filteredData);
+      setTableBalanceData(filteredData, includeRawData);
+    };
+
+    const processRegularMode = async (
+      collectionName,
+      materialId,
+      plantId,
+      tempQtyData,
+      itemData,
+      altUOM,
+      baseUOM,
+      includeRawData = false
+    ) => {
+      try {
+        const response = await db
+          .collection(collectionName)
+          .where({
+            material_id: materialId,
+            plant_id: plantId,
+          })
+          .get();
+
+        console.log(`response ${collectionName}`, response);
+
+        const freshDbData = response.data || [];
+        const processedFreshData = processItemBalanceData(
+          freshDbData,
+          itemData,
+          altUOM,
+          baseUOM
+        );
+        const tempDataArray = parseTempQtyData(tempQtyData);
+        const finalData = mergeWithTempData(
+          processedFreshData,
+          tempDataArray,
+          itemData
+        );
+        const filteredData = filterZeroQuantityRecords(finalData, itemData);
+
+        console.log("Final filtered data:", filteredData);
+        setTableBalanceData(filteredData, includeRawData);
+      } catch (error) {
+        console.error(`Error fetching ${collectionName} data:`, error);
+      }
+    };
+
+    const defaultStorageLocation = await fetchDefaultStorageLocation();
+
+    if (defaultStorageLocation) {
+      this.models["default_storage_location"] = defaultStorageLocation;
+
+      const currentStorageLocationId = data.gd_item_balance?.storage_location;
+
+      if (currentStorageLocationId !== defaultStorageLocation.id) {
+        await this.setData({
+          [`gd_item_balance.storage_location`]: defaultStorageLocation.id,
+        });
+      }
+    }
+
+    const response = await db
+      .collection("Item")
+      .where({ id: materialId })
+      .get();
+
+    console.log("response item", response);
+
+    if (!response.data || response.data.length === 0) {
+      console.error("Item not found:", materialId);
+      return;
+    }
+
+    const itemData = response.data[0];
+    const baseUOM = itemData.based_uom;
+
+    const altUoms =
+      itemData.table_uom_conversion?.map((data) => data.alt_uom_id) || [];
+    const uomOptions = await fetchUomData(altUoms);
+    await this.setOptionData([`gd_item_balance.material_uom`], uomOptions);
+
+    this.setData({
+      [`gd_item_balance.material_code`]: itemData.material_code,
+      [`gd_item_balance.material_name`]: itemData.material_name,
+      [`gd_item_balance.row_index`]: rowIndex,
+      [`gd_item_balance.material_uom`]: altUOM,
+    });
+
+    this.setData({
+      [`gd_item_balance.table_item_balance`]: [],
+    });
+
     if (itemData.serial_number_management === 1) {
       console.log(
         "Processing serialized item (may also have batch management)"
       );
 
-      // Show serial number column
       this.display("gd_item_balance.table_item_balance.serial_number");
       this.display("gd_item_balance.search_serial_number");
       this.display("gd_item_balance.confirm_search");
       this.display("gd_item_balance.reset_search");
 
-      // Show or hide batch column based on whether item also has batch management
       if (itemData.item_batch_management === 1) {
         this.display("gd_item_balance.table_item_balance.batch_id");
         console.log(
@@ -377,245 +472,79 @@ db.collection("Item")
         );
       }
 
-      // GDPP mode: Use temp_qty_data directly without fetching balance
-      if (isSelectPicking === 1) {
+      if (isSelectPicking) {
         console.log("GDPP mode: Skipping item_serial_balance fetch");
-
-        let tempDataArray = [];
-        if (tempQtyData) {
-          try {
-            tempDataArray = JSON.parse(tempQtyData);
-            console.log("Parsed temp data:", tempDataArray);
-          } catch (error) {
-            console.error("Error parsing temp_qty_data:", error);
-            tempDataArray = [];
-          }
-        }
-
-        const finalData = processTempQtyDataOnly(tempDataArray);
-        const filteredData = filterZeroQuantityRecords(finalData);
-
-        console.log("Final filtered serialized data (GDPP):", filteredData);
-
-        this.setData({
-          [`gd_item_balance.table_item_balance`]: filteredData,
-        });
-
-        this.setData({
-          [`gd_item_balance.table_item_balance_raw`]:
-            JSON.stringify(filteredData),
-        });
+        processGDPPMode(tempQtyData, itemData, altUOM, baseUOM, true);
       } else {
-        // Regular SO -> GD flow: Fetch balance and merge with temp data
-        db.collection("item_serial_balance")
-          .where({
-            material_id: materialId,
-            plant_id: plantId,
-          })
-          .get()
-          .then((response) => {
-            console.log("response item_serial_balance", response);
-            let freshDbData = response.data || [];
-
-            const processedFreshData = processItemBalanceData(freshDbData);
-
-            let tempDataArray = [];
-            if (tempQtyData) {
-              try {
-                tempDataArray = JSON.parse(tempQtyData);
-                console.log("Parsed temp data:", tempDataArray);
-              } catch (error) {
-                console.error("Error parsing temp_qty_data:", error);
-                tempDataArray = [];
-              }
-            }
-
-            const finalData = mergeWithTempData(
-              processedFreshData,
-              tempDataArray
-            );
-
-            // Filter out records with no serial numbers
-            const filteredData = filterZeroQuantityRecords(finalData);
-
-            console.log("Final filtered serialized data:", filteredData);
-
-            this.setData({
-              [`gd_item_balance.table_item_balance`]: filteredData,
-            });
-
-            this.setData({
-              [`gd_item_balance.table_item_balance_raw`]:
-                JSON.stringify(filteredData),
-            });
-          })
-          .catch((error) => {
-            console.error("Error fetching item serial balance data:", error);
-          });
+        await processRegularMode(
+          "item_serial_balance",
+          materialId,
+          plantId,
+          tempQtyData,
+          itemData,
+          altUOM,
+          baseUOM,
+          true
+        );
       }
-
-      // Handle Batch Items (only if not serialized)
     } else if (itemData.item_batch_management === 1) {
       console.log("Processing batch item (non-serialized)");
 
-      // Show batch column and hide serial number column
       this.display("gd_item_balance.table_item_balance.batch_id");
       this.hide("gd_item_balance.table_item_balance.serial_number");
 
-      // GDPP mode: Use temp_qty_data directly without fetching balance
-      if (isSelectPicking === 1) {
+      if (isSelectPicking) {
         console.log("GDPP mode: Skipping item_batch_balance fetch");
-
-        let tempDataArray = [];
-        if (tempQtyData) {
-          try {
-            tempDataArray = JSON.parse(tempQtyData);
-            console.log("Parsed temp data:", tempDataArray);
-          } catch (error) {
-            console.error("Error parsing temp_qty_data:", error);
-            tempDataArray = [];
-          }
-        }
-
-        const finalData = processTempQtyDataOnly(tempDataArray);
-        const filteredData = filterZeroQuantityRecords(finalData);
-
-        console.log("Final filtered batch data (GDPP):", filteredData);
-
-        this.setData({
-          [`gd_item_balance.table_item_balance`]: filteredData,
-        });
+        processGDPPMode(tempQtyData, itemData, altUOM, baseUOM, false);
       } else {
-        // Regular SO -> GD flow: Fetch balance and merge with temp data
-        db.collection("item_batch_balance")
-          .where({
-            material_id: materialId,
-            plant_id: plantId,
-          })
-          .get()
-          .then((response) => {
-            console.log("response item_batch_balance", response);
-            let freshDbData = response.data || [];
-
-            const processedFreshData = processItemBalanceData(freshDbData);
-
-            let tempDataArray = [];
-            if (tempQtyData) {
-              try {
-                tempDataArray = JSON.parse(tempQtyData);
-                console.log("Parsed temp data:", tempDataArray);
-              } catch (error) {
-                console.error("Error parsing temp_qty_data:", error);
-                tempDataArray = [];
-              }
-            }
-
-            const finalData = mergeWithTempData(
-              processedFreshData,
-              tempDataArray
-            );
-
-            // Filter out records with all zero quantities
-            const filteredData = filterZeroQuantityRecords(finalData);
-
-            console.log("Final filtered batch data:", filteredData);
-
-            this.setData({
-              [`gd_item_balance.table_item_balance`]: filteredData,
-            });
-          })
-          .catch((error) => {
-            console.error("Error fetching item batch balance data:", error);
-          });
+        await processRegularMode(
+          "item_batch_balance",
+          materialId,
+          plantId,
+          tempQtyData,
+          itemData,
+          altUOM,
+          baseUOM,
+          false
+        );
       }
-
-      // Handle Regular Items (no batch, no serial)
     } else {
       console.log("Processing regular item (no batch, no serial)");
 
-      // Hide both batch and serial columns
       this.hide("gd_item_balance.table_item_balance.batch_id");
       this.hide("gd_item_balance.table_item_balance.serial_number");
 
-      // GDPP mode: Use temp_qty_data directly without fetching balance
-      if (isSelectPicking === 1) {
+      if (isSelectPicking) {
         console.log("GDPP mode: Skipping item_balance fetch");
-
-        let tempDataArray = [];
-        if (tempQtyData) {
-          try {
-            tempDataArray = JSON.parse(tempQtyData);
-            console.log("Parsed temp data:", tempDataArray);
-          } catch (error) {
-            console.error("Error parsing temp_qty_data:", error);
-            tempDataArray = [];
-          }
-        }
-
-        const finalData = processTempQtyDataOnly(tempDataArray);
-        const filteredData = filterZeroQuantityRecords(finalData);
-
-        console.log("Final filtered regular data (GDPP):", filteredData);
-
-        this.setData({
-          [`gd_item_balance.table_item_balance`]: filteredData,
-        });
+        processGDPPMode(tempQtyData, itemData, altUOM, baseUOM, false);
       } else {
-        // Regular SO -> GD flow: Fetch balance and merge with temp data
-        db.collection("item_balance")
-          .where({
-            material_id: materialId,
-            plant_id: plantId,
-          })
-          .get()
-          .then((response) => {
-            console.log("response item_balance", response);
-            let freshDbData = response.data || [];
-
-            const processedFreshData = processItemBalanceData(freshDbData);
-
-            let tempDataArray = [];
-            if (tempQtyData) {
-              try {
-                tempDataArray = JSON.parse(tempQtyData);
-                console.log("Parsed temp data:", tempDataArray);
-              } catch (error) {
-                console.error("Error parsing temp_qty_data:", error);
-                tempDataArray = [];
-              }
-            }
-
-            const finalData = mergeWithTempData(
-              processedFreshData,
-              tempDataArray
-            );
-
-            // Filter out records with all zero quantities
-            const filteredData = filterZeroQuantityRecords(finalData);
-
-            console.log("Final filtered regular data:", filteredData);
-
-            this.setData({
-              [`gd_item_balance.table_item_balance`]: filteredData,
-            });
-          })
-          .catch((error) => {
-            console.error("Error fetching item balance data:", error);
-          });
+        await processRegularMode(
+          "item_balance",
+          materialId,
+          plantId,
+          tempQtyData,
+          itemData,
+          altUOM,
+          baseUOM,
+          false
+        );
       }
     }
-  })
-  .catch((error) => {
-    console.error("Error fetching item data:", error);
-  });
 
-window.validationState = {};
+    window.validationState = window.validationState || {};
 
-setTimeout(() => {
-  const currentData = this.getValues();
-  const rowCount = currentData.gd_item_balance?.table_item_balance?.length || 0;
-  for (let i = 0; i < rowCount; i++) {
-    window.validationState[i] = true;
+    setTimeout(() => {
+      const currentData = this.getValues();
+      const rowCount =
+        currentData.gd_item_balance?.table_item_balance?.length || 0;
+
+      for (let i = 0; i < rowCount; i++) {
+        window.validationState[i] = true;
+      }
+
+      console.log(`Initialized validation state for ${rowCount} rows`);
+    }, 100);
+  } catch (error) {
+    console.error("Error in GD inventory dialog:", error);
   }
-  console.log(`Initialized validation state for ${rowCount} rows`);
-}, 100);
+})();
