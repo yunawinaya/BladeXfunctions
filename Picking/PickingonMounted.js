@@ -372,6 +372,15 @@ const PickingPlan = async () => {
         await this.hide(["button_complete_pp"]);
       }
     }
+
+    const isLoadingBay = pickingSetup.data[0].is_loading_bay;
+    this.models["is_loading_bay"] = isLoadingBay;
+    if (isLoadingBay) {
+      await this.display([
+        "table_picking_items.storage_location",
+        "table_picking_items.target_location",
+      ]);
+    }
   } catch (error) {
     console.error(error);
     this.$message.error(error.message || "An error occurred");

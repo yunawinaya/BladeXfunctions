@@ -468,7 +468,7 @@ const createPickingRecord = async (toData) => {
         store_out_qty: item.picked_qty,
         item_uom: item.item_uom,
         source_bin: item.source_bin,
-        target_location: item.source_bin,
+        target_location: item.target_location || item.source_bin,
         remark: item.remark,
         confirmed_by: this.getVarGlobal("nickname"),
         confirmed_at: new Date().toISOString().slice(0, 19).replace("T", " "),

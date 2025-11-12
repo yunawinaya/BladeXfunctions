@@ -1,6 +1,11 @@
 (async () => {
   try {
-    const gdNo = await this.getValue("gd_no");
+    const gdList = await this.getValue("gd_no");
+    let tablePickingItems = [],
+      gdIDs = [],
+      gdNOs = [],
+      soNOs = [],
+      customerIDs = [];
 
     const viewSerialNumber = async () => {
       const table_picking_items = this.getValue("table_picking_items");
@@ -117,95 +122,110 @@
       }
     };
 
-    const gdData = await db
-      .collection("goods_delivery")
-      .where({ id: gdNo })
-      .get()
-      .then((response) => {
-        if (response.data && response.data.length > 0) {
-          return response.data[0];
+    for (const gdNo of gdList) {
+      const gdData = await db
+        .collection("goods_delivery")
+        .where({ id: gdNo })
+        .get()
+        .then((response) => {
+          if (response.data && response.data.length > 0) {
+            return response.data[0];
+          }
+          return null;
+        });
+
+      console.log("Fetched Goods Delivery Data:", gdData);
+
+      // Prepare picking items with grouping for serialized items (similar to createOrUpdatePicking)
+      const pickingItemGroups = new Map();
+      customerIDs.push(gdData.customer_name);
+      for (const item of gdData.table_gd) {
+        if (item.temp_qty_data && item.material_id) {
+          try {
+            const tempData = JSON.parse(item.temp_qty_data);
+            console.log("Parsed temp_qty_data:", tempData);
+            for (const tempItem of tempData) {
+              const materialId = tempItem.material_id || item.material_id;
+              // Create a grouping key based on item, batch, and location
+              const groupKey = `${item.id}_${materialId}_${
+                tempItem.batch_id || "no-batch"
+              }_${tempItem.location_id}`;
+
+              if (!pickingItemGroups.has(groupKey)) {
+                // Create new group
+                pickingItemGroups.set(groupKey, {
+                  item_code: String(materialId),
+                  item_name: item.material_name,
+                  item_desc: item.gd_material_desc || "",
+                  batch_no: tempItem.batch_id
+                    ? String(tempItem.batch_id)
+                    : null,
+                  qty_to_pick: 0,
+                  item_uom: item.good_delivery_uom_id,
+                  source_bin: String(tempItem.location_id),
+                  pending_process_qty: 0,
+                  line_status: "Open",
+                  so_no: item.line_so_no,
+                  gd_no: gdData.delivery_no,
+                  so_id: item.line_so_id,
+                  so_line_id: item.so_line_item_id,
+                  gd_id: gdData.id,
+                  gd_line_id: item.id,
+                  serial_numbers: [],
+                  is_serialized_item: 0,
+                });
+
+                console.log("Created new picking item group:", {
+                  ...pickingItemGroups.get(groupKey),
+                });
+              }
+
+              const group = pickingItemGroups.get(groupKey);
+              group.qty_to_pick += parseFloat(tempItem.gd_quantity);
+              group.pending_process_qty += parseFloat(tempItem.gd_quantity);
+
+              console.log("Updated picking item group:", { ...group });
+              // Add serial number if exists
+              if (tempItem.serial_number) {
+                group.serial_numbers.push(String(tempItem.serial_number));
+                group.is_serialized_item = 1;
+              }
+            }
+          } catch (error) {
+            console.error(
+              `Error parsing temp_qty_data for picking: ${error.message}`
+            );
+          }
         }
-        return null;
-      });
+      }
 
-    let tablePickingItems = [];
+      console.log("Final picking item groups for GD No", gdNo, ":", [
+        ...pickingItemGroups,
+      ]);
+      // Convert grouped items to picking items array
+      for (const group of pickingItemGroups.values()) {
+        console.log("Processing group for final picking items:", group);
+        if (group.serial_numbers.length > 0) {
+          group.serial_numbers = group.serial_numbers.join(", ");
+        } else {
+          delete group.serial_numbers;
+        }
 
-    let organizationId = this.getVarGlobal("deptParentId");
-    if (organizationId === "0") {
-      organizationId = this.getVarSystem("deptIds").split(",")[0];
+        tablePickingItems.push({ ...group });
+        console.log("tablePickingItems", tablePickingItems);
+      }
     }
 
-    // Prepare picking items with grouping for serialized items (similar to createOrUpdatePicking)
-    const pickingItemGroups = new Map();
-
-    gdData.table_gd.forEach((item) => {
-      if (item.temp_qty_data && item.material_id) {
-        try {
-          const tempData = JSON.parse(item.temp_qty_data);
-
-          tempData.forEach((tempItem) => {
-            const materialId = tempItem.material_id || item.material_id;
-            // Create a grouping key based on item, batch, and location
-            const groupKey = `${materialId}_${
-              tempItem.batch_id || "no-batch"
-            }_${tempItem.location_id}`;
-
-            if (!pickingItemGroups.has(groupKey)) {
-              // Create new group
-              pickingItemGroups.set(groupKey, {
-                item_code: String(materialId),
-                item_name: item.material_name,
-                item_desc: item.gd_material_desc || "",
-                batch_no: tempItem.batch_id ? String(tempItem.batch_id) : null,
-                qty_to_pick: 0,
-                item_uom: String(item.gd_order_uom_id),
-                source_bin: String(tempItem.location_id),
-                pending_process_qty: 0,
-                line_status: "Open",
-                so_no: item.line_so_no,
-                serial_numbers: [],
-                is_serialized_item: 0,
-              });
-            }
-
-            const group = pickingItemGroups.get(groupKey);
-            group.qty_to_pick += parseFloat(tempItem.gd_quantity);
-            group.pending_process_qty += parseFloat(tempItem.gd_quantity);
-
-            // Add serial number if exists
-            if (tempItem.serial_number) {
-              group.serial_numbers.push(String(tempItem.serial_number));
-              group.is_serialized_item = 1;
-            }
-          });
-        } catch (error) {
-          console.error(
-            `Error parsing temp_qty_data for picking: ${error.message}`
-          );
-        }
-      }
-    });
-
-    // Convert grouped items to picking items array
-    pickingItemGroups.forEach((group) => {
-      // Format serial numbers with comma separation if any exist
-      if (group.serial_numbers.length > 0) {
-        group.serial_numbers = group.serial_numbers.join(", ");
-      } else {
-        delete group.serial_numbers;
-      }
-
-      tablePickingItems.push(group);
-    });
+    soNOs = [...new Set(tablePickingItems.map((pi) => pi.so_no))];
+    gdNOs = [...new Set(tablePickingItems.map((pi) => pi.gd_no))];
+    gdIDs = [...new Set(tablePickingItems.map((pi) => pi.gd_id))];
+    customerIDs = [...new Set(customerIDs)];
 
     await this.setData({
-      so_no: gdData.so_no,
-      delivery_no: gdData.delivery_no,
+      so_no: soNOs.join(", "),
+      delivery_no: gdNOs.join(", "),
       table_picking_items: tablePickingItems,
-      customer_id: gdData.customer_name,
-      created_by: this.getVarGlobal("nickname"),
-      created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
-      organization_id: organizationId,
+      customer_id: customerIDs,
     });
 
     // Setup serialized items after data is set
