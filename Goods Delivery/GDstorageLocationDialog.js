@@ -3,9 +3,18 @@
     console.log("Triggering storage location");
 
     const storageLocationId = arguments[0]?.value;
+    const previousStorageLocationId = this.models["previous_storage_location_id"];
+    const currentTableData = this.getValues()?.gd_item_balance?.table_item_balance || [];
     let storageLocationData = this.models["default_storage_location"];
 
     console.log("storageLocationId", storageLocationId);
+    console.log("previousStorageLocationId", previousStorageLocationId);
+
+    if (storageLocationId === previousStorageLocationId) {
+      console.log("Storage location unchanged, skipping confirmation");
+      this.models["previous_storage_location_id"] = storageLocationId;
+      return;
+    }
 
     if (!storageLocationData && storageLocationData.length === 0) {
       storageLocationData = await db
@@ -17,15 +26,51 @@
 
     const fullBalanceData = this.models["full_balance_data"];
 
+    const hasAllocatedItems = currentTableData.some(
+      (data) => (data.gd_quantity || 0) > 0
+    );
+
+    if (hasAllocatedItems && previousStorageLocationId) {
+      try {
+        await this.$confirm(
+          "There are items with allocated quantities. Changing storage location will reset all allocated quantities. Do you want to continue?",
+          "Warning",
+          {
+            confirmButtonText: "OK",
+            cancelButtonText: "Cancel",
+            type: "warning",
+          }
+        );
+
+        fullBalanceData.forEach((data) => {
+          data.gd_quantity = 0;
+        });
+
+        console.log("User confirmed: Reset all gd_quantity to 0");
+      } catch {
+        console.log("User cancelled: Restoring previous storage location");
+        await this.setData({
+          "gd_item_balance.storage_location": previousStorageLocationId,
+          "gd_item_balance.table_item_balance": currentTableData,
+        });
+        return;
+      }
+    }
+
+    this.models["previous_storage_location_id"] = storageLocationId;
+
     const binLocationList =
       storageLocationData.table_bin_location?.map(
         (bin) => bin.bin_location_id
       ) || [];
 
     const filteredBalanceData =
-      fullBalanceData?.filter((data) =>
-        binLocationList.includes(data.location_id)
-      ) || [];
+      fullBalanceData?.filter((data) => {
+        const hasAllocation = (data.gd_quantity || 0) > 0;
+        const inStorageLocation = binLocationList.includes(data.location_id);
+
+        return hasAllocation || inStorageLocation;
+      }) || [];
 
     if (
       !storageLocationId ||

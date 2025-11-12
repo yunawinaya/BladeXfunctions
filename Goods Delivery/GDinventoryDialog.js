@@ -337,9 +337,12 @@
 
         console.log("binLocationList", binLocationList);
 
-        const matchedBalanceData = filteredData.filter((data) =>
-          binLocationList.includes(data.location_id)
-        );
+        const matchedBalanceData = filteredData.filter((data) => {
+          const hasAllocation = (data.gd_quantity || 0) > 0;
+          const inStorageLocation = binLocationList.includes(data.location_id);
+
+          return hasAllocation || inStorageLocation;
+        });
 
         console.log("matchedBalanceData", matchedBalanceData);
 
@@ -442,6 +445,7 @@
 
     if (defaultStorageLocation) {
       this.models["default_storage_location"] = defaultStorageLocation;
+      this.models["previous_storage_location_id"] = defaultStorageLocation.id;
 
       const currentStorageLocationId = data.gd_item_balance?.storage_location;
 
