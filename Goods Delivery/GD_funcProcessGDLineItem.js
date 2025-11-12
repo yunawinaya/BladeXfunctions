@@ -314,6 +314,7 @@ const checkInventoryWithDuplicates = async (
 
   const insufficientItems = [];
   const itemsForAllocation = [];
+  const insufficientDialogData = []; // Build insufficient dialog table entries
 
   // ========================================================================
   // STEP 1: Batch fetch ALL data upfront (replaces 100s of individual queries)
@@ -602,6 +603,18 @@ const checkInventoryWithDuplicates = async (
             remainingSerialCount -= availableQtyBase;
           }
 
+          // Add to insufficient dialog data (in base UOM for serialized items)
+          insufficientDialogData.push({
+            material_id: materialId,
+            material_name: item.itemName,
+            material_uom: itemData.based_uom,
+            order_quantity: orderedQtyBase,
+            undelivered_qty: undeliveredQtyBase,
+            available_qty: availableQtyBase,
+            shortfall_qty: undeliveredQtyBase - availableQtyBase,
+            fm_key: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+          });
+
           // Update table array with base UOM
           tableGdArray[index] = {
             ...tableGdArray[index],
@@ -675,6 +688,18 @@ const checkInventoryWithDuplicates = async (
 
             remainingStockBase -= allocatedBase;
           }
+
+          // Add to insufficient dialog data
+          insufficientDialogData.push({
+            material_id: materialId,
+            material_name: item.itemName,
+            material_uom: item.altUOM,
+            order_quantity: orderedQty,
+            undelivered_qty: undeliveredQty,
+            available_qty: availableQtyAlt,
+            shortfall_qty: undeliveredQty - availableQtyAlt,
+            fm_key: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+          });
 
           if (pickingMode === "Manual") {
             tableGdArray[index].gd_qty =
@@ -838,6 +863,16 @@ const checkInventoryWithDuplicates = async (
     "🚀 OPTIMIZATION: Applying all updates in single setData call..."
   );
   await this.setData({ table_gd: tableGdArray });
+
+  // Apply insufficient dialog data if any
+  if (insufficientDialogData.length > 0) {
+    await this.setData({
+      "dialog_insufficient.table_insufficient": insufficientDialogData
+    });
+    console.log(
+      `✅ Updated insufficient dialog with ${insufficientDialogData.length} items`
+    );
+  }
 
   // Apply field enable/disable
   if (fieldsToDisable.length > 0) {
@@ -1697,21 +1732,11 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   let newTableGd = await createTableGdWithBaseUOM(allItems);
 
-  const newTableInsufficient = allItems.map((item) => ({
-    material_id: item.itemId,
-    material_name: item.itemName,
-    material_uom: item.altUOM,
-    order_quantity: item.orderedQty,
-    available_qty: "",
-    shortfall_qty: "",
-    fm_key: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-  }));
-
-  // Update table_gd and table_insufficient
+  // Update table_gd with empty insufficient dialog (will be populated by checkInventoryWithDuplicates)
   this.setData({
     table_gd: newTableGd,
     dialog_insufficient: {
-      table_insufficient: newTableInsufficient,
+      table_insufficient: [], // Will be populated by checkInventoryWithDuplicates
     },
   }).then(() => {
     this.hideLoading();
