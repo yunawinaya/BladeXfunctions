@@ -6,119 +6,6 @@ const closeDialog = () => {
   }
 };
 
-const getPrefixData = async (organizationId) => {
-  console.log("Getting prefix data for organization:", organizationId);
-  try {
-    const prefixEntry = await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Sales Orders",
-        is_deleted: 0,
-        organization_id: organizationId,
-        is_active: 1,
-      })
-      .get();
-
-    console.log("Prefix data result:", prefixEntry);
-
-    if (!prefixEntry.data || prefixEntry.data.length === 0) {
-      console.log("No prefix configuration found");
-      return null;
-    }
-
-    return prefixEntry.data[0];
-  } catch (error) {
-    console.error("Error getting prefix data:", error);
-    throw error;
-  }
-};
-
-const updatePrefix = async (organizationId, runningNumber) => {
-  console.log(
-    "Updating prefix for organization:",
-    organizationId,
-    "with running number:",
-    runningNumber
-  );
-  try {
-    await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Sales Orders",
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .update({
-        running_number: parseInt(runningNumber) + 1,
-        has_record: 1,
-      });
-    console.log("Prefix update successful");
-  } catch (error) {
-    console.error("Error updating prefix:", error);
-    throw error;
-  }
-};
-
-const generatePrefix = (runNumber, now, prefixData) => {
-  console.log("Generating prefix with running number:", runNumber);
-  try {
-    let generated = prefixData.current_prefix_config;
-    generated = generated.replace("prefix", prefixData.prefix_value);
-    generated = generated.replace("suffix", prefixData.suffix_value);
-    generated = generated.replace(
-      "month",
-      String(now.getMonth() + 1).padStart(2, "0")
-    );
-    generated = generated.replace(
-      "day",
-      String(now.getDate()).padStart(2, "0")
-    );
-    generated = generated.replace("year", now.getFullYear());
-    generated = generated.replace(
-      "running_number",
-      String(runNumber).padStart(prefixData.padding_zeroes, "0")
-    );
-    console.log("Generated prefix:", generated);
-    return generated;
-  } catch (error) {
-    console.error("Error generating prefix:", error);
-    throw error;
-  }
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("sales_order")
-    .where({ so_no: generatedPrefix, organization_id: organizationId })
-    .get();
-  return existingDoc.data[0] ? false : true;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Sales Order number after maximum attempts"
-    );
-  }
-  return { prefixToShow, runningNumber };
-};
-
 const validateForm = (data, requiredFields) => {
   const missingFields = [];
 
@@ -162,7 +49,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, field) => {
+const validateField = (value, _field) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "number") return value <= 0;
@@ -499,71 +386,6 @@ const checkCreditOverdueLimit = async (customer_name, so_total) => {
   }
 };
 
-const addEntry = async (organizationId, entry) => {
-  try {
-    const prefixData = await getPrefixData(organizationId);
-
-    if (prefixData !== null) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId
-      );
-
-      entry.so_no = prefixToShow;
-      await updatePrefix(organizationId, runningNumber);
-    } else {
-      const isUnique = await checkUniqueness(entry.so_no, organizationId);
-      if (!isUnique) {
-        throw new Error(
-          `SO Number "${entry.so_no}" already exists. Please use a different number.`
-        );
-      }
-    }
-
-    await db.collection("sales_order").add(entry);
-
-    this.$message.success("Add successfully");
-  } catch (error) {
-    console.error("Error in addEntry:", error);
-    throw error;
-  }
-};
-
-const updateEntry = async (organizationId, entry, salesOrderId) => {
-  try {
-    const currentSOStatus = this.getValue("so_status");
-
-    if (!currentSOStatus || currentSOStatus === "Draft") {
-      const prefixData = await getPrefixData(organizationId);
-
-      if (prefixData !== 0) {
-        const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData,
-          organizationId
-        );
-
-        await updatePrefix(organizationId, runningNumber);
-
-        entry.so_no = prefixToShow;
-      } else {
-        const isUnique = await checkUniqueness(entry.so_no, organizationId);
-        if (!isUnique) {
-          throw new Error(
-            `SO Number "${entry.so_no}" already exists. Please use a different number.`
-          );
-        }
-      }
-    }
-
-    await db.collection("sales_order").doc(salesOrderId).update(entry);
-
-    this.$message.success("Update successfully");
-  } catch (error) {
-    console.error("Error in updateEntry:", error);
-    throw error;
-  }
-};
-
 const findFieldMessage = (obj) => {
   // Base case: if current object has the structure we want
   if (obj && typeof obj === "object") {
@@ -597,9 +419,9 @@ const validateQuantity = async (tableSO) => {
   const itemFailValFields = [];
 
   tableSO.forEach((item, index) => {
-    if (item.item_name || item.so_desc) {
+    if (item.item_name) {
       if (!item.so_quantity || item.so_quantity <= 0) {
-        quantityFailValFields.push(`${item.material_name || item.so_desc}`);
+        quantityFailValFields.push(`${item.material_name}`);
       }
     } else {
       if (item.so_quantity > 0) {
@@ -628,7 +450,7 @@ const updateItemTransactionDate = async (entry) => {
           .collection("Item")
           .doc(item)
           .update({ last_transaction_date: date });
-      } catch (error) {
+      } catch {
         throw new Error(
           `Cannot update last transaction date for item #${index + 1}.`
         );
@@ -715,7 +537,7 @@ const fillbackHeaderFields = async (entry) => {
       soLineItem.access_group = entry.access_group || [];
     }
     return entry.table_so;
-  } catch (error) {
+  } catch {
     throw new Error("Error processing sales order.");
   }
 };
@@ -727,7 +549,7 @@ const deleteRelatedGD = async (existingGD) => {
         is_deleted: 1,
       });
     }
-  } catch (error) {
+  } catch {
     throw new Error("Error in deleting associated goods delivery.");
   }
 };
@@ -739,21 +561,104 @@ const deleteRelatedSI = async (existingSI) => {
         is_deleted: 1,
       });
     }
-  } catch (error) {
+  } catch {
     throw new Error("Error in deleting associated sales invoice.");
   }
 };
 
+const generatePrefix = async (entry) => {
+  try {
+    let currentPrefix = entry.so_no;
+    let organizationID = entry.organization_id;
+    let docNoID = entry.document_no_format;
+    const status = "Issued";
+    let documentTypes = "Sales Orders";
+
+    if (currentPrefix === "<<new>>") {
+      const workflowResult = await new Promise((resolve, reject) => {
+        this.runWorkflow(
+          "1984071042628268034",
+          {
+            document_type: documentTypes,
+            organization_id: organizationID,
+            document_no_id: docNoID,
+            status: status,
+          },
+          (res) => resolve(res),
+          (err) => reject(err)
+        );
+      });
+
+      console.log("res", workflowResult);
+      const result = workflowResult.data;
+
+      if (result.is_unique === "TRUE") {
+        currentPrefix = result.doc_no;
+        console.log("result", result.doc_no);
+      } else {
+        currentPrefix = result.doc_no;
+        throw new Error(
+          `${documentTypes} Number "${currentPrefix}" already exists. Please reset the running number.`
+        ); // Specific error
+      }
+    } else {
+      const id = entry.id || "";
+      const checkUniqueness = await db
+        .collection("sales_order")
+        .where({ so_no: currentPrefix, organization_id: organizationID })
+        .get();
+
+      if (checkUniqueness.data.length > 0) {
+        if (checkUniqueness.data[0].id !== id) {
+          throw new Error(
+            `${documentTypes} Number "${currentPrefix}" already exists. Please use a different number.`
+          );
+        }
+      }
+    }
+
+    return currentPrefix;
+  } catch (error) {
+    await this.$alert(error.toString(), "Error", {
+      confirmButtonText: "OK",
+      type: "error",
+    });
+    this.hideLoading();
+    throw error;
+  }
+};
+
+const saveSalesOrders = async (entry) => {
+  try {
+    const status = this.getValue("so_status");
+    const pageStatus = this.getValue("page_status");
+
+    // add status
+    if (pageStatus === "Add" || pageStatus === "Clone") {
+      entry.so_no = await generatePrefix(entry);
+      await db.collection("sales_order").add(entry);
+    }
+    // edit status
+    if (pageStatus === "Edit") {
+      // draft status
+      if (!status || status === "Draft") {
+        entry.so_no = await generatePrefix(entry);
+      }
+      await db.collection("sales_order").doc(entry.id).update(entry);
+    }
+  } catch (error) {
+    console.error(error.toString());
+  }
+};
 // Main execution wrapped in an async IIFE
 (async () => {
   try {
-    this.showLoading();
+    this.showLoading("Saving Sales Order...");
 
     const data = this.getValues();
 
     // Get page status and sales order ID
     const page_status = data.page_status;
-    const sales_order_id = data.id;
 
     // Define required fields
     const requiredFields = [
@@ -793,7 +698,7 @@ const deleteRelatedSI = async (existingSI) => {
           }
           ${
             itemFailValFields.length > 0
-              ? "The following items have quantity but missing item code / item description: Line " +
+              ? "The following items have quantity but missing item code: Line " +
                 itemFailValFields.join(", Line ") +
                 "<br><br>"
               : ""
@@ -836,198 +741,11 @@ const deleteRelatedSI = async (existingSI) => {
         organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
 
-      const {
-        so_no,
-        so_date,
-        customer_name,
-        so_currency,
-        plant_name,
-        partially_delivered,
-        fully_delivered,
-        cust_billing_address,
-        cust_shipping_address,
-        so_payment_term,
-        so_delivery_method,
-        so_shipping_date,
-        so_ref_doc,
-        cp_driver_name,
-        cp_driver_contact_no,
-        cp_vehicle_number,
-        cp_pickup_date,
-        cp_ic_no,
-        validity_of_collection,
-        cs_courier_company,
-        cs_shipping_date,
-        est_arrival_date,
-        cs_tracking_number,
-        ct_driver_name,
-        ct_driver_contact_no,
-        ct_delivery_cost,
-        ct_vehicle_number,
-        ct_est_delivery_date,
-        ct_ic_no,
-        ss_shipping_company,
-        ss_shippping_date,
-        ss_freight_charges,
-        ss_shipping_method,
-        ss_est_arrival_date,
-        ss_tracking_number,
-        table_so,
-        so_sales_person,
-        so_total_gross,
-        so_total_discount,
-        so_total_tax,
-        so_total,
-        so_remarks,
-        so_remarks2,
-        so_remarks3,
-        cust_po,
-        cust_po_date,
-        so_tnc,
-        so_payment_details,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_address_country,
-        billing_postal_code,
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_address_country,
-        shipping_postal_code,
-        exchange_rate,
-        myr_total_amount,
-        sqt_no,
-        sqt_id,
-        tpt_vehicle_number,
-        tpt_transport_name,
-        tpt_ic_no,
-        tpt_driver_contact_no,
-        cs_freight_charges,
-        billing_address_name,
-        billing_address_phone,
-        billing_attention,
-        shipping_address_name,
-        shipping_address_phone,
-        shipping_attention,
-        acc_integration_type,
-        last_sync_date,
-        price_tag_id,
-        customer_credit_limit,
-        overdue_limit,
-        outstanding_balance,
-        overdue_inv_total_amount,
-        is_accurate,
-        access_group,
-      } = data;
-
-      const entry = {
-        so_status: "Issued",
-        so_no,
-        so_date,
-        customer_name,
-        so_currency,
-        plant_name,
-        organization_id: organizationId,
-        partially_delivered,
-        fully_delivered,
-        cust_billing_address,
-        cust_shipping_address,
-        so_payment_term,
-        so_delivery_method,
-        so_shipping_date,
-        so_ref_doc,
-
-        cp_driver_name,
-        cp_driver_contact_no,
-        cp_vehicle_number,
-        cp_pickup_date,
-        cp_ic_no,
-        validity_of_collection,
-
-        cs_courier_company,
-        cs_shipping_date,
-        est_arrival_date,
-        cs_tracking_number,
-        cs_freight_charges,
-
-        ct_driver_name,
-        ct_driver_contact_no,
-        ct_delivery_cost,
-        ct_vehicle_number,
-        ct_est_delivery_date,
-        ct_ic_no,
-
-        ss_shipping_company,
-        ss_shippping_date,
-        ss_freight_charges,
-        ss_shipping_method,
-        ss_est_arrival_date,
-        ss_tracking_number,
-
-        table_so,
-        so_sales_person,
-        so_total_gross,
-        so_total_discount,
-        so_total_tax,
-        so_total,
-        so_remarks,
-        so_remarks2,
-        so_remarks3,
-        cust_po,
-        cust_po_date,
-        so_tnc,
-        so_payment_details,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_address_country,
-        billing_postal_code,
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_address_country,
-        shipping_postal_code,
-        exchange_rate,
-        myr_total_amount,
-        sqt_no,
-        sqt_id,
-        tpt_vehicle_number,
-        tpt_transport_name,
-        tpt_ic_no,
-        tpt_driver_contact_no,
-        billing_address_name,
-        billing_address_phone,
-        billing_attention,
-        shipping_address_name,
-        shipping_address_phone,
-        shipping_attention,
-        acc_integration_type,
-        last_sync_date,
-        customer_credit_limit,
-        overdue_limit,
-        price_tag_id,
-        outstanding_balance,
-        overdue_inv_total_amount,
-        is_accurate,
-        so_created_by: this.getVarGlobal("nickname"),
-        access_group,
-      };
+      let entry = data;
+      entry.so_status = "Issued";
 
       const latestSO = entry.table_so.filter(
-        (item) => (item.item_name || item.so_desc) && item.so_quantity > 0
+        (item) => item.item_name && item.so_quantity > 0
       );
       entry.table_so = latestSO;
 
@@ -1038,14 +756,14 @@ const deleteRelatedSI = async (existingSI) => {
       }
 
       entry.table_so = await fillbackHeaderFields(entry);
-      for (const [index, lineItem] of entry.table_so.entries()) {
+      for (const [index, _lineItem] of entry.table_so.entries()) {
         await this.validate(`table_so.${index}.so_item_price`);
       }
 
       // Add or update based on page status
       if (page_status === "Add" || page_status === "Clone") {
         console.log("entry", entry);
-        await addEntry(organizationId, entry);
+        await saveSalesOrders(entry);
       } else if (page_status === "Edit") {
         const currentSOStatus = this.getValue("so_status");
 
@@ -1094,7 +812,7 @@ const deleteRelatedSI = async (existingSI) => {
           }
         }
 
-        await updateEntry(organizationId, entry, sales_order_id);
+        await saveSalesOrders(entry);
       } else {
         console.log("Unknown page status:", page_status);
         this.hideLoading();
