@@ -58,48 +58,121 @@ const validateField = (value, field) => {
   return !value;
 };
 
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Sales Orders",
-      is_deleted: 0,
-      organization_id: organizationId,
-      is_active: 1,
-    })
-    .get();
-
-  const prefixData = await prefixEntry.data[0];
-
-  return prefixData;
-};
-
-const generateDraftPrefix = async (organizationId) => {
+const updateItemTransactionDate = async (entry) => {
   try {
-    const prefixData = await getPrefixData(organizationId);
-    if (prefixData.length !== 0) {
-      const currDraftNum = parseInt(prefixData.draft_number) + 1;
-      const newPrefix = "DRAFT-SO-" + currDraftNum;
+    const tableSO = entry.table_so;
 
-      db.collection("prefix_configuration")
-        .where({
-          document_types: "Sales Orders",
-          organization_id: organizationId,
-          is_deleted: 0,
-        })
-        .update({ draft_number: currDraftNum });
+    const uniqueItemIds = [
+      ...new Set(
+        tableSO.filter((item) => item.item_name).map((item) => item.item_name)
+      ),
+    ];
 
-      return newPrefix;
+    const date = new Date().toISOString();
+    for (const [index, item] of uniqueItemIds.entries()) {
+      try {
+        await db
+          .collection("Item")
+          .doc(item)
+          .update({ last_transaction_date: date });
+      } catch (error) {
+        throw new Error(
+          `Cannot update last transaction date for item #${index + 1}.`
+        );
+      }
     }
   } catch (error) {
-    this.$message.error(error);
+    throw new Error(error);
+  }
+};
+
+const fillbackHeaderFields = async (entry) => {
+  try {
+    for (const [index, soLineItem] of entry.table_so.entries()) {
+      soLineItem.plant_id = entry.plant_name || null;
+      soLineItem.customer_id = entry.customer_name || null;
+      soLineItem.payment_term_id = entry.so_payment_term || null;
+      soLineItem.sales_person_id = entry.so_sales_person || null;
+      soLineItem.billing_state_id = entry.billing_address_state || null;
+      soLineItem.billing_country_id = entry.billing_address_country || null;
+      soLineItem.shipping_state_id = entry.shipping_address_state || null;
+      soLineItem.shipping_country_id = entry.shipping_address_country || null;
+      soLineItem.line_index = index + 1;
+      soLineItem.organization_id = entry.organization_id;
+      soLineItem.line_status = entry.so_status;
+      soLineItem.access_group = entry.access_group || [];
+    }
+    return entry.table_so;
+  } catch (error) {
+    throw new Error("Error processing sales order.");
+  }
+};
+
+const generateDraftPrefix = async (entry) => {
+  try {
+    let currentPrefix = entry.so_no;
+    let organizationID = entry.organization_id;
+    const status = "Draft";
+    let documentTypes = "Sales Orders";
+
+    if (currentPrefix === "<<new>>") {
+      const workflowResult = await new Promise((resolve, reject) => {
+        this.runWorkflow(
+          "1984071042628268034",
+          {
+            document_type: documentTypes,
+            organization_id: organizationID,
+            document_no_id: "",
+            status: status,
+          },
+          (res) => resolve(res),
+          (err) => reject(err)
+        );
+      });
+
+      console.log("res", workflowResult);
+      const result = workflowResult.data;
+
+      if (result.is_unique === "TRUE") {
+        currentPrefix = result.doc_no;
+        console.log("result", result.doc_no);
+      } else {
+        currentPrefix = result.doc_no;
+        throw new Error(
+          `${documentTypes} Number "${currentPrefix}" already exists. Please reset the running number.`
+        ); // Specific error
+      }
+    } else {
+      const id = entry.id || "";
+      const checkUniqueness = await db
+        .collection("sales_order")
+        .where({ so_no: currentPrefix, organization_id: organizationID })
+        .get();
+
+      if (checkUniqueness.data.length > 0) {
+        if (checkUniqueness.data[0].id !== id) {
+          throw new Error(
+            `${documentTypes} Number "${currentPrefix}" already exists. Please use a different number.`
+          );
+        }
+      }
+    }
+
+    return currentPrefix;
+  } catch (error) {
+    await this.$alert(error.toString(), "Error", {
+      confirmButtonText: "OK",
+      type: "error",
+    });
+    this.hideLoading();
+    throw error;
   }
 };
 
 // Main execution wrapped in an async IIFE
 (async () => {
   try {
-    this.showLoading();
+    this.showLoading("Saving Sales Order...");
     const data = this.getValues();
 
     // Get page status and sales order ID
@@ -109,6 +182,7 @@ const generateDraftPrefix = async (organizationId) => {
     // Define required fields
     const requiredFields = [
       { name: "plant_name", label: "Plant" },
+      { name: "so_no", label: "SO Number" },
       {
         name: "table_so",
         label: "Item Information",
@@ -128,193 +202,29 @@ const generateDraftPrefix = async (organizationId) => {
         organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
 
-      const {
-        so_no,
-        so_date,
-        customer_name,
-        so_currency,
-        plant_name,
-        partially_delivered,
-        fully_delivered,
-        cust_billing_address,
-        cust_shipping_address,
-        so_payment_term,
-        so_delivery_method,
-        so_shipping_date,
-        so_ref_doc,
-        cp_driver_name,
-        cp_driver_contact_no,
-        cp_vehicle_number,
-        cp_pickup_date,
-        cp_ic_no,
-        validity_of_collection,
-        cs_courier_company,
-        cs_shipping_date,
-        est_arrival_date,
-        cs_tracking_number,
-        ct_driver_name,
-        ct_driver_contact_no,
-        ct_delivery_cost,
-        ct_vehicle_number,
-        ct_est_delivery_date,
-        ct_ic_no,
-        ss_shipping_company,
-        ss_shipping_date,
-        ss_freight_charges,
-        ss_shipping_method,
-        ss_est_arrival_date,
-        ss_tracking_number,
-        table_so,
-        so_sales_person,
-        so_total_gross,
-        so_total_discount,
-        so_total_tax,
-        so_total,
-        so_remarks,
-        so_tnc,
-        so_payment_details,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_address_country,
-        billing_postal_code,
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_address_country,
-        shipping_postal_code,
-        exchange_rate,
-        myr_total_amount,
-        sqt_no,
-        tpt_vehicle_number,
-        tpt_transport_name,
-        tpt_ic_no,
-        tpt_driver_contact_no,
-        cs_freight_charges,
-        billing_address_name,
-        billing_address_phone,
-        billing_attention,
-        shipping_address_name,
-        shipping_address_phone,
-        shipping_attention,
-        acc_integration_type,
-        last_sync_date,
-        customer_credit_limit,
-        overdue_limit,
-        outstanding_balance,
-        overdue_inv_total_amount,
-        is_accurate,
-      } = data;
+      let entry = data;
+      entry.so_status = "Draft";
 
-      const entry = {
-        so_status: "Draft",
-        so_no,
-        so_date,
-        customer_name,
-        so_currency,
-        plant_name,
-        organization_id: organizationId,
-        partially_delivered,
-        fully_delivered,
-        cust_billing_address,
-        cust_shipping_address,
-        so_payment_term,
-        so_delivery_method,
-        so_shipping_date,
-        so_ref_doc,
-        cp_driver_name,
-        cp_driver_contact_no,
-        cp_vehicle_number,
-        cp_pickup_date,
-        cp_ic_no,
-        validity_of_collection,
-        cs_courier_company,
-        cs_shipping_date,
-        est_arrival_date,
-        cs_tracking_number,
-        ct_driver_name,
-        ct_driver_contact_no,
-        ct_delivery_cost,
-        ct_vehicle_number,
-        ct_est_delivery_date,
-        ct_ic_no,
-        ss_shipping_company,
-        ss_shipping_date,
-        ss_freight_charges,
-        ss_shipping_method,
-        ss_est_arrival_date,
-        ss_tracking_number,
-        table_so,
-        so_sales_person,
-        so_total_gross,
-        so_total_discount,
-        so_total_tax,
-        so_total,
-        so_remarks,
-        so_tnc,
-        so_payment_details,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_address_country,
-        billing_postal_code,
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_address_country,
-        shipping_postal_code,
-        exchange_rate,
-        myr_total_amount,
-        sqt_no,
-        tpt_vehicle_number,
-        tpt_transport_name,
-        tpt_ic_no,
-        tpt_driver_contact_no,
-        cs_freight_charges,
-        billing_address_name,
-        billing_address_phone,
-        billing_attention,
-        shipping_address_name,
-        shipping_address_phone,
-        shipping_attention,
-        acc_integration_type,
-        last_sync_date,
-        customer_credit_limit,
-        overdue_limit,
-        outstanding_balance,
-        overdue_inv_total_amount,
-        is_accurate,
-      };
+      entry.table_so = await fillbackHeaderFields(entry);
 
       // Add or update based on page status
       if (page_status === "Add" || page_status === "Clone") {
-        const newPrefix = await generateDraftPrefix(organizationId);
-        entry.so_no = newPrefix;
+        entry.so_no = await generateDraftPrefix(entry);
         await db.collection("sales_order").add(entry);
         this.$message.success("Add successfully");
-        closeDialog();
       } else if (page_status === "Edit") {
+        entry.so_no = await generateDraftPrefix(entry);
         await db.collection("sales_order").doc(sales_order_id).update(entry);
         this.$message.success("Update successfully");
-        closeDialog();
       } else {
         console.log("Unknown page status:", page_status);
         this.hideLoading();
         this.$message.error("Invalid page status");
         return;
       }
+
+      await updateItemTransactionDate(entry);
+      await closeDialog();
     } else {
       this.hideLoading();
       this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
