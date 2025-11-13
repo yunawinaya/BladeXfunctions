@@ -790,11 +790,17 @@ const createInventoryReadjustmentMovements = async (
         // Calculate how much was picked from this location/batch
         const pickedFromThisLocation = pickedTempQtyData
           .filter(
-            (picked) =>
-              picked.location_id === originalTemp.location_id &&
-              picked.batch_id === originalTemp.batch_id &&
-              (!isSerializedItem ||
-                picked.serial_number === originalTemp.serial_number)
+            (picked) => {
+              const locationMatch = picked.location_id === originalTemp.location_id;
+              const batchMatch =
+                (!picked.batch_id && !originalTemp.batch_id) ||
+                picked.batch_id === originalTemp.batch_id;
+              const serialMatch =
+                !isSerializedItem ||
+                (!picked.serial_number && !originalTemp.serial_number) ||
+                picked.serial_number === originalTemp.serial_number;
+              return locationMatch && batchMatch && serialMatch;
+            }
           )
           .reduce((sum, item) => sum + parseFloat(item.to_quantity || 0), 0);
 
@@ -2330,7 +2336,9 @@ const handleLoadingBayInventoryMovement = async (
         if (isLoadingBay === 1) {
           try {
             console.log("\n========== Loading Bay Logic ==========");
-            console.log("Loading bay is enabled, processing inventory movement");
+            console.log(
+              "Loading bay is enabled, processing inventory movement"
+            );
 
             // Fetch the updated PP data after all updates
             const updatedPPResponse = await db
@@ -2361,7 +2369,9 @@ const handleLoadingBayInventoryMovement = async (
                 organizationId
               );
 
-              console.log("Loading bay inventory movement completed successfully");
+              console.log(
+                "Loading bay inventory movement completed successfully"
+              );
             } else {
               console.log(
                 "PP is not completed or not found, skipping loading bay logic"
