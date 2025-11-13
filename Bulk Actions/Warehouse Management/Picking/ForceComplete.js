@@ -198,6 +198,87 @@ const getLatestFIFOCostPrice = async (
   }
 };
 
+// Function to get FIFO cost price for loading bay inventory movement
+const getFIFOCostPrice = async (
+  materialId,
+  deductionQty,
+  plantId,
+  locationId,
+  organizationId,
+  batchId = null
+) => {
+  try {
+    const query = batchId
+      ? db.collection("fifo_costing_history").where({
+          material_id: materialId,
+          batch_id: batchId,
+          plant_id: plantId,
+        })
+      : db
+          .collection("fifo_costing_history")
+          .where({ material_id: materialId, plant_id: plantId });
+
+    const response = await query.get();
+    const result = response.data;
+
+    if (result && Array.isArray(result) && result.length > 0) {
+      const sortedRecords = result.sort(
+        (a, b) => a.fifo_sequence - b.fifo_sequence
+      );
+
+      if (!deductionQty) {
+        for (const record of sortedRecords) {
+          const availableQty = roundQty(record.fifo_available_quantity || 0);
+          if (availableQty > 0) {
+            return roundPrice(record.fifo_cost_price || 0);
+          }
+        }
+        return roundPrice(
+          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+        );
+      }
+
+      let remainingQtyToDeduct = roundQty(deductionQty);
+      let totalCost = 0;
+      let totalDeductedQty = 0;
+
+      for (const record of sortedRecords) {
+        if (remainingQtyToDeduct <= 0) break;
+
+        const availableQty = roundQty(record.fifo_available_quantity || 0);
+        if (availableQty <= 0) continue;
+
+        const costPrice = roundPrice(record.fifo_cost_price || 0);
+        const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
+        const costContribution = roundPrice(qtyToDeduct * costPrice);
+
+        totalCost = roundPrice(totalCost + costContribution);
+        totalDeductedQty = roundQty(totalDeductedQty + qtyToDeduct);
+        remainingQtyToDeduct = roundQty(remainingQtyToDeduct - qtyToDeduct);
+      }
+
+      if (remainingQtyToDeduct > 0 && sortedRecords.length > 0) {
+        const lastRecord = sortedRecords[sortedRecords.length - 1];
+        const lastCostPrice = roundPrice(lastRecord.fifo_cost_price || 0);
+        const additionalCost = roundPrice(remainingQtyToDeduct * lastCostPrice);
+        totalCost = roundPrice(totalCost + additionalCost);
+        totalDeductedQty = roundQty(totalDeductedQty + remainingQtyToDeduct);
+      }
+
+      if (totalDeductedQty > 0) {
+        return roundPrice(totalCost / totalDeductedQty);
+      }
+
+      return roundPrice(sortedRecords[0].fifo_cost_price || 0);
+    }
+
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving FIFO cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
 // Function to get Weighted Average cost price
 const getWeightedAverageCostPrice = async (materialId, batchId, plantId) => {
   try {
@@ -1568,6 +1649,618 @@ const createTempQtyDataSummary = async (
   return summary + details;
 };
 
+// Handle loading bay inventory movement - moving Reserved inventory between locations
+const handleLoadingBayInventoryMovement = async (
+  gdData,
+  gdNo,
+  gdId,
+  pickingItems,
+  plantId,
+  organizationId
+) => {
+  try {
+    console.log("Starting handleLoadingBayInventoryMovement for GD:", gdNo);
+
+    console.log(`Processing Goods Delivery: ID=${gdId}, delivery_no=${gdNo}`);
+
+    // Create a map of picking items by gd_line_id for quick lookup
+    const pickingItemsMap = {};
+    for (const pickingItem of pickingItems) {
+      pickingItemsMap[pickingItem.gd_line_id] = pickingItem;
+    }
+
+    // Get a mutable copy of table_gd for updates
+    const gdTableGd = [...gdData.table_gd];
+
+    // Process each GD line item
+    for (const gdLineItem of gdTableGd) {
+      const pickingItem = pickingItemsMap[gdLineItem.id];
+
+      if (!pickingItem) {
+        console.log(
+          `No picking item found for GD line item ${gdLineItem.id}, skipping`
+        );
+        continue;
+      }
+
+      const targetLocation = pickingItem.target_location;
+
+      if (!targetLocation) {
+        console.log(
+          `No target location for GD line item ${gdLineItem.id}, skipping`
+        );
+        continue;
+      }
+
+      console.log(
+        `Processing GD line item ${gdLineItem.id} - moving to target location ${targetLocation}`
+      );
+
+      // Parse temp_qty_data
+      const tempQtyData = parseJsonSafely(gdLineItem.temp_qty_data);
+
+      if (!tempQtyData || tempQtyData.length === 0) {
+        console.log(
+          `No temp_qty_data for line item ${gdLineItem.id}, skipping`
+        );
+        continue;
+      }
+
+      // Get item data to check if serialized
+      const itemQuery = await db
+        .collection("Item")
+        .where({ id: gdLineItem.material_id })
+        .get();
+
+      if (!itemQuery.data || itemQuery.data.length === 0) {
+        console.log(
+          `Item data not found for material ${gdLineItem.material_id}, skipping`
+        );
+        continue;
+      }
+
+      const itemData = itemQuery.data[0];
+      const isSerializedItem = itemData.serial_number_management === 1;
+      const isBatchManagedItem = itemData.item_batch_management === 1;
+      const costingMethod = itemData.item_costing_method;
+
+      console.log(
+        `Costing method for item ${gdLineItem.material_id}: ${costingMethod}`
+      );
+
+      const updatedTempQtyData = [];
+
+      // Process each temp item and move inventory
+      for (const tempItem of tempQtyData) {
+        const sourceLocation = tempItem.location_id;
+        const batchId = tempItem.batch_id || null;
+        const baseQty = roundQty(parseFloat(tempItem.gd_quantity || 0));
+
+        console.log(
+          `Moving ${baseQty} base qty from location ${sourceLocation} to ${targetLocation}`
+        );
+
+        // Get cost price based on costing method
+        let costPrice = 0;
+        if (costingMethod === "FIFO") {
+          costPrice = await getFIFOCostPrice(
+            gdLineItem.material_id,
+            baseQty,
+            plantId,
+            sourceLocation,
+            organizationId,
+            batchId
+          );
+        } else if (costingMethod === "Weighted Average") {
+          costPrice = await getWeightedAverageCostPrice(
+            gdLineItem.material_id,
+            batchId,
+            plantId
+          );
+        } else if (costingMethod === "Fixed Cost") {
+          costPrice = await getFixedCostPrice(gdLineItem.material_id);
+        }
+
+        console.log(`Cost price determined: ${costPrice}`);
+
+        // Create OUT inventory movement (from source location)
+        const outMovementData = {
+          transaction_type: "TO - PICK",
+          trx_no: gdNo,
+          item_id: gdLineItem.material_id,
+          batch_id: batchId,
+          bin_location_id: sourceLocation,
+          movement: "OUT",
+          inventory_category: "Reserved",
+          base_uom_id: gdLineItem.gd_base_uom_id,
+          quantity_in_base_uom: baseQty,
+          cost_price: costPrice,
+          plant_id: plantId,
+          organization_id: organizationId,
+        };
+
+        await db.collection("inventory_movement").add(outMovementData);
+        console.log(
+          `Created OUT movement from Reserved at ${sourceLocation}: ${baseQty} base qty`
+        );
+
+        // Create IN inventory movement (to target location)
+        const inMovementData = {
+          transaction_type: "TO - PICK",
+          trx_no: gdNo,
+          item_id: gdLineItem.material_id,
+          batch_id: batchId,
+          bin_location_id: targetLocation,
+          movement: "IN",
+          inventory_category: "Reserved",
+          base_uom_id: gdLineItem.gd_base_uom_id,
+          quantity_in_base_uom: baseQty,
+          cost_price: costPrice,
+          plant_id: plantId,
+          organization_id: organizationId,
+        };
+
+        await db.collection("inventory_movement").add(inMovementData);
+        console.log(
+          `Created IN movement to Reserved at ${targetLocation}: ${baseQty} base qty`
+        );
+
+        // Update item balance at source location (decrement Reserved)
+        const sourceBalanceParams = {
+          material_id: gdLineItem.material_id,
+          plant_id: plantId,
+          organization_id: organizationId,
+          location_id: sourceLocation,
+        };
+
+        if (isBatchManagedItem && batchId) {
+          // Update item_batch_balance
+          const sourceBatchQuery = await db
+            .collection("item_batch_balance")
+            .where({
+              ...sourceBalanceParams,
+              batch_id: batchId,
+            })
+            .get();
+
+          if (sourceBatchQuery.data && sourceBatchQuery.data.length > 0) {
+            const sourceBatchDoc = sourceBatchQuery.data[0];
+            const currentReservedQty = roundQty(
+              parseFloat(sourceBatchDoc.reserved_qty || 0)
+            );
+            const currentBalanceQty = roundQty(
+              parseFloat(sourceBatchDoc.balance_quantity || 0)
+            );
+
+            const finalReservedQty = roundQty(currentReservedQty - baseQty);
+            const finalBalanceQty = roundQty(currentBalanceQty - baseQty);
+
+            await db
+              .collection("item_batch_balance")
+              .doc(sourceBatchDoc.id)
+              .update({
+                reserved_qty: finalReservedQty,
+                balance_quantity: finalBalanceQty,
+              });
+
+            console.log(
+              `Updated source item_batch_balance: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`
+            );
+          }
+        } else {
+          // Update item_balance
+          const sourceQuery = await db
+            .collection("item_balance")
+            .where(sourceBalanceParams)
+            .get();
+
+          if (sourceQuery.data && sourceQuery.data.length > 0) {
+            const sourceDoc = sourceQuery.data[0];
+            const currentReservedQty = roundQty(
+              parseFloat(sourceDoc.reserved_qty || 0)
+            );
+            const currentBalanceQty = roundQty(
+              parseFloat(sourceDoc.balance_quantity || 0)
+            );
+
+            const finalReservedQty = roundQty(currentReservedQty - baseQty);
+            const finalBalanceQty = roundQty(currentBalanceQty - baseQty);
+
+            await db.collection("item_balance").doc(sourceDoc.id).update({
+              reserved_qty: finalReservedQty,
+              balance_quantity: finalBalanceQty,
+            });
+
+            console.log(
+              `Updated source item_balance: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`
+            );
+          }
+        }
+
+        // Update item balance at target location (increment Reserved)
+        const targetBalanceParams = {
+          material_id: gdLineItem.material_id,
+          plant_id: plantId,
+          organization_id: organizationId,
+          location_id: targetLocation,
+        };
+
+        if (isBatchManagedItem && batchId) {
+          // Update item_batch_balance
+          const targetBatchQuery = await db
+            .collection("item_batch_balance")
+            .where({
+              ...targetBalanceParams,
+              batch_id: batchId,
+            })
+            .get();
+
+          if (targetBatchQuery.data && targetBatchQuery.data.length > 0) {
+            const targetBatchDoc = targetBatchQuery.data[0];
+            const currentReservedQty = roundQty(
+              parseFloat(targetBatchDoc.reserved_qty || 0)
+            );
+            const currentBalanceQty = roundQty(
+              parseFloat(targetBatchDoc.balance_quantity || 0)
+            );
+
+            const finalReservedQty = roundQty(currentReservedQty + baseQty);
+            const finalBalanceQty = roundQty(currentBalanceQty + baseQty);
+
+            await db
+              .collection("item_batch_balance")
+              .doc(targetBatchDoc.id)
+              .update({
+                reserved_qty: finalReservedQty,
+                balance_quantity: finalBalanceQty,
+              });
+
+            console.log(
+              `Updated target item_batch_balance: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`
+            );
+          } else {
+            // Create new batch balance at target
+            const newBatchBalance = {
+              material_id: gdLineItem.material_id,
+              batch_id: batchId,
+              plant_id: plantId,
+              organization_id: organizationId,
+              location_id: targetLocation,
+              reserved_qty: baseQty,
+              balance_quantity: baseQty,
+              unrestricted_qty: 0,
+            };
+
+            await db.collection("item_batch_balance").add(newBatchBalance);
+
+            console.log(
+              `Created new item_batch_balance at target with Reserved ${baseQty}`
+            );
+          }
+        } else {
+          // Update item_balance
+          const targetQuery = await db
+            .collection("item_balance")
+            .where(targetBalanceParams)
+            .get();
+
+          if (targetQuery.data && targetQuery.data.length > 0) {
+            const targetDoc = targetQuery.data[0];
+            const currentReservedQty = roundQty(
+              parseFloat(targetDoc.reserved_qty || 0)
+            );
+            const currentBalanceQty = roundQty(
+              parseFloat(targetDoc.balance_quantity || 0)
+            );
+
+            const finalReservedQty = roundQty(currentReservedQty + baseQty);
+            const finalBalanceQty = roundQty(currentBalanceQty + baseQty);
+
+            await db.collection("item_balance").doc(targetDoc.id).update({
+              reserved_qty: finalReservedQty,
+              balance_quantity: finalBalanceQty,
+            });
+
+            console.log(
+              `Updated target item_balance: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`
+            );
+          } else {
+            // Create new balance at target
+            const newBalance = {
+              material_id: gdLineItem.material_id,
+              plant_id: plantId,
+              organization_id: organizationId,
+              location_id: targetLocation,
+              reserved_qty: baseQty,
+              balance_quantity: baseQty,
+              unrestricted_qty: 0,
+            };
+
+            await db.collection("item_balance").add(newBalance);
+
+            console.log(
+              `Created new item_balance at target with Reserved ${baseQty}`
+            );
+          }
+        }
+
+        // Handle serialized items
+        if (isSerializedItem && tempItem.serial_number) {
+          console.log(
+            `Processing serialized item with serial: ${tempItem.serial_number}`
+          );
+
+          // Query for OUT movement ID
+          const outMovementQuery = await db
+            .collection("inventory_movement")
+            .where({
+              transaction_type: "TO - PICK",
+              trx_no: gdNo,
+              item_id: gdLineItem.material_id,
+              bin_location_id: sourceLocation,
+              movement: "OUT",
+              inventory_category: "Reserved",
+            })
+            .get();
+
+          let outMovementId = null;
+          if (outMovementQuery.data && outMovementQuery.data.length > 0) {
+            outMovementId = outMovementQuery.data.sort(
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+            )[0].id;
+          }
+
+          // Query for IN movement ID
+          const inMovementQuery = await db
+            .collection("inventory_movement")
+            .where({
+              transaction_type: "TO - PICK",
+              trx_no: gdNo,
+              item_id: gdLineItem.material_id,
+              bin_location_id: targetLocation,
+              movement: "IN",
+              inventory_category: "Reserved",
+            })
+            .get();
+
+          let inMovementId = null;
+          if (inMovementQuery.data && inMovementQuery.data.length > 0) {
+            inMovementId = inMovementQuery.data.sort(
+              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+            )[0].id;
+          }
+
+          // Create inv_serial_movement records if we have movement IDs
+          if (outMovementId && inMovementId) {
+            const serialNumbers = tempItem.serial_number
+              .split("\n")
+              .map((sn) => sn.trim())
+              .filter((sn) => sn !== "");
+
+            for (const serialNumber of serialNumbers) {
+              // OUT serial movement
+              await db.collection("inv_serial_movement").add({
+                inventory_movement_id: outMovementId,
+                serial_number: serialNumber,
+                item_id: gdLineItem.material_id,
+                batch_id: batchId,
+                bin_location_id: sourceLocation,
+                movement: "OUT",
+                inventory_category: "Reserved",
+              });
+
+              // IN serial movement
+              await db.collection("inv_serial_movement").add({
+                inventory_movement_id: inMovementId,
+                serial_number: serialNumber,
+                item_id: gdLineItem.material_id,
+                batch_id: batchId,
+                bin_location_id: targetLocation,
+                movement: "IN",
+                inventory_category: "Reserved",
+              });
+            }
+
+            console.log(
+              `Created inv_serial_movement records for ${serialNumbers.length} serial numbers`
+            );
+
+            // Update item_serial_balance for each serial number
+            for (const serialNumber of serialNumbers) {
+              // Update source location - decrement Reserved
+              const sourceSerialParams = {
+                material_id: gdLineItem.material_id,
+                serial_number: serialNumber,
+                plant_id: plantId,
+                organization_id: organizationId,
+                location_id: sourceLocation,
+              };
+
+              if (batchId) {
+                sourceSerialParams.batch_id = batchId;
+              }
+
+              const sourceSerialQuery = await db
+                .collection("item_serial_balance")
+                .where(sourceSerialParams)
+                .get();
+
+              if (sourceSerialQuery.data && sourceSerialQuery.data.length > 0) {
+                const sourceSerialDoc = sourceSerialQuery.data[0];
+                const currentReservedQty = roundQty(
+                  parseFloat(sourceSerialDoc.reserved_qty || 0)
+                );
+
+                const finalReservedQty = roundQty(currentReservedQty - 1);
+
+                await db
+                  .collection("item_serial_balance")
+                  .doc(sourceSerialDoc.id)
+                  .update({
+                    reserved_qty: finalReservedQty,
+                  });
+
+                console.log(
+                  `Updated source item_serial_balance for ${serialNumber}: Reserved ${currentReservedQty}→${finalReservedQty}`
+                );
+              }
+
+              // Update target location - increment Reserved
+              const targetSerialParams = {
+                material_id: gdLineItem.material_id,
+                serial_number: serialNumber,
+                plant_id: plantId,
+                organization_id: organizationId,
+                location_id: targetLocation,
+              };
+
+              if (batchId) {
+                targetSerialParams.batch_id = batchId;
+              }
+
+              const targetSerialQuery = await db
+                .collection("item_serial_balance")
+                .where(targetSerialParams)
+                .get();
+
+              if (targetSerialQuery.data && targetSerialQuery.data.length > 0) {
+                const targetSerialDoc = targetSerialQuery.data[0];
+                const currentReservedQty = roundQty(
+                  parseFloat(targetSerialDoc.reserved_qty || 0)
+                );
+
+                const finalReservedQty = roundQty(currentReservedQty + 1);
+
+                await db
+                  .collection("item_serial_balance")
+                  .doc(targetSerialDoc.id)
+                  .update({
+                    reserved_qty: finalReservedQty,
+                  });
+
+                console.log(
+                  `Updated target item_serial_balance for ${serialNumber}: Reserved ${currentReservedQty}→${finalReservedQty}`
+                );
+              } else {
+                // Create new serial balance at target
+                const newSerialBalance = {
+                  material_id: gdLineItem.material_id,
+                  serial_number: serialNumber,
+                  plant_id: plantId,
+                  organization_id: organizationId,
+                  location_id: targetLocation,
+                  reserved_qty: 1,
+                  unrestricted_qty: 0,
+                };
+
+                if (batchId) {
+                  newSerialBalance.batch_id = batchId;
+                }
+
+                await db
+                  .collection("item_serial_balance")
+                  .add(newSerialBalance);
+
+                console.log(
+                  `Created new item_serial_balance for ${serialNumber} at target with Reserved 1`
+                );
+              }
+            }
+          }
+        }
+
+        // Build updated temp_qty_data with new location
+        const updatedTempItem = {
+          ...tempItem,
+          location_id: targetLocation,
+        };
+
+        updatedTempQtyData.push(updatedTempItem);
+      }
+
+      // Update GD line item with new temp_qty_data
+      const updatedTempQtyDataJson = JSON.stringify(updatedTempQtyData);
+
+      // Create updated view_stock summary
+      const updatedViewStock = await createTempQtyDataSummary(
+        updatedTempQtyData,
+        gdLineItem,
+        gdLineItem.material_id
+      );
+
+      // Find the line item in gdTableGd and update it
+      const lineItemIndex = gdTableGd.findIndex(
+        (item) => item.id === gdLineItem.id
+      );
+
+      if (lineItemIndex !== -1) {
+        gdTableGd[lineItemIndex].temp_qty_data = updatedTempQtyDataJson;
+        gdTableGd[lineItemIndex].view_stock = updatedViewStock;
+
+        console.log(
+          `Updated GD line item ${gdLineItem.id} temp_qty_data and view_stock`
+        );
+      }
+    }
+
+    // Update the entire GD document with modified table_gd
+    await db.collection("goods_delivery").doc(gdId).update({
+      table_gd: gdTableGd,
+    });
+
+    console.log("Updated Goods Delivery with new location data");
+
+    // Update on_reserved_gd records
+    const existingReserved = await db
+      .collection("on_reserved_gd")
+      .where({
+        doc_type: "Good Delivery",
+        doc_no: gdNo,
+        organization_id: organizationId,
+      })
+      .get();
+
+    if (existingReserved.data && existingReserved.data.length > 0) {
+      console.log(
+        `Found ${existingReserved.data.length} on_reserved_gd records to update`
+      );
+
+      const updatePromises = [];
+
+      for (const reservedRecord of existingReserved.data) {
+        // Find the corresponding line item in gdTableGd
+        const matchingGDLineItem = gdTableGd.find(
+          (item, index) => index + 1 === reservedRecord.line_no
+        );
+
+        if (matchingGDLineItem) {
+          const matchingPickingItem = pickingItemsMap[matchingGDLineItem.id];
+
+          if (matchingPickingItem && matchingPickingItem.target_location) {
+            updatePromises.push(
+              db.collection("on_reserved_gd").doc(reservedRecord.id).update({
+                bin_location: matchingPickingItem.target_location,
+              })
+            );
+
+            console.log(
+              `Updating on_reserved_gd record ${reservedRecord.id} bin_location to ${matchingPickingItem.target_location}`
+            );
+          }
+        }
+      }
+
+      await Promise.all(updatePromises);
+      console.log("Updated on_reserved_gd records with new bin locations");
+    }
+
+    console.log("Loading bay inventory movement completed successfully");
+  } catch (error) {
+    console.error("Error in handleLoadingBayInventoryMovement:", error);
+    throw error;
+  }
+};
+
 (async () => {
   try {
     this.showLoading();
@@ -1613,9 +2306,28 @@ const createTempQtyDataSummary = async (
 
       for (const selectedRecord of selectedRecords) {
         const pickingId = selectedRecord.id;
-        const tablePickingItems = selectedRecord.table_picking_items;
-        const tablePickingRecords = selectedRecord.table_picking_records;
+
+        const pickingData = await db
+          .collection("transfer_order")
+          .where({ id: pickingId })
+          .get()
+          .then((res) => res.data[0]);
+
+        const tablePickingItems = pickingData.table_picking_items;
+        const tablePickingRecords = pickingData.table_picking_records;
         const pickingNumber = selectedRecord.to_id;
+        const plantId = pickingData.plant_id;
+        const organizationId = pickingData.organization_id;
+
+        const isLoadingBay = await db
+          .collection("picking_setup")
+          .where({
+            plant_id: plantId,
+            organization_id: organizationId,
+            picking_after: "Goods Delivery",
+          })
+          .get()
+          .then((res) => res.data[0].is_loading_bay);
 
         for (const item of tablePickingItems) {
           if (item.line_status !== "Cancelled") {
@@ -1844,6 +2556,32 @@ const createTempQtyDataSummary = async (
             console.log("gdData", gdData);
 
             await updateEntry(gdData.organization_id, gdData, gdId, "Created");
+
+            // Handle loading bay inventory movement AFTER updateEntry completes
+            // This ensures balance changes (unrestricted → reserved) happen first
+            // Then loading bay moves reserved inventory between locations
+            if (isLoadingBay === 1 && allPickingStatusCompleted) {
+              console.log(
+                "Loading bay is enabled and picking is completed, initiating inventory movement"
+              );
+
+              try {
+                await handleLoadingBayInventoryMovement(
+                  gdData,
+                  gdData.delivery_no,
+                  gdId,
+                  tablePickingItems,
+                  plantId,
+                  organizationId
+                );
+              } catch (error) {
+                console.error(
+                  "Error in loading bay inventory movement:",
+                  error
+                );
+                // Don't throw - allow the rest of the process to continue
+              }
+            }
 
             // After updateEntry completes, fetch fresh balance data and update temp_qty_data
             console.log("Fetching updated balance data after GD update...");
