@@ -1191,8 +1191,11 @@ const handleLoadingBayInventoryMovement = async (
       pickingItemsMap[pickingItem.gd_line_id] = pickingItem;
     }
 
+    // Get a mutable copy of table_gd for updates
+    const gdTableGd = [...gdData.table_gd];
+
     // Process each GD line item
-    for (const gdLineItem of gdData.table_gd) {
+    for (const gdLineItem of gdTableGd) {
       const pickingItem = pickingItemsMap[gdLineItem.id];
 
       if (!pickingItem) {
