@@ -715,6 +715,7 @@ const createTempQtyDataSummary = async (
 
 // Handle loading bay inventory movement - move Reserved inventory from source to target location
 const handleLoadingBayInventoryMovement = async (
+  ppData,
   ppNo,
   ppId,
   pickingItems,
@@ -724,15 +725,6 @@ const handleLoadingBayInventoryMovement = async (
   try {
     console.log("Starting handleLoadingBayInventoryMovement for PP:", ppNo);
 
-    // Fetch PP data to get current state
-    const ppResponse = await db.collection("picking_plan").doc(ppId).get();
-
-    if (!ppResponse.data || ppResponse.data.length === 0) {
-      console.warn(`Picking Plan ${ppId} not found`);
-      return;
-    }
-
-    const ppData = ppResponse.data[0];
     const ppTableTo = ppData.table_to || [];
 
     console.log(`Found Picking Plan: ID=${ppId}, to_no=${ppNo}`);
@@ -1660,6 +1652,7 @@ const createPickingRecord = async (toData) => {
         );
 
         await handleLoadingBayInventoryMovement(
+          ppData,
           ppNo,
           ppId,
           updatedItems,
