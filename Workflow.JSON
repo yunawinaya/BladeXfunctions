@@ -1,0 +1,50 @@
+[
+  {
+    "id": "update_node_cYCCLYo0",
+    "type": "update-node",
+    "data": {
+      "table_id": {
+        "source": "Sales Order:Table:1902773735979597826",
+        "rules": {
+          "collectionId": "1902773735979597826",
+          "list": [
+            {
+              "id": 1763523639753,
+              "parentId": 1763523639752,
+              "isTop": true,
+              "prop": "id",
+              "operator": "numberEqual",
+              "valueType": "field",
+              "value": "{{workflowparams:entry.id}}",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        }
+      },
+      "fields": [],
+      "condition": {},
+      "title": "Update Data",
+      "props": {
+        "modelName": "",
+        "list": [
+          {
+            "prop": "so_status",
+            "valueType": "value",
+            "value": "Issued",
+            "operator": "",
+            "propLabel": "SO Status"
+          },
+          {
+            "prop": "page_status",
+            "operator": "",
+            "valueType": "field",
+            "value": "{{workflowparams:entry.page_status}}",
+            "propLabel": "Page Status"
+          }
+        ]
+      }
+    },
+    "blocks": []
+  }
+]

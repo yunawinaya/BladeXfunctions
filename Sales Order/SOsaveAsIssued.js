@@ -49,7 +49,7 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const validateField = (value, _field) => {
+const validateField = (value, field) => {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "number") return value <= 0;
@@ -421,7 +421,7 @@ const validateQuantity = async (tableSO) => {
   tableSO.forEach((item, index) => {
     if (item.item_name) {
       if (!item.so_quantity || item.so_quantity <= 0) {
-        quantityFailValFields.push(`${item.material_name}`);
+        quantityFailValFields.push(`${item.item_id}`);
       }
     } else {
       if (item.so_quantity > 0) {
@@ -450,7 +450,7 @@ const updateItemTransactionDate = async (entry) => {
           .collection("Item")
           .doc(item)
           .update({ last_transaction_date: date });
-      } catch {
+      } catch (error) {
         throw new Error(
           `Cannot update last transaction date for item #${index + 1}.`
         );
@@ -537,7 +537,7 @@ const fillbackHeaderFields = async (entry) => {
       soLineItem.access_group = entry.access_group || [];
     }
     return entry.table_so;
-  } catch {
+  } catch (error) {
     throw new Error("Error processing sales order.");
   }
 };
@@ -549,7 +549,7 @@ const deleteRelatedGD = async (existingGD) => {
         is_deleted: 1,
       });
     }
-  } catch {
+  } catch (error) {
     throw new Error("Error in deleting associated goods delivery.");
   }
 };
@@ -561,7 +561,7 @@ const deleteRelatedSI = async (existingSI) => {
         is_deleted: 1,
       });
     }
-  } catch {
+  } catch (error) {
     throw new Error("Error in deleting associated sales invoice.");
   }
 };
@@ -756,7 +756,7 @@ const saveSalesOrders = async (entry) => {
       }
 
       entry.table_so = await fillbackHeaderFields(entry);
-      for (const [index, _lineItem] of entry.table_so.entries()) {
+      for (const [index, lineItem] of entry.table_so.entries()) {
         await this.validate(`table_so.${index}.so_item_price`);
       }
 

@@ -205,7 +205,7 @@ const generateDraftPrefix = async (entry) => {
       let entry = data;
       entry.so_status = "Draft";
 
-      entry.table_so = await fillbackHeaderFields(entry);
+      entry.table_so = await entry;
 
       // Add or update based on page status
       if (page_status === "Add" || page_status === "Clone") {
