@@ -1,49 +1,56 @@
 [
   {
-    "id": "update_node_cYCCLYo0",
-    "type": "update-node",
+    "id": "code_node_7xPEVBdJ",
+    "type": "code-node",
     "data": {
-      "table_id": {
-        "source": "Sales Order:Table:1902773735979597826",
-        "rules": {
-          "collectionId": "1902773735979597826",
-          "list": [
-            {
-              "id": 1763523639753,
-              "parentId": 1763523639752,
-              "isTop": true,
-              "prop": "id",
-              "operator": "numberEqual",
-              "valueType": "field",
-              "value": "{{workflowparams:entry.id}}",
-              "type": "leaf",
-              "level": 1
-            }
-          ]
-        }
+      "language": "javascript",
+      "code": "",
+      "timeout": 30000,
+      "title": "Credit Limit Check",
+      "isValidator": true,
+      "nodeName": "Credit Limit Check",
+      "name": "Credit Limit Check",
+      "script": {
+        "type": "javascript",
+        "code": "const customerData = {{node:get_node_GerIauhj.data.data}}\n\nconst controlTypes = customerData.control_type_list;\nconst outstandingAmount = parseFloat(customerData.outstanding_balance || 0) || 0;\nconst overdueAmount = parseFloat(customerData.overdue_inv_total_amount || 0) || 0;\nconst overdueLimit = parseFloat(customerData.overdue_limit || 0) || 0;\nconst creditLimit = parseFloat(customerData.customer_credit_limit || 0) || 0;\nconst totalAmount = parseFloat({{workflowparams:total}} || 0) || 0;\nconst revisedOutstandingAmount = outstandingAmount + totalAmount;\n\nif (controlTypes && Array.isArray(controlTypes)) {\n  const controlTypeChecks = {\n    0: () => {\n      return { result: true, priority: \"unblock\" };\n    },\n\n    1: () => {\n      if (overdueAmount > overdueLimit) {\n        return { result: false, popupNumber: 2, priority: \"block\" };\n      }\n      return { result: true, priority: \"unblock\" };\n    },\n\n    2: () => {\n      if (overdueAmount > overdueLimit) {\n        return { result: false, popupNumber: 4, priority: \"override\" };\n      }\n      return { result: true, priority: \"unblock\" };\n    },\n\n    3: () => {\n      if (revisedOutstandingAmount > creditLimit) {\n        return { result: false, popupNumber: 1, priority: \"block\" };\n      }\n      return { result: true, priority: \"unblock\" };\n    },\n\n    4: () => {\n      const creditExceeded = revisedOutstandingAmount > creditLimit;\n      const overdueExceeded = overdueAmount > overdueLimit;\n\n      if (creditExceeded && overdueExceeded) {\n        return { result: false, popupNumber: 3, priority: \"block\" };\n      } else if (creditExceeded) {\n        return { result: false, popupNumber: 1, priority: \"block\" };\n      } else if (overdueExceeded) {\n        return { result: false, popupNumber: 2, priority: \"block\" };\n      }\n      return { result: true, priority: \"unblock\" };\n    },\n\n    5: () => {\n      const creditExceeded = revisedOutstandingAmount > creditLimit;\n      const overdueExceeded = overdueAmount > overdueLimit;\n\n      if (creditExceeded) {\n        if (overdueExceeded) {\n          return { result: false, popupNumber: 3, priority: \"block\" };\n        } else {\n          return { result: false, popupNumber: 1, priority: \"block\" };\n        }\n      } else if (overdueExceeded) {\n        return { result: false, popupNumber: 4, priority: \"override\" };\n      }\n      return { result: true, priority: \"unblock\" };\n    },\n\n    6: () => {\n      if (revisedOutstandingAmount > creditLimit) {\n        return { result: false, popupNumber: 5, priority: \"override\" };\n      }\n      return { result: true, priority: \"unblock\" };\n    },\n\n    7: () => {\n      const creditExceeded = revisedOutstandingAmount > creditLimit;\n      const overdueExceeded = overdueAmount > overdueLimit;\n\n      if (overdueExceeded) {\n        return { result: false, popupNumber: 2, priority: \"block\" };\n      } else if (creditExceeded) {\n        return { result: false, popupNumber: 5, priority: \"override\" };\n      }\n      return { result: true, priority: \"unblock\" };\n    },\n\n    8: () => {\n      const creditExceeded = revisedOutstandingAmount > creditLimit;\n      const overdueExceeded = overdueAmount > overdueLimit;\n\n      if (creditExceeded && overdueExceeded) {\n        return { result: false, popupNumber: 7, priority: \"override\" };\n      } else if (creditExceeded) {\n        return { result: false, popupNumber: 5, priority: \"override\" };\n      } else if (overdueExceeded) {\n        return { result: false, popupNumber: 4, priority: \"override\" };\n      }\n      return { result: true, priority: \"unblock\" };\n    },\n\n    9: () => {\n      return { result: false, popupNumber: 6, priority: \"block\" };\n    },\n  };\n\n  const applicableControls = controlTypes\n    .filter((ct) => ct.document_type === {{workflowparams:document_type}})\n    .map((ct) => {\n      const checkResult = controlTypeChecks[ct.control_type]\n        ? controlTypeChecks[ct.control_type]()\n        : { result: true, priority: \"unblock\" };\n      return {\n        ...checkResult,\n        control_type: ct.control_type,\n      };\n    });\n\n  const priorityOrder = { block: 1, override: 2, unblock: 3 };\n  applicableControls.sort(\n    (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]\n  );\n\n  for (const control of applicableControls) {\n    if (control.result !== true) {\n      return {\n        result: false,\n        popupNumber: control.popupNumber,\n        priority: control.priority,\n        creditLimitData: {\n          creditLimit: creditLimit,\n          revisedOutstandingAmount: revisedOutstandingAmount,\n          overdueLimit: overdueLimit,\n          overdueAmount: overdueAmount\n        }\n      };\n    }\n  }\n\n  return { result: true };\n}\n"
       },
-      "fields": [],
-      "condition": {},
-      "title": "Update Data",
-      "props": {
-        "modelName": "",
-        "list": [
-          {
-            "prop": "so_status",
-            "valueType": "value",
-            "value": "Issued",
-            "operator": "",
-            "propLabel": "SO Status"
-          },
-          {
-            "prop": "page_status",
-            "operator": "",
-            "valueType": "field",
-            "value": "{{workflowparams:entry.page_status}}",
-            "propLabel": "Page Status"
-          }
-        ]
-      }
+      "response_json": [
+        {
+          "key": "dpc4vtxu",
+          "name": "result",
+          "title": "result",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+        },
+        {
+          "key": "f9it1el8",
+          "name": "priority",
+          "title": "priority",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+        },
+        {
+          "key": "nuapis2q",
+          "name": "popupNumber",
+          "title": "popupNumber",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+        },
+        {
+          "key": "70kpmodf",
+          "name": "creditLimitData",
+          "title": "",
+          "description": "",
+          "bsonType": "object",
+          "isExpand": true,
+          "children": []
+        }
+      ]
     },
     "blocks": []
   }

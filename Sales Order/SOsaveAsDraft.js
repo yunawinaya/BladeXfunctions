@@ -112,6 +112,7 @@ const generateDraftPrefix = async (entry) => {
   try {
     let currentPrefix = entry.so_no;
     let organizationID = entry.organization_id;
+    let docNoID = entry.document_no_format;
     const status = "Draft";
     let documentTypes = "Sales Orders";
 
@@ -122,8 +123,10 @@ const generateDraftPrefix = async (entry) => {
           {
             document_type: documentTypes,
             organization_id: organizationID,
-            document_no_id: "",
+            document_no_id: docNoID,
             status: status,
+            doc_no: entry.so_no,
+            prev_status: "",
           },
           (res) => resolve(res),
           (err) => reject(err)
@@ -205,7 +208,7 @@ const generateDraftPrefix = async (entry) => {
       let entry = data;
       entry.so_status = "Draft";
 
-      entry.table_so = await entry;
+      entry.table_so = await fillbackHeaderFields(entry);
 
       // Add or update based on page status
       if (page_status === "Add" || page_status === "Clone") {

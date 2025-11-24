@@ -583,6 +583,8 @@ const generatePrefix = async (entry) => {
             organization_id: organizationID,
             document_no_id: docNoID,
             status: status,
+            doc_no: entry.so_no,
+            prev_status: "",
           },
           (res) => resolve(res),
           (err) => reject(err)
