@@ -68,7 +68,7 @@ const displayTab = (tabName) => {
         this.getComponent(
           "dialog_select_stock.batch_balance"
         )?.$refs.crud.toggleAllSelection();
-      }, 500);
+      }, 1000);
     } else {
       this.triggerEvent("onClick_countStock");
     }

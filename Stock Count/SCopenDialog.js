@@ -78,7 +78,11 @@ const fetchAllLocations = async () => {
     console.log("Opening stock count dialog");
     const data = this.getValues();
 
-    if (data.count_type === "Location") {
+    if (data.count_type === "Storage") {
+      hideTab("location_selection");
+      hideTab("item_selection");
+      hideTab("batch_selection");
+    } else if (data.count_type === "Location") {
       hideTab("item_selection");
       hideTab("batch_selection");
     } else {

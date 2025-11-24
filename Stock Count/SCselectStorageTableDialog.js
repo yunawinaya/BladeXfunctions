@@ -33,32 +33,28 @@ const displayTab = (tabName) => {
 };
 
 (async () => {
-  const selectItems = this.getComponent("dialog_select_stock.location")?.$refs
-    .crud.tableSelect;
-
-  this.models["locationList"] = [];
-  this.models["itemList"] = [];
+  const selectItems = this.getComponent("dialog_select_stock.storage_location")
+    ?.$refs.crud.tableSelect;
 
   if (selectItems && selectItems.length > 0) {
-    this.models["locationList"] = selectItems.map((item) => {
-      return { id: item.id, name: item.location_code };
+    this.setData({
+      "dialog_select_stock.storage_location_id": selectItems.map(
+        (item) => item.id
+      ),
     });
 
-    console.log("locationList", this.models["locationList"]);
+    console.log(this.getValue("dialog_select_stock.storage_location_id"));
 
-    displayTab("item_selection");
+    displayTab("location_selection");
 
     setTimeout(async () => {
-      await this.hide([
-        "dialog_select_stock.item_balance",
-        "dialog_select_stock.batch_balance",
-      ]);
-      await this.display("dialog_select_stock.item_balance");
+      await this.hide(["dialog_select_stock.location"]);
+      await this.display("dialog_select_stock.location");
     }, 100);
 
     setTimeout(() => {
       this.getComponent(
-        "dialog_select_stock.item_balance"
+        "dialog_select_stock.location"
       )?.$refs.crud.toggleAllSelection();
     }, 1000);
   }
