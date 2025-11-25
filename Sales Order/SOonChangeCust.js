@@ -1,4 +1,5 @@
 const resetFormFields = () => {
+  console.log("resetFormFields");
   this.setData({
     cust_billing_name: "",
     cust_billing_cp: "",
@@ -77,7 +78,8 @@ const fetchCurrencyData = async (currencyID) => {
       });
 
       if (currencyCode !== "----" && currencyCode !== "MYR") {
-        this.setData({
+        await this.setData({ so_currency: "" });
+        await this.setData({
           exchange_rate: currencyEntry.currency_buying_rate,
           so_currency: currencyCode,
         });
@@ -90,7 +92,8 @@ const fetchCurrencyData = async (currencyID) => {
           "total_amount_myr",
         ]);
       } else {
-        this.setData({
+        await this.setData({ so_currency: "" });
+        await this.setData({
           exchange_rate: 1,
           so_currency: currencyCode,
         });
@@ -179,10 +182,57 @@ const formatAddress = (address, state, country, addressTypeUpperCase) => {
   return formattedAddress;
 };
 
+const fetchLatestPricing = async (tableSO, overwriteMsg) => {
+  for (const [index, item] of tableSO.entries()) {
+    await this.triggerEvent("onBlur_quantity", {
+      row: {
+        item_name: item.item_name,
+        so_item_uom: item.so_item_uom,
+      },
+      rowIndex: index,
+      value: item.so_quantity,
+      overwrite: overwriteMsg,
+    });
+  }
+};
+
 (async () => {
   try {
     const customerItem = arguments[0]?.fieldModel?.item;
     const customerId = customerItem?.id;
+
+    const tableSO = this.getValue("table_so");
+    if (tableSO.length > 0) {
+      const hasItemID = tableSO.some((item) => item.item_name);
+
+      if (hasItemID) {
+        await this.$confirm(
+          `The customer has been changed. Please choose one: <br><br>Please choose one: <br>
+        <strong>Overwrite:</strong> Replace the price based on the latest customer. <em>(If any)</em><br>
+        <strong>Keep:</strong> Keep the existing item price.`,
+          "Customer Change Detected",
+          {
+            confirmButtonText: "Overwrite",
+            cancelButtonText: "Keep",
+            dangerouslyUseHTMLString: true,
+            type: "info",
+            distinguishCancelAndClose: true,
+
+            beforeClose: async (action, instance, done) => {
+              if (action === "confirm") {
+                await fetchLatestPricing(tableSO, "Yes - from customer change");
+                done();
+              } else if (action === "cancel") {
+                await fetchLatestPricing(tableSO, "No - from customer change");
+                done();
+              } else {
+                done();
+              }
+            },
+          }
+        );
+      }
+    }
 
     if (customerId && !Array.isArray(customerId)) {
       this.display("address_grid");
@@ -192,7 +242,7 @@ const formatAddress = (address, state, country, addressTypeUpperCase) => {
       const resCustomer = await db
         .collection("Customer")
         .field(
-          "customer_currency_id,customer_payment_term_id,customer_agent_id,last_sync_date,customer_credit_limit,overdue_limit,outstanding_balance,overdue_inv_total_amount,is_accurate,access_group"
+          "customer_currency_id,customer_payment_term_id,customer_agent_id,last_sync_date,customer_credit_limit,overdue_limit,outstanding_balance,overdue_inv_total_amount,is_accurate,access_group,price_tag_id"
         )
         .where({ id: customerId })
         .get();
@@ -209,9 +259,8 @@ const formatAddress = (address, state, country, addressTypeUpperCase) => {
         so_payment_term: customerData.customer_payment_term_id || null,
         so_sales_person: customerData.customer_agent_id || null,
         access_group: customerData.access_group || [],
+        price_tag_id: customerData.price_tag_id || null,
       });
-
-      this.disabled(["so_sales_person"], false);
 
       const resAddress = await db
         .collection("Customer_skgkxqcn_sub")
@@ -266,11 +315,13 @@ const formatAddress = (address, state, country, addressTypeUpperCase) => {
           setDialogAddressFields(addressType, address);
 
           if (addressType === "shipping") {
-            this.setData({
+            await this.setData({ cust_shipping_address: "" });
+            await this.setData({
               cust_shipping_address: formattedAddress,
             });
           } else {
-            this.setData({
+            await this.setData({ cust_billing_address: "" });
+            await this.setData({
               cust_billing_address: formattedAddress,
             });
           }
@@ -289,9 +340,10 @@ const formatAddress = (address, state, country, addressTypeUpperCase) => {
           is_accurate: customerData.is_accurate,
         });
       }
-    } else {
-      this.disabled(["so_sales_person"], true);
     }
+
+    this.disabled("table_so", false);
+    this.display("price_history");
   } catch (error) {
     this.$message.error(error.toString());
   }
