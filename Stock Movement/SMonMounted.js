@@ -705,6 +705,37 @@ const setPlant = (organizationId, pageStatus) => {
   }
 };
 
+const setStorageLocation = async () => {
+  try {
+    const smTable = this.getValue("stock_movement");
+
+    if (smTable.length > 0) {
+      for (const [index, item] of smTable.entries()) {
+        console.log("location_id", item.location_id);
+        console.log("storage_location_id", item.storage_location_id);
+        if (!item.storage_location_id && item.location_id) {
+          this.setData({
+            [`stock_movement.${index}.storage_location_id`]: "",
+            [`stock_movement.${index}.location_id`]: "",
+          });
+          const binLocationData = await db
+            .collection("bin_location")
+            .where({ id: item.location_id })
+            .get()
+            .then((res) => res.data[0]);
+
+          this.setData({
+            [`stock_movement.${index}.storage_location_id`]:
+              binLocationData.storage_location_id,
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 (async () => {
   try {
     const data = this.getValues();
@@ -748,6 +779,7 @@ const setPlant = (organizationId, pageStatus) => {
         await checkAccIntegrationType(organizationId);
         await filterMovementType();
         await hideSerialNumberRecordTab();
+        await setStorageLocation();
         break;
 
       case "Edit":
@@ -811,6 +843,7 @@ const setPlant = (organizationId, pageStatus) => {
           pageStatus,
           data.movement_type
         );
+        await setStorageLocation();
 
         break;
 
