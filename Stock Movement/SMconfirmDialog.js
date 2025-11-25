@@ -475,8 +475,49 @@
       [`stock_movement.${rowIndex}.stock_summary`]: formattedString,
     });
 
+    // Convert numeric fields to strings with 3 decimal places for balance_index
+    // DO NOT filter out metadata fields - they are needed!
+    const convertedBalanceIndex = updatedBalanceIndex.map((item) => {
+      const converted = { ...item };
+
+      // Convert numeric fields to strings with 3 decimal places
+      const numericFields = [
+        "unrestricted_qty",
+        "reserved_qty",
+        "qualityinsp_qty",
+        "block_qty",
+        "intransit_qty",
+        "balance_quantity",
+        "sm_quantity",
+        "unit_price",
+      ];
+
+      numericFields.forEach((field) => {
+        if (converted[field] !== null && converted[field] !== undefined) {
+          const num = parseFloat(converted[field]) || 0;
+          converted[field] = num.toFixed(3);
+        }
+      });
+
+      // Ensure is_deleted is a number, not a string
+      if (converted.is_deleted !== undefined) {
+        converted.is_deleted = converted.is_deleted ? 1 : 0;
+      }
+
+      return converted;
+    });
+
+    // First, initialize/prime the balance_index field by setting it to empty array
+    // This is required for the low-code platform to accept subsequent data
     this.setData({
-      balance_index: updatedBalanceIndex,
+      balance_index: [],
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // Now set the actual converted data
+    this.setData({
+      balance_index: convertedBalanceIndex,
     });
 
     this.models["previous_material_uom"] = undefined;
