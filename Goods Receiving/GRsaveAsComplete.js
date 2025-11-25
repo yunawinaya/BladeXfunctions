@@ -2971,7 +2971,7 @@ const saveGoodsReceiving = async (entry, putAwaySetupData) => {
 
     // add status
     if (pageStatus === "Add") {
-      //entry.gr_no = await generateGRPrefix(entry, "Goods Receiving");
+      entry.gr_no = await generateGRPrefix(entry, "Goods Receiving");
       const grResponse = await db.collection("goods_receiving").add(entry);
       grID = grResponse.data[0].id;
     }

@@ -517,7 +517,7 @@ const savePurchaseOrders = async (entry) => {
 
     // add status
     if (pageStatus === "Add" || pageStatus === "Clone") {
-      //entry.purchase_order_no = await generatePrefix(entry);
+      entry.purchase_order_no = await generatePrefix(entry);
       await db.collection("purchase_order").add(entry);
     }
     // edit status
