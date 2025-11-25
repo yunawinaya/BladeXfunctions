@@ -6,119 +6,6 @@ const closeDialog = () => {
   }
 };
 
-const getPrefixData = async (organizationId) => {
-  console.log("Getting prefix data for organization:", organizationId);
-  try {
-    const prefixEntry = await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Quotations",
-        is_deleted: 0,
-        organization_id: organizationId,
-        is_active: 1,
-      })
-      .get();
-
-    console.log("Prefix data result:", prefixEntry);
-
-    if (!prefixEntry.data || prefixEntry.data.length === 0) {
-      console.log("No prefix configuration found");
-      return null;
-    }
-
-    return prefixEntry.data[0];
-  } catch (error) {
-    console.error("Error getting prefix data:", error);
-    throw error;
-  }
-};
-
-const updatePrefix = async (organizationId, runningNumber) => {
-  console.log(
-    "Updating prefix for organization:",
-    organizationId,
-    "with running number:",
-    runningNumber
-  );
-  try {
-    await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Quotations", // Make sure this matches exactly
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .update({
-        running_number: parseInt(runningNumber) + 1,
-        has_record: 1,
-      });
-    console.log("Prefix update successful");
-  } catch (error) {
-    console.error("Error updating prefix:", error);
-    throw error;
-  }
-};
-
-const generatePrefix = (runNumber, now, prefixData) => {
-  console.log("Generating prefix with running number:", runNumber);
-  try {
-    let generated = prefixData.current_prefix_config;
-    generated = generated.replace("prefix", prefixData.prefix_value);
-    generated = generated.replace("suffix", prefixData.suffix_value);
-    generated = generated.replace(
-      "month",
-      String(now.getMonth() + 1).padStart(2, "0")
-    );
-    generated = generated.replace(
-      "day",
-      String(now.getDate()).padStart(2, "0")
-    );
-    generated = generated.replace("year", now.getFullYear());
-    generated = generated.replace(
-      "running_number",
-      String(runNumber).padStart(prefixData.padding_zeroes, "0")
-    );
-    console.log("Generated prefix:", generated);
-    return generated;
-  } catch (error) {
-    console.error("Error generating prefix:", error);
-    throw error;
-  }
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("Quotation")
-    .where({ sqt_no: generatedPrefix, organization_id: organizationId })
-    .get();
-  return existingDoc.data[0] ? false : true;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Quotation number after maximum attempts"
-    );
-  }
-  return { prefixToShow, runningNumber };
-};
-
 const validateForm = (data, requiredFields, customerType) => {
   const missingFields = [];
 
@@ -505,69 +392,93 @@ const checkCreditOverdueLimit = async (sqt_customer_id, sqt_totalsum) => {
   }
 };
 
-const addEntry = async (organizationId, entry) => {
+const generatePrefix = async (entry) => {
   try {
-    const prefixData = await getPrefixData(organizationId);
+    let currentPrefix = entry.sqt_no;
+    let organizationID = entry.organization_id;
+    let docNoID = entry.document_no_format;
+    let documentTypes = "Quotations";
+    const status = "Issued";
 
-    if (prefixData !== null) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId
-      );
-
-      await updatePrefix(organizationId, runningNumber);
-
-      entry.sqt_no = prefixToShow;
-    } else {
-      const isUnique = await checkUniqueness(entry.sqt_no, organizationId);
-      if (!isUnique) {
-        throw new Error(
-          `Quotation Number "${entry.sqt_no}" already exists. Please use a different number.`
+    if (
+      currentPrefix === "<<new>>" ||
+      this.getValue("sqt_status") === "Draft"
+    ) {
+      const workflowResult = await new Promise((resolve, reject) => {
+        this.runWorkflow(
+          "1984071042628268034",
+          {
+            document_type: documentTypes,
+            organization_id: organizationID,
+            document_no_id: docNoID,
+            status: status,
+            doc_no: currentPrefix,
+            prev_status: "",
+          },
+          (res) => resolve(res),
+          (err) => reject(err)
         );
-      }
-    }
+      });
 
-    await db.collection("Quotation").add(entry);
+      console.log("res", workflowResult);
+      const result = workflowResult.data;
 
-    this.$message.success("Add successfully");
-  } catch (error) {
-    console.error("Error in addEntry:", error);
-    throw error;
-  }
-};
-
-const updateEntry = async (organizationId, entry, quotationId) => {
-  try {
-    const currentSQTStatus = this.getValue("sqt_status");
-
-    if (!currentSQTStatus || currentSQTStatus === "Draft") {
-      const prefixData = await getPrefixData(organizationId);
-
-      if (prefixData.length !== 0) {
-        const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData,
-          organizationId
-        );
-
-        await updatePrefix(organizationId, runningNumber);
-
-        entry.sqt_no = prefixToShow;
+      if (result.is_unique === "TRUE") {
+        currentPrefix = result.doc_no;
+        console.log("result", result.doc_no);
       } else {
-        const isUnique = await checkUniqueness(entry.sqt_no, organizationId);
-        if (!isUnique) {
+        currentPrefix = result.doc_no;
+        throw new Error(
+          `${documentTypes} Number "${currentPrefix}" already exists. Please reset the running number.`
+        ); // Specific error
+      }
+    } else {
+      const id = entry.id || "";
+      const checkUniqueness = await db
+        .collection("Quotation")
+        .where({ sqt_no: currentPrefix, organization_id: organizationID })
+        .get();
+
+      if (checkUniqueness.data.length > 0) {
+        if (checkUniqueness.data[0].id !== id) {
           throw new Error(
-            `Quotation Number "${entry.sqt_no}" already exists. Please use a different number.`
-          );
+            `${documentTypes} Number "${currentPrefix}" already exists. Please reset the running number.`
+          ); // Specific error
         }
       }
     }
 
-    await db.collection("Quotation").doc(quotationId).update(entry);
-
-    this.$message.success("Update successfully");
+    return currentPrefix;
   } catch (error) {
-    console.error("Error in addEntry:", error);
+    await this.$alert(error.toString(), "Error", {
+      confirmButtonText: "OK",
+      type: "error",
+    });
+    this.hideLoading();
     throw error;
+  }
+};
+
+const saveQuotation = async (entry) => {
+  try {
+    const status = this.getValue("sqt_status");
+    const pageStatus = this.getValue("page_status");
+
+    // add status
+    if (pageStatus === "Add" || pageStatus === "Clone") {
+      entry.sqt_no = await generatePrefix(entry);
+      await db.collection("Quotation").add(entry);
+    }
+    // edit status
+    if (pageStatus === "Edit") {
+      // draft status
+      if (!status || status === "Draft") {
+        entry.sqt_no = await generatePrefix(entry);
+      }
+      await db.collection("Quotation").doc(entry.id).update(entry);
+    }
+  } catch (error) {
+    console.error(error.toString());
   }
 };
 
@@ -692,7 +603,6 @@ const fillbackHeaderFields = async (entry) => {
 
     // Get page status and quotation ID from parameters
     const page_status = data.page_status;
-    const quotation_id = data.id;
 
     // Define required fields
     const requiredFields = [
@@ -755,7 +665,7 @@ const fillbackHeaderFields = async (entry) => {
         });
       }
 
-      this.showLoading();
+      this.showLoading("Saving Quotation...");
 
       // Check credit and overdue limits
       if (
@@ -780,183 +690,11 @@ const fillbackHeaderFields = async (entry) => {
         organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
 
-      const {
-        sqt_customer_id,
-        currency_code,
-        sqt_billing_name,
-        sqt_billing_address,
-        sqt_billing_cp,
-        sqt_shipping_address,
-        sqt_no,
-        sqt_plant,
-        sqt_date,
-        sqt_validity_period,
-        sales_person_id,
-        sqt_payment_term,
-        sqt_delivery_method_id,
-        cp_customer_pickup,
-        cp_ic_no,
-        driver_contact_no,
-        courier_company,
-        vehicle_number,
-        pickup_date,
-        shipping_date,
-        ct_driver_name,
-        ct_ic_no,
-        ct_vehicle_number,
-        ct_driver_contact_no,
-        ct_est_delivery_date,
-        ct_delivery_cost,
-        ss_shipping_company,
-        ss_shipping_method,
-        ss_shipping_date,
-        est_arrival_date,
-        ss_freight_charges,
-        ss_tracking_number,
-        tpt_vehicle_number,
-        tpt_transport_name,
-        tpt_ic_no,
-        tpt_driver_contact_no,
-        validity_of_collection,
-        sqt_sub_total,
-        sqt_total_discount,
-        sqt_total_tax,
-        sqt_totalsum,
-        sqt_remarks,
-        sqt_remarks2,
-        sqt_remarks3,
-        table_sqt,
-        sqt_ref_no,
-        exchange_rate,
-        myr_total_amount,
-        sqt_new_customer,
-        cs_tracking_number,
-        cs_est_arrival_date,
-        customer_type,
-        freight_charges,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_postal_code,
-        billing_address_country,
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_postal_code,
-        shipping_address_country,
-        sqt_ref_doc,
-        billing_address_name,
-        billing_address_phone,
-        billing_attention,
-        shipping_address_name,
-        shipping_address_phone,
-        shipping_attention,
-        acc_integration_type,
-        last_sync_date,
-        customer_credit_limit,
-        overdue_limit,
-        outstanding_balance,
-        overdue_inv_total_amount,
-        is_accurate,
-        expected_shipment_date,
-        access_group,
-      } = data;
+      let entry = data;
+      entry.sqt_status = "Issued";
+      entry.organization_id = organizationId;
 
-      const entry = {
-        sqt_status: "Issued",
-        organization_id: organizationId,
-        validity_of_collection,
-        sqt_ref_doc,
-        sqt_customer_id,
-        currency_code,
-        sqt_billing_name,
-        sqt_billing_address,
-        sqt_billing_cp,
-        sqt_shipping_address,
-        sqt_no,
-        sqt_plant,
-        sqt_date,
-        sqt_validity_period,
-        sales_person_id,
-        sqt_payment_term,
-        sqt_delivery_method_id,
-        cp_customer_pickup,
-        cp_ic_no,
-        driver_contact_no,
-        courier_company,
-        vehicle_number,
-        pickup_date,
-        shipping_date,
-        ct_driver_name,
-        ct_ic_no,
-        ct_vehicle_number,
-        ct_driver_contact_no,
-        ct_est_delivery_date,
-        ct_delivery_cost,
-        ss_shipping_company,
-        ss_shipping_method,
-        ss_shipping_date,
-        est_arrival_date,
-        ss_freight_charges,
-        ss_tracking_number,
-        tpt_vehicle_number,
-        tpt_transport_name,
-        tpt_ic_no,
-        tpt_driver_contact_no,
-        customer_type,
-        sqt_sub_total,
-        sqt_total_discount,
-        sqt_total_tax,
-        sqt_totalsum,
-        sqt_remarks,
-        sqt_remarks2,
-        sqt_remarks3,
-        table_sqt,
-        sqt_ref_no,
-        exchange_rate,
-        myr_total_amount,
-        sqt_new_customer,
-        cs_tracking_number,
-        cs_est_arrival_date,
-        freight_charges,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_postal_code,
-        billing_address_country,
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_postal_code,
-        shipping_address_country,
-        billing_address_name,
-        billing_address_phone,
-        billing_attention,
-        shipping_address_name,
-        shipping_address_phone,
-        shipping_attention,
-        acc_integration_type,
-        last_sync_date,
-        customer_credit_limit,
-        overdue_limit,
-        outstanding_balance,
-        overdue_inv_total_amount,
-        is_accurate,
-        expected_shipment_date,
-        access_group,
-      };
+      console.log("entry", entry);
 
       const latestSQT = entry.table_sqt.filter(
         (item) => (item.material_id || item.sqt_desc) && item.quantity > 0
@@ -970,17 +708,11 @@ const fillbackHeaderFields = async (entry) => {
       }
 
       entry.table_sqt = await fillbackHeaderFields(entry);
-
-      if (page_status === "Add" || page_status === "Clone") {
-        await addEntry(organizationId, entry);
-      } else if (page_status === "Edit") {
-        await updateEntry(organizationId, entry, quotation_id);
-      } else {
-        console.log("Unknown page status:", page_status);
-        this.hideLoading();
-        this.$message.error("Invalid page status");
-        return;
+      for (const [index, lineItem] of entry.table_sqt.entries()) {
+        await this.validate(`table_sqt.${index}.unit_price`);
       }
+
+      await saveQuotation(entry);
 
       await updateItemTransactionDate(entry);
       await closeDialog();

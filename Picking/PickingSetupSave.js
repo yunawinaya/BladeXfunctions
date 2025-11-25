@@ -15,6 +15,7 @@ const closeDialog = () => {
       picking_required,
       picking_after,
       auto_trigger_to,
+      is_loading_bay,
       picking_mode,
       default_strategy_id,
       fallback_strategy_id,
@@ -31,6 +32,7 @@ const closeDialog = () => {
       picking_required,
       picking_after,
       auto_trigger_to,
+      is_loading_bay,
       picking_mode,
       default_strategy_id,
       fallback_strategy_id,
@@ -53,16 +55,31 @@ const closeDialog = () => {
           return res.data.map((item) => item.id);
         });
 
-      for (const plant of plantList) {
+      if (plantList.length === 0) {
+        // No plants exist, use organization_id as plant_id
         const pickingSetup = await db
           .collection("picking_setup")
-          .where({ plant_id: plant, organization_id: entry.organization_id })
+          .where({ plant_id: entry.organization_id, organization_id: entry.organization_id })
           .get();
         if (pickingSetup.data.length > 0) {
           await db
             .collection("picking_setup")
             .doc(pickingSetup.data[0].id)
             .update(entry);
+        }
+      } else {
+        // Plants exist, update for each plant
+        for (const plant of plantList) {
+          const pickingSetup = await db
+            .collection("picking_setup")
+            .where({ plant_id: plant, organization_id: entry.organization_id })
+            .get();
+          if (pickingSetup.data.length > 0) {
+            await db
+              .collection("picking_setup")
+              .doc(pickingSetup.data[0].id)
+              .update(entry);
+          }
         }
       }
     } else {
@@ -76,12 +93,22 @@ const closeDialog = () => {
           return res.data.map((item) => item.id);
         });
 
-      for (const plant of plantList) {
+      if (plantList.length === 0) {
+        // No plants exist, use organization_id as plant_id
         await db.collection("picking_setup").add({
           ...entry,
-          plant_id: plant,
+          plant_id: entry.organization_id,
           organization_id: entry.organization_id,
         });
+      } else {
+        // Plants exist, create for each plant
+        for (const plant of plantList) {
+          await db.collection("picking_setup").add({
+            ...entry,
+            plant_id: plant,
+            organization_id: entry.organization_id,
+          });
+        }
       }
     }
 

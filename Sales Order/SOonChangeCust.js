@@ -314,6 +314,15 @@ const fetchLatestPricing = async (tableSO, overwriteMsg) => {
 
           setDialogAddressFields(addressType, address);
 
+          console.log(
+            "cust_shipping_address before set Data",
+            this.getValue("cust_shipping_address")
+          );
+          console.log(
+            "cust_billing_address before set Data",
+            this.getValue("cust_billing_address")
+          );
+
           if (addressType === "shipping") {
             await this.setData({ cust_shipping_address: "" });
             await this.setData({
@@ -325,6 +334,15 @@ const fetchLatestPricing = async (tableSO, overwriteMsg) => {
               cust_billing_address: formattedAddress,
             });
           }
+
+          console.log(
+            "cust_shipping_address after set Data",
+            this.getValue("cust_shipping_address")
+          );
+          console.log(
+            "cust_billing_address after set Data",
+            this.getValue("cust_billing_address")
+          );
         }
 
         if (customerData.is_accurate === 0) {

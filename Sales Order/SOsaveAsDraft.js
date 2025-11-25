@@ -123,7 +123,7 @@ const generateDraftPrefix = async (entry) => {
           {
             document_type: documentTypes,
             organization_id: organizationID,
-            document_no_id: docNoID,
+            document_no_id: "",
             status: status,
             doc_no: entry.so_no,
             prev_status: "",

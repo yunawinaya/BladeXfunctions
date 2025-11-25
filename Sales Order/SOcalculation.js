@@ -7,11 +7,15 @@ let totalTax = 0;
 let totalAmount = 0;
 let totalItems = items.length;
 
+const roundPrice = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(4));
+};
+
 if (Array.isArray(items)) {
   items.forEach((item, index) => {
     // Ensure values are numeric
     const quantity = Number(item.so_quantity) || 0;
-    const unitPrice = parseFloat(item.so_item_price) || 0;
+    const unitPrice = roundPrice(item.so_item_price) || 0;
     const grossValue = quantity * unitPrice;
 
     if (totalItems > 0) {
@@ -23,12 +27,14 @@ if (Array.isArray(items)) {
       });
     }
 
-    totalGross += grossValue;
+    totalGross += roundPrice(grossValue);
+
+    console.log("totalGross", totalGross);
 
     this.setData({
-      [`table_so.${index}.so_gross`]: grossValue,
-      [`table_so.${index}.so_amount`]: grossValue,
-      so_total_gross: totalGross,
+      [`table_so.${index}.so_gross`]: roundPrice(grossValue),
+      [`table_so.${index}.so_amount`]: roundPrice(grossValue),
+      so_total_gross: roundPrice(totalGross),
     });
 
     // Get discount, discountUOM, and tax info for this row
@@ -49,9 +55,9 @@ if (Array.isArray(items)) {
       // Calculate discount amount using UOM from database
       if (discount !== 0) {
         if (discountUOM === "Amount") {
-          discountAmount = discount;
+          discountAmount = roundPrice(discount);
         } else if (discountUOM === "%") {
-          discountAmount = (grossValue * discount) / 100;
+          discountAmount = roundPrice((grossValue * discount) / 100);
         }
 
         if (discountAmount > grossValue) {
@@ -64,13 +70,10 @@ if (Array.isArray(items)) {
           });
         } else {
           this.setData({
-            [`table_so.${index}.so_discount_amount`]: parseFloat(
-              discountAmount.toFixed(2)
-            ),
+            [`table_so.${index}.so_discount_amount`]:
+              roundPrice(discountAmount),
           });
         }
-      } else {
-        this.setData({ [`table_so.${index}.so_discount_uom`]: "" });
       }
     } else {
       this.setData({
@@ -78,7 +81,7 @@ if (Array.isArray(items)) {
       });
     }
     // Calculate amount after discount
-    const amountAfterDiscount = grossValue - discountAmount;
+    const amountAfterDiscount = roundPrice(grossValue - discountAmount);
 
     // Calculate tax amount based on taxInclusive flag
     let taxAmount = 0;
@@ -88,19 +91,18 @@ if (Array.isArray(items)) {
       const taxRateDecimal = taxRate / 100;
 
       if (taxInclusive === 1) {
-        // Tax inclusive calculation
-        taxAmount =
-          amountAfterDiscount - amountAfterDiscount / (1 + taxRateDecimal);
+        taxAmount = roundPrice(
+          amountAfterDiscount - amountAfterDiscount / (1 + taxRateDecimal)
+        );
         finalAmount = amountAfterDiscount;
       } else {
-        // Tax exclusive calculation
-        taxAmount = amountAfterDiscount * taxRateDecimal;
+        taxAmount = roundPrice(amountAfterDiscount * taxRateDecimal);
         finalAmount = amountAfterDiscount + taxAmount;
       }
 
       // Set tax amount
       this.setData({
-        [`table_so.${index}.so_tax_amount`]: parseFloat(taxAmount.toFixed(2)),
+        [`table_so.${index}.so_tax_amount`]: taxAmount,
       });
     } else {
       this.setData({
@@ -110,13 +112,13 @@ if (Array.isArray(items)) {
 
     // Set final amount
     this.setData({
-      [`table_so.${index}.so_amount`]: parseFloat(finalAmount.toFixed(2)),
+      [`table_so.${index}.so_amount`]: roundPrice(finalAmount),
     });
 
     // Subtract previous values before adding new ones
-    totalDiscount += discountAmount;
-    totalTax += taxAmount;
-    totalAmount += finalAmount;
+    totalDiscount += roundPrice(discountAmount);
+    totalTax += roundPrice(taxAmount);
+    totalAmount += roundPrice(finalAmount);
 
     if (totalTax > 0) {
       this.display(["so_total_tax", "total_tax_currency"]);
@@ -124,16 +126,17 @@ if (Array.isArray(items)) {
 
     // Set the total fields
     this.setData({
-      so_total_discount: parseFloat(totalDiscount.toFixed(2)),
-      so_total_tax: parseFloat(totalTax.toFixed(2)),
-      so_total: parseFloat(totalAmount.toFixed(2)),
+      so_total_discount: roundPrice(totalDiscount),
+      so_total_tax: roundPrice(totalTax),
+      so_total: roundPrice(totalAmount),
     });
 
     if (!exchangeRate) {
       return;
     } else {
+      const myrTotal = exchangeRate * totalAmount;
       this.setData({
-        myr_total_amount: exchangeRate * parseFloat(totalAmount.toFixed(2)),
+        myr_total_amount: roundPrice(myrTotal),
       });
     }
   }); // This closing bracket was missing for the forEach callback

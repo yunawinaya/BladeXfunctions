@@ -260,90 +260,6 @@ const validateField = (value, _field) => {
   return !value;
 };
 
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Purchase Orders",
-      is_deleted: 0,
-      organization_id: organizationId,
-      is_active: 1,
-    })
-    .get();
-
-  const prefixData = await prefixEntry.data[0];
-
-  return prefixData;
-};
-
-const updatePrefix = async (organizationId, runningNumber) => {
-  try {
-    await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Purchase Orders",
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
-  } catch (error) {
-    this.$message.error(error);
-  }
-};
-
-const generatePrefix = (runNumber, now, prefixData) => {
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0")
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0")
-  );
-  return generated;
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("purchase_order")
-    .where({
-      purchase_order_no: generatedPrefix,
-      organization_id: organizationId,
-    })
-    .get();
-  return existingDoc.data[0] ? false : true;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Purchase Order number after maximum attempts"
-    );
-  }
-  return { prefixToShow, runningNumber };
-};
-
 const checkExistingGoodsReceiving = async () => {
   const poID = this.getValue("id");
 
@@ -403,106 +319,6 @@ const checkExistingPurchaseInvoice = async () => {
   if (!resPI || resPI.data.length === 0) return [];
 
   return resPI.data;
-};
-
-const addEntry = async (organizationId, entry) => {
-  try {
-    const prefixData = await getPrefixData(organizationId);
-
-    if (prefixData !== null) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId
-      );
-
-      await updatePrefix(organizationId, runningNumber);
-
-      entry.purchase_order_no = prefixToShow;
-    } else {
-      const isUnique = await checkUniqueness(
-        entry.purchase_order_no,
-        organizationId
-      );
-      if (!isUnique) {
-        throw new Error(
-          `PO Number "${entry.purchase_order_no}" already exists. Please use a different number.`
-        );
-      }
-    }
-
-    console.log(this.getValue("po_status"));
-    await db.collection("purchase_order").add(entry);
-    await addOnPO(entry);
-
-    this.runWorkflow(
-      "1917415599201660930",
-      { purchase_order_no: entry.purchase_order_no },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        console.error("失败结果：", err);
-        closeDialog();
-        throw new Error("An error occurred.");
-      }
-    );
-    this.$message.success("Add successfully");
-  } catch (error) {
-    this.hideLoading();
-    this.$message.error(error);
-  }
-};
-
-const updateEntry = async (organizationId, entry, purchaseOrderId) => {
-  try {
-    const currentPOStatus = await this.getValue("po_status");
-
-    if (!currentPOStatus || currentPOStatus !== "Issued") {
-      const prefixData = await getPrefixData(organizationId);
-
-      if (prefixData !== null) {
-        const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData,
-          organizationId
-        );
-
-        await updatePrefix(organizationId, runningNumber);
-
-        entry.purchase_order_no = prefixToShow;
-      } else {
-        const isUnique = await checkUniqueness(
-          entry.purchase_order_no,
-          organizationId
-        );
-        if (!isUnique) {
-          throw new Error(
-            `PO Number "${entry.purchase_order_no}" already exists. Please use a different number.`
-          );
-        }
-      }
-    }
-
-    await db.collection("purchase_order").doc(purchaseOrderId).update(entry);
-    await addOnPO(entry);
-
-    this.runWorkflow(
-      "1917415599201660930",
-      { purchase_order_no: entry.purchase_order_no },
-      async (res) => {
-        console.log("成功结果：", res);
-      },
-      (err) => {
-        console.error("失败结果：", err);
-        closeDialog();
-        throw new Error("An error occurred.");
-      }
-    );
-
-    this.$message.success("Update successfully");
-  } catch (error) {
-    this.hideLoading();
-    this.$message.error(error);
-  }
 };
 
 const findFieldMessage = (obj) => {
@@ -591,7 +407,7 @@ const validateQuantity = async (tablePO) => {
   tablePO.forEach((item, index) => {
     if (item.item_id || item.item_desc) {
       if (item.quantity <= 0) {
-        quantityFailValFields.push(`${item.item_name || item.item_desc}`);
+        quantityFailValFields.push(`${item.item_name}`);
       }
     } else {
       if (item.quantity > 0) {
@@ -627,9 +443,101 @@ const deleteRelatedPI = async (existingPI) => {
   }
 };
 
+const generatePrefix = async (entry) => {
+  try {
+    let currentPrefix = entry.purchase_order_no;
+    let organizationID = entry.organization_id;
+    let docNoID = entry.document_no_format;
+    const status = "Issued";
+    let documentTypes = "Purchase Orders";
+
+    if (currentPrefix === "<<new>>" || this.getValue("po_status") === "Draft") {
+      const workflowResult = await new Promise((resolve, reject) => {
+        this.runWorkflow(
+          "1984071042628268034",
+          {
+            document_type: documentTypes,
+            organization_id: organizationID,
+            document_no_id: docNoID,
+            status: status,
+            doc_no: currentPrefix,
+            prev_status: "",
+          },
+          (res) => resolve(res),
+          (err) => reject(err)
+        );
+      });
+
+      console.log("res", workflowResult);
+      const result = workflowResult.data;
+
+      if (result.is_unique === "TRUE") {
+        currentPrefix = result.doc_no;
+        console.log("result", result.doc_no);
+      } else {
+        currentPrefix = result.doc_no;
+        throw new Error(
+          `${documentTypes} Number "${currentPrefix}" already exists. Please reset the running number.`
+        ); // Specific error
+      }
+    } else {
+      const id = entry.id || "";
+      const checkUniqueness = await db
+        .collection("purchase_order")
+        .where({
+          purchase_order_no: currentPrefix,
+          organization_id: organizationID,
+        })
+        .get();
+
+      if (checkUniqueness.data.length > 0) {
+        if (checkUniqueness.data[0].id !== id) {
+          throw new Error(
+            `${documentTypes} Number "${currentPrefix}" already exists. Please use a different number.`
+          );
+        }
+      }
+    }
+
+    return currentPrefix;
+  } catch (error) {
+    await this.$alert(error.toString(), "Error", {
+      confirmButtonText: "OK",
+      type: "error",
+    });
+    this.hideLoading();
+    throw error;
+  }
+};
+
+const savePurchaseOrders = async (entry) => {
+  try {
+    const status = this.getValue("po_status");
+    const pageStatus = this.getValue("page_status");
+
+    // add status
+    if (pageStatus === "Add" || pageStatus === "Clone") {
+      //entry.purchase_order_no = await generatePrefix(entry);
+      await db.collection("purchase_order").add(entry);
+    }
+    // edit status
+    if (pageStatus === "Edit") {
+      // draft status
+      if (!status || status === "Draft") {
+        entry.purchase_order_no = await generatePrefix(entry);
+      }
+      await db.collection("purchase_order").doc(entry.id).update(entry);
+    }
+
+    await addOnPO(entry);
+  } catch (error) {
+    console.error(error.toString());
+  }
+};
+
 (async () => {
   try {
-    this.showLoading();
+    this.showLoading("Saving Purchase Orders...");
     const data = this.getValues();
     const requiredFields = [
       { name: "po_supplier_id", label: "Supplier Name" },
@@ -665,7 +573,7 @@ const deleteRelatedPI = async (existingPI) => {
           }
           ${
             itemFailValFields.length > 0
-              ? "The following items have quantity but missing item code / item description: Line " +
+              ? "The following items have quantity but missing item code: Line " +
                 itemFailValFields.join(", Line ") +
                 "<br><br>"
               : ""
@@ -693,122 +601,12 @@ const deleteRelatedPI = async (existingPI) => {
         organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
 
-      const {
-        po_supplier_id,
-        po_date,
-        organization_id,
-        po_currency,
-        po_delivery_address,
-        purchase_order_no,
-        po_plant,
-        partially_received,
-        fully_received,
-        po_receiving_supplier,
-        po_billing_address,
-        po_shipping_address,
-        po_payment_terms,
-        po_expected_date,
-        po_shipping_preference,
-        po_ref_doc,
-        table_po,
-        po_total_gross,
-        po_total_discount,
-        po_total_tax,
-        po_total,
-        po_remark,
-        po_remark2,
-        po_remark3,
-        po_tnc,
-        preq_no,
-        preq_id,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_postal_code,
-        billing_address_state,
-        billing_address_country,
-        billing_address_name,
-        billing_address_phone,
-        billing_attention,
-
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_postal_code,
-        shipping_address_state,
-        shipping_address_country,
-        shipping_address_name,
-        shipping_address_phone,
-        shipping_attention,
-
-        exchange_rate,
-        myr_total_amount,
-      } = data;
-
-      const entry = {
-        po_status: "Issued",
-        purchase_order_no,
-        po_supplier_id,
-        po_date,
-        organization_id,
-        po_currency,
-        po_delivery_address,
-        po_plant,
-        partially_received,
-        fully_received,
-        po_receiving_supplier,
-        po_billing_address,
-        po_shipping_address,
-        po_payment_terms,
-        po_expected_date,
-        po_shipping_preference,
-        po_ref_doc,
-        table_po,
-        po_total_gross,
-        po_total_discount,
-        po_total_tax,
-        po_total,
-        po_remark,
-        po_remark2,
-        po_remark3,
-        po_tnc,
-        preq_no,
-        preq_id,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_postal_code,
-        billing_address_state,
-        billing_address_country,
-        billing_address_name,
-        billing_address_phone,
-        billing_attention,
-
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_postal_code,
-        shipping_address_state,
-        shipping_address_country,
-        shipping_address_name,
-        shipping_address_phone,
-        shipping_attention,
-
-        exchange_rate,
-        myr_total_amount,
-      };
+      let entry = data;
+      entry.po_status = "Issued";
 
       if (
-        (!partially_received || partially_received === "") &&
-        (!fully_received || fully_received === "")
+        (!entry.partially_received || entry.partially_received === "") &&
+        (!entry.fully_received || entry.fully_received === "")
       ) {
         const lineItemLength = entry.table_po.length;
 
@@ -828,11 +626,13 @@ const deleteRelatedPI = async (existingPI) => {
       }
 
       entry.table_po = await fillbackHeaderFields(entry);
+      for (const [index, lineItem] of entry.table_po.entries()) {
+        await this.validate(`table_po.${index}.unit_price`);
+      }
 
       if (page_status === "Add" || page_status === "Clone") {
-        await addEntry(organizationId, entry);
+        await savePurchaseOrders(entry);
       } else if (page_status === "Edit") {
-        const purchaseOrderId = this.getValue("id");
         const currentPOStatus = this.getValue("po_status");
 
         if (currentPOStatus === "Issued") {
@@ -879,10 +679,21 @@ const deleteRelatedPI = async (existingPI) => {
             await deleteRelatedPI(existingPI);
           }
         }
-        await updateEntry(organizationId, entry, purchaseOrderId);
+        await savePurchaseOrders(entry);
       }
 
       await updateItemTransactionDate(entry);
+      if (entry.preq_id && entry.preq_id !== "") {
+        const preqID = entry.preq_id;
+        console.log("preqID", preqID);
+        await Promise.all(
+          preqID.map((id) =>
+            db.collection("purchase_requisition").doc(id).update({
+              preq_status: "Completed",
+            })
+          )
+        );
+      }
       await closeDialog();
     }
   } catch (error) {

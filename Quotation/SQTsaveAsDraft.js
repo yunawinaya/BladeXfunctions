@@ -7,6 +7,103 @@ const closeDialog = () => {
   }
 };
 
+const fillbackHeaderFields = async (entry) => {
+  let customerName = "";
+  if (entry.customer_type === "Existing Customer") {
+    const resCustomer = await db
+      .collection("Customer")
+      .doc(entry.sqt_customer_id)
+      .get();
+
+    if (resCustomer && resCustomer.data.length > 0)
+      customerName = resCustomer.data[0].customer_com_name;
+  } else {
+    customerName = entry.sqt_new_customer;
+  }
+  try {
+    for (const [index, sqtLineItem] of entry.table_sqt.entries()) {
+      sqtLineItem.customer_id = entry.sqt_customer_id || null;
+      sqtLineItem.plant_id = entry.sqt_plant || null;
+      sqtLineItem.payment_term_id = entry.sqt_payment_term || null;
+      sqtLineItem.sales_person_id = entry.sales_person_id || null;
+      sqtLineItem.billing_state_id = entry.billing_address_state || null;
+      sqtLineItem.billing_country_id = entry.billing_address_country || null;
+      sqtLineItem.shipping_state_id = entry.shipping_address_state || null;
+      sqtLineItem.shipping_country_id = entry.shipping_address_country || null;
+      sqtLineItem.customer_name = customerName;
+      sqtLineItem.line_index = index + 1;
+      sqtLineItem.organization_id = entry.organization_id;
+      sqtLineItem.access_group = entry.access_group || [];
+    }
+    return entry.table_sqt;
+  } catch (error) {
+    throw new Error("Error processing quotation.");
+  }
+};
+
+const generateDraftPrefix = async (entry) => {
+  try {
+    let currentPrefix = entry.sqt_no;
+    let organizationID = entry.organization_id;
+    const status = "Draft";
+    let documentTypes = "Quotations";
+
+    if (currentPrefix === "<<new>>") {
+      const workflowResult = await new Promise((resolve, reject) => {
+        this.runWorkflow(
+          "1984071042628268034",
+          {
+            document_type: documentTypes,
+            organization_id: organizationID,
+            document_no_id: "",
+            status: status,
+            doc_no: currentPrefix,
+            prev_status: "",
+          },
+          (res) => resolve(res),
+          (err) => reject(err)
+        );
+      });
+
+      console.log("res", workflowResult);
+      const result = workflowResult.data;
+
+      if (result.is_unique === "TRUE") {
+        currentPrefix = result.doc_no;
+        console.log("result", result.doc_no);
+      } else {
+        currentPrefix = result.doc_no;
+        throw new Error(
+          `${documentTypes} Number "${currentPrefix}" already exists. Please reset the running number.`
+        ); // Specific error
+      }
+    } else {
+      const id = entry.id || "";
+      const checkUniqueness = await db
+        .collection("Quotation")
+        .where({ sqt_no: currentPrefix, organization_id: organizationID })
+        .get();
+
+      if (checkUniqueness.data.length > 0) {
+        if (checkUniqueness.data[0].id !== id) {
+          throw new Error(
+            `${documentTypes} Number "${currentPrefix}" already exists. Please use a different number.`
+          );
+        }
+      }
+    }
+
+    return currentPrefix;
+  } catch (error) {
+    await this.$alert(error.toString(), "Error", {
+      confirmButtonText: "OK",
+      type: "error",
+    });
+    this.hideLoading();
+    throw error;
+  }
+};
+
 (async () => {
   try {
     const data = this.getValues();
@@ -16,6 +113,7 @@ const closeDialog = () => {
     // Define required fields
     const requiredFields = [
       { name: "sqt_plant", label: "Plant" },
+      { name: "sqt_no", label: "Quotation Number" },
       {
         name: "table_sqt",
         label: "Item Information",
@@ -45,7 +143,7 @@ const closeDialog = () => {
     }
 
     // Show loading indicator
-    this.showLoading();
+    this.showLoading("Saving Quotation...");
 
     // Get organization ID
     let organizationId = this.getVarGlobal("deptParentId");
@@ -53,208 +151,20 @@ const closeDialog = () => {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
-    // Prepare entry data
-    const {
-      sqt_customer_id,
-      currency_code,
-      sqt_billing_address,
-      sqt_shipping_address,
-      sqt_no,
-      sqt_plant,
-      sqt_date,
-      sqt_validity_period,
-      sales_person_id,
-      sqt_payment_term,
-      sqt_delivery_method_id,
-      cp_customer_pickup,
-      cp_ic_no,
-      driver_contact_no,
-      courier_company,
-      vehicle_number,
-      pickup_date,
-      shipping_date,
-      ct_driver_name,
-      ct_ic_no,
-      ct_vehicle_number,
-      ct_driver_contact_no,
-      ct_est_delivery_date,
-      ct_delivery_cost,
-      ss_shipping_company,
-      ss_shipping_method,
-      ss_shipping_date,
-      est_arrival_date,
-      ss_freight_charges,
-      ss_tracking_number,
-      tpt_vehicle_number,
-      tpt_transport_name,
-      tpt_ic_no,
-      tpt_driver_contact_no,
-      customer_type,
-      freight_charges,
-      sqt_sub_total,
-      sqt_total_discount,
-      sqt_total_tax,
-      sqt_totalsum,
-      sqt_remarks,
-      table_sqt,
-      sqt_ref_no,
-      exchange_rate,
-      myr_total_amount,
-      validity_of_collection,
-      sqt_new_customer,
-      cs_tracking_number,
-      cs_est_arrival_date,
-      billing_address_line_1,
-      billing_address_line_2,
-      billing_address_line_3,
-      billing_address_line_4,
-      billing_address_city,
-      billing_address_state,
-      billing_postal_code,
-      billing_address_country,
-      shipping_address_line_1,
-      shipping_address_line_2,
-      shipping_address_line_3,
-      shipping_address_line_4,
-      shipping_address_city,
-      shipping_address_state,
-      shipping_postal_code,
-      shipping_address_country,
-      sqt_ref_doc,
-      billing_address_name,
-      billing_address_phone,
-      billing_attention,
-      shipping_address_name,
-      shipping_address_phone,
-      shipping_attention,
-      acc_integration_type,
-      last_sync_date,
-      customer_credit_limit,
-      overdue_limit,
-      outstanding_balance,
-      overdue_inv_total_amount,
-      is_accurate,
-    } = data;
-
-    // Construct `entry` using object shorthand (no need to repeat `field: field`)
-    const entry = {
-      sqt_status: "Draft",
-      organization_id: organizationId,
-      sqt_ref_doc,
-      sqt_customer_id,
-      currency_code,
-      sqt_billing_address,
-      sqt_shipping_address,
-      sqt_no,
-      sqt_plant,
-      sqt_date,
-      sqt_validity_period,
-      sales_person_id,
-      sqt_payment_term,
-      sqt_delivery_method_id,
-      cp_customer_pickup,
-      cp_ic_no,
-      driver_contact_no,
-      courier_company,
-      vehicle_number,
-      pickup_date,
-      shipping_date,
-      ct_driver_name,
-      ct_ic_no,
-      ct_vehicle_number,
-      ct_driver_contact_no,
-      ct_est_delivery_date,
-      ct_delivery_cost,
-      ss_shipping_company,
-      ss_shipping_method,
-      ss_shipping_date,
-      est_arrival_date,
-      ss_freight_charges,
-      ss_tracking_number,
-      tpt_vehicle_number,
-      tpt_transport_name,
-      tpt_ic_no,
-      tpt_driver_contact_no,
-      validity_of_collection,
-      customer_type,
-      sqt_sub_total,
-      sqt_total_discount,
-      sqt_total_tax,
-      sqt_totalsum,
-      sqt_remarks,
-      table_sqt,
-      sqt_ref_no,
-      exchange_rate,
-      myr_total_amount,
-      sqt_new_customer,
-      cs_tracking_number,
-      cs_est_arrival_date,
-      freight_charges,
-      billing_address_line_1,
-      billing_address_line_2,
-      billing_address_line_3,
-      billing_address_line_4,
-      billing_address_city,
-      billing_address_state,
-      billing_postal_code,
-      billing_address_country,
-      shipping_address_line_1,
-      shipping_address_line_2,
-      shipping_address_line_3,
-      shipping_address_line_4,
-      shipping_address_city,
-      shipping_address_state,
-      shipping_postal_code,
-      shipping_address_country,
-      billing_address_name,
-      billing_address_phone,
-      billing_attention,
-      shipping_address_name,
-      shipping_address_phone,
-      shipping_attention,
-      acc_integration_type,
-      last_sync_date,
-      customer_credit_limit,
-      overdue_limit,
-      outstanding_balance,
-      overdue_inv_total_amount,
-      is_accurate,
-    };
+    let entry = data;
+    entry.sqt_status = "Draft";
+    entry.organization_id = organizationId;
+    entry.table_sqt = await fillbackHeaderFields(entry);
 
     if (page_status === "Add" || page_status === "Clone") {
       try {
-        // Get prefix configuration
-        const prefixEntry = await db
-          .collection("prefix_configuration")
-          .where({
-            document_types: "Quotations",
-            is_deleted: 0,
-            organization_id: organizationId,
-            is_active: 1,
-          })
-          .get();
-
-        // Generate draft number
-        if (prefixEntry.data && prefixEntry.data.length > 0) {
-          const currDraftNum = parseInt(prefixEntry.data[0].draft_number) + 1;
-          const newPrefix = "DRAFT-SQT-" + currDraftNum;
-          entry.sqt_no = newPrefix;
-
-          // Update draft number
-          await db
-            .collection("prefix_configuration")
-            .where({
-              document_types: "Quotations",
-              organization_id: organizationId,
-            })
-            .update({ draft_number: currDraftNum });
-        }
+        entry.sqt_no = await generateDraftPrefix(entry);
 
         // Add quotation entry
         await db.collection("Quotation").add(entry);
 
         // Close dialog
-        closeDialog();
+        await closeDialog();
       } catch (error) {
         console.error("Error saving draft:", error);
         this.hideLoading();
@@ -266,7 +176,7 @@ const closeDialog = () => {
         if (!quotation_no) {
           throw new Error("Quotation ID not found");
         }
-
+        entry.sqt_no = await generateDraftPrefix(entry);
         await db.collection("Quotation").doc(quotation_no).update(entry);
 
         // Close dialog
@@ -282,6 +192,6 @@ const closeDialog = () => {
     }
   } catch (error) {
     console.error("Error in save as draft:", error);
-    this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
+    this.$message.error(`Cancel saving draft: ${error.toString()}`);
   }
 })();
