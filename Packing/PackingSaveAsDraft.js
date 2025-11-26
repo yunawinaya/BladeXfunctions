@@ -79,7 +79,7 @@ const generateDraftPrefix = async (organizationId) => {
     const prefixData = await getPrefixData(organizationId);
     if (prefixData && Object.keys(prefixData).length > 0) {
       const currDraftNum = parseInt(prefixData.draft_number) + 1;
-      const newPrefix = "DRAFT-PACK-" + currDraftNum;
+      const newPrefix = "DRAFT-PKG-" + currDraftNum;
 
       await db
         .collection("prefix_configuration")
