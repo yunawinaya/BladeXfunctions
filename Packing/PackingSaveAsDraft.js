@@ -97,6 +97,24 @@ const generateDraftPrefix = async (organizationId) => {
   }
 };
 
+const fillbackHeaderFields = async (packingData) => {
+  try {
+    if (!packingData.table_hu || packingData.table_hu.length === 0) {
+      return packingData.table_hu || [];
+    }
+
+    for (const [_index, packingLineItem] of packingData.table_hu.entries()) {
+      packingLineItem.customer_id = packingData.customer_id || null;
+      packingLineItem.organization_id = packingData.organization_id || null;
+      packingLineItem.plant_id = packingData.plant_id || null;
+    }
+    return packingData.table_hu;
+  } catch (error) {
+    console.error("Error in fillbackHeaderFields:", error);
+    throw error;
+  }
+};
+
 const headerCalculation = (data) => {
   const packingMode = data.packing_mode;
   const tableHU = data.table_hu || [];
@@ -196,8 +214,11 @@ const headerCalculation = (data) => {
         }
       });
 
+      // Fill back header fields to HU line items
+      await fillbackHeaderFields(packing);
+
       // Calculate header totals after cleanup
-      packing = headerCalculation(packing);
+      packing = await headerCalculation(packing);
 
       // Add or update based on page status
       if (page_status === "Add") {

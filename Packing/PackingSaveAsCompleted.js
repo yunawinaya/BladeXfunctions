@@ -395,6 +395,24 @@ const addEntry = async (organizationId, packingData) => {
   }
 };
 
+const fillbackHeaderFields = async (packingData) => {
+  try {
+    if (!packingData.table_hu || packingData.table_hu.length === 0) {
+      return packingData.table_hu || [];
+    }
+
+    for (const [_index, packingLineItem] of packingData.table_hu.entries()) {
+      packingLineItem.customer_id = packingData.customer_id || null;
+      packingLineItem.organization_id = packingData.organization_id || null;
+      packingLineItem.plant_id = packingData.plant_id || null;
+    }
+    return packingData.table_hu;
+  } catch (error) {
+    console.error("Error in fillbackHeaderFields:", error);
+    throw error;
+  }
+};
+
 const updateEntry = async (
   organizationId,
   packingData,
@@ -686,8 +704,11 @@ const updateTOStatus = async (data) => {
       }
     });
 
+    // Fill back header fields to HU line items
+    await fillbackHeaderFields(packingData);
+
     // Calculate header totals after cleanup
-    packingData = headerCalculation(packingData);
+    packingData = await headerCalculation(packingData);
 
     let packingId;
 
