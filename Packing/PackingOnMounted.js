@@ -190,6 +190,25 @@ const viewSerialNumber = async () => {
   }
 };
 
+const setPackingMode = async () => {
+  const packingMode = this.getValue("packing_mode");
+  if (packingMode === "Basic") {
+    this.display(["table_hu.hu_quantity"]);
+    this.hide([
+      "table_hu.select_items",
+      "table_hu.item_count",
+      "table_hu.total_quantity",
+    ]);
+  } else {
+    this.hide(["table_hu.hu_quantity"]);
+    this.display([
+      "table_hu.select_items",
+      "table_hu.item_count",
+      "table_hu.total_quantity",
+    ]);
+  }
+};
+
 // Main execution function
 (async () => {
   try {
@@ -226,6 +245,7 @@ const viewSerialNumber = async () => {
           await viewSerialNumber();
         }
         await setPrefix(organizationId);
+        await setPackingMode();
         break;
 
       case "Edit":
@@ -238,6 +258,7 @@ const viewSerialNumber = async () => {
         await disabledField(status);
         await showStatusHTML(status);
         await viewSerialNumber();
+        await setPackingMode();
         break;
 
       case "View":
@@ -248,6 +269,7 @@ const viewSerialNumber = async () => {
           "button_completed",
         ]);
         await viewSerialNumber();
+        await setPackingMode();
         break;
     }
   } catch (error) {

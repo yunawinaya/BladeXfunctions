@@ -128,4 +128,56 @@ Functions check for accounting integration type and handle posting to external a
 - Validation is handled through dedicated validation functions that can be reused
 - Business rules enforced through database queries and conditional logic
 
-When working with this codebase, treat it as a reference library. Copy and adapt functions for your specific low-code implementation, following the established patterns for consistency. Pay attention to organization-based filtering, status management, and the prefix generation system when customizing functionality for your platform.
+### Performance Optimization
+
+**CRITICAL: Avoid Redundant Database Fetches**
+
+The fastest database query is the one you don't make. Always minimize database operations to prevent long loading times.
+
+#### Single Source of Truth Principle
+
+When data exists in multiple collections (normalized vs denormalized), ONLY query the authoritative source:
+
+```javascript
+// ❌ BAD: Fetching from multiple collections
+const checkUniqueness = async (value) => {
+  const resultA = await db.collection("line_items").where({...}).get();  // Source of truth
+  const resultB = await db.collection("header").where({...}).get();      // Denormalized copy - DON'T FETCH!
+  return resultA || resultB;
+}
+
+// ✅ GOOD: Single fetch from authoritative source
+const checkUniqueness = async (value) => {
+  const result = await db.collection("line_items").where({...}).get();  // Single source of truth
+  return !result.data || result.data.length === 0;
+}
+```
+
+#### Data Architecture Rules
+
+1. **Identify Single Source of Truth**: Determine which collection is authoritative for each data type
+2. **Denormalization is OK for Display**: Copying data to parent records for convenience is acceptable
+3. **Never Query Denormalized Data**: Always validate/query against the source of truth
+4. **Example Pattern**:
+   - `packing_line` collection: Source of truth for HU numbers ✅ Query this
+   - `packing.table_hu` array: Denormalized copy for display ❌ Don't query this
+
+#### Performance Impact
+
+Example from Packing module HU number validation:
+- **Before optimization**: 2 database fetches per validation (packing_line + packing)
+- **After optimization**: 1 database fetch per validation (packing_line only)
+- **Result**: 50% reduction in database calls, faster response times
+
+#### Code Review Checklist
+
+Before committing database queries:
+- [ ] Am I fetching from the authoritative collection?
+- [ ] Could this data already be in memory or another fetch?
+- [ ] Am I fetching inside a loop? (Consider batching)
+- [ ] Do I need ALL the fields I'm fetching?
+- [ ] Is this query indexed?
+
+See `PERFORMANCE_OPTIMIZATION.md` for detailed examples and best practices.
+
+When working with this codebase, treat it as a reference library. Copy and adapt functions for your specific low-code implementation, following the established patterns for consistency. Pay attention to organization-based filtering, status management, the prefix generation system, and performance optimization when customizing functionality for your platform.
