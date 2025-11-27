@@ -52,7 +52,7 @@ const findUniquePrefix = async (prefixData, organizationId) => {
 
   if (!isUnique) {
     throw new Error(
-      "Could not generate a unique Transfer Order number after maximum attempts"
+      "Could not generate a unique Packing number after maximum attempts"
     );
   }
 
@@ -87,33 +87,59 @@ const setPrefix = async (organizationId) => {
   return null;
 };
 
+const updatePrefix = async (organizationId, runningNumber) => {
+  try {
+    await db
+      .collection("prefix_configuration")
+      .where({
+        document_types: "Packing",
+        is_deleted: 0,
+        organization_id: organizationId,
+        is_active: 1,
+      })
+      .update({
+        running_number: parseInt(runningNumber) + 1,
+        has_record: 1
+      });
+  } catch (error) {
+    console.error("Error updating prefix:", error);
+    throw error;
+  }
+};
+
 const updateSOStatus = async (data) => {
   try {
     const tableItems = data.table_items || [];
     const packingMode = data.packing_mode;
 
     if (packingMode === "Basic") {
-      //filter duplicated so_id
-      const uniqueSOIds = [...new Set(tableItems.map((item) => item.so_id))];
-
-      //filter duplicated so_line_id
-      const uniqueSOLineIds = [
-        ...new Set(tableItems.map((item) => item.so_line_id)),
+      // Filter duplicated so_id (remove null/undefined)
+      const uniqueSOIds = [
+        ...new Set(tableItems.map((item) => item.so_id).filter(Boolean)),
       ];
 
-      //update so status
-      for (const soId of uniqueSOIds) {
-        await db.collection("sales_order_axszx8cj_sub").doc(soId).update({
-          packing_status: "Created",
-        });
-      }
+      // Filter duplicated so_line_id (remove null/undefined)
+      const uniqueSOLineIds = [
+        ...new Set(tableItems.map((item) => item.so_line_id).filter(Boolean)),
+      ];
 
-      //update so_line status
-      for (const soLineId of uniqueSOLineIds) {
-        await db.collection("sales_order_line").doc(soLineId).update({
-          packing_status: "Created",
-        });
-      }
+      // Update so status
+      await Promise.all(
+        uniqueSOIds.map((soId) =>
+          db.collection("sales_order_axszx8cj_sub").doc(soId).update({
+            packing_status: "Created",
+          })
+        )
+      );
+
+      // Update so_line status
+      await Promise.all(
+        uniqueSOLineIds.map((soLineId) =>
+          db.collection("sales_order_line").doc(soLineId).update({
+            packing_status: "Created",
+          })
+        )
+      );
     }
   } catch (error) {
     console.error("Error updating SO status:", error);
@@ -127,30 +153,36 @@ const updateGDStatus = async (data) => {
     const packingMode = data.packing_mode;
 
     if (packingMode === "Basic") {
-      //filter duplicated gd_id
-      const uniqueGDIds = [...new Set(tableItems.map((item) => item.gd_id))];
-
-      //filter duplicated gd_line_id
-      const uniqueGDLineIds = [
-        ...new Set(tableItems.map((item) => item.gd_line_id)),
+      // Filter duplicated gd_id (remove null/undefined)
+      const uniqueGDIds = [
+        ...new Set(tableItems.map((item) => item.gd_id).filter(Boolean)),
       ];
 
-      //update gd status
-      for (const gdId of uniqueGDIds) {
-        await db.collection("good_delivery").doc(gdId).update({
-          packing_status: "Created",
-        });
-      }
+      // Filter duplicated gd_line_id (remove null/undefined)
+      const uniqueGDLineIds = [
+        ...new Set(tableItems.map((item) => item.gd_line_id).filter(Boolean)),
+      ];
 
-      //update gd_line status
-      for (const gdLineId of uniqueGDLineIds) {
-        await db
-          .collection("goods_delivery_fwii8mvb_sub")
-          .doc(gdLineId)
-          .update({
+      // Update gd status
+      await Promise.all(
+        uniqueGDIds.map((gdId) =>
+          db.collection("good_delivery").doc(gdId).update({
             packing_status: "Created",
-          });
-      }
+          })
+        )
+      );
+
+      // Update gd_line status
+      await Promise.all(
+        uniqueGDLineIds.map((gdLineId) =>
+          db
+            .collection("goods_delivery_fwii8mvb_sub")
+            .doc(gdLineId)
+            .update({
+              packing_status: "Created",
+            })
+        )
+      );
     }
   } catch (error) {
     console.error("Error updating GD status:", error);
@@ -164,27 +196,33 @@ const updateTOStatus = async (data) => {
     const packingMode = data.packing_mode;
 
     if (packingMode === "Basic") {
-      //filter duplicated to_id
-      const uniqueTOIds = [...new Set(tableItems.map((item) => item.to_id))];
-
-      //filter duplicated to_line_id
-      const uniqueTOLineIds = [
-        ...new Set(tableItems.map((item) => item.to_line_id)),
+      // Filter duplicated to_id (remove null/undefined)
+      const uniqueTOIds = [
+        ...new Set(tableItems.map((item) => item.to_id).filter(Boolean)),
       ];
 
-      //update to status
-      for (const toId of uniqueTOIds) {
-        await db.collection("picking_plan").doc(toId).update({
-          packing_status: "Created",
-        });
-      }
+      // Filter duplicated to_line_id (remove null/undefined)
+      const uniqueTOLineIds = [
+        ...new Set(tableItems.map((item) => item.to_line_id).filter(Boolean)),
+      ];
 
-      //update to_line status
-      for (const toLineId of uniqueTOLineIds) {
-        await db.collection("picking_plan_fwii8mvb_sub").doc(toLineId).update({
-          packing_status: "Created",
-        });
-      }
+      // Update to status
+      await Promise.all(
+        uniqueTOIds.map((toId) =>
+          db.collection("picking_plan").doc(toId).update({
+            packing_status: "Created",
+          })
+        )
+      );
+
+      // Update to_line status
+      await Promise.all(
+        uniqueTOLineIds.map((toLineId) =>
+          db.collection("picking_plan_fwii8mvb_sub").doc(toLineId).update({
+            packing_status: "Created",
+          })
+        )
+      );
     }
   } catch (error) {
     console.error("Error updating TO status:", error);
@@ -195,16 +233,28 @@ const updateTOStatus = async (data) => {
 (async () => {
   try {
     const data = arguments[0].pickingData;
-    const packingPrefix = await setPrefix(data.organization_id);
+
+    // Validate picking items exist
+    if (!data.table_picking_items || data.table_picking_items.length === 0) {
+      throw new Error("No picking items found to create packing");
+    }
+
     const soId = data.table_picking_items[0].so_id;
 
-    const soData = await db
+    // Fetch sales order data with is_deleted filter
+    const soResult = await db
       .collection("sales_order")
-      .where({ id: soId })
-      .get()
-      .then((res) => {
-        return res.data[0];
-      });
+      .where({ id: soId, is_deleted: 0 })
+      .get();
+
+    if (!soResult.data || soResult.data.length === 0) {
+      throw new Error(`Sales Order not found for ID: ${soId}`);
+    }
+
+    const soData = soResult.data[0];
+
+    // Generate prefix
+    const packingPrefix = await setPrefix(data.organization_id);
 
     // Transform table_picking_items to table_items
     const tableItems = data.table_picking_items.map((pickingItem) => {
@@ -223,15 +273,18 @@ const updateTOStatus = async (data) => {
       };
     });
 
+    // Get gd_id and to_id from first picking item
+    const firstPickingItem = data.table_picking_items[0];
+
     let packingData = {
       packing_status: "Created",
       plant_id: data.plant_id,
       packing_no: packingPrefix,
       so_id: soId,
-      gd_id: data.gd_no || "",
-      to_id: data.to_no || "",
+      gd_id: firstPickingItem.gd_id || "",
+      to_id: firstPickingItem.to_id || "",
       so_no: data.so_no || "",
-      gd_no: data.delivery_no || "",
+      gd_no: firstPickingItem.gd_no || "",
       customer_id: soData.customer_name,
       billing_address: soData.cust_billing_address || "",
       shipping_address: soData.cust_shipping_address || "",
@@ -242,8 +295,18 @@ const updateTOStatus = async (data) => {
       table_items: tableItems,
     };
 
+    // Add packing record to database
     await db.collection("packing").add(packingData);
 
+    // Update prefix running number
+    if (packingPrefix) {
+      const prefixData = await getPrefixData(data.organization_id);
+      if (prefixData) {
+        await updatePrefix(data.organization_id, prefixData.running_number);
+      }
+    }
+
+    // Update related document statuses
     if (packingData.so_id && packingData.so_id !== "") {
       await updateSOStatus(packingData);
     }
@@ -253,6 +316,8 @@ const updateTOStatus = async (data) => {
     if (packingData.to_id && packingData.to_id !== "") {
       await updateTOStatus(packingData);
     }
+
+    this.$message.success("Packing created successfully");
     console.log("Packing created successfully");
   } catch (error) {
     console.error(error);
