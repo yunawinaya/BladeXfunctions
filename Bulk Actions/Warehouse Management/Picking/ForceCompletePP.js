@@ -783,25 +783,24 @@ const createInventoryReadjustmentMovements = async (
       const isSerializedItem = itemData.serial_number_management === 1;
       const baseUOM = itemData.base_unit_of_measurement;
       const altUOM = ppLineItem.to_order_uom_id;
-      const costingMethod = itemData.item_costing_method;
+      const costingMethod = itemData.material_costing_method;
 
       // Process each original temp_qty_data to find unpicked items
       for (const originalTemp of originalTempQtyData) {
         // Calculate how much was picked from this location/batch
         const pickedFromThisLocation = pickedTempQtyData
-          .filter(
-            (picked) => {
-              const locationMatch = picked.location_id === originalTemp.location_id;
-              const batchMatch =
-                (!picked.batch_id && !originalTemp.batch_id) ||
-                picked.batch_id === originalTemp.batch_id;
-              const serialMatch =
-                !isSerializedItem ||
-                (!picked.serial_number && !originalTemp.serial_number) ||
-                picked.serial_number === originalTemp.serial_number;
-              return locationMatch && batchMatch && serialMatch;
-            }
-          )
+          .filter((picked) => {
+            const locationMatch =
+              picked.location_id === originalTemp.location_id;
+            const batchMatch =
+              (!picked.batch_id && !originalTemp.batch_id) ||
+              picked.batch_id === originalTemp.batch_id;
+            const serialMatch =
+              !isSerializedItem ||
+              (!picked.serial_number && !originalTemp.serial_number) ||
+              picked.serial_number === originalTemp.serial_number;
+            return locationMatch && batchMatch && serialMatch;
+          })
           .reduce((sum, item) => sum + parseFloat(item.to_quantity || 0), 0);
 
         const unpickedFromThisLocation = roundQty(
@@ -837,7 +836,7 @@ const createInventoryReadjustmentMovements = async (
         let unitPrice = 0;
         let totalPrice = 0;
 
-        if (costingMethod === "FIFO") {
+        if (costingMethod === "First In First Out") {
           const fifoCostPrice = await getFIFOCostPrice(
             ppLineItem.material_id,
             baseQty,
@@ -1487,7 +1486,7 @@ const handleLoadingBayInventoryMovement = async (
       const isSerializedItem = itemData.serial_number_management === 1;
       const baseUOM = itemData.base_unit_of_measurement;
       const altUOM = ppLineItem.to_order_uom_id;
-      const costingMethod = itemData.item_costing_method;
+      const costingMethod = itemData.material_costing_method;
 
       // Get SO number from line item
       const soNumber = ppLineItem.line_so_no || ppLineItem.so_no;
@@ -1509,7 +1508,7 @@ const handleLoadingBayInventoryMovement = async (
         let unitPrice = 0;
         let totalPrice = 0;
 
-        if (costingMethod === "FIFO") {
+        if (costingMethod === "First In First Out") {
           const fifoCostPrice = await getFIFOCostPrice(
             ppLineItem.material_id,
             baseQty,

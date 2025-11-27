@@ -585,7 +585,7 @@ const calculateCostingPrice = async (
 ) => {
   let unitPrice = 0;
 
-  if (costingMethod === "FIFO") {
+  if (costingMethod === "First In First Out") {
     const fifoCostPrice = await getFIFOCostPrice(
       materialId,
       quantity,
@@ -983,34 +983,40 @@ const processHUBalance = async (packingData) => {
     }
 
     if (packingMode === "Basic") {
-      // Step 1: Batch fetch all Item data to avoid N+1 queries
+      // Step 1: Fetch all Item data
       const uniqueMaterialIds = [
-        ...new Set(tableHU.map((hu) => hu.material_id).filter(Boolean)),
+        ...new Set(tableHU.map((hu) => hu.hu_material_id).filter(Boolean)),
       ];
+
+      console.log("uniqueMaterialIds", uniqueMaterialIds);
 
       if (uniqueMaterialIds.length === 0) {
         console.log("No material IDs found in table_hu");
         return;
       }
 
-      const itemsResult = await db
-        .collection("Item")
-        .where({
-          id: db.command.in(uniqueMaterialIds),
-        })
-        .get();
-
       // Create a map for O(1) lookup
       const itemsMap = new Map();
-      if (itemsResult.data && itemsResult.data.length > 0) {
-        itemsResult.data.forEach((item) => {
-          itemsMap.set(item.id, item);
-        });
+
+      // Fetch items one by one (db.command.in not supported in this platform)
+      for (const materialId of uniqueMaterialIds) {
+        try {
+          const itemResult = await db
+            .collection("Item")
+            .where({ id: materialId })
+            .get();
+
+          if (itemResult.data && itemResult.data.length > 0) {
+            itemsMap.set(materialId, itemResult.data[0]);
+          }
+        } catch (error) {
+          console.error(`Error fetching item ${materialId}:`, error);
+        }
       }
 
       // Step 2: Process each HU item
       for (const [_index, huItem] of tableHU.entries()) {
-        const materialId = huItem.material_id;
+        const materialId = huItem.hu_material_id;
         const quantity = huItem.hu_quantity;
         const plantId = huItem.plant_id;
         const organizationId = huItem.organization_id;
@@ -1024,7 +1030,7 @@ const processHUBalance = async (packingData) => {
         }
 
         const baseUOM = itemData.based_uom;
-        const costingMethod = itemData.item_costing_method;
+        const costingMethod = itemData.material_costing_method;
         const isBatch = itemData.item_batch_management;
 
         // Step 3: Handle batch vs non-batch items
@@ -1105,7 +1111,7 @@ const processHUBalance = async (packingData) => {
             );
 
             // Update FIFO/WA costing based on costing method
-            if (costingMethod === "FIFO") {
+            if (costingMethod === "First In First Out") {
               await updateFIFOInventory(
                 materialId,
                 allocation.quantity,
@@ -1202,7 +1208,7 @@ const processHUBalance = async (packingData) => {
             );
 
             // Update FIFO/WA costing based on costing method
-            if (costingMethod === "FIFO") {
+            if (costingMethod === "First In First Out") {
               await updateFIFOInventory(
                 materialId,
                 allocation.quantity,
@@ -1285,9 +1291,9 @@ const fillbackHeaderFields = async (packingData) => {
     }
 
     for (const [_index, packingLineItem] of packingData.table_hu.entries()) {
-      packingLineItem.customer_id = packingData.customer_id || null;
-      packingLineItem.organization_id = packingData.organization_id || null;
-      packingLineItem.plant_id = packingData.plant_id || null;
+      packingLineItem.customer_id = packingData.customer_id || [];
+      packingLineItem.organization_id = packingData.organization_id || "";
+      packingLineItem.plant_id = packingData.plant_id || "";
     }
     return packingData.table_hu;
   } catch (error) {
@@ -1548,23 +1554,23 @@ const updateTOStatus = async (data) => {
       packing_status: "Completed",
       plant_id: data.plant_id,
       packing_no: data.packing_no,
-      so_no: data.so_no,
-      gd_no: data.gd_no,
-      so_id: data.so_id,
-      gd_id: data.gd_id,
-      to_id: data.to_id,
-      customer_id: data.customer_id,
-      billing_address: data.billing_address,
-      shipping_address: data.shipping_address,
+      so_no: data.so_no || "",
+      gd_no: data.gd_no || "",
+      so_id: data.so_id || "",
+      gd_id: data.gd_id || "",
+      to_id: data.to_id || "",
+      customer_id: data.customer_id || [],
+      billing_address: data.billing_address || "",
+      shipping_address: data.shipping_address || "",
       organization_id: organizationId,
       packing_mode: data.packing_mode,
-      packing_location: data.packing_location,
-      assigned_to: data.assigned_to,
+      packing_location: data.packing_location || "",
+      assigned_to: data.assigned_to || "",
       created_by: this.getVarGlobal("userId"),
-      ref_doc: data.ref_doc,
+      ref_doc: data.ref_doc || "",
       table_hu: data.table_hu,
       table_items: data.table_items,
-      remarks: data.remarks,
+      remarks: data.remarks || "",
     };
 
     // Add created_at only for new records

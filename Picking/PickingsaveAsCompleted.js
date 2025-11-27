@@ -1261,7 +1261,7 @@ const handleLoadingBayInventoryMovement = async (
       const isSerializedItem = itemData.serial_number_management === 1;
       const baseUOM = itemData.base_unit_of_measurement;
       const altUOM = gdLineItem.gd_order_uom_id;
-      const costingMethod = itemData.item_costing_method;
+      const costingMethod = itemData.material_costing_method;
 
       // Get SO number from line item
       const soNumber = gdLineItem.line_so_no || gdData.so_no;
@@ -1283,7 +1283,7 @@ const handleLoadingBayInventoryMovement = async (
         let unitPrice = 0;
         let totalPrice = 0;
 
-        if (costingMethod === "FIFO") {
+        if (costingMethod === "First In First Out") {
           const fifoCostPrice = await getFIFOCostPrice(
             gdLineItem.material_id,
             baseQty,

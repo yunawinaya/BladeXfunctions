@@ -139,9 +139,6 @@ const disabledField = async (status) => {
     );
 
     this.hide(["button_save_as_draft", "button_created", "button_completed"]);
-
-    // Disable table rows
-    disableTableRows();
   } else {
     this.disabled(["ref_doc"], false);
   }

@@ -1722,7 +1722,7 @@ const handleLoadingBayInventoryMovement = async (
       const itemData = itemQuery.data[0];
       const isSerializedItem = itemData.serial_number_management === 1;
       const isBatchManagedItem = itemData.item_batch_management === 1;
-      const costingMethod = itemData.item_costing_method;
+      const costingMethod = itemData.material_costing_method;
 
       console.log(
         `Costing method for item ${gdLineItem.material_id}: ${costingMethod}`
@@ -1742,7 +1742,7 @@ const handleLoadingBayInventoryMovement = async (
 
         // Get cost price based on costing method
         let costPrice = 0;
-        if (costingMethod === "FIFO") {
+        if (costingMethod === "First In First Out") {
           costPrice = await getFIFOCostPrice(
             gdLineItem.material_id,
             baseQty,

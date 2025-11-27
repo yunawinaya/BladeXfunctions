@@ -317,9 +317,9 @@ const fillbackHeaderFields = async (packingData) => {
     }
 
     for (const [_index, packingLineItem] of packingData.table_hu.entries()) {
-      packingLineItem.customer_id = packingData.customer_id || null;
-      packingLineItem.organization_id = packingData.organization_id || null;
-      packingLineItem.plant_id = packingData.plant_id || null;
+      packingLineItem.customer_id = packingData.customer_id || [];
+      packingLineItem.organization_id = packingData.organization_id || "";
+      packingLineItem.plant_id = packingData.plant_id || "";
     }
     return packingData.table_hu;
   } catch (error) {
@@ -507,23 +507,23 @@ const updateTOStatus = async (data) => {
       packing_status: "Created",
       plant_id: data.plant_id,
       packing_no: data.packing_no,
-      so_no: data.so_no,
-      gd_no: data.gd_no,
-      so_id: data.so_id,
-      gd_id: data.gd_id,
-      to_id: data.to_id,
-      customer_id: data.customer_id,
-      billing_address: data.billing_address,
-      shipping_address: data.shipping_address,
+      so_no: data.so_no || "",
+      gd_no: data.gd_no || "",
+      so_id: data.so_id || "",
+      gd_id: data.gd_id || "",
+      to_id: data.to_id || "",
+      customer_id: data.customer_id || [],
+      billing_address: data.billing_address || "",
+      shipping_address: data.shipping_address || "",
       organization_id: organizationId,
       packing_mode: data.packing_mode,
-      packing_location: data.packing_location,
-      assigned_to: data.assigned_to,
+      packing_location: data.packing_location || "",
+      assigned_to: data.assigned_to || "",
       created_by: this.getVarGlobal("userId"),
-      ref_doc: data.ref_doc,
+      ref_doc: data.ref_doc || "",
       table_hu: data.table_hu,
       table_items: data.table_items,
-      remarks: data.remarks,
+      remarks: data.remarks || "",
     };
 
     // Add created_at only for new records
