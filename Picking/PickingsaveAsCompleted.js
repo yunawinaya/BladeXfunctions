@@ -851,7 +851,7 @@ const updateSalesOrderStatus = async (salesOrderId, tableGD) => {
   }
 };
 
-const addEntry = async (organizationId, toData) => {
+const addEntry = async (organizationId, toData, isPacking) => {
   try {
     const prefixData = await getPrefixData(organizationId, "Transfer Order");
 
@@ -892,6 +892,12 @@ const addEntry = async (organizationId, toData) => {
       throw new Error("Failed to retrieve created transfer order record");
     }
 
+    if (isPacking === 1 && toData.to_status === "Completed") {
+      await this.triggerEvent("triggerPacking", {
+        pickingData: createdRecord.data[0],
+      });
+    }
+
     const toId = createdRecord.data[0].id;
     console.log("Transfer order created successfully with ID:", toId);
   } catch (error) {
@@ -900,7 +906,13 @@ const addEntry = async (organizationId, toData) => {
   }
 };
 
-const updateEntry = async (organizationId, toData, toId, originalToStatus) => {
+const updateEntry = async (
+  organizationId,
+  toData,
+  toId,
+  originalToStatus,
+  isPacking
+) => {
   try {
     if (originalToStatus === "Draft") {
       const prefixData = await getPrefixData(organizationId, "Transfer Order");
@@ -937,6 +949,12 @@ const updateEntry = async (organizationId, toData, toId, originalToStatus) => {
     }
 
     await db.collection("transfer_order").doc(toId).update(toData);
+
+    if (isPacking === 1 && toData.to_status === "Completed") {
+      await this.triggerEvent("triggerPacking", {
+        pickingData: toData,
+      });
+    }
 
     console.log("Transfer order updated successfully");
     return toId;
@@ -2220,6 +2238,20 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     throw error;
   }
 };
+
+const isPackingRequired = async (organizationId) => {
+  try {
+    const packingData = await db
+      .collection("packing_setup")
+      .where({ organization_id: organizationId })
+      .get();
+    return packingData.data[0].packing_required;
+  } catch (error) {
+    console.error("Error in isPacking:", error);
+    throw error;
+  }
+};
+
 // Main execution wrapped in an async IIFE
 (async () => {
   try {
@@ -2268,6 +2300,8 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
     if (organizationId === "0") {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
+
+    const isPacking = await isPackingRequired(organizationId);
 
     const tablePickingItems = this.getValue("table_picking_items");
     console.log("Table Picking Items:", tablePickingItems);
@@ -2337,7 +2371,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
 
     // Perform action based on page status
     if (page_status === "Add") {
-      await addEntry(organizationId, toData);
+      await addEntry(organizationId, toData, isPacking);
       for (const gdId of data.gd_no) {
         await updateGoodsDelivery(
           gdId,
@@ -2349,7 +2383,13 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
       }
     } else if (page_status === "Edit") {
       toId = data.id;
-      await updateEntry(organizationId, toData, toId, originalToStatus);
+      await updateEntry(
+        organizationId,
+        toData,
+        toId,
+        originalToStatus,
+        isPacking
+      );
       for (const gdId of data.gd_no) {
         await updateGoodsDelivery(
           gdId,

@@ -399,7 +399,7 @@ const updateSalesOrder = async (toData) => {
   }
 };
 
-const updateEntry = async (toData, toId) => {
+const updateEntry = async (toData, toId, isPacking) => {
   try {
     for (const item of toData.table_picking_items) {
       if (item.select_serial_number) {
@@ -412,6 +412,12 @@ const updateEntry = async (toData, toId) => {
     await updatePickingPlan(toData);
 
     await updateSalesOrder(toData);
+
+    if (isPacking === 1 && toData.to_status === "Completed") {
+      await this.triggerEvent("triggerPacking", {
+        pickingData: toData,
+      });
+    }
 
     console.log("Transfer order updated successfully");
     return toId;
@@ -1520,6 +1526,19 @@ const createPickingRecord = async (toData) => {
     toData.table_picking_records.concat(pickingRecords);
 };
 
+const isPackingRequired = async (organizationId) => {
+  try {
+    const packingData = await db
+      .collection("packing_setup")
+      .where({ organization_id: organizationId })
+      .get();
+    return packingData.data[0].packing_required;
+  } catch (error) {
+    console.error("Error in isPacking:", error);
+    throw error;
+  }
+};
+
 // Main execution wrapped in an async IIFE
 (async () => {
   try {
@@ -1567,6 +1586,8 @@ const createPickingRecord = async (toData) => {
     if (organizationId === "0") {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
+
+    const isPacking = await isPackingRequired(organizationId);
 
     const tablePickingItems = this.getValue("table_picking_items");
     console.log("Table Picking Items:", tablePickingItems);
@@ -1621,7 +1642,7 @@ const createPickingRecord = async (toData) => {
     const toId = data.id; // Transfer Order (Picking) document ID
     const plantId = data.plant_id;
 
-    await updateEntry(toData, toId);
+    await updateEntry(toData, toId, isPacking);
 
     // Handle loading bay inventory movement if applicable
     if (

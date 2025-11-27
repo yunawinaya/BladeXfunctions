@@ -407,7 +407,7 @@ const updateGDStatus = async (data) => {
 
       //update gd status
       for (const gdId of uniqueGDIds) {
-        await db.collection("good_delivery").doc(gdId).update({
+        await db.collection("goods_delivery").doc(gdId).update({
           packing_status: "Created",
         });
       }

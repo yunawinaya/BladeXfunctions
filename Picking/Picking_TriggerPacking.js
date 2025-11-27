@@ -166,7 +166,7 @@ const updateGDStatus = async (data) => {
       // Update gd status
       await Promise.all(
         uniqueGDIds.map((gdId) =>
-          db.collection("good_delivery").doc(gdId).update({
+          db.collection("goods_delivery").doc(gdId).update({
             packing_status: "Created",
           })
         )

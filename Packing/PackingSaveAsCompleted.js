@@ -148,7 +148,7 @@ const checkHUUniqueness = async (huNo, organizationId, plantId) => {
   try {
     // Only check in packing_line collection (single source of truth)
     const existingInPackingLine = await db
-      .collection("packing_line")
+      .collection("packing_hr4nq20g_sub")
       .where({
         hu_no: huNo,
         organization_id: organizationId,
@@ -172,7 +172,7 @@ const getMaxHUNumber = async (organizationId, plantId) => {
 
     // Only check packing_line collection (single source of truth)
     const packingLines = await db
-      .collection("packing_line")
+      .collection("packing_hr4nq20g_sub")
       .where({
         organization_id: organizationId,
         plant_id: plantId,
@@ -661,13 +661,10 @@ const deductBatchBalance = async (
     const newBalance = currentBalance - quantity;
 
     // Update item_batch_balance
-    await db
-      .collection("item_batch_balance")
-      .doc(batchBalance.id)
-      .update({
-        unrestricted_qty: newUnrestricted,
-        balance_quantity: newBalance,
-      });
+    await db.collection("item_batch_balance").doc(batchBalance.id).update({
+      unrestricted_qty: newUnrestricted,
+      balance_quantity: newBalance,
+    });
 
     console.log(
       `Deducted ${quantity} from batch ${batchId} at location ${locationId}. Unrestricted: ${currentUnrestricted} → ${newUnrestricted}, Balance: ${currentBalance} → ${newBalance}`
@@ -681,10 +678,7 @@ const deductBatchBalance = async (
       locationId
     );
   } catch (error) {
-    console.error(
-      `Error deducting batch balance for ${materialId}:`,
-      error
-    );
+    console.error(`Error deducting batch balance for ${materialId}:`, error);
     throw error;
   }
 };
@@ -805,22 +799,16 @@ const deductItemBalance = async (
     const newBalance = currentBalance - quantity;
 
     // Update item_balance
-    await db
-      .collection("item_balance")
-      .doc(itemBalance.id)
-      .update({
-        unrestricted_qty: newUnrestricted,
-        balance_quantity: newBalance,
-      });
+    await db.collection("item_balance").doc(itemBalance.id).update({
+      unrestricted_qty: newUnrestricted,
+      balance_quantity: newBalance,
+    });
 
     console.log(
       `Deducted ${quantity} from item_balance at location ${locationId}. Unrestricted: ${currentUnrestricted} → ${newUnrestricted}, Balance: ${currentBalance} → ${newBalance}`
     );
   } catch (error) {
-    console.error(
-      `Error deducting item_balance for ${materialId}:`,
-      error
-    );
+    console.error(`Error deducting item_balance for ${materialId}:`, error);
     throw error;
   }
 };
@@ -873,12 +861,9 @@ const updateFIFOInventory = async (
       const newAvailableQty = roundQty(availableQty - qtyToDeduct);
 
       // Update FIFO record
-      await db
-        .collection("fifo_costing_history")
-        .doc(record.id)
-        .update({
-          fifo_available_quantity: newAvailableQty,
-        });
+      await db.collection("fifo_costing_history").doc(record.id).update({
+        fifo_available_quantity: newAvailableQty,
+      });
 
       console.log(
         `FIFO seq ${record.fifo_sequence}: ${availableQty} → ${newAvailableQty}`
@@ -908,7 +893,11 @@ const updateWeightedAverage = async (
 ) => {
   try {
     // Input validation
-    if (!materialId || isNaN(parseFloat(quantity)) || parseFloat(quantity) <= 0) {
+    if (
+      !materialId ||
+      isNaN(parseFloat(quantity)) ||
+      parseFloat(quantity) <= 0
+    ) {
       console.error("Invalid data for weighted average update:", materialId);
       return;
     }
@@ -929,7 +918,9 @@ const updateWeightedAverage = async (
       .get();
 
     if (!waResponse.data || waResponse.data.length === 0) {
-      console.warn(`No weighted average records found for material ${materialId}`);
+      console.warn(
+        `No weighted average records found for material ${materialId}`
+      );
       return;
     }
 
@@ -954,14 +945,11 @@ const updateWeightedAverage = async (
     const newWaQuantity = Math.max(0, roundQty(waQuantity - qtyToDeduct));
 
     // Update WA record
-    await db
-      .collection("wa_costing_method")
-      .doc(waDoc.id)
-      .update({
-        wa_quantity: newWaQuantity,
-        wa_cost_price: waCostPrice,
-        updated_at: new Date(),
-      });
+    await db.collection("wa_costing_method").doc(waDoc.id).update({
+      wa_quantity: newWaQuantity,
+      wa_cost_price: waCostPrice,
+      updated_at: new Date(),
+    });
 
     console.log(
       `WA for ${materialId}: ${waQuantity} → ${newWaQuantity} (cost: ${waCostPrice})`
@@ -1460,7 +1448,7 @@ const updateGDStatus = async (data) => {
 
       //update gd status
       for (const gdId of uniqueGDIds) {
-        await db.collection("good_delivery").doc(gdId).update({
+        await db.collection("goods_delivery").doc(gdId).update({
           packing_status: "Completed",
         });
       }
