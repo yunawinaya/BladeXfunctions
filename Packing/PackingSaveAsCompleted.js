@@ -352,6 +352,487 @@ const validateField = (value) => {
   return !value;
 };
 
+// Helper function to safely parse JSON
+const parseJsonSafely = (jsonString, defaultValue = []) => {
+  try {
+    return jsonString ? JSON.parse(jsonString) : defaultValue;
+  } catch (error) {
+    console.error("JSON parse error:", error);
+    return defaultValue;
+  }
+};
+
+// For quantities - 3 decimal places
+const roundQty = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(3));
+};
+
+// For prices - 4 decimal places
+const roundPrice = (value) => {
+  return parseFloat(parseFloat(value || 0).toFixed(4));
+};
+
+// Function to get FIFO cost price
+const getFIFOCostPrice = async (
+  materialId,
+  deductionQty,
+  plantId,
+  organizationId,
+  batchId = null
+) => {
+  try {
+    const query = batchId
+      ? db.collection("fifo_costing_history").where({
+          material_id: materialId,
+          batch_id: batchId,
+          plant_id: plantId,
+        })
+      : db
+          .collection("fifo_costing_history")
+          .where({ material_id: materialId, plant_id: plantId });
+
+    const response = await query.get();
+    const result = response.data;
+
+    if (result && Array.isArray(result) && result.length > 0) {
+      const sortedRecords = result.sort(
+        (a, b) => a.fifo_sequence - b.fifo_sequence
+      );
+
+      if (!deductionQty) {
+        for (const record of sortedRecords) {
+          const availableQty = roundQty(record.fifo_available_quantity || 0);
+          if (availableQty > 0) {
+            return roundPrice(record.fifo_cost_price || 0);
+          }
+        }
+        return roundPrice(
+          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+        );
+      }
+
+      let remainingQtyToDeduct = roundQty(deductionQty);
+      let totalCost = 0;
+      let totalDeductedQty = 0;
+
+      for (const record of sortedRecords) {
+        if (remainingQtyToDeduct <= 0) break;
+
+        const availableQty = roundQty(record.fifo_available_quantity || 0);
+        if (availableQty <= 0) continue;
+
+        const costPrice = roundPrice(record.fifo_cost_price || 0);
+        const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
+        const costContribution = roundPrice(qtyToDeduct * costPrice);
+
+        totalCost = roundPrice(totalCost + costContribution);
+        totalDeductedQty = roundQty(totalDeductedQty + qtyToDeduct);
+        remainingQtyToDeduct = roundQty(remainingQtyToDeduct - qtyToDeduct);
+      }
+
+      if (remainingQtyToDeduct > 0 && sortedRecords.length > 0) {
+        const lastRecord = sortedRecords[sortedRecords.length - 1];
+        const lastCostPrice = roundPrice(lastRecord.fifo_cost_price || 0);
+        const additionalCost = roundPrice(remainingQtyToDeduct * lastCostPrice);
+        totalCost = roundPrice(totalCost + additionalCost);
+        totalDeductedQty = roundQty(totalDeductedQty + remainingQtyToDeduct);
+      }
+
+      if (totalDeductedQty > 0) {
+        return roundPrice(totalCost / totalDeductedQty);
+      }
+
+      return roundPrice(sortedRecords[0].fifo_cost_price || 0);
+    }
+
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving FIFO cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
+// Function to get Weighted Average cost price
+const getWeightedAverageCostPrice = async (
+  materialId,
+  plantId,
+  organizationId
+) => {
+  try {
+    const query = db.collection("wa_costing_method").where({
+      material_id: materialId,
+      plant_id: plantId,
+      organization_id: organizationId,
+    });
+
+    const response = await query.get();
+    const waData = response.data;
+
+    if (waData && Array.isArray(waData) && waData.length > 0) {
+      waData.sort((a, b) => {
+        if (a.created_at && b.created_at) {
+          return new Date(b.created_at) - new Date(a.created_at);
+        }
+        return 0;
+      });
+
+      return roundPrice(waData[0].wa_cost_price || 0);
+    }
+
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving WA cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
+// Function to get Fixed Cost price
+const getFixedCostPrice = async (materialId) => {
+  try {
+    const query = db.collection("Item").where({ id: materialId });
+    const response = await query.get();
+    const result = response.data;
+
+    if (result && result.length > 0) {
+      return roundPrice(parseFloat(result[0].purchase_unit_price || 0));
+    }
+
+    return 0;
+  } catch (error) {
+    console.error(
+      `Error retrieving fixed cost price for ${materialId}:`,
+      error
+    );
+    return 0;
+  }
+};
+
+// Helper: Sort function with date fallbacks (cached for performance)
+const sortByDateWithFallbacks = (items, dateFields) => {
+  // Pre-parse dates for performance
+  const itemsWithParsedDates = items.map((item) => ({
+    ...item,
+    _parsedDates: dateFields.map((field) =>
+      item[field] ? new Date(item[field]).getTime() : null
+    ),
+  }));
+
+  itemsWithParsedDates.sort((a, b) => {
+    for (let i = 0; i < dateFields.length; i++) {
+      const aDate = a._parsedDates[i];
+      const bDate = b._parsedDates[i];
+
+      if (aDate && bDate) {
+        return aDate - bDate;
+      }
+      if (aDate) return -1; // a has date, b doesn't - a comes first
+      if (bDate) return 1; // b has date, a doesn't - b comes first
+    }
+    return 0;
+  });
+
+  // Remove temporary parsed dates
+  return itemsWithParsedDates.map(({ _parsedDates, ...item }) => item);
+};
+
+// Helper: Allocate quantity across balance records (FEFO/FIFO)
+const allocateQuantity = (balanceData, requiredQty, isoBatch) => {
+  let remainingQty = requiredQty;
+  const allocations = [];
+
+  for (const balance of balanceData) {
+    if (remainingQty <= 0) break;
+
+    const availableQty = parseFloat(balance.unrestricted_qty) || 0;
+
+    if (availableQty <= 0) {
+      continue; // Skip records with no unrestricted quantity
+    }
+
+    // Take what we can from this record
+    const qtyToTake = Math.min(remainingQty, availableQty);
+
+    if (isoBatch) {
+      allocations.push({
+        batchId: balance.batch_id,
+        batchNo: balance.batch_no,
+        locationId: balance.location_id,
+        quantity: qtyToTake,
+        expiredDate: balance.expired_date,
+      });
+    } else {
+      allocations.push({
+        locationId: balance.location_id,
+        quantity: qtyToTake,
+        createTime: balance.create_time,
+      });
+    }
+
+    remainingQty -= qtyToTake;
+  }
+
+  return { allocations, remainingQty };
+};
+
+// Helper: Calculate costing price
+const calculateCostingPrice = async (
+  costingMethod,
+  materialId,
+  quantity,
+  plantId,
+  organizationId,
+  batchId = null
+) => {
+  let unitPrice = 0;
+
+  if (costingMethod === "FIFO") {
+    const fifoCostPrice = await getFIFOCostPrice(
+      materialId,
+      quantity,
+      plantId,
+      organizationId,
+      batchId
+    );
+    unitPrice = roundPrice(fifoCostPrice);
+  } else if (costingMethod === "Weighted Average") {
+    const waCostPrice = await getWeightedAverageCostPrice(
+      materialId,
+      plantId,
+      organizationId
+    );
+    unitPrice = roundPrice(waCostPrice);
+  } else if (costingMethod === "Fixed Cost") {
+    const fixedCostPrice = await getFixedCostPrice(materialId);
+    unitPrice = roundPrice(fixedCostPrice);
+  }
+
+  const totalPrice = roundPrice(unitPrice * quantity);
+  return { unitPrice, totalPrice };
+};
+
+// Helper: Create inventory movement record
+const createInventoryMovement = async (packingData, movementData) => {
+  await db.collection("inventory_movement").add({
+    transaction_type: "PKG",
+    trx_no: packingData.packing_no,
+    parent_trx_no:
+      packingData.gd_no !== "" ? packingData.gd_no : packingData.so_no,
+    ...movementData,
+    movement: "OUT",
+    inventory_category: "Unrestricted",
+    is_deleted: 0,
+  });
+};
+
+const processHUBalance = async (packingData) => {
+  try {
+    // Input validation
+    if (!packingData || !packingData.table_hu) {
+      console.log("No table_hu data to process");
+      return;
+    }
+
+    const tableHU = packingData.table_hu;
+    const packingMode = packingData.packing_mode;
+
+    if (!tableHU || tableHU.length === 0) {
+      console.log("table_hu is empty, skipping processHUBalance");
+      return;
+    }
+
+    if (packingMode === "Basic") {
+      // Step 1: Batch fetch all Item data to avoid N+1 queries
+      const uniqueMaterialIds = [
+        ...new Set(tableHU.map((hu) => hu.material_id).filter(Boolean)),
+      ];
+
+      if (uniqueMaterialIds.length === 0) {
+        console.log("No material IDs found in table_hu");
+        return;
+      }
+
+      const itemsResult = await db
+        .collection("Item")
+        .where({
+          id: db.command.in(uniqueMaterialIds),
+        })
+        .get();
+
+      // Create a map for O(1) lookup
+      const itemsMap = new Map();
+      if (itemsResult.data && itemsResult.data.length > 0) {
+        itemsResult.data.forEach((item) => {
+          itemsMap.set(item.id, item);
+        });
+      }
+
+      // Step 2: Process each HU item
+      for (const [_index, huItem] of tableHU.entries()) {
+        const materialId = huItem.material_id;
+        const quantity = huItem.hu_quantity;
+        const plantId = huItem.plant_id;
+        const organizationId = huItem.organization_id;
+
+        // Get item details from map (O(1) lookup)
+        const itemData = itemsMap.get(materialId);
+
+        if (!itemData) {
+          console.log(`Item ${materialId} not found, skipping`);
+          continue;
+        }
+
+        const baseUOM = itemData.based_uom;
+        const costingMethod = itemData.item_costing_method;
+        const isBatch = itemData.item_batch_management;
+
+        // Step 3: Handle batch vs non-batch items
+        if (isBatch) {
+          // Fetch batch balance data
+          const itemBatchBalanceData = await db
+            .collection("item_batch_balance")
+            .where({
+              material_id: materialId,
+              plant_id: plantId,
+              organization_id: organizationId,
+            })
+            .get()
+            .then((res) => res.data || []);
+
+          if (itemBatchBalanceData.length === 0) {
+            console.log(`Item batch balance ${materialId} not found, skipping`);
+            continue;
+          }
+
+          // Sort using helper (FEFO with fallbacks)
+          const sortedBatchData = sortByDateWithFallbacks(itemBatchBalanceData, [
+            "expired_date",
+            "manufacturing_date",
+            "create_time",
+          ]);
+
+          // Allocate quantity using helper
+          const { allocations, remainingQty } = allocateQuantity(
+            sortedBatchData,
+            quantity,
+            true // isBatch = true
+          );
+
+          // Check if we have enough total quantity
+          if (remainingQty > 0) {
+            throw new Error(
+              `Insufficient batch quantity for item ${materialId}. Required: ${quantity}, Available: ${
+                quantity - remainingQty
+              }`
+            );
+          }
+
+          // Create inventory movements for each batch allocation
+          for (const allocation of allocations) {
+            const { unitPrice, totalPrice } = await calculateCostingPrice(
+              costingMethod,
+              materialId,
+              allocation.quantity,
+              plantId,
+              organizationId,
+              allocation.batchId
+            );
+
+            await createInventoryMovement(packingData, {
+              unit_price: unitPrice,
+              total_price: totalPrice,
+              quantity: allocation.quantity,
+              item_id: materialId,
+              uom_id: baseUOM,
+              base_qty: allocation.quantity,
+              base_uom_id: baseUOM,
+              batch_number_id: allocation.batchId,
+              costing_method_id: costingMethod,
+              plant_id: plantId,
+              organization_id: organizationId,
+              bin_location_id: allocation.locationId,
+            });
+
+            console.log(
+              `Created OUT movement for batch ${allocation.batchNo} at location ${allocation.locationId}: ${allocation.quantity} units`
+            );
+          }
+        } else {
+          // Non-batch item - fetch item_balance
+          const itemBalanceData = await db
+            .collection("item_balance")
+            .where({
+              material_id: materialId,
+              plant_id: plantId,
+              organization_id: organizationId,
+            })
+            .get()
+            .then((res) => res.data || []);
+
+          if (itemBalanceData.length === 0) {
+            console.log(`Item balance ${materialId} not found, skipping`);
+            continue;
+          }
+
+          // Sort using helper (FIFO by create_time)
+          const sortedBalanceData = sortByDateWithFallbacks(itemBalanceData, [
+            "create_time",
+          ]);
+
+          // Allocate quantity using helper
+          const { allocations, remainingQty } = allocateQuantity(
+            sortedBalanceData,
+            quantity,
+            false // isBatch = false
+          );
+
+          // Check if we have enough total quantity
+          if (remainingQty > 0) {
+            throw new Error(
+              `Insufficient item balance for item ${materialId}. Required: ${quantity}, Available: ${
+                quantity - remainingQty
+              }`
+            );
+          }
+
+          // Create inventory movements for each location allocation
+          for (const allocation of allocations) {
+            const { unitPrice, totalPrice } = await calculateCostingPrice(
+              costingMethod,
+              materialId,
+              allocation.quantity,
+              plantId,
+              organizationId,
+              null // No batch for non-batch items
+            );
+
+            await createInventoryMovement(packingData, {
+              unit_price: unitPrice,
+              total_price: totalPrice,
+              quantity: allocation.quantity,
+              item_id: materialId,
+              uom_id: baseUOM,
+              base_qty: allocation.quantity,
+              base_uom_id: baseUOM,
+              batch_number_id: null,
+              costing_method_id: costingMethod,
+              plant_id: plantId,
+              organization_id: organizationId,
+              bin_location_id: allocation.locationId,
+            });
+
+            console.log(
+              `Created OUT movement for non-batch item ${materialId} at location ${allocation.locationId}: ${allocation.quantity} units`
+            );
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error processing HU balance:", error);
+    throw error;
+  }
+};
+
 const addEntry = async (organizationId, packingData) => {
   try {
     const prefixData = await getPrefixData(organizationId, "Packing");
