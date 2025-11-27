@@ -353,7 +353,7 @@ const validateField = (value) => {
 };
 
 // Helper function to safely parse JSON
-const parseJsonSafely = (jsonString, defaultValue = []) => {
+const _parseJsonSafely = (jsonString, defaultValue = []) => {
   try {
     return jsonString ? JSON.parse(jsonString) : defaultValue;
   } catch (error) {
@@ -624,6 +624,360 @@ const createInventoryMovement = async (packingData, movementData) => {
   });
 };
 
+// Helper: Deduct from item_batch_balance
+const deductBatchBalance = async (
+  materialId,
+  plantId,
+  organizationId,
+  batchId,
+  locationId,
+  quantity
+) => {
+  try {
+    // Find the specific batch balance record
+    const batchBalanceResult = await db
+      .collection("item_batch_balance")
+      .where({
+        material_id: materialId,
+        plant_id: plantId,
+        organization_id: organizationId,
+        batch_id: batchId,
+        location_id: locationId,
+        is_deleted: 0,
+      })
+      .get();
+
+    if (!batchBalanceResult.data || batchBalanceResult.data.length === 0) {
+      console.warn(
+        `Batch balance not found for material ${materialId}, batch ${batchId}, location ${locationId}`
+      );
+      return;
+    }
+
+    const batchBalance = batchBalanceResult.data[0];
+    const currentUnrestricted = parseFloat(batchBalance.unrestricted_qty) || 0;
+    const currentBalance = parseFloat(batchBalance.balance_quantity) || 0;
+    const newUnrestricted = currentUnrestricted - quantity;
+    const newBalance = currentBalance - quantity;
+
+    // Update item_batch_balance
+    await db
+      .collection("item_batch_balance")
+      .doc(batchBalance.id)
+      .update({
+        unrestricted_qty: newUnrestricted,
+        balance_quantity: newBalance,
+      });
+
+    console.log(
+      `Deducted ${quantity} from batch ${batchId} at location ${locationId}. Unrestricted: ${currentUnrestricted} → ${newUnrestricted}, Balance: ${currentBalance} → ${newBalance}`
+    );
+
+    // Also update aggregated item_balance
+    await updateAggregatedItemBalance(
+      materialId,
+      plantId,
+      organizationId,
+      locationId
+    );
+  } catch (error) {
+    console.error(
+      `Error deducting batch balance for ${materialId}:`,
+      error
+    );
+    throw error;
+  }
+};
+
+// Helper: Update aggregated item_balance from item_batch_balance
+const updateAggregatedItemBalance = async (
+  materialId,
+  plantId,
+  organizationId,
+  locationId
+) => {
+  try {
+    // Sum all batch balances for this material/plant/location
+    const batchBalances = await db
+      .collection("item_batch_balance")
+      .where({
+        material_id: materialId,
+        plant_id: plantId,
+        organization_id: organizationId,
+        location_id: locationId,
+        is_deleted: 0,
+      })
+      .get();
+
+    let totalUnrestricted = 0;
+    let totalReserved = 0;
+    let totalInTransit = 0;
+    let totalQualityInspection = 0;
+    let totalBlocked = 0;
+    let totalBalance = 0;
+
+    if (batchBalances.data && batchBalances.data.length > 0) {
+      batchBalances.data.forEach((batch) => {
+        totalUnrestricted += parseFloat(batch.unrestricted_qty) || 0;
+        totalReserved += parseFloat(batch.reserved_qty) || 0;
+        totalInTransit += parseFloat(batch.in_transit_qty) || 0;
+        totalQualityInspection += parseFloat(batch.quality_inspection_qty) || 0;
+        totalBlocked += parseFloat(batch.blocked_qty) || 0;
+        totalBalance += parseFloat(batch.balance_quantity) || 0;
+      });
+    }
+
+    // Find or create item_balance record
+    const itemBalanceResult = await db
+      .collection("item_balance")
+      .where({
+        material_id: materialId,
+        plant_id: plantId,
+        organization_id: organizationId,
+        location_id: locationId,
+        is_deleted: 0,
+      })
+      .get();
+
+    if (itemBalanceResult.data && itemBalanceResult.data.length > 0) {
+      // Update existing record
+      await db
+        .collection("item_balance")
+        .doc(itemBalanceResult.data[0].id)
+        .update({
+          unrestricted_qty: totalUnrestricted,
+          reserved_qty: totalReserved,
+          in_transit_qty: totalInTransit,
+          quality_inspection_qty: totalQualityInspection,
+          blocked_qty: totalBlocked,
+          balance_quantity: totalBalance,
+        });
+
+      console.log(
+        `Updated aggregated item_balance for ${materialId} at location ${locationId}. Unrestricted: ${totalUnrestricted}, Balance: ${totalBalance}`
+      );
+    } else {
+      console.warn(
+        `Item balance not found for ${materialId} at location ${locationId}, skipping aggregation update`
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Error updating aggregated item_balance for ${materialId}:`,
+      error
+    );
+    throw error;
+  }
+};
+
+// Helper: Deduct from item_balance (non-batch items)
+const deductItemBalance = async (
+  materialId,
+  plantId,
+  organizationId,
+  locationId,
+  quantity
+) => {
+  try {
+    // Find the specific item balance record
+    const itemBalanceResult = await db
+      .collection("item_balance")
+      .where({
+        material_id: materialId,
+        plant_id: plantId,
+        organization_id: organizationId,
+        location_id: locationId,
+        is_deleted: 0,
+      })
+      .get();
+
+    if (!itemBalanceResult.data || itemBalanceResult.data.length === 0) {
+      console.warn(
+        `Item balance not found for material ${materialId} at location ${locationId}`
+      );
+      return;
+    }
+
+    const itemBalance = itemBalanceResult.data[0];
+    const currentUnrestricted = parseFloat(itemBalance.unrestricted_qty) || 0;
+    const currentBalance = parseFloat(itemBalance.balance_quantity) || 0;
+    const newUnrestricted = currentUnrestricted - quantity;
+    const newBalance = currentBalance - quantity;
+
+    // Update item_balance
+    await db
+      .collection("item_balance")
+      .doc(itemBalance.id)
+      .update({
+        unrestricted_qty: newUnrestricted,
+        balance_quantity: newBalance,
+      });
+
+    console.log(
+      `Deducted ${quantity} from item_balance at location ${locationId}. Unrestricted: ${currentUnrestricted} → ${newUnrestricted}, Balance: ${currentBalance} → ${newBalance}`
+    );
+  } catch (error) {
+    console.error(
+      `Error deducting item_balance for ${materialId}:`,
+      error
+    );
+    throw error;
+  }
+};
+
+// Helper: Update FIFO costing history (optimized with async/await)
+const updateFIFOInventory = async (
+  materialId,
+  quantity,
+  batchId,
+  plantId,
+  organizationId
+) => {
+  try {
+    const whereClause = {
+      material_id: materialId,
+      plant_id: plantId,
+      organization_id: organizationId,
+    };
+
+    if (batchId) {
+      whereClause.batch_id = batchId;
+    }
+
+    const response = await db
+      .collection("fifo_costing_history")
+      .where(whereClause)
+      .get();
+
+    if (!response.data || response.data.length === 0) {
+      console.warn(`No FIFO records found for material ${materialId}`);
+      return;
+    }
+
+    // Sort by FIFO sequence (oldest first)
+    const sortedRecords = response.data.sort(
+      (a, b) => (a.fifo_sequence || 0) - (b.fifo_sequence || 0)
+    );
+
+    let remainingQty = roundQty(quantity);
+    console.log(`Deducting ${remainingQty} units from FIFO for ${materialId}`);
+
+    // Deduct from each FIFO record in sequence
+    for (const record of sortedRecords) {
+      if (remainingQty <= 0) break;
+
+      const availableQty = roundQty(record.fifo_available_quantity || 0);
+      if (availableQty <= 0) continue;
+
+      const qtyToDeduct = Math.min(remainingQty, availableQty);
+      const newAvailableQty = roundQty(availableQty - qtyToDeduct);
+
+      // Update FIFO record
+      await db
+        .collection("fifo_costing_history")
+        .doc(record.id)
+        .update({
+          fifo_available_quantity: newAvailableQty,
+        });
+
+      console.log(
+        `FIFO seq ${record.fifo_sequence}: ${availableQty} → ${newAvailableQty}`
+      );
+
+      remainingQty = roundQty(remainingQty - qtyToDeduct);
+    }
+
+    if (remainingQty > 0) {
+      console.warn(
+        `Warning: FIFO shortfall for ${materialId}. Remaining: ${remainingQty}`
+      );
+    }
+  } catch (error) {
+    console.error(`Error updating FIFO for ${materialId}:`, error);
+    throw error;
+  }
+};
+
+// Helper: Update Weighted Average costing (optimized with async/await)
+const updateWeightedAverage = async (
+  materialId,
+  quantity,
+  batchId,
+  plantId,
+  organizationId
+) => {
+  try {
+    // Input validation
+    if (!materialId || isNaN(parseFloat(quantity)) || parseFloat(quantity) <= 0) {
+      console.error("Invalid data for weighted average update:", materialId);
+      return;
+    }
+
+    const whereClause = {
+      material_id: materialId,
+      plant_id: plantId,
+      organization_id: organizationId,
+    };
+
+    if (batchId) {
+      whereClause.batch_id = batchId;
+    }
+
+    const waResponse = await db
+      .collection("wa_costing_method")
+      .where(whereClause)
+      .get();
+
+    if (!waResponse.data || waResponse.data.length === 0) {
+      console.warn(`No weighted average records found for material ${materialId}`);
+      return;
+    }
+
+    // Sort by date (newest first) to get the latest record
+    const waData = waResponse.data.sort((a, b) => {
+      if (a.created_at && b.created_at) {
+        return new Date(b.created_at) - new Date(a.created_at);
+      }
+      return 0;
+    });
+
+    const waDoc = waData[0];
+    const waCostPrice = roundPrice(waDoc.wa_cost_price || 0);
+    const waQuantity = roundQty(waDoc.wa_quantity || 0);
+
+    if (waQuantity <= 0) {
+      console.warn(`WA quantity already zero for ${materialId}`);
+      return;
+    }
+
+    const qtyToDeduct = roundQty(quantity);
+    const newWaQuantity = Math.max(0, roundQty(waQuantity - qtyToDeduct));
+
+    // Update WA record
+    await db
+      .collection("wa_costing_method")
+      .doc(waDoc.id)
+      .update({
+        wa_quantity: newWaQuantity,
+        wa_cost_price: waCostPrice,
+        updated_at: new Date(),
+      });
+
+    console.log(
+      `WA for ${materialId}: ${waQuantity} → ${newWaQuantity} (cost: ${waCostPrice})`
+    );
+
+    if (waQuantity < qtyToDeduct) {
+      console.warn(
+        `WA shortfall for ${materialId}. Available: ${waQuantity}, Requested: ${qtyToDeduct}`
+      );
+    }
+  } catch (error) {
+    console.error(`Error updating WA for ${materialId}:`, error);
+    throw error;
+  }
+};
+
 const processHUBalance = async (packingData) => {
   try {
     // Input validation
@@ -704,11 +1058,10 @@ const processHUBalance = async (packingData) => {
           }
 
           // Sort using helper (FEFO with fallbacks)
-          const sortedBatchData = sortByDateWithFallbacks(itemBatchBalanceData, [
-            "expired_date",
-            "manufacturing_date",
-            "create_time",
-          ]);
+          const sortedBatchData = sortByDateWithFallbacks(
+            itemBatchBalanceData,
+            ["expired_date", "manufacturing_date", "create_time"]
+          );
 
           // Allocate quantity using helper
           const { allocations, remainingQty } = allocateQuantity(
@@ -726,7 +1079,7 @@ const processHUBalance = async (packingData) => {
             );
           }
 
-          // Create inventory movements for each batch allocation
+          // Create inventory movements and deduct balances for each batch allocation
           for (const allocation of allocations) {
             const { unitPrice, totalPrice } = await calculateCostingPrice(
               costingMethod,
@@ -737,6 +1090,7 @@ const processHUBalance = async (packingData) => {
               allocation.batchId
             );
 
+            // Create inventory movement
             await createInventoryMovement(packingData, {
               unit_price: unitPrice,
               total_price: totalPrice,
@@ -751,6 +1105,35 @@ const processHUBalance = async (packingData) => {
               organization_id: organizationId,
               bin_location_id: allocation.locationId,
             });
+
+            // Deduct from item_batch_balance (also updates aggregated item_balance)
+            await deductBatchBalance(
+              materialId,
+              plantId,
+              organizationId,
+              allocation.batchId,
+              allocation.locationId,
+              allocation.quantity
+            );
+
+            // Update FIFO/WA costing based on costing method
+            if (costingMethod === "FIFO") {
+              await updateFIFOInventory(
+                materialId,
+                allocation.quantity,
+                allocation.batchId,
+                plantId,
+                organizationId
+              );
+            } else if (costingMethod === "Weighted Average") {
+              await updateWeightedAverage(
+                materialId,
+                allocation.quantity,
+                allocation.batchId,
+                plantId,
+                organizationId
+              );
+            }
 
             console.log(
               `Created OUT movement for batch ${allocation.batchNo} at location ${allocation.locationId}: ${allocation.quantity} units`
@@ -794,7 +1177,7 @@ const processHUBalance = async (packingData) => {
             );
           }
 
-          // Create inventory movements for each location allocation
+          // Create inventory movements and deduct balances for each location allocation
           for (const allocation of allocations) {
             const { unitPrice, totalPrice } = await calculateCostingPrice(
               costingMethod,
@@ -805,6 +1188,7 @@ const processHUBalance = async (packingData) => {
               null // No batch for non-batch items
             );
 
+            // Create inventory movement
             await createInventoryMovement(packingData, {
               unit_price: unitPrice,
               total_price: totalPrice,
@@ -819,6 +1203,34 @@ const processHUBalance = async (packingData) => {
               organization_id: organizationId,
               bin_location_id: allocation.locationId,
             });
+
+            // Deduct from item_balance
+            await deductItemBalance(
+              materialId,
+              plantId,
+              organizationId,
+              allocation.locationId,
+              allocation.quantity
+            );
+
+            // Update FIFO/WA costing based on costing method
+            if (costingMethod === "FIFO") {
+              await updateFIFOInventory(
+                materialId,
+                allocation.quantity,
+                null, // No batch for non-batch items
+                plantId,
+                organizationId
+              );
+            } else if (costingMethod === "Weighted Average") {
+              await updateWeightedAverage(
+                materialId,
+                allocation.quantity,
+                null, // No batch for non-batch items
+                plantId,
+                organizationId
+              );
+            }
 
             console.log(
               `Created OUT movement for non-batch item ${materialId} at location ${allocation.locationId}: ${allocation.quantity} units`
@@ -860,6 +1272,8 @@ const addEntry = async (organizationId, packingData) => {
         );
       }
     }
+
+    await processHUBalance(packingData);
 
     // Add the record
     const createdRecord = await db.collection("packing").add(packingData);
@@ -928,6 +1342,8 @@ const updateEntry = async (
         }
       }
     }
+
+    await processHUBalance(packingData);
 
     await db.collection("packing").doc(packingId).update(packingData);
 
