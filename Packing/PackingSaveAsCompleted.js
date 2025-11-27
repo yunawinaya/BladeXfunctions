@@ -1381,7 +1381,7 @@ const findFieldMessage = (obj) => {
   return null;
 };
 
-const headerCalculation = (data) => {
+const headerCalculation = async (data) => {
   const packingMode = data.packing_mode;
   const tableHU = data.table_hu || [];
   const tableItems = data.table_items || [];
