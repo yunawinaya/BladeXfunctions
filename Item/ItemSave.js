@@ -505,7 +505,6 @@ const validatePurchaseAndSalesInformation = async (entry) => {
 
     // Define required fields
     const requiredFields = [
-      { name: "material_type", label: "Item Type" },
       { name: "material_name", label: "Item Name" },
       { name: "material_code", label: "Item Code" },
       { name: "item_category", label: "Item Category" },
@@ -540,7 +539,9 @@ const validatePurchaseAndSalesInformation = async (entry) => {
         show_receiving: data.show_receiving,
         based_uom: data.based_uom,
         item_properties: data.item_properties,
-        business_scope: data.business_scope,
+        business_scope: Array.isArray(data.business_scope)
+          ? data.business_scope.join(",")
+          : data.business_scope,
         table_uom_conversion: data.table_uom_conversion,
         purchase_tariff_id: data.purchase_tariff_id,
         mat_purchase_currency_id: data.mat_purchase_currency_id,

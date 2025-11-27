@@ -91,7 +91,7 @@ const setPrefix = async (organizationId) => {
   }
 };
 
-const showStatusHTML = (status) => {
+const showStatusHTML = async (status) => {
   switch (status) {
     case "Draft":
       this.display(["draft_status"]);
@@ -209,6 +209,36 @@ const setPackingMode = async () => {
   }
 };
 
+const fetchPickingSetup = async (organizationId) => {
+  try {
+    const resPickingSetup = await db
+      .collection("picking_setup")
+      .where({ organization_id: organizationId })
+      .get()
+      .then((res) => {
+        return res.data[0];
+      });
+
+    if (!resPickingSetup) {
+      console.log("No picking setup found");
+      return;
+    }
+
+    const pickingAfter = resPickingSetup.picking_after;
+
+    if (pickingAfter === "Sales Order") {
+      await this.display(["so_id"]);
+      await this.hide(["gd_id"]);
+      await this.disabled(["so_id"], false);
+    } else {
+      await this.disabled(["so_id"], true);
+      await this.disabled(["gd_id"], false);
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 // Main execution function
 (async () => {
   try {
@@ -246,11 +276,13 @@ const setPackingMode = async () => {
         }
         await setPrefix(organizationId);
         await setPackingMode();
+        await fetchPickingSetup(organizationId);
         break;
 
       case "Edit":
         if (status !== "Completed" || status !== "Created") {
           await getPrefixData(organizationId);
+          await fetchPickingSetup(organizationId);
         }
         if (status !== "Draft") {
           this.hide(["button_save_as_draft"]);
