@@ -1603,37 +1603,31 @@ const updateInventory = async (allData) => {
             ? item.unit_price || materialData.purchase_unit_price || 0
             : materialData.purchase_unit_price || 0;
 
-        return updateQuantities(
-          -item.total_quantity,
-          balanceUnitPrice,
-          materialData,
-          item,
-          plant_id,
-          organization_id
-        )
-          .then(() => {
-            if (balanceIndexData && Array.isArray(balanceIndexData)) {
-              return balanceIndexData
-                .filter((balance) => balance.sa_quantity > 0)
-                .reduce((promise, balance) => {
-                  return promise.then(() => {
-                    return updateBalance(balance).then(() => {
-                      return recordInventoryMovement(balance);
-                    });
-                  });
-                }, Promise.resolve());
+        try {
+          await updateQuantities(
+            -item.total_quantity,
+            balanceUnitPrice,
+            materialData,
+            item,
+            plant_id,
+            organization_id
+          );
+
+          if (balanceIndexData && Array.isArray(balanceIndexData)) {
+            const validBalances = balanceIndexData.filter(
+              (balance) => balance.sa_quantity > 0
+            );
+
+            for (const balance of validBalances) {
+              await updateBalance(balance);
+              const movementId = await recordInventoryMovement(balance);
+              console.log("Write Off update response:", movementId);
             }
-            return null;
-          })
-          .then((responses) => {
-            if (responses) {
-              console.log("Write Off update responses:", responses);
-            }
-          })
-          .catch((error) => {
-            console.error("Error in Write Off processing:", error);
-            throw error;
-          });
+          }
+        } catch (error) {
+          console.error("Error in Write Off processing:", error);
+          throw error;
+        }
       } else if (adjustment_type === "Stock Count") {
         let netQuantityChange = 0;
         let totalInCost = 0;
@@ -1657,39 +1651,32 @@ const updateInventory = async (allData) => {
             ? totalInCost / totalInQuantity
             : materialData.purchase_unit_price || 0;
 
-        return updateQuantities(
-          netQuantityChange,
-          balanceUnitPrice,
-          materialData,
-          item,
-          plant_id,
-          organization_id
-        )
-          .then(() => {
-            if (balanceIndexData && Array.isArray(balanceIndexData)) {
-              return balanceIndexData
-                .filter((balance) => balance.sa_quantity > 0)
-                .reduce((promise, balance) => {
-                  return promise.then(() => {
-                    return updateBalance(balance).then(() => {
-                      return recordInventoryMovement(balance);
-                    });
-                  });
-                }, Promise.resolve());
+        try {
+          await updateQuantities(
+            netQuantityChange,
+            balanceUnitPrice,
+            materialData,
+            item,
+            plant_id,
+            organization_id
+          );
+
+          if (balanceIndexData && Array.isArray(balanceIndexData)) {
+            const validBalances = balanceIndexData.filter(
+              (balance) => balance.sa_quantity > 0
+            );
+
+            for (const balance of validBalances) {
+              await updateBalance(balance);
+              const movementId = await recordInventoryMovement(balance);
+              console.log("Stock Count update response:", movementId);
             }
-            return null;
-          })
-          .then((responses) => {
-            if (responses) {
-              console.log("Stock Count update responses:", responses);
-            }
-          })
-          .catch((error) => {
-            console.error("Error in Stock Count processing:", error);
-            throw error;
-          });
+          }
+        } catch (error) {
+          console.error("Error in Stock Count processing:", error);
+          throw error;
+        }
       }
-      return Promise.resolve(null);
     } catch (error) {
       console.error(
         "Error fetching item data or processing adjustment:",
