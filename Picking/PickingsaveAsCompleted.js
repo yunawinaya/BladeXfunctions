@@ -851,6 +851,113 @@ const updateSalesOrderStatus = async (salesOrderId, tableGD) => {
   }
 };
 
+const updateSalesOrder = async (toData) => {
+  try {
+    // Group picking items by so_id
+    const itemsBySoId = {};
+
+    toData.table_picking_items.forEach((item) => {
+      if (!item.so_id) return;
+
+      if (!itemsBySoId[item.so_id]) {
+        itemsBySoId[item.so_id] = [];
+      }
+      itemsBySoId[item.so_id].push(item);
+    });
+
+    // Process each SO
+    for (const soId of Object.keys(itemsBySoId)) {
+      const pickingItems = itemsBySoId[soId];
+      const lineStatuses = pickingItems.map((item) => item.line_status);
+
+      console.log(`SO ${soId} - Line statuses:`, lineStatuses);
+
+      // Check line status distribution
+      const allOpen = lineStatuses.every((status) => status === "Open");
+      const allCompleted = lineStatuses.every(
+        (status) => status === "Completed"
+      );
+      const hasInProgress = lineStatuses.some(
+        (status) => status === "In Progress"
+      );
+      const hasCompleted = lineStatuses.some(
+        (status) => status === "Completed"
+      );
+      const hasNonOpen = lineStatuses.some((status) => status !== "Open");
+
+      // Case A: All line_status = "Open" - Don't update SO
+      if (allOpen) {
+        console.log(`SO ${soId}: All lines are Open, skipping SO update`);
+        continue;
+      }
+
+      // Case B: All line_status = "Completed" - Check if quantities match
+      if (allCompleted) {
+        console.log(`SO ${soId}: All lines Completed, checking quantity match`);
+
+        // Fetch SO to compare quantities
+        const soRes = await db.collection("sales_order").doc(soId).get();
+
+        if (!soRes || !soRes.data || soRes.data.length === 0) {
+          console.warn(`SO ${soId} not found, skipping`);
+          continue;
+        }
+
+        const soDoc = soRes.data[0];
+        const soLineItems = soDoc.table_so || [];
+
+        // Check if all SO line items match: so_quantity === planned_qty
+        let allQuantitiesMatch = true;
+
+        for (const soLine of soLineItems) {
+          const soQuantity = parseFloat(soLine.so_quantity || 0);
+          const plannedQty = parseFloat(soLine.planned_qty || 0);
+
+          if (soQuantity !== plannedQty) {
+            allQuantitiesMatch = false;
+            console.log(
+              `SO ${soId} Line ${soLine.id}: Quantity mismatch - so_quantity=${soQuantity}, planned_qty=${plannedQty}`
+            );
+            break;
+          }
+        }
+
+        if (allQuantitiesMatch) {
+          // All quantities match - set SO to Completed
+          await db.collection("sales_order").doc(soId).update({
+            to_status: "Completed",
+          });
+          console.log(
+            `SO ${soId}: Set to_status = "Completed" (all quantities matched)`
+          );
+        } else {
+          // Some quantities don't match - set SO to In Progress
+          await db.collection("sales_order").doc(soId).update({
+            to_status: "In Progress",
+          });
+          console.log(
+            `SO ${soId}: Set to_status = "In Progress" (quantities mismatch)`
+          );
+        }
+        continue;
+      }
+
+      // Case C: Mixed statuses or has In Progress - Set SO to In Progress
+      if (hasNonOpen && (hasInProgress || hasCompleted)) {
+        await db.collection("sales_order").doc(soId).update({
+          to_status: "In Progress",
+        });
+        console.log(
+          `SO ${soId}: Set to_status = "In Progress" (mixed or in progress statuses)`
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error updating Sales Order:", error);
+    throw error;
+  }
+};
+
 const addEntry = async (organizationId, toData, isPacking) => {
   try {
     const prefixData = await getPrefixData(organizationId, "Transfer Order");
@@ -887,6 +994,8 @@ const addEntry = async (organizationId, toData, isPacking) => {
 
     // Add the record
     const createdRecord = await db.collection("transfer_order").add(toData);
+
+    await updateSalesOrder(toData);
 
     if (!createdRecord.data || createdRecord.data.length === 0) {
       throw new Error("Failed to retrieve created transfer order record");
@@ -949,6 +1058,8 @@ const updateEntry = async (
     }
 
     await db.collection("transfer_order").doc(toId).update(toData);
+
+    await updateSalesOrder(toData);
 
     if (isPacking === 1 && toData.to_status === "Completed") {
       await this.triggerEvent("triggerPacking", {
