@@ -982,254 +982,254 @@ const processHUBalance = async (packingData) => {
       return;
     }
 
-    if (packingMode === "Basic") {
-      // Step 1: Fetch all Item data
-      const uniqueMaterialIds = [
-        ...new Set(tableHU.map((hu) => hu.hu_material_id).filter(Boolean)),
-      ];
+    // Step 1: Fetch all Item data
+    const uniqueMaterialIds = [
+      ...new Set(tableHU.map((hu) => hu.hu_material_id).filter(Boolean)),
+    ];
 
-      console.log("uniqueMaterialIds", uniqueMaterialIds);
+    console.log("uniqueMaterialIds", uniqueMaterialIds);
 
-      if (uniqueMaterialIds.length === 0) {
-        console.log("No material IDs found in table_hu");
-        return;
-      }
+    if (uniqueMaterialIds.length === 0) {
+      console.log("No material IDs found in table_hu");
+      return;
+    }
 
-      // Create a map for O(1) lookup
-      const itemsMap = new Map();
+    // Create a map for O(1) lookup
+    const itemsMap = new Map();
 
-      // Fetch items one by one (db.command.in not supported in this platform)
-      for (const materialId of uniqueMaterialIds) {
-        try {
-          const itemResult = await db
-            .collection("Item")
-            .where({ id: materialId })
-            .get();
+    // Fetch items one by one (db.command.in not supported in this platform)
+    for (const materialId of uniqueMaterialIds) {
+      try {
+        const itemResult = await db
+          .collection("Item")
+          .where({ id: materialId })
+          .get();
 
-          if (itemResult.data && itemResult.data.length > 0) {
-            itemsMap.set(materialId, itemResult.data[0]);
-          }
-        } catch (error) {
-          console.error(`Error fetching item ${materialId}:`, error);
+        if (itemResult.data && itemResult.data.length > 0) {
+          itemsMap.set(materialId, itemResult.data[0]);
         }
+      } catch (error) {
+        console.error(`Error fetching item ${materialId}:`, error);
+      }
+    }
+
+    // Step 2: Process each HU item
+    for (const [_index, huItem] of tableHU.entries()) {
+      const materialId = huItem.hu_material_id;
+      // Detail mode: each HU = 1 unit, Basic mode: use hu_quantity
+      const quantity = packingMode === "Detail" ? 1 : huItem.hu_quantity;
+      const plantId = huItem.plant_id;
+      const organizationId = huItem.organization_id;
+
+      // Get item details from map (O(1) lookup)
+      const itemData = itemsMap.get(materialId);
+
+      if (!itemData) {
+        console.log(`Item ${materialId} not found, skipping`);
+        continue;
       }
 
-      // Step 2: Process each HU item
-      for (const [_index, huItem] of tableHU.entries()) {
-        const materialId = huItem.hu_material_id;
-        const quantity = huItem.hu_quantity;
-        const plantId = huItem.plant_id;
-        const organizationId = huItem.organization_id;
+      const baseUOM = itemData.based_uom;
+      const costingMethod = itemData.material_costing_method;
+      const isBatch = itemData.item_batch_management;
 
-        // Get item details from map (O(1) lookup)
-        const itemData = itemsMap.get(materialId);
+      // Step 3: Handle batch vs non-batch items
+      if (isBatch) {
+        // Fetch batch balance data
+        const itemBatchBalanceData = await db
+          .collection("item_batch_balance")
+          .where({
+            material_id: materialId,
+            plant_id: plantId,
+            organization_id: organizationId,
+          })
+          .get()
+          .then((res) => res.data || []);
 
-        if (!itemData) {
-          console.log(`Item ${materialId} not found, skipping`);
+        if (itemBatchBalanceData.length === 0) {
+          console.log(`Item batch balance ${materialId} not found, skipping`);
           continue;
         }
 
-        const baseUOM = itemData.based_uom;
-        const costingMethod = itemData.material_costing_method;
-        const isBatch = itemData.item_batch_management;
+        // Sort using helper (FEFO with fallbacks)
+        const sortedBatchData = sortByDateWithFallbacks(itemBatchBalanceData, [
+          "expired_date",
+          "manufacturing_date",
+          "create_time",
+        ]);
 
-        // Step 3: Handle batch vs non-batch items
-        if (isBatch) {
-          // Fetch batch balance data
-          const itemBatchBalanceData = await db
-            .collection("item_batch_balance")
-            .where({
-              material_id: materialId,
-              plant_id: plantId,
-              organization_id: organizationId,
-            })
-            .get()
-            .then((res) => res.data || []);
+        // Allocate quantity using helper
+        const { allocations, remainingQty } = allocateQuantity(
+          sortedBatchData,
+          quantity,
+          true // isBatch = true
+        );
 
-          if (itemBatchBalanceData.length === 0) {
-            console.log(`Item batch balance ${materialId} not found, skipping`);
-            continue;
-          }
+        // Check if we have enough total quantity
+        if (remainingQty > 0) {
+          throw new Error(
+            `Insufficient batch quantity for item ${materialId}. Required: ${quantity}, Available: ${
+              quantity - remainingQty
+            }`
+          );
+        }
 
-          // Sort using helper (FEFO with fallbacks)
-          const sortedBatchData = sortByDateWithFallbacks(
-            itemBatchBalanceData,
-            ["expired_date", "manufacturing_date", "create_time"]
+        // Create inventory movements and deduct balances for each batch allocation
+        for (const allocation of allocations) {
+          const { unitPrice, totalPrice } = await calculateCostingPrice(
+            costingMethod,
+            materialId,
+            allocation.quantity,
+            plantId,
+            organizationId,
+            allocation.batchId
           );
 
-          // Allocate quantity using helper
-          const { allocations, remainingQty } = allocateQuantity(
-            sortedBatchData,
-            quantity,
-            true // isBatch = true
+          // Create inventory movement
+          await createInventoryMovement(packingData, {
+            unit_price: unitPrice,
+            total_price: totalPrice,
+            quantity: allocation.quantity,
+            item_id: materialId,
+            uom_id: baseUOM,
+            base_qty: allocation.quantity,
+            base_uom_id: baseUOM,
+            batch_number_id: allocation.batchId,
+            costing_method_id: costingMethod,
+            plant_id: plantId,
+            organization_id: organizationId,
+            bin_location_id: allocation.locationId,
+          });
+
+          // Deduct from item_batch_balance (also updates aggregated item_balance)
+          await deductBatchBalance(
+            materialId,
+            plantId,
+            organizationId,
+            allocation.batchId,
+            allocation.locationId,
+            allocation.quantity
           );
 
-          // Check if we have enough total quantity
-          if (remainingQty > 0) {
-            throw new Error(
-              `Insufficient batch quantity for item ${materialId}. Required: ${quantity}, Available: ${
-                quantity - remainingQty
-              }`
-            );
-          }
-
-          // Create inventory movements and deduct balances for each batch allocation
-          for (const allocation of allocations) {
-            const { unitPrice, totalPrice } = await calculateCostingPrice(
-              costingMethod,
+          // Update FIFO/WA costing based on costing method
+          if (costingMethod === "First In First Out") {
+            await updateFIFOInventory(
               materialId,
               allocation.quantity,
-              plantId,
-              organizationId,
-              allocation.batchId
-            );
-
-            // Create inventory movement
-            await createInventoryMovement(packingData, {
-              unit_price: unitPrice,
-              total_price: totalPrice,
-              quantity: allocation.quantity,
-              item_id: materialId,
-              uom_id: baseUOM,
-              base_qty: allocation.quantity,
-              base_uom_id: baseUOM,
-              batch_number_id: allocation.batchId,
-              costing_method_id: costingMethod,
-              plant_id: plantId,
-              organization_id: organizationId,
-              bin_location_id: allocation.locationId,
-            });
-
-            // Deduct from item_batch_balance (also updates aggregated item_balance)
-            await deductBatchBalance(
-              materialId,
-              plantId,
-              organizationId,
               allocation.batchId,
-              allocation.locationId,
-              allocation.quantity
+              plantId,
+              organizationId
             );
-
-            // Update FIFO/WA costing based on costing method
-            if (costingMethod === "First In First Out") {
-              await updateFIFOInventory(
-                materialId,
-                allocation.quantity,
-                allocation.batchId,
-                plantId,
-                organizationId
-              );
-            } else if (costingMethod === "Weighted Average") {
-              await updateWeightedAverage(
-                materialId,
-                allocation.quantity,
-                allocation.batchId,
-                plantId,
-                organizationId
-              );
-            }
-
-            console.log(
-              `Created OUT movement for batch ${allocation.batchNo} at location ${allocation.locationId}: ${allocation.quantity} units`
-            );
-          }
-        } else {
-          // Non-batch item - fetch item_balance
-          const itemBalanceData = await db
-            .collection("item_balance")
-            .where({
-              material_id: materialId,
-              plant_id: plantId,
-              organization_id: organizationId,
-            })
-            .get()
-            .then((res) => res.data || []);
-
-          if (itemBalanceData.length === 0) {
-            console.log(`Item balance ${materialId} not found, skipping`);
-            continue;
-          }
-
-          // Sort using helper (FIFO by create_time)
-          const sortedBalanceData = sortByDateWithFallbacks(itemBalanceData, [
-            "create_time",
-          ]);
-
-          // Allocate quantity using helper
-          const { allocations, remainingQty } = allocateQuantity(
-            sortedBalanceData,
-            quantity,
-            false // isBatch = false
-          );
-
-          // Check if we have enough total quantity
-          if (remainingQty > 0) {
-            throw new Error(
-              `Insufficient item balance for item ${materialId}. Required: ${quantity}, Available: ${
-                quantity - remainingQty
-              }`
-            );
-          }
-
-          // Create inventory movements and deduct balances for each location allocation
-          for (const allocation of allocations) {
-            const { unitPrice, totalPrice } = await calculateCostingPrice(
-              costingMethod,
+          } else if (costingMethod === "Weighted Average") {
+            await updateWeightedAverage(
               materialId,
               allocation.quantity,
+              allocation.batchId,
               plantId,
-              organizationId,
-              null // No batch for non-batch items
-            );
-
-            // Create inventory movement
-            await createInventoryMovement(packingData, {
-              unit_price: unitPrice,
-              total_price: totalPrice,
-              quantity: allocation.quantity,
-              item_id: materialId,
-              uom_id: baseUOM,
-              base_qty: allocation.quantity,
-              base_uom_id: baseUOM,
-              batch_number_id: null,
-              costing_method_id: costingMethod,
-              plant_id: plantId,
-              organization_id: organizationId,
-              bin_location_id: allocation.locationId,
-            });
-
-            // Deduct from item_balance
-            await deductItemBalance(
-              materialId,
-              plantId,
-              organizationId,
-              allocation.locationId,
-              allocation.quantity
-            );
-
-            // Update FIFO/WA costing based on costing method
-            if (costingMethod === "First In First Out") {
-              await updateFIFOInventory(
-                materialId,
-                allocation.quantity,
-                null, // No batch for non-batch items
-                plantId,
-                organizationId
-              );
-            } else if (costingMethod === "Weighted Average") {
-              await updateWeightedAverage(
-                materialId,
-                allocation.quantity,
-                null, // No batch for non-batch items
-                plantId,
-                organizationId
-              );
-            }
-
-            console.log(
-              `Created OUT movement for non-batch item ${materialId} at location ${allocation.locationId}: ${allocation.quantity} units`
+              organizationId
             );
           }
+
+          console.log(
+            `Created OUT movement for batch ${allocation.batchNo} at location ${allocation.locationId}: ${allocation.quantity} units`
+          );
+        }
+      } else {
+        // Non-batch item - fetch item_balance
+        const itemBalanceData = await db
+          .collection("item_balance")
+          .where({
+            material_id: materialId,
+            plant_id: plantId,
+            organization_id: organizationId,
+          })
+          .get()
+          .then((res) => res.data || []);
+
+        if (itemBalanceData.length === 0) {
+          console.log(`Item balance ${materialId} not found, skipping`);
+          continue;
+        }
+
+        // Sort using helper (FIFO by create_time)
+        const sortedBalanceData = sortByDateWithFallbacks(itemBalanceData, [
+          "create_time",
+        ]);
+
+        // Allocate quantity using helper
+        const { allocations, remainingQty } = allocateQuantity(
+          sortedBalanceData,
+          quantity,
+          false // isBatch = false
+        );
+
+        // Check if we have enough total quantity
+        if (remainingQty > 0) {
+          throw new Error(
+            `Insufficient item balance for item ${materialId}. Required: ${quantity}, Available: ${
+              quantity - remainingQty
+            }`
+          );
+        }
+
+        // Create inventory movements and deduct balances for each location allocation
+        for (const allocation of allocations) {
+          const { unitPrice, totalPrice } = await calculateCostingPrice(
+            costingMethod,
+            materialId,
+            allocation.quantity,
+            plantId,
+            organizationId,
+            null // No batch for non-batch items
+          );
+
+          // Create inventory movement
+          await createInventoryMovement(packingData, {
+            unit_price: unitPrice,
+            total_price: totalPrice,
+            quantity: allocation.quantity,
+            item_id: materialId,
+            uom_id: baseUOM,
+            base_qty: allocation.quantity,
+            base_uom_id: baseUOM,
+            batch_number_id: null,
+            costing_method_id: costingMethod,
+            plant_id: plantId,
+            organization_id: organizationId,
+            bin_location_id: allocation.locationId,
+          });
+
+          // Deduct from item_balance
+          await deductItemBalance(
+            materialId,
+            plantId,
+            organizationId,
+            allocation.locationId,
+            allocation.quantity
+          );
+
+          // Update FIFO/WA costing based on costing method
+          if (costingMethod === "First In First Out") {
+            await updateFIFOInventory(
+              materialId,
+              allocation.quantity,
+              null, // No batch for non-batch items
+              plantId,
+              organizationId
+            );
+          } else if (costingMethod === "Weighted Average") {
+            await updateWeightedAverage(
+              materialId,
+              allocation.quantity,
+              null, // No batch for non-batch items
+              plantId,
+              organizationId
+            );
+          }
+
+          console.log(
+            `Created OUT movement for non-batch item ${materialId} at location ${allocation.locationId}: ${allocation.quantity} units`
+          );
         }
       }
     }
