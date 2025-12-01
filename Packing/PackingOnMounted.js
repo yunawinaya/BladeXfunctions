@@ -279,10 +279,10 @@ const fetchPickingSetup = async (organizationId) => {
       case "Edit":
         if (status !== "Completed" || status !== "Created") {
           await getPrefixData(organizationId);
-          await fetchPickingSetup(organizationId);
         }
         if (status !== "Draft") {
           this.hide(["button_save_as_draft"]);
+          await fetchPickingSetup(organizationId);
         }
         await disabledField(status);
         await showStatusHTML(status);

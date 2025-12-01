@@ -20,6 +20,7 @@
       ]);
       await this.setData({
         "table_hu.hu_quantity": 0,
+        "table_hu.hu_status": "Unpacked",
       });
     }
   } catch (error) {

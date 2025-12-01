@@ -373,14 +373,14 @@ const updateSOStatus = async (data) => {
 
       //update so status
       for (const soId of uniqueSOIds) {
-        await db.collection("sales_order_axszx8cj_sub").doc(soId).update({
+        await db.collection("sales_order").doc(soId).update({
           packing_status: "Created",
         });
       }
 
       //update so_line status
       for (const soLineId of uniqueSOLineIds) {
-        await db.collection("sales_order_line").doc(soLineId).update({
+        await db.collection("sales_order_axszx8cj_sub").doc(soLineId).update({
           packing_status: "Created",
         });
       }

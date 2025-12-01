@@ -229,9 +229,12 @@ const cloneResetQuantity = async () => {
     so.planned_qty = 0;
     so.return_qty = 0;
     so.invoice_qty = 0;
+    so.outstanding_quantity = 0;
     so.posted_qty = 0;
     so.production_qty = 0;
     so.production_status = "";
+    so.si_status = "";
+    so.line_status = "";
   }
 
   this.setData({
@@ -242,6 +245,9 @@ const cloneResetQuantity = async () => {
     si_status: "",
     sr_status: "",
     srr_status: "",
+    sqt_no: "",
+    sqt_id: "",
+
     table_so: tableSO,
     partially_delivered: `0 / ${tableSO.length}`,
     fully_delivered: `0 / ${tableSO.length}`,
@@ -249,8 +255,9 @@ const cloneResetQuantity = async () => {
 };
 
 const setPlant = (organizationId, pageStatus) => {
-  const currentDept = this.getVarSystem("deptIds").split(",")[0];
-
+  console.log("1111");
+  const currentDept = (this.getVarSystem("deptIds") || "").split(",")[0] || "";
+  console.log("2222");
   if (currentDept === organizationId) {
     this.disabled("plant_name", false);
 
@@ -449,7 +456,7 @@ const setDefaultDocNo = async (organizationID) => {
 
     let organizationId = this.getVarGlobal("deptParentId");
     if (organizationId === "0") {
-      organizationId = this.getVarSystem("deptIds").split(",")[0];
+      organizationId = (this.getVarSystem("deptIds") || "").split(",")[0] || "";
     }
 
     this.setData({ organization_id: organizationId, page_status: pageStatus });
@@ -524,7 +531,7 @@ const setDefaultDocNo = async (organizationID) => {
           this.display("sqt_no");
         }
         await enabledUOMField();
-        await cloneResetQuantity(status);
+        await cloneResetQuantity();
         await checkAccIntegrationType(organizationId);
         await displayCurrency();
         await displayTax();

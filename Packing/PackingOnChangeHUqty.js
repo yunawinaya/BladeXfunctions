@@ -5,11 +5,11 @@
 
     if (value > 0) {
       await this.setData({
-        [`table_hu.${rowIndex}.status`]: "Packed",
+        [`table_hu.${rowIndex}.hu_status`]: "Packed",
       });
     } else {
       await this.setData({
-        [`table_hu.${rowIndex}.status`]: "Unpacked",
+        [`table_hu.${rowIndex}.hu_status`]: "Unpacked",
       });
     }
   } catch (error) {
