@@ -114,16 +114,20 @@
       `Updated table_item_balance quantities from ${quantityUOM} to ${selectedUOM}`
     );
   } else {
-    console.log("UOMs are the same, converting tableItemBalance back to original UOM");
+    console.log(
+      "UOMs are the same, converting tableItemBalance back to original UOM"
+    );
 
     // Get the previous UOM that the table was converted to
     const previousTableUOM = this.models["previous_material_uom"];
 
     if (previousTableUOM && previousTableUOM !== quantityUOM) {
-      console.log(`Converting table back from ${previousTableUOM} to ${quantityUOM}`);
+      console.log(
+        `Converting table back from ${previousTableUOM} to ${quantityUOM}`
+      );
 
       const quantityFields = [
-        "blocked_qty",
+        "block_qty",
         "reserved_qty",
         "unrestricted_qty",
         "qualityinsp_qty",
@@ -147,7 +151,9 @@
               quantityUOM,
               itemData.based_uom
             );
-            console.log(`${field}: ${originalValue} -> ${updatedRecord[field]}`);
+            console.log(
+              `${field}: ${originalValue} -> ${updatedRecord[field]}`
+            );
           }
         });
 

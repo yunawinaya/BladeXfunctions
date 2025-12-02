@@ -99,7 +99,7 @@
       };
 
       const quantityFields = [
-        "blocked_qty",
+        "block_qty",
         "reserved_qty",
         "unrestricted_qty",
         "qualityinsp_qty",
@@ -158,7 +158,7 @@
         const unrestricted_field = item.unrestricted_qty || 0;
         const reserved_field = item.reserved_qty || 0;
         const quality_field = item.qualityinsp_qty || 0;
-        const blocked_field = item.blocked_qty || 0;
+        const blocked_field = item.block_qty || 0;
         console.log("Quantity fields:", {
           unrestricted_field,
           reserved_field,
@@ -336,7 +336,8 @@
               categoryAbbr,
             }); // Log item detail
 
-            const movementTypeLabel = item.movement_type === "In" ? "IN" : "OUT";
+            const movementTypeLabel =
+              item.movement_type === "In" ? "IN" : "OUT";
             let itemDetail = `${
               index + 1
             }. ${locationName}: ${qty} ${gdUOM} (${categoryAbbr}) - ${movementTypeLabel}`;

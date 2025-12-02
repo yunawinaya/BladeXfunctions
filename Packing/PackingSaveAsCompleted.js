@@ -715,8 +715,8 @@ const updateAggregatedItemBalance = async (
         totalUnrestricted += parseFloat(batch.unrestricted_qty) || 0;
         totalReserved += parseFloat(batch.reserved_qty) || 0;
         totalInTransit += parseFloat(batch.in_transit_qty) || 0;
-        totalQualityInspection += parseFloat(batch.quality_inspection_qty) || 0;
-        totalBlocked += parseFloat(batch.blocked_qty) || 0;
+        totalQualityInspection += parseFloat(batch.qualityinsp_qty) || 0;
+        totalBlocked += parseFloat(batch.block_qty) || 0;
         totalBalance += parseFloat(batch.balance_quantity) || 0;
       });
     }
@@ -742,8 +742,8 @@ const updateAggregatedItemBalance = async (
           unrestricted_qty: totalUnrestricted,
           reserved_qty: totalReserved,
           in_transit_qty: totalInTransit,
-          quality_inspection_qty: totalQualityInspection,
-          blocked_qty: totalBlocked,
+          qualityinsp_qty: totalQualityInspection,
+          block_qty: totalBlocked,
           balance_quantity: totalBalance,
         });
 

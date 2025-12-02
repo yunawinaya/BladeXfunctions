@@ -236,6 +236,43 @@ const fetchPickingSetup = async (organizationId) => {
   }
 };
 
+const setPackingDefaultDocNo = async (organizationID) => {
+  const defaultDocFormatFilter = new Filter("all")
+    .equal("organization_id", organizationID)
+    .equal("document_types", "Packing")
+    .numberEqual("is_default", 1)
+    .build();
+  const resDefaultDocFormat = await db
+    .collection("document_number")
+    .filter(defaultDocFormatFilter)
+    .get();
+
+  if (resDefaultDocFormat && resDefaultDocFormat.data.length > 0) {
+    this.setData({
+      pkg_doc_no_format: resDefaultDocFormat.data[0].id,
+      packing_no: "<<new>>",
+    });
+  }
+};
+
+const setHUDefaultDocNo = async (organizationID) => {
+  const defaultDocFormatFilter = new Filter("all")
+    .equal("organization_id", organizationID)
+    .equal("document_types", "Handling Unit")
+    .numberEqual("is_default", 1)
+    .build();
+  const resDefaultDocFormat = await db
+    .collection("document_number")
+    .filter(defaultDocFormatFilter)
+    .get();
+
+  if (resDefaultDocFormat && resDefaultDocFormat.data.length > 0) {
+    this.setData({
+      hu_doc_no_format: resDefaultDocFormat.data[0].id,
+    });
+  }
+};
+
 // Main execution function
 (async () => {
   try {
@@ -274,6 +311,8 @@ const fetchPickingSetup = async (organizationId) => {
         await setPrefix(organizationId);
         await setPackingMode();
         await fetchPickingSetup(organizationId);
+        await setPackingDefaultDocNo(organizationId);
+        await setHUDefaultDocNo(organizationId);
         break;
 
       case "Edit":
@@ -288,6 +327,7 @@ const fetchPickingSetup = async (organizationId) => {
         await showStatusHTML(status);
         await viewSerialNumber();
         await setPackingMode();
+        await setHUDefaultDocNo(organizationId);
         break;
 
       case "View":

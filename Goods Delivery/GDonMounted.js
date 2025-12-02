@@ -92,6 +92,7 @@ const setPrefix = async (organizationId) => {
 };
 
 const showStatusHTML = (status) => {
+  console.log("status", status);
   switch (status) {
     case "Draft":
       this.display(["draft_status"]);
@@ -361,15 +362,8 @@ const disabledSelectStock = async (data) => {
                 .get();
 
               if (resItemBalance && resItemBalance.data.length === 1) {
-                const isPickingInProgress =
-                  data.picking_status === "Completed" ||
-                  data.picking_status === "In Progress";
-
                 this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-                this.disabled(
-                  [`table_gd.${index}.gd_qty`],
-                  isPickingInProgress
-                );
+                this.disabled([`table_gd.${index}.gd_qty`], false);
               }
             }
           } else if (itemData.item_batch_management === 1) {
@@ -379,12 +373,8 @@ const disabledSelectStock = async (data) => {
               .get();
 
             if (resItemBatchBalance && resItemBatchBalance.data.length === 1) {
-              const isPickingInProgress =
-                data.picking_status === "Completed" ||
-                data.picking_status === "In Progress";
-
               this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-              this.disabled([`table_gd.${index}.gd_qty`], isPickingInProgress);
+              this.disabled([`table_gd.${index}.gd_qty`], false);
             }
           } else {
             console.error(
