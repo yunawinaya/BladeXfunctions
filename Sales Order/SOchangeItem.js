@@ -23,24 +23,7 @@ const resetData = async (rowIndex) => {
     [`table_so.${rowIndex}.table_uom_conversion`]: "",
   });
 };
-
-const fetchUomData = async (uomIds) => {
-  try {
-    const resUOM = await Promise.all(
-      uomIds.map((id) =>
-        db.collection("unit_of_measurement").where({ id }).get()
-      )
-    );
-
-    const uomData = resUOM.map((response) => response.data[0]);
-
-    return uomData;
-  } catch (error) {
-    console.error("Error fetching UOM data:", error);
-    return [];
-  }
-};
-
+console.log("item_codechange");
 const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
   if (
     !Array.isArray(table_uom_conversion) ||
@@ -155,7 +138,7 @@ const fetchUnrestrictedQty = async (
 
   let organizationId = this.getVarGlobal("deptParentId");
   if (organizationId === "0") {
-    organizationId = this.getVarSystem("deptIds").split(",")[0];
+    organizationId = (this.getVarSystem("deptIds") || "").split(",")[0] || "";
   }
 
   if (arguments[0].fieldModel && !soItem) {
@@ -173,8 +156,6 @@ const fetchUnrestrictedQty = async (
       stock_control,
       item_category,
     } = arguments[0].fieldModel.item;
-    const altUoms = table_uom_conversion.map((data) => data.alt_uom_id);
-    let uomOptions = [];
 
     this.setData({
       [`table_so.${rowIndex}.so_desc`]: material_desc,
@@ -200,18 +181,11 @@ const fetchUnrestrictedQty = async (
       }
     }
 
-    const res = await fetchUomData(altUoms);
-    uomOptions.push(...res);
-
-    console.log("uomOption", uomOptions);
-
-    await this.setOptionData([`table_so.${rowIndex}.so_item_uom`], uomOptions);
-
-    this.setData({
-      [`table_so.${rowIndex}.table_uom_conversion`]: JSON.stringify(uomOptions),
-    });
-
     this.disabled([`table_so.${rowIndex}.so_item_uom`], false);
+    this.refreshFieldOptionData([
+      `table_so.${rowIndex}.so_item_uom`,
+      `table_so.${rowIndex}.so_tax_percentage`,
+    ]);
 
     const initialQty = await fetchUnrestrictedQty(
       arguments[0].value,
@@ -256,7 +230,6 @@ const fetchUnrestrictedQty = async (
       });
     }
   } else if (!arguments[0].fieldModel && soItem) {
-    let uomOptions = [];
     const rowIndex = arguments[0].index;
     if (soItem.item_name) {
       const resItem = await db
@@ -267,15 +240,8 @@ const fetchUnrestrictedQty = async (
       if (resItem && resItem.data.length > 0) {
         const itemData = resItem.data[0];
 
-        const itemUOM = itemData.table_uom_conversion.map(
-          (data) => data.alt_uom_id
-        );
-
-        const resUOM = await fetchUomData(itemUOM);
-        uomOptions.push(...resUOM);
-
         const initialQty = await fetchUnrestrictedQty(
-          arguments[0].value,
+          soItem.item_name,
           itemData.item_batch_management,
           itemData.serial_number_management,
           itemData.stock_control,
@@ -290,6 +256,8 @@ const fetchUnrestrictedQty = async (
             soItem.so_item_uom
           );
 
+          console.log("finalQty", finalQty);
+          console.log("initialQty", initialQty);
           this.setData({
             [`table_so.${rowIndex}.unrestricted_qty`]: parseFloat(
               finalQty.toFixed(4)
@@ -300,32 +268,25 @@ const fetchUnrestrictedQty = async (
           });
         }
       }
-    } else if (!soItem.item_name && soItem.so_desc !== "") {
-      const resUOM = await db.collection("unit_of_measurement").get();
-      uomOptions.push(...resUOM.data);
     }
 
-    await this.setOptionData([`table_so.${rowIndex}.so_item_uom`], uomOptions);
-
-    this.setData({
-      [`table_so.${rowIndex}.table_uom_conversion`]: JSON.stringify(uomOptions),
-    });
-
     this.disabled([`table_so.${rowIndex}.so_item_uom`], false);
+    this.refreshFieldOptionData([
+      `table_so.${rowIndex}.so_item_uom`,
+      `table_so.${rowIndex}.so_tax_percentage`,
+    ]);
   } else if (!arguments[0].value) {
     await resetData(rowIndex);
     this.disabled([`table_so.${rowIndex}.so_item_uom`], true);
   } else {
     const tableSO = this.getValue("table_so");
     for (const [rowIndex, so] of tableSO.entries()) {
-      console.log(so.table_uom_conversion);
-
-      if (so.table_uom_conversion) {
-        await this.setOptionData(
-          [`table_so.${rowIndex}.so_item_uom`],
-          JSON.parse(so.table_uom_conversion)
-        );
+      if (so.so_item_uom) {
         this.disabled([`table_so.${rowIndex}.so_item_uom`], false);
+        this.refreshFieldOptionData([
+          `table_so.${rowIndex}.so_item_uom`,
+          `table_so.${rowIndex}.so_tax_percentage`,
+        ]);
       }
     }
   }
