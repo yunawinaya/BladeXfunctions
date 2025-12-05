@@ -2121,9 +2121,15 @@ class StockAdjuster {
                 { key: "value" },
                 (res) => {
                   console.log("Workflow success", res);
+                  this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+                  this.parentGenerateForm.refresh();
+                  this.hideLoading();
                 },
                 (err) => {
                   console.error("Workflow error", err);
+                  this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+                  this.parentGenerateForm.refresh();
+                  this.hideLoading();
                   throw new Error(
                     "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists."
                   );
@@ -2133,8 +2139,8 @@ class StockAdjuster {
           },
           (err) => {
             console.log("失败结果：", err);
-
-            this.hideLoading();
+            this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+            this.parentGenerateForm.refresh();
             throw new Error(
               "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists."
             );
@@ -2146,13 +2152,41 @@ class StockAdjuster {
         organizationId !== ""
       ) {
         console.log("Calling AutoCount workflow");
+        await this.runWorkflow(
+          "1996041187778228226",
+          { key: "value" },
+          (res) => {
+            console.log("Workflow success", res);
+            this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+            this.parentGenerateForm.refresh();
+            this.hideLoading();
+          },
+          (err) => {
+            console.error("Workflow error", err);
+            this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+            this.parentGenerateForm.refresh();
+            this.hideLoading();
+            throw new Error(
+              "Your AutoCount accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists."
+            );
+          }
+        );
+        this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+        this.parentGenerateForm.refresh();
+        this.hideLoading();
       } else if (
         accIntegrationType === "No Accounting Integration" &&
         organizationId &&
         organizationId !== ""
       ) {
         console.log("Not calling workflow");
+        this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+        this.parentGenerateForm.refresh();
+        this.hideLoading();
       } else {
+        this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+        this.parentGenerateForm.refresh();
+        this.hideLoading();
         throw new Error();
       }
 
@@ -2164,6 +2198,8 @@ class StockAdjuster {
         details: updates,
       };
     } catch (error) {
+      this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+      this.parentGenerateForm.refresh();
       console.error(`Error in processItem for ${item.item_selection}:`, error);
       return {
         itemId: item.item_selection,
@@ -5384,6 +5420,8 @@ async function processFormData(db, formData, context, organizationId) {
   if (context) {
     adjuster.getParamsVariables = context.getParamsVariables.bind(context);
     adjuster.getVarGlobal = context.getVarGlobal.bind(context);
+    adjuster.hideLoading = context.hideLoading.bind(context);
+    adjuster.$message = context.$message;
     //adjuster.getParamsVariables = this.getParamsVariables('page_status');
     adjuster.parentGenerateForm = context.parentGenerateForm;
     adjuster.runWorkflow = context.runWorkflow.bind(context); // Bind the original context
@@ -5694,6 +5732,7 @@ let organizationId = this.getVarGlobal("deptParentId");
 if (organizationId === "0") {
   organizationId = this.getVarSystem("deptIds").split(",")[0];
 }
+this.showLoading();
 
 const processStockMovements = async () => {
   try {
@@ -5734,7 +5773,6 @@ const processStockMovements = async () => {
     }
 
     console.log("this.getVarGlobal", this.getVarGlobal("deptParentId"));
-    self.showLoading();
 
     console.log("Starting processFormData with data:", JSON.stringify(allData));
 
@@ -5747,22 +5785,13 @@ const processStockMovements = async () => {
 
     if (allData.page_status === "Add") {
       console.log("New stock movement created:", results);
-      self.hideLoading();
       await updateItemTransactionDate(allData);
       self.$message.success("Stock movement created successfully");
-      self.parentGenerateForm.$refs.SuPageDialogRef.hide();
-      self.parentGenerateForm.refresh();
     } else if (allData.page_status === "Edit") {
       console.log("Stock movement updated:", results);
-      self.hideLoading();
       await updateItemTransactionDate(allData);
-      self.$message.success("Stock movement updated successfully");
-      self.parentGenerateForm.$refs.SuPageDialogRef.hide();
-      self.parentGenerateForm.refresh();
     }
   } catch (error) {
-    self.hideLoading();
-
     let errorMessage = "";
 
     if (error && typeof error === "object") {
