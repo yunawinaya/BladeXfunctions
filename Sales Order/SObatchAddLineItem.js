@@ -1,20 +1,3 @@
-const fetchUomData = async (uomIds) => {
-  try {
-    const resUOM = await Promise.all(
-      uomIds.map((id) =>
-        db.collection("unit_of_measurement").where({ id }).get()
-      )
-    );
-
-    const uomData = resUOM.map((response) => response.data[0]);
-
-    return uomData;
-  } catch (error) {
-    console.error("Error fetching UOM data:", error);
-    return [];
-  }
-};
-
 const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
   if (
     !Array.isArray(table_uom_conversion) ||
@@ -119,7 +102,7 @@ const fetchUnrestrictedQty = async (
 };
 
 (async () => {
-  const currentItemArray = this.getValue(`dialog_item_selection.item_array`);
+  const currentItemArray = arguments[0].itemArray;
   const soLineItems = this.getValue("table_so");
   const plantId = this.getValue("plant_name");
 
@@ -134,7 +117,7 @@ const fetchUnrestrictedQty = async (
 
   let organizationId = this.getVarGlobal("deptParentId");
   if (organizationId === "0") {
-    organizationId = this.getVarSystem("deptIds").split(",")[0];
+    organizationId = (this.getVarSystem("deptIds") || "").split(",")[0] || "";
   }
   const itemArray = [];
 
@@ -155,9 +138,6 @@ const fetchUnrestrictedQty = async (
 
   await this.setData({
     table_so: [...soLineItems, ...itemArray],
-    [`dialog_item_selection.item_array`]: [],
-    [`dialog_item_selection.item_code_array`]: "",
-    [`dialog_item_selection.item_code`]: "",
   });
 
   this.closeDialog("dialog_item_selection");
@@ -165,25 +145,12 @@ const fetchUnrestrictedQty = async (
   setTimeout(async () => {
     for (const [index, item] of currentItemArray.entries()) {
       const newIndex = soLineItems.length + index;
-      const altUoms = item.table_uom_conversion?.map((data) => data.alt_uom_id);
-      let uomOptions = [];
-
-      const res = await fetchUomData(altUoms);
-      uomOptions.push(...res);
-
-      console.log("uomOptions", uomOptions);
-
-      await this.setOptionData(
-        [`table_so.${newIndex}.so_item_uom`],
-        uomOptions
-      );
-
-      this.setData({
-        [`table_so.${newIndex}.table_uom_conversion`]:
-          JSON.stringify(uomOptions),
-      });
 
       this.disabled([`table_so.${newIndex}.so_item_uom`], false);
+      this.refreshFieldOptionData([
+        `table_so.${newIndex}.so_item_uom`,
+        `table_so.${newIndex}.so_tax_percentage`,
+      ]);
 
       if (item.mat_sales_tax_id) {
         this.disabled([`table_so.${newIndex}.so_tax_percentage`], false);
