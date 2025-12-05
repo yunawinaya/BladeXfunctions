@@ -512,7 +512,7 @@ const reverseBalanceChanges = async (
           );
 
           if (uomConversion) {
-            prevBaseQty = roundQty(prevBaseQty / uomConversion.alt_qty);
+            prevBaseQty = roundQty(prevBaseQty * uomConversion.base_qty);
           }
         }
 
@@ -781,7 +781,7 @@ const processItemBalance = async (
         );
 
         if (uomConversion) {
-          baseQty = roundQty(altQty / uomConversion.alt_qty);
+          baseQty = roundQty(altQty * uomConversion.base_qty);
           console.log(`Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`);
         }
       }
@@ -941,7 +941,7 @@ const processItemBalance = async (
             let individualBaseQty = roundQty(temp.gd_quantity);
             if (uomConversion) {
               individualBaseQty = roundQty(
-                individualBaseQty / uomConversion.alt_qty
+                individualBaseQty * uomConversion.base_qty
               );
             }
 
@@ -1072,7 +1072,7 @@ const processItemBalance = async (
               let individualBaseQty = roundQty(temp.gd_quantity);
               if (uomConversion) {
                 individualBaseQty = roundQty(
-                  individualBaseQty / uomConversion.alt_qty
+                  individualBaseQty * uomConversion.base_qty
                 );
               }
 
@@ -1974,6 +1974,7 @@ const handleLoadingBayInventoryMovement = async (
               reserved_qty: baseQty,
               balance_quantity: baseQty,
               unrestricted_qty: 0,
+              material_uom: gdLineItem.gd_base_uom_id,
             };
 
             await db.collection("item_balance").add(newBalance);
