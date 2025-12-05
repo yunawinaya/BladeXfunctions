@@ -2848,7 +2848,7 @@ const checkQuantitiesBySoId = async (tableGD) => {
 
 const fetchDeliveredQuantity = async () => {
   const tableGD = this.getValue("table_gd") || [];
-
+  console.log("tableGD", tableGD);
   const resSOLineData = await Promise.all(
     tableGD.map((item) =>
       db.collection("sales_order_axszx8cj_sub").doc(item.so_line_item_id).get()
@@ -2856,6 +2856,7 @@ const fetchDeliveredQuantity = async () => {
   );
 
   const soLineItemData = resSOLineData.map((response) => response.data[0]);
+  console.log("soLineItemData", soLineItemData);
 
   const resItem = await Promise.all(
     tableGD
@@ -2869,6 +2870,7 @@ const fetchDeliveredQuantity = async () => {
   );
 
   const itemData = resItem.map((response) => response?.data[0]);
+  console.log("itemData", itemData);
 
   const inValidDeliverQty = [];
 
@@ -2876,6 +2878,8 @@ const fetchDeliveredQuantity = async () => {
     if (!item.material_id || item.material_id === "") {
       continue;
     }
+
+    console.log("item", item);
 
     const soLine = soLineItemData.find((so) => so.id === item.so_line_item_id);
     const itemInfo = itemData.find((data) => data.id === item.material_id);
@@ -2893,6 +2897,8 @@ const fetchDeliveredQuantity = async () => {
       }
     }
   }
+
+  console.log("done fetchDeliveredQuantity");
 
   if (inValidDeliverQty.length > 0) {
     await this.$alert(
@@ -3125,6 +3131,9 @@ const fetchDeliveredQuantity = async () => {
         select_driver_id: data.select_driver_id,
         gd_driver_contact: data.gd_driver_contact,
         gd_driver_ic: data.gd_driver_ic,
+        vess_car_model: data.vess_car_model,
+        vess_chassis: data.vess_chassis,
+        vess_color: data.vess_color,
       };
 
       // Clean up undefined/null values
