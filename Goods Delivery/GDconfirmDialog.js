@@ -77,13 +77,19 @@
 
     // GDPP mode: Only validate against to_quantity
     if (isSelectPicking === 1) {
-      console.log(`Row ${idx}: GDPP mode validation - checking against to_quantity`);
+      console.log(
+        `Row ${idx}: GDPP mode validation - checking against to_quantity`
+      );
 
       const to_quantity_field = item.to_quantity;
 
       if (to_quantity_field < quantity) {
         console.log(`Row ${idx} validation failed: Exceeds picked quantity`);
-        alert(`Row ${idx + 1}: Quantity exceeds picked quantity from Picking Plan (${to_quantity_field})`);
+        alert(
+          `Row ${
+            idx + 1
+          }: Quantity exceeds picked quantity from Picking Plan (${to_quantity_field})`
+        );
         return;
       }
 
@@ -91,26 +97,36 @@
       if (isSerializedItem) {
         if (!item.serial_number || item.serial_number.trim() === "") {
           console.log(`Row ${idx} validation failed: Serial number missing`);
-          alert(`Row ${idx + 1}: Serial number is required for serialized items`);
+          alert(
+            `Row ${idx + 1}: Serial number is required for serialized items`
+          );
           return;
         }
 
         if (quantity !== Math.floor(quantity)) {
-          console.log(`Row ${idx} validation failed: Serialized items must be whole units`);
-          alert(`Row ${idx + 1}: Serialized items must be delivered in whole units`);
+          console.log(
+            `Row ${idx} validation failed: Serialized items must be whole units`
+          );
+          alert(
+            `Row ${idx + 1}: Serialized items must be delivered in whole units`
+          );
           return;
         }
       }
     } else {
       // Regular GD mode: Validate against balance quantities
-      console.log(`Row ${idx}: Regular GD mode validation - checking against balance`);
+      console.log(
+        `Row ${idx}: Regular GD mode validation - checking against balance`
+      );
 
       // For serialized items, validate differently
       if (isSerializedItem) {
         // For serialized items, check if serial number exists and is valid
         if (!item.serial_number || item.serial_number.trim() === "") {
           console.log(`Row ${idx} validation failed: Serial number missing`);
-          alert(`Row ${idx + 1}: Serial number is required for serialized items`);
+          alert(
+            `Row ${idx + 1}: Serial number is required for serialized items`
+          );
           return;
         }
 
