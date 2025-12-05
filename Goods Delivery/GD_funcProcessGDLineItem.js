@@ -612,7 +612,8 @@ const checkInventoryWithDuplicates = async (
             undelivered_qty: undeliveredQtyBase,
             available_qty: availableQtyBase,
             shortfall_qty: undeliveredQtyBase - availableQtyBase,
-            fm_key: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+            fm_key:
+              Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
 
           // Update table array with base UOM
@@ -698,7 +699,8 @@ const checkInventoryWithDuplicates = async (
             undelivered_qty: undeliveredQty,
             available_qty: availableQtyAlt,
             shortfall_qty: undeliveredQty - availableQtyAlt,
-            fm_key: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+            fm_key:
+              Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
 
           if (pickingMode === "Manual") {
@@ -867,7 +869,7 @@ const checkInventoryWithDuplicates = async (
   // Apply insufficient dialog data if any
   if (insufficientDialogData.length > 0) {
     await this.setData({
-      "dialog_insufficient.table_insufficient": insufficientDialogData
+      "dialog_insufficient.table_insufficient": insufficientDialogData,
     });
     console.log(
       `✅ Updated insufficient dialog with ${insufficientDialogData.length} items`
