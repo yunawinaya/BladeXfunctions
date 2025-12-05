@@ -75,8 +75,6 @@
       // Calculate base quantities using conversion
       const baseReceivedQty = quantity / uomConversion;
       const baseInitialReceivedQty = initialReceivedQty / uomConversion;
-      const baseToReceivedQty =
-        baseOrderedQty - baseInitialReceivedQty - baseReceivedQty;
 
       // Validate that we don't exceed base ordered quantity
       if (baseReceivedQty + baseInitialReceivedQty > baseOrderedQty) {
@@ -98,26 +96,26 @@
         });
 
         this.$message.warning(
-          `Quantity adjusted to maximum allowed: ${formattedMaxQty}`
+          `Received quantity adjusted to maximum allowed: ${formattedMaxQty}`
         );
         return;
       }
 
       // Format remaining quantity with comma as decimal separator
-      const formattedBaseToReceivedQty = parseFloat(
-        baseToReceivedQty.toFixed(3)
-      );
+      const totalReceivedQty = quantity + initialReceivedQty;
+      const remainingQty = orderedQty - totalReceivedQty;
+      const formattedRemainingQty = parseFloat(remainingQty.toFixed(3));
 
       await this.setData({
         [`table_gr.${rowIndex}.received_qty`]: quantity,
         [`table_gr.${rowIndex}.base_received_qty`]: baseReceivedQty,
-        [`table_gr.${rowIndex}.to_received_qty`]: formattedBaseToReceivedQty,
+        [`table_gr.${rowIndex}.to_received_qty`]: formattedRemainingQty,
       });
 
       console.log("UOM conversion calculation:", {
         receivedQty: quantity,
         baseReceivedQty,
-        baseToReceivedQty: formattedBaseToReceivedQty,
+        toReceivedQty: formattedRemainingQty,
         conversionFactor: uomConversion,
       });
     }
