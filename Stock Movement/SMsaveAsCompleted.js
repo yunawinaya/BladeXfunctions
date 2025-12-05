@@ -5679,7 +5679,6 @@ const processStockMovements = async () => {
     }
 
     console.log("this.getVarGlobal", this.getVarGlobal("deptParentId"));
-    self.showLoading();
 
     console.log("Starting processFormData with data:", JSON.stringify(allData));
 
@@ -5692,15 +5691,15 @@ const processStockMovements = async () => {
 
     if (allData.page_status === "Add") {
       console.log("New stock movement created:", results);
-      self.hideLoading();
       await updateItemTransactionDate(allData);
+      self.hideLoading();
       self.$message.success("Stock movement created successfully");
       self.parentGenerateForm.$refs.SuPageDialogRef.hide();
       self.parentGenerateForm.refresh();
     } else if (allData.page_status === "Edit") {
       console.log("Stock movement updated:", results);
-      self.hideLoading();
       await updateItemTransactionDate(allData);
+      self.hideLoading();
       self.$message.success("Stock movement updated successfully");
       self.parentGenerateForm.$refs.SuPageDialogRef.hide();
       self.parentGenerateForm.refresh();
@@ -5958,5 +5957,6 @@ const calculateAggregatedSerialQuantities = (item, baseQty, roundQty) => {
   }
 };
 
+this.showLoading();
 // Call the async function
 processStockMovements();
