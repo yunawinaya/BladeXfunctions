@@ -112,7 +112,10 @@
       // This prevents the low-code platform from double-stringifying it
       updatedRecord.table_uom_conversion = tableUOMConversionString;
 
-      console.log("Storing table_uom_conversion as:", updatedRecord.table_uom_conversion);
+      console.log(
+        "Storing table_uom_conversion as:",
+        updatedRecord.table_uom_conversion
+      );
 
       quantityFields.forEach((field) => {
         if (updatedRecord[field]) {
