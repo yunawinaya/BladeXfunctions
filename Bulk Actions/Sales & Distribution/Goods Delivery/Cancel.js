@@ -1,5 +1,6 @@
 (async () => {
   try {
+    this.showLoading();
     const allListID = "custom_ezwb0qqp";
 
     let selectedRecords;
@@ -17,7 +18,7 @@
         this.$message.error(
           "Please select at least one created goods delivery."
         );
-        return;
+        throw new Error();
       }
 
       const goodsDeliveryNumbers = goodsDeliveryData.map(
@@ -641,29 +642,56 @@
           }
 
           // Update goods delivery status
-          await db.collection("goods_delivery").doc(id).update({
-            gd_status: "Cancelled",
-            picking_status: "Cancelled",
-          });
+          await db
+            .collection("goods_delivery")
+            .doc(id)
+            .update({
+              gd_status: "Cancelled",
+              ...(gdItem.picking_status ? { picking_status: "Cancelled" } : {}),
+            });
 
-          // Handle transfer order cancellation
-          if (gdItem.picking_status === "Created") {
-            const toResult = await db
+          await db
+            .collection("goods_delivery_fwii8mvb_sub")
+            .where({ goods_delivery_id: id })
+            .update({ picking_status: "Cancelled" });
+
+          if (gdItem.picking_status) {
+            const pickingFilter = new Filter().in("gd_no", [id]).build();
+
+            const resPicking = await db
               .collection("transfer_order")
-              .where({ gd_no: id })
+              .filter(pickingFilter)
               .get();
 
-            if (toResult.data && toResult.data.length > 0) {
-              const toData = toResult.data[0];
-              const toId = toData.id;
+            if (resPicking && resPicking.data.length > 0) {
+              console.log("resPicking", resPicking);
+              const pickingList = resPicking.data;
 
-              console.log("toId", toId);
+              for (const pickingData of pickingList) {
+                for (const pickingItem of pickingData.table_picking_items) {
+                  if (pickingItem.gd_id === id) {
+                    pickingItem.line_status = "Cancelled";
+                  }
+                }
 
-              await db.collection("transfer_order").doc(toId).update({
-                to_status: "Cancelled",
-              });
-            } else {
-              console.warn("Transfer order not found for goods delivery:", id);
+                const isAllGDCancelled = pickingData.table_picking_items.every(
+                  (item) => item.line_status === "Cancelled"
+                );
+
+                if (isAllGDCancelled) {
+                  pickingData.to_status = "Cancelled";
+                }
+
+                console.log("pickingData", pickingData);
+
+                await db
+                  .collection("transfer_order")
+                  .doc(pickingData.id)
+                  .update({
+                    table_picking_items: pickingData.table_picking_items,
+                    to_status: pickingData.to_status,
+                  });
+              }
             }
           }
 
@@ -680,11 +708,15 @@
           alert("An error occurred during cancellation. Please try again.");
         }
       }
+      this.$message.success("Goods Delivery cancelled successfully");
+      this.hideLoading();
       this.refresh();
     } else {
+      this.hideLoading();
       this.$message.error("Please select at least one record.");
     }
   } catch (error) {
+    this.hideLoading();
     console.error(error);
   }
 })();
