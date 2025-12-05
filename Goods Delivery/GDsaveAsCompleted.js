@@ -4436,6 +4436,9 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
       select_driver_id,
       gd_driver_contact,
       gd_driver_ic,
+      vess_car_model,
+      vess_chassis,
+      vess_color,
     } = data;
 
     // Prepare goods delivery object
@@ -4530,6 +4533,9 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
       select_driver_id,
       gd_driver_contact,
       gd_driver_ic,
+      vess_car_model,
+      vess_chassis,
+      vess_color,
     };
 
     // Clean up undefined/null values
