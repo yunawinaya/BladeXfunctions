@@ -23,23 +23,6 @@ const resetData = async (rowIndex) => {
   });
 };
 
-const fetchUomData = async (uomIds) => {
-  try {
-    const resUOM = await Promise.all(
-      uomIds.map((id) =>
-        db.collection("unit_of_measurement").where({ id }).get()
-      )
-    );
-
-    const uomData = resUOM.map((response) => response.data[0]);
-
-    return uomData;
-  } catch (error) {
-    console.error("Error fetching UOM data:", error);
-    return [];
-  }
-};
-
 const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
   if (
     !Array.isArray(table_uom_conversion) ||
@@ -173,8 +156,6 @@ const fetchUnrestrictedQty = async (
       stock_control,
       item_category,
     } = arguments[0].fieldModel.item;
-    const altUoms = table_uom_conversion.map((data) => data.alt_uom_id);
-    let uomOptions = [];
 
     this.setData({
       [`table_sqt.${rowIndex}.sqt_desc`]: material_desc,
@@ -200,19 +181,11 @@ const fetchUnrestrictedQty = async (
       }
     }
 
-    const res = await fetchUomData(altUoms);
-    uomOptions.push(...res);
-
-    await this.setOptionData(
-      [`table_sqt.${rowIndex}.sqt_order_uom_id`],
-      uomOptions
-    );
-
-    this.setData({
-      [`table_sqt.${rowIndex}.table_uom_conversion`]:
-        JSON.stringify(uomOptions),
-    });
     this.disabled([`table_sqt.${rowIndex}.sqt_order_uom_id`], false);
+    this.refreshFieldOptionData([
+      `table_sqt.${rowIndex}.sqt_order_uom_id`,
+      `table_sqt.${rowIndex}.sqt_tax_rate_percent`,
+    ]);
 
     const initialQty = await fetchUnrestrictedQty(
       arguments[0].value,
@@ -255,7 +228,6 @@ const fetchUnrestrictedQty = async (
       });
     }
   } else if (!arguments[0].fieldModel && sqtItem) {
-    let uomOptions = [];
     const rowIndex = arguments[0].index;
     if (sqtItem.material_id) {
       const resItem = await db
@@ -265,15 +237,6 @@ const fetchUnrestrictedQty = async (
 
       if (resItem && resItem.data.length > 0) {
         const itemData = resItem.data[0];
-
-        const itemUOM = itemData.table_uom_conversion.map(
-          (data) => data.alt_uom_id
-        );
-
-        await itemUOM.push(itemData.based_uom);
-
-        const resUOM = await fetchUomData(itemUOM);
-        uomOptions.push(...resUOM);
 
         const initialQty = await fetchUnrestrictedQty(
           arguments[0].value,
@@ -298,35 +261,26 @@ const fetchUnrestrictedQty = async (
           ),
         });
       }
-    } else if (!sqtItem.material_id && sqtItem.sqt_desc !== "") {
-      const resUOM = await db.collection("unit_of_measurement").get();
-      uomOptions.push(...resUOM.data);
     }
 
-    await this.setOptionData(
-      [`table_sqt.${rowIndex}.sqt_order_uom_id`],
-      uomOptions
-    );
-
-    this.setData({
-      [`table_sqt.${rowIndex}.table_uom_conversion`]:
-        JSON.stringify(uomOptions),
-    });
-
     this.disabled([`table_sqt.${rowIndex}.sqt_order_uom_id`], false);
+    this.refreshFieldOptionData([
+      `table_sqt.${rowIndex}.sqt_order_uom_id`,
+      `table_sqt.${rowIndex}.sqt_tax_rate_percent`,
+    ]);
   } else if (!arguments[0].value) {
     await resetData(rowIndex);
     this.disabled(`table_sqt.${rowIndex}.sqt_order_uom_id`, true);
   } else {
     const tableSQT = this.getValue("table_sqt");
     for (const [rowIndex, sqt] of tableSQT.entries()) {
-      console.log(sqt.table_uom_conversion);
-      if (sqt.table_uom_conversion) {
-        await this.setOptionData(
-          [`table_sqt.${rowIndex}.sqt_order_uom_id`],
-          JSON.parse(sqt.table_uom_conversion)
-        );
+      console.log(sqt.sqt_order_uom_id);
+      if (sqt.sqt_order_uom_id) {
         this.disabled([`table_sqt.${rowIndex}.sqt_order_uom_id`], false);
+        this.refreshFieldOptionData([
+          `table_sqt.${rowIndex}.sqt_order_uom_id`,
+          `table_sqt.${rowIndex}.sqt_tax_rate_percent`,
+        ]);
       }
     }
   }
