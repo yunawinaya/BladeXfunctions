@@ -1,20 +1,3 @@
-const fetchUomData = async (uomIds) => {
-  try {
-    const resUOM = await Promise.all(
-      uomIds.map((id) =>
-        db.collection("unit_of_measurement").where({ id }).get()
-      )
-    );
-
-    const uomData = resUOM.map((response) => response.data[0]);
-
-    return uomData;
-  } catch (error) {
-    console.error("Error fetching UOM data:", error);
-    return [];
-  }
-};
-
 const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
   if (
     !Array.isArray(table_uom_conversion) ||
@@ -119,7 +102,7 @@ const fetchUnrestrictedQty = async (
 };
 
 (async () => {
-  const currentItemArray = this.getValue(`dialog_item_selection.item_array`);
+  const currentItemArray = arguments[0].itemArray;
   const sqtLineItems = this.getValue("table_sqt");
   const plantId = this.getValue("sqt_plant");
 
@@ -155,9 +138,6 @@ const fetchUnrestrictedQty = async (
 
   await this.setData({
     table_sqt: [...sqtLineItems, ...itemArray],
-    [`dialog_item_selection.item_array`]: [],
-    [`dialog_item_selection.item_code_array`]: "",
-    [`dialog_item_selection.item_code`]: "",
   });
 
   this.closeDialog("dialog_item_selection");
@@ -165,23 +145,12 @@ const fetchUnrestrictedQty = async (
   setTimeout(async () => {
     for (const [index, item] of currentItemArray.entries()) {
       const newIndex = sqtLineItems.length + index;
-      const altUoms = item.table_uom_conversion?.map((data) => data.alt_uom_id);
-      let uomOptions = [];
-
-      const res = await fetchUomData(altUoms);
-      uomOptions.push(...res);
-
-      await this.setOptionData(
-        [`table_sqt.${newIndex}.sqt_order_uom_id`],
-        uomOptions
-      );
-
-      this.setData({
-        [`table_sqt.${newIndex}.table_uom_conversion`]:
-          JSON.stringify(uomOptions),
-      });
 
       this.disabled([`table_sqt.${newIndex}.sqt_order_uom_id`], false);
+      this.refreshFieldOptionData([
+        `table_sqt.${newIndex}.sqt_order_uom_id`,
+        `table_sqt.${newIndex}.sqt_tax_rate_percent`,
+      ]);
 
       if (item.mat_sales_tax_id) {
         this.disabled([`table_sqt.${newIndex}.sqt_tax_rate_percent`], false);
