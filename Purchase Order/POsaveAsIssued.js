@@ -388,7 +388,6 @@ const fillbackHeaderFields = async (entry) => {
       poLineItem.billing_country_id = entry.billing_address_country || null;
       poLineItem.shipping_state_id = entry.shipping_address_state || null;
       poLineItem.shipping_country_id = entry.shipping_address_country || null;
-      poLineItem.preq_id = entry.preq_id || null;
       poLineItem.line_index = index + 1;
       poLineItem.organization_id = entry.organization_id;
       poLineItem.line_status = entry.po_status;
