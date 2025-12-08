@@ -1276,8 +1276,8 @@ const addEntry = async (organizationId, packingData) => {
       throw new Error("Failed to retrieve created packing record");
     }
 
-    const packingId = createdRecord.data[0].id;
     console.log("Packing created successfully with ID:", packingId);
+    return createdRecord.data[0];
   } catch (error) {
     console.error("Error in addEntry:", error);
     throw error;
@@ -1339,10 +1339,13 @@ const updateEntry = async (
 
     await processHUBalance(packingData);
 
-    await db.collection("packing").doc(packingId).update(packingData);
+    const updatedRecord = await db
+      .collection("packing")
+      .doc(packingId)
+      .update(packingData);
 
     console.log("Packing updated successfully");
-    return packingId;
+    return updatedRecord.data.modifiedResults[0];
   } catch (error) {
     console.error("Error in updateEntry:", error);
     throw error;
@@ -1407,28 +1410,72 @@ const headerCalculation = async (data) => {
 const updateSOStatus = async (data) => {
   try {
     const tableItems = data.table_items || [];
+    const tableHU = data.table_hu || [];
     const packingMode = data.packing_mode;
 
-    if (packingMode === "Basic") {
-      //filter duplicated so_id
-      const uniqueSOIds = [...new Set(tableItems.map((item) => item.so_id))];
+    //filter duplicated so_id
+    const uniqueSOIds = [...new Set(tableItems.map((item) => item.so_id))];
 
+    //update so status
+    for (const soId of uniqueSOIds) {
+      await db.collection("sales_order").doc(soId).update({
+        packing_status: "Completed",
+      });
+    }
+
+    //update so_line status based on packing mode
+    if (packingMode === "Basic") {
       //filter duplicated so_line_id
       const uniqueSOLineIds = [
         ...new Set(tableItems.map((item) => item.so_line_id)),
       ];
 
-      //update so status
-      for (const soId of uniqueSOIds) {
-        await db.collection("sales_order").doc(soId).update({
-          packing_status: "Completed",
-        });
-      }
+      // Collect all HU IDs (not HU numbers)
+      const huIds = tableHU.map((hu) => hu.id).filter(Boolean);
 
-      //update so_line status
       for (const soLineId of uniqueSOLineIds) {
         await db.collection("sales_order_axszx8cj_sub").doc(soLineId).update({
           packing_status: "Completed",
+          packing_no: data.id,
+          hu_no: huIds,
+        });
+      }
+    } else if (packingMode === "Detail") {
+      // For Detail mode, map each SO line to all HU IDs that contain it
+      const soLineToHUMap = new Map();
+
+      for (const huItem of tableHU) {
+        if (huItem.temp_data && huItem.temp_data.trim() !== "" && huItem.id) {
+          // Parse temp_data to get line items
+          let packedItems;
+          try {
+            packedItems = JSON.parse(huItem.temp_data);
+          } catch (e) {
+            console.error("Error parsing temp_data:", e);
+            continue;
+          }
+
+          // For each packed item, add this HU ID to its SO line
+          for (const item of packedItems) {
+            if (item.so_line_id) {
+              if (!soLineToHUMap.has(item.so_line_id)) {
+                soLineToHUMap.set(item.so_line_id, []);
+              }
+              soLineToHUMap.get(item.so_line_id).push(huItem.id);
+            }
+          }
+        }
+      }
+
+      // Update each SO line with its array of HU IDs
+      for (const [soLineId, huIds] of soLineToHUMap.entries()) {
+        // Remove duplicates
+        const uniqueHUIds = [...new Set(huIds)];
+
+        await db.collection("sales_order_axszx8cj_sub").doc(soLineId).update({
+          packing_status: "Completed",
+          packing_no: data.id,
+          hu_no: uniqueHUIds,
         });
       }
     }
@@ -1441,31 +1488,78 @@ const updateSOStatus = async (data) => {
 const updateGDStatus = async (data) => {
   try {
     const tableItems = data.table_items || [];
+    const tableHU = data.table_hu || [];
     const packingMode = data.packing_mode;
 
-    if (packingMode === "Basic") {
-      //filter duplicated gd_id
-      const uniqueGDIds = [...new Set(tableItems.map((item) => item.gd_id))];
+    //filter duplicated gd_id
+    const uniqueGDIds = [...new Set(tableItems.map((item) => item.gd_id))];
 
+    //update gd status
+    for (const gdId of uniqueGDIds) {
+      await db.collection("goods_delivery").doc(gdId).update({
+        packing_status: "Completed",
+      });
+    }
+
+    //update gd_line status based on packing mode
+    if (packingMode === "Basic") {
       //filter duplicated gd_line_id
       const uniqueGDLineIds = [
         ...new Set(tableItems.map((item) => item.gd_line_id)),
       ];
 
-      //update gd status
-      for (const gdId of uniqueGDIds) {
-        await db.collection("goods_delivery").doc(gdId).update({
-          packing_status: "Completed",
-        });
-      }
+      // Collect all HU IDs (not HU numbers)
+      const huIds = tableHU.map((hu) => hu.id).filter(Boolean);
 
-      //update gd_line status
       for (const gdLineId of uniqueGDLineIds) {
         await db
           .collection("goods_delivery_fwii8mvb_sub")
           .doc(gdLineId)
           .update({
             packing_status: "Completed",
+            packing_no: data.id,
+            hu_no: huIds,
+          });
+      }
+    } else if (packingMode === "Detail") {
+      // For Detail mode, map each GD line to all HU IDs that contain it
+      const gdLineToHUMap = new Map();
+
+      for (const huItem of tableHU) {
+        if (huItem.temp_data && huItem.temp_data.trim() !== "" && huItem.id) {
+          // Parse temp_data to get line items
+          let packedItems;
+          try {
+            packedItems = JSON.parse(huItem.temp_data);
+          } catch (e) {
+            console.error("Error parsing temp_data:", e);
+            continue;
+          }
+
+          // For each packed item, add this HU ID to its GD line
+          for (const item of packedItems) {
+            if (item.gd_line_id) {
+              if (!gdLineToHUMap.has(item.gd_line_id)) {
+                gdLineToHUMap.set(item.gd_line_id, []);
+              }
+              gdLineToHUMap.get(item.gd_line_id).push(huItem.id);
+            }
+          }
+        }
+      }
+
+      // Update each GD line with its array of HU IDs
+      for (const [gdLineId, huIds] of gdLineToHUMap.entries()) {
+        // Remove duplicates
+        const uniqueHUIds = [...new Set(huIds)];
+
+        await db
+          .collection("goods_delivery_fwii8mvb_sub")
+          .doc(gdLineId)
+          .update({
+            packing_status: "Completed",
+            packing_no: data.id,
+            hu_no: uniqueHUIds,
           });
       }
     }
@@ -1478,28 +1572,72 @@ const updateGDStatus = async (data) => {
 const updateTOStatus = async (data) => {
   try {
     const tableItems = data.table_items || [];
+    const tableHU = data.table_hu || [];
     const packingMode = data.packing_mode;
 
-    if (packingMode === "Basic") {
-      //filter duplicated to_id
-      const uniqueTOIds = [...new Set(tableItems.map((item) => item.to_id))];
+    //filter duplicated to_id
+    const uniqueTOIds = [...new Set(tableItems.map((item) => item.to_id))];
 
+    //update to status
+    for (const toId of uniqueTOIds) {
+      await db.collection("picking_plan").doc(toId).update({
+        packing_status: "Completed",
+      });
+    }
+
+    //update to_line status based on packing mode
+    if (packingMode === "Basic") {
       //filter duplicated to_line_id
       const uniqueTOLineIds = [
         ...new Set(tableItems.map((item) => item.to_line_id)),
       ];
 
-      //update to status
-      for (const toId of uniqueTOIds) {
-        await db.collection("picking_plan").doc(toId).update({
-          packing_status: "Completed",
-        });
-      }
+      // Collect all HU IDs (not HU numbers)
+      const huIds = tableHU.map((hu) => hu.id).filter(Boolean);
 
-      //update to_line status
       for (const toLineId of uniqueTOLineIds) {
         await db.collection("picking_plan_fwii8mvb_sub").doc(toLineId).update({
           packing_status: "Completed",
+          packing_no: data.id,
+          hu_no: huIds,
+        });
+      }
+    } else if (packingMode === "Detail") {
+      // For Detail mode, map each TO line to all HU IDs that contain it
+      const toLineToHUMap = new Map();
+
+      for (const huItem of tableHU) {
+        if (huItem.temp_data && huItem.temp_data.trim() !== "" && huItem.id) {
+          // Parse temp_data to get line items
+          let packedItems;
+          try {
+            packedItems = JSON.parse(huItem.temp_data);
+          } catch (e) {
+            console.error("Error parsing temp_data:", e);
+            continue;
+          }
+
+          // For each packed item, add this HU ID to its TO line
+          for (const item of packedItems) {
+            if (item.to_line_id) {
+              if (!toLineToHUMap.has(item.to_line_id)) {
+                toLineToHUMap.set(item.to_line_id, []);
+              }
+              toLineToHUMap.get(item.to_line_id).push(huItem.id);
+            }
+          }
+        }
+      }
+
+      // Update each TO line with its array of HU IDs
+      for (const [toLineId, huIds] of toLineToHUMap.entries()) {
+        // Remove duplicates
+        const uniqueHUIds = [...new Set(huIds)];
+
+        await db.collection("picking_plan_fwii8mvb_sub").doc(toLineId).update({
+          packing_status: "Completed",
+          packing_no: data.id,
+          hu_no: uniqueHUIds,
         });
       }
     }
@@ -1602,13 +1740,14 @@ const updateTOStatus = async (data) => {
     packingData = await headerCalculation(packingData);
 
     let packingId;
+    let latestPackingData;
 
     // Perform action based on page status
     if (page_status === "Add") {
-      await addEntry(organizationId, packingData);
+      latestPackingData = await addEntry(organizationId, packingData);
     } else if (page_status === "Edit") {
       packingId = data.id;
-      await updateEntry(
+      latestPackingData = await updateEntry(
         organizationId,
         packingData,
         packingId,
@@ -1616,14 +1755,14 @@ const updateTOStatus = async (data) => {
       );
     }
 
-    if (packingData.so_id && packingData.so_id !== "") {
-      await updateSOStatus(packingData);
+    if (latestPackingData.so_id && latestPackingData.so_id !== "") {
+      await updateSOStatus(latestPackingData);
     }
-    if (packingData.gd_id && packingData.gd_id !== "") {
-      await updateGDStatus(packingData);
+    if (latestPackingData.gd_id && latestPackingData.gd_id !== "") {
+      await updateGDStatus(latestPackingData);
     }
-    if (packingData.to_id && packingData.to_id !== "") {
-      await updateTOStatus(packingData);
+    if (latestPackingData.to_id && latestPackingData.to_id !== "") {
+      await updateTOStatus(latestPackingData);
     }
 
     this.$message.success(
