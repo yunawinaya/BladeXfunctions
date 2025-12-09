@@ -3448,6 +3448,47 @@ const checkPickingStatus = async (gdData, pageStatus, currentGdStatus) => {
   }
 };
 
+const checkPackingStatus = async (organizationId, gdData) => {
+  try {
+    const packingSetupData = await db
+      .collection("packing_setup")
+      .where({
+        organization_id: organizationId,
+      })
+      .get();
+
+    if (!packingSetupData.data || packingSetupData.data.length === 0) {
+      console.log(
+        `No packing setup found for organization ${organizationId}, proceeding normally`
+      );
+      return { canProceed: true, message: null };
+    }
+
+    console.log(
+      `Packing setup found for organization ${organizationId}. Checking requirements...`
+    );
+
+    const packingRequired = packingSetupData.data[0].packing_required;
+
+    if (packingRequired === 1 && gdData.packing_status !== "Completed") {
+      return {
+        canProceed: false,
+        message: "Packing process must be completed first",
+        title: "Complete packing before proceeding",
+      };
+    }
+
+    return { canProceed: true, message: null };
+  } catch (error) {
+    console.error("Error checking packing status:", error);
+    return {
+      canProceed: false,
+      message: "Error checking packing requirements. Please try again.",
+      title: "System Error",
+    };
+  }
+};
+
 const checkExistingReservedGoods = async (
   soNumbers,
   currentGdId = null,
@@ -4644,6 +4685,18 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
 
     if (!pickingCheck.canProceed) {
       this.parentGenerateForm.$alert(pickingCheck.title, pickingCheck.message, {
+        confirmButtonText: "OK",
+        type: "warning",
+      });
+      this.hideLoading();
+      return;
+    }
+
+    // Check packing requirements
+    const packingCheck = await checkPackingStatus(organizationId, latestGD);
+
+    if (!packingCheck.canProceed) {
+      this.parentGenerateForm.$alert(packingCheck.message, packingCheck.title, {
         confirmButtonText: "OK",
         type: "warning",
       });
