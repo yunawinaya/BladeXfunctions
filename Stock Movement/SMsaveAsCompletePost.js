@@ -247,7 +247,8 @@ class StockAdjuster {
             balance.category || "Unrestricted",
             -baseQtyPerBalance,
             plantId,
-            organizationId
+            organizationId,
+            baseUOM
           );
         } else {
           await this.createSerialMovementRecord(
@@ -268,7 +269,8 @@ class StockAdjuster {
             balance.category || "Unrestricted",
             -baseQtyPerBalance,
             plantId,
-            organizationId
+            organizationId,
+            baseUOM
           );
         }
       }
@@ -320,7 +322,8 @@ class StockAdjuster {
     category,
     qtyChange,
     plantId,
-    organizationId
+    organizationId,
+    materialUom
   ) {
     const serialBalanceParams = {
       material_id: materialId,
@@ -447,6 +450,7 @@ class StockAdjuster {
           reserved_qty: category === "Reserved" ? this.roundQty(qtyChange) : 0,
           intransit_qty:
             category === "In Transit" ? this.roundQty(qtyChange) : 0,
+          material_uom: materialUom,
           create_time: new Date().toISOString(),
           update_time: new Date().toISOString(),
           is_deleted: 0,
@@ -474,7 +478,8 @@ class StockAdjuster {
     organizationId,
     plantId,
     singleBalance,
-    receivingLocationId
+    receivingLocationId,
+    materialUom
   ) {
     try {
       console.log(
@@ -488,17 +493,6 @@ class StockAdjuster {
         return;
       }
 
-      const itemRes = await this.db
-        .collection("Item")
-        .where({ id: item.item_selection })
-        .get();
-      if (!itemRes.data || !itemRes.data.length) {
-        console.error(`Item not found: ${item.item_selection}`);
-        return;
-      }
-      const itemData = itemRes.data[0];
-      let baseUOM = itemData.based_uom;
-
       for (const balance of balancesToProcess) {
         let baseQtyPerBalance = this.roundQty(
           parseFloat(balance.quantity_converted || balance.sm_quantity || 0)
@@ -509,7 +503,7 @@ class StockAdjuster {
           balance.serial_number,
           balance.batch_id,
           baseQtyPerBalance,
-          baseUOM,
+          materialUom,
           plantId,
           organizationId
         );
@@ -529,7 +523,7 @@ class StockAdjuster {
           baseQtyPerBalance,
           plantId,
           organizationId,
-          baseUOM
+          materialUom
         );
       }
 
@@ -682,6 +676,7 @@ class StockAdjuster {
           reserved_qty: category === "Reserved" ? this.roundQty(qtyChange) : 0,
           intransit_qty:
             category === "In Transit" ? this.roundQty(qtyChange) : 0,
+          material_uom: materialUom,
           create_time: new Date().toISOString(),
           update_time: new Date().toISOString(),
           is_deleted: 0,
@@ -1164,6 +1159,7 @@ class StockAdjuster {
             block_qty: 0,
             reserved_qty: 0,
             intransit_qty: 0,
+            material_uom: baseUOM,
             create_time: new Date().toISOString(),
             update_time: new Date().toISOString(),
             is_deleted: 0,
@@ -1426,7 +1422,7 @@ class StockAdjuster {
             selected_uom = uomConversion.alt_uom_id;
             quantityConverted =
               Math.round(
-                ((item.received_quantity || 0) * uomConversion.base_qty) * 1000
+                (item.received_quantity || 0) * uomConversion.base_qty * 1000
               ) / 1000;
             unitPriceConverted =
               Math.round(((item.unit_price || 0) / quantityConverted) * 1000) /
@@ -2402,6 +2398,7 @@ class StockAdjuster {
           tenant_id: allData.tenant_id || "000000",
           organization_id: organizationId,
           doc_date: allData.issue_date,
+          material_uom: materialData.based_uom,
           manufacturing_date:
             (subformData && subformData.manufacturing_date) ||
             (balance && balance.manufacturing_date) ||
@@ -2678,6 +2675,7 @@ class StockAdjuster {
             block_qty: 0,
             reserved_qty: 0,
             intransit_qty: 0,
+            material_uom: materialData.based_uom,
             create_user: allData.user_id || "system",
             update_user: allData.user_id || "system",
             create_time: new Date().toISOString(),
@@ -2963,7 +2961,8 @@ class StockAdjuster {
               aggregatedQuantities.unrestricted_qty,
               aggregatedQuantities.qualityinsp_qty,
               aggregatedQuantities.intransit_qty,
-              this.roundQty
+              this.roundQty,
+              materialData.based_uom
             );
 
             console.log(
@@ -3066,7 +3065,8 @@ class StockAdjuster {
           unrestricted_qty,
           qualityinsp_qty,
           intransit_qty,
-          this.roundQty
+          this.roundQty,
+          materialData.based_uom
         );
 
         console.log(
@@ -3286,6 +3286,7 @@ class StockAdjuster {
               categoryField === "intransit_qty"
                 ? parseFloat(qtyChangeValue.toFixed(3))
                 : 0,
+            material_uom: materialData.based_uom,
             create_user: allData.user_id || "system",
             update_user: allData.user_id || "system",
             create_time: new Date().toISOString(),
@@ -3382,6 +3383,7 @@ class StockAdjuster {
               categoryField === "intransit_qty"
                 ? parseFloat(qtyChangeValue.toFixed(3))
                 : 0,
+            material_uom: materialData.based_uom,
             create_user: allData.user_id || "system",
             update_user: allData.user_id || "system",
             create_time: new Date().toISOString(),
@@ -4162,7 +4164,8 @@ class StockAdjuster {
                   organizationId,
                   allData.issuing_operation_faci,
                   serialBalance,
-                  subformData.location_id
+                  subformData.location_id,
+                  materialData.based_uom
                 );
               }
             } else {
@@ -4174,7 +4177,8 @@ class StockAdjuster {
                 organizationId,
                 allData.issuing_operation_faci,
                 balance,
-                subformData.location_id
+                subformData.location_id,
+                materialData.based_uom
               );
             }
           }
@@ -5826,7 +5830,8 @@ const processItemBalance = async (
   unrestricted_qty,
   qualityinsp_qty,
   intransit_qty,
-  roundQty
+  roundQty,
+  materialUom
 ) => {
   try {
     // Get current item balance records
@@ -5921,6 +5926,7 @@ const processItemBalance = async (
         balance_quantity: balance_quantity,
         plant_id: itemBalanceParams.plant_id,
         organization_id: itemBalanceParams.organization_id,
+        material_uom: materialUom,
       };
 
       await db.collection("item_balance").add(newBalanceData);
