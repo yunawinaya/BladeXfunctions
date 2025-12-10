@@ -109,11 +109,11 @@
         (conv) => conv.alt_uom_id === altUOM
       );
 
-      if (!uomConversion || !uomConversion.alt_qty) {
+      if (!uomConversion || !uomConversion.base_qty) {
         return baseQty;
       }
 
-      return Math.round(baseQty * uomConversion.alt_qty * 1000) / 1000;
+      return Math.round(baseQty / uomConversion.base_qty * 1000) / 1000;
     };
 
     const processItemBalanceData = (
