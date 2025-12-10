@@ -24,7 +24,8 @@ const processItemBalance = async (
   reserved_qty,
   unrestricted_qty,
   qualityinsp_qty,
-  intransit_qty
+  intransit_qty,
+  materialUom
 ) => {
   try {
     // Get current item balance records
@@ -119,6 +120,7 @@ const processItemBalance = async (
         balance_quantity: balance_quantity,
         plant_id: itemBalanceParams.plant_id,
         organization_id: itemBalanceParams.organization_id,
+        material_uom: materialUom,
       };
 
       await db.collection("item_balance").add(newBalanceData);
@@ -488,7 +490,7 @@ const updateInventory = async (data, plantId, organizationId) => {
               `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
             );
 
-            baseQty = roundQty(altQty / uomConversion.alt_qty);
+            baseQty = roundQty(altQty * uomConversion.base_qty);
 
             console.log(
               `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
@@ -901,6 +903,7 @@ const updateInventory = async (data, plantId, organizationId) => {
                 balance_quantity: balance_quantity,
                 plant_id: plantId,
                 organization_id: organizationId,
+                material_uom: baseUOM,
                 doc_date: data.received_date,
                 manufacturing_date: item.manufacturing_date,
                 expired_date: item.expired_date,
@@ -936,7 +939,8 @@ const updateInventory = async (data, plantId, organizationId) => {
                     aggregatedQuantities.reserved_qty,
                     aggregatedQuantities.unrestricted_qty,
                     aggregatedQuantities.qualityinsp_qty,
-                    aggregatedQuantities.intransit_qty
+                    aggregatedQuantities.intransit_qty,
+                    baseUOM
                   );
                   console.log(
                     `Updated item_balance for serialized batch item ${item.material_id} with ${aggregatedQuantities.serial_count} serial numbers`
@@ -952,7 +956,8 @@ const updateInventory = async (data, plantId, organizationId) => {
                 reserved_qty,
                 unrestricted_qty,
                 qualityinsp_qty,
-                intransit_qty
+                intransit_qty,
+                baseUOM
               );
               console.log(
                 `Updated item_balance for non-serialized batch item ${item.material_id}`
@@ -1026,6 +1031,7 @@ const updateInventory = async (data, plantId, organizationId) => {
                 balance_quantity: balance_quantity,
                 plant_id: plantId,
                 organization_id: organizationId,
+                material_uom: baseUOM,
               });
 
               console.log(`Created new balance for item ${item.material_id}`);

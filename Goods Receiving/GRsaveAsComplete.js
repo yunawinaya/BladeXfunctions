@@ -500,7 +500,8 @@ const addInventory = async (
     reserved_qty,
     unrestricted_qty,
     qualityinsp_qty,
-    intransit_qty
+    intransit_qty,
+    materialUom
   ) => {
     try {
       // Get current item balance records
@@ -590,6 +591,7 @@ const addInventory = async (
           balance_quantity: roundQty(balance_quantity),
           plant_id: plantId,
           organization_id: organizationId,
+          material_uom: materialUom,
         };
 
         await db.collection("item_balance").add(newBalanceData);
@@ -1251,7 +1253,7 @@ const addInventory = async (
         );
 
         if (uomConversion) {
-          baseQty = roundQty(altQty / uomConversion.alt_qty);
+          baseQty = roundQty(altQty * uomConversion.base_qty);
           console.log(
             `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM} for serial processing`
           );
@@ -1611,7 +1613,7 @@ const addInventory = async (
             `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
           );
 
-          baseQty = roundQty(altQty / uomConversion.alt_qty);
+          baseQty = roundQty(altQty * uomConversion.base_qty);
 
           console.log(`Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`);
         } else {
@@ -1843,6 +1845,7 @@ const addInventory = async (
               doc_date: data.gr_date,
               manufacturing_date: item.manufacturing_date,
               expired_date: item.expired_date,
+              material_uom: baseUOM,
             };
 
             await db.collection("item_batch_balance").add(newBalanceData);
@@ -1865,7 +1868,8 @@ const addInventory = async (
               reserved_qty,
               unrestricted_qty,
               qualityinsp_qty,
-              intransit_qty
+              intransit_qty,
+              baseUOM
             );
           } else {
             // Serialized items: calculate aggregated quantities from serial number data
@@ -1881,7 +1885,8 @@ const addInventory = async (
                 aggregatedQuantities.reserved_qty,
                 aggregatedQuantities.unrestricted_qty,
                 aggregatedQuantities.qualityinsp_qty,
-                aggregatedQuantities.intransit_qty
+                aggregatedQuantities.intransit_qty,
+                baseUOM
               );
               console.log(
                 `Created item_balance record for serialized batch item ${item.item_id} with ${aggregatedQuantities.serial_count} serial numbers`
@@ -1967,7 +1972,8 @@ const addInventory = async (
               reserved_qty,
               unrestricted_qty,
               qualityinsp_qty,
-              intransit_qty
+              intransit_qty,
+              baseUOM
             );
           } else {
             // Serialized items: calculate aggregated quantities from serial number data
@@ -1983,7 +1989,8 @@ const addInventory = async (
                 aggregatedQuantities.reserved_qty,
                 aggregatedQuantities.unrestricted_qty,
                 aggregatedQuantities.qualityinsp_qty,
-                aggregatedQuantities.intransit_qty
+                aggregatedQuantities.intransit_qty,
+                baseUOM
               );
               console.log(
                 `Created item_balance record for serialized non-batch item ${item.item_id} with ${aggregatedQuantities.serial_count} serial numbers`

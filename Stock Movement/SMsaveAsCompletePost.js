@@ -2398,7 +2398,6 @@ class StockAdjuster {
           tenant_id: allData.tenant_id || "000000",
           organization_id: organizationId,
           doc_date: allData.issue_date,
-          material_uom: materialData.based_uom,
           manufacturing_date:
             (subformData && subformData.manufacturing_date) ||
             (balance && balance.manufacturing_date) ||

@@ -891,52 +891,28 @@ const updateSalesOrder = async (toData) => {
         continue;
       }
 
-      // Case B: All line_status = "Completed" - Check if quantities match
+      // Case B: All line_status = "Completed" - Check Picking to_status
       if (allCompleted) {
-        console.log(`SO ${soId}: All lines Completed, checking quantity match`);
+        console.log(
+          `SO ${soId}: All lines Completed, checking Picking to_status`
+        );
 
-        // Fetch SO to compare quantities
-        const soRes = await db.collection("sales_order").doc(soId).get();
-
-        if (!soRes || !soRes.data || soRes.data.length === 0) {
-          console.warn(`SO ${soId} not found, skipping`);
-          continue;
-        }
-
-        const soDoc = soRes.data[0];
-        const soLineItems = soDoc.table_so || [];
-
-        // Check if all SO line items match: so_quantity === planned_qty
-        let allQuantitiesMatch = true;
-
-        for (const soLine of soLineItems) {
-          const soQuantity = parseFloat(soLine.so_quantity || 0);
-          const plannedQty = parseFloat(soLine.planned_qty || 0);
-
-          if (soQuantity !== plannedQty) {
-            allQuantitiesMatch = false;
-            console.log(
-              `SO ${soId} Line ${soLine.id}: Quantity mismatch - so_quantity=${soQuantity}, planned_qty=${plannedQty}`
-            );
-            break;
-          }
-        }
-
-        if (allQuantitiesMatch) {
-          // All quantities match - set SO to Completed
+        // Use Picking to_status to determine SO status
+        if (toData.to_status === "Completed") {
+          // Picking is Completed - set SO to Completed
           await db.collection("sales_order").doc(soId).update({
             to_status: "Completed",
           });
           console.log(
-            `SO ${soId}: Set to_status = "Completed" (all quantities matched)`
+            `SO ${soId}: Set to_status = "Completed" (Picking to_status is Completed)`
           );
         } else {
-          // Some quantities don't match - set SO to In Progress
+          // Picking is not Completed - set SO to In Progress
           await db.collection("sales_order").doc(soId).update({
             to_status: "In Progress",
           });
           console.log(
-            `SO ${soId}: Set to_status = "In Progress" (quantities mismatch)`
+            `SO ${soId}: Set to_status = "In Progress" (Picking to_status is not Completed)`
           );
         }
         continue;
@@ -1548,6 +1524,7 @@ const handleLoadingBayInventoryMovement = async (
               reserved_qty: baseQty,
               unrestricted_qty: 0,
               balance_quantity: baseQty,
+              material_uom: baseUOM,
             });
 
             console.log(
@@ -1646,6 +1623,7 @@ const handleLoadingBayInventoryMovement = async (
               reserved_qty: baseQty,
               unrestricted_qty: 0,
               balance_quantity: baseQty,
+              material_uom: baseUOM,
             };
 
             if (batchId) {
@@ -1739,6 +1717,7 @@ const handleLoadingBayInventoryMovement = async (
                 reserved_qty: baseQty,
                 unrestricted_qty: 0,
                 balance_quantity: baseQty,
+                material_uom: baseUOM,
               });
 
               console.log(

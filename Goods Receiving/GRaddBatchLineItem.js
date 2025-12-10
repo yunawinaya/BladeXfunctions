@@ -104,7 +104,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
     return altQty;
   }
 
-  return Math.round((altQty / uomConversion.alt_qty) * 1000) / 1000;
+  return Math.round((altQty * uomConversion.base_qty) * 1000) / 1000;
 };
 
 (async () => {
@@ -289,7 +289,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
             newTableGrRecord.base_received_qty = parseFloat(
               (baseQty - baseReceivedQty || 0).toFixed(3)
             );
-            newTableGrRecord.uom_conversion = isAltUOM.alt_qty;
+            newTableGrRecord.uom_conversion = isAltUOM.base_qty;
           }
 
           if (itemData?.serial_number_management === 1) {
@@ -422,7 +422,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
             newTableGrRecord.base_received_qty = parseFloat(
               (baseQty - baseReceivedQty || 0).toFixed(3)
             );
-            newTableGrRecord.uom_conversion = isAltUOM.alt_qty;
+            newTableGrRecord.uom_conversion = isAltUOM.base_qty;
           }
         }
 

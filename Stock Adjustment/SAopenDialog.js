@@ -243,7 +243,9 @@ if (materialId) {
       console.log("itemData", itemData);
 
       // Get UOM options and set up material UOM
-      const altUoms = itemData.table_uom_conversion?.map((data) => data.alt_uom_id);
+      const altUoms = itemData.table_uom_conversion?.map(
+        (data) => data.alt_uom_id
+      );
       let uomOptions = [];
 
       const res = await fetchUomData(altUoms);
@@ -285,12 +287,20 @@ if (materialId) {
 
         // Show or hide batch column based on whether item also has batch management
         if (itemData.item_batch_management === 1) {
-          this.display("sa_item_balance.table_item_balance.batch_id");
+          this.display([
+            "sa_item_balance.table_item_balance.batch_id",
+            "sa_item_balance.table_item_balance.expired_date",
+            "sa_item_balance.table_item_balance.manufacturing_date",
+          ]);
           console.log(
             "Serialized item with batch management - showing both serial and batch columns"
           );
         } else {
-          this.hide("sa_item_balance.table_item_balance.batch_id");
+          this.hide([
+            "sa_item_balance.table_item_balance.batch_id",
+            "sa_item_balance.table_item_balance.expired_date",
+            "sa_item_balance.table_item_balance.manufacturing_date",
+          ]);
           console.log(
             "Serialized item without batch management - hiding batch column"
           );
@@ -373,7 +383,11 @@ if (materialId) {
         console.log("Processing batch item (non-serialized)");
 
         // Show batch column and hide serial number column
-        this.display("sa_item_balance.table_item_balance.batch_id");
+        this.display([
+          "sa_item_balance.table_item_balance.batch_id",
+          "sa_item_balance.table_item_balance.expired_date",
+          "sa_item_balance.table_item_balance.manufacturing_date",
+        ]);
         this.hide("sa_item_balance.table_item_balance.serial_number");
 
         // Hide serial number column
@@ -446,7 +460,11 @@ if (materialId) {
         console.log("Processing regular item (no batch, no serial)");
 
         // Hide both batch and serial columns
-        this.hide("sa_item_balance.table_item_balance.batch_id");
+        this.hide([
+          "sa_item_balance.table_item_balance.batch_id",
+          "sa_item_balance.table_item_balance.expired_date",
+          "sa_item_balance.table_item_balance.manufacturing_date",
+        ]);
         this.hide("sa_item_balance.table_item_balance.serial_number");
 
         // Hide serial number column

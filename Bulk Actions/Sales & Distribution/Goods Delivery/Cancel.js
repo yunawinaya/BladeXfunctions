@@ -261,7 +261,7 @@
                       );
 
                       baseQty =
-                        Math.round((altQty / uomConversion.alt_qty) * 1000) /
+                        Math.round((altQty * uomConversion.base_qty) * 1000) /
                         1000;
 
                       console.log(

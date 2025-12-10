@@ -73,8 +73,8 @@
     // Handle case when UOM conversion is applicable
     if (uomConversion > 0 && quantity >= 0) {
       // Calculate base quantities using conversion
-      const baseReceivedQty = quantity / uomConversion;
-      const baseInitialReceivedQty = initialReceivedQty / uomConversion;
+      const baseReceivedQty = quantity * uomConversion;
+      const baseInitialReceivedQty = initialReceivedQty * uomConversion;
 
       // Validate that we don't exceed base ordered quantity
       if (baseReceivedQty + baseInitialReceivedQty > baseOrderedQty) {
@@ -85,7 +85,7 @@
         );
 
         const maxAllowedQty =
-          (baseOrderedQty - baseInitialReceivedQty) * uomConversion;
+          (baseOrderedQty - baseInitialReceivedQty) / uomConversion;
         const formattedMaxQty = parseFloat(maxAllowedQty.toFixed(3));
 
         await this.setData({

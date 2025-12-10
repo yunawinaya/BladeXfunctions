@@ -1175,6 +1175,7 @@ class ReceivingIOFTProcessor {
           block_qty: 0,
           reserved_qty: 0,
           intransit_qty: 0,
+          material_uom: materialData.based_uom,
           create_time: new Date().toISOString(),
           update_time: new Date().toISOString(),
           organization_id: organizationId,
@@ -1264,6 +1265,7 @@ class ReceivingIOFTProcessor {
                     categoryField === "intransit_qty"
                       ? this.roundQty(formattedQuantity)
                       : 0,
+                  material_uom: materialData.based_uom,
                   create_time: new Date().toISOString(),
                   update_time: new Date().toISOString(),
                   is_deleted: 0,

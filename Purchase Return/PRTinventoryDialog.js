@@ -33,11 +33,11 @@
       (conv) => conv.alt_uom_id === altUOM
     );
 
-    if (!uomConversion || !uomConversion.alt_qty) {
+    if (!uomConversion || !uomConversion.base_qty) {
       return baseQty;
     }
 
-    return Math.round(baseQty * uomConversion.alt_qty * 1000) / 1000;
+    return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
   };
 
   // Process item balance data with UOM conversion
@@ -303,12 +303,20 @@
 
         // Show or hide batch column based on whether item also has batch management
         if (itemData.item_batch_management === 1) {
-          this.display("confirm_inventory.table_item_balance.batch_id");
+          this.display([
+            "confirm_inventory.table_item_balance.batch_id",
+            "confirm_inventory.table_item_balance.expired_date",
+            "confirm_inventory.table_item_balance.manufacturing_date",
+          ]);
           console.log(
             "Serialized item with batch management - showing both serial and batch columns"
           );
         } else {
-          this.hide("confirm_inventory.table_item_balance.batch_id");
+          this.hide([
+            "confirm_inventory.table_item_balance.batch_id",
+            "confirm_inventory.table_item_balance.expired_date",
+            "confirm_inventory.table_item_balance.manufacturing_date",
+          ]);
           console.log(
             "Serialized item without batch management - hiding batch column"
           );
@@ -365,7 +373,11 @@
         console.log("Processing batch item (non-serialized)");
 
         // Show batch column and hide serial number column
-        this.display("confirm_inventory.table_item_balance.batch_id");
+        this.display([
+          "confirm_inventory.table_item_balance.batch_id",
+          "confirm_inventory.table_item_balance.expired_date",
+          "confirm_inventory.table_item_balance.manufacturing_date",
+        ]);
         this.hide("confirm_inventory.table_item_balance.serial_number");
 
         db.collection("item_batch_balance")
@@ -422,7 +434,11 @@
         console.log("Processing regular item (no batch, no serial)");
 
         // Hide both batch and serial columns
-        this.hide("confirm_inventory.table_item_balance.batch_id");
+        this.hide([
+          "confirm_inventory.table_item_balance.batch_id",
+          "confirm_inventory.table_item_balance.expired_date",
+          "confirm_inventory.table_item_balance.manufacturing_date",
+        ]);
         this.hide("confirm_inventory.table_item_balance.serial_number");
 
         db.collection("item_balance")

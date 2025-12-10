@@ -71,8 +71,8 @@ for (let i = 0; i < data.table_to.length; i++) {
         (conv) => conv.alt_uom_id === fromUOM
       );
 
-      if (fromConversion && fromConversion.alt_qty) {
-        return qty / fromConversion.alt_qty;
+      if (fromConversion && fromConversion.base_qty) {
+        return qty * fromConversion.base_qty;
       }
 
       return qty;

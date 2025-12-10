@@ -8,8 +8,8 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
     (conv) => conv.alt_uom_id === altUOM
   );
 
-  if (uomConversion && uomConversion.alt_qty) {
-    return quantity / uomConversion.alt_qty;
+  if (uomConversion && uomConversion.base_qty) {
+    return quantity * uomConversion.base_qty;
   }
 
   return quantity;

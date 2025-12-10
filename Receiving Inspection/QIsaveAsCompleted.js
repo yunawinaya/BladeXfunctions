@@ -221,7 +221,7 @@ const addInventoryMovementData = async (
     if (matData.received_uom !== itemData.based_uom) {
       for (const uom of itemData.table_uom_conversion) {
         if (matData.received_uom === uom.alt_uom_id) {
-          basedQty = roundQty(inspQuantity / uom.alt_qty);
+          basedQty = roundQty(inspQuantity * uom.base_qty);
         }
       }
     } else if (matData.received_uom === itemData.based_uom) {
@@ -978,7 +978,7 @@ const processBalanceTable = async (itemData, matData, putAwayRequired) => {
       if (matData.received_uom !== itemData.based_uom) {
         for (const uom of itemData.table_uom_conversion) {
           if (matData.received_uom === uom.alt_uom_id) {
-            return roundQty(quantity / uom.alt_qty);
+            return roundQty(quantity * uom.base_qty);
           }
         }
       } else if (matData.received_uom === itemData.based_uom) {

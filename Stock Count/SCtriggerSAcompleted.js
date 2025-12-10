@@ -415,7 +415,8 @@ const updateSerialBalance = async (
   category,
   qtyChange,
   plantId,
-  organizationId
+  organizationId,
+  materialUom
 ) => {
   try {
     console.log(
@@ -555,6 +556,7 @@ const updateSerialBalance = async (
           reserved_qty:
             categoryField === "reserved_qty" ? roundQty(qtyChange) : 0,
           intransit_qty: 0,
+          material_uom: materialUom,
           create_time: new Date(),
           update_time: new Date(),
           is_deleted: 0,
@@ -676,7 +678,8 @@ const processSerializedItemBalancesOnly = async (
           category,
           qtyChange,
           plant_id,
-          organization_id
+          organization_id,
+          materialData.based_uom
         );
       }
     } catch (error) {
@@ -1323,6 +1326,7 @@ const updateInventory = async (allData) => {
             block_qty: 0,
             plant_id: plant_id,
             organization_id: organization_id,
+            material_uom: materialData.based_uom,
           };
           await db.collection(collectionName).add(initialData);
 
@@ -1424,6 +1428,7 @@ const updateInventory = async (allData) => {
                 reserved_qty:
                   qtyField === "reserved_qty" ? roundQty(qtyChange) : 0,
                 intransit_qty: 0,
+                material_uom: materialData.based_uom,
                 create_time: new Date().toISOString(),
                 update_time: new Date().toISOString(),
                 is_deleted: 0,
@@ -1606,7 +1611,9 @@ const updateInventory = async (allData) => {
         );
 
         if (balanceIndexData && Array.isArray(balanceIndexData)) {
-          for (const balance of balanceIndexData.filter((balance) => balance.sa_quantity > 0)) {
+          for (const balance of balanceIndexData.filter(
+            (balance) => balance.sa_quantity > 0
+          )) {
             await updateBalance(balance);
             await recordInventoryMovement(balance);
           }
@@ -1645,7 +1652,9 @@ const updateInventory = async (allData) => {
         );
 
         if (balanceIndexData && Array.isArray(balanceIndexData)) {
-          for (const balance of balanceIndexData.filter((balance) => balance.sa_quantity > 0)) {
+          for (const balance of balanceIndexData.filter(
+            (balance) => balance.sa_quantity > 0
+          )) {
             await updateBalance(balance);
             const movementId = await recordInventoryMovement(balance);
             console.log("Stock Count update response:", movementId);

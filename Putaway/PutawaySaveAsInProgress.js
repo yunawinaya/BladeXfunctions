@@ -607,7 +607,7 @@ const addInventoryMovementData = async (
     if (matData.item_uom !== itemData.based_uom) {
       for (const uom of itemData.table_uom_conversion) {
         if (matData.item_uom === uom.alt_uom_id) {
-          basedQty = roundQty(matData.putaway_qty / uom.alt_qty);
+          basedQty = roundQty(matData.putaway_qty * uom.base_qty);
         }
       }
     } else if (matData.item_uom === itemData.based_uom) {
@@ -1518,10 +1518,10 @@ const processInventoryMovementandBalanceTable = async (
       if (matData.item_uom !== itemData.based_uom) {
         for (const uom of itemData.table_uom_conversion) {
           if (matData.item_uom === uom.alt_uom_id) {
-            const convertedQty = roundQty(quantity / uom.alt_qty);
+            const convertedQty = roundQty(quantity * uom.base_qty);
             console.log("UOM conversion applied", {
               convertedQty,
-              conversion_factor: uom.alt_qty,
+              conversion_factor: uom.base_qty,
             });
             return convertedQty;
           }

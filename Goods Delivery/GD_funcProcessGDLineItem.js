@@ -277,8 +277,8 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
     (conv) => conv.alt_uom_id === altUOM
   );
 
-  if (uomConversion && uomConversion.alt_qty) {
-    return quantity / uomConversion.alt_qty;
+  if (uomConversion && uomConversion.base_qty) {
+    return quantity * uomConversion.base_qty;
   }
 
   return quantity;
@@ -526,8 +526,8 @@ const checkInventoryWithDuplicates = async (
         const uomConversion = itemData.table_uom_conversion?.find(
           (conv) => conv.alt_uom_id === item.altUOM
         );
-        if (uomConversion && uomConversion.alt_qty) {
-          undeliveredQtyBase = undeliveredQty / uomConversion.alt_qty;
+        if (uomConversion && uomConversion.base_qty) {
+          undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
         }
       }
       totalDemandBase += undeliveredQtyBase;
@@ -670,8 +670,8 @@ const checkInventoryWithDuplicates = async (
               const uomConversion = itemData.table_uom_conversion?.find(
                 (conv) => conv.alt_uom_id === item.altUOM
               );
-              if (uomConversion && uomConversion.alt_qty) {
-                undeliveredQtyBase = undeliveredQty / uomConversion.alt_qty;
+              if (uomConversion && uomConversion.base_qty) {
+                undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
               }
             }
 
@@ -684,7 +684,7 @@ const checkInventoryWithDuplicates = async (
             );
             availableQtyAlt =
               item.altUOM !== itemData.based_uom
-                ? allocatedBase * (uomConversion?.alt_qty || 1)
+                ? allocatedBase / (uomConversion?.base_qty || 1)
                 : allocatedBase;
 
             remainingStockBase -= allocatedBase;
@@ -722,8 +722,8 @@ const checkInventoryWithDuplicates = async (
                 const uomConv = itemData.table_uom_conversion?.find(
                   (c) => c.alt_uom_id === item.altUOM
                 );
-                allocationQty = uomConv?.alt_qty
-                  ? availableQtyAlt / uomConv.alt_qty
+                allocationQty = uomConv?.base_qty
+                  ? availableQtyAlt * uomConv.base_qty
                   : availableQtyAlt;
               }
 
@@ -837,8 +837,8 @@ const checkInventoryWithDuplicates = async (
                   const uomConv = itemData.table_uom_conversion?.find(
                     (c) => c.alt_uom_id === item.altUOM
                   );
-                  allocationQty = uomConv?.alt_qty
-                    ? undeliveredQty / uomConv.alt_qty
+                  allocationQty = uomConv?.base_qty
+                    ? undeliveredQty * uomConv.base_qty
                     : undeliveredQty;
                 }
 
@@ -1129,8 +1129,8 @@ const performAutomaticAllocation = async (
         const uomConv = itemData.table_uom_conversion?.find(
           (c) => c.alt_uom_id === uomId
         );
-        gdQty = uomConv?.alt_qty
-          ? allocation.quantity * uomConv.alt_qty
+        gdQty = uomConv?.base_qty
+          ? allocation.quantity / uomConv.base_qty
           : allocation.quantity;
       }
 
@@ -1186,8 +1186,8 @@ const performAutomaticAllocation = async (
         const uomConv = itemData.table_uom_conversion?.find(
           (c) => c.alt_uom_id === uomId
         );
-        displayQty = uomConv?.alt_qty
-          ? allocation.quantity * uomConv.alt_qty
+        displayQty = uomConv?.base_qty
+          ? allocation.quantity / uomConv.base_qty
           : allocation.quantity;
       }
 
@@ -1216,8 +1216,8 @@ const performAutomaticAllocation = async (
       const uomConv = itemData.table_uom_conversion?.find(
         (c) => c.alt_uom_id === uomId
       );
-      totalAllocated = uomConv?.alt_qty
-        ? totalAllocatedBase * uomConv.alt_qty
+      totalAllocated = uomConv?.base_qty
+        ? totalAllocatedBase / uomConv.base_qty
         : totalAllocatedBase;
     }
 

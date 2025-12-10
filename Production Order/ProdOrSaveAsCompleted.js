@@ -6,7 +6,8 @@ const processItemBalance = async (
   reserved_qty,
   unrestricted_qty,
   qualityinsp_qty,
-  intransit_qty
+  intransit_qty,
+  materialUom
 ) => {
   try {
     console.log("processItemBalance - itemBalanceParams:", itemBalanceParams);
@@ -65,6 +66,7 @@ const processItemBalance = async (
         unrestricted_qty: roundQty(unrestricted_qty),
         qualityinsp_qty: roundQty(qualityinsp_qty),
         intransit_qty: roundQty(intransit_qty),
+        material_uom: materialUom,
         is_deleted: 0,
       };
 
@@ -2630,6 +2632,7 @@ const handleInventoryBalanceAndMovement = async (
           create_time: new Date().toISOString(),
           update_time: new Date().toISOString(),
           organization_id: organizationId,
+          material_uom: item.based_uom,
           ...(isBatchedItem
             ? {
                 batch_id: producedBatchId || null,
@@ -2690,7 +2693,8 @@ const handleInventoryBalanceAndMovement = async (
           categoryQuantities.reserved_qty,
           categoryQuantities.unrestricted_qty,
           categoryQuantities.qualityinsp_qty,
-          categoryQuantities.intransit_qty
+          categoryQuantities.intransit_qty,
+          item.based_uom
         );
       }
     } else {
@@ -2726,7 +2730,8 @@ const handleInventoryBalanceAndMovement = async (
             aggregatedQuantities.reserved_qty,
             aggregatedQuantities.unrestricted_qty,
             aggregatedQuantities.qualityinsp_qty,
-            aggregatedQuantities.intransit_qty
+            aggregatedQuantities.intransit_qty,
+            item.based_uom
           );
         }
       }
@@ -3089,7 +3094,7 @@ const createICTPStockMovement = async (allData) => {
           for (const uom of materialData.table_uom_conversion) {
             if (mat.material_uom === uom.alt_uom_id) {
               baseQTY = parseFloat(
-                (parseFloat(matQTY) / uom.alt_qty).toFixed(3)
+                (parseFloat(matQTY) * uom.base_qty).toFixed(3)
               );
             }
           }

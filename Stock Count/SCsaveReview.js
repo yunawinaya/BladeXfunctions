@@ -157,12 +157,12 @@ const createDraftStockAdjustment = async (
 
             console.log("Found conversion:", currentUOMConversion);
 
-            if (currentUOMConversion && currentUOMConversion.alt_qty) {
+            if (currentUOMConversion && currentUOMConversion.base_qty) {
               // Convert from alt UOM back to base UOM
               varianceQtyInBaseUOM =
-                item.variance_qty / currentUOMConversion.alt_qty;
+                item.variance_qty * currentUOMConversion.base_qty;
               console.log(
-                `✅ Converted variance_qty: ${item.variance_qty} ÷ ${currentUOMConversion.alt_qty} = ${varianceQtyInBaseUOM}`
+                `✅ Converted variance_qty: ${item.variance_qty} × ${currentUOMConversion.base_qty} = ${varianceQtyInBaseUOM}`
               );
             } else {
               console.warn(

@@ -1662,6 +1662,7 @@ const handleLoadingBayInventoryMovement = async (
               reserved_qty: baseQty,
               unrestricted_qty: 0,
               balance_quantity: baseQty,
+              material_uom: baseUOM,
             });
 
             console.log(
@@ -1760,6 +1761,7 @@ const handleLoadingBayInventoryMovement = async (
               reserved_qty: baseQty,
               unrestricted_qty: 0,
               balance_quantity: baseQty,
+              material_uom: baseUOM,
             };
 
             if (batchId) {
@@ -1853,6 +1855,7 @@ const handleLoadingBayInventoryMovement = async (
                 reserved_qty: baseQty,
                 unrestricted_qty: 0,
                 balance_quantity: baseQty,
+                material_uom: baseUOM,
               });
 
               console.log(

@@ -1929,6 +1929,7 @@ const handleLoadingBayInventoryMovement = async (
               reserved_qty: baseQty,
               balance_quantity: baseQty,
               unrestricted_qty: 0,
+              material_uom: gdLineItem.gd_base_uom_id,
             };
 
             await db.collection("item_batch_balance").add(newBatchBalance);

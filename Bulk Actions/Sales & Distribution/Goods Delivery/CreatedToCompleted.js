@@ -88,7 +88,7 @@ const validateBulkInventoryAvailability = async (goodsDeliveryData) => {
             );
 
             if (uomConversion) {
-              baseQty = roundQty(baseQty / uomConversion.alt_qty);
+              baseQty = roundQty(baseQty * uomConversion.base_qty);
             }
           }
 
@@ -1670,8 +1670,8 @@ const processBalanceTable = async (
                 `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
               );
 
-              baseQty = roundQty(altQty / uomConversion.alt_qty);
-              baseWAQty = roundQty(altWAQty / uomConversion.alt_qty);
+              baseQty = roundQty(altQty * uomConversion.base_qty);
+              baseWAQty = roundQty(altWAQty * uomConversion.base_qty);
 
               console.log(
                 `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`
@@ -1703,7 +1703,7 @@ const processBalanceTable = async (
 
                 if (uomConversion) {
                   currentPrevBaseQty = roundQty(
-                    prevAltQty / uomConversion.alt_qty
+                    prevAltQty * uomConversion.base_qty
                   );
                 }
                 prevBaseQty += currentPrevBaseQty;
@@ -1877,7 +1877,7 @@ const processBalanceTable = async (
                       reserved: reservedQty,
                       individualQty: roundQty(temp.gd_quantity),
                       individualBaseQty: uomConversion
-                        ? roundQty(temp.gd_quantity / uomConversion.alt_qty)
+                        ? roundQty(temp.gd_quantity * uomConversion.base_qty)
                         : roundQty(temp.gd_quantity),
                     });
 
@@ -2196,7 +2196,7 @@ const processBalanceTable = async (
 
                   // Calculate alternative UOM for unused quantity
                   const unusedAltQty = uomConversion
-                    ? roundQty(unusedReservedQty * uomConversion.alt_qty)
+                    ? roundQty(unusedReservedQty / uomConversion.base_qty)
                     : unusedReservedQty;
 
                   // Create movement to release unused reserved back to unrestricted
@@ -2409,7 +2409,7 @@ const processBalanceTable = async (
                       let individualBaseQty = roundQty(temp.gd_quantity);
                       if (uomConversion) {
                         individualBaseQty = roundQty(
-                          individualBaseQty / uomConversion.alt_qty
+                          individualBaseQty * uomConversion.base_qty
                         );
                       }
 

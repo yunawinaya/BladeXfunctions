@@ -251,7 +251,9 @@ if (materialId) {
       console.log("itemData", itemData);
 
       // Get UOM options and set up material UOM
-      const altUoms = itemData.table_uom_conversion?.map((data) => data.alt_uom_id);
+      const altUoms = itemData.table_uom_conversion?.map(
+        (data) => data.alt_uom_id
+      );
       let uomOptions = [];
 
       const res = await fetchUomData(altUoms);
@@ -284,12 +286,20 @@ if (materialId) {
 
         // Show or hide batch column based on whether item also has batch management
         if (itemData.item_batch_management === 1) {
-          this.display("sm_item_balance.table_item_balance.batch_id");
+          this.display([
+            "sm_item_balance.table_item_balance.batch_id",
+            "sm_item_balance.table_item_balance.dialog_expired_date",
+            "sm_item_balance.table_item_balance.dialog_manufacturing_date",
+          ]);
           console.log(
             "Serialized item with batch management - showing both serial and batch columns"
           );
         } else {
-          this.hide("sm_item_balance.table_item_balance.batch_id");
+          this.hide([
+            "sm_item_balance.table_item_balance.batch_id",
+            "sm_item_balance.table_item_balance.dialog_expired_date",
+            "sm_item_balance.table_item_balance.dialog_manufacturing_date",
+          ]);
           console.log(
             "Serialized item without batch management - hiding batch column"
           );
@@ -354,7 +364,11 @@ if (materialId) {
         console.log("Processing batch item (non-serialized)");
 
         // Show batch column and hide serial number column
-        this.display("sm_item_balance.table_item_balance.batch_id");
+        this.display([
+          "sm_item_balance.table_item_balance.batch_id",
+          "sm_item_balance.table_item_balance.dialog_expired_date",
+          "sm_item_balance.table_item_balance.dialog_manufacturing_date",
+        ]);
         this.hide("sm_item_balance.table_item_balance.serial_number");
 
         db.collection("item_batch_balance")
@@ -374,11 +388,18 @@ if (materialId) {
                   return {
                     ...itemWithoutId,
                     balance_id: id, // Keep balance_id for reference
+                    dialog_expired_date: item.expired_date, // Map expired_date to dialog field
+                    dialog_manufacturing_date: item.manufacturing_date, // Map manufacturing_date to dialog field
                   };
                 })
               : (() => {
                   const { id, ...itemWithoutId } = itemBalanceData;
-                  return { ...itemWithoutId, balance_id: id };
+                  return {
+                    ...itemWithoutId,
+                    balance_id: id,
+                    dialog_expired_date: itemBalanceData.expired_date,
+                    dialog_manufacturing_date: itemBalanceData.manufacturing_date,
+                  };
                 })();
 
             let finalData = mappedData;
@@ -412,7 +433,11 @@ if (materialId) {
         console.log("Processing regular item (no batch, no serial)");
 
         // Hide both batch and serial columns
-        this.hide("sm_item_balance.table_item_balance.batch_id");
+        this.hide([
+          "sm_item_balance.table_item_balance.batch_id",
+          "sm_item_balance.table_item_balance.dialog_expired_date",
+          "sm_item_balance.table_item_balance.dialog_manufacturing_date",
+        ]);
         this.hide("sm_item_balance.table_item_balance.serial_number");
 
         db.collection("item_balance")

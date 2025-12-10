@@ -224,12 +224,7 @@ const fetchPickingSetup = async (organizationId) => {
     const pickingAfter = resPickingSetup.picking_after;
 
     if (pickingAfter === "Sales Order") {
-      await this.display(["so_id"]);
       await this.hide(["gd_id"]);
-      await this.disabled(["so_id"], false);
-    } else {
-      await this.disabled(["so_id"], true);
-      await this.disabled(["gd_id"], false);
     }
   } catch (error) {
     console.error(error);

@@ -483,12 +483,20 @@
       this.display("gd_item_balance.reset_search");
 
       if (itemData.item_batch_management === 1) {
-        this.display("gd_item_balance.table_item_balance.batch_id");
+        this.display([
+          "gd_item_balance.table_item_balance.batch_id",
+          "gd_item_balance.table_item_balance.expired_date",
+          "gd_item_balance.table_item_balance.manufacturing_date",
+        ]);
         console.log(
           "Serialized item with batch management - showing both serial and batch columns"
         );
       } else {
-        this.hide("gd_item_balance.table_item_balance.batch_id");
+        this.hide([
+          "gd_item_balance.table_item_balance.batch_id",
+          "gd_item_balance.table_item_balance.expired_date",
+          "gd_item_balance.table_item_balance.manufacturing_date",
+        ]);
         console.log(
           "Serialized item without batch management - hiding batch column"
         );
@@ -512,7 +520,11 @@
     } else if (itemData.item_batch_management === 1) {
       console.log("Processing batch item (non-serialized)");
 
-      this.display("gd_item_balance.table_item_balance.batch_id");
+      this.display([
+        "gd_item_balance.table_item_balance.batch_id",
+        "gd_item_balance.table_item_balance.expired_date",
+        "gd_item_balance.table_item_balance.manufacturing_date",
+      ]);
       this.hide("gd_item_balance.table_item_balance.serial_number");
 
       if (isSelectPicking) {
@@ -533,7 +545,11 @@
     } else {
       console.log("Processing regular item (no batch, no serial)");
 
-      this.hide("gd_item_balance.table_item_balance.batch_id");
+      this.hide([
+        "gd_item_balance.table_item_balance.batch_id",
+        "gd_item_balance.table_item_balance.expired_date",
+        "gd_item_balance.table_item_balance.manufacturing_date",
+      ]);
       this.hide("gd_item_balance.table_item_balance.serial_number");
 
       if (isSelectPicking) {

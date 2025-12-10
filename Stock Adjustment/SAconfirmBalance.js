@@ -80,8 +80,8 @@
           const fromConversion = table_uom_conversion.find(
             (conv) => conv.alt_uom_id === fromUOM
           );
-          if (fromConversion && fromConversion.alt_qty) {
-            baseQty = value / fromConversion.alt_qty;
+          if (fromConversion && fromConversion.base_qty) {
+            baseQty = value * fromConversion.base_qty;
           }
         }
 
@@ -90,8 +90,8 @@
           const toConversion = table_uom_conversion.find(
             (conv) => conv.alt_uom_id === toUOM
           );
-          if (toConversion && toConversion.alt_qty) {
-            return Math.round(baseQty * toConversion.alt_qty * 1000) / 1000;
+          if (toConversion && toConversion.base_qty) {
+            return Math.round(baseQty / toConversion.base_qty * 1000) / 1000;
           }
         }
 

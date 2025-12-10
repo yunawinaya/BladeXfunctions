@@ -33,7 +33,7 @@
       uomConversion,
     });
 
-    const receivedQty = quantity * uomConversion;
+    const receivedQty = uomConversion > 0 ? quantity * uomConversion : quantity;
 
     const toReceivedQty = baseOrderedQty - receivedQty - initialReceivedQty;
 
