@@ -113,7 +113,7 @@
         return baseQty;
       }
 
-      return Math.round(baseQty / uomConversion.base_qty * 1000) / 1000;
+      return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
     };
 
     const processItemBalanceData = (
