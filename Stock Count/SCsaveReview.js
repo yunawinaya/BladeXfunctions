@@ -93,8 +93,18 @@ const createDraftStockAdjustment = async (
       const adjSummaryDetails = [];
 
       for (const item of items) {
-        // Convert variance_qty to base UOM if needed
-        let varianceQtyInBaseUOM = item.variance_qty;
+        // Use adjusted_qty if different from variance_qty, otherwise use variance_qty
+        let varianceToUse = item.variance_qty;
+        if (item.adjusted_qty !== undefined && item.adjusted_qty !== null &&
+            item.adjusted_qty !== item.variance_qty) {
+          varianceToUse = item.adjusted_qty;
+          console.log(
+            `Using adjusted_qty (${item.adjusted_qty}) instead of variance_qty (${item.variance_qty}) for item ${item.material_id}`
+          );
+        }
+
+        // Convert variance to base UOM if needed
+        let varianceQtyInBaseUOM = varianceToUse;
 
         if (item.uom_id !== item.base_uom_id) {
           console.log(
@@ -160,9 +170,9 @@ const createDraftStockAdjustment = async (
             if (currentUOMConversion && currentUOMConversion.base_qty) {
               // Convert from alt UOM back to base UOM
               varianceQtyInBaseUOM =
-                item.variance_qty * currentUOMConversion.base_qty;
+                varianceToUse * currentUOMConversion.base_qty;
               console.log(
-                `✅ Converted variance_qty: ${item.variance_qty} × ${currentUOMConversion.base_qty} = ${varianceQtyInBaseUOM}`
+                `✅ Converted variance: ${varianceToUse} × ${currentUOMConversion.base_qty} = ${varianceQtyInBaseUOM}`
               );
             } else {
               console.warn(
@@ -382,16 +392,26 @@ const updateEntry = async (entry, stockCountId) => {
       ).length;
       const total_counted = `${lockedItems} / ${totalItems}`;
 
-      // Calculate total_variance: (total variance_qty / total system_qty) * 100
-      const totalCountQty = data.table_stock_count.reduce(
-        (sum, item) => sum + (parseFloat(item.count_qty) || 0),
-        0
-      );
+      // Calculate total_variance using adjusted_qty when available, otherwise variance_qty
       const totalSystemQty = data.table_stock_count.reduce(
         (sum, item) => sum + (parseFloat(item.system_qty) || 0),
         0
       );
-      const totalVarianceQty = totalCountQty - totalSystemQty;
+
+      // Sum up the actual variance to be used (adjusted_qty if different, otherwise variance_qty)
+      const totalVarianceQty = data.table_stock_count.reduce((sum, item) => {
+        const varianceQty = parseFloat(item.variance_qty) || 0;
+        const adjustedQty = parseFloat(item.adjusted_qty);
+
+        // Use adjusted_qty if it's defined and different from variance_qty
+        const actualVariance = (adjustedQty !== undefined &&
+                                adjustedQty !== null &&
+                                adjustedQty !== varianceQty)
+          ? adjustedQty
+          : varianceQty;
+
+        return sum + actualVariance;
+      }, 0);
 
       const variancePercentage =
         totalSystemQty > 0

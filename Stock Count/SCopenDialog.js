@@ -83,6 +83,7 @@ const fetchAllLocations = async () => {
       hideTab("item_selection");
       hideTab("batch_selection");
     } else if (data.count_type === "Location") {
+      hideTab("storage_selection");
       hideTab("item_selection");
       hideTab("batch_selection");
     } else {
@@ -90,6 +91,7 @@ const fetchAllLocations = async () => {
       console.log("locationList", locationList);
       this.models["locationList"] = locationList;
       selectTab("item_selection");
+      hideTab("storage_selection");
       hideTab("location_selection");
       hideTab("batch_selection");
       this.hide("dialog_select_stock.batch_balance");

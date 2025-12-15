@@ -168,6 +168,7 @@ const showStockCount = async (scStatus, reviewStatus) => {
       "table_stock_count.system_qty",
       "table_stock_count.variance_qty",
       "table_stock_count.variance_percentage",
+      "table_stock_count.balance_distribution",
     ]);
   }
 
@@ -263,6 +264,7 @@ const showReview = async (scStatus, reviewStatus) => {
 
   await this.display([
     "table_stock_count",
+    "table_stock_count.balance_distribution",
     "table_stock_count.count_qty",
     "table_stock_count.adjusted_qty",
     "table_stock_count.variance_qty",
@@ -406,6 +408,7 @@ const showReview = async (scStatus, reviewStatus) => {
         await this.display([
           "table_stock_count.review_status",
           "table_stock_count.adjusted_qty",
+          "table_stock_count.balance_distribution",
         ]);
       }
 

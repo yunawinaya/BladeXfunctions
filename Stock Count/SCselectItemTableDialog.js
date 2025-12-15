@@ -45,7 +45,12 @@ const displayTab = (tabName) => {
         item_name: item.material_id.material_name,
         material_desc: item.material_id.material_desc,
         item_category: item.material_id.item_category,
-        balance_quantity: item.unrestricted_qty,
+        unrestricted_qty: parseFloat(item.unrestricted_qty),
+        reserved_qty: parseFloat(item.reserved_qty),
+        block_qty: parseFloat(item.block_qty),
+        intransit_qty: parseFloat(item.intransit_qty),
+        qualityinsp_qty: parseFloat(item.qualityinsp_qty),
+        balance_quantity: parseFloat(item.balance_quantity),
         location_id: item.location_id.id,
         uom_id: item.material_id.based_uom,
         table_uom_conversion: item.material_id.table_uom_conversion,
@@ -68,7 +73,7 @@ const displayTab = (tabName) => {
         this.getComponent(
           "dialog_select_stock.batch_balance"
         )?.$refs.crud.toggleAllSelection();
-      }, 1000);
+      }, 800);
     } else {
       this.triggerEvent("onClick_countStock");
     }
