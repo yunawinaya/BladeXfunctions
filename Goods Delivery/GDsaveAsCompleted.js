@@ -891,7 +891,7 @@ const addEntryWithValidation = async (organizationId, gd, gdStatus, isGDPP) => {
       console.log(
         "Inventory validation failed - user notified via alert dialog"
       );
-      return;
+      throw error; // Throw error to prevent on_reserved_gd update
     }
 
     this.$message.error(error);
@@ -995,7 +995,7 @@ const updateEntryWithValidation = async (
       console.log(
         "Inventory validation failed - user notified via alert dialog"
       );
-      return;
+      throw error; // Throw error to prevent on_reserved_gd update
     }
 
     this.$message.error(error);
@@ -4771,7 +4771,10 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
   } catch (error) {
     this.hideLoading();
 
-    if (error.message === "Inventory validation failed") {
+    if (
+      error.message &&
+      error.message.includes("Inventory validation failed")
+    ) {
       console.log(
         "Inventory validation failed - user notified via alert dialog"
       );

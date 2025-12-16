@@ -60,9 +60,8 @@
 
     // Get current balance distribution data from balance_distribution field
     // Parse it to extract current quantities
-    const balanceDistributionStr = this.getValue(
-      `table_stock_count.${rowIndex}.balance_distribution`
-    ) || "";
+    const balanceDistributionStr =
+      this.getValue(`table_stock_count.${rowIndex}.balance_distribution`) || "";
 
     // Calculate new balance distribution with variance applied to Unrestricted
     const updateBalanceDistribution = (currentDistribution, variance) => {
@@ -73,14 +72,20 @@
 
       // Extract system values from the distribution string (original values without variance)
       const totalMatch = currentDistribution.match(/TOTAL:\s*([\d.]+)/);
-      const unrestrictedMatch = currentDistribution.match(/Unrestricted:\s*([\d.]+)/);
+      const unrestrictedMatch = currentDistribution.match(
+        /Unrestricted:\s*([\d.]+)/
+      );
       const reservedMatch = currentDistribution.match(/Reserved:\s*([\d.]+)/);
       const blockedMatch = currentDistribution.match(/Blocked:\s*([\d.]+)/);
-      const qualityMatch = currentDistribution.match(/Quality Inspection:\s*([\d.]+)/);
+      const qualityMatch = currentDistribution.match(
+        /Quality Inspection:\s*([\d.]+)/
+      );
       const transitMatch = currentDistribution.match(/In Transit:\s*([\d.]+)/);
 
       const systemTotal = totalMatch ? parseFloat(totalMatch[1]) : 0;
-      const systemUnrestricted = unrestrictedMatch ? parseFloat(unrestrictedMatch[1]) : 0;
+      const systemUnrestricted = unrestrictedMatch
+        ? parseFloat(unrestrictedMatch[1])
+        : 0;
       const systemReserved = reservedMatch ? parseFloat(reservedMatch[1]) : 0;
       const systemBlocked = blockedMatch ? parseFloat(blockedMatch[1]) : 0;
       const systemQuality = qualityMatch ? parseFloat(qualityMatch[1]) : 0;
@@ -107,7 +112,9 @@
       }
 
       return details.length > 0
-        ? `TOTAL: ${systemTotal} ${varianceStr}\n\nBreakdown:\n${details.join('\n')}`
+        ? `TOTAL: ${systemTotal} ${varianceStr}\n\nBreakdown:\n${details.join(
+            "\n"
+          )}`
         : `TOTAL: ${systemTotal} ${varianceStr}`;
     };
 
@@ -122,7 +129,8 @@
       [`table_stock_count.${rowIndex}.is_counted`]: isCounted,
       [`table_stock_count.${rowIndex}.adjusted_qty`]: varianceQty,
       [`table_stock_count.${rowIndex}.line_status`]: newLineStatus,
-      [`table_stock_count.${rowIndex}.balance_distribution`]: newBalanceDistribution,
+      [`table_stock_count.${rowIndex}.balance_distribution`]:
+        newBalanceDistribution,
     });
   } catch (error) {
     console.error(error);

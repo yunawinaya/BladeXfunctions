@@ -271,6 +271,7 @@ const showReview = async (scStatus, reviewStatus) => {
     "table_stock_count.variance_percentage",
     "table_stock_count.review_sub_button",
     "button_review",
+    "button_sync",
     "button_approve_all",
   ]);
 
