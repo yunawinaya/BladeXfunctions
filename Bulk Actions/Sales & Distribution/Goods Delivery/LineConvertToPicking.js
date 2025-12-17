@@ -17,7 +17,7 @@ const handlePicking = async (selectedRecords) => {
 
   if (!allSamePlant) {
     this.$alert(
-      "All selected goods deliveries must be from the same plant to create a single picking.",
+      "All selected goods delivery lines must be from the same plant to create a single picking.",
       "Error",
       {
         confirmButtonText: "OK",
@@ -25,7 +25,7 @@ const handlePicking = async (selectedRecords) => {
       }
     );
     throw new Error(
-      "All selected goods deliveries must be from the same plant."
+      "All selected goods delivery lines must be from the same plant."
     );
   }
 
@@ -41,7 +41,7 @@ const handlePicking = async (selectedRecords) => {
 
     if (!allSameCustomer) {
       this.$alert(
-        "All selected goods deliveries must be from the same customer to create a single picking due to packing requirement.",
+        "All selected goods delivery lines must be from the same customer to create a single picking due to packing requirement.",
         "Error",
         {
           confirmButtonText: "OK",
@@ -49,23 +49,23 @@ const handlePicking = async (selectedRecords) => {
         }
       );
       throw new Error(
-        "All selected goods deliveries must be from the same customer due to packing requirement."
+        "All selected goods delivery lines must be from the same customer due to packing requirement."
       );
     }
   }
 
   this.showLoading("Converting to Picking...");
   await this.runWorkflow(
-    "1986262284472963073",
+    "1986287276094935041",
     {
-      gd_ids: selectedRecords.map((gd) => gd.id),
+      gd_line_id: selectedRecords.map((gd) => gd.id),
       plant_id: selectedRecords[0].plant_id.id,
     },
     async (res) => {
       this.hideLoading();
       const pickingData = res.data.data;
       await this.toView({
-        target: "1935556443668959233",
+        target: "1986287276094935041",
         type: "add",
         data: { ...pickingData },
         position: "rtl",
@@ -83,22 +83,22 @@ const handlePicking = async (selectedRecords) => {
 
 (async () => {
   try {
-    const allListID = "custom_ezwb0qqp";
+    const detaliedListID = "custom_5alercn9";
 
     let selectedRecords;
 
-    selectedRecords = this.getComponent(allListID)?.$refs.crud.tableSelect;
+    selectedRecords = this.getComponent(detaliedListID)?.$refs.crud.tableSelect;
 
     console.log("selectedRecords", selectedRecords);
 
     if (selectedRecords && selectedRecords.length > 0) {
-      selectedRecords = selectedRecords.filter((item) =>
-        item.table_gd.some((gdItem) => gdItem.picking_status === "Not Created")
+      selectedRecords = selectedRecords.filter(
+        (item) => item.picking_status === "Not Created"
       );
 
       if (selectedRecords.length === 0) {
         await this.$alert(
-          "No selected records are available for conversion. Please select records with picking status 'Not Created' or 'Created' or 'In Progress'.",
+          "No selected records are available for conversion. Please select records with picking status 'Not Created'.",
           "No Records to Convert",
           {
             confirmButtonText: "OK",
@@ -112,15 +112,12 @@ const handlePicking = async (selectedRecords) => {
       // Filter out records that are not "Not Created"
       await this.$confirm(
         `Only these goods delivery records available for conversion. Proceed?<br><br>
-  <strong>Selected Records:</strong><br> ${selectedRecords
-    .map((item) => {
-      const totalItems = item.table_gd.length;
-      const pickableItems = item.table_gd.filter(
-        (gdItem) => gdItem.picking_status === "Not Created"
-      ).length;
-      return `${item.delivery_no} (${pickableItems}/${totalItems} items)`;
-    })
-    .join("<br>")}`,
+        <strong>Selected Records:</strong><br> ${selectedRecords
+          .map(
+            (item) =>
+              item.goods_delivery_id.delivery_no + " Line #" + item.line_index
+          )
+          .join("<br>")}`,
         "Confirm Conversion",
         {
           confirmButtonText: "Proceed",
@@ -135,7 +132,7 @@ const handlePicking = async (selectedRecords) => {
 
       if (selectedRecords.length > 0) {
         await handlePicking(selectedRecords);
-        await this.getComponent(allListID)?.$refs.crud.clearSelection();
+        await this.getComponent(detaliedListID)?.$refs.crud.clearSelection();
       }
     } else {
       this.$message.error("Please select at least one record.");

@@ -934,7 +934,7 @@ const updateSalesOrder = async (toData) => {
   }
 };
 
-const addEntry = async (organizationId, toData, isPacking) => {
+const addEntry = async (organizationId, toData, isPacking, packingSetup) => {
   try {
     const prefixData = await getPrefixData(organizationId, "Transfer Order");
 
@@ -980,6 +980,7 @@ const addEntry = async (organizationId, toData, isPacking) => {
     if (isPacking === 1 && toData.to_status === "Completed") {
       await this.triggerEvent("triggerPacking", {
         pickingData: createdRecord.data[0],
+        packingSetup: packingSetup,
       });
     }
 
@@ -996,7 +997,8 @@ const updateEntry = async (
   toData,
   toId,
   originalToStatus,
-  isPacking
+  isPacking,
+  packingSetup
 ) => {
   try {
     if (originalToStatus === "Draft") {
@@ -1040,6 +1042,7 @@ const updateEntry = async (
     if (isPacking === 1 && toData.to_status === "Completed") {
       await this.triggerEvent("triggerPacking", {
         pickingData: toData,
+        packingSetup: packingSetup,
       });
     }
 
@@ -2329,15 +2332,15 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
   }
 };
 
-const isPackingRequired = async (organizationId) => {
+const getPackingSetup = async (organizationId) => {
   try {
     const packingData = await db
       .collection("packing_setup")
       .where({ organization_id: organizationId })
       .get();
-    return packingData.data[0].packing_required;
+    return packingData.data[0];
   } catch (error) {
-    console.error("Error in isPacking:", error);
+    console.error("Error in getPackingSetup:", error);
     throw error;
   }
 };
@@ -2391,7 +2394,8 @@ const isPackingRequired = async (organizationId) => {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
-    const isPacking = await isPackingRequired(organizationId);
+    const packingSetup = await getPackingSetup(organizationId);
+    const isPacking = packingSetup.packing_required;
 
     const tablePickingItems = this.getValue("table_picking_items");
     console.log("Table Picking Items:", tablePickingItems);
@@ -2461,7 +2465,7 @@ const isPackingRequired = async (organizationId) => {
 
     // Perform action based on page status
     if (page_status === "Add") {
-      await addEntry(organizationId, toData, isPacking);
+      await addEntry(organizationId, toData, isPacking, packingSetup);
       for (const gdId of data.gd_no) {
         await updateGoodsDelivery(
           gdId,
@@ -2478,7 +2482,8 @@ const isPackingRequired = async (organizationId) => {
         toData,
         toId,
         originalToStatus,
-        isPacking
+        isPacking,
+        packingSetup
       );
       for (const gdId of data.gd_no) {
         await updateGoodsDelivery(

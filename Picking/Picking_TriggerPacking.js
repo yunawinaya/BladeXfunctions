@@ -99,7 +99,7 @@ const updatePrefix = async (organizationId, runningNumber) => {
       })
       .update({
         running_number: parseInt(runningNumber) + 1,
-        has_record: 1
+        has_record: 1,
       });
   } catch (error) {
     console.error("Error updating prefix:", error);
@@ -175,12 +175,9 @@ const updateGDStatus = async (data) => {
       // Update gd_line status
       await Promise.all(
         uniqueGDLineIds.map((gdLineId) =>
-          db
-            .collection("goods_delivery_fwii8mvb_sub")
-            .doc(gdLineId)
-            .update({
-              packing_status: "Created",
-            })
+          db.collection("goods_delivery_fwii8mvb_sub").doc(gdLineId).update({
+            packing_status: "Created",
+          })
         )
       );
     }
@@ -233,22 +230,27 @@ const updateTOStatus = async (data) => {
 (async () => {
   try {
     const data = arguments[0].pickingData;
+    const packingSetup = arguments[0].packingSetup;
 
     // Validate picking items exist
     if (!data.table_picking_items || data.table_picking_items.length === 0) {
       throw new Error("No picking items found to create packing");
     }
 
-    const soId = data.table_picking_items[0].so_id;
+    const firstSOId = data.table_picking_items[0].so_id;
+
+    const uniqueSOIds = [
+      ...new Set(data.table_picking_items.map((item) => item.so_id)),
+    ];
 
     // Fetch sales order data with is_deleted filter
     const soResult = await db
       .collection("sales_order")
-      .where({ id: soId, is_deleted: 0 })
+      .where({ id: firstSOId, is_deleted: 0 })
       .get();
 
     if (!soResult.data || soResult.data.length === 0) {
-      throw new Error(`Sales Order not found for ID: ${soId}`);
+      throw new Error(`Sales Order not found for ID: ${firstSOId}`);
     }
 
     const soData = soResult.data[0];
@@ -280,15 +282,15 @@ const updateTOStatus = async (data) => {
       packing_status: "Created",
       plant_id: data.plant_id,
       packing_no: packingPrefix,
-      so_id: soId,
-      gd_id: firstPickingItem.gd_id || "",
+      so_id: uniqueSOIds,
+      gd_id: data.gd_no || [],
       to_id: firstPickingItem.to_id || "",
       so_no: data.so_no || "",
       gd_no: firstPickingItem.gd_no || "",
       customer_id: soData.customer_name,
       billing_address: soData.cust_billing_address || "",
       shipping_address: soData.cust_shipping_address || "",
-      packing_mode: "Basic",
+      packing_mode: packingSetup.packing_mode,
       created_by: data.created_by,
       created_at: new Date().toISOString().split("T")[0],
       organization_id: data.organization_id,
