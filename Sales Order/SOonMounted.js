@@ -246,7 +246,7 @@ const cloneResetQuantity = async () => {
     sr_status: "",
     srr_status: "",
     sqt_no: "",
-    sqt_id: "",
+    sqt_id: [],
 
     table_so: tableSO,
     partially_delivered: `0 / ${tableSO.length}`,
@@ -290,7 +290,7 @@ const convertBaseToAlt = (baseQty, uomConversionTable, baseUOM) => {
     return baseQty;
   }
 
-  return Math.round(baseQty / uomConversion.base_qty * 1000) / 1000;
+  return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
 };
 
 const fetchUnrestrictedQty = async () => {
@@ -419,25 +419,6 @@ const fetchUnrestrictedQty = async () => {
   }
 };
 
-const setDefaultDocNo = async (organizationID) => {
-  const defaultDocFormatFilter = new Filter("all")
-    .equal("organization_id", organizationID)
-    .equal("document_types", "Sales Orders")
-    .numberEqual("is_default", 1)
-    .build();
-  const resDefaultDocFormat = await db
-    .collection("document_number")
-    .filter(defaultDocFormatFilter)
-    .get();
-
-  if (resDefaultDocFormat && resDefaultDocFormat.data.length > 0) {
-    this.setData({
-      document_no_format: resDefaultDocFormat.data[0].id,
-      so_no: "<<new>>",
-    });
-  }
-};
-
 (async () => {
   try {
     const status = await this.getValue("so_status");
@@ -472,7 +453,6 @@ const setDefaultDocNo = async (organizationID) => {
       case "Add":
         this.display(["draft_status"]);
         await checkAccIntegrationType(organizationId);
-        await setDefaultDocNo(organizationId);
         await setPlant(organizationId, pageStatus);
         this.setData({
           so_date: new Date().toISOString().split("T")[0],
@@ -505,6 +485,7 @@ const setDefaultDocNo = async (organizationID) => {
           this.display("sqt_no");
         }
 
+        this.setData({ previous_status: status });
         if (status !== "Draft") {
           this.disabled(["so_no", "document_no_format"], true);
         }
@@ -524,9 +505,12 @@ const setDefaultDocNo = async (organizationID) => {
 
       case "Clone":
         this.display(["draft_status"]);
-        this.setData({ so_date: new Date().toISOString().split("T")[0] });
+        this.setData({
+          so_date: new Date().toISOString().split("T")[0],
+          so_no: null,
+          so_status: null,
+        });
         await setPlant(organizationId, pageStatus);
-        await setDefaultDocNo(organizationId);
         if (this.getValue("sqt_no")) {
           this.display("sqt_no");
         }
@@ -566,3 +550,21 @@ const setDefaultDocNo = async (organizationID) => {
     this.$message.error(error.message || "An error occurred");
   }
 })();
+
+setTimeout(async () => {
+  if (this.isAdd) {
+    const op = await this.onDropdownVisible("so_no_type", true);
+    function getDefaultItem(arr) {
+      return arr?.find((item) => item?.item?.item?.is_default === 1);
+    }
+    setTimeout(() => {
+      const optionsData = this.getOptionData("so_no_type") || [];
+      const data = getDefaultItem(optionsData);
+      if (data) {
+        this.setData({
+          so_no_type: data.value,
+        });
+      }
+    }, 500);
+  }
+}, 500);
