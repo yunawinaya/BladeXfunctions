@@ -40,6 +40,12 @@ const closeDialog = () => {
         return;
       }
 
+      if (workflowResult.data.errorStatus === "fullyPacked") {
+        this.hideLoading();
+        this.$message.error(workflowResult.data.message);
+        return;
+      }
+
       // Handle any other error status
       if (workflowResult.data.message) {
         this.hideLoading();

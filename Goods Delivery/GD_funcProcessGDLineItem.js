@@ -1708,7 +1708,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
     .collection("picking_setup")
     .where({
       plant_id: plant,
-      movement_type: "Good Delivery",
+      picking_after: "Goods Delivery",
       picking_required: 1,
     })
     .get();
