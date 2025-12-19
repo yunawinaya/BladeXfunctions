@@ -271,7 +271,7 @@ const updateTOStatus = async (data) => {
       // Return transformed item with quantity from qty_to_pick
       return {
         ...restFields,
-        quantity: qty_to_pick,
+        total_quantity: qty_to_pick,
       };
     });
 
@@ -282,11 +282,11 @@ const updateTOStatus = async (data) => {
       packing_status: "Created",
       plant_id: data.plant_id,
       packing_no: packingPrefix,
-      so_id: uniqueSOIds,
+      so_id: uniqueSOIds || [],
       gd_id: data.gd_no || [],
       to_id: firstPickingItem.to_id || "",
       so_no: data.so_no || "",
-      gd_no: firstPickingItem.gd_no || "",
+      gd_no: data.delivery_no || "",
       customer_id: soData.customer_name,
       billing_address: soData.cust_billing_address || "",
       shipping_address: soData.cust_shipping_address || "",

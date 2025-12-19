@@ -1536,10 +1536,14 @@ const getPackingSetup = async (organizationId) => {
       .collection("packing_setup")
       .where({ organization_id: organizationId })
       .get();
+
+    if (!packingData.data || packingData.data.length === 0) {
+      return [];
+    }
     return packingData.data[0];
   } catch (error) {
     console.error("Error in getPackingSetup:", error);
-    throw error;
+    return [];
   }
 };
 
@@ -1592,7 +1596,7 @@ const getPackingSetup = async (organizationId) => {
     }
 
     const packingSetup = await getPackingSetup(organizationId);
-    const isPacking = packingSetup.packing_required;
+    const isPacking = packingSetup?.packing_required || 0;
 
     const tablePickingItems = this.getValue("table_picking_items");
     console.log("Table Picking Items:", tablePickingItems);

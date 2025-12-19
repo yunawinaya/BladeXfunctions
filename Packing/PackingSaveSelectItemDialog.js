@@ -2,6 +2,7 @@
   try {
     const dialogData = this.getValue("dialog_select_items");
     const tableHU = this.getValue("table_hu");
+    const tableItem = this.getValue("table_items");
     const rowIndex = dialogData.row_index;
     const tableSelectItems = dialogData.table_select_items;
 
@@ -22,7 +23,7 @@
 
       if (quantityToPack < 0) {
         this.$message.error(
-          `Quantity to pack cannot be negative for ${item.item_code}`
+          `Quantity to pack cannot be negative for ${item.item_name}`
         );
         return;
       }
@@ -31,7 +32,7 @@
       const totalPacked = packedQty + quantityToPack;
       if (totalPacked > totalQuantity) {
         this.$message.error(
-          `Total packed quantity (${totalPacked}) exceeds total quantity (${totalQuantity}) for ${item.item_code}`
+          `Total packed quantity (${totalPacked}) exceeds total quantity (${totalQuantity}) for ${item.item_name}`
         );
         return;
       }
@@ -42,9 +43,25 @@
       (item) => parseFloat(item.quantity_to_pack) > 0
     );
 
-    // Remove the _fromRowIndex field if it exists (internal tracking only)
+    // Remove the _fromRowIndex field and add SO/GD/TO IDs from tableItem
     const cleanedItems = itemsToSave.map((item) => {
       const { _fromRowIndex, ...cleanItem } = item;
+
+      // Find matching item in tableItem using line_item_id
+      const matchingTableItem = tableItem.find(
+        (tableItemRow) => tableItemRow.id === item.line_item_id
+      );
+
+      // Add SO, GD, and TO IDs if matching item found
+      if (matchingTableItem) {
+        cleanItem.so_id = matchingTableItem.so_id || "";
+        cleanItem.so_line_id = matchingTableItem.so_line_id || "";
+        cleanItem.gd_id = matchingTableItem.gd_id || "";
+        cleanItem.gd_line_id = matchingTableItem.gd_line_id || "";
+        cleanItem.to_id = matchingTableItem.to_id || "";
+        cleanItem.to_line_id = matchingTableItem.to_line_id || "";
+      }
+
       return cleanItem;
     });
 
@@ -57,6 +74,8 @@
     } else {
       // Save to temp_data as JSON string
       tableHU[rowIndex].temp_data = JSON.stringify(cleanedItems);
+
+      console.log("cleanedItems", cleanedItems);
 
       // Calculate item_count (total individual items packed)
       tableHU[rowIndex].item_count = cleanedItems.length;

@@ -4,10 +4,15 @@ const getPackingSetup = async (organizationId) => {
       .collection("packing_setup")
       .where({ organization_id: organizationId })
       .get();
+
+    if (!packingData.data || packingData.data.length === 0) {
+      return 0;
+    }
+
     return packingData.data[0].packing_required;
   } catch (error) {
     console.error("Error in getPackingSetup:", error);
-    throw error;
+    return 0;
   }
 };
 
