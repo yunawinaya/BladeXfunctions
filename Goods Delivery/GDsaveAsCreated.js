@@ -2103,7 +2103,7 @@ const createOrUpdatePicking = async (
             const existingTOResponse = await db
               .collection("transfer_order")
               .where({
-                ref_doc_type: "Good Delivery",
+                ref_doc_type: "Goods Delivery",
                 gd_no: [gdId],
                 movement_type: "Picking",
                 is_deleted: 0,
@@ -2325,7 +2325,7 @@ const createOrUpdatePicking = async (
           plant_id: gdData.plant_id,
           organization_id: organizationId,
           movement_type: "Picking",
-          ref_doc_type: "Good Delivery",
+          ref_doc_type: "Goods Delivery",
           gd_no: [gdId],
           delivery_no: gdData.delivery_no,
           so_no: gdData.so_no,
