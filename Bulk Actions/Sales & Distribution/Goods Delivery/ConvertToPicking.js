@@ -40,7 +40,7 @@ const handlePicking = async (selectedRecords) => {
 
   if (packingRequired === 1) {
     const uniqueCustomers = new Set(
-      selectedRecords.map((gd) => gd.customer_id.id)
+      selectedRecords.map((gd) => gd.customer_id)
     );
     const allSameCustomer = uniqueCustomers.size === 1;
 
