@@ -58,6 +58,41 @@ const validateField = (value, field) => {
   return !value;
 };
 
+const getPrefixData = async (organizationId) => {
+  const prefixEntry = await db
+    .collection("prefix_configuration")
+    .where({
+      document_types: "Goods Receiving",
+      is_deleted: 0,
+      organization_id: organizationId,
+      is_active: 1,
+    })
+    .get();
+
+  const prefixData = await prefixEntry.data[0];
+
+  return prefixData;
+};
+
+const generateDraftPrefix = async (organizationId) => {
+  try {
+    const prefixData = await getPrefixData(organizationId);
+    const currDraftNum = parseInt(prefixData.draft_number) + 1;
+    const newPrefix = `DRAFT-${prefixData.prefix_value}-` + currDraftNum;
+
+    db.collection("prefix_configuration")
+      .where({
+        document_types: "Goods Receiving",
+        organization_id: organizationId,
+      })
+      .update({ draft_number: currDraftNum });
+
+    return newPrefix;
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
 const fillbackHeaderFields = async (entry) => {
   try {
     for (const [index, grLineItem] of entry.table_gr.entries()) {
@@ -74,67 +109,6 @@ const fillbackHeaderFields = async (entry) => {
     return entry.table_gr;
   } catch (error) {
     throw new Error("Error processing goods receiving.");
-  }
-};
-
-const generateDraftPrefix = async (entry) => {
-  try {
-    let currentPrefix = entry.gr_no;
-    let organizationID = entry.organization_id;
-    const status = "Draft";
-    let documentTypes = "Goods Receiving";
-    console.log("currentPrefix", currentPrefix);
-    if (currentPrefix === "<<new>>") {
-      const workflowResult = await new Promise((resolve, reject) => {
-        this.runWorkflow(
-          "1984071042628268034",
-          {
-            document_type: documentTypes,
-            organization_id: organizationID,
-            document_no_id: "",
-            status: status,
-          },
-          (res) => resolve(res),
-          (err) => reject(err)
-        );
-      });
-
-      console.log("res", workflowResult);
-      const result = workflowResult.data;
-
-      if (result.is_unique === "TRUE") {
-        currentPrefix = result.doc_no;
-        console.log("result", result.doc_no);
-      } else {
-        currentPrefix = result.doc_no;
-        throw new Error(
-          `${documentTypes} Number "${currentPrefix}" already exists. Please reset the running number.`
-        ); // Specific error
-      }
-    } else {
-      const id = entry.id || "";
-      const checkUniqueness = await db
-        .collection("goods_receiving")
-        .where({ gr_no: currentPrefix, organization_id: organizationID })
-        .get();
-
-      if (checkUniqueness.data.length > 0) {
-        if (checkUniqueness.data[0].id !== id) {
-          throw new Error(
-            `${documentTypes} Number "${currentPrefix}" already exists. Please use a different number.`
-          );
-        }
-      }
-    }
-
-    return currentPrefix;
-  } catch (error) {
-    await this.$alert(error.toString(), "Error", {
-      confirmButtonText: "OK",
-      type: "error",
-    });
-    this.hideLoading();
-    throw error;
   }
 };
 
@@ -171,12 +145,12 @@ const generateDraftPrefix = async (entry) => {
       await fillbackHeaderFields(entry);
 
       if (page_status === "Add") {
-        entry.gr_no = await generateDraftPrefix(entry);
+        const newPrefix = await generateDraftPrefix(organizationId);
+        entry.gr_no = newPrefix;
         await db.collection("goods_receiving").add(entry);
         this.$message.success("Add successfully");
         closeDialog();
       } else if (page_status === "Edit") {
-        entry.gr_no = await generateDraftPrefix(entry);
         await db
           .collection("goods_receiving")
           .doc(goodsReceivingId)

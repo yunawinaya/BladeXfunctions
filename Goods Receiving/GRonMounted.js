@@ -375,6 +375,20 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
   }
 };
 
+const checkAccIntegrationType = async (organizationId) => {
+  if (organizationId) {
+    const resAI = await db
+      .collection("accounting_integration")
+      .where({ organization_id: organizationId })
+      .get();
+
+    if (resAI && resAI.data.length > 0) {
+      const aiData = resAI.data[0];
+      this.setData({ acc_integration_type: aiData.acc_integration_type });
+    }
+  }
+};
+
 (async () => {
   try {
     const status = await this.getValue("gr_status");
@@ -398,11 +412,11 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
 
     switch (pageStatus) {
       case "Add":
-        console.log("this.getValues", this.getValues());
         this.setData({ gr_date: new Date().toISOString().split("T")[0] });
         this.display(["draft_status"]);
         this.hide("button_completed");
         await setPlant(organizationId);
+        await checkAccIntegrationType(organizationId);
         await setPrefix(organizationId);
         await hideSerialNumberRecordTab();
         if (this.getValue("plant_id")) {
@@ -423,6 +437,7 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
         await viewSerialNumber();
         await viewBaseQty();
         await displayAssignedTo();
+        await checkAccIntegrationType(organizationId);
         await hideSerialNumberRecordTab();
         await displayManufacturingAndExpiredDate(status, pageStatus);
         if (status === "Draft") {
@@ -453,5 +468,6 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
     }
   } catch (error) {
     this.$message.error(error);
+    console.error(error);
   }
 })();
