@@ -104,7 +104,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
     return altQty;
   }
 
-  return Math.round((altQty * uomConversion.base_qty) * 1000) / 1000;
+  return Math.round(altQty * uomConversion.base_qty * 1000) / 1000;
 };
 
 (async () => {
