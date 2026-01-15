@@ -3012,7 +3012,7 @@ class StockAdjuster {
       balance.effective_uom ||
       subformData.effective_uom ||
       materialData.based_uom;
-    qtyChangeValue = balance.quantity_converted || qtyChangeValue;
+    qtyChangeValue = parseFloat(balance.quantity_converted || qtyChangeValue);
 
     console.log(
       `updateReceivingLocation: item ${materialData.id}, effectiveUom: ${effectiveUom}, qtyChangeValue: ${qtyChangeValue}`
@@ -3061,6 +3061,7 @@ class StockAdjuster {
           is_deleted: 0,
           tenant_id: allData.tenant_id || "000000",
           organization_id: organizationId,
+          material_uom: effectiveUom,
         };
 
     let categoryField =
@@ -5452,11 +5453,18 @@ const processRow = async (item, organizationId) => {
 
           manufacturingDate = new Date(manufacturingDate);
 
-          dd = String(manufacturingDate.getDate()).padStart(2, "0");
-          mm = String(manufacturingDate.getMonth() + 1).padStart(2, "0");
+          // Get year (last 2 digits)
           yy = String(manufacturingDate.getFullYear()).slice(-2);
 
-          batchDate = dd + mm + yy;
+          // Get quarter (Q1, Q2, Q3, Q4)
+          const month = manufacturingDate.getMonth() + 1; // Months are 0-indexed
+          let quarter;
+          if (month <= 3) quarter = "01";
+          else if (month <= 6) quarter = "02";
+          else if (month <= 9) quarter = "03";
+          else quarter = "04";
+
+          batchDate = yy + quarter; // Format: 2401, 2402, etc.
 
           console.log("batchDate", batchDate);
           break;
