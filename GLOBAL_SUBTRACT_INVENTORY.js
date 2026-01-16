@@ -1,3 +1,241 @@
+// Function to get latest FIFO cost price with available quantity check
+const getLatestFIFOCostPrice = async (
+  materialId,
+  batchId,
+  deductionQty = null,
+  previouslyConsumedQty = 0,
+  plantId
+) => {
+  try {
+    const query = batchId
+      ? db.collection("fifo_costing_history").where({
+          material_id: materialId,
+          batch_id: batchId,
+          plant_id: plantId,
+        })
+      : db
+          .collection("fifo_costing_history")
+          .where({ material_id: materialId, plant_id: plantId });
+
+    const response = await query.get();
+    const result = response.data;
+
+    if (result && Array.isArray(result) && result.length > 0) {
+      // Sort by FIFO sequence (lowest/oldest first, as per FIFO principle)
+      const sortedRecords = result.sort(
+        (a, b) => a.fifo_sequence - b.fifo_sequence
+      );
+
+      // Process previously consumed quantities to simulate their effect on available quantities
+      if (previouslyConsumedQty > 0) {
+        let qtyToSkip = previouslyConsumedQty;
+
+        console.log(
+          `Adjusting for ${previouslyConsumedQty} units already consumed in this transaction`
+        );
+
+        // Simulate the effect of previous consumption on available quantities
+        for (let i = 0; i < sortedRecords.length && qtyToSkip > 0; i++) {
+          const record = sortedRecords[i];
+          const availableQty = roundQty(record.fifo_available_quantity || 0);
+
+          if (availableQty <= 0) continue;
+
+          // If this record has enough quantity, just reduce it
+          if (availableQty >= qtyToSkip) {
+            record._adjustedAvailableQty = roundQty(availableQty - qtyToSkip);
+            console.log(
+              `FIFO record ${record.fifo_sequence}: Adjusted available from ${availableQty} to ${record._adjustedAvailableQty} (consumed ${qtyToSkip})`
+            );
+            qtyToSkip = 0;
+          } else {
+            // Otherwise, consume all of this record and continue to next
+            record._adjustedAvailableQty = 0;
+            console.log(
+              `FIFO record ${record.fifo_sequence}: Fully consumed ${availableQty} units, no remainder`
+            );
+            qtyToSkip = roundQty(qtyToSkip - availableQty);
+          }
+        }
+
+        if (qtyToSkip > 0) {
+          console.warn(
+            `Warning: Could not account for all previously consumed quantity. Remaining: ${qtyToSkip}`
+          );
+        }
+      }
+
+      // If no deduction quantity is provided, just return the cost price of the first record with available quantity
+      if (!deductionQty) {
+        // First look for records with available quantity
+        for (const record of sortedRecords) {
+          // Use adjusted quantity if available, otherwise use original
+          const availableQty = roundQty(
+            record._adjustedAvailableQty !== undefined
+              ? record._adjustedAvailableQty
+              : record.fifo_available_quantity || 0
+          );
+
+          if (availableQty > 0) {
+            console.log(
+              `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
+            );
+            return roundPrice(record.fifo_cost_price || 0);
+          }
+        }
+
+        // If no records with available quantity, use the most recent record
+        console.warn(
+          `No FIFO records with available quantity found for ${materialId}, using most recent cost price`
+        );
+        return roundPrice(
+          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+        );
+      }
+
+      // If deduction quantity is provided, calculate weighted average cost price across multiple FIFO records
+      let remainingQtyToDeduct = roundQty(deductionQty);
+      let totalCost = 0;
+      let totalDeductedQty = 0;
+
+      // Log the calculation process
+      console.log(
+        `Calculating weighted average FIFO cost for ${materialId}, deduction quantity: ${remainingQtyToDeduct}`
+      );
+
+      // Process each FIFO record in sequence until we've accounted for all deduction quantity
+      for (const record of sortedRecords) {
+        if (remainingQtyToDeduct <= 0) {
+          break;
+        }
+
+        // Use adjusted quantity if available, otherwise use original
+        const availableQty = roundQty(
+          record._adjustedAvailableQty !== undefined
+            ? record._adjustedAvailableQty
+            : record.fifo_available_quantity || 0
+        );
+
+        if (availableQty <= 0) {
+          continue; // Skip records with no available quantity
+        }
+
+        const costPrice = roundPrice(record.fifo_cost_price || 0);
+        const qtyToDeduct = Math.min(availableQty, remainingQtyToDeduct);
+
+        const costContribution = roundPrice(qtyToDeduct * costPrice);
+        totalCost = roundPrice(totalCost + costContribution);
+        totalDeductedQty = roundQty(totalDeductedQty + qtyToDeduct);
+
+        console.log(
+          `FIFO record ${record.fifo_sequence}: Deducting ${qtyToDeduct} units at ${costPrice} per unit = ${costContribution}`
+        );
+
+        remainingQtyToDeduct = roundQty(remainingQtyToDeduct - qtyToDeduct);
+      }
+
+      // If we couldn't satisfy the full deduction from available records, issue a warning
+      if (remainingQtyToDeduct > 0) {
+        console.warn(
+          `Warning: Not enough FIFO quantity available. Remaining to deduct: ${remainingQtyToDeduct}`
+        );
+
+        // For the remaining quantity, use the last record's cost price
+        if (sortedRecords.length > 0) {
+          const lastRecord = sortedRecords[sortedRecords.length - 1];
+          const lastCostPrice = roundPrice(lastRecord.fifo_cost_price || 0);
+
+          console.log(
+            `Using last FIFO record's cost price (${lastCostPrice}) for remaining ${remainingQtyToDeduct} units`
+          );
+
+          const additionalCost = roundPrice(
+            remainingQtyToDeduct * lastCostPrice
+          );
+          totalCost = roundPrice(totalCost + additionalCost);
+          totalDeductedQty = roundQty(totalDeductedQty + remainingQtyToDeduct);
+        }
+      }
+
+      // Calculate the weighted average cost price
+      if (totalDeductedQty > 0) {
+        const weightedAvgCost = roundPrice(totalCost / totalDeductedQty);
+        console.log(
+          `Weighted Average FIFO Cost: ${totalCost} / ${totalDeductedQty} = ${weightedAvgCost}`
+        );
+        return weightedAvgCost;
+      }
+
+      // Fallback to first record with cost if no quantity could be deducted
+      return roundPrice(sortedRecords[0].fifo_cost_price || 0);
+    }
+
+    console.warn(`No FIFO records found for material ${materialId}`);
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving FIFO cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
+// Function to get Weighted Average cost price
+const getWeightedAverageCostPrice = async (materialId, batchId, plantId) => {
+  try {
+    const query = batchId
+      ? db.collection("wa_costing_method").where({
+          material_id: materialId,
+          batch_id: batchId,
+          plant_id: plantId,
+        })
+      : db
+          .collection("wa_costing_method")
+          .where({ material_id: materialId, plant_id: plantId });
+
+    const response = await query.get();
+    const waData = response.data;
+
+    if (waData && Array.isArray(waData) && waData.length > 0) {
+      // Sort by date (newest first) to get the latest record
+      waData.sort((a, b) => {
+        if (a.created_at && b.created_at) {
+          return new Date(b.created_at) - new Date(a.created_at);
+        }
+        return 0;
+      });
+
+      return roundPrice(waData[0].wa_cost_price || 0);
+    }
+
+    console.warn(
+      `No weighted average records found for material ${materialId}`
+    );
+    return 0;
+  } catch (error) {
+    console.error(`Error retrieving WA cost price for ${materialId}:`, error);
+    return 0;
+  }
+};
+
+const getFixedCostPrice = async (materialId) => {
+  try {
+    const query = db.collection("Item").where({ id: materialId });
+    const response = await query.get();
+    const result = response.data;
+
+    if (result && result.length > 0) {
+      return roundPrice(parseFloat(result[0].purchase_unit_price || 0));
+    }
+
+    return 0;
+  } catch (error) {
+    console.error(
+      `Error retrieving fixed cost price for ${materialId}:`,
+      error
+    );
+    return 0;
+  }
+};
+
 const processBalanceTable = async (
   data,
   isUpdate,
