@@ -5441,6 +5441,34 @@ const processRow = async (item, organizationId) => {
           console.log("batchDate", batchDate);
           break;
 
+        case "Manufacturing Date by Quarter":
+          let manufacturingDatebyQ = item.manufacturing_date;
+
+          console.log("manufacturingDatebyQ", manufacturingDatebyQ);
+
+          if (!manufacturingDatebyQ)
+            throw new Error(
+              "Manufacturing Date is required for generating batch number."
+            );
+
+          manufacturingDatebyQ = new Date(manufacturingDatebyQ);
+
+          // Get year (last 2 digits)
+          yy = String(manufacturingDatebyQ.getFullYear()).slice(-2);
+
+          // Get quarter (Q1, Q2, Q3, Q4)
+          const month = manufacturingDatebyQ.getMonth() + 1; // Months are 0-indexed
+          let quarter;
+          if (month <= 3) quarter = "01";
+          else if (month <= 6) quarter = "02";
+          else if (month <= 9) quarter = "03";
+          else quarter = "04";
+
+          batchDate = yy + quarter; // Format: 2401, 2402, etc.
+
+          console.log("batchDate", batchDate);
+          break;
+
         case "Manufacturing Date":
           let manufacturingDate = item.manufacturing_date;
 
@@ -5453,18 +5481,11 @@ const processRow = async (item, organizationId) => {
 
           manufacturingDate = new Date(manufacturingDate);
 
-          // Get year (last 2 digits)
+          dd = String(manufacturingDate.getDate()).padStart(2, "0");
+          mm = String(manufacturingDate.getMonth() + 1).padStart(2, "0");
           yy = String(manufacturingDate.getFullYear()).slice(-2);
 
-          // Get quarter (Q1, Q2, Q3, Q4)
-          const month = manufacturingDate.getMonth() + 1; // Months are 0-indexed
-          let quarter;
-          if (month <= 3) quarter = "01";
-          else if (month <= 6) quarter = "02";
-          else if (month <= 9) quarter = "03";
-          else quarter = "04";
-
-          batchDate = yy + quarter; // Format: 2401, 2402, etc.
+          batchDate = dd + mm + yy;
 
           console.log("batchDate", batchDate);
           break;
@@ -5497,6 +5518,7 @@ const processRow = async (item, organizationId) => {
       const generatedBatchNo =
         batchPrefix +
         batchDate +
+        "-" +
         String(batchConfigData.batch_running_number).padStart(
           batchConfigData.batch_padding_zeroes,
           "0"
