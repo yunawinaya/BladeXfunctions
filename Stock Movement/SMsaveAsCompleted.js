@@ -2755,70 +2755,7 @@ class StockAdjuster {
         movementType,
         organizationId,
       );
-
-      // ✅ CRITICAL FIX: For Location Transfer with batched items and serialized items, also deduct from SOURCE location's item_balance
-      const isSerializedItem = materialData.serial_number_management === 1;
-
-      if (isBatchedItem || isSerializedItem) {
-        try {
-          const sourceItemBalanceParams = {
-            material_id: materialData.id,
-            location_id: locationId, // Source location
-            plant_id: allData.issuing_operation_faci,
-            organization_id: organizationId,
-          };
-
-          // Don't include batch_id/serial_number in item_balance query (aggregated balance across all batches/serials)
-          const sourceBalanceQuery = await this.db
-            .collection("item_balance")
-            .where(sourceItemBalanceParams)
-            .get();
-
-          if (sourceBalanceQuery.data && sourceBalanceQuery.data.length > 0) {
-            // Update existing item_balance record for SOURCE location (deduction)
-            const sourceBalance = sourceBalanceQuery.data[0];
-            const categoryField =
-              this.categoryMap[balance.category || "Unrestricted"];
-
-            const currentSourceBalanceQty = parseFloat(
-              sourceBalance.balance_quantity || 0,
-            );
-            const currentSourceCategoryQty = parseFloat(
-              sourceBalance[categoryField] || 0,
-            );
-
-            const sourceUpdateData = {
-              balance_quantity: parseFloat(
-                (currentSourceBalanceQty - qtyChangeValue).toFixed(3),
-              ),
-              [categoryField]: parseFloat(
-                (currentSourceCategoryQty - qtyChangeValue).toFixed(3),
-              ),
-              update_time: new Date().toISOString(),
-              update_user: allData.user_id || "system",
-            };
-
-            await this.db
-              .collection("item_balance")
-              .doc(sourceBalance.id)
-              .update(sourceUpdateData);
-
-            console.log(
-              `Updated aggregated item_balance for SOURCE location ${locationId}, item ${
-                materialData.id
-              } (Location Transfer deduction - ${
-                isBatchedItem ? "batched" : ""
-              }${isSerializedItem ? "serialized" : ""})`,
-            );
-          }
-        } catch (error) {
-          console.error(
-            `Error updating source item_balance for Location Transfer, item ${materialData.id}:`,
-            error,
-          );
-          // Don't throw - let the main process continue
-        }
-      }
+      // Note: Source location item_balance deduction is already handled in the batched item block above (lines 2421-2723)
     }
 
     // ✅ NEW: For batched items, also update item_balance collection (both serialized and non-serialized)
@@ -5369,7 +5306,11 @@ async function processFormData(db, formData, context, organizationId) {
           })
           .get();
 
-        if (stockMovementRecord.data && stockMovementRecord.data.length > 0) {
+        if (
+          stockMovementRecord.data &&
+          stockMovementRecord.data.length > 0 &&
+          formData.table_sn_records.length > 0
+        ) {
           await db
             .collection("stock_movement")
             .doc(stockMovementRecord.data[0].id)
