@@ -20,13 +20,13 @@ class StockAdjuster {
 
   validateRequiredFields(data, requiredFields, context = "") {
     const missingFields = requiredFields.filter(
-      (field) => !data[field] && data[field] !== 0
+      (field) => !data[field] && data[field] !== 0,
     );
     if (missingFields.length > 0) {
       throw new Error(
         `Please fill in all required fields marked with (*) ${context}: ${missingFields.join(
-          ", "
-        )}`
+          ", ",
+        )}`,
       );
     }
   }
@@ -42,11 +42,11 @@ class StockAdjuster {
     categoryTo,
     qtyChange,
     plantId,
-    organizationId
+    organizationId,
   ) {
     try {
       console.log(
-        `Transferring serial balance category for ${serialNumber}: ${categoryFrom} → ${categoryTo}, Qty: ${qtyChange}`
+        `Transferring serial balance category for ${serialNumber}: ${categoryFrom} → ${categoryTo}, Qty: ${qtyChange}`,
       );
 
       const serialBalanceParams = {
@@ -71,7 +71,7 @@ class StockAdjuster {
 
       if (!serialBalanceQuery.data || serialBalanceQuery.data.length === 0) {
         throw new Error(
-          `No serial balance found for serial number: ${serialNumber}`
+          `No serial balance found for serial number: ${serialNumber}`,
         );
       }
 
@@ -84,16 +84,16 @@ class StockAdjuster {
         this.categoryMap[categoryTo] || "unrestricted_qty";
 
       const currentFromQty = this.roundQty(
-        parseFloat(existingBalance[fromCategoryField] || 0)
+        parseFloat(existingBalance[fromCategoryField] || 0),
       );
       const currentToQty = this.roundQty(
-        parseFloat(existingBalance[toCategoryField] || 0)
+        parseFloat(existingBalance[toCategoryField] || 0),
       );
 
       // Validate sufficient quantity in source category
       if (currentFromQty < qtyChange) {
         throw new Error(
-          `Insufficient ${categoryFrom} quantity for serial ${serialNumber}. Available: ${currentFromQty}, Requested: ${qtyChange}`
+          `Insufficient ${categoryFrom} quantity for serial ${serialNumber}. Available: ${currentFromQty}, Requested: ${qtyChange}`,
         );
       }
 
@@ -114,7 +114,7 @@ class StockAdjuster {
         .update(updateData);
 
       console.log(
-        `Updated serial balance category transfer for ${serialNumber}: ${categoryFrom}=${newFromQty}, ${categoryTo}=${newToQty}`
+        `Updated serial balance category transfer for ${serialNumber}: ${categoryFrom}=${newFromQty}, ${categoryTo}=${newToQty}`,
       );
 
       // ✅ CRITICAL FIX: For serialized items, also update item_balance (aggregated across all serial numbers)
@@ -137,15 +137,15 @@ class StockAdjuster {
           const generalBalance = generalBalanceQuery.data[0];
 
           const currentGeneralFromQty = parseFloat(
-            generalBalance[fromCategoryField] || 0
+            generalBalance[fromCategoryField] || 0,
           );
           const currentGeneralToQty = parseFloat(
-            generalBalance[toCategoryField] || 0
+            generalBalance[toCategoryField] || 0,
           );
 
           const generalUpdateData = {
             [fromCategoryField]: this.roundQty(
-              currentGeneralFromQty - qtyChange
+              currentGeneralFromQty - qtyChange,
             ),
             [toCategoryField]: this.roundQty(currentGeneralToQty + qtyChange),
             update_time: new Date().toISOString(),
@@ -157,17 +157,17 @@ class StockAdjuster {
             .update(generalUpdateData);
 
           console.log(
-            `✓ Updated aggregated item_balance for serialized category transfer ${materialId}, serial ${serialNumber}: ${categoryFrom}=${generalUpdateData[fromCategoryField]}, ${categoryTo}=${generalUpdateData[toCategoryField]}`
+            `✓ Updated aggregated item_balance for serialized category transfer ${materialId}, serial ${serialNumber}: ${categoryFrom}=${generalUpdateData[fromCategoryField]}, ${categoryTo}=${generalUpdateData[toCategoryField]}`,
           );
         } else {
           console.warn(
-            `No item_balance record found for serialized category transfer ${materialId} at location ${locationId}`
+            `No item_balance record found for serialized category transfer ${materialId} at location ${locationId}`,
           );
         }
       } catch (itemBalanceError) {
         console.error(
           `Error updating aggregated item_balance for serialized category transfer ${materialId}, serial ${serialNumber}:`,
-          itemBalanceError
+          itemBalanceError,
         );
         // Don't throw - let the main process continue
       }
@@ -176,7 +176,7 @@ class StockAdjuster {
     } catch (error) {
       console.error(
         `Error transferring serial balance category for ${serialNumber}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -189,11 +189,11 @@ class StockAdjuster {
     organizationId,
     plantId,
     singleBalance,
-    movementType
+    movementType,
   ) {
     try {
       console.log(
-        `Processing serial number deduction for SM item ${item.item_selection}, movement: ${movementType}`
+        `Processing serial number deduction for SM item ${item.item_selection}, movement: ${movementType}`,
       );
 
       const balancesToProcess = singleBalance ? [singleBalance] : [];
@@ -216,7 +216,7 @@ class StockAdjuster {
 
       if (!isSerializedItem) {
         console.log(
-          `Item ${item.item_selection} is not serialized, skipping serial processing`
+          `Item ${item.item_selection} is not serialized, skipping serial processing`,
         );
         return;
       }
@@ -225,7 +225,7 @@ class StockAdjuster {
 
       for (const balance of balancesToProcess) {
         let baseQtyPerBalance = this.roundQty(
-          parseFloat(balance.quantity_converted || balance.sm_quantity || 0)
+          parseFloat(balance.quantity_converted || balance.sm_quantity || 0),
         );
 
         if (movementType === "Location Transfer") {
@@ -236,7 +236,7 @@ class StockAdjuster {
             baseQtyPerBalance,
             baseUOM,
             plantId,
-            organizationId
+            organizationId,
           );
 
           await this.updateSerialBalance(
@@ -248,7 +248,7 @@ class StockAdjuster {
             -baseQtyPerBalance,
             plantId,
             organizationId,
-            baseUOM
+            baseUOM,
           );
         } else {
           await this.createSerialMovementRecord(
@@ -258,7 +258,7 @@ class StockAdjuster {
             baseQtyPerBalance,
             baseUOM,
             plantId,
-            organizationId
+            organizationId,
           );
 
           await this.updateSerialBalance(
@@ -270,21 +270,21 @@ class StockAdjuster {
             -baseQtyPerBalance,
             plantId,
             organizationId,
-            baseUOM
+            baseUOM,
           );
         }
       }
 
       console.log(
-        `Successfully processed serial number deduction for SM item ${item.item_selection}`
+        `Successfully processed serial number deduction for SM item ${item.item_selection}`,
       );
     } catch (error) {
       console.error(
         `Error processing serial number deduction for SM item ${item.item_selection}:`,
-        error
+        error,
       );
       throw new Error(
-        `Failed to process serial number deduction for SM item ${item.item_selection}: ${error.message}`
+        `Failed to process serial number deduction for SM item ${item.item_selection}: ${error.message}`,
       );
     }
   }
@@ -296,7 +296,7 @@ class StockAdjuster {
     baseQty,
     baseUOM,
     plantId,
-    organizationId
+    organizationId,
   ) {
     const invSerialMovementRecord = {
       inventory_movement_id: inventoryMovementId,
@@ -323,7 +323,7 @@ class StockAdjuster {
     qtyChange,
     plantId,
     organizationId,
-    materialUom
+    materialUom,
   ) {
     const serialBalanceParams = {
       material_id: materialId,
@@ -347,7 +347,7 @@ class StockAdjuster {
 
     if (!serialBalanceQuery.data || serialBalanceQuery.data.length === 0) {
       throw new Error(
-        `No serial balance found for serial number: ${serialNumber}`
+        `No serial balance found for serial number: ${serialNumber}`,
       );
     }
 
@@ -355,10 +355,10 @@ class StockAdjuster {
     const categoryField = this.categoryMap[category] || "unrestricted_qty";
 
     const currentCategoryQty = this.roundQty(
-      parseFloat(existingBalance[categoryField] || 0)
+      parseFloat(existingBalance[categoryField] || 0),
     );
     const currentBalanceQty = this.roundQty(
-      parseFloat(existingBalance.balance_quantity || 0)
+      parseFloat(existingBalance.balance_quantity || 0),
     );
 
     const newCategoryQty = this.roundQty(currentCategoryQty + qtyChange);
@@ -367,16 +367,16 @@ class StockAdjuster {
     if (newCategoryQty < 0) {
       throw new Error(
         `Insufficient ${category} quantity for serial ${serialNumber}. Available: ${currentCategoryQty}, Requested: ${Math.abs(
-          qtyChange
-        )}`
+          qtyChange,
+        )}`,
       );
     }
 
     if (newBalanceQty < 0) {
       throw new Error(
         `Insufficient total quantity for serial ${serialNumber}. Available: ${currentBalanceQty}, Requested: ${Math.abs(
-          qtyChange
-        )}`
+          qtyChange,
+        )}`,
       );
     }
 
@@ -391,7 +391,7 @@ class StockAdjuster {
       .update(updateData);
 
     console.log(
-      `Updated serial balance for ${serialNumber}: ${category}=${newCategoryQty}, Balance=${newBalanceQty}`
+      `Updated serial balance for ${serialNumber}: ${category}=${newCategoryQty}, Balance=${newBalanceQty}`,
     );
 
     // ✅ CRITICAL FIX: For serialized items, also update item_balance (aggregated across all serial numbers)
@@ -414,10 +414,10 @@ class StockAdjuster {
         const generalBalance = generalBalanceQuery.data[0];
 
         const currentGeneralBalanceQty = parseFloat(
-          generalBalance.balance_quantity || 0
+          generalBalance.balance_quantity || 0,
         );
         const currentGeneralCategoryQty = parseFloat(
-          generalBalance[categoryField] || 0
+          generalBalance[categoryField] || 0,
         );
 
         const generalUpdateData = {
@@ -432,7 +432,7 @@ class StockAdjuster {
           .update(generalUpdateData);
 
         console.log(
-          `✓ Updated aggregated item_balance for serialized item ${materialId}, serial ${serialNumber}: ${category}=${generalUpdateData[categoryField]}, Balance=${generalUpdateData.balance_quantity}`
+          `✓ Updated aggregated item_balance for serialized item ${materialId}, serial ${serialNumber}: ${category}=${generalUpdateData[categoryField]}, Balance=${generalUpdateData.balance_quantity}`,
         );
       } else {
         // Create new item_balance record if it doesn't exist
@@ -459,13 +459,13 @@ class StockAdjuster {
         await this.db.collection("item_balance").add(generalUpdateData);
 
         console.log(
-          `✓ Created new aggregated item_balance for serialized item ${materialId}, serial ${serialNumber}: ${category}=${generalUpdateData[categoryField]}`
+          `✓ Created new aggregated item_balance for serialized item ${materialId}, serial ${serialNumber}: ${category}=${generalUpdateData[categoryField]}`,
         );
       }
     } catch (itemBalanceError) {
       console.error(
         `Error updating aggregated item_balance for serialized item ${materialId}, serial ${serialNumber}:`,
-        itemBalanceError
+        itemBalanceError,
       );
       // Don't throw - let the main process continue
     }
@@ -479,11 +479,11 @@ class StockAdjuster {
     plantId,
     singleBalance,
     receivingLocationId,
-    materialUom
+    materialUom,
   ) {
     try {
       console.log(
-        `Processing serial number receipt for Location Transfer at receiving location ${receivingLocationId}`
+        `Processing serial number receipt for Location Transfer at receiving location ${receivingLocationId}`,
       );
 
       const balancesToProcess = singleBalance ? [singleBalance] : [];
@@ -495,7 +495,7 @@ class StockAdjuster {
 
       for (const balance of balancesToProcess) {
         let baseQtyPerBalance = this.roundQty(
-          parseFloat(balance.quantity_converted || balance.sm_quantity || 0)
+          parseFloat(balance.quantity_converted || balance.sm_quantity || 0),
         );
 
         await this.createSerialMovementRecord(
@@ -505,7 +505,7 @@ class StockAdjuster {
           baseQtyPerBalance,
           materialUom,
           plantId,
-          organizationId
+          organizationId,
         );
 
         // For production orders, items should go to Reserved category at destination
@@ -523,17 +523,17 @@ class StockAdjuster {
           baseQtyPerBalance,
           plantId,
           organizationId,
-          materialUom
+          materialUom,
         );
       }
 
       console.log(
-        `Successfully processed serial number receipt for Location Transfer`
+        `Successfully processed serial number receipt for Location Transfer`,
       );
     } catch (error) {
       console.error(
         `Error processing serial number receipt for Location Transfer:`,
-        error
+        error,
       );
       throw error;
     }
@@ -548,7 +548,7 @@ class StockAdjuster {
     qtyChange,
     plantId,
     organizationId,
-    materialUom
+    materialUom,
   ) {
     const serialBalanceParams = {
       material_id: materialId,
@@ -572,10 +572,10 @@ class StockAdjuster {
     if (serialBalanceQuery.data && serialBalanceQuery.data.length > 0) {
       const existingBalance = serialBalanceQuery.data[0];
       const currentCategoryQty = this.roundQty(
-        parseFloat(existingBalance[categoryField] || 0)
+        parseFloat(existingBalance[categoryField] || 0),
       );
       const currentBalanceQty = this.roundQty(
-        parseFloat(existingBalance.balance_quantity || 0)
+        parseFloat(existingBalance.balance_quantity || 0),
       );
 
       const newCategoryQty = this.roundQty(currentCategoryQty + qtyChange);
@@ -592,7 +592,7 @@ class StockAdjuster {
         .update(updateData);
 
       console.log(
-        `Updated existing serial balance for ${serialNumber} at location ${locationId}`
+        `Updated existing serial balance for ${serialNumber} at location ${locationId}`,
       );
     } else {
       const serialBalanceRecord = {
@@ -616,7 +616,7 @@ class StockAdjuster {
       await this.db.collection("item_serial_balance").add(serialBalanceRecord);
 
       console.log(
-        `Created new serial balance for ${serialNumber} at location ${locationId}`
+        `Created new serial balance for ${serialNumber} at location ${locationId}`,
       );
     }
 
@@ -640,10 +640,10 @@ class StockAdjuster {
         const generalBalance = generalBalanceQuery.data[0];
 
         const currentGeneralBalanceQty = parseFloat(
-          generalBalance.balance_quantity || 0
+          generalBalance.balance_quantity || 0,
         );
         const currentGeneralCategoryQty = parseFloat(
-          generalBalance[categoryField] || 0
+          generalBalance[categoryField] || 0,
         );
 
         const generalUpdateData = {
@@ -658,7 +658,7 @@ class StockAdjuster {
           .update(generalUpdateData);
 
         console.log(
-          `✓ Updated aggregated item_balance for receiving serialized item ${materialId}, serial ${serialNumber}: ${category}=${generalUpdateData[categoryField]}, Balance=${generalUpdateData.balance_quantity}`
+          `✓ Updated aggregated item_balance for receiving serialized item ${materialId}, serial ${serialNumber}: ${category}=${generalUpdateData[categoryField]}, Balance=${generalUpdateData.balance_quantity}`,
         );
       } else {
         // Create new item_balance record if it doesn't exist
@@ -685,13 +685,13 @@ class StockAdjuster {
         await this.db.collection("item_balance").add(generalUpdateData);
 
         console.log(
-          `✓ Created new aggregated item_balance for receiving serialized item ${materialId}, serial ${serialNumber}: ${category}=${generalUpdateData[categoryField]}`
+          `✓ Created new aggregated item_balance for receiving serialized item ${materialId}, serial ${serialNumber}: ${category}=${generalUpdateData[categoryField]}`,
         );
       }
     } catch (itemBalanceError) {
       console.error(
         `Error updating aggregated item_balance for receiving serialized item ${materialId}, serial ${serialNumber}:`,
-        itemBalanceError
+        itemBalanceError,
       );
       // Don't throw - let the main process continue
     }
@@ -703,14 +703,14 @@ class StockAdjuster {
     inventoryMovementId,
     organizationId,
     plantId,
-    balance
+    balance,
   ) {
     try {
       console.log(
-        `Processing serial number category transfer for SM item ${item.item_selection}`
+        `Processing serial number category transfer for SM item ${item.item_selection}`,
       );
       console.log(
-        `Category transfer: ${balance.category_from} → ${balance.category_to}`
+        `Category transfer: ${balance.category_from} → ${balance.category_to}`,
       );
 
       if (!balance.serial_number) {
@@ -742,7 +742,7 @@ class StockAdjuster {
         baseQty,
         baseUOM,
         plantId,
-        organizationId
+        organizationId,
       );
 
       // Update the serial balance (transfer from one category to another)
@@ -756,19 +756,19 @@ class StockAdjuster {
         baseQty,
         plantId,
         organizationId,
-        baseUOM
+        baseUOM,
       );
 
       console.log(
-        `Successfully processed serial number category transfer for ${balance.serial_number}`
+        `Successfully processed serial number category transfer for ${balance.serial_number}`,
       );
     } catch (error) {
       console.error(
         `Error processing serial number category transfer for SM item ${item.item_selection}:`,
-        error
+        error,
       );
       throw new Error(
-        `Failed to process serial number category transfer for SM item ${item.item_selection}: ${error.message}`
+        `Failed to process serial number category transfer for SM item ${item.item_selection}: ${error.message}`,
       );
     }
   }
@@ -778,11 +778,11 @@ class StockAdjuster {
     item,
     inventoryMovementId,
     organizationId,
-    plantId
+    plantId,
   ) {
     try {
       console.log(
-        `Processing serial number for Inter Operation Facility Transfer - item ${item.item_selection}`
+        `Processing serial number for Inter Operation Facility Transfer - item ${item.item_selection}`,
       );
 
       const balancesToProcess =
@@ -790,7 +790,7 @@ class StockAdjuster {
           (balance) =>
             balance.sm_quantity &&
             balance.sm_quantity > 0 &&
-            balance.material_id === item.item_selection
+            balance.material_id === item.item_selection,
         ) || [];
 
       if (balancesToProcess.length === 0) {
@@ -811,7 +811,7 @@ class StockAdjuster {
 
       for (const balance of balancesToProcess) {
         let baseQtyPerBalance = this.roundQty(
-          parseFloat(balance.quantity_converted || balance.sm_quantity || 0)
+          parseFloat(balance.quantity_converted || balance.sm_quantity || 0),
         );
 
         await this.createSerialMovementRecord(
@@ -821,7 +821,7 @@ class StockAdjuster {
           baseQtyPerBalance,
           baseUOM,
           plantId,
-          organizationId
+          organizationId,
         );
 
         await this.createOrUpdateReceivingSerialBalance(
@@ -833,17 +833,17 @@ class StockAdjuster {
           baseQtyPerBalance,
           plantId,
           organizationId,
-          baseUOM
+          baseUOM,
         );
       }
 
       console.log(
-        `Successfully processed serial number for Inter Operation Facility Transfer`
+        `Successfully processed serial number for Inter Operation Facility Transfer`,
       );
     } catch (error) {
       console.error(
         `Error processing serial number for Inter Operation Facility Transfer:`,
-        error
+        error,
       );
       throw error;
     }
@@ -855,16 +855,16 @@ class StockAdjuster {
     inventoryMovementId,
     organizationId,
     plantId,
-    batchId = null
+    batchId = null,
   ) {
     try {
       console.log(
-        `Processing serial number inventory for SM item ${item.item_selection}`
+        `Processing serial number inventory for SM item ${item.item_selection}`,
       );
 
       if (!item.serial_number_data) {
         console.log(
-          `No serial number data found for item ${item.item_selection}`
+          `No serial number data found for item ${item.item_selection}`,
         );
         return;
       }
@@ -875,7 +875,7 @@ class StockAdjuster {
       } catch (parseError) {
         console.error(
           `Error parsing serial number data for item ${item.item_selection}:`,
-          parseError
+          parseError,
         );
         return;
       }
@@ -897,7 +897,7 @@ class StockAdjuster {
 
       // For SM, we work with base quantity directly
       let baseQty = this.roundQty(
-        parseFloat(item.quantity_converted || item.received_quantity || 0)
+        parseFloat(item.quantity_converted || item.received_quantity || 0),
       );
       let baseUOM = itemData.based_uom;
 
@@ -946,7 +946,7 @@ class StockAdjuster {
       if (isAuto === 1) {
         const needsGeneration = tableSerialNumber.some(
           (serial) =>
-            serial.system_serial_number === "Auto generated serial number"
+            serial.system_serial_number === "Auto generated serial number",
         );
 
         if (needsGeneration) {
@@ -961,7 +961,7 @@ class StockAdjuster {
             resSerialConfig.data.length === 0
           ) {
             throw new Error(
-              `Serial number configuration not found for organization ${organizationId}`
+              `Serial number configuration not found for organization ${organizationId}`,
             );
           }
 
@@ -1071,11 +1071,11 @@ class StockAdjuster {
 
       // Update the item in data.stock_movement
       const itemIndex = data.stock_movement.findIndex(
-        (smItem) => smItem === item
+        (smItem) => smItem === item,
       );
       if (itemIndex !== -1) {
         data.stock_movement[itemIndex].serial_number_data = JSON.stringify(
-          updatedSerialNumberData
+          updatedSerialNumberData,
         );
 
         // Store the generated serial numbers for record creation use
@@ -1085,7 +1085,7 @@ class StockAdjuster {
             (serial) =>
               serial &&
               serial !== "" &&
-              serial !== "Auto generated serial number"
+              serial !== "Auto generated serial number",
           );
         data.stock_movement[itemIndex].generated_serial_numbers =
           generatedSerialNumbers;
@@ -1093,8 +1093,8 @@ class StockAdjuster {
           `Stored ${
             generatedSerialNumbers.length
           } generated serial numbers for record creation: [${generatedSerialNumbers.join(
-            ", "
-          )}]`
+            ", ",
+          )}]`,
         );
       }
 
@@ -1122,18 +1122,18 @@ class StockAdjuster {
           const generalBalance = generalBalanceQuery.data[0];
 
           const currentGeneralBalanceQty = parseFloat(
-            generalBalance.balance_quantity || 0
+            generalBalance.balance_quantity || 0,
           );
           const currentGeneralUnrestrictedQty = parseFloat(
-            generalBalance.unrestricted_qty || 0
+            generalBalance.unrestricted_qty || 0,
           );
 
           const generalUpdateData = {
             balance_quantity: this.roundQty(
-              currentGeneralBalanceQty + totalBalanceQty
+              currentGeneralBalanceQty + totalBalanceQty,
             ),
             unrestricted_qty: this.roundQty(
-              currentGeneralUnrestrictedQty + totalUnrestrictedQty
+              currentGeneralUnrestrictedQty + totalUnrestrictedQty,
             ),
             update_time: new Date().toISOString(),
           };
@@ -1144,7 +1144,7 @@ class StockAdjuster {
             .update(generalUpdateData);
 
           console.log(
-            `✓ Updated aggregated item_balance for SM serialized item ${item.item_selection}: Unrestricted=${generalUpdateData.unrestricted_qty}, Balance=${generalUpdateData.balance_quantity}`
+            `✓ Updated aggregated item_balance for SM serialized item ${item.item_selection}: Unrestricted=${generalUpdateData.unrestricted_qty}, Balance=${generalUpdateData.balance_quantity}`,
           );
         } else {
           // Create new item_balance record
@@ -1168,27 +1168,27 @@ class StockAdjuster {
           await this.db.collection("item_balance").add(generalUpdateData);
 
           console.log(
-            `✓ Created new aggregated item_balance for SM serialized item ${item.item_selection}: Unrestricted=${totalUnrestrictedQty}, Balance=${totalBalanceQty}`
+            `✓ Created new aggregated item_balance for SM serialized item ${item.item_selection}: Unrestricted=${totalUnrestrictedQty}, Balance=${totalBalanceQty}`,
           );
         }
       } catch (itemBalanceError) {
         console.error(
           `Error updating aggregated item_balance for SM serialized item ${item.item_selection}:`,
-          itemBalanceError
+          itemBalanceError,
         );
         // Don't throw - let the main process continue
       }
 
       console.log(
-        `Successfully processed serial number inventory for SM item ${item.item_selection}`
+        `Successfully processed serial number inventory for SM item ${item.item_selection}`,
       );
     } catch (error) {
       console.error(
         `Error processing serial number inventory for SM item ${item.item_selection}:`,
-        error
+        error,
       );
       throw new Error(
-        `Failed to process serial number inventory for SM item ${item.item_selection}: ${error.message}`
+        `Failed to process serial number inventory for SM item ${item.item_selection}: ${error.message}`,
       );
     }
   }
@@ -1197,7 +1197,7 @@ class StockAdjuster {
     allData,
     subformData,
     balanceIndex,
-    productionOrderData
+    productionOrderData,
   ) {
     if (allData.is_production_order !== 1 || !allData.production_order_id) {
       return; // Skip if not a production order or no production order ID
@@ -1254,19 +1254,19 @@ class StockAdjuster {
           const tempData = subFormItem.temp_qty_data;
           if (!tempData) {
             console.warn(
-              `No temp_qty_data found for item ${subFormItem.item_selection}`
+              `No temp_qty_data found for item ${subFormItem.item_selection}`,
             );
             tempDataParsed = [];
           } else {
             tempDataParsed = JSON.parse(tempData);
             tempDataParsed = tempDataParsed.filter(
-              (tempData) => tempData.sm_quantity > 0
+              (tempData) => tempData.sm_quantity > 0,
             );
           }
         } catch (parseError) {
           console.error(
             `Error parsing temp_qty_data for item ${item.item_selection}:`,
-            parseError
+            parseError,
           );
           tempDataParsed = [];
         }
@@ -1281,8 +1281,8 @@ class StockAdjuster {
               tempDataParsed.some(
                 (tempData) =>
                   tempData.material_id === balance.material_id &&
-                  tempData.balance_id === balance.balance_id
-              )
+                  tempData.balance_id === balance.balance_id,
+              ),
           ) || [];
 
         for (const balance of balancesToProcess) {
@@ -1326,7 +1326,7 @@ class StockAdjuster {
           // Handle serialized items without serial numbers (shouldn't happen but safety check)
           else if (isSerializedItem && !balance.serial_number) {
             console.warn(
-              `Serialized item ${item.material_id} has no serial number in balance record`
+              `Serialized item ${item.material_id} has no serial number in balance record`,
             );
             // Still create record but with quantity from balance
             const matConfirmationData = {
@@ -1361,7 +1361,7 @@ class StockAdjuster {
         });
 
       console.log(
-        `Production order ${allData.production_order_id} updated successfully`
+        `Production order ${allData.production_order_id} updated successfully`,
       );
     } catch (error) {
       console.error("Error updating production order:", error);
@@ -1374,14 +1374,14 @@ class StockAdjuster {
       this.validateRequiredFields(
         item,
         ["item_selection"],
-        `for item ${item.item_name || "unknown"}`
+        `for item ${item.item_name || "unknown"}`,
       );
 
       if (movementType === "Miscellaneous Receipt") {
         this.validateRequiredFields(
           item,
           ["category"],
-          `for item ${item.item_name || "unknown"}`
+          `for item ${item.item_name || "unknown"}`,
         );
       }
 
@@ -1402,7 +1402,7 @@ class StockAdjuster {
         for (const sm of subformData) {
           if (sm.total_quantity !== sm.requested_qty) {
             throw new Error(
-              "Total quantity is not equal to requested quantity."
+              "Total quantity is not equal to requested quantity.",
             );
           }
         }
@@ -1416,20 +1416,21 @@ class StockAdjuster {
           selected_uom = materialData.based_uom;
         } else {
           const uomConversion = materialData.table_uom_conversion?.find(
-            (conversion) => conversion.alt_uom_id === item.received_quantity_uom
+            (conversion) =>
+              conversion.alt_uom_id === item.received_quantity_uom,
           );
           if (uomConversion) {
             selected_uom = uomConversion.alt_uom_id;
             quantityConverted =
               Math.round(
-                (item.received_quantity || 0) * uomConversion.base_qty * 1000
+                (item.received_quantity || 0) * uomConversion.base_qty * 1000,
               ) / 1000;
             unitPriceConverted =
               Math.round(((item.unit_price || 0) / quantityConverted) * 1000) /
               1000;
           } else {
             throw new Error(
-              `Invalid UOM ${item.received_quantity_uom} for item ${item.item_selection}`
+              `Invalid UOM ${item.received_quantity_uom} for item ${item.item_selection}`,
             );
           }
         }
@@ -1441,7 +1442,7 @@ class StockAdjuster {
       item.price_converted = unitPriceConverted;
 
       console.log(
-        `preValidateItems: item ${item.item_selection}, effective_uom: ${item.effective_uom}, quantity_converted: ${quantityConverted}, price_converted: ${unitPriceConverted}`
+        `preValidateItems: item ${item.item_selection}, effective_uom: ${item.effective_uom}, quantity_converted: ${quantityConverted}, price_converted: ${unitPriceConverted}`,
       );
 
       if (
@@ -1454,7 +1455,7 @@ class StockAdjuster {
       } else {
         if (!allData.balance_index || !Array.isArray(allData.balance_index)) {
           throw new Error(
-            `Balance selection (balance_index) is required for item ${item.item_selection}`
+            `Balance selection (balance_index) is required for item ${item.item_selection}`,
           );
         }
 
@@ -1462,7 +1463,7 @@ class StockAdjuster {
           (balance) =>
             balance.sm_quantity &&
             balance.sm_quantity > 0 &&
-            balance.material_id === item.item_selection
+            balance.material_id === item.item_selection,
         );
 
         if (balancesToProcess.length === 0) {
@@ -1473,7 +1474,7 @@ class StockAdjuster {
           balancesToProcess.forEach((balance) => {
             if (!balance.location_id && !item.location_id) {
               throw new Error(
-                `Receiving bin ID (receiving_bin_id) is required for Location Transfer for item ${item.item_selection}`
+                `Receiving bin ID (receiving_bin_id) is required for Location Transfer for item ${item.item_selection}`,
               );
             }
           });
@@ -1485,13 +1486,13 @@ class StockAdjuster {
           this.validateRequiredFields(
             balance,
             ["sm_quantity", "location_id"],
-            `for balance in item ${item.item_selection}`
+            `for balance in item ${item.item_selection}`,
           );
 
           if (isSerializedItem) {
             // ✅ For serialized items, check item_serial_balance
             console.log(
-              `Checking serialized item balance for ${item.item_selection}, serial: ${balance.serial_number}`
+              `Checking serialized item balance for ${item.item_selection}, serial: ${balance.serial_number}`,
             );
 
             const serialBalanceParams = {
@@ -1516,7 +1517,7 @@ class StockAdjuster {
               serialBalanceResponse.data.length === 0
             ) {
               throw new Error(
-                `No existing serial balance found for item ${item.item_selection}, serial ${balance.serial_number} at location ${balance.location_id}`
+                `No existing serial balance found for item ${item.item_selection}, serial ${balance.serial_number} at location ${balance.location_id}`,
               );
             }
           } else {
@@ -1545,7 +1546,7 @@ class StockAdjuster {
 
             if (!balanceData) {
               throw new Error(
-                `No existing balance found for item ${item.item_selection} at location ${balance.location_id}`
+                `No existing balance found for item ${item.item_selection} at location ${balance.location_id}`,
               );
             }
           }
@@ -1571,7 +1572,7 @@ class StockAdjuster {
       allData,
       subformData,
       movementType,
-      organizationId
+      organizationId,
     );
 
     // Update production order for Location Transfer if applicable
@@ -1592,12 +1593,12 @@ class StockAdjuster {
         allData,
         subformData,
         balanceIndex,
-        productionOrderData
+        productionOrderData,
       );
       await this.updateOnReservedTable(
         allData,
         subformData,
-        productionOrderData
+        productionOrderData,
       );
     }
 
@@ -1608,7 +1609,7 @@ class StockAdjuster {
           item,
           movementType,
           allData,
-          organizationId
+          organizationId,
         );
         updates.push(result);
       } catch (error) {
@@ -1628,7 +1629,7 @@ class StockAdjuster {
     allData,
     subformData,
     movementType,
-    organizationId
+    organizationId,
   ) {
     const table_item_balance = allData.sm_item_balance?.table_item_balance;
 
@@ -1719,7 +1720,7 @@ class StockAdjuster {
     const updatePrefix = async (
       organizationId,
       runningNumber,
-      movementType
+      movementType,
     ) => {
       try {
         await db
@@ -1745,16 +1746,16 @@ class StockAdjuster {
       generated = generated.replace("suffix", prefixData.suffix_value);
       generated = generated.replace(
         "month",
-        String(now.getMonth() + 1).padStart(2, "0")
+        String(now.getMonth() + 1).padStart(2, "0"),
       );
       generated = generated.replace(
         "day",
-        String(now.getDate()).padStart(2, "0")
+        String(now.getDate()).padStart(2, "0"),
       );
       generated = generated.replace("year", now.getFullYear());
       generated = generated.replace(
         "running_number",
-        String(runNumber).padStart(prefixData.padding_zeroes, "0")
+        String(runNumber).padStart(prefixData.padding_zeroes, "0"),
       );
       return generated;
     };
@@ -1789,7 +1790,7 @@ class StockAdjuster {
 
       if (!isUnique) {
         console.error(
-          "Could not generate a unique Stock Movement number after maximum attempts"
+          "Could not generate a unique Stock Movement number after maximum attempts",
         );
       }
 
@@ -1802,7 +1803,7 @@ class StockAdjuster {
       if (prefixData.length !== 0) {
         const { prefixToShow, runningNumber } = await findUniquePrefix(
           prefixData,
-          organizationId
+          organizationId,
         );
 
         await updatePrefix(organizationId, runningNumber, movementType);
@@ -1823,7 +1824,7 @@ class StockAdjuster {
         },
         (err) => {
           console.error("Workflow error:", err);
-        }
+        },
       );
     } else if (page_status === "Edit") {
       if (!stockMovementNo) {
@@ -1835,7 +1836,7 @@ class StockAdjuster {
       if (prefixData.length !== 0) {
         const { prefixToShow, runningNumber } = await findUniquePrefix(
           prefixData,
-          organizationId
+          organizationId,
         );
 
         await updatePrefix(organizationId, runningNumber, movementType);
@@ -1860,7 +1861,7 @@ class StockAdjuster {
         },
         (err) => {
           console.error("Workflow error:", err);
-        }
+        },
       );
       console.log("Stock Movement Updated:", result);
     }
@@ -1883,18 +1884,18 @@ class StockAdjuster {
         const tempData = item.temp_qty_data;
         if (!tempData) {
           console.warn(
-            `No temp_qty_data found for item ${item.item_selection}`
+            `No temp_qty_data found for item ${item.item_selection}`,
           );
           tempDataParsed = [];
         } else {
           tempDataParsed = JSON.parse(tempData);
           tempDataParsed = tempDataParsed.filter(
-            (tempData) => tempData.sm_quantity > 0
+            (tempData) => tempData.sm_quantity > 0,
           );
           if (!Array.isArray(tempDataParsed)) {
             console.warn(
               `temp_qty_data for item ${item.item_selection} is not an array:`,
-              tempDataParsed
+              tempDataParsed,
             );
             tempDataParsed = [];
           }
@@ -1902,7 +1903,7 @@ class StockAdjuster {
       } catch (parseError) {
         console.error(
           `Error parsing temp_qty_data for item ${item.item_selection}:`,
-          parseError
+          parseError,
         );
         console.error("Raw temp_qty_data:", item.temp_qty_data);
         tempDataParsed = [];
@@ -1918,8 +1919,8 @@ class StockAdjuster {
             tempDataParsed.some(
               (tempData) =>
                 tempData.material_id === balance.material_id &&
-                tempData.balance_id === balance.balance_id
-            )
+                tempData.balance_id === balance.balance_id,
+            ),
         ) || [];
 
       console.log("balancesToProcess", balancesToProcess);
@@ -1975,14 +1976,14 @@ class StockAdjuster {
         }
 
         console.log(
-          `Grouped ${balancesToProcess.length} balances into ${groupedBalances.size} inventory movements`
+          `Grouped ${balancesToProcess.length} balances into ${groupedBalances.size} inventory movements`,
         );
 
         // Process each group - update quantities for all balances, then create single inventory movement
         for (const [groupKey, group] of groupedBalances.entries()) {
           try {
             console.log(
-              `Processing grouped balance for ${item.item_selection} - Key: ${groupKey}, Total Qty: ${group.totalQty}`
+              `Processing grouped balance for ${item.item_selection} - Key: ${groupKey}, Total Qty: ${group.totalQty}`,
             );
 
             // Update quantities for all individual balances (for balance tables)
@@ -1994,7 +1995,7 @@ class StockAdjuster {
                 balance,
                 allData,
                 item,
-                organizationId
+                organizationId,
               );
 
               if (
@@ -2017,7 +2018,7 @@ class StockAdjuster {
               allData,
               item,
               organizationId,
-              balancesToProcess
+              balancesToProcess,
             );
 
             updates.push({
@@ -2030,7 +2031,7 @@ class StockAdjuster {
           } catch (groupError) {
             console.error(
               `Error processing grouped balance for ${item.item_selection} - Key: ${groupKey}:`,
-              groupError
+              groupError,
             );
 
             updates.push({
@@ -2059,7 +2060,7 @@ class StockAdjuster {
             {},
             allData,
             item,
-            organizationId
+            organizationId,
           );
 
           const batchId = result?.batchId || null;
@@ -2071,7 +2072,7 @@ class StockAdjuster {
             allData,
             item,
             organizationId,
-            balancesToProcess
+            balancesToProcess,
           );
 
           updates.push({
@@ -2081,7 +2082,7 @@ class StockAdjuster {
         } catch (receiptError) {
           console.error(
             `Error processing receipt for ${item.item_selection}:`,
-            receiptError
+            receiptError,
           );
 
           updates.push({
@@ -2120,7 +2121,7 @@ class StockAdjuster {
     balance,
     allData,
     subformData,
-    organizationId
+    organizationId,
   ) {
     // For batched items, we'll handle both item_batch_balance AND item_balance
     // For non-batched items, we'll only handle item_balance
@@ -2143,7 +2144,7 @@ class StockAdjuster {
     let weightedAverageCost = null;
 
     console.log(
-      `updateQuantities: item ${materialData.id}, movement ${movementType}, effectiveUom: ${effectiveUom}, qtyChangeValue: ${qtyChangeValue}`
+      `updateQuantities: item ${materialData.id}, movement ${movementType}, effectiveUom: ${effectiveUom}, qtyChangeValue: ${qtyChangeValue}`,
     );
 
     if (qtyChangeValue === 0) return null;
@@ -2165,7 +2166,7 @@ class StockAdjuster {
 
     if (isSerializedItem && isSerialAllocated) {
       console.log(
-        `Skipping regular balance update for serialized item ${materialData.id} - handled by serial balance processing`
+        `Skipping regular balance update for serialized item ${materialData.id} - handled by serial balance processing`,
       );
 
       let batchId = null;
@@ -2180,7 +2181,7 @@ class StockAdjuster {
           qtyChangeValue,
           allData,
           subformData,
-          organizationId
+          organizationId,
         );
         console.log("Obtained batchId:", batchId);
       } else if (
@@ -2219,7 +2220,7 @@ class StockAdjuster {
           allData.issuing_operation_faci,
           subformData,
           updateData,
-          organizationId
+          organizationId,
         );
       }
 
@@ -2230,8 +2231,8 @@ class StockAdjuster {
       movementType === "Location Transfer"
         ? balance.category || "Unrestricted"
         : movementType === "Miscellaneous Receipt"
-        ? subformData.category || "Unrestricted"
-        : balance.category || "Unrestricted";
+          ? subformData.category || "Unrestricted"
+          : balance.category || "Unrestricted";
 
     const categoryField = this.categoryMap[categoryKey];
 
@@ -2247,7 +2248,7 @@ class StockAdjuster {
         qtyChangeValue,
         allData,
         subformData,
-        organizationId
+        organizationId,
       );
       console.log("Obtained batchId:", batchId);
       if (
@@ -2255,7 +2256,7 @@ class StockAdjuster {
         subformData.is_serial_allocated === 1
       ) {
         console.log(
-          "Processing serial numbers for batch item in Miscellaneous Receipt"
+          "Processing serial numbers for batch item in Miscellaneous Receipt",
         );
       }
     } else if (materialData.item_batch_management == "1" && balance.batch_id) {
@@ -2274,7 +2275,7 @@ class StockAdjuster {
 
     console.log(
       "Querying for existing balance with conditions:",
-      queryConditions
+      queryConditions,
     );
     const balanceResponse = await this.db
       .collection(primaryCollectionName)
@@ -2378,7 +2379,7 @@ class StockAdjuster {
         await this.db.collection(primaryCollectionName).add(updateData);
       } else {
         console.log(
-          "Skipped balance creation for serialized item - handled by serial balance"
+          "Skipped balance creation for serialized item - handled by serial balance",
         );
       }
     } else {
@@ -2410,7 +2411,7 @@ class StockAdjuster {
           .update(updateFields);
       } else {
         console.log(
-          "Skipped balance update for serialized item - handled by serial balance"
+          "Skipped balance update for serialized item - handled by serial balance",
         );
       }
     }
@@ -2440,18 +2441,18 @@ class StockAdjuster {
 
           // Apply the same movement logic as the batch-specific update
           let generalBalanceQty = parseFloat(
-            generalBalance.balance_quantity || 0
+            generalBalance.balance_quantity || 0,
           );
           let generalUnrestrictedQty = parseFloat(
-            generalBalance.unrestricted_qty || 0
+            generalBalance.unrestricted_qty || 0,
           );
           let generalQualityInspQty = parseFloat(
-            generalBalance.qualityinsp_qty || 0
+            generalBalance.qualityinsp_qty || 0,
           );
           let generalBlockQty = parseFloat(generalBalance.block_qty || 0);
           let generalReservedQty = parseFloat(generalBalance.reserved_qty || 0);
           let generalIntransitQty = parseFloat(
-            generalBalance.intransit_qty || 0
+            generalBalance.intransit_qty || 0,
           );
 
           // Apply movement type logic
@@ -2460,8 +2461,8 @@ class StockAdjuster {
               movementType === "Location Transfer"
                 ? balance.category || "Unrestricted"
                 : movementType === "Miscellaneous Receipt"
-                ? subformData.category || "Unrestricted"
-                : balance.category || "Unrestricted"
+                  ? subformData.category || "Unrestricted"
+                  : balance.category || "Unrestricted"
             ];
 
           switch (movementType) {
@@ -2564,12 +2565,12 @@ class StockAdjuster {
             .update(generalUpdateData);
 
           console.log(
-            `Updated aggregated item_balance for batched item ${materialData.id} with movement type ${movementType}`
+            `Updated aggregated item_balance for batched item ${materialData.id} with movement type ${movementType}`,
           );
         } else {
           // Create new item_balance record if it doesn't exist
           console.log(
-            `No existing item_balance found for batched item ${materialData.id}, creating new record`
+            `No existing item_balance found for batched item ${materialData.id}, creating new record`,
           );
 
           // This should rarely happen, but handle it for completeness
@@ -2598,8 +2599,8 @@ class StockAdjuster {
               movementType === "Location Transfer"
                 ? balance.category || "Unrestricted"
                 : movementType === "Miscellaneous Receipt"
-                ? subformData.category || "Unrestricted"
-                : balance.category || "Unrestricted"
+                  ? subformData.category || "Unrestricted"
+                  : balance.category || "Unrestricted"
             ];
 
           switch (movementType) {
@@ -2692,22 +2693,22 @@ class StockAdjuster {
 
           // Round all quantities to 3 decimal places
           generalUpdateData.balance_quantity = parseFloat(
-            generalUpdateData.balance_quantity.toFixed(3)
+            generalUpdateData.balance_quantity.toFixed(3),
           );
           generalUpdateData.unrestricted_qty = parseFloat(
-            generalUpdateData.unrestricted_qty.toFixed(3)
+            generalUpdateData.unrestricted_qty.toFixed(3),
           );
           generalUpdateData.qualityinsp_qty = parseFloat(
-            generalUpdateData.qualityinsp_qty.toFixed(3)
+            generalUpdateData.qualityinsp_qty.toFixed(3),
           );
           generalUpdateData.block_qty = parseFloat(
-            generalUpdateData.block_qty.toFixed(3)
+            generalUpdateData.block_qty.toFixed(3),
           );
           generalUpdateData.reserved_qty = parseFloat(
-            generalUpdateData.reserved_qty.toFixed(3)
+            generalUpdateData.reserved_qty.toFixed(3),
           );
           generalUpdateData.intransit_qty = parseFloat(
-            generalUpdateData.intransit_qty.toFixed(3)
+            generalUpdateData.intransit_qty.toFixed(3),
           );
 
           await this.db.collection("item_balance").add(generalUpdateData);
@@ -2715,7 +2716,7 @@ class StockAdjuster {
       } catch (error) {
         console.error(
           `Error updating aggregated item_balance for batched item ${materialData.id}:`,
-          error
+          error,
         );
         // Don't throw - let the main process continue
       }
@@ -2738,7 +2739,7 @@ class StockAdjuster {
         allData.issuing_operation_faci,
         subformData,
         updateData,
-        organizationId
+        organizationId,
       );
     }
 
@@ -2752,7 +2753,7 @@ class StockAdjuster {
         allData,
         subformData,
         movementType,
-        organizationId
+        organizationId,
       );
 
       // ✅ CRITICAL FIX: For Location Transfer with batched items and serialized items, also deduct from SOURCE location's item_balance
@@ -2780,18 +2781,18 @@ class StockAdjuster {
               this.categoryMap[balance.category || "Unrestricted"];
 
             const currentSourceBalanceQty = parseFloat(
-              sourceBalance.balance_quantity || 0
+              sourceBalance.balance_quantity || 0,
             );
             const currentSourceCategoryQty = parseFloat(
-              sourceBalance[categoryField] || 0
+              sourceBalance[categoryField] || 0,
             );
 
             const sourceUpdateData = {
               balance_quantity: parseFloat(
-                (currentSourceBalanceQty - qtyChangeValue).toFixed(3)
+                (currentSourceBalanceQty - qtyChangeValue).toFixed(3),
               ),
               [categoryField]: parseFloat(
-                (currentSourceCategoryQty - qtyChangeValue).toFixed(3)
+                (currentSourceCategoryQty - qtyChangeValue).toFixed(3),
               ),
               update_time: new Date().toISOString(),
               update_user: allData.user_id || "system",
@@ -2807,13 +2808,13 @@ class StockAdjuster {
                 materialData.id
               } (Location Transfer deduction - ${
                 isBatchedItem ? "batched" : ""
-              }${isSerializedItem ? "serialized" : ""})`
+              }${isSerializedItem ? "serialized" : ""})`,
             );
           }
         } catch (error) {
           console.error(
             `Error updating source item_balance for Location Transfer, item ${materialData.id}:`,
-            error
+            error,
           );
           // Don't throw - let the main process continue
         }
@@ -2850,7 +2851,7 @@ class StockAdjuster {
           const aggregatedQuantities = calculateAggregatedSerialQuantities(
             serialItem,
             qtyChangeValue,
-            this.roundQty
+            this.roundQty,
           );
 
           if (aggregatedQuantities) {
@@ -2871,11 +2872,11 @@ class StockAdjuster {
               aggregatedQuantities.qualityinsp_qty,
               aggregatedQuantities.intransit_qty,
               this.roundQty,
-              materialData.based_uom
+              materialData.based_uom,
             );
 
             console.log(
-              `Updated item_balance for serialized batch item ${materialData.id} with ${aggregatedQuantities.serial_count} serial numbers`
+              `Updated item_balance for serialized batch item ${materialData.id} with ${aggregatedQuantities.serial_count} serial numbers`,
             );
           }
         }
@@ -2912,7 +2913,7 @@ class StockAdjuster {
         if (movementType === "Inventory Category Transfer Posting") {
           if (!balance.category_from || !balance.category_to) {
             throw new Error(
-              "Both category_from and category_to are required for category transfer"
+              "Both category_from and category_to are required for category transfer",
             );
           }
 
@@ -2975,7 +2976,7 @@ class StockAdjuster {
           qualityinsp_qty,
           intransit_qty,
           this.roundQty,
-          materialData.based_uom
+          materialData.based_uom,
         );
 
         console.log(
@@ -2983,7 +2984,7 @@ class StockAdjuster {
             isBatchedItem ? "batched" : "serialized"
           } item ${
             materialData.id
-          } with movement type ${movementType} (legacy logic)`
+          } with movement type ${movementType} (legacy logic)`,
         );
       }
     }
@@ -3000,11 +3001,11 @@ class StockAdjuster {
     allData,
     subformData,
     movementType,
-    organizationId
+    organizationId,
   ) {
     if (!receivingLocationId) {
       throw new Error(
-        "Receiving location ID is required for Location Transfer"
+        "Receiving location ID is required for Location Transfer",
       );
     }
 
@@ -3015,12 +3016,12 @@ class StockAdjuster {
     qtyChangeValue = parseFloat(balance.quantity_converted || qtyChangeValue);
 
     console.log(
-      `updateReceivingLocation: item ${materialData.id}, effectiveUom: ${effectiveUom}, qtyChangeValue: ${qtyChangeValue}`
+      `updateReceivingLocation: item ${materialData.id}, effectiveUom: ${effectiveUom}, qtyChangeValue: ${qtyChangeValue}`,
     );
 
     if (!effectiveUom) {
       throw new Error(
-        `Effective UOM is undefined for item ${materialData.id} in receiving location`
+        `Effective UOM is undefined for item ${materialData.id} in receiving location`,
       );
     }
 
@@ -3068,8 +3069,8 @@ class StockAdjuster {
       movementType === "Location Transfer"
         ? this.categoryMap[balance.category || "Unrestricted"]
         : movementType === "Miscellaneous Receipt"
-        ? this.categoryMap[subformData.category || "Unrestricted"]
-        : this.categoryMap[balance.category || "Unrestricted"];
+          ? this.categoryMap[subformData.category || "Unrestricted"]
+          : this.categoryMap[balance.category || "Unrestricted"];
 
     if (
       movementType === "Location Transfer" &&
@@ -3090,7 +3091,7 @@ class StockAdjuster {
       // For new entries, ensure we're creating a properly-formatted record
       await this.db.collection(collectionName).add(updateData);
       console.log(
-        `Created new ${collectionName} record for batch ${balance.batch_id} at location ${receivingLocationId}`
+        `Created new ${collectionName} record for batch ${balance.batch_id} at location ${receivingLocationId}`,
       );
     } else {
       const updateFields = {
@@ -3115,7 +3116,7 @@ class StockAdjuster {
         .update(updateFields);
 
       console.log(
-        `Updated existing ${collectionName} record for batch ${balance.batch_id} at location ${receivingLocationId}`
+        `Updated existing ${collectionName} record for batch ${balance.batch_id} at location ${receivingLocationId}`,
       );
     }
 
@@ -3143,18 +3144,18 @@ class StockAdjuster {
           const generalBalance = generalBalanceQuery.data[0];
 
           const currentGeneralBalanceQty = parseFloat(
-            generalBalance.balance_quantity || 0
+            generalBalance.balance_quantity || 0,
           );
           const currentGeneralCategoryQty = parseFloat(
-            generalBalance[categoryField] || 0
+            generalBalance[categoryField] || 0,
           );
 
           const generalUpdateData = {
             balance_quantity: parseFloat(
-              (currentGeneralBalanceQty + qtyChangeValue).toFixed(3)
+              (currentGeneralBalanceQty + qtyChangeValue).toFixed(3),
             ),
             [categoryField]: parseFloat(
-              (currentGeneralCategoryQty + qtyChangeValue).toFixed(3)
+              (currentGeneralCategoryQty + qtyChangeValue).toFixed(3),
             ),
             update_time: new Date().toISOString(),
             update_user: allData.user_id || "system",
@@ -3166,7 +3167,7 @@ class StockAdjuster {
             .update(generalUpdateData);
 
           console.log(
-            `Updated aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id}`
+            `Updated aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id}`,
           );
         } else {
           // Create new item_balance record if it doesn't exist
@@ -3207,13 +3208,13 @@ class StockAdjuster {
           await this.db.collection("item_balance").add(generalUpdateData);
 
           console.log(
-            `Created new aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id}`
+            `Created new aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id}`,
           );
         }
       } catch (error) {
         console.error(
           `Error updating aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id}:`,
-          error
+          error,
         );
         // Don't throw - let the main process continue
       }
@@ -3240,18 +3241,18 @@ class StockAdjuster {
           const generalBalance = generalBalanceQuery.data[0];
 
           const currentGeneralBalanceQty = parseFloat(
-            generalBalance.balance_quantity || 0
+            generalBalance.balance_quantity || 0,
           );
           const currentGeneralCategoryQty = parseFloat(
-            generalBalance[categoryField] || 0
+            generalBalance[categoryField] || 0,
           );
 
           const generalUpdateData = {
             balance_quantity: parseFloat(
-              (currentGeneralBalanceQty + qtyChangeValue).toFixed(3)
+              (currentGeneralBalanceQty + qtyChangeValue).toFixed(3),
             ),
             [categoryField]: parseFloat(
-              (currentGeneralCategoryQty + qtyChangeValue).toFixed(3)
+              (currentGeneralCategoryQty + qtyChangeValue).toFixed(3),
             ),
             update_time: new Date().toISOString(),
             update_user: allData.user_id || "system",
@@ -3263,7 +3264,7 @@ class StockAdjuster {
             .update(generalUpdateData);
 
           console.log(
-            `Updated aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id} (serialized)`
+            `Updated aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id} (serialized)`,
           );
         } else {
           // Create new item_balance record
@@ -3304,13 +3305,13 @@ class StockAdjuster {
           await this.db.collection("item_balance").add(generalUpdateData);
 
           console.log(
-            `Created new aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id} (serialized)`
+            `Created new aggregated item_balance for receiving location ${receivingLocationId}, item ${materialData.id} (serialized)`,
           );
         }
       } catch (error) {
         console.error(
           `Error updating aggregated item_balance for serialized receiving location ${receivingLocationId}, item ${materialData.id}:`,
-          error
+          error,
         );
         // Don't throw - let the main process continue
       }
@@ -3322,7 +3323,7 @@ class StockAdjuster {
     quantity,
     allData,
     subformData,
-    organizationId
+    organizationId,
   ) {
     const batchNumber = `BATCH-${Date.now()}-${Math.random()
       .toString(36)
@@ -3368,7 +3369,7 @@ class StockAdjuster {
     plantId,
     subformData,
     balanceData,
-    organizationId
+    organizationId,
   ) {
     try {
       console.log("updateCostingMethod inputs:", {
@@ -3402,7 +3403,7 @@ class StockAdjuster {
 
       if (
         !["Weighted Average", "First In First Out", "Fixed Cost"].includes(
-          costingMethod
+          costingMethod,
         )
       ) {
         throw new Error(`Unsupported costing method: ${costingMethod}`);
@@ -3412,10 +3413,10 @@ class StockAdjuster {
         balanceData.unit_price && balanceData.unit_price !== 0
           ? balanceData.unit_price
           : subformData.price_converted && subformData.price_converted !== 0
-          ? subformData.price_converted
-          : subformData.unit_price && subformData.unit_price !== 0
-          ? subformData.unit_price
-          : materialData.purchase_unit_price || 0;
+            ? subformData.price_converted
+            : subformData.unit_price && subformData.unit_price !== 0
+              ? subformData.unit_price
+              : materialData.purchase_unit_price || 0;
 
       if (unitPrice === 0) {
         console.warn("Unit price is zero, proceeding with costing update");
@@ -3474,7 +3475,7 @@ class StockAdjuster {
           try {
             latestWa = waData.sort(
               (a, b) =>
-                new Date(b.created_at || 0) - new Date(a.created_at || 0)
+                new Date(b.created_at || 0) - new Date(a.created_at || 0),
             )[0];
 
             if (!latestWa) {
@@ -3494,7 +3495,7 @@ class StockAdjuster {
           } catch (sortError) {
             console.error("Error during WA record sorting:", sortError);
             throw new Error(
-              `Error processing WA records: ${sortError.message}`
+              `Error processing WA records: ${sortError.message}`,
             );
           }
 
@@ -3504,13 +3505,13 @@ class StockAdjuster {
           if (qtyChangeValue > 0) {
             newWaQuantity = this.roundQty(currentQty + qtyChangeValue);
             const currentTotalCost = this.roundPrice(
-              currentCostPrice * currentQty
+              currentCostPrice * currentQty,
             );
             const newTotalCost = this.roundPrice(unitPrice * qtyChangeValue);
             newWaCostPrice =
               newWaQuantity > 0
                 ? this.roundPrice(
-                    (currentTotalCost + newTotalCost) / newWaQuantity
+                    (currentTotalCost + newTotalCost) / newWaQuantity,
                   )
                 : 0;
           } else {
@@ -3519,7 +3520,7 @@ class StockAdjuster {
 
             if (newWaQuantity < 0) {
               throw new Error(
-                `Insufficient WA quantity: available ${currentQty}, requested ${deliveredQuantity}`
+                `Insufficient WA quantity: available ${currentQty}, requested ${deliveredQuantity}`,
               );
             }
 
@@ -3538,7 +3539,7 @@ class StockAdjuster {
           console.log("waQuery", waQuery);
           console.log("waResponse", waQuery);
           throw new Error(
-            `No WA costing record found for deduction: material ${materialData.id}, plant ${plantId}`
+            `No WA costing record found for deduction: material ${materialData.id}, plant ${plantId}`,
           );
         }
       } else if (costingMethod === "First In First Out") {
@@ -3588,19 +3589,19 @@ class StockAdjuster {
           const fifoDeductions = []; // Track deductions for weighted average
 
           const sortedFifoData = fifoData.sort(
-            (a, b) => (a.fifo_sequence || 0) - (b.fifo_sequence || 0)
+            (a, b) => (a.fifo_sequence || 0) - (b.fifo_sequence || 0),
           );
 
           const totalAvailable = this.roundQty(
             sortedFifoData.reduce(
               (sum, record) => sum + (record.fifo_available_quantity || 0),
-              0
-            )
+              0,
+            ),
           );
 
           if (totalAvailable < remainingDeduction) {
             throw new Error(
-              `Insufficient FIFO quantity: available ${totalAvailable}, requested ${remainingDeduction}`
+              `Insufficient FIFO quantity: available ${totalAvailable}, requested ${remainingDeduction}`,
             );
           }
 
@@ -3608,7 +3609,7 @@ class StockAdjuster {
             if (remainingDeduction <= 0) break;
 
             const available = this.roundQty(
-              record.fifo_available_quantity || 0
+              record.fifo_available_quantity || 0,
             );
             if (available <= 0) continue;
 
@@ -3634,7 +3635,7 @@ class StockAdjuster {
 
           if (remainingDeduction > 0) {
             throw new Error(
-              `Insufficient FIFO quantity: remaining ${remainingDeduction} after processing all layers`
+              `Insufficient FIFO quantity: remaining ${remainingDeduction} after processing all layers`,
             );
           }
 
@@ -3642,15 +3643,15 @@ class StockAdjuster {
           if (fifoDeductions.length > 0) {
             const totalCost = fifoDeductions.reduce(
               (sum, d) => sum + d.quantity * d.costPrice,
-              0
+              0,
             );
             const totalQty = fifoDeductions.reduce(
               (sum, d) => sum + d.quantity,
-              0
+              0,
             );
             weightedAverageCost = this.roundPrice(totalCost / totalQty);
             console.log(
-              `FIFO weighted average cost calculated: ${weightedAverageCost}`
+              `FIFO weighted average cost calculated: ${weightedAverageCost}`,
             );
           }
         }
@@ -3673,7 +3674,7 @@ class StockAdjuster {
         balanceData,
       });
       throw new Error(
-        `Failed to update costing method: ${error.message || "Unknown error"}`
+        `Failed to update costing method: ${error.message || "Unknown error"}`,
       );
     }
   }
@@ -3683,7 +3684,7 @@ class StockAdjuster {
     materialData,
     batchId,
     plantId,
-    deductionQty = null
+    deductionQty = null,
   ) {
     try {
       const query =
@@ -3706,7 +3707,7 @@ class StockAdjuster {
       }
 
       const sortedRecords = result.sort(
-        (a, b) => a.fifo_sequence - b.fifo_sequence
+        (a, b) => a.fifo_sequence - b.fifo_sequence,
       );
 
       if (deductionQty && deductionQty > 0) {
@@ -3718,7 +3719,7 @@ class StockAdjuster {
           if (remainingQtyToDeduct <= 0) break;
 
           const availableQty = this.roundQty(
-            record.fifo_available_quantity || 0
+            record.fifo_available_quantity || 0,
           );
           if (availableQty <= 0) continue;
 
@@ -3740,7 +3741,7 @@ class StockAdjuster {
         const availableQty = this.roundQty(record.fifo_available_quantity || 0);
         if (availableQty > 0) {
           console.log(
-            `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
+            `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`,
           );
           return this.roundPrice(record.fifo_cost_price || 0);
         }
@@ -3748,15 +3749,15 @@ class StockAdjuster {
 
       // If no records with available quantity, use the most recent record
       console.warn(
-        `No FIFO records with available quantity found for ${materialData.id}, using most recent cost price`
+        `No FIFO records with available quantity found for ${materialData.id}, using most recent cost price`,
       );
       return this.roundPrice(
-        sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+        sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0,
       );
     } catch (error) {
       console.error(
         `Error retrieving FIFO cost price for ${materialData.id}:`,
-        error
+        error,
       );
       return 0;
     }
@@ -3792,13 +3793,13 @@ class StockAdjuster {
       }
 
       console.warn(
-        `No weighted average records found for material ${materialData.id}`
+        `No weighted average records found for material ${materialData.id}`,
       );
       return 0;
     } catch (error) {
       console.error(
         `Error retrieving WA cost price for ${materialData.id}:`,
-        error
+        error,
       );
       return 0;
     }
@@ -3817,7 +3818,7 @@ class StockAdjuster {
     balance,
     allData,
     subformData,
-    organizationId
+    organizationId,
   ) {
     console.log("recordInventoryMovement inputs:", {
       materialData,
@@ -3838,12 +3839,12 @@ class StockAdjuster {
       materialData.based_uom;
 
     console.log(
-      `recordInventoryMovement: item ${materialData.id}, effectiveUom: ${effectiveUom}, originalQty: ${originalQty}, convertedQty: ${convertedQty}`
+      `recordInventoryMovement: item ${materialData.id}, effectiveUom: ${effectiveUom}, originalQty: ${originalQty}, convertedQty: ${convertedQty}`,
     );
 
     if (!effectiveUom) {
       throw new Error(
-        `Effective UOM is undefined for item ${materialData.id} in inventory movement`
+        `Effective UOM is undefined for item ${materialData.id} in inventory movement`,
       );
     }
 
@@ -3854,8 +3855,8 @@ class StockAdjuster {
       balance.unit_price && balance.unit_price !== 0
         ? balance.unit_price
         : subformData.unit_price && subformData.unit_price !== 0
-        ? subformData.unit_price
-        : materialData.purchase_unit_price || 0;
+          ? subformData.unit_price
+          : materialData.purchase_unit_price || 0;
 
     console.log("unitPrice JN", unitPrice);
 
@@ -3866,7 +3867,7 @@ class StockAdjuster {
       ) {
         unitPrice = balance.calculated_fifo_cost;
         console.log(
-          `Using calculated FIFO weighted average cost: ${unitPrice}`
+          `Using calculated FIFO weighted average cost: ${unitPrice}`,
         );
       } else {
         const isDeductionMovement = [
@@ -3882,7 +3883,7 @@ class StockAdjuster {
           materialData,
           balance.batch_id,
           allData.issuing_operation_faci,
-          deductionQty
+          deductionQty,
         );
         unitPrice = this.roundPrice(fifoCostPrice);
       }
@@ -3890,7 +3891,7 @@ class StockAdjuster {
       const waCostPrice = await this.getWeightedAverageCostPrice(
         materialData,
         balance.batch_id,
-        allData.issuing_operation_faci
+        allData.issuing_operation_faci,
       );
       unitPrice = this.roundPrice(waCostPrice);
     } else if (materialData.material_costing_method === "Fixed Cost") {
@@ -3906,12 +3907,12 @@ class StockAdjuster {
         balance.unit_price && balance.unit_price !== 0
           ? balance.unit_price
           : subformData.unit_price && subformData.unit_price !== 0
-          ? subformData.unit_price
-          : materialData.purchase_unit_price || 0;
+            ? subformData.unit_price
+            : materialData.purchase_unit_price || 0;
     }
 
     const formattedUnitPrice = this.roundPrice(
-      movementType === "Miscellaneous Receipt" ? receiptUnitPrice : unitPrice
+      movementType === "Miscellaneous Receipt" ? receiptUnitPrice : unitPrice,
     );
     const formattedConvertedQty = this.roundQty(convertedQty);
     const formattedOriginalQty = this.roundQty(originalQty);
@@ -4008,7 +4009,7 @@ class StockAdjuster {
           // Process OUT movement serials once
           if (outMovementQuery.data && outMovementQuery.data.length > 0) {
             const outMovementRecord = outMovementQuery.data.sort(
-              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time),
             )[0];
             const outMovementId = outMovementRecord.id;
 
@@ -4025,7 +4026,7 @@ class StockAdjuster {
                   organizationId,
                   allData.issuing_operation_faci,
                   serialBalance,
-                  movementType
+                  movementType,
                 );
               }
             } else {
@@ -4037,7 +4038,7 @@ class StockAdjuster {
                 organizationId,
                 allData.issuing_operation_faci,
                 balance,
-                movementType
+                movementType,
               );
             }
           }
@@ -4057,7 +4058,7 @@ class StockAdjuster {
           // Process IN movement serials once
           if (inMovementQuery.data && inMovementQuery.data.length > 0) {
             const inMovementRecord = inMovementQuery.data.sort(
-              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time),
             )[0];
             const inMovementId = inMovementRecord.id;
 
@@ -4075,7 +4076,7 @@ class StockAdjuster {
                   allData.issuing_operation_faci,
                   serialBalance,
                   subformData.location_id,
-                  materialData.based_uom
+                  materialData.based_uom,
                 );
               }
             } else {
@@ -4088,7 +4089,7 @@ class StockAdjuster {
                 allData.issuing_operation_faci,
                 balance,
                 subformData.location_id,
-                materialData.based_uom
+                materialData.based_uom,
               );
             }
           }
@@ -4127,7 +4128,7 @@ class StockAdjuster {
 
           if (movementQuery.data && movementQuery.data.length > 0) {
             const movementId = movementQuery.data.sort(
-              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time),
             )[0].id;
 
             if (
@@ -4143,7 +4144,7 @@ class StockAdjuster {
                   organizationId,
                   allData.issuing_operation_faci,
                   serialBalance,
-                  movementType
+                  movementType,
                 );
               }
             } else {
@@ -4155,7 +4156,7 @@ class StockAdjuster {
                 organizationId,
                 allData.issuing_operation_faci,
                 balance,
-                movementType
+                movementType,
               );
             }
           }
@@ -4201,12 +4202,12 @@ class StockAdjuster {
             inventoryMovementQuery.data.length === 0
           ) {
             throw new Error(
-              "Inventory movement record was created but could not be retrieved"
+              "Inventory movement record was created but could not be retrieved",
             );
           }
 
           const inventoryMovementRecord = inventoryMovementQuery.data.sort(
-            (a, b) => new Date(b.create_time) - new Date(a.create_time)
+            (a, b) => new Date(b.create_time) - new Date(a.create_time),
           )[0];
 
           const inventoryMovementId = inventoryMovementRecord.id;
@@ -4217,7 +4218,7 @@ class StockAdjuster {
             inventoryMovementId,
             organizationId,
             allData.issuing_operation_faci,
-            baseMovementData.batch_number_id
+            baseMovementData.batch_number_id,
           );
         }
 
@@ -4284,7 +4285,7 @@ class StockAdjuster {
           // Process OUT movement - this will handle the serial balance update for each serial
           if (outMovementQueryICT.data && outMovementQueryICT.data.length > 0) {
             const outMovementIdICT = outMovementQueryICT.data.sort(
-              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time),
             )[0].id;
 
             // Process each serial balance individually
@@ -4296,7 +4297,7 @@ class StockAdjuster {
                   outMovementIdICT,
                   organizationId,
                   allData.issuing_operation_faci,
-                  serialBalance
+                  serialBalance,
                 );
               }
             } else {
@@ -4307,7 +4308,7 @@ class StockAdjuster {
                 outMovementIdICT,
                 organizationId,
                 allData.issuing_operation_faci,
-                balance
+                balance,
               );
             }
           }
@@ -4315,14 +4316,14 @@ class StockAdjuster {
           // Process IN movement - create serial movement record for each serial
           if (inMovementQueryICT.data && inMovementQueryICT.data.length > 0) {
             const inMovementIdICT = inMovementQueryICT.data.sort(
-              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time),
             )[0].id;
 
             // Create serial movement records for each serial
             if (balance.serial_balances && balance.serial_balances.length > 0) {
               for (const serialBalance of balance.serial_balances) {
                 const serialQty = this.roundQty(
-                  parseFloat(serialBalance.original_quantity || 1)
+                  parseFloat(serialBalance.original_quantity || 1),
                 );
                 await this.createSerialMovementRecord(
                   inMovementIdICT,
@@ -4331,7 +4332,7 @@ class StockAdjuster {
                   serialQty,
                   effectiveUom,
                   allData.issuing_operation_faci,
-                  organizationId
+                  organizationId,
                 );
               }
             } else {
@@ -4343,7 +4344,7 @@ class StockAdjuster {
                 formattedConvertedQty,
                 materialData.based_uom,
                 allData.issuing_operation_faci,
-                organizationId
+                organizationId,
               );
             }
           }
@@ -4380,7 +4381,7 @@ class StockAdjuster {
 
           if (movementQuery.data && movementQuery.data.length > 0) {
             const movementId = movementQuery.data.sort(
-              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time),
             )[0].id;
 
             await this.addSerialNumberInventoryForInterFacilityTransfer(
@@ -4388,7 +4389,7 @@ class StockAdjuster {
               subformData,
               movementId,
               organizationId,
-              allData.issuing_operation_faci
+              allData.issuing_operation_faci,
             );
           }
         }
@@ -4397,7 +4398,7 @@ class StockAdjuster {
 
       default:
         console.warn(
-          `Unknown movement type: ${movementType}, using basic movement logic`
+          `Unknown movement type: ${movementType}, using basic movement logic`,
         );
 
         const movement = "OUT";
@@ -4430,7 +4431,7 @@ class StockAdjuster {
 
           if (movementQuery.data && movementQuery.data.length > 0) {
             const movementId = movementQuery.data.sort(
-              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time),
             )[0].id;
 
             if (
@@ -4446,7 +4447,7 @@ class StockAdjuster {
                   organizationId,
                   allData.issuing_operation_faci,
                   serialBalance,
-                  movementType
+                  movementType,
                 );
               }
             } else {
@@ -4458,7 +4459,7 @@ class StockAdjuster {
                 organizationId,
                 allData.issuing_operation_faci,
                 balance,
-                movementType
+                movementType,
               );
             }
           }
@@ -4473,7 +4474,7 @@ class StockAdjuster {
       for (const [index, item] of subformData.entries()) {
         if (!item.item_selection || item.item_selection === "") {
           console.log(
-            `Skipping item ${item.item_selection} due to no item_selection`
+            `Skipping item ${item.item_selection} due to no item_selection`,
           );
           return;
         }
@@ -4522,19 +4523,19 @@ class StockAdjuster {
             const tempData = item.temp_qty_data;
             if (!tempData) {
               console.warn(
-                `No temp_qty_data found for item ${item.item_selection}`
+                `No temp_qty_data found for item ${item.item_selection}`,
               );
               tempDataParsed = [];
             } else {
               tempDataParsed = JSON.parse(tempData);
               tempDataParsed = tempDataParsed.filter(
-                (tempData) => tempData.sm_quantity > 0
+                (tempData) => tempData.sm_quantity > 0,
               );
             }
           } catch (parseError) {
             console.error(
               `Error parsing temp_qty_data for item ${item.item_selection}:`,
-              parseError
+              parseError,
             );
             tempDataParsed = [];
           }
@@ -4549,8 +4550,8 @@ class StockAdjuster {
                 tempDataParsed.some(
                   (tempData) =>
                     tempData.material_id === balance.material_id &&
-                    tempData.balance_id === balance.balance_id
-                )
+                    tempData.balance_id === balance.balance_id,
+                ),
             ) || [];
           for (const balance of balancesToProcess) {
             this.db.collection("on_reserved_gd").add({
@@ -4609,7 +4610,7 @@ class StockAdjuster {
             {
               confirmButtonText: "OK",
               type: "warning",
-            }
+            },
           );
         } else {
           alert(error.message);
@@ -4634,7 +4635,7 @@ class StockAdjuster {
         console.log(
           `📦 Item ${index + 1}: material_id=${
             item.item_selection
-          }, location_id=${item.location_id}`
+          }, location_id=${item.location_id}`,
         );
       });
 
@@ -4646,7 +4647,7 @@ class StockAdjuster {
           const item = subformData[i];
           if (!item.location_id) {
             throw new Error(
-              `Location ID is required for item ${i + 1} in stock movement`
+              `Location ID is required for item ${i + 1} in stock movement`,
             );
           }
         }
@@ -4657,14 +4658,14 @@ class StockAdjuster {
 
       // Step 4.5: Validate serial number uniqueness for all movement types with serialized items
       console.log(
-        "🔍 Validating serial number uniqueness for serialized items..."
+        "🔍 Validating serial number uniqueness for serialized items...",
       );
 
       // Check if any item has serial number data
       const hasSerializedItems = subformData.some(
         (item) =>
           item.is_serialized_item === 1 ||
-          (item.serial_number_data && item.serial_number_data.trim() !== "")
+          (item.serial_number_data && item.serial_number_data.trim() !== ""),
       );
 
       if (hasSerializedItems) {
@@ -4674,7 +4675,7 @@ class StockAdjuster {
         } catch (serialError) {
           console.error(
             "❌ Serial number uniqueness validation failed:",
-            serialError.message
+            serialError.message,
           );
           throw serialError;
         }
@@ -4696,12 +4697,12 @@ class StockAdjuster {
         console.log("🔍 Raw balance_index:", allData.balance_index);
         console.log(
           "🔍 Balance_index length:",
-          allData.balance_index?.length || 0
+          allData.balance_index?.length || 0,
         );
 
         const balancesToProcess =
           allData.balance_index?.filter(
-            (balance) => balance.sm_quantity && balance.sm_quantity > 0
+            (balance) => balance.sm_quantity && balance.sm_quantity > 0,
           ) || [];
 
         console.log("📊 Balances to process:", balancesToProcess);
@@ -4744,7 +4745,7 @@ class StockAdjuster {
                 movementType === "Inventory Category Transfer Posting"
                   ? ` (Transfer: ${balance.category_from} → ${balance.category_to})`
                   : ""
-              }`
+              }`,
             );
 
             if (serialRequestMap.has(serialKey)) {
@@ -4813,7 +4814,7 @@ class StockAdjuster {
               movementType === "Inventory Category Transfer Posting"
                 ? ` (Source category for transfer)`
                 : ""
-            }`
+            }`,
           );
 
           if (locationQuantityMap.has(key)) {
@@ -4821,7 +4822,7 @@ class StockAdjuster {
             const newTotal = existingQty + requestedQty;
             locationQuantityMap.set(key, newTotal);
             console.log(
-              `📈 Updated aggregated quantity for ${key}: ${existingQty} + ${requestedQty} = ${newTotal}`
+              `📈 Updated aggregated quantity for ${key}: ${existingQty} + ${requestedQty} = ${newTotal}`,
             );
           } else {
             locationQuantityMap.set(key, requestedQty);
@@ -4831,13 +4832,13 @@ class StockAdjuster {
 
         console.log(
           "🗺️ Final locationQuantityMap:",
-          Array.from(locationQuantityMap.entries())
+          Array.from(locationQuantityMap.entries()),
         );
 
         // Now check each aggregated quantity against available balance
         for (const [key, totalRequestedQty] of locationQuantityMap.entries()) {
           console.log(
-            `🔍 Checking aggregated quantity for key: ${key}, total requested: ${totalRequestedQty}`
+            `🔍 Checking aggregated quantity for key: ${key}, total requested: ${totalRequestedQty}`,
           );
 
           const [materialId, locationId, category, batchId] = key.split("|");
@@ -4865,12 +4866,12 @@ class StockAdjuster {
           if (isSerializedItem) {
             // ✅ For serialized items, check item_serial_balance
             console.log(
-              `Checking serialized item balance for material: ${materialId}`
+              `Checking serialized item balance for material: ${materialId}`,
             );
 
             // INTEGRATED: Validate serial number quantities during balance checking
             console.log(
-              "🔍 Validating serial number quantities for deduction movements..."
+              "🔍 Validating serial number quantities for deduction movements...",
             );
 
             const serialValidationErrors = [];
@@ -4882,7 +4883,7 @@ class StockAdjuster {
                   balance.sm_quantity &&
                   balance.sm_quantity > 0 &&
                   balance.material_id === materialId &&
-                  balance.location_id === locationId
+                  balance.location_id === locationId,
               ) || [];
 
             for (const balance of serialBalancesToCheck) {
@@ -4911,14 +4912,14 @@ class StockAdjuster {
                 serialBalanceQuery.data.length === 0
               ) {
                 throw new Error(
-                  `No existing serial balance found for item ${materialId}, serial ${balance.serial_number} at location ${locationId}`
+                  `No existing serial balance found for item ${materialId}, serial ${balance.serial_number} at location ${locationId}`,
                 );
               }
 
               const serialBalance = serialBalanceQuery.data[0];
               const categoryField = this.categoryMap[category];
               const serialCategoryQty = parseFloat(
-                serialBalance[categoryField] || 0
+                serialBalance[categoryField] || 0,
               );
 
               // For serialized items, each serial should have exactly the requested quantity
@@ -4974,7 +4975,7 @@ class StockAdjuster {
                   itemDetails = serialRequest.occurrences
                     .map(
                       (occ) =>
-                        `Item ${occ.itemIndex} (Qty: ${occ.requestedQty}, ${occ.categoryFrom} → ${occ.categoryTo})`
+                        `Item ${occ.itemIndex} (Qty: ${occ.requestedQty}, ${occ.categoryFrom} → ${occ.categoryTo})`,
                     )
                     .join(", ");
 
@@ -4992,7 +4993,7 @@ class StockAdjuster {
                   itemDetails = serialRequest.occurrences
                     .map(
                       (occ) =>
-                        `Item ${occ.itemIndex} (Qty: ${occ.requestedQty})`
+                        `Item ${occ.itemIndex} (Qty: ${occ.requestedQty})`,
                     )
                     .join(", ");
 
@@ -5024,7 +5025,7 @@ class StockAdjuster {
             }
 
             console.log(
-              `✅ Sufficient serial inventory available for ${materialId}`
+              `✅ Sufficient serial inventory available for ${materialId}`,
             );
           } else {
             // ✅ For non-serialized items, use existing logic
@@ -5034,7 +5035,7 @@ class StockAdjuster {
                 : "item_balance";
 
             console.log(
-              `🔍 Querying ${collectionName} for material: ${materialId}, location: ${locationId}`
+              `🔍 Querying ${collectionName} for material: ${materialId}, location: ${locationId}`,
             );
 
             const balanceResponse = await this.db
@@ -5052,7 +5053,7 @@ class StockAdjuster {
 
             if (!balanceData) {
               throw new Error(
-                `No existing balance found for item ${materialId} at location ${locationId}`
+                `No existing balance found for item ${materialId} at location ${locationId}`,
               );
             }
 
@@ -5060,7 +5061,7 @@ class StockAdjuster {
             currentQty = balanceData[categoryField] || 0;
 
             console.log(
-              `📊 Current quantity in ${category}: ${currentQty}, Total requested: ${totalRequestedQty}`
+              `📊 Current quantity in ${category}: ${currentQty}, Total requested: ${totalRequestedQty}`,
             );
 
             // Check if total requested quantity exceeds available quantity
@@ -5076,7 +5077,7 @@ class StockAdjuster {
             }
 
             console.log(
-              `✅ Sufficient quantity available for ${materialId} at ${locationId}`
+              `✅ Sufficient quantity available for ${materialId} at ${locationId}`,
             );
           }
 
@@ -5088,7 +5089,7 @@ class StockAdjuster {
             const costingMethod = materialData.material_costing_method;
             if (!costingMethod) {
               throw new Error(
-                `Costing method not defined for item ${materialId}`
+                `Costing method not defined for item ${materialId}`,
               );
             }
 
@@ -5096,7 +5097,7 @@ class StockAdjuster {
               // Find any balance with this material and location to get batch_id if needed
               const sampleBalance = balancesToProcess.find(
                 (b) =>
-                  b.material_id === materialId && b.location_id === locationId
+                  b.material_id === materialId && b.location_id === locationId,
               );
 
               const waQuery =
@@ -5115,21 +5116,21 @@ class StockAdjuster {
               const waResponse = await waQuery.get();
               if (!waResponse.data || waResponse.data.length === 0) {
                 throw new Error(
-                  `No costing record found for deduction for item ${materialId} (Weighted Average)`
+                  `No costing record found for deduction for item ${materialId} (Weighted Average)`,
                 );
               }
 
               const waData = waResponse.data[0];
               if ((waData.wa_quantity || 0) < totalRequestedQty) {
                 throw new Error(
-                  `Insufficient WA quantity for item ${materialId}. Available: ${waData.wa_quantity}, Total Requested: ${totalRequestedQty}`
+                  `Insufficient WA quantity for item ${materialId}. Available: ${waData.wa_quantity}, Total Requested: ${totalRequestedQty}`,
                 );
               }
             } else if (costingMethod === "First In First Out") {
               // Find any balance with this material and location to get batch_id if needed
               const sampleBalance = balancesToProcess.find(
                 (b) =>
-                  b.material_id === materialId && b.location_id === locationId
+                  b.material_id === materialId && b.location_id === locationId,
               );
 
               const fifoQuery =
@@ -5148,18 +5149,18 @@ class StockAdjuster {
               const fifoResponse = await fifoQuery.get();
               if (!fifoResponse.data || fifoResponse.data.length === 0) {
                 throw new Error(
-                  `No costing record found for deduction for item ${materialId} (FIFO)`
+                  `No costing record found for deduction for item ${materialId} (FIFO)`,
                 );
               }
 
               const fifoData = fifoResponse.data;
               const totalAvailable = fifoData.reduce(
                 (sum, record) => sum + (record.fifo_available_quantity || 0),
-                0
+                0,
               );
               if (totalAvailable < totalRequestedQty) {
                 throw new Error(
-                  `Insufficient FIFO quantity for item ${materialId}. Available: ${totalAvailable}, Total Requested: ${totalRequestedQty}`
+                  `Insufficient FIFO quantity for item ${materialId}. Available: ${totalAvailable}, Total Requested: ${totalRequestedQty}`,
                 );
               }
             }
@@ -5170,7 +5171,7 @@ class StockAdjuster {
       // Step 7: Validate serial number allocation for Miscellaneous Receipt
       if (allData.movement_type === "Miscellaneous Receipt") {
         console.log(
-          "🔍 Validating serial number allocation for serialized items..."
+          "🔍 Validating serial number allocation for serialized items...",
         );
         await this.validateSerialNumberAllocation(allData.stock_movement);
       }
@@ -5198,7 +5199,7 @@ class StockAdjuster {
       } catch (parseError) {
         console.error(
           `Error parsing serial number data for item ${item.item_selection}:`,
-          parseError
+          parseError,
         );
         continue;
       }
@@ -5253,7 +5254,7 @@ class StockAdjuster {
         } catch (dbError) {
           console.error(
             `Error checking existing serial number ${trimmedSerial}:`,
-            dbError
+            dbError,
           );
           // Continue validation even if DB check fails
         }
@@ -5264,12 +5265,12 @@ class StockAdjuster {
     if (duplicateSerials.length > 0) {
       const duplicateList = duplicateSerials
         .map(
-          (dup) => `• Serial Number "${dup.serialNumber}" in ${dup.itemName}`
+          (dup) => `• Serial Number "${dup.serialNumber}" in ${dup.itemName}`,
         )
         .join("\n");
 
       throw new Error(
-        `Duplicate serial numbers found within this transaction:\n\n${duplicateList}\n\nEach serial number must be unique across all items in the transaction.`
+        `Duplicate serial numbers found within this transaction:\n\n${duplicateList}\n\nEach serial number must be unique across all items in the transaction.`,
       );
     }
 
@@ -5278,12 +5279,12 @@ class StockAdjuster {
       const existingList = existingSerials
         .map(
           (existing) =>
-            `• Serial Number "${existing.serialNumber}" in ${existing.itemName}\n  (Already exists for Material ID: ${existing.existingMaterialId}, Transaction: ${existing.existingTransactionNo})`
+            `• Serial Number "${existing.serialNumber}" in ${existing.itemName}\n  (Already exists for Material ID: ${existing.existingMaterialId}, Transaction: ${existing.existingTransactionNo})`,
         )
         .join("\n");
 
       throw new Error(
-        `Serial numbers already exist in the system:\n\n${existingList}\n\nPlease use different serial numbers as each serial number must be globally unique.`
+        `Serial numbers already exist in the system:\n\n${existingList}\n\nPlease use different serial numbers as each serial number must be globally unique.`,
       );
     }
 
@@ -5315,7 +5316,7 @@ class StockAdjuster {
         .join("\n");
 
       throw new Error(
-        `Serial number allocation is required for the following serialized items:\n\n${itemsList}\n\nPlease allocate serial numbers for all serialized items before saving.`
+        `Serial number allocation is required for the following serialized items:\n\n${itemsList}\n\nPlease allocate serial numbers for all serialized items before saving.`,
       );
     }
 
@@ -5343,7 +5344,7 @@ async function processFormData(db, formData, context, organizationId) {
     console.log("🔍 About to run validation checks");
     const isValid = await adjuster.preCheckQuantitiesAndCosting(
       formData,
-      context
+      context,
     );
     console.log("✅ Validation result:", isValid);
 
@@ -5355,7 +5356,7 @@ async function processFormData(db, formData, context, organizationId) {
       // Create serial number records for serialized items (only for Miscellaneous Receipt)
       if (formData.movement_type === "Miscellaneous Receipt") {
         console.log(
-          "📋 Creating serial number records after inventory processing"
+          "📋 Creating serial number records after inventory processing",
         );
         await createSerialNumberRecord(formData);
 
@@ -5376,7 +5377,7 @@ async function processFormData(db, formData, context, organizationId) {
               table_sn_records: formData.table_sn_records,
             });
           console.log(
-            "✓ Updated stock movement record with serial number records"
+            "✓ Updated stock movement record with serial number records",
           );
         }
       }
@@ -5409,7 +5410,7 @@ const processRow = async (item, organizationId) => {
 
           if (!issueDate)
             throw new Error(
-              "Issue Date is required for generating batch number."
+              "Issue Date is required for generating batch number.",
             );
 
           console.log("issueDate", new Date(issueDate));
@@ -5448,7 +5449,7 @@ const processRow = async (item, organizationId) => {
 
           if (!manufacturingDatebyQ)
             throw new Error(
-              "Manufacturing Date is required for generating batch number."
+              "Manufacturing Date is required for generating batch number.",
             );
 
           manufacturingDatebyQ = new Date(manufacturingDatebyQ);
@@ -5476,7 +5477,7 @@ const processRow = async (item, organizationId) => {
 
           if (!manufacturingDate)
             throw new Error(
-              "Manufacturing Date is required for generating batch number."
+              "Manufacturing Date is required for generating batch number.",
             );
 
           manufacturingDate = new Date(manufacturingDate);
@@ -5497,7 +5498,7 @@ const processRow = async (item, organizationId) => {
 
           if (!expiredDate)
             throw new Error(
-              "Expired Date is required for generating batch number."
+              "Expired Date is required for generating batch number.",
             );
 
           expiredDate = new Date(expiredDate);
@@ -5521,7 +5522,7 @@ const processRow = async (item, organizationId) => {
         "-" +
         String(batchConfigData.batch_running_number).padStart(
           batchConfigData.batch_padding_zeroes,
-          "0"
+          "0",
         );
 
       item.batch_id = generatedBatchNo;
@@ -5573,7 +5574,7 @@ const updateItemTransactionDate = async (entry) => {
       ...new Set(
         tableSM
           .filter((item) => item.item_selection)
-          .map((item) => item.item_selection)
+          .map((item) => item.item_selection),
       ),
     ];
 
@@ -5587,7 +5588,7 @@ const updateItemTransactionDate = async (entry) => {
       } catch (error) {
         throw new Error(
           `Cannot update last transaction date for item #${index + 1}.`,
-          error
+          error,
         );
       }
     }
@@ -5622,7 +5623,7 @@ const createSerialNumberRecord = async (entry) => {
     // Only process serialized items for Miscellaneous Receipt
     if (item.is_serialized_item !== 1) {
       console.log(
-        `Skipping serial number record for non-serialized item ${item.item_selection}`
+        `Skipping serial number record for non-serialized item ${item.item_selection}`,
       );
       continue;
     }
@@ -5651,7 +5652,7 @@ const createSerialNumberRecord = async (entry) => {
         serialNumberRecord.serial_numbers =
           item.generated_serial_numbers.join("\n");
         console.log(
-          `Using generated serial numbers for stock movement item ${item.item_selection}: ${serialNumberRecord.serial_numbers}`
+          `Using generated serial numbers for stock movement item ${item.item_selection}: ${serialNumberRecord.serial_numbers}`,
         );
       }
 
@@ -5662,7 +5663,7 @@ const createSerialNumberRecord = async (entry) => {
   entry.table_sn_records = entry.table_sn_records.concat(serialNumberRecords);
 
   console.log(
-    `Created ${serialNumberRecords.length} serial number records for stock movement`
+    `Created ${serialNumberRecords.length} serial number records for stock movement`,
   );
 };
 
@@ -5694,12 +5695,12 @@ const processStockMovements = async () => {
     const hasSerializedItems = allData.stock_movement.some(
       (item) =>
         item.is_serialized_item === 1 ||
-        (item.serial_number_data && item.serial_number_data.trim() !== "")
+        (item.serial_number_data && item.serial_number_data.trim() !== ""),
     );
 
     if (hasSerializedItems) {
       console.log(
-        "Validating serial number uniqueness for serialized items..."
+        "Validating serial number uniqueness for serialized items...",
       );
       await adjuster.validateSerialNumberUniqueness(allData.stock_movement);
     }
@@ -5707,7 +5708,7 @@ const processStockMovements = async () => {
     // Specific validation for Miscellaneous Receipt
     if (allData.movement_type === "Miscellaneous Receipt") {
       console.log(
-        "Validating serial number allocation for Miscellaneous Receipt..."
+        "Validating serial number allocation for Miscellaneous Receipt...",
       );
       await adjuster.validateSerialNumberAllocation(allData.stock_movement);
     }
@@ -5720,7 +5721,7 @@ const processStockMovements = async () => {
     const results = await processFormData(db, allData, self, organizationId);
     console.log(
       "ProcessFormData completed successfully with results:",
-      results
+      results,
     );
 
     if (allData.page_status === "Add") {
@@ -5776,7 +5777,7 @@ const processItemBalance = async (
   qualityinsp_qty,
   intransit_qty,
   roundQty,
-  materialUom
+  materialUom,
 ) => {
   try {
     // Get current item balance records
@@ -5793,7 +5794,7 @@ const processItemBalance = async (
     console.log(
       `Item ${
         item.material_id || item.item_id
-      }: Found existing balance: ${hasExistingBalance}`
+      }: Found existing balance: ${hasExistingBalance}`,
     );
 
     const existingDoc = hasExistingBalance ? balanceResponse.data[0] : null;
@@ -5805,23 +5806,23 @@ const processItemBalance = async (
       console.log(
         `Updating existing balance for item ${
           item.material_id || item.item_id
-        } at location ${item.location_id}`
+        } at location ${item.location_id}`,
       );
 
       const updatedBlockQty = roundQty(
-        parseFloat(existingDoc.block_qty || 0) + block_qty
+        parseFloat(existingDoc.block_qty || 0) + block_qty,
       );
       const updatedReservedQty = roundQty(
-        parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
+        parseFloat(existingDoc.reserved_qty || 0) + reserved_qty,
       );
       const updatedUnrestrictedQty = roundQty(
-        parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
+        parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty,
       );
       const updatedQualityInspQty = roundQty(
-        parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
+        parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty,
       );
       const updatedIntransitQty = roundQty(
-        parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
+        parseFloat(existingDoc.intransit_qty || 0) + intransit_qty,
       );
 
       balance_quantity =
@@ -5843,14 +5844,14 @@ const processItemBalance = async (
       console.log(
         `Updated balance for item ${
           item.material_id || item.item_id
-        }: ${balance_quantity}`
+        }: ${balance_quantity}`,
       );
     } else {
       // Create new balance record
       console.log(
         `Creating new balance for item ${
           item.material_id || item.item_id
-        } at location ${item.location_id}`
+        } at location ${item.location_id}`,
       );
 
       balance_quantity =
@@ -5878,7 +5879,7 @@ const processItemBalance = async (
       console.log(
         `Created new balance for item ${
           item.material_id || item.item_id
-        }: ${balance_quantity}`
+        }: ${balance_quantity}`,
       );
     }
   } catch (error) {
@@ -5886,7 +5887,7 @@ const processItemBalance = async (
       `Error processing item_balance for item ${
         item.material_id || item.item_id
       }:`,
-      error
+      error,
     );
     throw error;
   }
@@ -5900,7 +5901,7 @@ const calculateAggregatedSerialQuantities = (item, baseQty, roundQty) => {
       console.log(
         `No serial number data found for item ${
           item.material_id || item.item_id
-        }`
+        }`,
       );
       return null;
     }
@@ -5913,7 +5914,7 @@ const calculateAggregatedSerialQuantities = (item, baseQty, roundQty) => {
         `Error parsing serial number data for item ${
           item.material_id || item.item_id
         }:`,
-        parseError
+        parseError,
       );
       return null;
     }
@@ -5925,7 +5926,7 @@ const calculateAggregatedSerialQuantities = (item, baseQty, roundQty) => {
       console.log(
         `No serial numbers to process for item ${
           item.material_id || item.item_id
-        }`
+        }`,
       );
       return null;
     }
@@ -5971,7 +5972,7 @@ const calculateAggregatedSerialQuantities = (item, baseQty, roundQty) => {
           aggregated_unrestricted_qty +
           aggregated_qualityinsp_qty +
           aggregated_intransit_qty
-        }`
+        }`,
     );
 
     return {
@@ -5987,7 +5988,7 @@ const calculateAggregatedSerialQuantities = (item, baseQty, roundQty) => {
       `Error calculating aggregated serial quantities for item ${
         item.material_id || item.item_id
       }:`,
-      error
+      error,
     );
     return null;
   }
