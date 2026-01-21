@@ -221,13 +221,13 @@ const generatePrefix = (runNumber, prefixData, now) => {
   generated = generated.replace("suffix", prefixData.suffix_value);
   generated = generated.replace(
     "month",
-    String(now.getMonth() + 1).padStart(2, "0")
+    String(now.getMonth() + 1).padStart(2, "0"),
   );
   generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
   generated = generated.replace("year", now.getFullYear());
   generated = generated.replace(
     "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0")
+    String(runNumber).padStart(prefixData.padding_zeroes, "0"),
   );
   return generated;
 };
@@ -248,7 +248,7 @@ const findUniquePrefix = async (
   prefixData,
   now,
   organizationId,
-  maxAttempts = 10
+  maxAttempts = 10,
 ) => {
   let runningNumber = prefixData.running_number;
   let attempts = 0;
@@ -264,7 +264,7 @@ const findUniquePrefix = async (
 
   if (!isUnique) {
     throw new Error(
-      "Could not generate a unique Stock Movement number after maximum attempts"
+      "Could not generate a unique Stock Movement number after maximum attempts",
     );
   }
   return prefixToShow;
@@ -289,7 +289,7 @@ const initPrefix = async (movementType) => {
   const uniquePrefix = await findUniquePrefix(
     prefixData,
     new Date(),
-    organizationId
+    organizationId,
   );
 
   await this.setData({ stock_movement_no: uniquePrefix });
@@ -358,7 +358,7 @@ const configureButtons = (movementType, pageStatus, stockMovementStatus) => {
         "button_save_as_draft",
         "button_completed",
         "comp_post_button",
-      ]
+      ],
     );
   } else if (
     pageStatus === "Edit" &&
@@ -420,7 +420,7 @@ const configureButtons = (movementType, pageStatus, stockMovementStatus) => {
     await configureButtons(
       movementType,
       pageStatus,
-      data.stock_movement_status
+      data.stock_movement_status,
     );
 
     const resType = await db
