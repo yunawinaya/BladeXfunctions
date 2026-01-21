@@ -1,22 +1,14 @@
 const showStatusHTML = (status) => {
-  switch (status) {
-    case "Draft":
-      this.display(["draft_status"]);
-      break;
-    case "Created":
-      this.display(["created_status"]);
-      break;
-    case "In Progress":
-      this.display(["processing_status"]);
-      break;
-    case "Completed":
-      this.display(["completed_status"]);
-      break;
-    case "Cancelled":
-      this.display(["cancel_status"]);
-      break;
-    default:
-      break;
+  const statusMap = {
+    Draft: "draft_status",
+    Created: "created_status",
+    "In Progress": "processing_status",
+    Completed: "completed_status",
+    Cancelled: "cancel_status",
+  };
+
+  if (statusMap[status]) {
+    this.display([statusMap[status]]);
   }
 };
 
@@ -24,9 +16,7 @@ const CONFIG = {
   fields: {
     all: [
       "stock_movement.item_selection",
-      "stock_movement.view_stock",
       "stock_movement.transfer_stock",
-      "stock_movement.edit_stock",
       "stock_movement.total_quantity",
       "stock_movement.quantity_uom",
       "stock_movement.location_id",
@@ -35,29 +25,19 @@ const CONFIG = {
       "movement_reason",
       "is_production_order",
     ],
-    buttons: ["button_save_as_draft", "button_completed"],
+    buttons: ["button_save_as_draft", "button_inprogress", "button_completed"],
     hide: [
-      "stock_movement.to_recv_qty",
-      "stock_movement.received_quantity",
-      "stock_movement.received_quantity_uom",
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.category",
       "stock_movement.batch_id",
-      "stock_movement.select_serial_number",
-      "delivery_method",
       "receiving_operation_faci",
     ],
   },
-  hideFields: {
-    Add: ["stock_movement.edit_stock", "stock_movement.view_stock"],
-    View: ["stock_movement.transfer_stock", "stock_movement.edit_stock"],
-    Edit: ["stock_movement.view_stock", "stock_movement.transfer_stock"],
-  },
   buttonConfig: {
-    Add: ["button_save_as_draft", "button_completed"],
-    Draft: ["button_save_as_draft", "button_completed"],
-    Created: ["button_completed"],
+    Add: ["button_save_as_draft", "button_inprogress", "button_completed"],
+    Draft: ["button_save_as_draft", "button_inprogress", "button_completed"],
+    Created: ["button_inprogress", "button_completed"],
   },
 };
 
@@ -74,7 +54,7 @@ const initMovementReason = async () => {
       .collection("blade_dict")
       .where({ parent_id: movementTypeId })
       .get();
-    await this.setOptionData("movement_reason", resReason.data);
+    this.setOptionData("movement_reason", resReason.data);
   }
 };
 
@@ -108,12 +88,12 @@ const showProductionOrder = (data) => {
         "stock_movement.location_id",
         "stock_movement.storage_location_id",
       ],
-      true
+      true,
     );
   }
 };
 
-const editDisabledField = async () => {
+const editDisabledField = () => {
   this.disabled(
     [
       "issue_date",
@@ -136,47 +116,30 @@ const editDisabledField = async () => {
       "stock_movement.location_id",
       "stock_movement.storage_location_id",
     ],
-    true
+    true,
   );
 
-  // Hide edit button
   setTimeout(() => {
     const editButton = document.querySelector(
-      ".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--small.is-link"
+      ".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--small.is-link",
     );
     if (editButton) {
       editButton.style.display = "none";
     }
   }, 500);
 
-  this.hide(["stock_movement.transfer_stock", "stock_movement.edit_stock"]);
+  this.hide(["stock_movement.transfer_stock"]);
 };
 
 const hideSerialNumberRecordTab = () => {
   setTimeout(() => {
     const tableSerialNumber = this.getValue("table_sn_records");
     if (!tableSerialNumber || tableSerialNumber.length === 0) {
-      const tabSelector =
-        '.el-drawer[role="dialog"] .el-tabs__item.is-top#tab-serial_number_records[tabindex="-1"][aria-selected="false"]';
-      const tab = document.querySelector(tabSelector);
-
+      const tab = document.querySelector(
+        '.el-drawer[role="dialog"] .el-tabs__item#tab-serial_number_records',
+      );
       if (tab) {
         tab.style.display = "none";
-      } else {
-        const fallbackTab = document.querySelector(
-          '.el-drawer[role="dialog"] .el-tabs__item#tab-serial_number_records'
-        );
-        if (fallbackTab) {
-          fallbackTab.style.display = "none";
-        }
-      }
-
-      const inactiveTabSelector =
-        '.el-drawer[role="dialog"] .el-tabs__item.is-top[tabindex="-1"]:not(#tab-serial_number_records)';
-      const inactiveTab = document.querySelector(inactiveTabSelector);
-      if (inactiveTab) {
-        inactiveTab.setAttribute("aria-disabled", "true");
-        inactiveTab.classList.add("is-disabled");
       }
     }
   }, 10);
@@ -184,46 +147,35 @@ const hideSerialNumberRecordTab = () => {
 
 const setPlant = (organizationId, pageStatus) => {
   const currentDept = this.getVarSystem("deptIds").split(",")[0];
+  const isSameDept = currentDept === organizationId;
 
-  if (currentDept === organizationId) {
-    this.disabled("issuing_operation_faci", false);
-  } else {
-    this.disabled("issuing_operation_faci", true);
-  }
+  this.disabled("issuing_operation_faci", !isSameDept);
 
-  if (pageStatus === "Add" && currentDept !== organizationId) {
+  if (pageStatus === "Add" && !isSameDept) {
     this.setData({ issuing_operation_faci: currentDept });
   }
 };
 
 const setStorageLocation = async () => {
-  try {
-    const smTable = this.getValue("stock_movement");
+  const smTable = this.getValue("stock_movement");
 
-    if (smTable && smTable.length > 0) {
-      for (const [index, item] of smTable.entries()) {
-        if (!item.storage_location_id && item.location_id) {
-          this.setData({
-            [`stock_movement.${index}.storage_location_id`]: "",
-            [`stock_movement.${index}.location_id`]: "",
-          });
-          const binLocationData = await db
-            .collection("bin_location")
-            .where({ id: item.location_id })
-            .get()
-            .then((res) => res.data[0]);
+  if (!smTable || smTable.length === 0) return;
 
-          if (binLocationData) {
-            this.setData({
-              [`stock_movement.${index}.storage_location_id`]:
-                binLocationData.storage_location_id,
-            });
-          }
-        }
+  for (const [index, item] of smTable.entries()) {
+    if (!item.storage_location_id && item.location_id) {
+      const binLocationRes = await db
+        .collection("bin_location")
+        .where({ id: item.location_id })
+        .get();
+
+      const binLocationData = binLocationRes.data[0];
+      if (binLocationData) {
+        this.setData({
+          [`stock_movement.${index}.storage_location_id`]:
+            binLocationData.storage_location_id,
+        });
       }
     }
-  } catch (error) {
-    console.error("Error setting storage location:", error);
   }
 };
 
@@ -238,21 +190,20 @@ const setStorageLocation = async () => {
     else if (this.isCopy) pageStatus = "Clone";
     else throw new Error("Invalid page state");
 
-    // Get organization ID
     let organizationId = this.getVarGlobal("deptParentId");
     if (organizationId === "0") {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
-    this.setData({ page_status: pageStatus });
-
-    // Set movement type to Location Transfer
-    this.setData({ movement_type: "Location Transfer" });
+    this.setData({
+      page_status: pageStatus,
+      movement_type: "Location Transfer",
+    });
     this.disabled(["movement_type"], true);
 
     switch (pageStatus) {
       case "Add":
-        const nickName = await this.getVarGlobal("nickname");
+        const nickName = this.getVarGlobal("nickname");
         this.setData({
           organization_id: organizationId,
           issued_by: nickName,
@@ -261,55 +212,44 @@ const setStorageLocation = async () => {
 
         this.disabled(["stock_movement"], true);
         this.display(["draft_status", "button_save_as_draft"]);
-        this.hide([
-          "stock_movement.view_stock",
-          "stock_movement.edit_stock",
-        ]);
         this.hide(CONFIG.fields.hide);
 
-        await setPlant(organizationId, pageStatus);
+        setPlant(organizationId, pageStatus);
+        hideSerialNumberRecordTab();
+        configureFields(data.is_production_order);
+        configureButtons(pageStatus, null);
         await initMovementReason();
-        await hideSerialNumberRecordTab();
         await setStorageLocation();
-        await configureFields(data.is_production_order);
-        await configureButtons(pageStatus, null);
         break;
 
       case "Edit":
-        this.hide([
-          "stock_movement.transfer_stock",
-          "stock_movement.view_stock",
-        ]);
+        this.hide(CONFIG.fields.hide);
 
         if (data.stock_movement_status === "Completed") {
-          await editDisabledField();
+          editDisabledField();
         }
 
-        await configureFields(data.is_production_order);
-        await configureButtons(pageStatus, data.stock_movement_status);
+        configureFields(data.is_production_order);
+        configureButtons(pageStatus, data.stock_movement_status);
 
-        this.hide(CONFIG.hideFields[pageStatus]);
         if (data.stock_movement_status === "Draft") {
-          await setPlant(organizationId, pageStatus);
+          setPlant(organizationId, pageStatus);
         }
-        await showProductionOrder(data);
-        await showStatusHTML(data.stock_movement_status);
-        await hideSerialNumberRecordTab();
+
+        showProductionOrder(data);
+        showStatusHTML(data.stock_movement_status);
+        hideSerialNumberRecordTab();
         await setStorageLocation();
         break;
 
       case "View":
-        await configureFields(data.is_production_order);
-        await configureButtons(pageStatus, data.stock_movement_status);
-        this.hide([
-          "stock_movement.transfer_stock",
-          "stock_movement.view_stock",
-          "stock_movement.edit_stock",
-        ]);
+        this.hide(CONFIG.fields.hide);
 
-        await showStatusHTML(data.stock_movement_status);
-        await showProductionOrder(data);
-        await hideSerialNumberRecordTab();
+        configureFields(data.is_production_order);
+        configureButtons(pageStatus, data.stock_movement_status);
+        showStatusHTML(data.stock_movement_status);
+        showProductionOrder(data);
+        hideSerialNumberRecordTab();
         break;
     }
   } catch (error) {
@@ -317,3 +257,21 @@ const setStorageLocation = async () => {
     this.$message.error(error.message || "An error occurred");
   }
 })();
+
+setTimeout(async () => {
+  if (this.isAdd) {
+    const op = await this.onDropdownVisible("stock_movement_no_type", true);
+    function getDefaultItem(arr) {
+      return arr?.find((item) => item?.item?.item?.is_default === 1);
+    }
+    setTimeout(() => {
+      const optionsData = this.getOptionData("stock_movement_no_type") || [];
+      const data = getDefaultItem(optionsData);
+      if (data) {
+        this.setData({
+          stock_movement_no_type: data.value,
+        });
+      }
+    }, 500);
+  }
+}, 500);
