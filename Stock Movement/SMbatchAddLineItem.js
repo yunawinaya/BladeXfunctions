@@ -16,7 +16,7 @@ const handleBatchManagement = async (
   movementType,
   currentItemArray,
   smLineItem,
-  allSMLineItem
+  allSMLineItem,
 ) => {
   if (movementType === "Miscellaneous Receipt") {
     this.display("stock_movement.batch_id");
@@ -59,7 +59,7 @@ const handleBatchManagement = async (
               `stock_movement.${index}.manufacturing_date`,
               `stock_movement.${index}.expired_date`,
             ],
-            false
+            false,
           );
         } else {
           await this.disabled(
@@ -67,7 +67,7 @@ const handleBatchManagement = async (
               `stock_movement.${index}.manufacturing_date`,
               `stock_movement.${index}.expired_date`,
             ],
-            true
+            true,
           );
         }
       }
@@ -85,7 +85,7 @@ const handleBinLocation = (
   defaultBin,
   defaultStorageLocation,
   currentItemArray,
-  smLineItem
+  smLineItem,
 ) => {
   for (const [index, _item] of currentItemArray.entries()) {
     const rowIndex = smLineItem.length + index;
@@ -106,7 +106,7 @@ const handleBinLocation = (
 const handleInvCategory = async (
   currentItemArray,
   smLineItem,
-  movementType
+  movementType,
 ) => {
   const categoryObjectResponse = await db
     .collection("blade_dict")
@@ -128,12 +128,12 @@ const handleInvCategory = async (
       ];
 
       const filteredCategories = categoryObjectResponse.data.filter(
-        (category) => allowedCategories.includes(category.dict_key)
+        (category) => allowedCategories.includes(category.dict_key),
       );
 
       this.setOptionData(
         [`stock_movement.${rowIndex}.category`],
-        filteredCategories
+        filteredCategories,
       );
     }, 50);
   }
@@ -148,14 +148,14 @@ const handleUOM = async (currentItemArray, smLineItem) => {
     const uomOptions = [];
 
     const uomPromises = altUoms.map((uomId) =>
-      db.collection("unit_of_measurement").where({ id: uomId }).get()
+      db.collection("unit_of_measurement").where({ id: uomId }).get(),
     );
     const uomResults = await Promise.all(uomPromises);
     uomOptions.push(...uomResults.map((res) => res.data[0]));
 
     this.setOptionData(
       [`stock_movement.${rowIndex}.received_quantity_uom`],
-      uomOptions
+      uomOptions,
     );
 
     this.setData({
@@ -167,7 +167,7 @@ const handleUOM = async (currentItemArray, smLineItem) => {
 const handleSerialNumberManagement = async (
   currentItemArray,
   smLineItem,
-  movementType
+  movementType,
 ) => {
   for (const [index, item] of currentItemArray.entries()) {
     const rowIndex = smLineItem.length + index;
@@ -176,7 +176,7 @@ const handleSerialNumberManagement = async (
     console.log("movementType", movementType);
     console.log(
       "item.serial_number_management === 1",
-      item.serial_number_management === 1
+      item.serial_number_management === 1,
     );
     console.log("rowIndex", rowIndex);
 
@@ -187,17 +187,17 @@ const handleSerialNumberManagement = async (
       await this.display(`stock_movement.select_serial_number`);
       await this.disabled(
         `stock_movement.${rowIndex}.select_serial_number`,
-        false
+        false,
       );
       await this.disabled(`stock_movement.${rowIndex}.received_quantity`, true);
     } else {
       await this.disabled(
         `stock_movement.${rowIndex}.select_serial_number`,
-        true
+        true,
       );
       await this.disabled(
         `stock_movement.${rowIndex}.received_quantity`,
-        false
+        false,
       );
     }
   }
@@ -252,13 +252,13 @@ const handleSerialNumberManagement = async (
     defaultBin,
     defaultStorageLocation,
     currentItemArray,
-    smLineItem
+    smLineItem,
   );
   await handleInvCategory(currentItemArray, smLineItem, movementType);
   await handleUOM(currentItemArray, smLineItem);
   await handleSerialNumberManagement(
     currentItemArray,
     smLineItem,
-    movementType
+    movementType,
   );
 })();

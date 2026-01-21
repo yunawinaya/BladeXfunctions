@@ -38,7 +38,7 @@ const validateForm = (data, requiredFields) => {
           const subValue = item[subField.name];
           if (validateField(subValue, subField)) {
             missingFields.push(
-              `${subField.label} (in ${field.label} #${index + 1})`
+              `${subField.label} (in ${field.label} #${index + 1})`,
             );
           }
         });
@@ -56,6 +56,20 @@ const validateField = (value, field) => {
   if (Array.isArray(value)) return value.length === 0;
   if (typeof value === "object") return Object.keys(value).length === 0;
   return !value;
+};
+
+const fillbackHeaderFields = async (entry) => {
+  try {
+    for (const [index, smLineItem] of entry.stock_movement.entries()) {
+      smLineItem.organization_id = entry.organization_id;
+      smLineItem.issuing_plant = entry.issuing_operation_faci || null;
+      smLineItem.receiving_plant = entry.receiving_operation_faci || null;
+      smLineItem.line_index = index + 1;
+    }
+    return entry.stock_movement;
+  } catch (error) {
+    throw new Error("Error processing Stock Movement.");
+  }
 };
 
 const getPrefixData = async (organizationId, movementType) => {
@@ -106,7 +120,7 @@ const updateItemTransactionDate = async (entry) => {
       ...new Set(
         tableSM
           .filter((item) => item.item_selection)
-          .map((item) => item.item_selection)
+          .map((item) => item.item_selection),
       ),
     ];
 
@@ -119,7 +133,7 @@ const updateItemTransactionDate = async (entry) => {
           .update({ last_transaction_date: date });
       } catch (error) {
         throw new Error(
-          `Cannot update last transaction date for item #${index + 1}.`
+          `Cannot update last transaction date for item #${index + 1}.`,
         );
       }
     }
@@ -192,6 +206,8 @@ const updateItemTransactionDate = async (entry) => {
         material_id,
         material_name,
         row_index,
+        remark2,
+        remark3,
       } = data;
 
       const entry = {
@@ -235,12 +251,16 @@ const updateItemTransactionDate = async (entry) => {
         material_id,
         material_name,
         row_index,
+        remark2,
+        remark3,
       };
+
+      entry.stock_movement = await fillbackHeaderFields(entry);
 
       if (page_status === "Add" || page_status === "Clone") {
         const newPrefix = await generateDraftPrefix(
           organizationId,
-          movementType
+          movementType,
         );
         entry.stock_movement_no = newPrefix;
         await db.collection("stock_movement").add(entry);
