@@ -30,7 +30,6 @@ const CONFIG = {
       "stock_movement.unit_price",
       "stock_movement.amount",
       "stock_movement.category",
-      "stock_movement.batch_id",
       "receiving_operation_faci",
     ],
   },
