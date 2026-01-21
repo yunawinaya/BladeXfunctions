@@ -1,51 +1,5 @@
 const ALLOWED_CATEGORIES = ["Unrestricted", "Blocked"];
 
-const handleBatchManagement = (itemData, rowIndex) => {
-  this.display("stock_movement.batch_id");
-
-  if (itemData.item_batch_management === 1) {
-    switch (itemData.batch_number_genaration) {
-      case "According To System Settings":
-        this.setData({
-          [`stock_movement.${rowIndex}.batch_id`]:
-            "Auto-generated batch number",
-        });
-        this.disabled(`stock_movement.${rowIndex}.batch_id`, true);
-        break;
-
-      case "Manual Input":
-        this.disabled(`stock_movement.${rowIndex}.batch_id`, false);
-        break;
-    }
-  } else {
-    this.setData({ [`stock_movement.${rowIndex}.batch_id`]: "-" });
-    this.disabled(`stock_movement.${rowIndex}.batch_id`, true);
-  }
-};
-
-const handleManufacturingAndExpiredDate = () => {
-  const tableSM = this.getValue("stock_movement");
-
-  const hasBatch = tableSM.some((item) => item.batch_id !== "-");
-  if (hasBatch) {
-    this.display([
-      "stock_movement.manufacturing_date",
-      "stock_movement.expired_date",
-    ]);
-  }
-
-  for (const [index, item] of tableSM.entries()) {
-    const isDisabled = item.batch_id === "-";
-    this.disabled(
-      [
-        `stock_movement.${index}.manufacturing_date`,
-        `stock_movement.${index}.expired_date`,
-      ],
-      isDisabled,
-    );
-  }
-};
-
 const handleBinLocation = (defaultBin, defaultStorageLocation, rowIndex) => {
   if (defaultBin) {
     this.setData({
@@ -109,7 +63,6 @@ const handleUOM = async (itemData, rowIndex) => {
     const itemData = arguments[0]?.fieldModel?.item;
 
     if (itemData) {
-      handleBatchManagement(itemData, rowIndex);
       handleBinLocation(defaultBin, defaultStorageLocation, rowIndex);
       await handleInvCategory(rowIndex);
       await handleUOM(itemData, rowIndex);
@@ -123,8 +76,6 @@ const handleUOM = async (itemData, rowIndex) => {
         [`stock_movement.${rowIndex}.quantity_uom`]: itemData.based_uom,
         [`stock_movement.${rowIndex}.unit_price`]: itemData.purchase_unit_price,
       });
-
-      handleManufacturingAndExpiredDate();
     } else {
       const tableSM = this.getValue("stock_movement");
       for (const [idx, sm] of tableSM.entries()) {
