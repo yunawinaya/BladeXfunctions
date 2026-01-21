@@ -126,7 +126,7 @@ const disabledField = async (status) => {
         "tpt_ic_no",
         "tpt_driver_contact_no",
       ],
-      true
+      true,
     );
 
     this.hide([
@@ -171,6 +171,10 @@ const displayDeliveryMethod = async () => {
 
     if (!selectedField) {
       this.hide(fields);
+    } else {
+      fields.forEach((field) => {
+        field === selectedField ? this.display(field) : this.hide(field);
+      });
     }
   } else {
     this.setData({ delivery_method_text: "" });
@@ -283,7 +287,7 @@ const convertBaseToAlt = (baseQty, uomConversionTable, baseUOM) => {
   }
 
   const uomConversion = uomConversionTable.find(
-    (conv) => conv.alt_uom_id === baseUOM
+    (conv) => conv.alt_uom_id === baseUOM,
   );
 
   if (!uomConversion || !uomConversion.base_qty) {
@@ -344,7 +348,7 @@ const fetchUnrestrictedQty = async () => {
 
             totalUnrestrictedQtyBase = serialBalanceData.reduce(
               (sum, balance) => sum + (balance.unrestricted_qty || 0),
-              0
+              0,
             );
           }
         } else if (
@@ -368,7 +372,7 @@ const fetchUnrestrictedQty = async () => {
 
             totalUnrestrictedQtyBase = batchBalanceData.reduce(
               (sum, balance) => sum + (balance.unrestricted_qty || 0),
-              0
+              0,
             );
           }
         } else if (
@@ -392,7 +396,7 @@ const fetchUnrestrictedQty = async () => {
 
             totalUnrestrictedQtyBase = balanceData.reduce(
               (sum, balance) => sum + (balance.unrestricted_qty || 0),
-              0
+              0,
             );
           }
         } else {
@@ -405,7 +409,7 @@ const fetchUnrestrictedQty = async () => {
           finalQty = await convertBaseToAlt(
             totalUnrestrictedQtyBase,
             tableUOMConversion,
-            so.so_item_uom
+            so.so_item_uom,
           );
         }
         this.setData({
@@ -563,6 +567,24 @@ setTimeout(async () => {
       if (data) {
         this.setData({
           so_no_type: data.value,
+        });
+      }
+    }, 500);
+  }
+}, 500);
+
+setTimeout(async () => {
+  if (this.isAdd) {
+    const op = await this.onDropdownVisible("location_type", true);
+    function getDefaultItem(arr) {
+      return arr?.find((item) => item?.item?.item?.is_default === 1);
+    }
+    setTimeout(() => {
+      const optionsData = this.getOptionData("location_type") || [];
+      const data = getDefaultItem(optionsData);
+      if (data) {
+        this.setData({
+          location_type: data.value,
         });
       }
     }, 500);
