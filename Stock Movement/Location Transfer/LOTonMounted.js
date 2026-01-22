@@ -129,12 +129,17 @@ const editDisabledField = () => {
       button.style.display = "none";
     });
 
-    const deleteButtons = document.querySelectorAll(
-      ".el-button.el-button--danger.el-button--small.is-circle",
-    );
-    deleteButtons.forEach((button) => {
-      button.style.display = "none";
-    });
+    // Inject CSS to override hover behavior and keep row numbers visible
+    const styleId = "lot-hide-row-actions";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        .fm-virtual-table__row-cell .scope-action { display: none !important; }
+        .fm-virtual-table__row-cell .scope-index { display: flex !important; }
+      `;
+      document.head.appendChild(style);
+    }
   }, 500);
 
   this.hide(["stock_movement.transfer_stock"]);
@@ -283,12 +288,17 @@ const setStorageLocation = async (plantID) => {
               button.style.display = "none";
             });
 
-            const deleteButtons = document.querySelectorAll(
-              ".el-button.el-button--danger.el-button--small.is-circle",
-            );
-            deleteButtons.forEach((button) => {
-              button.style.display = "none";
-            });
+            // Inject CSS to override hover behavior and keep row numbers visible
+            const styleId = "lot-hide-row-actions";
+            if (!document.getElementById(styleId)) {
+              const style = document.createElement("style");
+              style.id = styleId;
+              style.textContent = `
+                .fm-virtual-table__row-cell .scope-action { display: none !important; }
+                .fm-virtual-table__row-cell .scope-index { display: flex !important; }
+              `;
+              document.head.appendChild(style);
+            }
           }, 500);
         } else if (data.stock_movement_status === "Draft") {
           setPlant(organizationId, pageStatus);
