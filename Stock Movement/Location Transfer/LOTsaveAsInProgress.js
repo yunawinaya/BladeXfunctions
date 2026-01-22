@@ -25,7 +25,7 @@ const closeDialog = () => {
         console.error("Failed to save Location Transfer:", err);
         this.hideLoading();
         workflowResult = err;
-      }
+      },
     );
 
     if (!workflowResult || !workflowResult.data) {
@@ -35,17 +35,31 @@ const closeDialog = () => {
     }
 
     // Handle workflow errors
-    if (workflowResult.data.code === 400 || workflowResult.data.success === false) {
+    if (
+      workflowResult.data.code === "400" ||
+      workflowResult.data.code === 400 ||
+      workflowResult.data.success === false
+    ) {
       this.hideLoading();
-      const errorMessage = workflowResult.data.msg || workflowResult.data.message || "Failed to save Location Transfer";
+      const errorMessage =
+        workflowResult.data.msg ||
+        workflowResult.data.message ||
+        "Failed to save Location Transfer";
       this.$message.error(errorMessage);
       return;
     }
 
     // Handle success
-    if (workflowResult.data.code === "200" || workflowResult.data.code === 200 || workflowResult.data.success === true) {
+    if (
+      workflowResult.data.code === "200" ||
+      workflowResult.data.code === 200 ||
+      workflowResult.data.success === true
+    ) {
       this.hideLoading();
-      const successMessage = workflowResult.data.message || workflowResult.data.msg || "Location Transfer saved successfully";
+      const successMessage =
+        workflowResult.data.message ||
+        workflowResult.data.msg ||
+        "Location Transfer saved successfully";
       this.$message.success(successMessage);
       closeDialog();
     } else {

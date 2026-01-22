@@ -37,7 +37,7 @@ const CONFIG = {
     Add: ["button_save_as_draft", "button_inprogress", "button_completed"],
     Draft: ["button_save_as_draft", "button_inprogress", "button_completed"],
     Created: ["button_inprogress", "button_completed"],
-    "In Progress": ["button_completed"],
+    "In Progress": ["button_inprogress", "button_completed"],
   },
 };
 
@@ -122,12 +122,19 @@ const editDisabledField = () => {
   );
 
   setTimeout(() => {
-    const editButton = document.querySelector(
-      ".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--small.is-link",
+    const editButtons = document.querySelectorAll(
+      ".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--default.is-link",
     );
-    if (editButton) {
-      editButton.style.display = "none";
-    }
+    editButtons.forEach((button) => {
+      button.style.display = "none";
+    });
+
+    const deleteButtons = document.querySelectorAll(
+      ".el-button.el-button--danger.el-button--small.is-circle",
+    );
+    deleteButtons.forEach((button) => {
+      button.style.display = "none";
+    });
   }, 500);
 
   this.hide(["stock_movement.transfer_stock"]);
@@ -255,16 +262,34 @@ const setStorageLocation = async (plantID) => {
 
         configureFields(data.is_production_order);
         configureButtons(pageStatus, data.stock_movement_status);
+        const plantId = data.issuing_operation_faci;
 
         if (data.stock_movement_status === "Completed") {
           editDisabledField();
         } else if (data.stock_movement_status === "In Progress") {
-          setTimeout(() => {
+          setTimeout(async () => {
             this.disabled(
               ["issuing_operation_faci", "issue_date", "movement_reason"],
               true,
             );
+            await setStorageLocation(plantId);
           }, 100);
+
+          setTimeout(() => {
+            const editButtons = document.querySelectorAll(
+              ".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--default.is-link",
+            );
+            editButtons.forEach((button) => {
+              button.style.display = "none";
+            });
+
+            const deleteButtons = document.querySelectorAll(
+              ".el-button.el-button--danger.el-button--small.is-circle",
+            );
+            deleteButtons.forEach((button) => {
+              button.style.display = "none";
+            });
+          }, 500);
         } else if (data.stock_movement_status === "Draft") {
           setPlant(organizationId, pageStatus);
         }
@@ -272,7 +297,6 @@ const setStorageLocation = async (plantID) => {
         showProductionOrder(data);
         showStatusHTML(data.stock_movement_status);
         hideSerialNumberRecordTab();
-        await setStorageLocation(plantID);
         break;
 
       case "View":
