@@ -133,7 +133,11 @@ const processRow = async (item, organizationId) => {
   return item;
 };
 
-const postToAccounting = async (stockMovementId, accIntegrationType, organizationId) => {
+const postToAccounting = async (
+  stockMovementId,
+  accIntegrationType,
+  organizationId,
+) => {
   if (
     accIntegrationType === "SQL Accounting" &&
     organizationId &&
@@ -148,7 +152,9 @@ const postToAccounting = async (stockMovementId, accIntegrationType, organizatio
             "1910197713380311041",
             { key: "value" },
             () => {
-              this.$message.success("Misc Receipt completed and posted successfully.");
+              this.$message.success(
+                "Misc Receipt completed and posted successfully.",
+              );
               closeDialog();
             },
             (err) => {
@@ -178,7 +184,9 @@ const postToAccounting = async (stockMovementId, accIntegrationType, organizatio
       "1996041187778228226",
       { sm_id: [stockMovementId] },
       () => {
-        this.$message.success("Misc Receipt completed and posted successfully.");
+        this.$message.success(
+          "Misc Receipt completed and posted successfully.",
+        );
         closeDialog();
       },
       (err) => {
@@ -265,7 +273,7 @@ const postToAccounting = async (stockMovementId, accIntegrationType, organizatio
       workflowResult.data.success === true
     ) {
       // Update stock movement with posted status
-      await db.collection("stock_movement").doc(stockMovementId).update({
+      await db.collection("sm_misc_receipt").doc(stockMovementId).update({
         stock_movement_status: "Completed",
         posted_status: "Pending Post",
       });
@@ -273,7 +281,11 @@ const postToAccounting = async (stockMovementId, accIntegrationType, organizatio
       const accIntegrationType = this.getValue("acc_integration_type");
 
       // Step 3: Call posting workflow based on accounting integration type
-      await postToAccounting(stockMovementId, accIntegrationType, organizationId);
+      await postToAccounting(
+        stockMovementId,
+        accIntegrationType,
+        organizationId,
+      );
     } else {
       this.hideLoading();
       this.$message.error("Unknown workflow status");
@@ -281,7 +293,8 @@ const postToAccounting = async (stockMovementId, accIntegrationType, organizatio
   } catch (error) {
     this.hideLoading();
     console.error("Error:", error);
-    const errorMessage = error.message || "Failed to complete and post Misc Receipt";
+    const errorMessage =
+      error.message || "Failed to complete and post Misc Receipt";
     this.$message.error(errorMessage);
   }
 })();
