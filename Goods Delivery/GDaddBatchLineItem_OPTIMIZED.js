@@ -48,7 +48,7 @@ const batchFetchItems = async (materialIds) => {
     });
 
     console.log(
-      `✅ Batch fetched ${itemMap.size} items in SINGLE query (was ${uniqueIds.length} queries)`
+      `✅ Batch fetched ${itemMap.size} items in SINGLE query (was ${uniqueIds.length} queries)`,
     );
     return itemMap;
   } catch (error) {
@@ -149,7 +149,7 @@ const batchFetchBalanceData = async (materialIds, plantId) => {
         batchMap.size
       } batch, ${regularMap.size} regular in 3 queries (was ${
         uniqueIds.length * 3
-      } queries)`
+      } queries)`,
     );
     return { serial: serialMap, batch: batchMap, regular: regularMap };
   } catch (error) {
@@ -216,7 +216,7 @@ const batchFetchBinLocations = async (locationIds) => {
     });
 
     console.log(
-      `✅ Batch fetched ${binMap.size} bin locations in SINGLE query (was ${uniqueIds.length} queries)`
+      `✅ Batch fetched ${binMap.size} bin locations in SINGLE query (was ${uniqueIds.length} queries)`,
     );
     return binMap;
   } catch (error) {
@@ -258,7 +258,7 @@ const batchFetchBatchData = async (materialIds, plantId) => {
     });
 
     console.log(
-      `✅ Batch fetched batch data for ${batchMap.size} materials in SINGLE query (was ${uniqueIds.length} queries)`
+      `✅ Batch fetched batch data for ${batchMap.size} materials in SINGLE query (was ${uniqueIds.length} queries)`,
     );
     return batchMap;
   } catch (error) {
@@ -274,7 +274,7 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
   }
 
   const uomConversion = itemData.table_uom_conversion?.find(
-    (conv) => conv.alt_uom_id === altUOM
+    (conv) => conv.alt_uom_id === altUOM,
   );
 
   if (uomConversion && uomConversion.base_qty) {
@@ -291,7 +291,7 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
 const checkInventoryWithDuplicates = async (
   allItems,
   plantId,
-  existingRowCount = 0
+  existingRowCount = 0,
 ) => {
   console.log("🚀 OPTIMIZED VERSION: Starting inventory check");
   const overallStart = Date.now();
@@ -320,7 +320,7 @@ const checkInventoryWithDuplicates = async (
   // STEP 1: Batch fetch ALL data upfront (replaces 100s of individual queries)
   // ========================================================================
   const materialIds = Object.keys(materialGroups).filter(
-    (id) => id !== "undefined"
+    (id) => id !== "undefined",
   );
 
   console.log(`🚀 Fetching data for ${materialIds.length} unique materials...`);
@@ -337,7 +337,7 @@ const checkInventoryWithDuplicates = async (
   console.log(
     `✅ All data fetched in ${
       Date.now() - fetchStart
-    }ms (was 500+ queries, now 4-5 queries)`
+    }ms (was 500+ queries, now 4-5 queries)`,
   );
 
   // Extract for easier access
@@ -349,7 +349,7 @@ const checkInventoryWithDuplicates = async (
   const allLocationIds = new Set();
   balanceDataMaps.serial.forEach((balances) => {
     balances.forEach((b) =>
-      allLocationIds.add(b.location_id || b.bin_location_id)
+      allLocationIds.add(b.location_id || b.bin_location_id),
     );
   });
   balanceDataMaps.batch.forEach((balances) => {
@@ -401,6 +401,7 @@ const checkInventoryWithDuplicates = async (
           more_desc: item.sourceItem.more_desc || "",
           line_remark_1: item.sourceItem.line_remark_1 || "",
           line_remark_2: item.sourceItem.line_remark_2 || "",
+          line_remark_3: item.sourceItem.line_remark_3 || "",
           base_uom_id: "",
           unit_price: item.sourceItem.so_item_price || 0,
           total_price: item.sourceItem.so_amount || 0,
@@ -443,6 +444,7 @@ const checkInventoryWithDuplicates = async (
           more_desc: item.sourceItem.more_desc || "",
           line_remark_1: item.sourceItem.line_remark_1 || "",
           line_remark_2: item.sourceItem.line_remark_2 || "",
+          line_remark_3: item.sourceItem.line_remark_3 || "",
           base_uom_id: itemData.based_uom || "",
           unit_price: item.sourceItem.so_item_price || 0,
           total_price: item.sourceItem.so_amount || 0,
@@ -454,7 +456,7 @@ const checkInventoryWithDuplicates = async (
         if (undeliveredQty <= 0) {
           fieldsToDisable.push(
             `table_gd.${index}.gd_qty`,
-            `table_gd.${index}.gd_delivery_qty`
+            `table_gd.${index}.gd_delivery_qty`,
           );
         } else {
           fieldsToDisable.push(`table_gd.${index}.gd_delivery_qty`);
@@ -482,7 +484,7 @@ const checkInventoryWithDuplicates = async (
     // Calculate total available stock
     const totalUnrestrictedQtyBase = balanceData.reduce(
       (sum, balance) => sum + (balance.unrestricted_qty || 0),
-      0
+      0,
     );
 
     // Subtract existing allocations
@@ -502,11 +504,11 @@ const checkInventoryWithDuplicates = async (
 
     const availableStockAfterAllocations = Math.max(
       0,
-      totalUnrestrictedQtyBase - totalPreviousAllocations
+      totalUnrestrictedQtyBase - totalPreviousAllocations,
     );
 
     console.log(
-      `Material ${materialId}: Available=${availableStockAfterAllocations}, Collection=${collectionUsed}`
+      `Material ${materialId}: Available=${availableStockAfterAllocations}, Collection=${collectionUsed}`,
     );
 
     // Handle UI controls based on balance data length
@@ -524,7 +526,7 @@ const checkInventoryWithDuplicates = async (
       let undeliveredQtyBase = undeliveredQty;
       if (item.altUOM !== itemData.based_uom) {
         const uomConversion = itemData.table_uom_conversion?.find(
-          (conv) => conv.alt_uom_id === item.altUOM
+          (conv) => conv.alt_uom_id === item.altUOM,
         );
         if (uomConversion && uomConversion.base_qty) {
           undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
@@ -547,6 +549,7 @@ const checkInventoryWithDuplicates = async (
         more_desc: item.sourceItem.more_desc || "",
         line_remark_1: item.sourceItem.line_remark_1 || "",
         line_remark_2: item.sourceItem.line_remark_2 || "",
+        line_remark_3: item.sourceItem.line_remark_3 || "",
         base_uom_id: itemData.based_uom || "",
         unit_price: item.sourceItem.so_item_price || 0,
         total_price: item.sourceItem.so_amount || 0,
@@ -555,7 +558,7 @@ const checkInventoryWithDuplicates = async (
     });
 
     console.log(
-      `Material ${materialId}: Available=${availableStockAfterAllocations}, Total Demand=${totalDemandBase}`
+      `Material ${materialId}: Available=${availableStockAfterAllocations}, Total Demand=${totalDemandBase}`,
     );
 
     // Check if insufficient stock
@@ -563,7 +566,7 @@ const checkInventoryWithDuplicates = async (
 
     if (totalShortfallBase > 0) {
       console.log(
-        `❌ Insufficient stock for material ${materialId}: Shortfall=${totalShortfallBase}`
+        `❌ Insufficient stock for material ${materialId}: Shortfall=${totalShortfallBase}`,
       );
 
       // Handle insufficient stock (serialized vs non-serialized)
@@ -580,17 +583,17 @@ const checkInventoryWithDuplicates = async (
           const orderedQtyBase = convertToBaseUOM(
             orderedQty,
             item.altUOM,
-            itemData
+            itemData,
           );
           const deliveredQtyBase = convertToBaseUOM(
             deliveredQty,
             item.altUOM,
-            itemData
+            itemData,
           );
           const undeliveredQtyBase = convertToBaseUOM(
             undeliveredQty,
             item.altUOM,
-            itemData
+            itemData,
           );
 
           let availableQtyBase = 0;
@@ -598,7 +601,7 @@ const checkInventoryWithDuplicates = async (
             const requiredUnitsBase = Math.floor(undeliveredQtyBase);
             availableQtyBase = Math.min(
               remainingSerialCount,
-              requiredUnitsBase
+              requiredUnitsBase,
             );
             remainingSerialCount -= availableQtyBase;
           }
@@ -668,7 +671,7 @@ const checkInventoryWithDuplicates = async (
             let undeliveredQtyBase = undeliveredQty;
             if (item.altUOM !== itemData.based_uom) {
               const uomConversion = itemData.table_uom_conversion?.find(
-                (conv) => conv.alt_uom_id === item.altUOM
+                (conv) => conv.alt_uom_id === item.altUOM,
               );
               if (uomConversion && uomConversion.base_qty) {
                 undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
@@ -677,10 +680,10 @@ const checkInventoryWithDuplicates = async (
 
             const allocatedBase = Math.min(
               remainingStockBase,
-              undeliveredQtyBase
+              undeliveredQtyBase,
             );
             const uomConversion = itemData.table_uom_conversion?.find(
-              (conv) => conv.alt_uom_id === item.altUOM
+              (conv) => conv.alt_uom_id === item.altUOM,
             );
             availableQtyAlt =
               item.altUOM !== itemData.based_uom
@@ -720,7 +723,7 @@ const checkInventoryWithDuplicates = async (
               let allocationQty = availableQtyAlt;
               if (item.altUOM !== itemData.based_uom) {
                 const uomConv = itemData.table_uom_conversion?.find(
-                  (c) => c.alt_uom_id === item.altUOM
+                  (c) => c.alt_uom_id === item.altUOM,
                 );
                 allocationQty = uomConv?.base_qty
                   ? availableQtyAlt * uomConv.base_qty
@@ -761,7 +764,7 @@ const checkInventoryWithDuplicates = async (
         if (undeliveredQty <= 0) {
           fieldsToDisable.push(
             `table_gd.${index}.gd_qty`,
-            `table_gd.${index}.gd_delivery_qty`
+            `table_gd.${index}.gd_delivery_qty`,
           );
           tableGdArray[index].gd_qty = 0;
         } else {
@@ -770,17 +773,17 @@ const checkInventoryWithDuplicates = async (
             const orderedQtyBase = convertToBaseUOM(
               orderedQty,
               item.altUOM,
-              itemData
+              itemData,
             );
             const deliveredQtyBase = convertToBaseUOM(
               deliveredQty,
               item.altUOM,
-              itemData
+              itemData,
             );
             const undeliveredQtyBase = convertToBaseUOM(
               undeliveredQty,
               item.altUOM,
-              itemData
+              itemData,
             );
 
             tableGdArray[index] = {
@@ -835,7 +838,7 @@ const checkInventoryWithDuplicates = async (
                 let allocationQty = undeliveredQty;
                 if (item.altUOM !== itemData.based_uom) {
                   const uomConv = itemData.table_uom_conversion?.find(
-                    (c) => c.alt_uom_id === item.altUOM
+                    (c) => c.alt_uom_id === item.altUOM,
                   );
                   allocationQty = uomConv?.base_qty
                     ? undeliveredQty * uomConv.base_qty
@@ -862,7 +865,7 @@ const checkInventoryWithDuplicates = async (
   // STEP 4: Single setData call with complete table array
   // ========================================================================
   console.log(
-    "🚀 OPTIMIZATION: Applying all updates in single setData call..."
+    "🚀 OPTIMIZATION: Applying all updates in single setData call...",
   );
   await this.setData({ table_gd: tableGdArray });
 
@@ -872,7 +875,7 @@ const checkInventoryWithDuplicates = async (
       "dialog_insufficient.table_insufficient": insufficientDialogData,
     });
     console.log(
-      `✅ Updated insufficient dialog with ${insufficientDialogData.length} items`
+      `✅ Updated insufficient dialog with ${insufficientDialogData.length} items`,
     );
   }
 
@@ -890,7 +893,7 @@ const checkInventoryWithDuplicates = async (
   // STEP 5: Process allocations sequentially (keep existing logic)
   // ========================================================================
   console.log(
-    `Processing ${itemsForAllocation.length} items for allocation...`
+    `Processing ${itemsForAllocation.length} items for allocation...`,
   );
 
   itemsForAllocation.sort((a, b) => a.rowIndex - b.rowIndex);
@@ -903,12 +906,12 @@ const checkInventoryWithDuplicates = async (
       allocationItem.quantity,
       allocationItem.plantId,
       allocationItem.uomId,
-      allocationItem.isSerializedItem
+      allocationItem.isSerializedItem,
     );
   }
 
   console.log(
-    `✅ OPTIMIZATION COMPLETE: Total time ${Date.now() - overallStart}ms`
+    `✅ OPTIMIZATION COMPLETE: Total time ${Date.now() - overallStart}ms`,
   );
   console.log("All allocations completed");
   return insufficientItems;
@@ -924,11 +927,11 @@ const performAutomaticAllocation = async (
   quantity,
   plantId,
   uomId,
-  isSerializedItem = false
+  isSerializedItem = false,
 ) => {
   try {
     console.log(
-      `Auto-allocating for row ${rowIndex}, material ${materialId}, quantity ${quantity}`
+      `Auto-allocating for row ${rowIndex}, material ${materialId}, quantity ${quantity}`,
     );
 
     // ========================================================================
@@ -974,7 +977,7 @@ const performAutomaticAllocation = async (
       balances,
       allocatedQuantities,
       isSerialManaged,
-      isBatchManaged
+      isBatchManaged,
     ) => {
       return balances.map((balance) => {
         let key;
@@ -998,7 +1001,7 @@ const performAutomaticAllocation = async (
         const originalUnrestrictedQty = balance.unrestricted_qty || 0;
         const adjustedUnrestrictedQty = Math.max(
           0,
-          originalUnrestrictedQty - allocatedFromOthers
+          originalUnrestrictedQty - allocatedFromOthers,
         );
 
         return {
@@ -1012,7 +1015,7 @@ const performAutomaticAllocation = async (
     const getDefaultBin = (itemData, plantId) => {
       if (!itemData.table_default_bin?.length) return null;
       const defaultBinEntry = itemData.table_default_bin.find(
-        (bin) => bin.plant_id === plantId
+        (bin) => bin.plant_id === plantId,
       );
       return defaultBinEntry?.bin_location || null;
     };
@@ -1034,7 +1037,7 @@ const performAutomaticAllocation = async (
         serialBalances,
         allocatedFromOtherRows,
         true,
-        itemData.item_batch_management === 1
+        itemData.item_batch_management === 1,
       );
 
       allAllocations = await processAutoAllocationForSerializedItems(
@@ -1045,7 +1048,7 @@ const performAutomaticAllocation = async (
         fallbackStrategy,
         itemData.item_batch_management === 1,
         batchDataArray,
-        binLocationMap
+        binLocationMap,
       );
     } else if (itemData.item_batch_management === 1) {
       const batchBalances = balanceDataMaps.batch.get(materialId) || [];
@@ -1055,7 +1058,7 @@ const performAutomaticAllocation = async (
         batchBalances,
         allocatedFromOtherRows,
         false,
-        true
+        true,
       );
 
       allAllocations = await processAutoAllocation(
@@ -1066,7 +1069,7 @@ const performAutomaticAllocation = async (
         fallbackStrategy,
         true,
         batchDataArray,
-        binLocationMap
+        binLocationMap,
       );
     } else {
       const regularBalances = balanceDataMaps.regular.get(materialId) || [];
@@ -1075,7 +1078,7 @@ const performAutomaticAllocation = async (
         regularBalances,
         allocatedFromOtherRows,
         false,
-        false
+        false,
       );
 
       allAllocations = await processAutoAllocation(
@@ -1086,7 +1089,7 @@ const performAutomaticAllocation = async (
         fallbackStrategy,
         false,
         null,
-        binLocationMap
+        binLocationMap,
       );
     }
 
@@ -1127,7 +1130,7 @@ const performAutomaticAllocation = async (
       let gdQty = allocation.quantity;
       if (uomId !== itemData.based_uom) {
         const uomConv = itemData.table_uom_conversion?.find(
-          (c) => c.alt_uom_id === uomId
+          (c) => c.alt_uom_id === uomId,
         );
         gdQty = uomConv?.base_qty
           ? allocation.quantity / uomConv.base_qty
@@ -1184,7 +1187,7 @@ const performAutomaticAllocation = async (
       let displayQty = allocation.quantity;
       if (uomId !== itemData.based_uom) {
         const uomConv = itemData.table_uom_conversion?.find(
-          (c) => c.alt_uom_id === uomId
+          (c) => c.alt_uom_id === uomId,
         );
         displayQty = uomConv?.base_qty
           ? allocation.quantity / uomConv.base_qty
@@ -1208,13 +1211,13 @@ const performAutomaticAllocation = async (
 
     const totalAllocatedBase = allAllocations.reduce(
       (sum, alloc) => sum + alloc.quantity,
-      0
+      0,
     );
 
     let totalAllocated = totalAllocatedBase;
     if (uomId !== itemData.based_uom) {
       const uomConv = itemData.table_uom_conversion?.find(
-        (c) => c.alt_uom_id === uomId
+        (c) => c.alt_uom_id === uomId,
       );
       totalAllocated = uomConv?.base_qty
         ? totalAllocatedBase / uomConv.base_qty
@@ -1222,14 +1225,14 @@ const performAutomaticAllocation = async (
     }
 
     const summary = `Total: ${totalAllocated} ${uomName}\n\nDETAILS:\n${summaryDetails.join(
-      "\n"
+      "\n",
     )}`;
 
     const deliveredQty = this.getValue(
-      `table_gd.${rowIndex}.gd_initial_delivered_qty`
+      `table_gd.${rowIndex}.gd_initial_delivered_qty`,
     );
     const undeliveredQty = this.getValue(
-      `table_gd.${rowIndex}.gd_undelivered_qty`
+      `table_gd.${rowIndex}.gd_undelivered_qty`,
     );
 
     // Update the row data
@@ -1242,7 +1245,7 @@ const performAutomaticAllocation = async (
     });
 
     console.log(
-      `Auto-allocation completed for row ${rowIndex}: ${allAllocations.length} allocations`
+      `Auto-allocation completed for row ${rowIndex}: ${allAllocations.length} allocations`,
     );
   } catch (error) {
     console.error(`Error in auto-allocation for row ${rowIndex}:`, error);
@@ -1261,7 +1264,7 @@ const processAutoAllocationForSerializedItems = async (
   fallbackStrategy,
   isBatchManaged,
   batchDataArray = null,
-  binLocationMap = new Map()
+  binLocationMap = new Map(),
 ) => {
   let allAllocations = [];
   let remainingQty = Math.floor(quantity);
@@ -1280,14 +1283,14 @@ const processAutoAllocationForSerializedItems = async (
     (balance) =>
       (balance.unrestricted_qty || 0) > 0 &&
       balance.serial_number &&
-      balance.serial_number.trim() !== ""
+      balance.serial_number.trim() !== "",
   );
 
   if (defaultStrategy === "FIXED BIN") {
     if (defaultBin) {
       const defaultBinBalances = availableBalances.filter(
         (balance) =>
-          (balance.location_id || balance.bin_location_id) === defaultBin
+          (balance.location_id || balance.bin_location_id) === defaultBin,
       );
 
       if (isBatchManaged && batchDataArray) {
@@ -1304,7 +1307,7 @@ const processAutoAllocationForSerializedItems = async (
         });
       } else {
         defaultBinBalances.sort((a, b) =>
-          (a.serial_number || "").localeCompare(b.serial_number || "")
+          (a.serial_number || "").localeCompare(b.serial_number || ""),
         );
       }
 
@@ -1315,7 +1318,7 @@ const processAutoAllocationForSerializedItems = async (
 
         if (allocatedQty > 0) {
           const binDetails = getBinLocationDetails(
-            balance.location_id || balance.bin_location_id
+            balance.location_id || balance.bin_location_id,
           );
           if (binDetails) {
             const batchData = isBatchManaged
@@ -1338,7 +1341,7 @@ const processAutoAllocationForSerializedItems = async (
     if (remainingQty > 0 && fallbackStrategy === "RANDOM") {
       const otherBalances = availableBalances.filter(
         (balance) =>
-          (balance.location_id || balance.bin_location_id) !== defaultBin
+          (balance.location_id || balance.bin_location_id) !== defaultBin,
       );
 
       if (isBatchManaged && batchDataArray) {
@@ -1355,7 +1358,7 @@ const processAutoAllocationForSerializedItems = async (
         });
       } else {
         otherBalances.sort((a, b) =>
-          (a.serial_number || "").localeCompare(b.serial_number || "")
+          (a.serial_number || "").localeCompare(b.serial_number || ""),
         );
       }
 
@@ -1366,7 +1369,7 @@ const processAutoAllocationForSerializedItems = async (
 
         if (allocatedQty > 0) {
           const binDetails = getBinLocationDetails(
-            balance.location_id || balance.bin_location_id
+            balance.location_id || balance.bin_location_id,
           );
           if (binDetails) {
             const batchData = isBatchManaged
@@ -1398,7 +1401,7 @@ const processAutoAllocationForSerializedItems = async (
       });
     } else {
       availableBalances.sort((a, b) =>
-        (a.serial_number || "").localeCompare(b.serial_number || "")
+        (a.serial_number || "").localeCompare(b.serial_number || ""),
       );
     }
 
@@ -1409,7 +1412,7 @@ const processAutoAllocationForSerializedItems = async (
 
       if (allocatedQty > 0) {
         const binDetails = getBinLocationDetails(
-          balance.location_id || balance.bin_location_id
+          balance.location_id || balance.bin_location_id,
         );
         if (binDetails) {
           const batchData = isBatchManaged
@@ -1432,7 +1435,7 @@ const processAutoAllocationForSerializedItems = async (
   console.log(
     `Serialized item allocation completed: ${
       allAllocations.length
-    } serial numbers allocated out of ${Math.floor(quantity)} requested`
+    } serial numbers allocated out of ${Math.floor(quantity)} requested`,
   );
   return allAllocations;
 };
@@ -1445,7 +1448,7 @@ const processAutoAllocation = async (
   fallbackStrategy,
   isBatchManaged,
   batchDataArray = null,
-  binLocationMap = new Map()
+  binLocationMap = new Map(),
 ) => {
   let allAllocations = [];
   let remainingQty = quantity;
@@ -1465,7 +1468,7 @@ const processAutoAllocation = async (
       const defaultBinBalances = balances.filter(
         (balance) =>
           balance.location_id === defaultBin &&
-          (balance.unrestricted_qty || 0) > 0
+          (balance.unrestricted_qty || 0) > 0,
       );
 
       if (isBatchManaged) {
@@ -1479,7 +1482,7 @@ const processAutoAllocation = async (
             );
           }
           return (batchA?.batch_number || "").localeCompare(
-            batchB?.batch_number || ""
+            batchB?.batch_number || "",
           );
         });
       }
@@ -1513,7 +1516,7 @@ const processAutoAllocation = async (
       const availableBalances = balances.filter(
         (balance) =>
           balance.location_id !== defaultBin &&
-          (balance.unrestricted_qty || 0) > 0
+          (balance.unrestricted_qty || 0) > 0,
       );
 
       if (isBatchManaged) {
@@ -1527,12 +1530,12 @@ const processAutoAllocation = async (
             );
           }
           return (batchA?.batch_number || "").localeCompare(
-            batchB?.batch_number || ""
+            batchB?.batch_number || "",
           );
         });
       } else {
         availableBalances.sort(
-          (a, b) => balances.indexOf(a) - balances.indexOf(b)
+          (a, b) => balances.indexOf(a) - balances.indexOf(b),
         );
       }
 
@@ -1562,7 +1565,7 @@ const processAutoAllocation = async (
     }
   } else if (defaultStrategy === "RANDOM") {
     const availableBalances = balances.filter(
-      (balance) => (balance.unrestricted_qty || 0) > 0
+      (balance) => (balance.unrestricted_qty || 0) > 0,
     );
 
     if (isBatchManaged) {
@@ -1574,12 +1577,12 @@ const processAutoAllocation = async (
           return new Date(batchA.expired_date) - new Date(batchB.expired_date);
         }
         return (batchA?.batch_number || "").localeCompare(
-          batchB?.batch_number || ""
+          batchB?.batch_number || "",
         );
       });
     } else {
       availableBalances.sort(
-        (a, b) => balances.indexOf(a) - balances.indexOf(b)
+        (a, b) => balances.indexOf(a) - balances.indexOf(b),
       );
     }
 
@@ -1641,12 +1644,12 @@ const createTableGdWithBaseUOM = async (allItems) => {
       const orderedQtyBase = convertToBaseUOM(
         item.orderedQty,
         item.altUOM,
-        itemData
+        itemData,
       );
       const deliveredQtyBase = convertToBaseUOM(
         item.deliveredQtyFromSource,
         item.altUOM,
-        itemData
+        itemData,
       );
 
       processedItems.push({
@@ -1663,6 +1666,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         more_desc: item.sourceItem.more_desc || "",
         line_remark_1: item.sourceItem.line_remark_1 || "",
         line_remark_2: item.sourceItem.line_remark_2 || "",
+        line_remark_3: item.sourceItem.line_remark_3 || "",
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
@@ -1684,6 +1688,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         more_desc: item.sourceItem.more_desc || "",
         line_remark_1: item.sourceItem.line_remark_1 || "",
         line_remark_2: item.sourceItem.line_remark_2 || "",
+        line_remark_3: item.sourceItem.line_remark_3 || "",
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
@@ -1733,7 +1738,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         cancelButtonText: "Cancel",
         type: "error",
         dangerouslyUseHTMLString: true,
-      }
+      },
     ).catch(() => {
       console.log("User clicked Cancel or closed the dialog");
       throw new Error();
@@ -1744,8 +1749,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   const uniqueCustomer = new Set(
     currentItemArray.map((so) =>
-      referenceType === "Document" ? so.customer_id : so.customer_id.id
-    )
+      referenceType === "Document" ? so.customer_id : so.customer_id.id,
+    ),
   );
   const allSameCustomer = uniqueCustomer.size === 1;
 
@@ -1756,7 +1761,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
       {
         confirmButtonText: "OK",
         type: "error",
-      }
+      },
     );
     return;
   }
@@ -1770,7 +1775,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         cancelButtonText: "Cancel",
         type: "error",
         dangerouslyUseHTMLString: true,
-      }
+      },
     ).catch(() => {
       console.log("User clicked Cancel or closed the dialog");
       throw new Error();
@@ -1827,8 +1832,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
     (gd) =>
       gd.deliveredQtyFromSource !== gd.orderedQty &&
       !existingGD.find(
-        (gdItem) => gdItem.so_line_item_id === gd.so_line_item_id
-      )
+        (gdItem) => gdItem.so_line_item_id === gd.so_line_item_id,
+      ),
   );
 
   console.log("allItems after filter", allItems);
@@ -1863,20 +1868,20 @@ const createTableGdWithBaseUOM = async (allItems) => {
       const plantId = this.getValue("plant_id");
       const newItems = allItems.filter((item) => {
         return !existingGD.find(
-          (gdItem) => gdItem.so_line_item_id === item.so_line_item_id
+          (gdItem) => gdItem.so_line_item_id === item.so_line_item_id,
         );
       });
 
       const insufficientItems = await checkInventoryWithDuplicates(
         newItems,
         plantId,
-        existingGD.length
+        existingGD.length,
       );
 
       if (insufficientItems.length > 0) {
         console.log(
           "Materials with insufficient inventory:",
-          insufficientItems
+          insufficientItems,
         );
         this.openDialog("dialog_insufficient");
       }
