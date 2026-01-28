@@ -1298,9 +1298,20 @@ const processAutoAllocationForSerializedItems = async (
           const batchA = findBatchData(a.batch_id);
           const batchB = findBatchData(b.batch_id);
 
-          if (batchA?.expiry_date && batchB?.expiry_date) {
-            return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+          // Get expiry_date from balance record OR batch record (handles both expired_date and expiry_date)
+          const expiredA = a.expired_date || a.expiry_date || batchA?.expired_date || batchA?.expiry_date;
+          const expiredB = b.expired_date || b.expiry_date || batchB?.expired_date || batchB?.expiry_date;
+
+          // Prioritize batches WITH expiry_date over those WITHOUT
+          if (expiredA && !expiredB) return -1;
+          if (!expiredA && expiredB) return 1;
+
+          // Both have expiry_date - sort by earliest first (FEFO)
+          if (expiredA && expiredB) {
+            return new Date(expiredA) - new Date(expiredB);
           }
+
+          // Neither has expiry_date - fallback to serial number
           return (a.serial_number || "").localeCompare(b.serial_number || "");
         });
       } else {
@@ -1347,9 +1358,20 @@ const processAutoAllocationForSerializedItems = async (
           const batchA = findBatchData(a.batch_id);
           const batchB = findBatchData(b.batch_id);
 
-          if (batchA?.expiry_date && batchB?.expiry_date) {
-            return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+          // Get expiry_date from balance record OR batch record (handles both expired_date and expiry_date)
+          const expiredA = a.expired_date || a.expiry_date || batchA?.expired_date || batchA?.expiry_date;
+          const expiredB = b.expired_date || b.expiry_date || batchB?.expired_date || batchB?.expiry_date;
+
+          // Prioritize batches WITH expiry_date over those WITHOUT
+          if (expiredA && !expiredB) return -1;
+          if (!expiredA && expiredB) return 1;
+
+          // Both have expiry_date - sort by earliest first (FEFO)
+          if (expiredA && expiredB) {
+            return new Date(expiredA) - new Date(expiredB);
           }
+
+          // Neither has expiry_date - fallback to serial number
           return (a.serial_number || "").localeCompare(b.serial_number || "");
         });
       } else {
@@ -1390,9 +1412,20 @@ const processAutoAllocationForSerializedItems = async (
         const batchA = findBatchData(a.batch_id);
         const batchB = findBatchData(b.batch_id);
 
-        if (batchA?.expiry_date && batchB?.expiry_date) {
-          return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+        // Get expiry_date from balance record OR batch record (handles both expired_date and expiry_date)
+        const expiredA = a.expired_date || a.expiry_date || batchA?.expired_date || batchA?.expiry_date;
+        const expiredB = b.expired_date || b.expiry_date || batchB?.expired_date || batchB?.expiry_date;
+
+        // Prioritize batches WITH expiry_date over those WITHOUT
+        if (expiredA && !expiredB) return -1;
+        if (!expiredA && expiredB) return 1;
+
+        // Both have expiry_date - sort by earliest first (FEFO)
+        if (expiredA && expiredB) {
+          return new Date(expiredA) - new Date(expiredB);
         }
+
+        // Neither has expiry_date - fallback to serial number
         return (a.serial_number || "").localeCompare(b.serial_number || "");
       });
     } else {
@@ -1472,9 +1505,20 @@ const processAutoAllocation = async (
           const batchA = findBatchData(a.batch_id);
           const batchB = findBatchData(b.batch_id);
 
-          if (batchA?.expiry_date && batchB?.expiry_date) {
-            return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+          // Get expiry_date from balance record OR batch record (handles both expired_date and expiry_date)
+          const expiredA = a.expired_date || a.expiry_date || batchA?.expired_date || batchA?.expiry_date;
+          const expiredB = b.expired_date || b.expiry_date || batchB?.expired_date || batchB?.expiry_date;
+
+          // Prioritize batches WITH expiry_date over those WITHOUT
+          if (expiredA && !expiredB) return -1;
+          if (!expiredA && expiredB) return 1;
+
+          // Both have expiry_date - sort by earliest first (FEFO)
+          if (expiredA && expiredB) {
+            return new Date(expiredA) - new Date(expiredB);
           }
+
+          // Neither has expiry_date - fallback to batch number
           return (batchA?.batch_number || "").localeCompare(
             batchB?.batch_number || "",
           );
@@ -1518,9 +1562,20 @@ const processAutoAllocation = async (
           const batchA = findBatchData(a.batch_id);
           const batchB = findBatchData(b.batch_id);
 
-          if (batchA?.expiry_date && batchB?.expiry_date) {
-            return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+          // Get expiry_date from balance record OR batch record (handles both expired_date and expiry_date)
+          const expiredA = a.expired_date || a.expiry_date || batchA?.expired_date || batchA?.expiry_date;
+          const expiredB = b.expired_date || b.expiry_date || batchB?.expired_date || batchB?.expiry_date;
+
+          // Prioritize batches WITH expiry_date over those WITHOUT
+          if (expiredA && !expiredB) return -1;
+          if (!expiredA && expiredB) return 1;
+
+          // Both have expiry_date - sort by earliest first (FEFO)
+          if (expiredA && expiredB) {
+            return new Date(expiredA) - new Date(expiredB);
           }
+
+          // Neither has expiry_date - fallback to batch number
           return (batchA?.batch_number || "").localeCompare(
             batchB?.batch_number || "",
           );
@@ -1565,9 +1620,20 @@ const processAutoAllocation = async (
         const batchA = findBatchData(a.batch_id);
         const batchB = findBatchData(b.batch_id);
 
-        if (batchA?.expiry_date && batchB?.expiry_date) {
-          return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);
+        // Get expiry_date from balance record OR batch record (handles both expired_date and expiry_date)
+        const expiredA = a.expired_date || a.expiry_date || batchA?.expired_date || batchA?.expiry_date;
+        const expiredB = b.expired_date || b.expiry_date || batchB?.expired_date || batchB?.expiry_date;
+
+        // Prioritize batches WITH expiry_date over those WITHOUT
+        if (expiredA && !expiredB) return -1;
+        if (!expiredA && expiredB) return 1;
+
+        // Both have expiry_date - sort by earliest first (FEFO)
+        if (expiredA && expiredB) {
+          return new Date(expiredA) - new Date(expiredB);
         }
+
+        // Neither has expiry_date - fallback to batch number
         return (batchA?.batch_number || "").localeCompare(
           batchB?.batch_number || "",
         );
