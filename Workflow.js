@@ -1,140 +1,63 @@
-const customerData = {{node:get_node_GerIauhj.data.data}}
+const parseJsonSafely = (jsonString, defaultValue = []) => {
+  try {
+    return jsonString ? JSON.parse(jsonString) : defaultValue;
+  } catch (error) {
+    return defaultValue;
+  }
+};
 
-const controlTypes = customerData.control_type_list;
-const outstandingAmount = parseFloat(customerData.outstanding_balance || 0) || 0;
-const overdueAmount = parseFloat(customerData.overdue_inv_total_amount || 0) || 0;
-const overdueLimit = parseFloat(customerData.overdue_limit || 0) || 0;
-const creditLimit = parseFloat(customerData.customer_credit_limit || 0) || 0;
-const totalAmount = parseFloat({{workflowparams:total}} || 0) || 0;
-const revisedOutstandingAmount = outstandingAmount + totalAmount;
+const item = {{node:code_node_gG7AZrE1.data.item}}
+const itemMaster = {{node:get_node_90sgHngm.data.data}}
 
-if (controlTypes && Array.isArray(controlTypes)) {
-  const controlTypeChecks = {
-    0: () => {
-      return { result: true, priority: "unblock" };
-    },
+const material_id = item.material_id;
+const material_uom = item.gd_order_uom_id || item.good_delivery_uom_id;
+const parent_line_id = item.line_so_id || "";
+const doc_line_id = item.id || "";
 
-    1: () => {
-      if (overdueAmount > overdueLimit) {
-        return { result: false, popupNumber: 2, priority: "block" };
-      }
-      return { result: true, priority: "unblock" };
-    },
+const isBatchManagedItem = itemMaster.item_batch_management === 1;
+const temporaryData = parseJsonSafely(item.temp_qty_data);
 
-    2: () => {
-      if (overdueAmount > overdueLimit) {
-        return { result: false, popupNumber: 4, priority: "override" };
-      }
-      return { result: true, priority: "unblock" };
-    },
+let message = null;
+let code = null;
 
-    3: () => {
-      if (revisedOutstandingAmount > creditLimit) {
-        return { result: false, popupNumber: 1, priority: "block" };
-      }
-      return { result: true, priority: "unblock" };
-    },
+if (
+  temporaryData.length === 0
+) {
+  message = `No temp_qty_data to process for item ${item.material_name}`;
+  code = "200";
+}
 
-    4: () => {
-      const creditExceeded = revisedOutstandingAmount > creditLimit;
-      const overdueExceeded = overdueAmount > overdueLimit;
+// GROUP temp_qty_data by location + batch combination
+const groupedTempData = {};
 
-      if (creditExceeded && overdueExceeded) {
-        return { result: false, popupNumber: 3, priority: "block" };
-      } else if (creditExceeded) {
-        return { result: false, popupNumber: 1, priority: "block" };
-      } else if (overdueExceeded) {
-        return { result: false, popupNumber: 2, priority: "block" };
-      }
-      return { result: true, priority: "unblock" };
-    },
+for (const temp of temporaryData) {
+  const groupKey =
+    isBatchManagedItem && temp.batch_id
+      ? `${temp.location_id}|${temp.batch_id}`
+      : temp.location_id;
 
-    5: () => {
-      const creditExceeded = revisedOutstandingAmount > creditLimit;
-      const overdueExceeded = overdueAmount > overdueLimit;
-
-      if (creditExceeded) {
-        if (overdueExceeded) {
-          return { result: false, popupNumber: 3, priority: "block" };
-        } else {
-          return { result: false, popupNumber: 1, priority: "block" };
-        }
-      } else if (overdueExceeded) {
-        return { result: false, popupNumber: 4, priority: "override" };
-      }
-      return { result: true, priority: "unblock" };
-    },
-
-    6: () => {
-      if (revisedOutstandingAmount > creditLimit) {
-        return { result: false, popupNumber: 5, priority: "override" };
-      }
-      return { result: true, priority: "unblock" };
-    },
-
-    7: () => {
-      const creditExceeded = revisedOutstandingAmount > creditLimit;
-      const overdueExceeded = overdueAmount > overdueLimit;
-
-      if (overdueExceeded) {
-        return { result: false, popupNumber: 2, priority: "block" };
-      } else if (creditExceeded) {
-        return { result: false, popupNumber: 5, priority: "override" };
-      }
-      return { result: true, priority: "unblock" };
-    },
-
-    8: () => {
-      const creditExceeded = revisedOutstandingAmount > creditLimit;
-      const overdueExceeded = overdueAmount > overdueLimit;
-
-      if (creditExceeded && overdueExceeded) {
-        return { result: false, popupNumber: 7, priority: "override" };
-      } else if (creditExceeded) {
-        return { result: false, popupNumber: 5, priority: "override" };
-      } else if (overdueExceeded) {
-        return { result: false, popupNumber: 4, priority: "override" };
-      }
-      return { result: true, priority: "unblock" };
-    },
-
-    9: () => {
-      return { result: false, popupNumber: 6, priority: "block" };
-    },
-  };
-
-  const applicableControls = controlTypes
-    .filter((ct) => ct.document_type === {{workflowparams:document_type}})
-    .map((ct) => {
-      const checkResult = controlTypeChecks[ct.control_type]
-        ? controlTypeChecks[ct.control_type]()
-        : { result: true, priority: "unblock" };
-      return {
-        ...checkResult,
-        control_type: ct.control_type,
-      };
-    });
-
-  const priorityOrder = { block: 1, override: 2, unblock: 3 };
-  applicableControls.sort(
-    (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
-  );
-
-  for (const control of applicableControls) {
-    if (control.result !== true) {
-      return {
-        result: false,
-        popupNumber: control.popupNumber,
-        priority: control.priority,
-        creditLimitData: {
-          creditLimit: creditLimit,
-          revisedOutstandingAmount: revisedOutstandingAmount,
-          overdueLimit: overdueLimit,
-          overdueAmount: overdueAmount
-        }
-      };
-    }
+  if (!groupedTempData[groupKey]) {
+    groupedTempData[groupKey] = {
+      location_id: temp.location_id,
+      batch_id: temp.batch_id || null,
+      totalQty: 0,
+    };
   }
 
-  return { result: true };
+  groupedTempData[groupKey].totalQty += parseFloat(
+    temp.gd_quantity || temp.quantity || 0,
+  );
 }
+
+const groupKeys = Object.keys(groupedTempData);
+
+return {
+  message: message,
+  code: code,
+  groupKeys: groupKeys,
+  groupedTempData: groupedTempData,
+  material_id: material_id,
+  material_uom: material_uom,
+  parent_line_id: parent_line_id,
+  doc_line_id: doc_line_id,
+};

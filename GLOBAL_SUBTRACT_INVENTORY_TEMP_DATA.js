@@ -1,6 +1,7 @@
 // ============================================================================
 // GLOBAL_SUBTRACT_INVENTORY_TEMP_DATA.js
 // Processes temp_qty_data and calls deductInventory/addInventory for each group
+// NOTE: UOM conversion is handled by deductInventory/addInventory workflows
 // ============================================================================
 
 // Helper functions
@@ -28,7 +29,7 @@ const parseJsonSafely = (jsonString, defaultValue = []) => {
  * @param {Object} config.item - Single item to process
  * @param {string} config.item.material_id - Item/material ID
  * @param {number} config.item.quantity - Line item total quantity
- * @param {string} config.item.alt_uom_id - Alternative UOM ID
+ * @param {string} config.item.alt_uom_id - Alternative UOM ID (conversion handled by workflows)
  * @param {number} config.item.unit_price - Unit price
  * @param {string} config.item.temp_qty_data - JSON string of location/batch/qty breakdown
  * @param {string} [config.item.prev_temp_qty_data] - Previous temp data for updates
@@ -43,6 +44,8 @@ const parseJsonSafely = (jsonString, defaultValue = []) => {
  * @param {Object} [config.itemData] - Item master data (if already fetched)
  * @param {Array} [config.updatedDocs] - Array to track updated docs for rollback
  * @param {Array} [config.createdDocs] - Array to track created docs for rollback
+ *
+ * @note UOM conversion is NOT performed here - it is handled by deductInventory/addInventory workflows
  *
  * @returns {Promise<Object>} Result object with success, itemId, processedGroups, error
  */
@@ -180,6 +183,7 @@ const processBalanceTable = async (config) => {
     );
 
     // Process each group
+    // NOTE: UOM conversion is handled by deductInventory/addInventory workflows
     for (const groupKey of groupKeys) {
       const group = groupedTempData[groupKey];
       const prevGroup = prevGroupedData[groupKey];
@@ -188,49 +192,13 @@ const processBalanceTable = async (config) => {
         `Processing group: ${groupKey}, current qty: ${group.totalQty}, prev qty: ${prevGroup?.totalQty || 0}`
       );
 
-      // UOM Conversion
-      let altQty = roundQty(group.totalQty);
-      let baseQty = altQty;
+      const currentQty = roundQty(group.totalQty);
+      const prevQty = prevGroup ? roundQty(prevGroup.totalQty) : 0;
       const altUOM = item.alt_uom_id;
-      const baseUOM = itemMaster.based_uom;
-
-      if (
-        Array.isArray(itemMaster.table_uom_conversion) &&
-        itemMaster.table_uom_conversion.length > 0
-      ) {
-        const uomConversion = itemMaster.table_uom_conversion.find(
-          (conv) => conv.alt_uom_id === altUOM
-        );
-
-        if (uomConversion) {
-          baseQty = roundQty(altQty * uomConversion.base_qty);
-          console.log(`Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM}`);
-        }
-      }
-
-      // Calculate previous base quantity for this group
-      let prevBaseQty = 0;
-      if (prevGroup) {
-        let prevAltQty = roundQty(prevGroup.totalQty);
-        prevBaseQty = prevAltQty;
-
-        if (
-          Array.isArray(itemMaster.table_uom_conversion) &&
-          itemMaster.table_uom_conversion.length > 0
-        ) {
-          const uomConversion = itemMaster.table_uom_conversion.find(
-            (conv) => conv.alt_uom_id === altUOM
-          );
-
-          if (uomConversion) {
-            prevBaseQty = roundQty(prevAltQty * uomConversion.base_qty);
-          }
-        }
-      }
 
       // Determine what action to take based on quantity changes
       if (isUpdate) {
-        const qtyDifference = roundQty(baseQty - prevBaseQty);
+        const qtyDifference = roundQty(currentQty - prevQty);
 
         if (qtyDifference > 0) {
           // Quantity increased - need to deduct more
@@ -246,7 +214,7 @@ const processBalanceTable = async (config) => {
             transactionNo,
             batchId: group.batch_id,
             category,
-            altQty: roundQty((qtyDifference / baseQty) * altQty),
+            altQty: qtyDifference,
             altUomId: altUOM,
             unitPrice: item.unit_price,
             parentTrxNo: item.parent_trx_no,
@@ -274,7 +242,7 @@ const processBalanceTable = async (config) => {
             transactionNo,
             batchId: group.batch_id,
             category,
-            altQty: roundQty((addBackQty / prevBaseQty) * roundQty(prevGroup.totalQty)),
+            altQty: addBackQty,
             altUomId: altUOM,
             unitPrice: item.unit_price,
             parentTrxNo: item.parent_trx_no,
@@ -292,10 +260,10 @@ const processBalanceTable = async (config) => {
         }
       } else {
         // New record - just deduct
-        if (baseQty > 0) {
+        if (currentQty > 0) {
           const result = await deductInventory({
             materialId: item.material_id,
-            deductQty: baseQty,
+            deductQty: currentQty,
             locationId: group.location_id,
             plantId,
             organizationId,
@@ -303,7 +271,7 @@ const processBalanceTable = async (config) => {
             transactionNo,
             batchId: group.batch_id,
             category,
-            altQty,
+            altQty: currentQty,
             altUomId: altUOM,
             unitPrice: item.unit_price,
             parentTrxNo: item.parent_trx_no,

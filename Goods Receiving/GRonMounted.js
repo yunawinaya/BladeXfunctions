@@ -93,9 +93,14 @@ const showStatusHTML = async (status) => {
       this.display(["draft_status"]);
       break;
 
+    case "Created":
+      this.display(["created_status"]);
+      break;
+
     case "Received":
       this.display(["received_status"]);
       break;
+
     case "Completed":
       this.display(["completed_status"]);
       break;
@@ -113,7 +118,91 @@ const isViewMode = async () => {
 };
 
 const disabledEditField = async (status) => {
-  if (status !== "Draft") {
+  if (status === "Draft") {
+    // Draft status: Full editing allowed
+    const data = this.getValues();
+    data.table_gr.forEach(async (gr, index) => {
+      if (gr.item_id) {
+        if (
+          !gr.item_batch_no &&
+          gr.item_batch_no !== "Auto-generated batch number" &&
+          gr.item_batch_no !== "-"
+        ) {
+          this.disabled([`table_gr.${index}.item_batch_no`], false);
+        }
+      }
+    });
+    this.disabled("reference_doc", false);
+  } else if (status === "Created") {
+    // Created status: Limited editing allowed (can re-save or complete)
+
+    // Lock these header fields
+    this.disabled(
+      [
+        "gr_status",
+        "organization_id",
+        "purchase_order_number",
+        "supplier_name",
+        "supplier_contact_person",
+        "supplier_contact_number",
+        "supplier_email",
+        "plant_id",
+      ],
+      true
+    );
+
+    // Allow editing these fields
+    this.disabled(
+      [
+        "gr_no",
+        "gr_received_by",
+        "gr_date",
+        "table_gr",
+        "reference_doc",
+        "ref_no_1",
+        "ref_no_2",
+        "assigned_to",
+        "gr_billing_name",
+        "gr_billing_cp",
+        "gr_billing_address",
+        "gr_shipping_address",
+        "billing_address_line_1",
+        "billing_address_line_2",
+        "billing_address_line_3",
+        "billing_address_line_4",
+        "shipping_address_line_1",
+        "shipping_address_line_2",
+        "shipping_address_line_3",
+        "shipping_address_line_4",
+        "billing_address_city",
+        "shipping_address_city",
+        "billing_postal_code",
+        "shipping_postal_code",
+        "billing_address_state",
+        "shipping_address_state",
+        "billing_address_country",
+        "shipping_address_country",
+      ],
+      false
+    );
+
+    // Enable batch number editing where applicable
+    const data = this.getValues();
+    data.table_gr.forEach(async (gr, index) => {
+      if (
+        gr.item_id &&
+        gr.item_batch_no !== "-" &&
+        gr.item_batch_no !== "Auto-generated batch number"
+      ) {
+        this.disabled([`table_gr.${index}.item_batch_no`], false);
+      }
+    });
+
+    // Show appropriate buttons for Created status
+    this.hide(["button_save_as_draft", "button_completed"]);
+    this.display(["button_save_as_created", "button_save_as_comp"]);
+  } else {
+    // Received or Completed status: Full disable
     this.disabled(
       [
         "gr_status",
@@ -159,6 +248,7 @@ const disabledEditField = async (status) => {
       "link_billing_address",
       "link_shipping_address",
       "button_save_as_draft",
+      "button_save_as_created",
       "button_save_as_comp",
       "button_completed",
     ]);
@@ -166,20 +256,6 @@ const disabledEditField = async (status) => {
     if (status === "Received") {
       this.display(["button_completed"]);
     }
-  } else {
-    const data = this.getValues();
-    data.table_gr.forEach(async (gr, index) => {
-      if (gr.item_id) {
-        if (
-          !gr.item_batch_no &&
-          gr.item_batch_no !== "Auto-generated batch number" &&
-          gr.item_batch_no !== "-"
-        ) {
-          this.disabled([`table_gr.${index}.item_batch_no`], false);
-        }
-      }
-    });
-    this.disabled("reference_doc", false);
   }
 };
 
@@ -215,6 +291,8 @@ const setPlant = async (organizationId) => {
 
 const fetchReceivedQuantity = async () => {
   const tableGR = this.getValue("table_gr") || [];
+  const status = this.getValue("gr_status");
+  const currentGRNo = this.getValue("gr_no");
 
   const resPOLineData = await Promise.all(
     tableGR.map((item) =>
@@ -227,16 +305,34 @@ const fetchReceivedQuantity = async () => {
 
   const poLineItemData = resPOLineData.map((response) => response.data[0]);
 
-  const updatedTableGR = tableGR.map((item, index) => {
-    const poLine = poLineItemData[index];
-    const totalReceivedQty = poLine ? poLine.received_qty || 0 : 0;
-    const orderQty = poLine ? poLine.quantity || 0 : 0;
-    const maxReceivableQty = orderQty - totalReceivedQty;
-    return {
-      ...item,
-      to_received_qty: maxReceivableQty,
-    };
-  });
+  const updatedTableGR = await Promise.all(
+    tableGR.map(async (item, index) => {
+      const poLine = poLineItemData[index];
+      const orderQty = poLine ? poLine.quantity || 0 : 0;
+      const receivedQty = poLine ? poLine.received_qty || 0 : 0;
+
+      let initialReceivedQty = receivedQty; // Only count Received GRs by default
+      let toReceivedQty = orderQty - receivedQty;
+
+      // Special handling when editing a Created GR
+      if (status === "Created" && currentGRNo) {
+        // When editing Created GR, ignore other Created GRs in the form
+        // Warnings only appear when saving (not in form display)
+
+        // initial_received_qty = ONLY received_qty from PO (Received GRs only)
+        initialReceivedQty = receivedQty;
+        // to_received_qty = orderQty - receivedQty - current GR qty
+        const currentGRQty = item.received_qty || 0;
+        toReceivedQty = orderQty - receivedQty - currentGRQty;
+      }
+
+      return {
+        ...item,
+        initial_received_qty: initialReceivedQty,
+        to_received_qty: toReceivedQty,
+      };
+    })
+  );
 
   this.setData({ table_gr: updatedTableGR });
 };
@@ -440,7 +536,7 @@ const checkAccIntegrationType = async (organizationId) => {
         await checkAccIntegrationType(organizationId);
         await hideSerialNumberRecordTab();
         await displayManufacturingAndExpiredDate(status, pageStatus);
-        if (status === "Draft") {
+        if (status === "Draft" || status === "Created") {
           await this.triggerEvent("onChange_plant");
           this.hide("button_completed");
         } else {

@@ -1,0 +1,1804 @@
+[
+  {
+    "id": "set_cache_node_U5V6Np2m",
+    "type": "set-cache-node",
+    "data": {
+      "cache_key": "",
+      "cache_value": "",
+      "expire_time": 3600,
+      "title": "Set Table Index",
+      "isValidator": true,
+      "nodeName": "Set Table Index",
+      "name": "Set Table Index",
+      "custom_wkbocgni": { "type": "javascript", "code": "0" },
+      "redis_key": "tableIndex"
+    },
+    "blocks": []
+  },
+  {
+    "id": "search_node_IqXR6qrL",
+    "type": "search-node",
+    "data": {
+      "table_id": {
+        "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+        "rules": {
+          "collectionId": "1935880014687440897",
+          "list": [
+            {
+              "id": 1769658573884,
+              "parentId": 1769658573885,
+              "isTop": true,
+              "prop": "",
+              "operator": "all",
+              "valueType": "",
+              "value": "",
+              "type": "branch",
+              "level": 1,
+              "children": [
+                {
+                  "id": 1769658450705,
+                  "parentId": 1769658573884,
+                  "isTop": false,
+                  "prop": "target_reserved_id",
+                  "operator": "equal",
+                  "valueType": "field",
+                  "value": "{{workflowparams:doc_id}}",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "Target Reserved ID",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                },
+                {
+                  "id": 1769658573886,
+                  "parentId": 1769658573884,
+                  "isTop": false,
+                  "prop": "status",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "Allocated",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "Status",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                },
+                {
+                  "id": 1769658573887,
+                  "parentId": 1769658573884,
+                  "isTop": false,
+                  "prop": "plant_id",
+                  "operator": "numberEqual",
+                  "valueType": "field",
+                  "value": "{{workflowparams:plant_id}}",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "Plant ID",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                },
+                {
+                  "id": 1769658573889,
+                  "parentId": 1769658573884,
+                  "isTop": false,
+                  "prop": "organization_id",
+                  "operator": "equal",
+                  "valueType": "field",
+                  "value": "{{workflowparams:organization_id}}",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "Organization ID",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "condition": {},
+      "limit": 100,
+      "title": "Get Old Allocated Records",
+      "isValidator": true,
+      "nodeName": "Get Old Allocated Records",
+      "name": "Get Old Allocated Records"
+    },
+    "blocks": []
+  },
+  {
+    "id": "loop_WEsXxHZM",
+    "type": "loop",
+    "data": {
+      "title": "Loop Table",
+      "isValidator": true,
+      "nodeName": "Loop Table",
+      "name": "Loop Table",
+      "loopType": "Var",
+      "loopSeletSource": {
+        "datasource": {
+          "rules": {
+            "collectionId": "",
+            "list": [
+              {
+                "id": 1723795236686,
+                "parentId": 1723795236685,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          }
+        },
+        "auto_refresh": 1,
+        "auto_refresh_debounce": 100,
+        "options": [],
+        "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+        },
+        "remote": false,
+        "remoteType": "datasource",
+        "limit_count": "",
+        "paging_way": "Pagination",
+        "page_size": 10
+      },
+      "loopSeletVar": {
+        "type": "markdown",
+        "code": "{{workflowparams:tableData}}"
+      }
+    },
+    "blocks": [
+      {
+        "id": "get_cache_node_ioyNVXF7",
+        "type": "get-cache-node",
+        "data": {
+          "cache_key": "",
+          "default_value": null,
+          "title": "Get Table Index",
+          "isValidator": true,
+          "nodeName": "Get Table Index",
+          "name": "Get Table Index",
+          "redis_key": "tableIndex"
+        },
+        "blocks": []
+      },
+      {
+        "id": "code_node_gG7AZrE1",
+        "type": "code-node",
+        "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Table Item",
+          "isValidator": true,
+          "nodeName": "Table Item",
+          "name": "Table Item",
+          "script": {
+            "type": "javascript",
+            "code": "const tableData = {{workflowparams:tableData}}\n\nconst currentIndexRaw = {{node:get_cache_node_ioyNVXF7.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\n\nconst item = tableData[index];\nconst material_id = item.material_id;\n\nreturn {\n  item: item,\n  material_id: material_id,\n  index: index,\n  nextIndex: index + 1\n}"
+          },
+          "response_json": [
+            {
+              "key": "q4n8dpmj",
+              "name": "item",
+              "title": "item",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "swwsacbj",
+              "name": "material_id",
+              "title": "material_id",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "ui3z8lfp",
+              "name": "index",
+              "title": "index",
+              "description": "",
+              "bsonType": "int",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "tm1343w6",
+              "name": "nextIndex",
+              "title": "nextIndex",
+              "description": "",
+              "bsonType": "int",
+              "isExpand": false,
+              "children": []
+            }
+          ]
+        },
+        "blocks": []
+      },
+      {
+        "id": "get_node_kXaJ7CW6",
+        "type": "get-node",
+        "data": {
+          "table_id": {
+            "source": "Item:Table:1901546842240438273",
+            "rules": {
+              "collectionId": "1901546842240438273",
+              "list": [
+                {
+                  "id": 1769659699139,
+                  "parentId": 1769659699138,
+                  "isTop": true,
+                  "prop": "id",
+                  "operator": "in",
+                  "valueType": "field",
+                  "value": "{{node:code_node_gG7AZrE1.data.material_id}}",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "主键ID",
+                  "valueLabel": "",
+                  "operatorLabel": "In"
+                }
+              ]
+            }
+          },
+          "condition": {},
+          "title": "Get itemData",
+          "isValidator": true,
+          "nodeName": "Get itemData",
+          "name": "Get itemData"
+        },
+        "blocks": []
+      },
+      {
+        "id": "if_k9sWZ87c",
+        "type": "if",
+        "data": {
+          "title": "IF Item Not Found",
+          "isValidator": true,
+          "nodeName": "IF Item Not Found",
+          "name": "IF Item Not Found",
+          "condition_type": "ConditionRule",
+          "expression": {
+            "type": "javascript",
+            "code": "{{node:get_node_cnqECQ8X.data.count}} == 0"
+          },
+          "filter": {
+            "list": [
+              {
+                "id": 1736695973613,
+                "parentId": 1736695973612,
+                "isTop": true,
+                "operator": "numberEqual",
+                "valueType": "value",
+                "value": 0,
+                "type": "leaf",
+                "level": 1,
+                "valueLabel": "",
+                "propLabel": "结果条数",
+                "prop": "node.get_node_kXaJ7CW6.data.count",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "blocks": [
+          {
+            "id": "ifBlock_8Rug3FVi",
+            "type": "ifBlock",
+            "data": { "title": "true" },
+            "blocks": [
+              {
+                "id": "return_node_r0VqVyZZ",
+                "type": "return-node",
+                "data": {
+                  "return_data": {},
+                  "status_code": 200,
+                  "title": "Return Data",
+                  "isValidator": true,
+                  "nodeName": "Return Data",
+                  "name": "Return Data",
+                  "response_value": {
+                    "list": [
+                      {
+                        "prop": "code",
+                        "propLabel": "code",
+                        "operator": "",
+                        "operatorLabel": "",
+                        "valueType": "value",
+                        "valueTypeLabel": "",
+                        "value": "400",
+                        "valueLabel": ""
+                      },
+                      {
+                        "prop": "message",
+                        "operator": "",
+                        "valueType": "value",
+                        "value": "Item or material not found",
+                        "valueLabel": "",
+                        "propLabel": "message"
+                      }
+                    ]
+                  },
+                  "return_raw_data": 0
+                },
+                "blocks": []
+              }
+            ]
+          },
+          {
+            "id": "ifBlock_7qyCpZEg",
+            "type": "ifBlock",
+            "data": { "title": "false" },
+            "blocks": []
+          }
+        ]
+      },
+      {
+        "id": "code_node_ra24gKwq",
+        "type": "code-node",
+        "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Table Data Preparation",
+          "isValidator": true,
+          "nodeName": "Table Data Preparation",
+          "name": "Table Data Preparation",
+          "script": {
+            "type": "javascript",
+            "code": "const parseJsonSafely = (jsonString, defaultValue = []) => {\n  try {\n    return jsonString ? JSON.parse(jsonString) : defaultValue;\n  } catch (error) {\n    return defaultValue;\n  }\n};\n\nconst item = {{node:code_node_gG7AZrE1.data.item}}\nconst itemMaster = {{node:get_node_kXaJ7CW6.data.data}}\n\nconst material_id = item.material_id;\nconst material_uom = item.gd_order_uom_id || item.good_delivery_uom_id;\nconst parent_line_id = item.line_so_id || \"\";\nconst doc_line_id = item.id || \"\";\nconst remark = item.line_remark_1 || \"\";\n\nconst isBatchManagedItem = itemMaster.item_batch_management === 1;\nconst temporaryData = parseJsonSafely(item.temp_qty_data);\n\nlet message = null;\nlet code = null;\n\nif (\n  temporaryData.length === 0\n) {\n  message = `No temp_qty_data to process for item ${item.material_name}`;\n  code = \"200\";\n}\n\n// GROUP temp_qty_data by location + batch combination\nconst groupedTempData = {};\n\nfor (const temp of temporaryData) {\n  const groupKey =\n    isBatchManagedItem && temp.batch_id\n      ? `${temp.location_id}|${temp.batch_id}`\n      : temp.location_id;\n\n  if (!groupedTempData[groupKey]) {\n    groupedTempData[groupKey] = {\n      location_id: temp.location_id,\n      batch_id: temp.batch_id || null,\n      totalQty: 0,\n    };\n  }\n\n  groupedTempData[groupKey].totalQty += parseFloat(\n    temp.gd_quantity || temp.quantity || 0,\n  );\n}\n\nconst groupKeys = Object.keys(groupedTempData);\n\nreturn {\n  message: message,\n  code: code,\n  groupKeys: groupKeys,\n  groupedTempData: groupedTempData,\n  material_id: material_id,\n  material_uom: material_uom,\n  parent_line_id: parent_line_id,\n  doc_line_id: doc_line_id,\n  remark: remark\n};\n"
+          },
+          "response_json": [
+            {
+              "key": "7toeuydn",
+              "name": "code",
+              "title": "code",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "yt8xqure",
+              "name": "message",
+              "title": "message",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "949x1r21",
+              "name": "groupKeys",
+              "title": "groupKeys",
+              "description": "",
+              "bsonType": "array",
+              "isExpand": true,
+              "children": [
+                {
+                  "key": "vlksc4nd",
+                  "name": "items",
+                  "title": "",
+                  "description": "",
+                  "bsonType": "any",
+                  "isExpand": false,
+                  "isArrayItem": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "key": "0muwtf4p",
+              "name": "groupedTempData",
+              "title": "groupedTempData",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "jrrqjq5i",
+              "name": "material_id",
+              "title": "material_id",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "jriqsr1u",
+              "name": "material_uom",
+              "title": "material_uom",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "e1nzrlpm",
+              "name": "parent_line_id",
+              "title": "parent_line_id",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "6b4e6kgw",
+              "name": "doc_line_id",
+              "title": "doc_line_id",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "750tyhtn",
+              "name": "remark",
+              "title": "remark",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            }
+          ]
+        },
+        "blocks": []
+      },
+      {
+        "id": "if_lXlCoOjM",
+        "type": "if",
+        "data": {
+          "title": "IF No Temp Data",
+          "isValidator": true,
+          "nodeName": "IF No Temp Data",
+          "name": "IF No Temp Data",
+          "condition_type": "ConditionRule",
+          "expression": { "type": "javascript", "code": "" },
+          "filter": {
+            "list": [
+              {
+                "id": 1769660503029,
+                "parentId": 1769660503030,
+                "isTop": true,
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1736695973613,
+                    "parentId": 1769660503029,
+                    "isTop": false,
+                    "prop": "node.code_node_ra24gKwq.data.code",
+                    "operator": "equal",
+                    "valueType": "value",
+                    "value": "200",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "code",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1769660503031,
+                    "parentId": 1769660503029,
+                    "isTop": false,
+                    "prop": "node.code_node_ra24gKwq.data.message",
+                    "operator": "isNotNull",
+                    "valueType": "value",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "message",
+                    "valueLabel": "",
+                    "operatorLabel": "Is Not Null"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "blocks": [
+          {
+            "id": "ifBlock_0pSNet14",
+            "type": "ifBlock",
+            "data": { "title": "true" },
+            "blocks": [
+              {
+                "id": "return_node_aAxGgamg",
+                "type": "return-node",
+                "data": {
+                  "return_data": {},
+                  "status_code": 200,
+                  "title": "Return Data",
+                  "isValidator": true,
+                  "nodeName": "Return Data",
+                  "name": "Return Data",
+                  "response_value": {
+                    "list": [
+                      {
+                        "prop": "code",
+                        "propLabel": "code",
+                        "operator": "",
+                        "operatorLabel": "",
+                        "valueType": "value",
+                        "valueTypeLabel": "",
+                        "value": "200",
+                        "valueLabel": ""
+                      },
+                      {
+                        "prop": "message",
+                        "operator": "",
+                        "valueType": "field",
+                        "value": "{{node:code_node_ra24gKwq.data.message}}",
+                        "valueLabel": "",
+                        "propLabel": "message"
+                      }
+                    ]
+                  }
+                },
+                "blocks": []
+              }
+            ]
+          },
+          {
+            "id": "ifBlock_7CIoMSHe",
+            "type": "ifBlock",
+            "data": { "title": "false" },
+            "blocks": []
+          }
+        ]
+      },
+      {
+        "id": "set_cache_node_qJAaBI04",
+        "type": "set-cache-node",
+        "data": {
+          "cache_key": "",
+          "cache_value": "",
+          "expire_time": 3600,
+          "title": "Set initial groupKey Index",
+          "isValidator": true,
+          "nodeName": "Set initial groupKey Index",
+          "name": "Set initial groupKey Index",
+          "custom_wkbocgni": { "type": "javascript", "code": "0" },
+          "redis_key": "groupKeyIndex"
+        },
+        "blocks": []
+      },
+      {
+        "id": "loop_CZObUF6G",
+        "type": "loop",
+        "data": {
+          "title": "Loop GroupKeys",
+          "isValidator": true,
+          "nodeName": "Loop GroupKeys",
+          "name": "Loop GroupKeys",
+          "loopType": "Var",
+          "loopSeletSource": {
+            "datasource": {
+              "rules": {
+                "collectionId": "",
+                "list": [
+                  {
+                    "id": 1723795236686,
+                    "parentId": 1723795236685,
+                    "isTop": true,
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
+                    "type": "leaf",
+                    "level": 1
+                  }
+                ]
+              }
+            },
+            "auto_refresh": 1,
+            "auto_refresh_debounce": 100,
+            "options": [],
+            "props": {
+              "value": "",
+              "label": "",
+              "image": "",
+              "icon": "",
+              "explain": ""
+            },
+            "remote": false,
+            "remoteType": "datasource",
+            "limit_count": "",
+            "paging_way": "Pagination",
+            "page_size": 10
+          },
+          "loopSeletVar": {
+            "type": "markdown",
+            "code": "{{node:code_node_ra24gKwq.data.groupKeys}}"
+          }
+        },
+        "blocks": [
+          {
+            "id": "get_cache_node_Oci70e87",
+            "type": "get-cache-node",
+            "data": {
+              "cache_key": "",
+              "default_value": null,
+              "title": "Get groupKey Index",
+              "isValidator": true,
+              "nodeName": "Get groupKey Index",
+              "name": "Get groupKey Index",
+              "redis_key": "groupKeyIndex"
+            },
+            "blocks": []
+          },
+          {
+            "id": "code_node_cbVKYuou",
+            "type": "code-node",
+            "data": {
+              "language": "javascript",
+              "code": "",
+              "timeout": 30000,
+              "title": "Balance Preparation",
+              "isValidator": true,
+              "nodeName": "Balance Preparation",
+              "name": "Balance Preparation",
+              "script": {
+                "type": "javascript",
+                "code": "const roundQty = (value) => parseFloat(parseFloat(value || 0).toFixed(3));\n\nconst groupKeys = {{node:code_node_ra24gKwq.data.groupKeys}}\nconst groupedTempData = {{node:code_node_ra24gKwq.data.groupedTempData}}\n\nconst currentIndexRaw = {{node:get_cache_node_Oci70e87.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst groupKey = groupKeys[index];\nconst group = groupedTempData[groupKey];\n\nconst currentQty = roundQty(group.totalQty);\n\nreturn {\n  quantity: currentQty,\n  location_id: group.location_id,\n  batch_id: group.batch_id || null,\n  index: index,\n  nextIndex: index + 1,\n};"
+              },
+              "response_json": [
+                {
+                  "key": "e1vlkgbw",
+                  "name": "quantity",
+                  "title": "quantity",
+                  "description": "",
+                  "bsonType": "decimal",
+                  "isExpand": false,
+                  "children": []
+                },
+                {
+                  "key": "1z1md9vc",
+                  "name": "location_id",
+                  "title": "location_id",
+                  "description": "",
+                  "bsonType": "string",
+                  "isExpand": false
+                },
+                {
+                  "key": "igvbdcef",
+                  "name": "batch_id",
+                  "title": "batch_id",
+                  "description": "",
+                  "bsonType": "string",
+                  "isExpand": false
+                },
+                {
+                  "key": "dqwut5oa",
+                  "name": "index",
+                  "title": "index",
+                  "description": "",
+                  "bsonType": "int",
+                  "isExpand": false,
+                  "children": []
+                },
+                {
+                  "key": "rvpyzvou",
+                  "name": "nextIndex",
+                  "title": "nextIndex",
+                  "description": "",
+                  "bsonType": "int",
+                  "isExpand": false,
+                  "children": []
+                }
+              ]
+            },
+            "blocks": []
+          },
+          {
+            "id": "if_Do3kVTsi",
+            "type": "if",
+            "data": {
+              "title": "IF Created",
+              "isValidator": true,
+              "nodeName": "IF Created",
+              "name": "IF Created",
+              "condition_type": "ConditionRule",
+              "expression": { "type": "javascript", "code": "" },
+              "filter": {
+                "list": [
+                  {
+                    "id": 1736695973613,
+                    "parentId": 1769668998273,
+                    "isTop": true,
+                    "prop": "workflowparams.saveAs",
+                    "operator": "equal",
+                    "valueType": "value",
+                    "value": "Created",
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "Save As",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            },
+            "blocks": [
+              {
+                "id": "if_block_qEN4HIqt",
+                "type": "ifBlock",
+                "data": { "title": "true" },
+                "blocks": [
+                  {
+                    "id": "workflow_node_fmf9W7tp",
+                    "type": "workflow-node",
+                    "data": {
+                      "workflow_id": "",
+                      "workflow_name": "",
+                      "input_params": {},
+                      "title": "Run Global Reserved Workflow",
+                      "isValidator": true,
+                      "nodeName": "Run Global Reserved Workflow",
+                      "name": "Run Global Reserved Workflow",
+                      "workflow": {
+                        "source": "GLOBAL_RESERVED:Workflow:2016050452018102274",
+                        "rules": {
+                          "collectionId": "2016050452018102274",
+                          "list": [
+                            {
+                              "id": 1723795236686,
+                              "parentId": 1723795236685,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        }
+                      },
+                      "remote": true,
+                      "remoteType": "innerdatasource",
+                      "body_params": {
+                        "list": [
+                          {
+                            "prop": "plant_id",
+                            "propLabel": "Plant ID",
+                            "operator": "",
+                            "operatorLabel": "",
+                            "valueType": "field",
+                            "valueTypeLabel": "",
+                            "value": "{{workflowparams:plant_id}}",
+                            "valueLabel": ""
+                          },
+                          {
+                            "prop": "organization_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{workflowparams:organization_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Organization ID"
+                          },
+                          {
+                            "prop": "material_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_ra24gKwq.data.material_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Material ID"
+                          },
+                          {
+                            "prop": "quantity",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_cbVKYuou.data.quantity}}",
+                            "valueLabel": "",
+                            "propLabel": "Quantity"
+                          },
+                          {
+                            "prop": "location_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_cbVKYuou.data.location_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Location ID"
+                          },
+                          {
+                            "prop": "batch_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_cbVKYuou.data.batch_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Batch ID"
+                          },
+                          {
+                            "prop": "transaction_type",
+                            "operator": "",
+                            "valueType": "value",
+                            "value": "GDL",
+                            "valueLabel": "",
+                            "propLabel": "Transaction Type"
+                          },
+                          {
+                            "prop": "parent_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{workflowparams:parent_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Parent ID"
+                          },
+                          {
+                            "prop": "parent_no",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{workflowparams:parent_no}}",
+                            "valueLabel": "",
+                            "propLabel": "Parent No"
+                          },
+                          {
+                            "prop": "doc_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{workflowparams:doc_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Doc ID"
+                          },
+                          {
+                            "prop": "doc_no",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{workflowparams:doc_no}}",
+                            "valueLabel": "",
+                            "propLabel": "Doc No"
+                          },
+                          {
+                            "prop": "material_uom",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_ra24gKwq.data.material_uom}}",
+                            "valueLabel": "",
+                            "propLabel": "Material UOM"
+                          },
+                          {
+                            "prop": "itemData",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:get_node_kXaJ7CW6.data.data}}",
+                            "valueLabel": "",
+                            "propLabel": "Item Data"
+                          },
+                          {
+                            "prop": "doc_type",
+                            "operator": "",
+                            "valueType": "value",
+                            "value": "Good Delivery",
+                            "valueLabel": "",
+                            "propLabel": "Doc Type"
+                          },
+                          {
+                            "prop": "index",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_cbVKYuou.data.index}}",
+                            "valueLabel": "",
+                            "propLabel": "index"
+                          },
+                          {
+                            "prop": "parent_line_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_ra24gKwq.data.parent_line_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Parent Line ID"
+                          },
+                          {
+                            "prop": "doc_line_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_ra24gKwq.data.doc_line_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Doc Line ID"
+                          },
+                          {
+                            "prop": "status",
+                            "operator": "",
+                            "valueType": "value",
+                            "value": "Allocated",
+                            "valueLabel": "",
+                            "propLabel": "Status"
+                          },
+                          {
+                            "prop": "doc_date",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{workflowparams:doc_date}}",
+                            "valueLabel": "",
+                            "propLabel": "Doc Date"
+                          },
+                          {
+                            "prop": "oldAllocatedData",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:search_node_fz18zvlp.data.data}}",
+                            "valueLabel": "",
+                            "propLabel": "oldAllocatedData"
+                          },
+                          {
+                            "prop": "remark",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_ra24gKwq.data.remark}}",
+                            "valueLabel": "",
+                            "propLabel": "Remark"
+                          }
+                        ]
+                      }
+                    },
+                    "blocks": []
+                  },
+                  {
+                    "id": "if_AG1svMaS",
+                    "type": "if",
+                    "data": {
+                      "title": "IF Global Reserved Error Handle",
+                      "isValidator": true,
+                      "nodeName": "IF Global Reserved Error Handle",
+                      "name": "IF Global Reserved Error Handle",
+                      "condition_type": "Expression",
+                      "expression": {
+                        "type": "javascript",
+                        "code": "'{{node:workflow_node_fmf9W7tp.data.code}}' == '400'"
+                      },
+                      "filter": {
+                        "list": [
+                          {
+                            "id": 1736695973613,
+                            "parentId": 1736695973612,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "blocks": [
+                      {
+                        "id": "if_block_Jz41C0aq",
+                        "type": "ifBlock",
+                        "data": { "title": "true" },
+                        "blocks": [
+                          {
+                            "id": "return_node_EvNEsVHU",
+                            "type": "return-node",
+                            "data": {
+                              "return_data": {},
+                              "status_code": 200,
+                              "title": "Return Data",
+                              "isValidator": true,
+                              "nodeName": "Return Data",
+                              "name": "Return Data",
+                              "response_value": {
+                                "list": [
+                                  {
+                                    "prop": "code",
+                                    "propLabel": "code",
+                                    "operator": "",
+                                    "operatorLabel": "",
+                                    "valueType": "field",
+                                    "valueTypeLabel": "",
+                                    "value": "{{node:workflow_node_fmf9W7tp.data.code}}",
+                                    "valueLabel": ""
+                                  },
+                                  {
+                                    "prop": "message",
+                                    "operator": "",
+                                    "valueType": "field",
+                                    "value": "{{node:workflow_node_fmf9W7tp.data.message}}",
+                                    "valueLabel": "",
+                                    "propLabel": "message"
+                                  }
+                                ]
+                              },
+                              "return_raw_data": 0
+                            },
+                            "blocks": []
+                          },
+                          {
+                            "id": "break_S59FfA0x",
+                            "type": "breakLoop",
+                            "data": { "title": "退出循环" },
+                            "blocks": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "if_block_jReud2zi",
+                        "type": "ifBlock",
+                        "data": { "title": "false" },
+                        "blocks": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "if_block_4QVk_o6t",
+                "type": "ifBlock",
+                "data": { "title": "false" },
+                "blocks": []
+              }
+            ]
+          },
+          {
+            "id": "if_U05hfijg",
+            "type": "if",
+            "data": {
+              "title": "IF Completed",
+              "isValidator": true,
+              "nodeName": "IF Completed",
+              "name": "IF Completed",
+              "condition_type": "ConditionRule",
+              "expression": { "type": "javascript", "code": "" },
+              "filter": {
+                "list": [
+                  {
+                    "id": 1736695973613,
+                    "parentId": 1736695973612,
+                    "isTop": true,
+                    "prop": "workflowparams.saveAs",
+                    "operator": "equal",
+                    "valueType": "value",
+                    "value": "Completed",
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "Save As",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            },
+            "blocks": [
+              {
+                "id": "if_block_VZyyhg5g",
+                "type": "ifBlock",
+                "data": { "title": "true" },
+                "blocks": [
+                  {
+                    "id": "workflow_node_VhQBo0ai",
+                    "type": "workflow-node",
+                    "data": {
+                      "workflow_id": "",
+                      "workflow_name": "",
+                      "input_params": {},
+                      "title": "Run Global Reserved Workflow",
+                      "isValidator": true,
+                      "nodeName": "Run Global Reserved Workflow",
+                      "name": "Run Global Reserved Workflow",
+                      "workflow": {
+                        "source": "GLOBAL_RESERVED:Workflow:2016050452018102274",
+                        "rules": {
+                          "collectionId": "2016050452018102274",
+                          "list": [
+                            {
+                              "id": 1723795236686,
+                              "parentId": 1723795236685,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        }
+                      },
+                      "remote": true,
+                      "remoteType": "innerdatasource",
+                      "body_params": {
+                        "list": [
+                          {
+                            "prop": "plant_id",
+                            "propLabel": "Plant ID",
+                            "operator": "",
+                            "operatorLabel": "",
+                            "valueType": "field",
+                            "valueTypeLabel": "",
+                            "value": "{{workflowparams:plant_id}}",
+                            "valueLabel": ""
+                          },
+                          {
+                            "prop": "organization_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{workflowparams:organization_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Organization ID"
+                          },
+                          {
+                            "prop": "material_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_ra24gKwq.data.material_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Material ID"
+                          },
+                          {
+                            "prop": "quantity",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_cbVKYuou.data.quantity}}",
+                            "valueLabel": "",
+                            "propLabel": "Quantity"
+                          },
+                          {
+                            "prop": "location_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_cbVKYuou.data.location_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Location ID"
+                          },
+                          {
+                            "prop": "batch_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_cbVKYuou.data.batch_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Batch ID"
+                          },
+                          {
+                            "prop": "transaction_type",
+                            "operator": "",
+                            "valueType": "value",
+                            "value": "GDL",
+                            "valueLabel": "",
+                            "propLabel": "Transaction Type"
+                          },
+                          {
+                            "prop": "parent_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{workflowparams:parent_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Parent ID"
+                          },
+                          {
+                            "prop": "parent_no",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{workflowparams:parent_no}}",
+                            "valueLabel": "",
+                            "propLabel": "Parent No"
+                          },
+                          {
+                            "prop": "doc_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{workflowparams:doc_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Doc ID"
+                          },
+                          {
+                            "prop": "doc_no",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{workflowparams:doc_no}}",
+                            "valueLabel": "",
+                            "propLabel": "Doc No"
+                          },
+                          {
+                            "prop": "material_uom",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_ra24gKwq.data.material_uom}}",
+                            "valueLabel": "",
+                            "propLabel": "Material UOM"
+                          },
+                          {
+                            "prop": "itemData",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:get_node_kXaJ7CW6.data.data}}",
+                            "valueLabel": "",
+                            "propLabel": "Item Data"
+                          },
+                          {
+                            "prop": "doc_type",
+                            "operator": "",
+                            "valueType": "value",
+                            "value": "Good Delivery",
+                            "valueLabel": "",
+                            "propLabel": "Doc Type"
+                          },
+                          {
+                            "prop": "index",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_cbVKYuou.data.index}}",
+                            "valueLabel": "",
+                            "propLabel": "index"
+                          },
+                          {
+                            "prop": "parent_line_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_ra24gKwq.data.parent_line_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Parent Line ID"
+                          },
+                          {
+                            "prop": "doc_line_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_ra24gKwq.data.doc_line_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Doc Line ID"
+                          },
+                          {
+                            "prop": "status",
+                            "operator": "",
+                            "valueType": "value",
+                            "value": "Delivered",
+                            "valueLabel": "",
+                            "propLabel": "Status"
+                          },
+                          {
+                            "prop": "doc_date",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{workflowparams:doc_date}}",
+                            "valueLabel": "",
+                            "propLabel": "Doc Date"
+                          },
+                          {
+                            "prop": "oldAllocatedData",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:search_node_fz18zvlp.data.data}}",
+                            "valueLabel": "",
+                            "propLabel": "oldAllocatedData"
+                          },
+                          {
+                            "prop": "remark",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_ra24gKwq.data.remark}}",
+                            "valueLabel": "",
+                            "propLabel": "Remark"
+                          }
+                        ]
+                      }
+                    },
+                    "blocks": []
+                  },
+                  {
+                    "id": "if_wgZmYCwA",
+                    "type": "if",
+                    "data": {
+                      "title": "IF Global Reserved Error Handle",
+                      "isValidator": true,
+                      "nodeName": "IF Global Reserved Error Handle",
+                      "name": "IF Global Reserved Error Handle",
+                      "condition_type": "Expression",
+                      "expression": {
+                        "type": "javascript",
+                        "code": "'{{node:workflow_node_VhQBo0ai.data.code}}' == '400'"
+                      },
+                      "filter": {
+                        "list": [
+                          {
+                            "id": 1736695973613,
+                            "parentId": 1736695973612,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "blocks": [
+                      {
+                        "id": "ifBlock_sgadlIdY",
+                        "type": "ifBlock",
+                        "data": { "title": "true" },
+                        "blocks": [
+                          {
+                            "id": "return_node_hdq8LzNd",
+                            "type": "return-node",
+                            "data": {
+                              "return_data": {},
+                              "status_code": 200,
+                              "title": "Return Data",
+                              "isValidator": true,
+                              "nodeName": "Return Data",
+                              "name": "Return Data",
+                              "response_value": {
+                                "list": [
+                                  {
+                                    "prop": "code",
+                                    "propLabel": "code",
+                                    "operator": "",
+                                    "operatorLabel": "",
+                                    "valueType": "field",
+                                    "valueTypeLabel": "",
+                                    "value": "{{node:workflow_node_VhQBo0ai.data.code}}",
+                                    "valueLabel": ""
+                                  },
+                                  {
+                                    "prop": "message",
+                                    "operator": "",
+                                    "valueType": "field",
+                                    "value": "{{node:workflow_node_VhQBo0ai.data.message}}",
+                                    "valueLabel": "",
+                                    "propLabel": "message"
+                                  }
+                                ]
+                              },
+                              "return_raw_data": 0
+                            },
+                            "blocks": []
+                          },
+                          {
+                            "id": "breakLoop_sTgYlKlh",
+                            "type": "breakLoop",
+                            "data": { "title": "退出循环" },
+                            "blocks": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "ifBlock_YyNgJk1e",
+                        "type": "ifBlock",
+                        "data": { "title": "false" },
+                        "blocks": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "if_block_zi3ILhCq",
+                "type": "ifBlock",
+                "data": { "title": "false" },
+                "blocks": []
+              }
+            ]
+          },
+          {
+            "id": "set_cache_node_9fbVLEXH",
+            "type": "set-cache-node",
+            "data": {
+              "cache_key": "",
+              "cache_value": "",
+              "expire_time": 3600,
+              "title": "Set groupKey Index",
+              "isValidator": true,
+              "nodeName": "Set groupKey Index",
+              "name": "Set groupKey Index",
+              "custom_wkbocgni": {
+                "type": "javascript",
+                "code": "{{node:code_node_cbVKYuou.data.nextIndex}}"
+              },
+              "redis_key": "groupKeyIndex"
+            },
+            "blocks": []
+          }
+        ]
+      },
+      {
+        "id": "set_cache_node_96zJ1SPH",
+        "type": "set-cache-node",
+        "data": {
+          "cache_key": "",
+          "cache_value": "",
+          "expire_time": 3600,
+          "title": "Set Table nextIndex",
+          "isValidator": true,
+          "nodeName": "Set Table nextIndex",
+          "name": "Set Table nextIndex",
+          "custom_wkbocgni": {
+            "type": "javascript",
+            "code": "{{node:code_node_gG7AZrE1.data.nextIndex}}"
+          },
+          "redis_key": "tableIndex"
+        },
+        "blocks": []
+      }
+    ]
+  },
+  {
+    "id": "if_fqnFBIcA",
+    "type": "if",
+    "data": {
+      "title": "IF Need Clean Up",
+      "isValidator": true,
+      "nodeName": "IF Need Clean Up",
+      "name": "IF Need Clean Up",
+      "condition_type": "ConditionRule",
+      "expression": { "type": "javascript", "code": "" },
+      "filter": {
+        "list": [
+          {
+            "id": 1736695973613,
+            "parentId": 1736695973612,
+            "isTop": true,
+            "prop": "node.search_node_fz18zvlp.data.total",
+            "operator": "greaterThan",
+            "valueType": "value",
+            "value": 0,
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "总条数",
+            "valueLabel": "",
+            "operatorLabel": "Greater Than"
+          }
+        ]
+      }
+    },
+    "blocks": [
+      {
+        "id": "if_block_wo737gBP",
+        "type": "ifBlock",
+        "data": { "title": "true" },
+        "blocks": [
+          {
+            "id": "search_node_ndtbikhX",
+            "type": "search-node",
+            "data": {
+              "table_id": {
+                "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                "rules": {
+                  "collectionId": "1935880014687440897",
+                  "list": [
+                    {
+                      "id": 1769658573884,
+                      "parentId": 1769658573885,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "all",
+                      "valueType": "",
+                      "value": "",
+                      "type": "branch",
+                      "level": 1,
+                      "children": [
+                        {
+                          "id": 1769658450705,
+                          "parentId": 1769658573884,
+                          "isTop": false,
+                          "prop": "target_reserved_id",
+                          "operator": "equal",
+                          "valueType": "field",
+                          "value": "{{workflowparams:doc_id}}",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "Target Reserved ID",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        },
+                        {
+                          "id": 1769658573886,
+                          "parentId": 1769658573884,
+                          "isTop": false,
+                          "prop": "status",
+                          "operator": "equal",
+                          "valueType": "value",
+                          "value": "Allocated",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "Status",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        },
+                        {
+                          "id": 1769658573887,
+                          "parentId": 1769658573884,
+                          "isTop": false,
+                          "prop": "plant_id",
+                          "operator": "numberEqual",
+                          "valueType": "field",
+                          "value": "{{workflowparams:plant_id}}",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "Plant ID",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        },
+                        {
+                          "id": 1769658573889,
+                          "parentId": 1769658573884,
+                          "isTop": false,
+                          "prop": "organization_id",
+                          "operator": "equal",
+                          "valueType": "field",
+                          "value": "{{workflowparams:organization_id}}",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "Organization ID",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "condition": {},
+              "limit": 100,
+              "title": "Get Current Allocated Records",
+              "isValidator": true,
+              "nodeName": "Get Current Allocated Records",
+              "name": "Get Current Allocated Records"
+            },
+            "blocks": []
+          },
+          {
+            "id": "code_node_xUK0UwrB",
+            "type": "code-node",
+            "data": {
+              "language": "javascript",
+              "code": "",
+              "timeout": 30000,
+              "title": "Clean Up Orphaned Allocation",
+              "isValidator": true,
+              "nodeName": "Clean Up Orphaned Allocation",
+              "name": "Clean Up Orphaned Allocation",
+              "script": {
+                "type": "javascript",
+                "code": "const currentAllocatedRecords = {{node:search_node_ndtbikhX.data}}\nconst tableData = {{workflowparams:tableData}}\n\nif (!currentAllocatedRecords.data || currentAllocatedRecords.data.length === 0) {\n  return {\n    code: \"200\",\n    recordsToUpdate: [],\n    message: \"No cleanup needed - no allocated records found\",\n  };\n}\n\n// Build list of all current temp_qty_data combinations\n// This represents what SHOULD exist after the user's edits\nconst currentTempDataKeys = tableData.flatMap((line) => {\n  const tempData = typeof line.temp_qty_data === \"string\"\n    ? JSON.parse(line.temp_qty_data || \"[]\")\n    : (line.temp_qty_data || []);\n\n  return tempData.map((td) => ({\n    doc_line_id: line.id,\n    material_id: td.material_id,\n    batch_id: td.batch_id,\n    bin_location: td.location_id,\n  }));\n});\n\n// Find orphaned records (exist in allocated but not in current temp_qty_data)\n// These are allocations that were removed by the user's edits\nconst orphanedRecords = currentAllocatedRecords.data.filter(\n  (allocated) =>\n    !currentTempDataKeys.some(\n      (current) =>\n        allocated.doc_line_id === current.doc_line_id &&\n        allocated.material_id === current.material_id &&\n        allocated.batch_id === current.batch_id &&\n        allocated.bin_location === current.bin_location,\n    ),\n);\n\nif (orphanedRecords.length === 0) {\n  return {\n    code: \"200\",\n    recordsToUpdate: [],\n    message: \"No orphaned allocations found\",\n  };\n}\n\n// Build recordsToUpdate array with _id, status, and target_reserved_id\n// Workflow will handle the actual database updates\n// Note: Inventory stays in Reserved category, only status changes\nconst recordsToUpdate = orphanedRecords.map((record) => ({\n  id: record.id,\n  status: \"Pending\",\n  target_reserved_id: null,\n}));\n\nreturn {\n  code: \"200\",\n  recordsToUpdate: recordsToUpdate,\n  recordLength: recordsToUpdate.length,\n  message: `Found ${orphanedRecords.length} orphaned allocations to convert to Pending`,\n};"
+              },
+              "response_json": [
+                {
+                  "key": "66gxk3f9",
+                  "name": "code",
+                  "title": "code",
+                  "description": "",
+                  "bsonType": "string",
+                  "isExpand": false
+                },
+                {
+                  "key": "q8vt7kyi",
+                  "name": "recordsToUpdate",
+                  "title": "recordsToUpdate",
+                  "description": "",
+                  "bsonType": "array",
+                  "isExpand": true,
+                  "children": [
+                    {
+                      "key": "ah53xzdn",
+                      "name": "items",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "isArrayItem": true,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "key": "g2ulagdr",
+                  "name": "message",
+                  "title": "message",
+                  "description": "",
+                  "bsonType": "string",
+                  "isExpand": false
+                },
+                {
+                  "key": "qy5nf2gn",
+                  "name": "recordLength",
+                  "title": "recordLength",
+                  "description": "",
+                  "bsonType": "int",
+                  "isExpand": false,
+                  "children": []
+                }
+              ]
+            },
+            "blocks": []
+          },
+          {
+            "id": "if_BSkHXCnu",
+            "type": "if",
+            "data": {
+              "title": "IF recordsToUpdate",
+              "isValidator": true,
+              "nodeName": "IF recordsToUpdate",
+              "name": "IF recordsToUpdate",
+              "condition_type": "ConditionRule",
+              "expression": { "type": "javascript", "code": "" },
+              "filter": {
+                "list": [
+                  {
+                    "id": 1736695973613,
+                    "parentId": 1736695973612,
+                    "isTop": true,
+                    "prop": "node.code_node_xUK0UwrB.data.recordLength",
+                    "operator": "greaterThan",
+                    "valueType": "value",
+                    "value": 0,
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "recordLength",
+                    "valueLabel": "",
+                    "operatorLabel": "Greater Than"
+                  }
+                ]
+              }
+            },
+            "blocks": [
+              {
+                "id": "if_block_9afFzsXh",
+                "type": "ifBlock",
+                "data": { "title": "true" },
+                "blocks": [
+                  {
+                    "id": "update_node_LRs8Z3gZ",
+                    "type": "update-node",
+                    "data": {
+                      "table_id": {
+                        "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                        "rules": {
+                          "collectionId": "1935880014687440897",
+                          "list": [
+                            {
+                              "id": 1769666707794,
+                              "parentId": 1769666707793,
+                              "isTop": true,
+                              "prop": "id",
+                              "operator": "in",
+                              "valueType": "field",
+                              "value": "{{node:code_node_xUK0UwrB.data.recordsToUpdate.id}}",
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "主键ID",
+                              "valueLabel": "",
+                              "operatorLabel": "In"
+                            }
+                          ]
+                        }
+                      },
+                      "fields": [],
+                      "condition": {},
+                      "title": "Update Reserved Table",
+                      "isValidator": true,
+                      "nodeName": "Update Reserved Table",
+                      "name": "Update Reserved Table",
+                      "props": {
+                        "modelName": "",
+                        "list": [
+                          {
+                            "prop": "id",
+                            "valueType": "field",
+                            "value": "{{node:code_node_xUK0UwrB.data.recordsToUpdate.id}}",
+                            "operator": "",
+                            "valueLabel": "",
+                            "propLabel": "主键ID"
+                          },
+                          {
+                            "prop": "status",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_xUK0UwrB.data.recordsToUpdate.status}}",
+                            "valueLabel": "",
+                            "propLabel": "Status"
+                          },
+                          {
+                            "prop": "target_reserved_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_xUK0UwrB.data.recordsToUpdate.target_reserved_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Target Reserved ID"
+                          }
+                        ]
+                      }
+                    },
+                    "blocks": []
+                  }
+                ]
+              },
+              {
+                "id": "if_block_t2lhNt_7",
+                "type": "ifBlock",
+                "data": { "title": "false" },
+                "blocks": []
+              }
+            ]
+          },
+          {
+            "id": "return_node_MxwqtV3J",
+            "type": "return-node",
+            "data": {
+              "return_data": {},
+              "status_code": 200,
+              "title": "Return Data",
+              "isValidator": true,
+              "nodeName": "Return Data",
+              "name": "Return Data",
+              "response_value": {
+                "list": [
+                  {
+                    "prop": "code",
+                    "propLabel": "code",
+                    "operator": "",
+                    "operatorLabel": "",
+                    "valueType": "field",
+                    "valueTypeLabel": "",
+                    "value": "{{node:code_node_xUK0UwrB.data.code}}",
+                    "valueLabel": ""
+                  },
+                  {
+                    "prop": "message",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_xUK0UwrB.data.message}}",
+                    "valueLabel": "",
+                    "propLabel": "message"
+                  }
+                ]
+              },
+              "return_raw_data": 0
+            },
+            "blocks": []
+          }
+        ]
+      },
+      {
+        "id": "if_block_lAPlwsIe",
+        "type": "ifBlock",
+        "data": { "title": "false" },
+        "blocks": []
+      }
+    ]
+  },
+  {
+    "id": "return_node_jUYpa2sl",
+    "type": "return-node",
+    "data": {
+      "return_data": {},
+      "status_code": 200,
+      "title": "Return Data",
+      "isValidator": true,
+      "nodeName": "Return Data",
+      "name": "Return Data",
+      "response_value": {
+        "list": [
+          {
+            "prop": "code",
+            "propLabel": "code",
+            "operator": "",
+            "operatorLabel": "",
+            "valueType": "value",
+            "valueTypeLabel": "",
+            "value": "200",
+            "valueLabel": ""
+          },
+          {
+            "prop": "message",
+            "operator": "",
+            "valueType": "value",
+            "value": "Table processed successfully",
+            "valueLabel": "",
+            "propLabel": "message"
+          }
+        ]
+      },
+      "return_raw_data": 0
+    },
+    "blocks": []
+  }
+]

@@ -16,6 +16,255 @@ const closeDialog = () => {
   }
 };
 
+// Detect if GR is transitioning from Created to Completed status
+const detectCreatedToCompletedTransition = async (grNo, organizationId) => {
+  try {
+    const resGR = await db
+      .collection("goods_receiving")
+      .where({ gr_no: grNo, organization_id: organizationId })
+      .get();
+
+    if (resGR && resGR.data[0]) {
+      const grDoc = resGR.data[0];
+      return {
+        wasCreated: grDoc.gr_status === "Created",
+        grId: grDoc.id,
+        poIds: Array.isArray(grDoc.po_id) ? grDoc.po_id : [grDoc.po_id],
+        tableGR: grDoc.table_gr || [],
+      };
+    }
+    return { wasCreated: false, grId: null, poIds: [], tableGR: [] };
+  } catch (error) {
+    console.error("Error detecting Created → Completed transition:", error);
+    return { wasCreated: false, grId: null, poIds: [], tableGR: [] };
+  }
+};
+
+// Migrate PO quantities from created_received_qty to received_qty when GR transitions to Completed
+const validateCompletionQuantities = async (tableGR, poIds) => {
+  console.log("Validating quantities before receiving GR", {
+    poIds,
+    grItemCount: tableGR.length,
+  });
+
+  const validationErrors = [];
+
+  try {
+    for (const poId of poIds) {
+      const resPO = await db
+        .collection("purchase_order")
+        .where({ id: poId })
+        .get();
+      if (!resPO.data || !resPO.data.length) {
+        console.warn(`Purchase order ${poId} not found during validation`);
+        continue;
+      }
+
+      const poDoc = resPO.data[0];
+
+      for (const grItem of tableGR) {
+        const poItem = poDoc.table_po.find(
+          (po) => po.id === grItem.po_line_item_id
+        );
+        if (!poItem) continue;
+
+        // Calculate what the total received quantity would be after receiving this GR
+        const currentReceivedQty = poItem.received_qty || 0;
+        const grQty = grItem.received_qty || 0;
+        const totalAfterReceiving = currentReceivedQty + grQty;
+
+        // Fetch item for tolerance
+        let tolerance = 0;
+        if (grItem.item_id) {
+          const resItem = await db.collection("Item").doc(grItem.item_id).get();
+          if (resItem.data && resItem.data[0]) {
+            tolerance = resItem.data[0].over_receive_tolerance || 0;
+          }
+        }
+
+        const maxAllowed = (poItem.quantity || 0) * ((100 + tolerance) / 100);
+
+        if (totalAfterReceiving > maxAllowed) {
+          validationErrors.push({
+            poLineId: poItem.id,
+            itemId: grItem.item_id,
+            itemName: grItem.item_name || "Unknown Item",
+            orderedQty: poItem.quantity || 0,
+            alreadyReceived: currentReceivedQty,
+            attemptingToReceive: grQty,
+            totalWouldBe: totalAfterReceiving,
+            maxAllowed: maxAllowed,
+            tolerance: tolerance,
+          });
+        }
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      console.error(
+        "Validation failed - over-receiving detected:",
+        validationErrors
+      );
+
+      const errorMessages = validationErrors.map(
+        (err, index) =>
+          `<strong>Line ${index + 1}:</strong> Item "${err.itemName}"<br>` +
+          `• Already received: ${err.alreadyReceived}<br>` +
+          `• Attempting to receive: ${err.attemptingToReceive}<br>` +
+          `• Total would be: ${err.totalWouldBe}<br>` +
+          `• Max allowed (with ${err.tolerance}% tolerance): ${err.maxAllowed}`
+      );
+
+      await this.$alert(
+        `Cannot receive GR - the following line(s) would exceed PO quantity:<br><br>${errorMessages.join(
+          "<br><br>"
+        )}<br><br>` +
+          `Please reduce the received quantities or cancel/edit conflicting Created GRs.`,
+        "Invalid Received Quantity",
+        {
+          confirmButtonText: "OK",
+          type: "error",
+          dangerouslyUseHTMLString: true,
+        }
+      );
+
+      throw new Error("Invalid received quantity detected.");
+    }
+
+    console.log("Validation passed - all quantities are within limits");
+  } catch (error) {
+    if (error.message === "Invalid received quantity detected.") {
+      throw error; // Re-throw validation errors
+    }
+    console.error("Error during validation:", error);
+  }
+};
+
+const migratePOQuantitiesOnTransition = async (transitionInfo, tableGR) => {
+  if (
+    !transitionInfo.wasCreated ||
+    !transitionInfo.poIds ||
+    transitionInfo.poIds.length === 0
+  ) {
+    console.log("Not a Created → Received transition, skipping PO migration");
+    return;
+  }
+
+  console.log("Migrating PO quantities from Created to Received status", {
+    poIds: transitionInfo.poIds,
+    grItemCount: tableGR.length,
+  });
+
+  // VALIDATE FIRST before migrating
+  await validateCompletionQuantities(tableGR, transitionInfo.poIds);
+
+  try {
+    for (const poId of transitionInfo.poIds) {
+      const resPO = await db
+        .collection("purchase_order")
+        .where({ id: poId })
+        .get();
+      if (!resPO.data || !resPO.data.length) {
+        console.warn(`Purchase order ${poId} not found during migration`);
+        continue;
+      }
+
+      const poDoc = resPO.data[0];
+      const updatedPoItems = poDoc.table_po.map((poItem) => {
+        // Find matching GR line items for this PO line
+        // Use NEW data (tableGR) for adding to received_qty
+        const matchingNewGRItems = tableGR.filter(
+          (gr) => gr.po_line_item_id === poItem.id
+        );
+
+        // Use OLD data (transitionInfo.tableGR) for subtracting from created_received_qty
+        const matchingOldGRItems = transitionInfo.tableGR.filter(
+          (gr) => gr.po_line_item_id === poItem.id
+        );
+
+        if (matchingNewGRItems.length > 0) {
+          // NEW quantity to add to received_qty
+          const newGRQty = matchingNewGRItems.reduce(
+            (sum, gr) => sum + (gr.received_qty || 0),
+            0
+          );
+
+          // OLD quantity to subtract from created_received_qty
+          const oldGRQty = matchingOldGRItems.reduce(
+            (sum, gr) => sum + (gr.received_qty || 0),
+            0
+          );
+
+          console.log(`Migrating quantity for PO line ${poItem.id}`, {
+            oldGRQty,
+            newGRQty,
+            currentCreatedQty: poItem.created_received_qty || 0,
+            currentReceivedQty: poItem.received_qty || 0,
+          });
+
+          return {
+            ...poItem,
+            // Subtract OLD quantity from created_received_qty
+            created_received_qty: roundQty(
+              (poItem.created_received_qty || 0) - oldGRQty
+            ),
+            // Add NEW quantity to received_qty
+            received_qty: roundQty((poItem.received_qty || 0) + newGRQty),
+            outstanding_quantity: roundQty(
+              (poItem.quantity || 0) - ((poItem.received_qty || 0) + newGRQty)
+            ),
+            // Update line status based on new received_qty
+            line_status:
+              roundQty((poItem.received_qty || 0) + newGRQty) >=
+              (poItem.quantity || 0)
+                ? "Completed"
+                : roundQty((poItem.received_qty || 0) + newGRQty) > 0
+                ? "Processing"
+                : poItem.line_status,
+          };
+        }
+        return poItem;
+      });
+
+      // Determine new PO status (NOW it can change from Issued)
+      const allCompleted = updatedPoItems.every(
+        (item) => item.line_status === "Completed"
+      );
+      const anyProcessing = updatedPoItems.some(
+        (item) => item.line_status === "Processing"
+      );
+
+      let newPOStatus = poDoc.po_status;
+      let newGRStatus = poDoc.gr_status;
+
+      if (allCompleted) {
+        newPOStatus = "Completed";
+        newGRStatus = "Fully Received";
+      } else if (anyProcessing) {
+        newPOStatus = "Processing";
+        newGRStatus = "Partially Received";
+      }
+
+      console.log(`Updating PO ${poId} during Created → Received transition`, {
+        originalStatus: poDoc.po_status,
+        newStatus: newPOStatus,
+        newGRStatus,
+      });
+
+      await db.collection("purchase_order").doc(poDoc.id).update({
+        table_po: updatedPoItems,
+        po_status: newPOStatus,
+        gr_status: newGRStatus,
+      });
+
+      console.log(`Successfully migrated PO ${poId} quantities`);
+    }
+  } catch (error) {
+    console.error("Error migrating PO quantities:", error);
+    throw new Error(`Failed to migrate PO quantities: ${error.message}`);
+  }
+};
+
 const addInventory = async (
   data,
   plantId,
@@ -2314,15 +2563,6 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
             `Updated PO ${purchaseOrderId} status from ${originalPOStatus} to ${newPOStatus}`
           );
         }
-
-        return {
-          poId: purchaseOrderId,
-          newPOStatus,
-          totalItems,
-          partiallyReceivedItems,
-          fullyReceivedItems,
-          success: true,
-        };
       } catch (error) {
         console.error(
           `Error updating purchase order ${purchaseOrderId} status:`,
@@ -2773,29 +3013,7 @@ const updateEntry = async (
     });
     const purchaseOrderIds = entry.po_id;
 
-    const { po_data_array } = await updatePurchaseOrderStatus(
-      purchaseOrderIds,
-      entry.table_gr
-    );
-    const allNoItemCode = entry.table_gr.every((gr) => !gr.item_id);
-    if (
-      !putAwaySetupData ||
-      (putAwaySetupData && putAwaySetupData.putaway_required === 0) ||
-      allNoItemCode
-    ) {
-      await this.runWorkflow(
-        "1917412667253141505",
-        { gr_no: entry.gr_no, po_data: po_data_array },
-        async (res) => {
-          console.log("成功结果：", res);
-        },
-        (err) => {
-          this.$message.error("Workflow execution failed");
-          console.error("失败结果：", err);
-          closeDialog();
-        }
-      );
-    }
+    await updatePurchaseOrderStatus(purchaseOrderIds, entry.table_gr);
     this.$message.success("Update successfully");
     await closeDialog();
   } catch (error) {
@@ -2804,65 +3022,8 @@ const updateEntry = async (
   }
 };
 
-const fetchReceivedQuantity = async () => {
-  const tableGR = this.getValue("table_gr") || [];
-
-  const resPOLineData = await Promise.all(
-    tableGR.map((item) =>
-      db
-        .collection("purchase_order_2ukyuanr_sub")
-        .doc(item.po_line_item_id)
-        .get()
-    )
-  );
-
-  const poLineItemData = resPOLineData.map((response) => response.data[0]);
-
-  const resItem = await Promise.all(
-    tableGR
-      .filter((item) => item.item_id !== null && item.item_id !== undefined)
-      .map((item) => db.collection("Item").doc(item.item_id).get())
-  );
-
-  const itemData = resItem.map((response) => response.data[0]);
-
-  const invalidReceivedQty = [];
-
-  for (const [index, item] of tableGR.entries()) {
-    const poLine = poLineItemData.find((po) => po.id === item.po_line_item_id);
-    const itemInfo = itemData.find((data) => data.id === item.item_id);
-    if (poLine) {
-      const tolerance = itemInfo ? itemInfo.over_receive_tolerance || 0 : 0;
-      const maxReceivableQty =
-        ((poLine.quantity || 0) - (poLine.received_qty || 0)) *
-        ((100 + tolerance) / 100);
-      if ((item.received_qty || 0) > maxReceivableQty) {
-        invalidReceivedQty.push(`#${index + 1}`);
-        this.setData({
-          [`table_gr.${index}.to_received_qty`]:
-            (poLine.quantity || 0) - (poLine.received_qty || 0),
-        });
-      }
-    }
-  }
-
-  if (invalidReceivedQty.length > 0) {
-    await this.$alert(
-      `Line${
-        invalidReceivedQty.length > 1 ? "s" : ""
-      } ${invalidReceivedQty.join(", ")} ha${
-        invalidReceivedQty.length > 1 ? "ve" : "s"
-      } an expected received quantity exceeding the maximum receivable quantity.`,
-      "Invalid Received Quantity",
-      {
-        confirmButtonText: "OK",
-        type: "error",
-      }
-    );
-
-    throw new Error("Invalid received quantity detected.");
-  }
-};
+// Note: fetchReceivedQuantity() function removed - was redundant with validateCompletionQuantities()
+// validateCompletionQuantities() provides better error messages and is always called
 
 const fillbackHeaderFields = async (entry) => {
   try {
@@ -2983,7 +3144,11 @@ const processGRLineItem = async (entry) => {
   return entry;
 };
 
-const saveGoodsReceiving = async (entry, putAwaySetupData) => {
+const saveGoodsReceiving = async (
+  entry,
+  putAwaySetupData,
+  skipPOUpdate = false
+) => {
   try {
     const status = this.getValue("gr_status");
     const pageStatus = this.getValue("page_status");
@@ -3067,7 +3232,15 @@ const saveGoodsReceiving = async (entry, putAwaySetupData) => {
 
     const purchaseOrderIds = entry.po_id;
 
-    await updatePurchaseOrderStatus(purchaseOrderIds, entry.table_gr);
+    // Skip PO update if it was already updated during Created → Received migration
+    if (!skipPOUpdate) {
+      await updatePurchaseOrderStatus(purchaseOrderIds, entry.table_gr);
+    } else {
+      console.log(
+        "Skipping updatePurchaseOrderStatus - already updated during migration"
+      );
+    }
+
     this.hideLoading();
     closeDialog();
   } catch (error) {
@@ -3156,14 +3329,46 @@ const saveGoodsReceiving = async (entry, putAwaySetupData) => {
       );
       await validateSerialNumberAllocation(latestGR.table_gr);
 
-      await fetchReceivedQuantity();
+      // Note: fetchReceivedQuantity() removed - redundant with validateCompletionQuantities()
+      // which provides better error messages and is called below
       await fillbackHeaderFields(latestGR);
 
+      // Detect and handle Created → Completed transition
+      const transitionInfo = await detectCreatedToCompletedTransition(
+        data.gr_no,
+        organizationId
+      );
+
+      if (transitionInfo.wasCreated) {
+        console.log(
+          "Detected Created → Received transition, migrating PO quantities"
+        );
+        await migratePOQuantitiesOnTransition(
+          transitionInfo,
+          latestGR.table_gr
+        );
+      } else {
+        // For Draft → Received (or new GR), validate quantities directly
+        console.log("Receiving Draft GR or new GR, validating quantities");
+        const poIds = Array.isArray(latestGR.po_id)
+          ? latestGR.po_id
+          : [latestGR.po_id];
+        await validateCompletionQuantities(latestGR.table_gr, poIds);
+      }
+
       if (page_status === "Add") {
-        await saveGoodsReceiving(latestGR, putAwaySetupData);
+        await saveGoodsReceiving(
+          latestGR,
+          putAwaySetupData,
+          transitionInfo.wasCreated
+        );
         this.$message.success("Add successfully");
       } else if (page_status === "Edit") {
-        await saveGoodsReceiving(latestGR, putAwaySetupData);
+        await saveGoodsReceiving(
+          latestGR,
+          putAwaySetupData,
+          transitionInfo.wasCreated
+        );
         this.$message.success("Update successfully");
       }
     } else {

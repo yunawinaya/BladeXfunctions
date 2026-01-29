@@ -215,13 +215,21 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
             base_received_qty_uom: poItem.quantity_uom || null,
             inspection_required:
               itemData?.receiving_inspection === 1 ? "Yes" : "No",
-            to_received_qty: 0,
+            to_received_qty: poItem.created_received_qty || 0,
             to_received_qty_uom: poItem.quantity_uom || null,
             received_qty: parseFloat(
-              (poItem.quantity - (poItem.received_qty || 0)).toFixed(3)
+              (
+                poItem.quantity -
+                (poItem.received_qty || 0) -
+                (poItem.created_received_qty || 0)
+              ).toFixed(3)
             ),
             base_received_qty: parseFloat(
-              (poItem.quantity - (poItem.received_qty || 0)).toFixed(3)
+              (
+                poItem.quantity -
+                (poItem.received_qty || 0) -
+                (poItem.created_received_qty || 0)
+              ).toFixed(3)
             ),
             item_uom: poItem.quantity_uom || null,
             storage_location_id: defaultStorageLocationID,
@@ -333,13 +341,21 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
           base_received_qty_uom: poItem.item_uom || null,
           inspection_required:
             poItem.item?.receiving_inspection === 1 ? "Yes" : "No",
-          to_received_qty: 0,
+          to_received_qty: poItem.created_received_qty || 0,
           to_received_qty_uom: poItem.item_uom || null,
           received_qty: parseFloat(
-            (poItem.ordered_qty - (poItem.received_qty || 0)).toFixed(3)
+            (
+              poItem.ordered_qty -
+              (poItem.received_qty || 0) -
+              (poItem.created_received_qty || 0)
+            ).toFixed(3)
           ),
           base_received_qty: parseFloat(
-            (poItem.ordered_qty - (poItem.received_qty || 0)).toFixed(3)
+            (
+              poItem.ordered_qty -
+              (poItem.received_qty || 0) -
+              (poItem.created_received_qty || 0)
+            ).toFixed(3)
           ),
           item_uom: poItem.item_uom || null,
           storage_location_id: defaultStorageLocationID,
@@ -456,7 +472,7 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
 
   tableGR = tableGR.filter(
     (gr) =>
-      gr.received_qty !== 0 &&
+      (gr.initial_received_qty || 0) < (gr.ordered_qty || 0) && // Not fully received yet
       !existingGR.find(
         (grItem) => grItem.po_line_item_id === gr.po_line_item_id
       )

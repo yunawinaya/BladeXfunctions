@@ -18,6 +18,21 @@ const parsedValue = parseFloat(value);
 
 (async () => {
   console.log("materialid", materialId);
+
+  // Get GR status - skip validation for Created GRs (allow over-commitment)
+  const grStatus = this.getValue("gr_status");
+
+  // For Created GRs, don't block - just show visual feedback via to_received_qty
+  if (grStatus === "Created") {
+    console.log(
+      "Created status - skipping validation, allowing over-commitment"
+    );
+    window.validationState[index] = true;
+    callback();
+    return;
+  }
+
+  // For Draft/Received GRs, validate normally
   if (materialId) {
     const { data } = await db
       .collection("Item")

@@ -16,10 +16,15 @@ const closeDialog = () => {
   }
 };
 
-const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
+const updatePurchaseOrderStatus = async (
+  purchaseOrderIds,
+  tableGR,
+  isEditMode = false
+) => {
   console.log("Starting updatePurchaseOrderStatus", {
     purchaseOrderIds,
     tableGRLength: tableGR.length,
+    isEditMode,
   });
 
   const poIds = Array.isArray(purchaseOrderIds)
@@ -57,11 +62,6 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
         }
 
         const poDoc = resPO.data[0];
-        const originalPOStatus = poDoc.po_status;
-        console.log(`PO ${purchaseOrderId} details`, {
-          poDoc,
-          originalPOStatus,
-        });
 
         let poItems = poDoc.table_po || [];
         console.log(`PO ${purchaseOrderId} items`, {
@@ -87,15 +87,6 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
           filteredPOCount: filteredPO.length,
         });
 
-        let totalItems = poItems.length;
-        let partiallyReceivedItems = 0;
-        let fullyReceivedItems = 0;
-        console.log(`Initial counts for PO ${purchaseOrderId}`, {
-          totalItems,
-          partiallyReceivedItems,
-          fullyReceivedItems,
-        });
-
         const updatedPoItems = poItems.map((item) => ({ ...item }));
         console.log(`Created deep copy of PO items for ${purchaseOrderId}`, {
           updatedPoItems,
@@ -103,126 +94,35 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
 
         filteredPO.forEach((filteredItem, filteredIndex) => {
           const originalIndex = filteredItem.originalIndex;
-          const purchaseQty = parseFloat(filteredItem.quantity || 0);
-          const grReceivedQty = parseFloat(
-            filteredGR[filteredIndex]?.received_qty || 0
+
+          // In edit mode, use quantity_delta; in add mode, use received_qty
+          const grReceivedQty = isEditMode
+            ? parseFloat(filteredGR[filteredIndex]?.quantity_delta || 0)
+            : parseFloat(filteredGR[filteredIndex]?.received_qty || 0);
+
+          // FOR CREATED STATUS: Update created_received_qty only
+          // In edit mode, grReceivedQty is a delta (can be negative)
+          // In add mode, grReceivedQty is the full quantity (always positive)
+          const currentCreatedQty = parseFloat(
+            updatedPoItems[originalIndex].created_received_qty || 0
           );
-          const currentReceivedQty = parseFloat(
-            updatedPoItems[originalIndex].received_qty || 0
-          );
-          const totalReceivedQty = currentReceivedQty + grReceivedQty;
+          const totalCreatedQty = currentCreatedQty + grReceivedQty;
 
-          const outstandingQty = parseFloat(purchaseQty - totalReceivedQty);
-          if (outstandingQty < 0) {
-            updatedPoItems[originalIndex].outstanding_quantity = 0;
-          } else {
-            updatedPoItems[originalIndex].outstanding_quantity = outstandingQty;
-          }
-
-          console.log(
-            `Processing item ${filteredItem.id} for PO ${purchaseOrderId}`,
-            {
-              purchaseQty,
-              grReceivedQty,
-              currentReceivedQty,
-              totalReceivedQty,
-            }
-          );
-
-          updatedPoItems[originalIndex].received_qty = totalReceivedQty;
-          updatedPoItems[originalIndex].received_ratio =
-            purchaseQty > 0 ? totalReceivedQty / purchaseQty : 0;
-        });
-
-        for (const po of updatedPoItems) {
-          if (po.received_qty > 0) {
-            partiallyReceivedItems++;
-            po.line_status = "Processing";
-            if (po.received_qty >= po.quantity) {
-              fullyReceivedItems++;
-              po.line_status = "Completed";
-            }
-          }
-        }
-
-        console.log(`Updated counts for PO ${purchaseOrderId}`, {
-          partiallyReceivedItems,
-          fullyReceivedItems,
-        });
-
-        let allItemsComplete = fullyReceivedItems === totalItems;
-        let anyItemProcessing = partiallyReceivedItems > 0;
-        console.log(`Completion status for PO ${purchaseOrderId}`, {
-          allItemsComplete,
-          anyItemProcessing,
-        });
-
-        let newPOStatus = poDoc.po_status;
-        let newGRStatus = poDoc.gr_status;
-
-        if (poDoc.po_status !== "Completed") {
-          if (allItemsComplete) {
-            newPOStatus = "Completed";
-            newGRStatus = "Fully Received";
-          } else if (anyItemProcessing) {
-            newPOStatus = "Processing";
-            newGRStatus = "Partially Received";
-          }
-        } else {
-          newPOStatus = "Completed";
-          if (allItemsComplete) {
-            newGRStatus = "Fully Received";
-          } else if (anyItemProcessing) {
-            newGRStatus = "Partially Received";
-          }
-        }
-        console.log(`Status update for PO ${purchaseOrderId}`, {
-          originalPOStatus,
-          newPOStatus,
-          newGRStatus,
-        });
-
-        const partiallyReceivedRatio = `${partiallyReceivedItems} / ${totalItems}`;
-        const fullyReceivedRatio = `${fullyReceivedItems} / ${totalItems}`;
-        console.log(`Ratios for PO ${purchaseOrderId}`, {
-          partiallyReceivedRatio,
-          fullyReceivedRatio,
+          updatedPoItems[originalIndex].created_received_qty = totalCreatedQty;
         });
 
         const updateData = {
           table_po: updatedPoItems,
-          partially_received: partiallyReceivedRatio,
-          fully_received: fullyReceivedRatio,
         };
 
-        if (newPOStatus !== poDoc.po_status) {
-          updateData.po_status = newPOStatus;
-        }
+        updateData.gr_status = "Created";
 
-        if (newGRStatus !== poDoc.gr_status) {
-          updateData.gr_status = newGRStatus;
-        }
         console.log(`Prepared update data for PO ${purchaseOrderId}`, {
           updateData,
         });
 
         await db.collection("purchase_order").doc(poDoc.id).update(updateData);
         console.log(`Successfully updated PO ${purchaseOrderId} in database`);
-
-        if (newPOStatus !== originalPOStatus) {
-          console.log(
-            `Updated PO ${purchaseOrderId} status from ${originalPOStatus} to ${newPOStatus}`
-          );
-        }
-
-        return {
-          poId: purchaseOrderId,
-          newPOStatus,
-          totalItems,
-          partiallyReceivedItems,
-          fullyReceivedItems,
-          success: true,
-        };
       } catch (error) {
         console.error(
           `Error updating purchase order ${purchaseOrderId} status:`,
@@ -252,7 +152,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
     const successCount = results.filter((r) => r && r.success).length;
     const failCount = results.filter((r) => r && !r.success).length;
 
-    console.log(`PO Status Update Summary: 
+    console.log(`PO Status Update Summary:
       Total POs: ${poIds.length}
       Successfully updated: ${successCount}
       Failed updates: ${failCount}
@@ -608,40 +508,60 @@ const updateEntry = async (
       }
     }
 
-    const processedTableGr = [];
-    for (const item of entry.table_gr) {
-      const processedItem = await processRow(item, organizationId);
-      processedTableGr.push(processedItem);
-    }
-    entry.table_gr = processedTableGr;
+    // For Created status, do NOT generate batch numbers
+    // Batch numbers will be generated when transitioning to Completed status
+    // This allows users to edit/delete line items without wasting batch numbers
+
+    // When editing a Created GR, we need to calculate quantity deltas
+    // to avoid double-counting in PO created_received_qty
+    const originalGR = await db
+      .collection("goods_receiving")
+      .doc(goodsReceivingId)
+      .get();
+    const originalTableGR = originalGR.data[0]?.table_gr || [];
+
+    // Calculate quantity deltas for each line item
+    const tableGRWithDeltas = entry.table_gr.map((newItem) => {
+      const originalItem = originalTableGR.find(
+        (orig) => orig.po_line_item_id === newItem.po_line_item_id
+      );
+
+      if (originalItem) {
+        // This is an existing line item - calculate delta
+        const quantityDelta =
+          (newItem.received_qty || 0) - (originalItem.received_qty || 0);
+        return { ...newItem, quantity_delta: quantityDelta };
+      } else {
+        // This is a new line item - use full quantity as delta
+        return { ...newItem, quantity_delta: newItem.received_qty || 0 };
+      }
+    });
+
+    // Add deleted items with negative deltas
+    originalTableGR.forEach((originalItem) => {
+      const stillExists = entry.table_gr.find(
+        (item) => item.po_line_item_id === originalItem.po_line_item_id
+      );
+      if (!stillExists) {
+        // Item was deleted - add negative delta
+        tableGRWithDeltas.push({
+          ...originalItem,
+          received_qty: 0,
+          quantity_delta: -(originalItem.received_qty || 0),
+        });
+      }
+    });
 
     await db.collection("goods_receiving").doc(goodsReceivingId).update(entry);
 
     const purchaseOrderIds = entry.po_id;
 
-    const { po_data_array } = await updatePurchaseOrderStatus(
+    // Pass the items with deltas for delta-based PO update
+    await updatePurchaseOrderStatus(
       purchaseOrderIds,
-      entry.table_gr
+      tableGRWithDeltas,
+      true // isEditMode = true (use deltas instead of adding)
     );
-    const allNoItemCode = entry.table_gr.every((gr) => !gr.item_id);
-    if (
-      !putAwaySetupData ||
-      (putAwaySetupData && putAwaySetupData.putaway_required === 0) ||
-      allNoItemCode
-    ) {
-      await this.runWorkflow(
-        "1917412667253141505",
-        { gr_no: entry.gr_no, po_data: po_data_array },
-        async (res) => {
-          console.log("成功结果：", res);
-        },
-        (err) => {
-          this.$message.error("Workflow execution failed");
-          console.error("失败结果：", err);
-          closeDialog();
-        }
-      );
-    }
     this.$message.success("Update successfully");
     await closeDialog();
   } catch (error) {
@@ -679,15 +599,20 @@ const fetchReceivedQuantity = async () => {
     const itemInfo = itemData.find((data) => data.id === item.item_id);
     if (poLine) {
       const tolerance = itemInfo ? itemInfo.over_receive_tolerance || 0 : 0;
+
+      // For Created status: Only validate against Received GRs, not other Created GRs
+      // This allows over-commitment at Created status - validation happens at completion
+      const receivedQty = poLine.received_qty || 0;
+      const totalAlreadyReceived = receivedQty;
+
       const maxReceivableQty =
-        ((poLine.quantity || 0) - (poLine.received_qty || 0)) *
+        ((poLine.quantity || 0) - totalAlreadyReceived) *
         ((100 + tolerance) / 100);
+
       if ((item.received_qty || 0) > maxReceivableQty) {
         invalidReceivedQty.push(`#${index + 1}`);
-        this.setData({
-          [`table_gr.${index}.to_received_qty`]:
-            (poLine.quantity || 0) - (poLine.received_qty || 0),
-        });
+        // Don't modify to_received_qty - let it show the actual over-receiving amount (negative value)
+        // The negative value is more informative than auto-correcting to positive
       }
     }
   }
@@ -698,7 +623,7 @@ const fetchReceivedQuantity = async () => {
         invalidReceivedQty.length > 1 ? "s" : ""
       } ${invalidReceivedQty.join(", ")} ha${
         invalidReceivedQty.length > 1 ? "ve" : "s"
-      } an expected received quantity exceeding the maximum receivable quantity.`,
+      } an expected received quantity exceeding the maximum receivable quantity (only considering Received GRs, not Created GRs).`,
       "Invalid Received Quantity",
       {
         confirmButtonText: "OK",
@@ -707,6 +632,109 @@ const fetchReceivedQuantity = async () => {
     );
 
     throw new Error("Invalid received quantity detected.");
+  }
+};
+
+const checkOverCommitmentWarning = async (originalTableGR = []) => {
+  const tableGR = this.getValue("table_gr") || [];
+  const pageStatus = this.getValue("page_status");
+
+  const resPOLineData = await Promise.all(
+    tableGR.map((item) =>
+      db
+        .collection("purchase_order_2ukyuanr_sub")
+        .doc(item.po_line_item_id)
+        .get()
+    )
+  );
+
+  const poLineItemData = resPOLineData.map((response) => response.data[0]);
+
+  const resItem = await Promise.all(
+    tableGR
+      .filter((item) => item.item_id !== null && item.item_id !== undefined)
+      .map((item) => db.collection("Item").doc(item.item_id).get())
+  );
+
+  const itemData = resItem.map((response) => response.data[0]);
+
+  const overCommittedItems = [];
+
+  for (const [index, item] of tableGR.entries()) {
+    const poLine = poLineItemData.find((po) => po.id === item.po_line_item_id);
+    const itemInfo = itemData.find((data) => data.id === item.item_id);
+
+    if (poLine) {
+      const tolerance = itemInfo ? itemInfo.over_receive_tolerance || 0 : 0;
+
+      // Check against BOTH Received and Created quantities for warning
+      const receivedQty = poLine.received_qty || 0;
+      let createdQty = poLine.created_received_qty || 0;
+
+      // In Edit mode, exclude the current GR's original quantity from created_received_qty
+      // to avoid double-counting (we're replacing the old quantity with the new one)
+      if (pageStatus === "Edit" && originalTableGR.length > 0) {
+        const originalItem = originalTableGR.find(
+          (orig) => orig.po_line_item_id === item.po_line_item_id
+        );
+        if (originalItem) {
+          createdQty = Math.max(0, createdQty - (originalItem.received_qty || 0));
+        }
+      }
+
+      const totalAlreadyAllocated = receivedQty + createdQty;
+      const newGRQty = item.received_qty || 0;
+      const totalAfterThisGR = totalAlreadyAllocated + newGRQty;
+
+      const maxAllowed = ((poLine.quantity || 0) * (100 + tolerance)) / 100;
+
+      if (totalAfterThisGR > maxAllowed) {
+        overCommittedItems.push({
+          lineNumber: index + 1,
+          itemName: item.item_name || "Unknown Item",
+          orderedQty: poLine.quantity || 0,
+          receivedQty: receivedQty,
+          createdQty: createdQty,
+          newGRQty: newGRQty,
+          totalAfter: totalAfterThisGR,
+          maxAllowed: maxAllowed,
+          overBy: totalAfterThisGR - maxAllowed,
+        });
+      }
+    }
+  }
+
+  if (overCommittedItems.length > 0) {
+    const warningMessages = overCommittedItems.map(
+      (item) =>
+        `<strong>Line ${item.lineNumber}:</strong> ${item.itemName}<br>` +
+        `• PO Quantity: ${item.orderedQty.toFixed(3)}<br>` +
+        `• Already Received: ${item.receivedQty.toFixed(3)}<br>` +
+        `• In Created GRs: ${item.createdQty.toFixed(3)}<br>` +
+        `• This GR: ${item.newGRQty.toFixed(3)}<br>` +
+        `• Total would be: ${item.totalAfter.toFixed(
+          3
+        )} (Exceeds by ${item.overBy.toFixed(3)})`
+    );
+
+    const proceed = await this.$confirm(
+      `⚠️ <strong>Over-Commitment Warning</strong><br><br>` +
+        `The following line(s) would exceed the PO quantity when combined with other Created GRs:<br><br>` +
+        `${warningMessages.join("<br><br>")}<br><br>` +
+        `This GR can be saved as Created, but it may fail when you try to receive it if other Created GRs are received first.<br><br>` +
+        `Do you want to proceed?`,
+      "Over-Commitment Detected",
+      {
+        confirmButtonText: "Yes, Save as Created",
+        cancelButtonText: "No, Go Back",
+        type: "warning",
+        dangerouslyUseHTMLString: true,
+      }
+    );
+
+    if (!proceed) {
+      throw new Error("User cancelled due to over-commitment warning.");
+    }
   }
 };
 
@@ -829,19 +857,21 @@ const processGRLineItem = async (entry) => {
   return entry;
 };
 
-const saveGoodsReceiving = async (entry, putAwaySetupData) => {
+const saveGoodsReceiving = async (entry, putAwaySetupData, originalTableGR = []) => {
   try {
     const status = this.getValue("gr_status");
     const pageStatus = this.getValue("page_status");
     const organizationId = entry.organization_id;
     let grID = "";
 
-    const processedTableGr = [];
-    for (const item of entry.table_gr) {
-      const processedItem = await processRow(item, entry.organization_id);
-      processedTableGr.push(processedItem);
+    // For Created status, do NOT generate batch numbers
+    // Batch numbers will be generated when transitioning to Completed status
+    // This allows users to edit/delete line items without wasting batch numbers
+
+    // originalTableGR is passed in from the main flow to avoid redundant fetches
+    if (pageStatus === "Edit") {
+      grID = entry.id;
     }
-    entry.table_gr = processedTableGr;
 
     // add status
     if (pageStatus === "Add") {
@@ -870,7 +900,6 @@ const saveGoodsReceiving = async (entry, putAwaySetupData) => {
     }
     // edit status
     if (pageStatus === "Edit") {
-      grID = entry.id;
       // draft status
       if (!status || status === "Draft") {
         const prefixData = await getPrefixData(
@@ -902,7 +931,51 @@ const saveGoodsReceiving = async (entry, putAwaySetupData) => {
 
     const purchaseOrderIds = entry.po_id;
 
-    await updatePurchaseOrderStatus(purchaseOrderIds, entry.table_gr);
+    // In Edit mode, calculate quantity deltas to avoid double-counting
+    let tableGRToUpdate = entry.table_gr;
+    if (pageStatus === "Edit") {
+      // Use the originalTableGR we fetched BEFORE the update
+
+      // Calculate quantity deltas for each line item
+      const tableGRWithDeltas = entry.table_gr.map((newItem) => {
+        const originalItem = originalTableGR.find(
+          (orig) => orig.po_line_item_id === newItem.po_line_item_id
+        );
+
+        if (originalItem) {
+          // This is an existing line item - calculate delta
+          const quantityDelta =
+            (newItem.received_qty || 0) - (originalItem.received_qty || 0);
+          return { ...newItem, quantity_delta: quantityDelta };
+        } else {
+          // This is a new line item - use full quantity as delta
+          return { ...newItem, quantity_delta: newItem.received_qty || 0 };
+        }
+      });
+
+      // Add deleted items with negative deltas
+      originalTableGR.forEach((originalItem) => {
+        const stillExists = entry.table_gr.find(
+          (item) => item.po_line_item_id === originalItem.po_line_item_id
+        );
+        if (!stillExists) {
+          // Item was deleted - add negative delta
+          tableGRWithDeltas.push({
+            ...originalItem,
+            received_qty: 0,
+            quantity_delta: -(originalItem.received_qty || 0),
+          });
+        }
+      });
+
+      tableGRToUpdate = tableGRWithDeltas;
+    }
+
+    await updatePurchaseOrderStatus(
+      purchaseOrderIds,
+      tableGRToUpdate,
+      pageStatus === "Edit" // isEditMode
+    );
     this.hideLoading();
     closeDialog();
   } catch (error) {
@@ -975,6 +1048,16 @@ const saveGoodsReceiving = async (entry, putAwaySetupData) => {
         }
       }
 
+      // Fetch original GR data once for Edit mode (optimization to avoid multiple fetches)
+      let originalTableGR = [];
+      if (page_status === "Edit" && data.id) {
+        const originalGR = await db
+          .collection("goods_receiving")
+          .doc(data.id)
+          .get();
+        originalTableGR = originalGR.data[0]?.table_gr || [];
+      }
+
       let entry = data;
       entry.gr_status = "Created";
 
@@ -992,13 +1075,14 @@ const saveGoodsReceiving = async (entry, putAwaySetupData) => {
       await validateSerialNumberAllocation(latestGR.table_gr);
 
       await fetchReceivedQuantity();
+      await checkOverCommitmentWarning(originalTableGR); // Pass original data to avoid refetch
       await fillbackHeaderFields(latestGR);
 
       if (page_status === "Add") {
-        await saveGoodsReceiving(latestGR, putAwaySetupData);
+        await saveGoodsReceiving(latestGR, putAwaySetupData, originalTableGR);
         this.$message.success("Add successfully");
       } else if (page_status === "Edit") {
-        await saveGoodsReceiving(latestGR, putAwaySetupData);
+        await saveGoodsReceiving(latestGR, putAwaySetupData, originalTableGR);
         this.$message.success("Update successfully");
       }
     } else {

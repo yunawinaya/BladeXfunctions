@@ -120,6 +120,74 @@ const deleteRelatedPI = async (existingPI) => {
         return;
       }
 
+      // Check for Created GRs first - must be cancelled before force completion
+      const purchaseOrderWithCreatedGR = [];
+      const createdGrDataMap = new Map();
+
+      for (const poItem of purchaseOrderData) {
+        try {
+          const createdGRResults = await db
+            .collection("goods_receiving")
+            .filter([
+              {
+                type: "branch",
+                operator: "all",
+                children: [
+                  {
+                    prop: "po_id",
+                    operator: "in",
+                    value: poItem.id,
+                  },
+                  {
+                    prop: "gr_status",
+                    operator: "equal",
+                    value: "Created",
+                  },
+                ],
+              },
+            ])
+            .get();
+
+          if (createdGRResults.data && createdGRResults.data.length > 0) {
+            createdGrDataMap.set(poItem.id, createdGRResults.data);
+            purchaseOrderWithCreatedGR.push(poItem);
+          }
+        } catch (error) {
+          console.error("Error querying Created GR:", error);
+        }
+      }
+
+      if (purchaseOrderWithCreatedGR.length > 0) {
+        const createdGrInfo = purchaseOrderWithCreatedGR.map((poItem) => {
+          const grList = createdGrDataMap.get(poItem.id) || [];
+          const grNumbers = grList.map((gr) => gr.gr_no).join(", ");
+          return `PO: ${poItem.purchase_order_no} → GR: ${grNumbers}`;
+        });
+
+        await this.$alert(
+          `These purchase orders have created goods receiving. <br> <strong>Purchase Order → Goods Receiving:</strong> <br>${createdGrInfo.join(
+            "<br>"
+          )} <br><br>Please cancel the goods receiving first.`,
+          "Purchase Order with Created Goods Receiving",
+          {
+            confirmButtonText: "OK",
+            type: "warning",
+            dangerouslyUseHTMLString: true,
+          }
+        );
+
+        const createdGrPOIds = purchaseOrderWithCreatedGR.map(
+          (item) => item.id
+        );
+        purchaseOrderData = purchaseOrderData.filter(
+          (item) => !createdGrPOIds.includes(item.id)
+        );
+
+        if (purchaseOrderData.length === 0) {
+          return;
+        }
+      }
+
       // Check for existing GR/PI across all selected POs
       let allExistingGR = [];
       let allExistingPI = [];

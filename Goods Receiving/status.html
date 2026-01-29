@@ -1,0 +1,83 @@
+<div
+  v-if="scope.value==='Cancelled'"
+  style="
+    padding: 0 10px;
+    border: 2px solid #f90a0a;
+    background-color: #fdc4c4;
+    color: #a30505;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    border-radius: 20px;
+    cursor: default;
+    transition: background-color 0.3s;
+    width: max-content;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  "
+>
+  {{scope.value}}
+</div>
+<div
+  v-if="scope.value==='Created'"
+  style="
+    padding: 0 10px;
+    border: 2px solid #036df8;
+    background-color: #c6dfff;
+    color: #4d5a74;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    border-radius: 20px;
+    cursor: default;
+    transition: background-color 0.3s;
+    width: max-content;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  "
+>
+  {{scope.value}}
+</div>
+<div
+  v-if="scope.value==='Partially Received'"
+  style="
+    padding: 0 10px;
+    border: 2px solid #ffbb00;
+    background-color: #fffcdd;
+    color: #8f6a04;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    border-radius: 20px;
+    cursor: default;
+    transition: background-color 0.3s;
+    width: max-content;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  "
+>
+  {{scope.value}}
+</div>
+<div
+  v-if="scope.value==='Fully Received'"
+  style="
+    padding: 0 10px;
+    border: 2px solid #00ae00;
+    background-color: #c5f5c5;
+    color: #016701;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    border-radius: 20px;
+    cursor: default;
+    transition: background-color 0.3s;
+    width: max-content;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  "
+>
+  {{scope.value}}
+</div>
+<div v-if="scope.value===''" style="background-color: transparent">
+  {{scope.value}}
+</div>
