@@ -1,16 +1,22 @@
 // ============================================================================
-// GD DELIVERED STATUS LOGIC
+// GD DELIVERED STATUS LOGIC (Enhanced for Re-allocation)
 // Handles inventory subtraction and reserved table updates when GD is delivered
-// Supports three scenarios:
-// 1. Normal flow: GD Created → Delivered (has Allocated records)
-// 2. Direct flow: GD straight to Delivered with Pending available
-// 3. Direct flow: GD straight to Delivered without Pending (from Unrestricted)
+// Supports four scenarios:
+// 1. Normal flow: GD Created → Delivered (allocated qty matches delivery qty)
+//    - Updates Allocated → Delivered, subtracts from Reserved
+// 2. Re-allocation flow: GD Created (edited) → Delivered (qty decreased)
+//    - Releases surplus allocations to Pending
+//    - Updates remaining Allocated → Delivered, subtracts from Reserved
+// 3. Re-allocation flow: GD Created (edited) → Delivered (qty increased)
+//    - Updates all Allocated → Delivered
+//    - Allocates additional from Pending or Unrestricted, marks as Delivered
+// 4. Direct flow: GD straight to Delivered without Allocated records
+//    - Uses Pending → Delivered or Unrestricted directly
 // ============================================================================
 
 // Extract workflow parameters
-// Note: Uses same pre-loop fetch as GDcreatedLogic for consistency
 const existingAllocatedData = {{workflowparams:oldAllocatedData}} || [];
-const existingPendingData = {{node:search_pending_records.data.data}} || [];
+const existingPendingData = {{node:search_node_vNmMP0vu.data.data}} || [];
 const quantity = {{workflowparams:quantity}};
 const parentId = {{workflowparams:parent_id}};
 const parentLineId = {{workflowparams:parent_line_id}};
@@ -30,10 +36,9 @@ const organizationId = {{workflowparams:organization_id}};
 const remark = {{workflowparams:remark}};
 
 // ============================================================================
-// STEP 1: Determine Delivery Source - Check Allocated Records
+// STEP 1: Find Matching Allocated Records
 // ============================================================================
 
-// Find allocated records for this specific GD line/temp_data
 const matchedAllocatedRecords = existingAllocatedData.filter(
   (record) =>
     record.doc_line_id === docLineId &&
@@ -45,7 +50,7 @@ const matchedAllocatedRecords = existingAllocatedData.filter(
 );
 
 // ============================================================================
-// SCENARIO 1: HAS ALLOCATED RECORDS (Normal Flow: GD Created → Delivered)
+// SCENARIO 1, 2, 3: HAS ALLOCATED RECORDS (GD Created → Delivered)
 // ============================================================================
 
 if (matchedAllocatedRecords.length > 0) {
@@ -55,54 +60,281 @@ if (matchedAllocatedRecords.length > 0) {
     0,
   );
 
-  // Validate: Delivered quantity should not exceed allocated quantity
-  if (quantity > totalAllocatedQty) {
+  const recordsToUpdate = [];
+  let recordToCreate = null;
+  let reservedQtyToSubtract = 0;
+  let unrestrictedQtyToSubtract = 0;
+
+  // -------------------------------------------------------------------------
+  // CASE A: Delivery qty <= Allocated qty (Normal or Decreased)
+  // -------------------------------------------------------------------------
+  if (quantity <= totalAllocatedQty) {
+    let remainingQtyToDeliver = quantity;
+    let remainingQtyToRelease = totalAllocatedQty - quantity;
+
+    // Process allocated records in order (FIFO)
+    for (const allocatedRecord of matchedAllocatedRecords) {
+      if (remainingQtyToDeliver <= 0 && remainingQtyToRelease <= 0) break;
+
+      const recordQty = allocatedRecord.open_qty || 0;
+
+      if (remainingQtyToDeliver > 0) {
+        // Deliver from this record
+        const deliverFromThisRecord = Math.min(recordQty, remainingQtyToDeliver);
+
+        if (deliverFromThisRecord === recordQty) {
+          // Fully deliver this record
+          recordsToUpdate.push({
+            ...allocatedRecord,
+            status: "Delivered",
+            delivered_qty: (allocatedRecord.delivered_qty || 0) + deliverFromThisRecord,
+            open_qty: 0,
+          });
+        } else {
+          // Partial deliver - need to split
+          // Update original to Delivered with delivered portion
+          recordsToUpdate.push({
+            ...allocatedRecord,
+            reserved_qty: deliverFromThisRecord,
+            open_qty: 0,
+            delivered_qty: deliverFromThisRecord,
+            status: "Delivered",
+          });
+
+          // Create Pending record for remaining portion (to be released)
+          const { _id, id, ...recordWithoutId } = allocatedRecord;
+          recordToCreate = {
+            ...recordWithoutId,
+            reserved_qty: recordQty - deliverFromThisRecord,
+            open_qty: recordQty - deliverFromThisRecord,
+            delivered_qty: 0,
+            status: "Pending",
+            target_reserved_id: null,
+          };
+        }
+
+        remainingQtyToDeliver -= deliverFromThisRecord;
+        reservedQtyToSubtract += deliverFromThisRecord;
+      } else if (remainingQtyToRelease > 0) {
+        // Release this record back to Pending (user decreased qty)
+        const releaseFromThisRecord = Math.min(recordQty, remainingQtyToRelease);
+
+        if (releaseFromThisRecord === recordQty) {
+          // Fully release to Pending
+          recordsToUpdate.push({
+            ...allocatedRecord,
+            status: "Pending",
+            target_reserved_id: null,
+          });
+        } else {
+          // Partial release - keep allocated portion, release remainder
+          recordsToUpdate.push({
+            ...allocatedRecord,
+            reserved_qty: recordQty - releaseFromThisRecord,
+            open_qty: recordQty - releaseFromThisRecord,
+            status: "Allocated",
+          });
+
+          const { _id, id, ...recordWithoutId } = allocatedRecord;
+          recordToCreate = {
+            ...recordWithoutId,
+            reserved_qty: releaseFromThisRecord,
+            open_qty: releaseFromThisRecord,
+            delivered_qty: 0,
+            status: "Pending",
+            target_reserved_id: null,
+          };
+        }
+
+        remainingQtyToRelease -= releaseFromThisRecord;
+        // No inventory movement for released qty - stays in Reserved category
+      }
+    }
+
     return {
-      code: "400",
-      message: `Cannot deliver ${quantity} units. Only ${totalAllocatedQty} units are allocated for this item.`,
+      code: "200",
+      recordsToUpdate,
+      recordToCreate,
+      inventoryMovements: [
+        {
+          source: "Reserved",
+          quantity: reservedQtyToSubtract,
+          operation: "subtract",
+        },
+      ],
+      message:
+        quantity < totalAllocatedQty
+          ? "Delivery processed with re-allocation (decreased qty)"
+          : "Delivery processed from allocated inventory (Reserved)",
     };
   }
 
-  let remainingQtyToDeliver = quantity;
-  const recordsToUpdate = [];
+  // -------------------------------------------------------------------------
+  // CASE B: Delivery qty > Allocated qty (Increased - need more allocation)
+  // -------------------------------------------------------------------------
+  if (quantity > totalAllocatedQty) {
+    // First, deliver all allocated records
+    for (const allocatedRecord of matchedAllocatedRecords) {
+      recordsToUpdate.push({
+        ...allocatedRecord,
+        status: "Delivered",
+        delivered_qty: (allocatedRecord.delivered_qty || 0) + allocatedRecord.open_qty,
+        open_qty: 0,
+      });
+    }
+    reservedQtyToSubtract = totalAllocatedQty;
 
-  // Process allocated records in order (FIFO)
-  for (const allocatedRecord of matchedAllocatedRecords) {
-    if (remainingQtyToDeliver <= 0) break;
+    // Now allocate+deliver additional quantity from Pending or Unrestricted
+    let additionalQtyNeeded = quantity - totalAllocatedQty;
 
-    const deliverFromThisRecord = Math.min(
-      allocatedRecord.open_qty,
-      remainingQtyToDeliver,
+    // Filter pending records matching this temp_data item
+    const matchedPendingRecords = existingPendingData.filter(
+      (record) =>
+        record.material_id === materialId &&
+        record.batch_id === batchId &&
+        record.bin_location === locationId &&
+        record.status === "Pending",
     );
 
-    // Update record to Delivered status
-    recordsToUpdate.push({
-      ...allocatedRecord,
-      status: "Delivered",
-      delivered_qty: (allocatedRecord.delivered_qty || 0) + deliverFromThisRecord,
-      open_qty: allocatedRecord.open_qty - deliverFromThisRecord,
-    });
+    // Separate by source type for priority handling
+    const pendingProdReceiptData = matchedPendingRecords.filter(
+      (item) => item.doc_type === "Production Receipt",
+    );
+    const pendingSOData = matchedPendingRecords.filter(
+      (item) => item.doc_type === "Sales Order",
+    );
 
-    remainingQtyToDeliver -= deliverFromThisRecord;
+    // Validate: Only one pending record per source type allowed
+    if (pendingSOData.length > 1) {
+      return {
+        code: "400",
+        message: "Multiple pending sales orders found",
+      };
+    }
+    if (pendingProdReceiptData.length > 1) {
+      return {
+        code: "400",
+        message: "Multiple pending production receipts found",
+      };
+    }
+
+    // PRIORITY 1: Deliver from Production Receipt Pending
+    if (pendingProdReceiptData.length > 0 && additionalQtyNeeded > 0) {
+      const prodReceiptQty = pendingProdReceiptData[0].open_qty || 0;
+      const deliverQty = Math.min(prodReceiptQty, additionalQtyNeeded);
+
+      if (deliverQty === prodReceiptQty) {
+        // Fully consume and deliver
+        recordsToUpdate.push({
+          ...pendingProdReceiptData[0],
+          status: "Delivered",
+          delivered_qty: deliverQty,
+          open_qty: 0,
+          target_reserved_id: docId,
+        });
+      } else {
+        // Partial - deliver portion, keep remainder as Pending
+        recordsToUpdate.push({
+          ...pendingProdReceiptData[0],
+          reserved_qty: deliverQty,
+          open_qty: 0,
+          delivered_qty: deliverQty,
+          status: "Delivered",
+          target_reserved_id: docId,
+        });
+
+        const { _id, id, ...prodReceiptWithoutId } = pendingProdReceiptData[0];
+        recordToCreate = {
+          ...prodReceiptWithoutId,
+          reserved_qty: prodReceiptQty - deliverQty,
+          open_qty: prodReceiptQty - deliverQty,
+          delivered_qty: 0,
+          status: "Pending",
+          target_reserved_id: null,
+        };
+      }
+
+      reservedQtyToSubtract += deliverQty;
+      additionalQtyNeeded -= deliverQty;
+    }
+
+    // PRIORITY 2: Deliver from Sales Order Pending
+    if (pendingSOData.length > 0 && additionalQtyNeeded > 0) {
+      const soQty = pendingSOData[0].open_qty || 0;
+      const deliverQty = Math.min(soQty, additionalQtyNeeded);
+
+      if (deliverQty === soQty) {
+        // Fully consume and deliver
+        recordsToUpdate.push({
+          ...pendingSOData[0],
+          status: "Delivered",
+          delivered_qty: deliverQty,
+          open_qty: 0,
+          target_reserved_id: docId,
+        });
+      } else {
+        // Partial - deliver portion, keep remainder as Pending
+        recordsToUpdate.push({
+          ...pendingSOData[0],
+          reserved_qty: deliverQty,
+          open_qty: 0,
+          delivered_qty: deliverQty,
+          status: "Delivered",
+          target_reserved_id: docId,
+        });
+
+        const { _id, id, ...soWithoutId } = pendingSOData[0];
+        recordToCreate = {
+          ...soWithoutId,
+          reserved_qty: soQty - deliverQty,
+          open_qty: soQty - deliverQty,
+          delivered_qty: 0,
+          status: "Pending",
+          target_reserved_id: null,
+        };
+      }
+
+      reservedQtyToSubtract += deliverQty;
+      additionalQtyNeeded -= deliverQty;
+    }
+
+    // FALLBACK: Deliver from Unrestricted (no reserved_table record created)
+    if (additionalQtyNeeded > 0) {
+      unrestrictedQtyToSubtract = additionalQtyNeeded;
+      additionalQtyNeeded = 0;
+    }
+
+    return {
+      code: "200",
+      recordsToUpdate,
+      recordToCreate,
+      inventoryMovements: [
+        ...(reservedQtyToSubtract > 0
+          ? [
+              {
+                source: "Reserved",
+                quantity: reservedQtyToSubtract,
+                operation: "subtract",
+              },
+            ]
+          : []),
+        ...(unrestrictedQtyToSubtract > 0
+          ? [
+              {
+                source: "Unrestricted",
+                quantity: unrestrictedQtyToSubtract,
+                operation: "subtract",
+              },
+            ]
+          : []),
+      ],
+      message: "Delivery processed with re-allocation (increased qty)",
+    };
   }
-
-  return {
-    code: "200",
-    recordsToUpdate,
-    recordToCreate: null,
-    inventoryMovements: [
-      {
-        source: "Reserved",
-        quantity: quantity,
-        operation: "subtract",
-      },
-    ],
-    message: "Delivery processed from allocated inventory (Reserved)",
-  };
 }
 
 // ============================================================================
-// SCENARIO 2 & 3: NO ALLOCATED RECORDS (Direct to Delivered)
+// SCENARIO 4: NO ALLOCATED RECORDS (Direct to Delivered)
 // Check if Pending records are available
 // ============================================================================
 
@@ -178,7 +410,7 @@ if (pendingProdReceiptData.length > 0 && remainingQtyToDeliver > 0) {
     });
 
     // Create new Pending record for remaining quantity
-    const { _id, ...prodReceiptWithoutId } = pendingProdReceiptData[0];
+    const { _id, id, ...prodReceiptWithoutId } = pendingProdReceiptData[0];
     recordToCreate = {
       ...prodReceiptWithoutId,
       reserved_qty: productionReceiptOpenQty - deliverQty,
@@ -221,7 +453,7 @@ if (pendingSOData.length > 0 && remainingQtyToDeliver > 0) {
     });
 
     // Create new Pending record for remaining quantity
-    const { _id, ...soWithoutId } = pendingSOData[0];
+    const { _id, id, ...soWithoutId } = pendingSOData[0];
     recordToCreate = {
       ...soWithoutId,
       reserved_qty: salesOrderOpenQty - deliverQty,
@@ -240,40 +472,17 @@ if (pendingSOData.length > 0 && remainingQtyToDeliver > 0) {
 // FALLBACK: Deliver from Unrestricted Inventory (No Pending Available)
 // -------------------------------------------------------------------------
 if (remainingQtyToDeliver > 0) {
-  // Create new Reserved Table record with status = Delivered
-  // This represents direct delivery from unrestricted inventory without prior allocation
+  // NO reserved_table record created - inventory was never reserved
+  // Just track the quantity for inventory movement (Unrestricted → Out)
+  // Traceability is maintained through:
+  // - The GD document itself (has all line/temp_data details)
+  // - Inventory transaction history (plant_stock_balance movements)
   const deliverQty = remainingQtyToDeliver;
-
-  recordToCreate = {
-    doc_type: "Good Delivery",
-    status: "Delivered",
-    source_reserved_id: null,
-    parent_id: parentId,
-    parent_line_id: parentLineId,
-    parent_no: parentNo,
-    doc_no: docNo,
-    doc_id: docId,
-    doc_line_id: docLineId,
-    material_id: materialId,
-    item_code: itemData.material_code,
-    item_name: itemData.material_name,
-    item_desc: itemData.material_desc,
-    batch_id: batchId,
-    bin_location: locationId,
-    item_uom: materialUom,
-    reserved_qty: deliverQty,
-    delivered_qty: deliverQty,
-    open_qty: 0,
-    reserved_date: docDate,
-    line_no: index,
-    plant_id: plantId,
-    organization_id: organizationId,
-    remark: remark,
-    target_reserved_id: docId,
-  };
 
   unrestrictedQty += deliverQty;
   remainingQtyToDeliver -= deliverQty;
+
+  // recordToCreate stays as-is (null or previous Pending split record)
 }
 
 // ============================================================================
