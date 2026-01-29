@@ -8,7 +8,8 @@
 // ============================================================================
 
 // Extract workflow parameters
-const existingAllocatedData = {{node:search_allocated_records.data.data}} || [];
+// Note: Uses same pre-loop fetch as GDcreatedLogic for consistency
+const existingAllocatedData = {{workflowparams:oldAllocatedData}} || [];
 const existingPendingData = {{node:search_pending_records.data.data}} || [];
 const quantity = {{workflowparams:quantity}};
 const parentId = {{workflowparams:parent_id}};
@@ -64,7 +65,6 @@ if (matchedAllocatedRecords.length > 0) {
 
   let remainingQtyToDeliver = quantity;
   const recordsToUpdate = [];
-  let inventorySource = "Reserved"; // Allocated records mean inventory is in Reserved
 
   // Process allocated records in order (FIFO)
   for (const allocatedRecord of matchedAllocatedRecords) {
@@ -90,8 +90,13 @@ if (matchedAllocatedRecords.length > 0) {
     code: "200",
     recordsToUpdate,
     recordToCreate: null,
-    inventorySource: "Reserved",
-    inventoryQty: quantity,
+    inventoryMovements: [
+      {
+        source: "Reserved",
+        quantity: quantity,
+        operation: "subtract",
+      },
+    ],
     message: "Delivery processed from allocated inventory (Reserved)",
   };
 }
