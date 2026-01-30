@@ -1,5 +1,5 @@
 const currentAllocatedRecords = {{node:search_node_ndtbikhX.data}};
-const existingPendingRecords = {{node:search_node_pending.data}};
+const existingPendingRecords = {{node:search_node_9I7tIzli.data}};
 const tableData = {{workflowparams:tableData}};
 
 if (!currentAllocatedRecords.data || currentAllocatedRecords.data.length === 0) {
