@@ -36,7 +36,7 @@ const matchedOldRecords = oldAllocatedData.filter(
     record.batch_id === batchId &&
     record.bin_location === locationId &&
     record.status === "Allocated" &&
-    record.target_reserved_id === docId,
+    record.target_gd_id === docId,
 );
 
 // ============================================================================
@@ -59,7 +59,10 @@ if (matchedOldRecords.length > 0) {
     return {
       code: "200",
       recordsToUpdate: [],
+      recordsToUpdateLength: 0,
       recordToCreate: null,
+      inventoryMovements: [],
+      inventoryMovementsLength: 0,
       message: "No change - quantities match",
     };
   }
@@ -72,9 +75,36 @@ if (matchedOldRecords.length > 0) {
     let remainingQtyToRelease = qtyToRelease;
     const recordsToUpdate = [];
     let recordToCreate = null;
+    let unrestrictedQtyToAdd = 0; // Track qty to return to Unrestricted
 
-    // Release from matched old records (FIFO order)
-    for (const oldRecord of matchedOldRecords) {
+    // Sort records for release priority: SO first, PR second, GD last
+    // This ensures we release lower priority sources first
+    const releaseOrderPriority = {
+      "Sales Order": 1,
+      "Production Receipt": 2,
+      "Good Delivery": 3,
+    };
+    const sortedRecordsForRelease = [...matchedOldRecords].sort(
+      (a, b) =>
+        (releaseOrderPriority[a.doc_type] || 99) -
+        (releaseOrderPriority[b.doc_type] || 99),
+    );
+
+    // Helper: Find existing Pending record to merge with (for SO/PR doc_types)
+    const findExistingPendingToMerge = (docType) => {
+      return existingPendingData.find(
+        (record) =>
+          record.status === "Pending" &&
+          record.doc_type === docType &&
+          record.parent_line_id === parentLineId &&
+          record.material_id === materialId &&
+          record.batch_id === batchId &&
+          record.bin_location === locationId,
+      );
+    };
+
+    // Release from sorted records (SO first, PR second, GD last)
+    for (const oldRecord of sortedRecordsForRelease) {
       if (remainingQtyToRelease <= 0) break;
 
       const releaseFromThisRecord = Math.min(
@@ -82,13 +112,50 @@ if (matchedOldRecords.length > 0) {
         remainingQtyToRelease,
       );
 
+      // Determine if this record came from Unrestricted inventory
+      // - "Good Delivery" = came from Unrestricted → always Cancelled
+      // - "Sales Order" / "Production Receipt" = came from Pending → merge or Pending
+      const isFromUnrestricted = oldRecord.doc_type === "Good Delivery";
+
       if (releaseFromThisRecord === oldRecord.reserved_qty) {
-        // Fully release this record - convert to Pending
-        recordsToUpdate.push({
-          ...oldRecord,
-          status: "Pending",
-          target_reserved_id: null,
-        });
+        // Fully release this record
+        if (isFromUnrestricted) {
+          // For Unrestricted: Mark as Cancelled
+          recordsToUpdate.push({
+            ...oldRecord,
+            status: "Cancelled",
+            open_qty: 0,
+            target_gd_id: null,
+          });
+          unrestrictedQtyToAdd += releaseFromThisRecord;
+        } else {
+          // For SO/PR: Check if existing Pending exists to merge with
+          const existingPending = findExistingPendingToMerge(oldRecord.doc_type);
+
+          if (existingPending) {
+            // Merge: Add quantity to existing Pending, mark this record as Cancelled
+            recordsToUpdate.push({
+              ...existingPending,
+              reserved_qty: existingPending.reserved_qty + releaseFromThisRecord,
+              open_qty: existingPending.open_qty + releaseFromThisRecord,
+              status: "Pending",
+            });
+            // Mark the released record as Cancelled (absorbed into existing Pending)
+            recordsToUpdate.push({
+              ...oldRecord,
+              status: "Cancelled",
+              open_qty: 0,
+              target_gd_id: null,
+            });
+          } else {
+            // No existing Pending - just change status to Pending
+            recordsToUpdate.push({
+              ...oldRecord,
+              status: "Pending",
+              target_gd_id: null,
+            });
+          }
+        }
       } else {
         // Partial release - split the record
         // Keep allocated portion (update existing record)
@@ -97,27 +164,68 @@ if (matchedOldRecords.length > 0) {
           reserved_qty: oldRecord.reserved_qty - releaseFromThisRecord,
           open_qty: oldRecord.reserved_qty - releaseFromThisRecord,
           status: "Allocated",
-          target_reserved_id: docId,
+          target_gd_id: docId,
         });
 
-        // Create pending for released portion
-        const { _id, ...recordWithoutId } = oldRecord;
-        recordToCreate = {
-          ...recordWithoutId,
-          reserved_qty: releaseFromThisRecord,
-          open_qty: releaseFromThisRecord,
-          status: "Pending",
-          target_reserved_id: null,
-        };
+        if (isFromUnrestricted) {
+          // For Unrestricted: Always create new Cancelled record
+          const { _id, id, ...recordWithoutId } = oldRecord;
+          recordToCreate = {
+            ...recordWithoutId,
+            reserved_qty: releaseFromThisRecord,
+            open_qty: 0,
+            status: "Cancelled",
+            source_reserved_id: oldRecord.id,
+            target_gd_id: null,
+          };
+          unrestrictedQtyToAdd += releaseFromThisRecord;
+        } else {
+          // For SO/PR: Check if existing Pending record exists to merge with
+          const existingPending = findExistingPendingToMerge(oldRecord.doc_type);
+
+          if (existingPending) {
+            // Merge: Add quantity to existing Pending record
+            recordsToUpdate.push({
+              ...existingPending,
+              reserved_qty: existingPending.reserved_qty + releaseFromThisRecord,
+              open_qty: existingPending.open_qty + releaseFromThisRecord,
+              status: "Pending",
+            });
+          } else {
+            // Create new Pending record
+            const { _id, id, ...recordWithoutId } = oldRecord;
+            recordToCreate = {
+              ...recordWithoutId,
+              reserved_qty: releaseFromThisRecord,
+              open_qty: releaseFromThisRecord,
+              status: "Pending",
+              source_reserved_id: oldRecord.id,
+              target_gd_id: null,
+            };
+          }
+        }
       }
 
       remainingQtyToRelease -= releaseFromThisRecord;
     }
 
+    // Build inventory movements (aggregated)
+    // Cancellation: Reserved → Unrestricted (one object)
+    const inventoryMovements = [];
+    if (unrestrictedQtyToAdd > 0) {
+      inventoryMovements.push({
+        quantity: unrestrictedQtyToAdd,
+        movement_type: "RESERVED_TO_UNRESTRICTED",
+      });
+    }
+
     return {
       code: "200",
       recordsToUpdate,
+      recordsToUpdateLength: recordsToUpdate.length,
       recordToCreate,
+      inventoryMovements,
+      inventoryMovementsLength: inventoryMovements.length,
       message: "Allocation released (decreased quantity)",
     };
   }
@@ -178,7 +286,7 @@ if (matchedOldRecords.length > 0) {
         recordsToUpdate.push({
           ...pendingProdReceiptData[0],
           status: "Allocated",
-          target_reserved_id: docId,
+          target_gd_id: docId,
         });
       } else {
         recordsToUpdate.push({
@@ -186,17 +294,17 @@ if (matchedOldRecords.length > 0) {
           reserved_qty: allocateQty,
           open_qty: allocateQty,
           status: "Allocated",
-          target_reserved_id: docId,
+          target_gd_id: docId,
         });
 
-        const { _id, ...prodReceiptWithoutId } = pendingProdReceiptData[0];
+        const { _id, id, ...prodReceiptWithoutId } = pendingProdReceiptData[0];
         recordToCreate = {
           ...prodReceiptWithoutId,
           reserved_qty: productionReceiptOpenQty - allocateQty,
           open_qty: productionReceiptOpenQty - allocateQty,
           status: "Pending",
-          source_reserved_id: docId,
-          target_reserved_id: null,
+          source_reserved_id: pendingProdReceiptData[0].id,
+          target_gd_id: null,
         };
       }
 
@@ -211,7 +319,7 @@ if (matchedOldRecords.length > 0) {
         recordsToUpdate.push({
           ...pendingSOData[0],
           status: "Allocated",
-          target_reserved_id: docId,
+          target_gd_id: docId,
         });
       } else {
         recordsToUpdate.push({
@@ -219,17 +327,17 @@ if (matchedOldRecords.length > 0) {
           reserved_qty: allocateQty,
           open_qty: allocateQty,
           status: "Allocated",
-          target_reserved_id: docId,
+          target_gd_id: docId,
         });
 
-        const { _id, ...soWithoutId } = pendingSOData[0];
+        const { _id, id, ...soWithoutId } = pendingSOData[0];
         recordToCreate = {
           ...soWithoutId,
           reserved_qty: salesOrderOpenQty - allocateQty,
           open_qty: salesOrderOpenQty - allocateQty,
           status: "Pending",
-          source_reserved_id: docId,
-          target_reserved_id: null,
+          source_reserved_id: pendingSOData[0].id,
+          target_gd_id: null,
         };
       }
 
@@ -237,7 +345,9 @@ if (matchedOldRecords.length > 0) {
     }
 
     // Shortfall: Direct allocation
+    let shortfallQty = 0;
     if (remainingQtyToAllocate > 0) {
+      shortfallQty = remainingQtyToAllocate;
       recordToCreate = {
         doc_type: "Good Delivery",
         status: "Allocated",
@@ -263,14 +373,27 @@ if (matchedOldRecords.length > 0) {
         plant_id: plantId,
         organization_id: organizationId,
         remark: remark,
-        target_reserved_id: docId,
+        target_gd_id: docId,
       };
+    }
+
+    // Build inventory movements
+    // Shortfall allocation: Unrestricted → Reserved
+    const inventoryMovements = [];
+    if (shortfallQty > 0) {
+      inventoryMovements.push({
+        quantity: shortfallQty,
+        movement_type: "UNRESTRICTED_TO_RESERVED",
+      });
     }
 
     return {
       code: "200",
       recordsToUpdate,
+      recordsToUpdateLength: recordsToUpdate.length,
       recordToCreate,
+      inventoryMovements,
+      inventoryMovementsLength: inventoryMovements.length,
       message: "Additional allocation successful (increased quantity)",
     };
   }
@@ -328,7 +451,7 @@ if (pendingProdReceiptData.length > 0 && remainingQtyToAllocate > 0) {
     recordsToUpdate.push({
       ...pendingProdReceiptData[0],
       status: "Allocated",
-      target_reserved_id: docId,
+      target_gd_id: docId,
     });
   } else {
     recordsToUpdate.push({
@@ -336,17 +459,17 @@ if (pendingProdReceiptData.length > 0 && remainingQtyToAllocate > 0) {
       reserved_qty: allocateQty,
       open_qty: allocateQty,
       status: "Allocated",
-      target_reserved_id: docId,
+      target_gd_id: docId,
     });
 
-    const { _id, ...prodReceiptWithoutId } = pendingProdReceiptData[0];
+    const { _id, id, ...prodReceiptWithoutId } = pendingProdReceiptData[0];
     recordToCreate = {
       ...prodReceiptWithoutId,
       reserved_qty: productionReceiptOpenQty - allocateQty,
       open_qty: productionReceiptOpenQty - allocateQty,
       status: "Pending",
-      source_reserved_id: docId,
-      target_reserved_id: null,
+      source_reserved_id: pendingProdReceiptData[0].id,
+      target_gd_id: null,
     };
   }
 
@@ -361,7 +484,7 @@ if (pendingSOData.length > 0 && remainingQtyToAllocate > 0) {
     recordsToUpdate.push({
       ...pendingSOData[0],
       status: "Allocated",
-      target_reserved_id: docId,
+      target_gd_id: docId,
     });
   } else {
     recordsToUpdate.push({
@@ -369,17 +492,17 @@ if (pendingSOData.length > 0 && remainingQtyToAllocate > 0) {
       reserved_qty: allocateQty,
       open_qty: allocateQty,
       status: "Allocated",
-      target_reserved_id: docId,
+      target_gd_id: docId,
     });
 
-    const { _id, ...soWithoutId } = pendingSOData[0];
+    const { _id, id, ...soWithoutId } = pendingSOData[0];
     recordToCreate = {
       ...soWithoutId,
       reserved_qty: salesOrderOpenQty - allocateQty,
       open_qty: salesOrderOpenQty - allocateQty,
       status: "Pending",
-      source_reserved_id: docId,
-      target_reserved_id: null,
+      source_reserved_id: pendingSOData[0].id,
+      target_gd_id: null,
     };
   }
 
@@ -387,7 +510,9 @@ if (pendingSOData.length > 0 && remainingQtyToAllocate > 0) {
 }
 
 // Shortfall: Direct allocation from unrestricted inventory
+let shortfallQty = 0;
 if (remainingQtyToAllocate > 0) {
+  shortfallQty = remainingQtyToAllocate;
   recordToCreate = {
     doc_type: "Good Delivery",
     status: "Allocated",
@@ -413,13 +538,26 @@ if (remainingQtyToAllocate > 0) {
     plant_id: plantId,
     organization_id: organizationId,
     remark: remark,
-    target_reserved_id: docId,
+    target_gd_id: docId,
   };
+}
+
+// Build inventory movements
+// Shortfall allocation: Unrestricted → Reserved
+const inventoryMovements = [];
+if (shortfallQty > 0) {
+  inventoryMovements.push({
+    quantity: shortfallQty,
+    movement_type: "UNRESTRICTED_TO_RESERVED",
+  });
 }
 
 return {
   code: "200",
   recordsToUpdate: recordsToUpdate,
+  recordsToUpdateLength: recordsToUpdate.length,
   recordToCreate: recordToCreate,
+  inventoryMovements: inventoryMovements,
+  inventoryMovementsLength: inventoryMovements.length,
   message: "Initial allocation successful",
 };
