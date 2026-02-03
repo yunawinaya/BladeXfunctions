@@ -43,7 +43,7 @@ const matchedAllocatedRecords = existingAllocatedData.filter(
   (record) =>
     record.doc_line_id === docLineId &&
     record.material_id === materialId &&
-    record.batch_id === batchId &&
+    (record.batch_id || null) === (batchId || null) &&
     record.bin_location === locationId &&
     record.status === "Allocated" &&
     record.target_gd_id === docId,
@@ -93,7 +93,7 @@ if (matchedAllocatedRecords.length > 0) {
           record.doc_type === docType &&
           record.parent_line_id === parentLineId &&
           record.material_id === materialId &&
-          record.batch_id === batchId &&
+          (record.batch_id || null) === (batchId || null) &&
           record.bin_location === locationId,
       );
     };
@@ -343,7 +343,7 @@ if (matchedAllocatedRecords.length > 0) {
     const matchedPendingRecords = existingPendingData.filter(
       (record) =>
         record.material_id === materialId &&
-        record.batch_id === batchId &&
+        (record.batch_id || null) === (batchId || null) &&
         record.bin_location === locationId &&
         record.status === "Pending",
     );
@@ -527,7 +527,7 @@ if (matchedAllocatedRecords.length > 0) {
 const matchedPendingRecords = existingPendingData.filter(
   (record) =>
     record.material_id === materialId &&
-    record.batch_id === batchId &&
+    (record.batch_id || null) === (batchId || null) &&
     record.bin_location === locationId &&
     record.status === "Pending",
 );

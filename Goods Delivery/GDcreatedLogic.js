@@ -29,11 +29,12 @@ const remark = {{workflowparams:remark}};
 // ============================================================================
 
 // Find old allocated records matching this specific temp_data item
+// Note: Use (value || null) to normalize undefined/null for comparison
 const matchedOldRecords = oldAllocatedData.filter(
   (record) =>
     record.doc_line_id === docLineId &&
     record.material_id === materialId &&
-    record.batch_id === batchId &&
+    (record.batch_id || null) === (batchId || null) &&
     record.bin_location === locationId &&
     record.status === "Allocated" &&
     record.target_gd_id === docId,
