@@ -308,7 +308,7 @@ const setStorageLocation = async (plantID) => {
   }
 };
 
-(async () => {
+setTimeout(async () => {
   try {
     const data = this.getValues();
     let pageStatus = "";
@@ -324,12 +324,6 @@ const setStorageLocation = async (plantID) => {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
-    this.setData({
-      page_status: pageStatus,
-      movement_type: "Miscellaneous Receipt",
-    });
-    this.disabled(["movement_type"], true);
-
     switch (pageStatus) {
       case "Add":
         const nickName = this.getVarGlobal("nickname");
@@ -337,9 +331,12 @@ const setStorageLocation = async (plantID) => {
           organization_id: organizationId,
           issued_by: nickName,
           issue_date: new Date().toISOString().split("T")[0],
+          page_status: pageStatus,
+          movement_type: "Miscellaneous Receipt",
         });
 
-        this.disabled(["stock_movement"], true);
+        this.disabled(["movement_type"], true);
+
         this.display(["draft_status", "button_save_as_draft"]);
         this.hide(CONFIG.fields.hide);
 
@@ -402,7 +399,7 @@ const setStorageLocation = async (plantID) => {
     console.error(error);
     this.$message.error(error.message || "An error occurred");
   }
-})();
+}, 500);
 
 setTimeout(async () => {
   if (this.isAdd) {

@@ -7,16 +7,16 @@ const generatePrefix = (prefixData) => {
   prefixToShow = prefixToShow.replace("suffix", prefixData.suffix_value);
   prefixToShow = prefixToShow.replace(
     "month",
-    String(now.getMonth() + 1).padStart(2, "0")
+    String(now.getMonth() + 1).padStart(2, "0"),
   );
   prefixToShow = prefixToShow.replace(
     "day",
-    String(now.getDate()).padStart(2, "0")
+    String(now.getDate()).padStart(2, "0"),
   );
   prefixToShow = prefixToShow.replace("year", now.getFullYear());
   prefixToShow = prefixToShow.replace(
     "running_number",
-    String(prefixData.running_number).padStart(prefixData.padding_zeroes, "0")
+    String(prefixData.running_number).padStart(prefixData.padding_zeroes, "0"),
   );
 
   return prefixToShow;
@@ -52,7 +52,7 @@ const findUniquePrefix = async (prefixData, organizationId) => {
 
   if (!isUnique) {
     throw new Error(
-      "Could not generate a unique Goods Delivery number after maximum attempts"
+      "Could not generate a unique Goods Delivery number after maximum attempts",
     );
   }
 
@@ -168,8 +168,16 @@ const disabledField = async (status, pickingStatus) => {
         "gd_item_balance.table_item_balance",
         "select_vehicle_id",
         "select_driver_id",
+        "order_tnc",
+        "order_payment_details",
+        "order_delivery_term",
+        "order_remark",
+        "order_remark2",
+        "order_remark3",
+        "order_remark4",
+        "order_remark5",
       ],
-      true
+      true,
     );
 
     // Disable table rows
@@ -200,7 +208,7 @@ const disabledField = async (status, pickingStatus) => {
         "select_vehicle_id",
         "select_driver_id",
       ],
-      false
+      false,
     );
   }
 };
@@ -214,11 +222,11 @@ const disableTableRows = async () => {
 
         rows.forEach((row, index) => {
           const fieldNames = Object.keys(row).filter(
-            (key) => key !== "gd_delivery_qty"
+            (key) => key !== "gd_delivery_qty",
           );
 
           const fieldsToDisable = fieldNames.map(
-            (field) => `table_gd.${index}.${field}`
+            (field) => `table_gd.${index}.${field}`,
           );
 
           this.disabled(fieldsToDisable, true);
@@ -378,14 +386,14 @@ const disabledSelectStock = async (data) => {
             }
           } else {
             console.error(
-              `Item batch management is not found for item: ${item.material_id}`
+              `Item batch management is not found for item: ${item.material_id}`,
             );
           }
         }
       } catch (error) {
         console.error(
           `Error processing item ${item.material_id} at index ${index}:`,
-          error
+          error,
         );
       }
     }
@@ -430,16 +438,16 @@ const fetchDeliveredQuantity = async () => {
               .catch((error) => {
                 console.error(
                   `Error fetching SO line item ${item.so_line_item_id}:`,
-                  error
+                  error,
                 );
                 return { data: [null] };
               })
-          : Promise.resolve({ data: [null] })
-      )
+          : Promise.resolve({ data: [null] }),
+      ),
     );
 
     const soLineItemData = resSOLineData.map((response) =>
-      response.data ? response.data[0] : null
+      response.data ? response.data[0] : null,
     );
 
     const updatedTableGD = tableGD.map((item, index) => {
@@ -511,9 +519,16 @@ const displayPlanQty = async (data) => {
 
         let allItems = this.getParamsVariables("allItems") || "";
         if (allItems && allItems !== "") {
+          console.log("all item mounted", allItems);
           allItems = JSON.parse(allItems);
+          console.log("all item mounted json", allItems);
+          allItems = allItems.map((item) => ({
+            ...item,
+            altUOM: item.altUOM.toString(),
+          }));
+          console.log("all item mounted convert", allItems);
           await this.triggerEvent("func_processGDLineItem", {
-            allItems,
+            allItems: allItems,
           });
         }
         break;
@@ -524,7 +539,14 @@ const displayPlanQty = async (data) => {
         if (fromConvert === "Yes") {
           let allItem = this.getValue("all_item");
           if (allItem !== "") {
+            console.log("all item mounted", allItem);
             allItem = JSON.parse(allItem);
+            console.log("all item mounted json", allItem);
+            allItem = allItem.map((item) => ({
+              ...item,
+              altUOM: item.altUOM.toString(),
+            }));
+            console.log("all item mounted convert", allItem);
             await this.triggerEvent("func_processGDLineItem", {
               allItems: allItem,
             });

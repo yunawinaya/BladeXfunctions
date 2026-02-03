@@ -63,7 +63,6 @@ if (matchedAllocatedRecords.length > 0) {
   const recordsToUpdate = [];
   let recordToCreate = null;
   let reservedQtyToSubtract = 0;
-  let unrestrictedQtyToSubtract = 0;
 
   // -------------------------------------------------------------------------
   // CASE A: Delivery qty <= Allocated qty (Normal or Decreased)
@@ -453,30 +452,55 @@ if (matchedAllocatedRecords.length > 0) {
       additionalQtyNeeded -= deliverQty;
     }
 
-    // FALLBACK: Deliver from Unrestricted (no reserved_table record created)
+    // FALLBACK: Allocate from Unrestricted then deliver (consistent with Location Transfer)
+    // First move to Reserved, then deliver from Reserved
+    let unrestrictedQtyToAllocate = 0;
     if (additionalQtyNeeded > 0) {
-      unrestrictedQtyToSubtract = additionalQtyNeeded;
+      unrestrictedQtyToAllocate = additionalQtyNeeded;
+
+      // Create reserved_table record for Unrestricted allocation (immediately Delivered)
+      recordToCreate = {
+        plant_id: plantId,
+        organization_id: organizationId,
+        material_id: materialId,
+        batch_id: batchId,
+        bin_location: locationId,
+        item_uom: materialUom,
+        doc_type: "Good Delivery",
+        parent_id: parentId,
+        parent_no: parentNo,
+        parent_line_id: parentLineId,
+        target_gd_id: docId,
+        target_gd_no: docNo,
+        doc_line_id: docLineId,
+        reserved_qty: unrestrictedQtyToAllocate,
+        open_qty: 0,
+        delivered_qty: unrestrictedQtyToAllocate,
+        status: "Delivered",
+        remark: remark,
+        reserved_date: docDate,
+      };
+
       additionalQtyNeeded = 0;
     }
 
-    // Build inventory movements (aggregated by type)
+    // Build inventory movements (order matters: allocation FIRST, delivery LAST)
     const inventoryMovements = [];
 
-    // Delivery from Reserved
-    if (reservedQtyToSubtract > 0) {
+    // 1. FIRST: Allocate from Unrestricted → Reserved (if needed)
+    if (unrestrictedQtyToAllocate > 0) {
       inventoryMovements.push({
-        source: "Reserved",
-        quantity: reservedQtyToSubtract,
-        operation: "subtract",
-        movement_type: "DELIVERY",
+        quantity: unrestrictedQtyToAllocate,
+        movement_type: "UNRESTRICTED_TO_RESERVED",
       });
     }
 
-    // Delivery from Unrestricted (shortfall)
-    if (unrestrictedQtyToSubtract > 0) {
+    // 2. LAST: Deliver ALL from Reserved (includes newly allocated qty)
+    const totalDeliveryQty = reservedQtyToSubtract + unrestrictedQtyToAllocate;
+    if (totalDeliveryQty > 0) {
       inventoryMovements.push({
-        source: "Unrestricted",
-        quantity: unrestrictedQtyToSubtract,
+        source: "Reserved",
+        quantity: totalDeliveryQty,
         operation: "subtract",
         movement_type: "DELIVERY",
       });
@@ -541,7 +565,6 @@ let remainingQtyToDeliver = quantity;
 const recordsToUpdate = [];
 let recordToCreate = null;
 let reservedQty = 0; // Track how much comes from Reserved (Pending)
-let unrestrictedQty = 0; // Track how much comes from Unrestricted
 
 // -------------------------------------------------------------------------
 // PRIORITY 1: Deliver from Production Receipt Pending
@@ -632,44 +655,60 @@ if (pendingSOData.length > 0 && remainingQtyToDeliver > 0) {
 }
 
 // -------------------------------------------------------------------------
-// FALLBACK: Deliver from Unrestricted Inventory (No Pending Available)
+// FALLBACK: Allocate from Unrestricted then deliver (consistent with Location Transfer)
+// First move to Reserved, then deliver from Reserved
 // -------------------------------------------------------------------------
+let unrestrictedQtyToAllocate = 0;
 if (remainingQtyToDeliver > 0) {
-  // NO reserved_table record created - inventory was never reserved
-  // Just track the quantity for inventory movement (Unrestricted → Out)
-  // Traceability is maintained through:
-  // - The GD document itself (has all line/temp_data details)
-  // - Inventory transaction history (plant_stock_balance movements)
-  const deliverQty = remainingQtyToDeliver;
+  unrestrictedQtyToAllocate = remainingQtyToDeliver;
 
-  unrestrictedQty += deliverQty;
-  remainingQtyToDeliver -= deliverQty;
+  // Create reserved_table record for Unrestricted allocation (immediately Delivered)
+  recordToCreate = {
+    plant_id: plantId,
+    organization_id: organizationId,
+    material_id: materialId,
+    batch_id: batchId,
+    bin_location: locationId,
+    item_uom: materialUom,
+    doc_type: "Good Delivery",
+    parent_id: parentId,
+    parent_no: parentNo,
+    parent_line_id: parentLineId,
+    target_gd_id: docId,
+    target_gd_no: docNo,
+    doc_line_id: docLineId,
+    reserved_qty: unrestrictedQtyToAllocate,
+    open_qty: 0,
+    delivered_qty: unrestrictedQtyToAllocate,
+    status: "Delivered",
+    remark: remark,
+    reserved_date: docDate,
+  };
 
-  // recordToCreate stays as-is (null or previous Pending split record)
+  remainingQtyToDeliver = 0;
 }
 
 // ============================================================================
 // RETURN RESULTS
 // ============================================================================
 
-// Build inventory movements (aggregated by type)
+// Build inventory movements (order matters: allocation FIRST, delivery LAST)
 const inventoryMovements = [];
 
-// Delivery from Reserved
-if (reservedQty > 0) {
+// 1. FIRST: Allocate from Unrestricted → Reserved (if needed)
+if (unrestrictedQtyToAllocate > 0) {
   inventoryMovements.push({
-    source: "Reserved",
-    quantity: reservedQty,
-    operation: "subtract",
-    movement_type: "DELIVERY",
+    quantity: unrestrictedQtyToAllocate,
+    movement_type: "UNRESTRICTED_TO_RESERVED",
   });
 }
 
-// Delivery from Unrestricted (shortfall)
-if (unrestrictedQty > 0) {
+// 2. LAST: Deliver ALL from Reserved (includes newly allocated qty)
+const totalDeliveryQty = reservedQty + unrestrictedQtyToAllocate;
+if (totalDeliveryQty > 0) {
   inventoryMovements.push({
-    source: "Unrestricted",
-    quantity: unrestrictedQty,
+    source: "Reserved",
+    quantity: totalDeliveryQty,
     operation: "subtract",
     movement_type: "DELIVERY",
   });

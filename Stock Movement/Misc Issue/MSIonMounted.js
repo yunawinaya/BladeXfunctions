@@ -236,8 +236,6 @@ const setStorageLocation = async (plantID) => {
           issued_by: nickName,
           issue_date: new Date().toISOString().split("T")[0],
         });
-
-        this.disabled(["stock_movement"], true);
         this.display(["draft_status", "button_save_as_draft"]);
 
         const plantID = setPlant(organizationId, pageStatus);
