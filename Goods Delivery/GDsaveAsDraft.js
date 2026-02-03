@@ -38,7 +38,7 @@ const validateForm = (data, requiredFields) => {
           const subValue = item[subField.name];
           if (validateField(subValue, subField)) {
             missingFields.push(
-              `${subField.label} (in ${field.label} #${index + 1})`
+              `${subField.label} (in ${field.label} #${index + 1})`,
             );
           }
         });
@@ -246,6 +246,19 @@ const fillbackHeaderFields = async (gd) => {
         gd_total: parseFloat(data.gd_total.toFixed(3)),
         reference_type: data.reference_type,
         gd_created_by: data.gd_created_by,
+
+        vess_car_model: data.vess_car_model,
+        vess_chassis: data.vess_chassis,
+        vess_color: data.vess_color,
+
+        order_tnc: data.order_tnc,
+        order_payment_details: data.order_payment_details,
+        order_delivery_term: data.order_delivery_term,
+        order_remark: data.order_remark,
+        order_remark2: data.order_remark2,
+        order_remark3: data.order_remark3,
+        order_remark4: data.order_remark4,
+        order_remark5: data.order_remark5,
       };
 
       // Clean up undefined/null values
@@ -283,7 +296,7 @@ const fillbackHeaderFields = async (gd) => {
     this.hideLoading();
     this.$message.error(
       error.message ||
-        "An error occurred while processing the goods delivery draft"
+        "An error occurred while processing the goods delivery draft",
     );
   } finally {
     console.log("Draft function execution completed");

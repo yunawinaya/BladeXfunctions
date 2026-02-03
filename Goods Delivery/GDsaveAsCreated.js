@@ -57,7 +57,7 @@ const getLatestFIFOCostPrice = async (
   batchId,
   deductionQty = null,
   previouslyConsumedQty = 0,
-  plantId
+  plantId,
 ) => {
   try {
     const query = batchId
@@ -76,7 +76,7 @@ const getLatestFIFOCostPrice = async (
     if (result && Array.isArray(result) && result.length > 0) {
       // Sort by FIFO sequence (lowest/oldest first, as per FIFO principle)
       const sortedRecords = result.sort(
-        (a, b) => a.fifo_sequence - b.fifo_sequence
+        (a, b) => a.fifo_sequence - b.fifo_sequence,
       );
 
       // Process previously consumed quantities to simulate their effect on available quantities
@@ -84,7 +84,7 @@ const getLatestFIFOCostPrice = async (
         let qtyToSkip = previouslyConsumedQty;
 
         console.log(
-          `Adjusting for ${previouslyConsumedQty} units already consumed in this transaction`
+          `Adjusting for ${previouslyConsumedQty} units already consumed in this transaction`,
         );
 
         // Simulate the effect of previous consumption on available quantities
@@ -98,14 +98,14 @@ const getLatestFIFOCostPrice = async (
           if (availableQty >= qtyToSkip) {
             record._adjustedAvailableQty = roundQty(availableQty - qtyToSkip);
             console.log(
-              `FIFO record ${record.fifo_sequence}: Adjusted available from ${availableQty} to ${record._adjustedAvailableQty} (consumed ${qtyToSkip})`
+              `FIFO record ${record.fifo_sequence}: Adjusted available from ${availableQty} to ${record._adjustedAvailableQty} (consumed ${qtyToSkip})`,
             );
             qtyToSkip = 0;
           } else {
             // Otherwise, consume all of this record and continue to next
             record._adjustedAvailableQty = 0;
             console.log(
-              `FIFO record ${record.fifo_sequence}: Fully consumed ${availableQty} units, no remainder`
+              `FIFO record ${record.fifo_sequence}: Fully consumed ${availableQty} units, no remainder`,
             );
             qtyToSkip = roundQty(qtyToSkip - availableQty);
           }
@@ -113,7 +113,7 @@ const getLatestFIFOCostPrice = async (
 
         if (qtyToSkip > 0) {
           console.warn(
-            `Warning: Could not account for all previously consumed quantity. Remaining: ${qtyToSkip}`
+            `Warning: Could not account for all previously consumed quantity. Remaining: ${qtyToSkip}`,
           );
         }
       }
@@ -126,12 +126,12 @@ const getLatestFIFOCostPrice = async (
           const availableQty = roundQty(
             record._adjustedAvailableQty !== undefined
               ? record._adjustedAvailableQty
-              : record.fifo_available_quantity || 0
+              : record.fifo_available_quantity || 0,
           );
 
           if (availableQty > 0) {
             console.log(
-              `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
+              `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`,
             );
             return roundPrice(record.fifo_cost_price || 0);
           }
@@ -139,10 +139,10 @@ const getLatestFIFOCostPrice = async (
 
         // If no records with available quantity, use the most recent record
         console.warn(
-          `No FIFO records with available quantity found for ${materialId}, using most recent cost price`
+          `No FIFO records with available quantity found for ${materialId}, using most recent cost price`,
         );
         return roundPrice(
-          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0,
         );
       }
 
@@ -153,7 +153,7 @@ const getLatestFIFOCostPrice = async (
 
       // Log the calculation process
       console.log(
-        `Calculating weighted average FIFO cost for ${materialId}, deduction quantity: ${remainingQtyToDeduct}`
+        `Calculating weighted average FIFO cost for ${materialId}, deduction quantity: ${remainingQtyToDeduct}`,
       );
 
       // Process each FIFO record in sequence until we've accounted for all deduction quantity
@@ -166,7 +166,7 @@ const getLatestFIFOCostPrice = async (
         const availableQty = roundQty(
           record._adjustedAvailableQty !== undefined
             ? record._adjustedAvailableQty
-            : record.fifo_available_quantity || 0
+            : record.fifo_available_quantity || 0,
         );
 
         if (availableQty <= 0) {
@@ -181,7 +181,7 @@ const getLatestFIFOCostPrice = async (
         totalDeductedQty = roundQty(totalDeductedQty + qtyToDeduct);
 
         console.log(
-          `FIFO record ${record.fifo_sequence}: Deducting ${qtyToDeduct} units at ${costPrice} per unit = ${costContribution}`
+          `FIFO record ${record.fifo_sequence}: Deducting ${qtyToDeduct} units at ${costPrice} per unit = ${costContribution}`,
         );
 
         remainingQtyToDeduct = roundQty(remainingQtyToDeduct - qtyToDeduct);
@@ -190,7 +190,7 @@ const getLatestFIFOCostPrice = async (
       // If we couldn't satisfy the full deduction from available records, issue a warning
       if (remainingQtyToDeduct > 0) {
         console.warn(
-          `Warning: Not enough FIFO quantity available. Remaining to deduct: ${remainingQtyToDeduct}`
+          `Warning: Not enough FIFO quantity available. Remaining to deduct: ${remainingQtyToDeduct}`,
         );
 
         // For the remaining quantity, use the last record's cost price
@@ -199,11 +199,11 @@ const getLatestFIFOCostPrice = async (
           const lastCostPrice = roundPrice(lastRecord.fifo_cost_price || 0);
 
           console.log(
-            `Using last FIFO record's cost price (${lastCostPrice}) for remaining ${remainingQtyToDeduct} units`
+            `Using last FIFO record's cost price (${lastCostPrice}) for remaining ${remainingQtyToDeduct} units`,
           );
 
           const additionalCost = roundPrice(
-            remainingQtyToDeduct * lastCostPrice
+            remainingQtyToDeduct * lastCostPrice,
           );
           totalCost = roundPrice(totalCost + additionalCost);
           totalDeductedQty = roundQty(totalDeductedQty + remainingQtyToDeduct);
@@ -214,7 +214,7 @@ const getLatestFIFOCostPrice = async (
       if (totalDeductedQty > 0) {
         const weightedAvgCost = roundPrice(totalCost / totalDeductedQty);
         console.log(
-          `Weighted Average FIFO Cost: ${totalCost} / ${totalDeductedQty} = ${weightedAvgCost}`
+          `Weighted Average FIFO Cost: ${totalCost} / ${totalDeductedQty} = ${weightedAvgCost}`,
         );
         return weightedAvgCost;
       }
@@ -260,7 +260,7 @@ const getWeightedAverageCostPrice = async (materialId, batchId, plantId) => {
     }
 
     console.warn(
-      `No weighted average records found for material ${materialId}`
+      `No weighted average records found for material ${materialId}`,
     );
     return 0;
   } catch (error) {
@@ -283,7 +283,7 @@ const getFixedCostPrice = async (materialId) => {
   } catch (error) {
     console.error(
       `Error retrieving fixed cost price for ${materialId}:`,
-      error
+      error,
     );
     return 0;
   }
@@ -291,7 +291,7 @@ const getFixedCostPrice = async (materialId) => {
 
 const getPrefixData = async (
   organizationId,
-  documentType = "Goods Delivery"
+  documentType = "Goods Delivery",
 ) => {
   console.log("Getting prefix data for organization:", organizationId);
   try {
@@ -322,13 +322,13 @@ const getPrefixData = async (
 const updatePrefix = async (
   organizationId,
   runningNumber,
-  documentType = "Goods Delivery"
+  documentType = "Goods Delivery",
 ) => {
   console.log(
     "Updating prefix for organization:",
     organizationId,
     "with running number:",
-    runningNumber
+    runningNumber,
   );
   try {
     await db
@@ -357,16 +357,16 @@ const generatePrefix = (runNumber, now, prefixData) => {
     generated = generated.replace("suffix", prefixData.suffix_value);
     generated = generated.replace(
       "month",
-      String(now.getMonth() + 1).padStart(2, "0")
+      String(now.getMonth() + 1).padStart(2, "0"),
     );
     generated = generated.replace(
       "day",
-      String(now.getDate()).padStart(2, "0")
+      String(now.getDate()).padStart(2, "0"),
     );
     generated = generated.replace("year", now.getFullYear());
     generated = generated.replace(
       "running_number",
-      String(runNumber).padStart(prefixData.padding_zeroes, "0")
+      String(runNumber).padStart(prefixData.padding_zeroes, "0"),
     );
     console.log("Generated prefix:", generated);
     return generated;
@@ -380,7 +380,7 @@ const checkUniqueness = async (
   generatedPrefix,
   organizationId,
   collection = "goods_delivery",
-  prefix = "delivery_no"
+  prefix = "delivery_no",
 ) => {
   const existingDoc = await db
     .collection(collection)
@@ -394,7 +394,7 @@ const findUniquePrefix = async (
   prefixData,
   organizationId,
   collection = "goods_delivery",
-  prefix = "delivery_no"
+  prefix = "delivery_no",
 ) => {
   const now = new Date();
   let prefixToShow;
@@ -410,7 +410,7 @@ const findUniquePrefix = async (
       prefixToShow,
       organizationId,
       collection,
-      prefix
+      prefix,
     );
     if (!isUnique) {
       runningNumber++;
@@ -419,7 +419,7 @@ const findUniquePrefix = async (
 
   if (!isUnique) {
     throw new Error(
-      "Could not generate a unique Goods Delivery number after maximum attempts"
+      "Could not generate a unique Goods Delivery number after maximum attempts",
     );
   }
 
@@ -430,18 +430,18 @@ const findUniquePrefix = async (
 const handleExistingInventoryMovements = async (
   plantId,
   deliveryNo,
-  isUpdate = false
+  isUpdate = false,
 ) => {
   if (!isUpdate) {
     console.log(
-      "Not an update operation, skipping existing inventory movement handling"
+      "Not an update operation, skipping existing inventory movement handling",
     );
     return;
   }
 
   try {
     console.log(
-      `Handling existing inventory movements for delivery: ${deliveryNo}`
+      `Handling existing inventory movements for delivery: ${deliveryNo}`,
     );
 
     // Find all existing inventory movements for this GD
@@ -457,19 +457,19 @@ const handleExistingInventoryMovements = async (
 
     if (existingMovements.data && existingMovements.data.length > 0) {
       console.log(
-        `Found ${existingMovements.data.length} existing inventory movements to mark as deleted`
+        `Found ${existingMovements.data.length} existing inventory movements to mark as deleted`,
       );
 
       // Mark all existing movements as deleted
       const updatePromises = existingMovements.data.map((movement) =>
         db.collection("inventory_movement").doc(movement.id).update({
           is_deleted: 1,
-        })
+        }),
       );
 
       await Promise.all(updatePromises);
       console.log(
-        "Successfully marked existing inventory movements as deleted"
+        "Successfully marked existing inventory movements as deleted",
       );
     } else {
       console.log("No existing inventory movements found for this delivery");
@@ -479,11 +479,11 @@ const handleExistingInventoryMovements = async (
     // Use the existing movement IDs to directly query serial movements
     if (existingMovements.data && existingMovements.data.length > 0) {
       const inventoryMovementIds = existingMovements.data.map(
-        (movement) => movement.id
+        (movement) => movement.id,
       );
 
       console.log(
-        `Querying serial movements for ${inventoryMovementIds.length} inventory movement IDs`
+        `Querying serial movements for ${inventoryMovementIds.length} inventory movement IDs`,
       );
 
       // Query serial movements for each inventory movement ID
@@ -503,11 +503,11 @@ const handleExistingInventoryMovements = async (
           } catch (error) {
             console.error(
               `Error fetching serial movements for movement ID ${movementId}:`,
-              error
+              error,
             );
             return [];
           }
-        }
+        },
       );
 
       const serialMovementResults = await Promise.all(serialMovementPromises);
@@ -517,13 +517,13 @@ const handleExistingInventoryMovements = async (
 
       if (allSerialMovements.length > 0) {
         console.log(
-          `Found ${allSerialMovements.length} existing serial movements to mark as deleted`
+          `Found ${allSerialMovements.length} existing serial movements to mark as deleted`,
         );
 
         const serialUpdatePromises = allSerialMovements.map((movement) =>
           db.collection("inv_serial_movement").doc(movement.id).update({
             is_deleted: 1,
-          })
+          }),
         );
 
         await Promise.all(serialUpdatePromises);
@@ -542,7 +542,7 @@ const handleExistingInventoryMovements = async (
 const reverseBalanceChanges = async (
   data,
   isUpdate = false,
-  organizationId
+  organizationId,
 ) => {
   if (!isUpdate) {
     console.log("Not an update operation, skipping balance reversal");
@@ -550,7 +550,7 @@ const reverseBalanceChanges = async (
   }
 
   console.log(
-    "Reversing previous balance changes (including serialized items)"
+    "Reversing previous balance changes (including serialized items)",
   );
   const items = data.table_gd;
 
@@ -580,7 +580,7 @@ const reverseBalanceChanges = async (
       const itemData = itemRes.data[0];
       if (itemData.stock_control === 0) {
         console.log(
-          `Skipping balance reversal for item ${item.material_id} (stock_control=0)`
+          `Skipping balance reversal for item ${item.material_id} (stock_control=0)`,
         );
         continue;
       }
@@ -597,7 +597,7 @@ const reverseBalanceChanges = async (
           itemData.table_uom_conversion.length > 0
         ) {
           const uomConversion = itemData.table_uom_conversion.find(
-            (conv) => conv.alt_uom_id === item.gd_order_uom_id
+            (conv) => conv.alt_uom_id === item.gd_order_uom_id,
           );
 
           if (uomConversion) {
@@ -635,15 +635,15 @@ const reverseBalanceChanges = async (
               .update({
                 unrestricted_qty: roundQty(
                   parseFloat(existingSerialDoc.unrestricted_qty || 0) +
-                    prevBaseQty
+                    prevBaseQty,
                 ),
                 reserved_qty: roundQty(
-                  parseFloat(existingSerialDoc.reserved_qty || 0) - prevBaseQty
+                  parseFloat(existingSerialDoc.reserved_qty || 0) - prevBaseQty,
                 ),
               });
 
             console.log(
-              `Reversed serial balance for item ${item.material_id}, serial ${prevTemp.serial_number}`
+              `Reversed serial balance for item ${item.material_id}, serial ${prevTemp.serial_number}`,
             );
           }
         } else {
@@ -677,15 +677,15 @@ const reverseBalanceChanges = async (
               .doc(existingDoc.id)
               .update({
                 unrestricted_qty: roundQty(
-                  parseFloat(existingDoc.unrestricted_qty || 0) + prevBaseQty
+                  parseFloat(existingDoc.unrestricted_qty || 0) + prevBaseQty,
                 ),
                 reserved_qty: roundQty(
-                  parseFloat(existingDoc.reserved_qty || 0) - prevBaseQty
+                  parseFloat(existingDoc.reserved_qty || 0) - prevBaseQty,
                 ),
               });
 
             console.log(
-              `Reversed balance for item ${item.material_id}, location ${prevTemp.location_id}`
+              `Reversed balance for item ${item.material_id}, location ${prevTemp.location_id}`,
             );
 
             // ADDED: For batch items, also update aggregate item_balance (without batch_id)
@@ -718,15 +718,15 @@ const reverseBalanceChanges = async (
                   .update({
                     unrestricted_qty: roundQty(
                       parseFloat(aggregateDoc.unrestricted_qty || 0) +
-                        prevBaseQty
+                        prevBaseQty,
                     ),
                     reserved_qty: roundQty(
-                      parseFloat(aggregateDoc.reserved_qty || 0) - prevBaseQty
+                      parseFloat(aggregateDoc.reserved_qty || 0) - prevBaseQty,
                     ),
                   });
 
                 console.log(
-                  `Reversed aggregate item_balance for batch item ${item.material_id}, location ${prevTemp.location_id}`
+                  `Reversed aggregate item_balance for batch item ${item.material_id}, location ${prevTemp.location_id}`,
                 );
               }
             }
@@ -736,7 +736,7 @@ const reverseBalanceChanges = async (
     } catch (error) {
       console.error(
         `Error reversing balance for item ${item.material_id}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -793,7 +793,7 @@ const validateInventoryAvailability = async (data, organizationId) => {
           itemData.table_uom_conversion.length > 0
         ) {
           const uomConversion = itemData.table_uom_conversion.find(
-            (conv) => conv.alt_uom_id === item.gd_order_uom_id
+            (conv) => conv.alt_uom_id === item.gd_order_uom_id,
           );
 
           if (uomConversion) {
@@ -1007,7 +1007,7 @@ const processBalanceTableWithValidation = async (
   isUpdate = false,
   oldDeliveryNo = null,
   gdStatus = null,
-  organizationId
+  organizationId,
 ) => {
   console.log("Processing balance table");
 
@@ -1016,7 +1016,7 @@ const processBalanceTableWithValidation = async (
     await handleExistingInventoryMovements(
       data.plant_id,
       oldDeliveryNo,
-      isUpdate
+      isUpdate,
     );
     await reverseBalanceChanges(data, isUpdate, organizationId);
   }
@@ -1073,7 +1073,7 @@ const processBalanceTableWithValidation = async (
       itemData,
       data,
       consumedFIFOQty,
-      organizationId
+      organizationId,
     );
   }
 
@@ -1084,7 +1084,7 @@ const processBalanceTableWithValidation = async (
       itemData,
       data,
       consumedFIFOQty,
-      organizationId
+      organizationId,
     );
   }
 
@@ -1098,7 +1098,7 @@ const processItemBalance = async (
   itemData,
   data,
   consumedFIFOQty,
-  organizationId
+  organizationId,
 ) => {
   const temporaryData = parseJsonSafely(item.temp_qty_data);
 
@@ -1111,7 +1111,7 @@ const processItemBalance = async (
   const isSerializedItem = itemData.serial_number_management === 1;
   const isBatchManagedItem = itemData.item_batch_management === 1;
   console.log(
-    `Processing item ${item.material_id}, serialized: ${isSerializedItem}, batch: ${isBatchManagedItem}`
+    `Processing item ${item.material_id}, serialized: ${isSerializedItem}, batch: ${isBatchManagedItem}`,
   );
 
   // Track created documents for potential rollback
@@ -1146,13 +1146,13 @@ const processItemBalance = async (
     }
 
     console.log(
-      `Grouped ${temporaryData.length} items into ${groupedTempData.size} movement groups`
+      `Grouped ${temporaryData.length} items into ${groupedTempData.size} movement groups`,
     );
 
     // Process each group to create consolidated movements
     for (const [groupKey, group] of groupedTempData) {
       console.log(
-        `Processing group: ${groupKey} with ${group.items.length} items, total qty: ${group.totalQty}`
+        `Processing group: ${groupKey} with ${group.items.length} items, total qty: ${group.totalQty}`,
       );
 
       // UOM Conversion for the group
@@ -1167,7 +1167,7 @@ const processItemBalance = async (
         itemData.table_uom_conversion.length > 0
       ) {
         uomConversion = itemData.table_uom_conversion.find(
-          (conv) => conv.alt_uom_id === altUOM
+          (conv) => conv.alt_uom_id === altUOM,
         );
 
         if (uomConversion) {
@@ -1194,7 +1194,7 @@ const processItemBalance = async (
           group.batch_id,
           baseQty,
           previouslyConsumedQty,
-          data.plant_id
+          data.plant_id,
         );
 
         consumedFIFOQty.set(materialBatchKey, previouslyConsumedQty + baseQty);
@@ -1205,7 +1205,7 @@ const processItemBalance = async (
         const waCostPrice = await getWeightedAverageCostPrice(
           item.material_id,
           group.batch_id,
-          data.plant_id
+          data.plant_id,
         );
         unitPrice = roundPrice(waCostPrice);
         totalPrice = roundPrice(waCostPrice * baseQty);
@@ -1264,14 +1264,14 @@ const processItemBalance = async (
       let outMovementId = null;
       if (outMovementQuery.data && outMovementQuery.data.length > 0) {
         outMovementId = outMovementQuery.data.sort(
-          (a, b) => new Date(b.create_time) - new Date(a.create_time)
+          (a, b) => new Date(b.create_time) - new Date(a.create_time),
         )[0].id;
         createdDocs.push({
           collection: "inventory_movement",
           docId: outMovementId,
         });
         console.log(
-          `Created consolidated OUT movement for group ${groupKey}: ${baseQty}, ID: ${outMovementId}`
+          `Created consolidated OUT movement for group ${groupKey}: ${baseQty}, ID: ${outMovementId}`,
         );
       }
 
@@ -1304,25 +1304,25 @@ const processItemBalance = async (
       let inMovementId = null;
       if (inMovementQuery.data && inMovementQuery.data.length > 0) {
         inMovementId = inMovementQuery.data.sort(
-          (a, b) => new Date(b.create_time) - new Date(a.create_time)
+          (a, b) => new Date(b.create_time) - new Date(a.create_time),
         )[0].id;
         createdDocs.push({
           collection: "inventory_movement",
           docId: inMovementId,
         });
         console.log(
-          `Created consolidated IN movement for group ${groupKey}: ${baseQty}, ID: ${inMovementId}`
+          `Created consolidated IN movement for group ${groupKey}: ${baseQty}, ID: ${inMovementId}`,
         );
       }
 
       console.log(
-        `Created consolidated movements for group ${groupKey}: OUT ${baseQty}, IN ${baseQty}`
+        `Created consolidated movements for group ${groupKey}: OUT ${baseQty}, IN ${baseQty}`,
       );
 
       // Create INDIVIDUAL inv_serial_movement records for each serial in the group
       if (isSerializedItem && outMovementId && inMovementId) {
         console.log(
-          `Creating inv_serial_movement records for ${group.items.length} serialized items`
+          `Creating inv_serial_movement records for ${group.items.length} serialized items`,
         );
 
         for (const temp of group.items) {
@@ -1331,12 +1331,12 @@ const processItemBalance = async (
             let individualBaseQty = roundQty(temp.gd_quantity);
             if (uomConversion) {
               individualBaseQty = roundQty(
-                individualBaseQty * uomConversion.base_qty
+                individualBaseQty * uomConversion.base_qty,
               );
             }
 
             console.log(
-              `Creating OUT inv_serial_movement for serial ${temp.serial_number}, qty: ${individualBaseQty}`
+              `Creating OUT inv_serial_movement for serial ${temp.serial_number}, qty: ${individualBaseQty}`,
             );
 
             // Create OUT serial movement
@@ -1368,19 +1368,19 @@ const processItemBalance = async (
               outSerialMovementQuery.data.length > 0
             ) {
               const outSerialMovementId = outSerialMovementQuery.data.sort(
-                (a, b) => new Date(b.create_time) - new Date(a.create_time)
+                (a, b) => new Date(b.create_time) - new Date(a.create_time),
               )[0].id;
               createdDocs.push({
                 collection: "inv_serial_movement",
                 docId: outSerialMovementId,
               });
               console.log(
-                `✓ Created OUT inv_serial_movement for serial ${temp.serial_number}, ID: ${outSerialMovementId}`
+                `✓ Created OUT inv_serial_movement for serial ${temp.serial_number}, ID: ${outSerialMovementId}`,
               );
             }
 
             console.log(
-              `Creating IN inv_serial_movement for serial ${temp.serial_number}, qty: ${individualBaseQty}`
+              `Creating IN inv_serial_movement for serial ${temp.serial_number}, qty: ${individualBaseQty}`,
             );
 
             // Create IN serial movement
@@ -1412,14 +1412,14 @@ const processItemBalance = async (
               inSerialMovementQuery.data.length > 0
             ) {
               const inSerialMovementId = inSerialMovementQuery.data.sort(
-                (a, b) => new Date(b.create_time) - new Date(a.create_time)
+                (a, b) => new Date(b.create_time) - new Date(a.create_time),
               )[0].id;
               createdDocs.push({
                 collection: "inv_serial_movement",
                 docId: inSerialMovementId,
               });
               console.log(
-                `✓ Created IN inv_serial_movement for serial ${temp.serial_number}, ID: ${inSerialMovementId}`
+                `✓ Created IN inv_serial_movement for serial ${temp.serial_number}, ID: ${inSerialMovementId}`,
               );
             }
           }
@@ -1429,7 +1429,7 @@ const processItemBalance = async (
             group.items.length * 2
           } individual serial movement records for group ${groupKey} (${
             group.items.length
-          } OUT + ${group.items.length} IN)`
+          } OUT + ${group.items.length} IN)`,
         );
       }
 
@@ -1462,7 +1462,7 @@ const processItemBalance = async (
               let individualBaseQty = roundQty(temp.gd_quantity);
               if (uomConversion) {
                 individualBaseQty = roundQty(
-                  individualBaseQty * uomConversion.base_qty
+                  individualBaseQty * uomConversion.base_qty,
                 );
               }
 
@@ -1475,7 +1475,7 @@ const processItemBalance = async (
               // Add balance_quantity if it exists in the table structure
               if (serialDoc.hasOwnProperty("balance_quantity")) {
                 originalData.balance_quantity = roundQty(
-                  parseFloat(serialDoc.balance_quantity || 0)
+                  parseFloat(serialDoc.balance_quantity || 0),
                 );
               }
 
@@ -1487,10 +1487,10 @@ const processItemBalance = async (
 
               // Calculate final quantities: move from unrestricted to reserved
               const finalUnrestrictedQty = roundQty(
-                parseFloat(serialDoc.unrestricted_qty || 0) - individualBaseQty
+                parseFloat(serialDoc.unrestricted_qty || 0) - individualBaseQty,
               );
               const finalReservedQty = roundQty(
-                parseFloat(serialDoc.reserved_qty || 0) + individualBaseQty
+                parseFloat(serialDoc.reserved_qty || 0) + individualBaseQty,
               );
 
               // Prepare update data
@@ -1502,7 +1502,7 @@ const processItemBalance = async (
               // Add balance_quantity if it exists in the table structure
               if (serialDoc.hasOwnProperty("balance_quantity")) {
                 updateData.balance_quantity = roundQty(
-                  finalUnrestrictedQty + finalReservedQty
+                  finalUnrestrictedQty + finalReservedQty,
                 );
               }
 
@@ -1516,7 +1516,7 @@ const processItemBalance = async (
                   `Unrestricted=${finalUnrestrictedQty}, Reserved=${finalReservedQty}` +
                   (updateData.balance_quantity
                     ? `, Balance=${updateData.balance_quantity}`
-                    : "")
+                    : ""),
               );
             }
           }
@@ -1539,24 +1539,24 @@ const processItemBalance = async (
         if (generalBalanceQuery.data && generalBalanceQuery.data.length > 0) {
           const generalBalance = generalBalanceQuery.data[0];
           const currentGeneralUnrestrictedQty = roundQty(
-            parseFloat(generalBalance.unrestricted_qty || 0)
+            parseFloat(generalBalance.unrestricted_qty || 0),
           );
           const currentGeneralReservedQty = roundQty(
-            parseFloat(generalBalance.reserved_qty || 0)
+            parseFloat(generalBalance.reserved_qty || 0),
           );
           const currentGeneralBalanceQty = roundQty(
-            parseFloat(generalBalance.balance_quantity || 0)
+            parseFloat(generalBalance.balance_quantity || 0),
           );
 
           // Apply the same logic: move from unrestricted to reserved
           const finalGeneralUnrestrictedQty = roundQty(
-            currentGeneralUnrestrictedQty - baseQty
+            currentGeneralUnrestrictedQty - baseQty,
           );
           const finalGeneralReservedQty = roundQty(
-            currentGeneralReservedQty + baseQty
+            currentGeneralReservedQty + baseQty,
           );
           const finalGeneralBalanceQty = roundQty(
-            currentGeneralBalanceQty // Balance quantity stays the same
+            currentGeneralBalanceQty, // Balance quantity stays the same
           );
 
           const generalOriginalData = {
@@ -1579,11 +1579,11 @@ const processItemBalance = async (
 
           console.log(
             `Updated item_balance for serialized item ${item.material_id} at ${group.location_id}: ` +
-              `moved ${baseQty} from unrestricted to reserved`
+              `moved ${baseQty} from unrestricted to reserved`,
           );
         } else {
           console.warn(
-            `No item_balance record found for serialized item ${item.material_id} at location ${group.location_id}`
+            `No item_balance record found for serialized item ${item.material_id} at location ${group.location_id}`,
           );
         }
       } else {
@@ -1623,13 +1623,13 @@ const processItemBalance = async (
 
           // Calculate final quantities: move from unrestricted to reserved
           const finalUnrestrictedQty = roundQty(
-            parseFloat(existingDoc.unrestricted_qty || 0) - baseQty
+            parseFloat(existingDoc.unrestricted_qty || 0) - baseQty,
           );
           const finalReservedQty = roundQty(
-            parseFloat(existingDoc.reserved_qty || 0) + baseQty
+            parseFloat(existingDoc.reserved_qty || 0) + baseQty,
           );
           const finalBalanceQty = roundQty(
-            parseFloat(existingDoc.balance_quantity || 0) // Balance quantity stays the same
+            parseFloat(existingDoc.balance_quantity || 0), // Balance quantity stays the same
           );
 
           await db.collection(balanceCollection).doc(existingDoc.id).update({
@@ -1639,7 +1639,7 @@ const processItemBalance = async (
           });
 
           console.log(
-            `Updated ${balanceCollection} for group ${groupKey}: moved ${baseQty} from unrestricted to reserved`
+            `Updated ${balanceCollection} for group ${groupKey}: moved ${baseQty} from unrestricted to reserved`,
           );
 
           // ADDED: For batch items, also update item_balance (aggregated balance)
@@ -1663,24 +1663,24 @@ const processItemBalance = async (
             ) {
               const generalBalance = generalBalanceQuery.data[0];
               const currentGeneralUnrestrictedQty = roundQty(
-                parseFloat(generalBalance.unrestricted_qty || 0)
+                parseFloat(generalBalance.unrestricted_qty || 0),
               );
               const currentGeneralReservedQty = roundQty(
-                parseFloat(generalBalance.reserved_qty || 0)
+                parseFloat(generalBalance.reserved_qty || 0),
               );
               const currentGeneralBalanceQty = roundQty(
-                parseFloat(generalBalance.balance_quantity || 0)
+                parseFloat(generalBalance.balance_quantity || 0),
               );
 
               // Apply the same logic: move from unrestricted to reserved
               const finalGeneralUnrestrictedQty = roundQty(
-                currentGeneralUnrestrictedQty - baseQty
+                currentGeneralUnrestrictedQty - baseQty,
               );
               const finalGeneralReservedQty = roundQty(
-                currentGeneralReservedQty + baseQty
+                currentGeneralReservedQty + baseQty,
               );
               const finalGeneralBalanceQty = roundQty(
-                currentGeneralBalanceQty // Balance quantity stays the same
+                currentGeneralBalanceQty, // Balance quantity stays the same
               );
 
               const generalOriginalData = {
@@ -1706,11 +1706,11 @@ const processItemBalance = async (
 
               console.log(
                 `Updated item_balance for batch item ${item.material_id} at ${group.location_id}: ` +
-                  `moved ${baseQty} from unrestricted to reserved`
+                  `moved ${baseQty} from unrestricted to reserved`,
               );
             } else {
               console.warn(
-                `No item_balance record found for batch item ${item.material_id} at location ${group.location_id}`
+                `No item_balance record found for batch item ${item.material_id} at location ${group.location_id}`,
               );
             }
           }
@@ -1719,7 +1719,7 @@ const processItemBalance = async (
     }
 
     console.log(
-      `Successfully processed ${groupedTempData.size} consolidated movement groups for item ${item.material_id}`
+      `Successfully processed ${groupedTempData.size} consolidated movement groups for item ${item.material_id}`,
     );
   } catch (error) {
     console.error(`Error processing item ${item.material_id}:`, error);
@@ -1782,7 +1782,7 @@ const validateForm = (data, requiredFields) => {
           const subValue = item[subField.name];
           if (validateField(subValue)) {
             missingFields.push(
-              `${subField.label} (in ${field.label} #${index + 1})`
+              `${subField.label} (in ${field.label} #${index + 1})`,
             );
           }
         });
@@ -1803,7 +1803,7 @@ const validateForm = (data, requiredFields) => {
 
       if (!hasValidQuantity) {
         missingFields.push(
-          "All delivery quantities are zero - please allocate stock or set delivery quantities"
+          "All delivery quantities are zero - please allocate stock or set delivery quantities",
         );
       }
 
@@ -1823,12 +1823,12 @@ const validateForm = (data, requiredFields) => {
         const invalidItemNames = invalidItems
           .map(
             (item) =>
-              item.material_name || item.gd_material_desc || "Unknown Item"
+              item.material_name || item.gd_material_desc || "Unknown Item",
           )
           .join(", ");
 
         missingFields.push(
-          `Items with quantities but no stock allocation: ${invalidItemNames}`
+          `Items with quantities but no stock allocation: ${invalidItemNames}`,
         );
       }
     }
@@ -1860,7 +1860,7 @@ const addEntry = async (organizationId, gd) => {
           prefixData,
           organizationId,
           "goods_delivery",
-          "delivery_no"
+          "delivery_no",
         );
 
       runningNumber = newRunningNumber;
@@ -1869,7 +1869,7 @@ const addEntry = async (organizationId, gd) => {
       const isUnique = await checkUniqueness(gd.delivery_no, organizationId);
       if (!isUnique) {
         throw new Error(
-          `GD Number "${gd.delivery_no}" already exists. Please use a different number.`
+          `GD Number "${gd.delivery_no}" already exists. Please use a different number.`,
         );
       }
     }
@@ -1878,7 +1878,7 @@ const addEntry = async (organizationId, gd) => {
     console.log("Validating inventory availability in addEntry");
     const validationResult = await validateInventoryAvailability(
       gd,
-      organizationId
+      organizationId,
     );
 
     if (!validationResult.isValid) {
@@ -1891,7 +1891,7 @@ const addEntry = async (organizationId, gd) => {
       false,
       null,
       null,
-      organizationId
+      organizationId,
     );
 
     // Step 4: Add the record ONLY after inventory processing succeeds
@@ -1943,7 +1943,7 @@ const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
             prefixData,
             organizationId,
             "goods_delivery",
-            "delivery_no"
+            "delivery_no",
           );
 
         runningNumber = newRunningNumber;
@@ -1952,7 +1952,7 @@ const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
         const isUnique = await checkUniqueness(gd.delivery_no, organizationId);
         if (!isUnique) {
           throw new Error(
-            `GD Number "${gd.delivery_no}" already exists. Please use a different number.`
+            `GD Number "${gd.delivery_no}" already exists. Please use a different number.`,
           );
         }
       }
@@ -1961,16 +1961,16 @@ const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
     // Step 2: VALIDATE INVENTORY AVAILABILITY FIRST (only for Draft to Created)
     if (gdStatus === "Draft") {
       console.log(
-        "Validating inventory availability in updateEntry for Draft to Created"
+        "Validating inventory availability in updateEntry for Draft to Created",
       );
       const validationResult = await validateInventoryAvailability(
         gd,
-        organizationId
+        organizationId,
       );
 
       if (!validationResult.isValid) {
         throw new Error(
-          `Inventory validation failed: ${validationResult.error}`
+          `Inventory validation failed: ${validationResult.error}`,
         );
       }
     }
@@ -1981,7 +1981,7 @@ const updateEntry = async (organizationId, gd, goodsDeliveryId, gdStatus) => {
       true,
       oldDeliveryNo,
       gdStatus,
-      organizationId
+      organizationId,
     );
 
     // Step 4: Update the record ONLY after inventory processing succeeds
@@ -2041,7 +2041,7 @@ const sendNotification = async (notificationParam) => {
     notificationParam,
     async (res) => {
       console.log("Notification sent successfully:", res);
-    }
+    },
   ).catch((err) => {
     this.$message.error("Workflow execution failed");
     console.error("Workflow execution failed:", err);
@@ -2053,7 +2053,7 @@ const createOrUpdatePicking = async (
   gdId,
   organizationId,
   isUpdate = false,
-  pickingSetupResponse
+  pickingSetupResponse,
 ) => {
   try {
     let pickingSetupData;
@@ -2069,12 +2069,12 @@ const createOrUpdatePicking = async (
 
       if (pickingSetupResponse.data.length === 0) {
         console.log(
-          `No picking required for plant ${gdData.plant_id} - continuing without Transfer Order`
+          `No picking required for plant ${gdData.plant_id} - continuing without Transfer Order`,
         );
         return { pickingStatus: null };
       } else if (pickingSetupResponse.data.length > 1) {
         console.warn(
-          `Multiple picking setups found for plant ${gdData.plant_id}, using first active one`
+          `Multiple picking setups found for plant ${gdData.plant_id}, using first active one`,
         );
         pickingSetupData = pickingSetupResponse.data[0];
       } else {
@@ -2157,19 +2157,19 @@ const createOrUpdatePicking = async (
                       const group = updatedPickingItemGroups.get(groupKey);
                       group.qty_to_pick += parseFloat(tempItem.gd_quantity);
                       group.pending_process_qty += parseFloat(
-                        tempItem.gd_quantity
+                        tempItem.gd_quantity,
                       );
 
                       // Add serial number if exists
                       if (tempItem.serial_number) {
                         group.serial_numbers.push(
-                          String(tempItem.serial_number)
+                          String(tempItem.serial_number),
                         );
                       }
                     });
                   } catch (error) {
                     console.error(
-                      `Error parsing temp_qty_data for picking: ${error.message}`
+                      `Error parsing temp_qty_data for picking: ${error.message}`,
                     );
                   }
                 }
@@ -2209,7 +2209,7 @@ const createOrUpdatePicking = async (
                 })
                 .then(() => {
                   console.log(
-                    `Transfer order ${existingTO.to_id} updated successfully`
+                    `Transfer order ${existingTO.to_id} updated successfully`,
                   );
                 })
                 .catch((error) => {
@@ -2229,12 +2229,12 @@ const createOrUpdatePicking = async (
 
                 // Users who were removed
                 const removedUsers = oldAssigned.filter(
-                  (userId) => !newAssigned.includes(userId)
+                  (userId) => !newAssigned.includes(userId),
                 );
 
                 // Users who were added
                 const addedUsers = newAssigned.filter(
-                  (userId) => !oldAssigned.includes(userId)
+                  (userId) => !oldAssigned.includes(userId),
                 );
 
                 console.log(`Removed users: ${removedUsers.join(", ")}`);
@@ -2257,15 +2257,15 @@ const createOrUpdatePicking = async (
                     try {
                       await sendNotification(notificationParam);
                       console.log(
-                        `Cancellation notification sent to user: ${userId}`
+                        `Cancellation notification sent to user: ${userId}`,
                       );
                     } catch (error) {
                       console.error(
                         `Failed to send cancellation notification to ${userId}:`,
-                        error
+                        error,
                       );
                     }
-                  }
+                  },
                 );
 
                 // Send new assignment notifications to added users
@@ -2284,12 +2284,12 @@ const createOrUpdatePicking = async (
                   try {
                     await sendNotification(notificationParam);
                     console.log(
-                      `Assignment notification sent to user: ${userId}`
+                      `Assignment notification sent to user: ${userId}`,
                     );
                   } catch (error) {
                     console.error(
                       `Failed to send assignment notification to ${userId}:`,
-                      error
+                      error,
                     );
                   }
                 });
@@ -2308,13 +2308,13 @@ const createOrUpdatePicking = async (
               return { pickingStatus };
             } else {
               console.log(
-                "No existing Transfer Order found for update, creating new one"
+                "No existing Transfer Order found for update, creating new one",
               );
             }
           } catch (error) {
             console.error(
               "Error checking/updating existing Transfer Order:",
-              error
+              error,
             );
             throw error;
           }
@@ -2390,7 +2390,7 @@ const createOrUpdatePicking = async (
               });
             } catch (error) {
               console.error(
-                `Error parsing temp_qty_data for new TO: ${error.message}`
+                `Error parsing temp_qty_data for new TO: ${error.message}`,
               );
             }
           }
@@ -2412,7 +2412,7 @@ const createOrUpdatePicking = async (
 
         const prefixData = await getPrefixData(
           organizationId,
-          "Transfer Order"
+          "Transfer Order",
         );
 
         if (prefixData) {
@@ -2420,7 +2420,7 @@ const createOrUpdatePicking = async (
             prefixData,
             organizationId,
             "transfer_order",
-            "to_id"
+            "to_id",
           );
 
           await updatePrefix(organizationId, runningNumber, "Transfer Order");
@@ -2464,7 +2464,7 @@ const createOrUpdatePicking = async (
 const checkExistingReservedGoods = async (
   soNumbers,
   currentGdId = null,
-  organizationId
+  organizationId,
 ) => {
   try {
     // Handle multiple SO numbers - convert to array if it's a string
@@ -2489,7 +2489,7 @@ const checkExistingReservedGoods = async (
     }
 
     console.log(
-      `Checking existing reserved goods for SOs: ${soArray.join(", ")}`
+      `Checking existing reserved goods for SOs: ${soArray.join(", ")}`,
     );
 
     // Check each SO number for conflicts
@@ -2515,7 +2515,7 @@ const checkExistingReservedGoods = async (
         if (currentGdResponse.data && currentGdResponse.data.length > 0) {
           const currentGdNo = currentGdResponse.data[0].delivery_no;
           console.log(
-            `Excluding current GD ${currentGdNo} from validation check for SO ${soNo}`
+            `Excluding current GD ${currentGdNo} from validation check for SO ${soNo}`,
           );
 
           // Get all reserved goods for this specific SO
@@ -2527,18 +2527,18 @@ const checkExistingReservedGoods = async (
           if (allReservedResponse.data && allReservedResponse.data.length > 0) {
             // Filter out records belonging to the current GD
             const otherReservedRecords = allReservedResponse.data.filter(
-              (record) => record.doc_no !== currentGdNo
+              (record) => record.doc_no !== currentGdNo,
             );
 
             // Check if any other GD has open quantities for this SO
             const hasOpenQty = otherReservedRecords.some(
-              (record) => parseFloat(record.open_qty || 0) > 0
+              (record) => parseFloat(record.open_qty || 0) > 0,
             );
 
             if (hasOpenQty) {
               // Get the GD number that has open quantities
               const conflictingRecord = otherReservedRecords.find(
-                (record) => parseFloat(record.open_qty || 0) > 0
+                (record) => parseFloat(record.open_qty || 0) > 0,
               );
               return {
                 hasConflict: true,
@@ -2558,13 +2558,13 @@ const checkExistingReservedGoods = async (
         if (reservedResponse.data && reservedResponse.data.length > 0) {
           // Check if any record has open_qty > 0 for this SO
           const hasOpenQty = reservedResponse.data.some(
-            (record) => parseFloat(record.open_qty || 0) > 0
+            (record) => parseFloat(record.open_qty || 0) > 0,
           );
 
           if (hasOpenQty) {
             // Get the GD number that has open quantities
             const conflictingRecord = reservedResponse.data.find(
-              (record) => parseFloat(record.open_qty || 0) > 0
+              (record) => parseFloat(record.open_qty || 0) > 0,
             );
             return {
               hasConflict: true,
@@ -2595,7 +2595,7 @@ const createOnReserveGoodsDelivery = async (organizationId, gdData) => {
 
       if (!gdLineItem.material_id || gdLineItem.material_id === "") {
         console.log(
-          `Skipping item ${gdLineItem.material_id} due to no material_id`
+          `Skipping item ${gdLineItem.material_id} due to no material_id`,
         );
         continue;
       }
@@ -2641,12 +2641,12 @@ const createOnReserveGoodsDelivery = async (organizationId, gdData) => {
 
     // Batch create all reserved records
     const createPromises = reservedDataBatch.map((data) =>
-      db.collection("on_reserved_gd").add(data)
+      db.collection("on_reserved_gd").add(data),
     );
 
     await Promise.all(createPromises);
     console.log(
-      `Created ${reservedDataBatch.length} reserved goods records (including serialized items)`
+      `Created ${reservedDataBatch.length} reserved goods records (including serialized items)`,
     );
   } catch (error) {
     console.error("Error in createOnReserveGoodsDelivery:", error);
@@ -2658,7 +2658,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
   try {
     console.log(
       "Updating on_reserved_gd records for delivery:",
-      gdData.delivery_no
+      gdData.delivery_no,
     );
 
     // Get existing records for this GD
@@ -2714,7 +2714,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
 
     if (existingReserved.data && existingReserved.data.length > 0) {
       console.log(
-        `Found ${existingReserved.data.length} existing reserved records to update`
+        `Found ${existingReserved.data.length} existing reserved records to update`,
       );
 
       const updatePromises = [];
@@ -2729,7 +2729,10 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
         const newData = newReservedData[i];
 
         updatePromises.push(
-          db.collection("on_reserved_gd").doc(existingRecord.id).update(newData)
+          db
+            .collection("on_reserved_gd")
+            .doc(existingRecord.id)
+            .update(newData),
         );
       }
 
@@ -2744,7 +2747,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
           updatePromises.push(
             db.collection("on_reserved_gd").doc(extraRecord.id).update({
               is_deleted: 1,
-            })
+            }),
           );
         }
       }
@@ -2767,7 +2770,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
 
       await Promise.all(updatePromises);
       console.log(
-        "Successfully updated existing reserved records (including serialized items)"
+        "Successfully updated existing reserved records (including serialized items)",
       );
     } else {
       // No existing records, create new ones
@@ -2836,7 +2839,7 @@ const checkQuantitiesBySoId = async (tableGD) => {
         errors.push(line_so_no);
       }
       return { line_so_no, totalQuantity };
-    }
+    },
   );
 
   // Step 3: Return results and errors
@@ -2851,8 +2854,8 @@ const fetchDeliveredQuantity = async () => {
   console.log("tableGD", tableGD);
   const resSOLineData = await Promise.all(
     tableGD.map((item) =>
-      db.collection("sales_order_axszx8cj_sub").doc(item.so_line_item_id).get()
-    )
+      db.collection("sales_order_axszx8cj_sub").doc(item.so_line_item_id).get(),
+    ),
   );
 
   const soLineItemData = resSOLineData.map((response) => response.data[0]);
@@ -2864,9 +2867,9 @@ const fetchDeliveredQuantity = async () => {
         (item) =>
           item.material_id &&
           item.material_id !== null &&
-          item.material_id !== undefined
+          item.material_id !== undefined,
       )
-      .map((item) => db.collection("Item").doc(item.material_id).get())
+      .map((item) => db.collection("Item").doc(item.material_id).get()),
   );
 
   const itemData = resItem.map((response) => response?.data[0]);
@@ -2903,7 +2906,7 @@ const fetchDeliveredQuantity = async () => {
   if (inValidDeliverQty.length > 0) {
     await this.$alert(
       `Line${inValidDeliverQty.length > 1 ? "s" : ""} ${inValidDeliverQty.join(
-        ", "
+        ", ",
       )} ha${
         inValidDeliverQty.length > 1 ? "ve" : "s"
       } an expected deliver quantity exceeding the maximum deliverable quantity.`,
@@ -2911,7 +2914,7 @@ const fetchDeliveredQuantity = async () => {
       {
         confirmButtonText: "OK",
         type: "error",
-      }
+      },
     );
 
     throw new Error("Invalid deliver quantity detected.");
@@ -2975,7 +2978,7 @@ const fetchDeliveredQuantity = async () => {
           const reservedCheck = await checkExistingReservedGoods(
             allSoNumbers,
             currentGdId,
-            organizationId
+            organizationId,
           );
 
           if (reservedCheck.hasConflict) {
@@ -2989,7 +2992,7 @@ const fetchDeliveredQuantity = async () => {
               {
                 confirmButtonText: "OK",
                 type: "warning",
-              }
+              },
             );
             this.hideLoading();
             return;
@@ -3017,7 +3020,7 @@ const fetchDeliveredQuantity = async () => {
               cancelButtonText: "Cancel",
               type: "warning",
               dangerouslyUseHTMLString: false,
-            }
+            },
           ).catch(() => {
             console.log("User clicked Cancel or closed the dialog");
             this.hideLoading();
@@ -3134,6 +3137,14 @@ const fetchDeliveredQuantity = async () => {
         vess_car_model: data.vess_car_model,
         vess_chassis: data.vess_chassis,
         vess_color: data.vess_color,
+        order_tnc: data.order_tnc,
+        order_payment_details: data.order_payment_details,
+        order_delivery_term: data.order_delivery_term,
+        order_remark: data.order_remark,
+        order_remark2: data.order_remark2,
+        order_remark3: data.order_remark3,
+        order_remark4: data.order_remark4,
+        order_remark5: data.order_remark5,
       };
 
       // Clean up undefined/null values
@@ -3148,8 +3159,8 @@ const fetchDeliveredQuantity = async () => {
       if (result.errors) {
         throw new Error(
           `Total quantity for SO Number ${result.errors.join(
-            ", "
-          )} is 0. Please delete the item with related SO or deliver at least one item with quantity > 0.`
+            ", ",
+          )} is 0. Please delete the item with related SO or deliver at least one item with quantity > 0.`,
         );
       }
       const latestGD = gd.table_gd.filter((item) => item.gd_qty > 0);
@@ -3158,7 +3169,7 @@ const fetchDeliveredQuantity = async () => {
 
       if (gd.table_gd.length === 0) {
         throw new Error(
-          "All Delivered Quantity must not be 0. Please add at lease one item with delivered quantity > 0."
+          "All Delivered Quantity must not be 0. Please add at lease one item with delivered quantity > 0.",
         );
       }
 
@@ -3200,7 +3211,7 @@ const fetchDeliveredQuantity = async () => {
             gdId,
             organizationId,
             isPickingUpdate,
-            pickingSetupResponse
+            pickingSetupResponse,
           );
 
           // Update GD with picking status if applicable
@@ -3220,13 +3231,13 @@ const fetchDeliveredQuantity = async () => {
           this.$message.warning(
             isPickingUpdate
               ? "Goods Delivery updated but picking update failed"
-              : "Goods Delivery created but picking creation failed"
+              : "Goods Delivery created but picking creation failed",
           );
         }
       }
 
       this.$message.success(
-        page_status === "Add" ? "Added successfully" : "Updated successfully"
+        page_status === "Add" ? "Added successfully" : "Updated successfully",
       );
       await updateSalesOrderStatus(gd.so_id);
       this.hideLoading();
@@ -3246,7 +3257,7 @@ const fetchDeliveredQuantity = async () => {
       // Extract the actual error message after the prefix
       const actualError = error.message.replace(
         "Inventory validation failed: ",
-        ""
+        "",
       );
 
       this.parentGenerateForm.$alert(actualError, "Insufficient Inventory", {
@@ -3254,7 +3265,7 @@ const fetchDeliveredQuantity = async () => {
         type: "error",
       });
       console.log(
-        "Inventory validation failed - user notified via alert dialog"
+        "Inventory validation failed - user notified via alert dialog",
       );
       return;
     }

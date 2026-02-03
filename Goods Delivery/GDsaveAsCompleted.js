@@ -4435,9 +4435,6 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
       tpt_driver_contact_no,
 
       table_gd,
-      order_remark,
-      order_remark2,
-      order_remark3,
       billing_address_line_1,
       billing_address_line_2,
       billing_address_line_3,
@@ -4483,6 +4480,15 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
       vess_car_model,
       vess_chassis,
       vess_color,
+
+      order_tnc,
+      order_payment_details,
+      order_delivery_term,
+      order_remark,
+      order_remark2,
+      order_remark3,
+      order_remark4,
+      order_remark5,
     } = data;
 
     // Prepare goods delivery object
@@ -4532,9 +4538,6 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
       tpt_driver_contact_no,
 
       table_gd,
-      order_remark,
-      order_remark2,
-      order_remark3,
       billing_address_line_1,
       billing_address_line_2,
       billing_address_line_3,
@@ -4580,6 +4583,15 @@ const updatePickingPlanAfterGDPP = async (gdData) => {
       vess_car_model,
       vess_chassis,
       vess_color,
+
+      order_tnc,
+      order_payment_details,
+      order_delivery_term,
+      order_remark,
+      order_remark2,
+      order_remark3,
+      order_remark4,
+      order_remark5,
     };
 
     // Clean up undefined/null values
