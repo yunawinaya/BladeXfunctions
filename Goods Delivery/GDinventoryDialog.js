@@ -29,14 +29,14 @@
       this.display("gd_item_balance.table_item_balance.to_quantity");
     } else {
       console.log(
-        "Regular GD mode: Hiding to_quantity, showing balance columns"
+        "Regular GD mode: Hiding to_quantity, showing balance columns",
       );
       this.hide("gd_item_balance.table_item_balance.to_quantity");
     }
 
     const fetchDefaultStorageLocation = async (itemData) => {
       const defaultBin = itemData?.table_default_bin?.find(
-        (bin) => bin.plant_id === plantId
+        (bin) => bin.plant_id === plantId,
       );
 
       const defaultStorageLocationId = defaultBin?.storage_location_id;
@@ -80,8 +80,8 @@
       try {
         const resUOM = await Promise.all(
           uomIds.map((id) =>
-            db.collection("unit_of_measurement").where({ id }).get()
-          )
+            db.collection("unit_of_measurement").where({ id }).get(),
+          ),
         );
 
         const uomData = resUOM
@@ -106,7 +106,7 @@
       }
 
       const uomConversion = itemData.table_uom_conversion.find(
-        (conv) => conv.alt_uom_id === altUOM
+        (conv) => conv.alt_uom_id === altUOM,
       );
 
       if (!uomConversion || !uomConversion.base_qty) {
@@ -120,7 +120,7 @@
       itemBalanceData,
       itemData,
       altUOM,
-      baseUOM
+      baseUOM,
     ) => {
       if (!Array.isArray(itemBalanceData)) {
         return [];
@@ -144,7 +144,7 @@
               processedRecord[field] = convertBaseToAlt(
                 processedRecord[field],
                 itemData,
-                altUOM
+                altUOM,
               );
             }
           });
@@ -194,7 +194,7 @@
 
         if (tempItem) {
           console.log(
-            `Merging data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, temp gd_quantity=${tempItem.gd_quantity}`
+            `Merging data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, temp gd_quantity=${tempItem.gd_quantity}`,
           );
           return {
             ...dbItem,
@@ -230,7 +230,7 @@
       tempDataArray,
       itemData,
       altUOM,
-      baseUOM
+      baseUOM,
     ) => {
       console.log("GDPP mode: Using temp_qty_data directly without DB fetch");
 
@@ -247,14 +247,14 @@
             processedRecord.unrestricted_qty = convertBaseToAlt(
               processedRecord.unrestricted_qty,
               itemData,
-              altUOM
+              altUOM,
             );
           }
           if (processedRecord.balance_quantity) {
             processedRecord.balance_quantity = convertBaseToAlt(
               processedRecord.balance_quantity,
               itemData,
-              altUOM
+              altUOM,
             );
           }
         }
@@ -286,7 +286,7 @@
             (record.balance_quantity && record.balance_quantity > 0);
 
           console.log(
-            `Serial ${record.serial_number}: hasQuantity=${hasQuantity}, unrestricted=${record.unrestricted_qty}, reserved=${record.reserved_qty}, balance=${record.balance_quantity}`
+            `Serial ${record.serial_number}: hasQuantity=${hasQuantity}, unrestricted=${record.unrestricted_qty}, reserved=${record.reserved_qty}, balance=${record.balance_quantity}`,
           );
 
           return hasQuantity;
@@ -321,7 +321,7 @@
 
     const setTableBalanceData = async (
       filteredData,
-      includeRawData = false
+      includeRawData = false,
     ) => {
       this.models["full_balance_data"] = filteredData;
 
@@ -332,7 +332,7 @@
       if (defaultStorageLocation) {
         const binLocationList =
           defaultStorageLocation.table_bin_location?.map(
-            (bin) => bin.bin_location_id
+            (bin) => bin.bin_location_id,
           ) || [];
 
         console.log("binLocationList", binLocationList);
@@ -368,14 +368,14 @@
       itemData,
       altUOM,
       baseUOM,
-      includeRawData = false
+      includeRawData = false,
     ) => {
       const tempDataArray = parseTempQtyData(tempQtyData);
       const finalData = processTempQtyDataOnly(
         tempDataArray,
         itemData,
         altUOM,
-        baseUOM
+        baseUOM,
       );
       const filteredData = filterZeroQuantityRecords(finalData, itemData);
 
@@ -391,7 +391,7 @@
       itemData,
       altUOM,
       baseUOM,
-      includeRawData = false
+      includeRawData = false,
     ) => {
       try {
         const response = await db
@@ -409,13 +409,13 @@
           freshDbData,
           itemData,
           altUOM,
-          baseUOM
+          baseUOM,
         );
         const tempDataArray = parseTempQtyData(tempQtyData);
         const finalData = mergeWithTempData(
           processedFreshData,
           tempDataArray,
-          itemData
+          itemData,
         );
         const filteredData = filterZeroQuantityRecords(finalData, itemData);
 
@@ -474,7 +474,7 @@
 
     if (itemData.serial_number_management === 1) {
       console.log(
-        "Processing serialized item (may also have batch management)"
+        "Processing serialized item (may also have batch management)",
       );
 
       this.display("gd_item_balance.table_item_balance.serial_number");
@@ -489,7 +489,7 @@
           "gd_item_balance.table_item_balance.manufacturing_date",
         ]);
         console.log(
-          "Serialized item with batch management - showing both serial and batch columns"
+          "Serialized item with batch management - showing both serial and batch columns",
         );
       } else {
         this.hide([
@@ -498,7 +498,7 @@
           "gd_item_balance.table_item_balance.manufacturing_date",
         ]);
         console.log(
-          "Serialized item without batch management - hiding batch column"
+          "Serialized item without batch management - hiding batch column",
         );
       }
 
@@ -514,7 +514,7 @@
           itemData,
           altUOM,
           baseUOM,
-          true
+          true,
         );
       }
     } else if (itemData.item_batch_management === 1) {
@@ -539,7 +539,7 @@
           itemData,
           altUOM,
           baseUOM,
-          false
+          false,
         );
       }
     } else {
@@ -564,7 +564,7 @@
           itemData,
           altUOM,
           baseUOM,
-          false
+          false,
         );
       }
     }
