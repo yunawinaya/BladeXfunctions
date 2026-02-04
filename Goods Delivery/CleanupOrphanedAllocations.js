@@ -13,8 +13,6 @@ if (!currentAllocatedRecords.data || currentAllocatedRecords.data.length === 0) 
   };
 }
 
-// Build list of all current temp_qty_data combinations
-// This represents what SHOULD exist after the user's edits
 const currentTempDataKeys = tableData.flatMap((line) => {
   const tempData =
     typeof line.temp_qty_data === "string"
@@ -29,16 +27,14 @@ const currentTempDataKeys = tableData.flatMap((line) => {
   }));
 });
 
-// Find orphaned records (exist in allocated but not in current temp_qty_data)
-// These are allocations that were removed by the user's edits
 const orphanedRecords = currentAllocatedRecords.data.filter(
   (allocated) =>
     !currentTempDataKeys.some(
       (current) =>
         allocated.doc_line_id === current.doc_line_id &&
         allocated.material_id === current.material_id &&
-        allocated.batch_id === current.batch_id &&
-        allocated.bin_location === current.bin_location,
+        (allocated.batch_id || null) === (current.batch_id || null) &&
+        (allocated.bin_location || null) === (current.bin_location || null),
     ),
 );
 
@@ -53,7 +49,6 @@ if (orphanedRecords.length === 0) {
   };
 }
 
-// Sort orphaned records by release priority: SO first, PR second, GD last
 const releaseOrderPriority = {
   "Sales Order": 1,
   "Production Receipt": 2,
@@ -65,7 +60,6 @@ const sortedOrphanedRecords = [...orphanedRecords].sort(
     (releaseOrderPriority[b.doc_type] || 99),
 );
 
-// Helper: Find existing Pending record to merge with (for SO/PR doc_types)
 const findExistingPendingToMerge = (docType, parentLineId, materialId, batchId, binLocation) => {
   const pendingData = existingPendingRecords?.data || [];
   return pendingData.find(
@@ -74,26 +68,19 @@ const findExistingPendingToMerge = (docType, parentLineId, materialId, batchId, 
       record.doc_type === docType &&
       record.parent_line_id === parentLineId &&
       record.material_id === materialId &&
-      record.batch_id === batchId &&
-      record.bin_location === binLocation,
+      (record.batch_id || null) === (batchId || null) &&
+      (record.bin_location || null) === (binLocation || null),
   );
 };
 
-// Track which pending records have already been updated (to accumulate merges)
 const pendingMergeAccumulator = new Map();
-
-// Build recordsToUpdate array with proper merge logic
 const recordsToUpdate = [];
-
-// Aggregate inventory movements by (material_id, batch_id, bin_location)
-// Key format: "material_id|batch_id|bin_location"
 const inventoryMovementMap = new Map();
 
 for (const orphanedRecord of sortedOrphanedRecords) {
   const releaseQty = orphanedRecord.reserved_qty || 0;
 
   if (orphanedRecord.doc_type === "Good Delivery") {
-    // GD/Unrestricted: Set to Cancelled, needs inventory movement Reserved → Unrestricted
     recordsToUpdate.push({
       id: orphanedRecord.id,
       reserved_qty: orphanedRecord.reserved_qty,
@@ -102,7 +89,6 @@ for (const orphanedRecord of sortedOrphanedRecords) {
       target_gd_id: null,
     });
 
-    // Aggregate inventory movement: Reserved → Unrestricted
     const invKey = `${orphanedRecord.material_id}|${orphanedRecord.batch_id || ""}|${orphanedRecord.bin_location || ""}`;
     const existingMovement = inventoryMovementMap.get(invKey);
     if (existingMovement) {
@@ -118,7 +104,6 @@ for (const orphanedRecord of sortedOrphanedRecords) {
       });
     }
   } else {
-    // SO/PR: Check for existing Pending to merge with
     const existingPending = findExistingPendingToMerge(
       orphanedRecord.doc_type,
       orphanedRecord.parent_line_id,
@@ -128,13 +113,10 @@ for (const orphanedRecord of sortedOrphanedRecords) {
     );
 
     if (existingPending) {
-      // Check if we've already accumulated updates to this pending record
       const accumulatedQty = pendingMergeAccumulator.get(existingPending.id) || 0;
       const newAccumulatedQty = accumulatedQty + releaseQty;
       pendingMergeAccumulator.set(existingPending.id, newAccumulatedQty);
 
-      // Merge: Add quantity to existing Pending, mark orphaned as Cancelled
-      // Note: We'll add the pending record update after processing all orphaned records
       recordsToUpdate.push({
         id: orphanedRecord.id,
         reserved_qty: orphanedRecord.reserved_qty,
@@ -143,7 +125,6 @@ for (const orphanedRecord of sortedOrphanedRecords) {
         target_gd_id: null,
       });
     } else {
-      // No existing Pending to merge with - convert to Pending
       recordsToUpdate.push({
         id: orphanedRecord.id,
         reserved_qty: orphanedRecord.reserved_qty,
@@ -155,7 +136,6 @@ for (const orphanedRecord of sortedOrphanedRecords) {
   }
 }
 
-// Add accumulated pending record updates
 for (const [pendingId, accumulatedQty] of pendingMergeAccumulator.entries()) {
   const existingPending = (existingPendingRecords?.data || []).find(
     (r) => r.id === pendingId,
@@ -170,7 +150,6 @@ for (const [pendingId, accumulatedQty] of pendingMergeAccumulator.entries()) {
   }
 }
 
-// Convert inventory movement map to array
 const inventoryMovements = Array.from(inventoryMovementMap.values());
 
 return {
