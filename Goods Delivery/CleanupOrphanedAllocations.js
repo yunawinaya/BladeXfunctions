@@ -96,8 +96,9 @@ for (const orphanedRecord of sortedOrphanedRecords) {
     // GD/Unrestricted: Set to Cancelled, needs inventory movement Reserved → Unrestricted
     recordsToUpdate.push({
       id: orphanedRecord.id,
-      status: "Cancelled",
+      reserved_qty: orphanedRecord.reserved_qty,
       open_qty: 0,
+      status: "Cancelled",
       target_gd_id: null,
     });
 
@@ -136,14 +137,17 @@ for (const orphanedRecord of sortedOrphanedRecords) {
       // Note: We'll add the pending record update after processing all orphaned records
       recordsToUpdate.push({
         id: orphanedRecord.id,
-        status: "Cancelled",
+        reserved_qty: orphanedRecord.reserved_qty,
         open_qty: 0,
+        status: "Cancelled",
         target_gd_id: null,
       });
     } else {
       // No existing Pending to merge with - convert to Pending
       recordsToUpdate.push({
         id: orphanedRecord.id,
+        reserved_qty: orphanedRecord.reserved_qty,
+        open_qty: orphanedRecord.reserved_qty,
         status: "Pending",
         target_gd_id: null,
       });

@@ -41,7 +41,10 @@ const handleWorkflowResult = async (workflowResult, data) => {
   // Handle 401 - Zero quantity confirmation
   if (resultCode === "401" || resultCode === 401) {
     this.hideLoading();
-    const message = workflowResult.data.msg || workflowResult.data.message || "Some lines have zero delivery quantity. Would you like to proceed?";
+    const message =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Some lines have zero delivery quantity. Would you like to proceed?";
 
     try {
       await this.$confirm(message, "", {
@@ -65,7 +68,11 @@ const handleWorkflowResult = async (workflowResult, data) => {
   // Handle 402 - Credit limit block
   if (resultCode === "402" || resultCode === 402) {
     this.hideLoading();
-    const cleanMessage = (workflowResult.data.msg || workflowResult.data.message || "Credit limit exceeded").replace(/^Block - /, "");
+    const cleanMessage = (
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Credit limit exceeded"
+    ).replace(/^Block - /, "");
 
     await this.$alert(`${cleanMessage}`, "", {
       confirmButtonText: "OK",
@@ -78,7 +85,10 @@ const handleWorkflowResult = async (workflowResult, data) => {
   // Handle 405 - Must save as Created first
   if (resultCode === "405" || resultCode === 405) {
     this.hideLoading();
-    const message = workflowResult.data.msg || workflowResult.data.message || "Save Goods Delivery as Created to start picking process.";
+    const message =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Save Goods Delivery as Created to start picking process.";
 
     await this.$alert(message, "", {
       confirmButtonText: "OK",
@@ -91,7 +101,11 @@ const handleWorkflowResult = async (workflowResult, data) => {
   // Handle 403 - Credit limit override
   if (resultCode === "403" || resultCode === 403) {
     this.hideLoading();
-    const cleanMessage = (workflowResult.data.msg || workflowResult.data.message || "Credit limit warning").replace(/^Override - /, "");
+    const cleanMessage = (
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Credit limit warning"
+    ).replace(/^Override - /, "");
 
     try {
       await this.$confirm(`${cleanMessage}`, "", {
@@ -115,7 +129,10 @@ const handleWorkflowResult = async (workflowResult, data) => {
   // Handle 407 - Packing not completed
   if (resultCode === "407" || resultCode === 407) {
     this.hideLoading();
-    const message = workflowResult.data.msg || workflowResult.data.message || "Packing process must be completed first.";
+    const message =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Packing process must be completed first.";
 
     await this.$alert(message, "", {
       confirmButtonText: "OK",
@@ -128,7 +145,10 @@ const handleWorkflowResult = async (workflowResult, data) => {
   // Handle 406 - Force complete picking
   if (resultCode === "406" || resultCode === 406) {
     this.hideLoading();
-    const message = workflowResult.data.msg || workflowResult.data.message || "Picking is currently under In Progress status.\nProceeding will force complete picking process.\n\nWould you like to proceed?";
+    const message =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Picking is currently under In Progress status.\nProceeding will force complete picking process.\n\nWould you like to proceed?";
 
     try {
       await this.$confirm(message, "", {

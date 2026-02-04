@@ -117,9 +117,10 @@ if (matchedAllocatedRecords.length > 0) {
           // Fully deliver this record
           recordsToUpdate.push({
             ...allocatedRecord,
-            status: "Delivered",
-            delivered_qty: (allocatedRecord.delivered_qty || 0) + deliverFromThisRecord,
+            reserved_qty: allocatedRecord.reserved_qty,
             open_qty: 0,
+            delivered_qty: (allocatedRecord.delivered_qty || 0) + deliverFromThisRecord,
+            status: "Delivered",
           });
         } else {
           // Partial deliver - need to split
@@ -191,8 +192,9 @@ if (matchedAllocatedRecords.length > 0) {
             // For Unrestricted: Mark as Cancelled
             recordsToUpdate.push({
               ...allocatedRecord,
-              status: "Cancelled",
+              reserved_qty: allocatedRecord.reserved_qty,
               open_qty: 0,
+              status: "Cancelled",
               target_gd_id: null,
             });
             unrestrictedQtyToAdd += releaseFromThisRecord;
@@ -214,14 +216,17 @@ if (matchedAllocatedRecords.length > 0) {
               // Mark the released record as Cancelled (absorbed into existing Pending)
               recordsToUpdate.push({
                 ...allocatedRecord,
-                status: "Cancelled",
+                reserved_qty: allocatedRecord.reserved_qty,
                 open_qty: 0,
+                status: "Cancelled",
                 target_gd_id: null,
               });
             } else {
               // No existing Pending - just change status to Pending
               recordsToUpdate.push({
                 ...allocatedRecord,
+                reserved_qty: allocatedRecord.reserved_qty,
+                open_qty: allocatedRecord.open_qty,
                 status: "Pending",
                 target_gd_id: null,
               });
@@ -329,9 +334,10 @@ if (matchedAllocatedRecords.length > 0) {
     for (const allocatedRecord of matchedAllocatedRecords) {
       recordsToUpdate.push({
         ...allocatedRecord,
-        status: "Delivered",
-        delivered_qty: (allocatedRecord.delivered_qty || 0) + allocatedRecord.open_qty,
+        reserved_qty: allocatedRecord.reserved_qty,
         open_qty: 0,
+        delivered_qty: (allocatedRecord.delivered_qty || 0) + allocatedRecord.open_qty,
+        status: "Delivered",
       });
     }
     reservedQtyToSubtract = totalAllocatedQty;
@@ -379,9 +385,10 @@ if (matchedAllocatedRecords.length > 0) {
         // Fully consume and deliver
         recordsToUpdate.push({
           ...pendingProdReceiptData[0],
-          status: "Delivered",
-          delivered_qty: deliverQty,
+          reserved_qty: pendingProdReceiptData[0].reserved_qty,
           open_qty: 0,
+          delivered_qty: deliverQty,
+          status: "Delivered",
           target_gd_id: docId,
         });
       } else {
@@ -420,9 +427,10 @@ if (matchedAllocatedRecords.length > 0) {
         // Fully consume and deliver
         recordsToUpdate.push({
           ...pendingSOData[0],
-          status: "Delivered",
-          delivered_qty: deliverQty,
+          reserved_qty: pendingSOData[0].reserved_qty,
           open_qty: 0,
+          delivered_qty: deliverQty,
+          status: "Delivered",
           target_gd_id: docId,
         });
       } else {
@@ -576,9 +584,10 @@ if (pendingProdReceiptData.length > 0 && remainingQtyToDeliver > 0) {
     // Fully consume pending - mark as Delivered
     recordsToUpdate.push({
       ...pendingProdReceiptData[0],
-      status: "Delivered",
-      delivered_qty: deliverQty,
+      reserved_qty: pendingProdReceiptData[0].reserved_qty,
       open_qty: 0,
+      delivered_qty: deliverQty,
+      status: "Delivered",
       target_gd_id: docId,
     });
   } else {
@@ -620,9 +629,10 @@ if (pendingSOData.length > 0 && remainingQtyToDeliver > 0) {
     // Fully consume pending - mark as Delivered
     recordsToUpdate.push({
       ...pendingSOData[0],
-      status: "Delivered",
-      delivered_qty: deliverQty,
+      reserved_qty: pendingSOData[0].reserved_qty,
       open_qty: 0,
+      delivered_qty: deliverQty,
+      status: "Delivered",
       target_gd_id: docId,
     });
   } else {

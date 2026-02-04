@@ -124,8 +124,9 @@ if (matchedOldRecords.length > 0) {
           // For Unrestricted: Mark as Cancelled
           recordsToUpdate.push({
             ...oldRecord,
-            status: "Cancelled",
+            reserved_qty: oldRecord.reserved_qty,
             open_qty: 0,
+            status: "Cancelled",
             target_gd_id: null,
           });
           unrestrictedQtyToAdd += releaseFromThisRecord;
@@ -144,14 +145,17 @@ if (matchedOldRecords.length > 0) {
             // Mark the released record as Cancelled (absorbed into existing Pending)
             recordsToUpdate.push({
               ...oldRecord,
-              status: "Cancelled",
+              reserved_qty: oldRecord.reserved_qty,
               open_qty: 0,
+              status: "Cancelled",
               target_gd_id: null,
             });
           } else {
             // No existing Pending - just change status to Pending
             recordsToUpdate.push({
               ...oldRecord,
+              reserved_qty: oldRecord.reserved_qty,
+              open_qty: oldRecord.reserved_qty,
               status: "Pending",
               target_gd_id: null,
             });
@@ -286,6 +290,8 @@ if (matchedOldRecords.length > 0) {
       if (allocateQty === productionReceiptOpenQty) {
         recordsToUpdate.push({
           ...pendingProdReceiptData[0],
+          reserved_qty: pendingProdReceiptData[0].reserved_qty,
+          open_qty: pendingProdReceiptData[0].open_qty,
           status: "Allocated",
           target_gd_id: docId,
         });
@@ -319,6 +325,8 @@ if (matchedOldRecords.length > 0) {
       if (allocateQty === salesOrderOpenQty) {
         recordsToUpdate.push({
           ...pendingSOData[0],
+          reserved_qty: pendingSOData[0].reserved_qty,
+          open_qty: pendingSOData[0].open_qty,
           status: "Allocated",
           target_gd_id: docId,
         });
@@ -451,6 +459,8 @@ if (pendingProdReceiptData.length > 0 && remainingQtyToAllocate > 0) {
   if (allocateQty === productionReceiptOpenQty) {
     recordsToUpdate.push({
       ...pendingProdReceiptData[0],
+      reserved_qty: pendingProdReceiptData[0].reserved_qty,
+      open_qty: pendingProdReceiptData[0].open_qty,
       status: "Allocated",
       target_gd_id: docId,
     });
@@ -484,6 +494,8 @@ if (pendingSOData.length > 0 && remainingQtyToAllocate > 0) {
   if (allocateQty === salesOrderOpenQty) {
     recordsToUpdate.push({
       ...pendingSOData[0],
+      reserved_qty: pendingSOData[0].reserved_qty,
+      open_qty: pendingSOData[0].open_qty,
       status: "Allocated",
       target_gd_id: docId,
     });
