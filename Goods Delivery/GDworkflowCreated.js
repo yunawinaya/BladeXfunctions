@@ -563,6 +563,145 @@ const createOrUpdatePicking = async (
   }
 };
 
+const runGDWorkflow = async (data, continueZero) => {
+  return new Promise((resolve, reject) => {
+    this.runWorkflow(
+      "2017151544868491265",
+      {
+        allData: data,
+        saveAs: "Created",
+        pageStatus: data.page_status,
+        continueZero: continueZero,
+      },
+      (res) => {
+        console.log("Goods Delivery workflow response:", res);
+        resolve(res);
+      },
+      (err) => {
+        console.error("Failed to save Goods Delivery:", err);
+        reject(err);
+      },
+    );
+  });
+};
+
+const handleWorkflowResult = async (workflowResult, data) => {
+  if (!workflowResult || !workflowResult.data) {
+    this.hideLoading();
+    this.$message.error("No response from workflow");
+    return;
+  }
+
+  const resultCode = workflowResult.data.code;
+
+  // Handle 401 - Zero quantity confirmation
+  if (resultCode === "401" || resultCode === 401) {
+    this.hideLoading();
+    const message = workflowResult.data.msg || workflowResult.data.message || "Some lines have zero delivery quantity. Would you like to proceed?";
+
+    try {
+      await this.$confirm(message, "", {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "warning",
+        dangerouslyUseHTMLString: true,
+      });
+
+      // User clicked Proceed - re-run workflow with continueZero = "Yes"
+      this.showLoading("Saving Goods Delivery as Created...");
+      const retryResult = await runGDWorkflow(data, "Yes");
+      await handleWorkflowResult(retryResult, data);
+    } catch (e) {
+      console.log("User clicked Cancel or closed the dialog");
+      this.hideLoading();
+    }
+    return;
+  }
+
+  // Handle 400 - General error
+  if (
+    resultCode === "400" ||
+    resultCode === 400 ||
+    workflowResult.data.success === false
+  ) {
+    this.hideLoading();
+    const errorMessage =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Failed to save Goods Delivery";
+    this.$message.error(errorMessage);
+    return;
+  }
+
+  // Handle success
+  if (
+    resultCode === "200" ||
+    resultCode === 200 ||
+    workflowResult.data.success === true
+  ) {
+    // Call createOrUpdatePicking after successful workflow
+    try {
+      const pickingSetupResponse = await db
+        .collection("picking_setup")
+        .where({
+          plant_id: data.plant_id,
+          picking_after: "Goods Delivery",
+          picking_required: 1,
+        })
+        .get();
+
+      const rawGdId = await db
+        .collection("goods_delivery")
+        .where({
+          delivery_no: data.delivery_no,
+          so_id: data.so_id,
+          plant_id: data.plant_id,
+          organization_id: data.organization_id,
+        })
+        .field("id")
+        .get();
+
+      const gdId = rawGdId.data[0].id;
+
+      if (pickingSetupResponse.data && pickingSetupResponse.data.length > 0) {
+        const isUpdate = data.page_status === "Edit";
+        const { pickingStatus } = await createOrUpdatePicking(
+          data,
+          gdId,
+          data.organization_id,
+          isUpdate,
+          pickingSetupResponse,
+        );
+
+        if (pickingStatus) {
+          await db.collection("goods_delivery").doc(gdId).update({
+            picking_status: pickingStatus,
+          });
+
+          await db
+            .collection("goods_delivery_fwii8mvb_sub")
+            .where({ goods_delivery_id: gdId })
+            .update({ picking_status: pickingStatus });
+        }
+      }
+    } catch (pickingError) {
+      console.error("Error handling picking:", pickingError);
+      // Don't fail the entire operation if picking handling fails
+    }
+
+    this.hideLoading();
+    const successMessage =
+      workflowResult.data.message ||
+      workflowResult.data.msg ||
+      "Goods Delivery saved successfully";
+    this.$message.success(successMessage);
+    closeDialog();
+  } else {
+    this.hideLoading();
+    this.$message.error("Unknown workflow status");
+  }
+};
+
 (async () => {
   try {
     this.showLoading("Saving Goods Delivery as Created...");
@@ -570,110 +709,8 @@ const createOrUpdatePicking = async (
     const data = this.getValues();
     console.log("data", data);
 
-    let workflowResult;
-
-    await this.runWorkflow(
-      "2017151544868491265",
-      { allData: data, saveAs: "Created", pageStatus: data.page_status },
-      async (res) => {
-        console.log("Goods Delivery saved successfully:", res);
-        workflowResult = res;
-      },
-      (err) => {
-        console.error("Failed to save Goods Delivery:", err);
-        this.hideLoading();
-        workflowResult = err;
-      },
-    );
-
-    if (!workflowResult || !workflowResult.data) {
-      this.hideLoading();
-      this.$message.error("No response from workflow");
-      return;
-    }
-
-    // Handle workflow errors
-    if (
-      workflowResult.data.code === "400" ||
-      workflowResult.data.code === 400 ||
-      workflowResult.data.success === false
-    ) {
-      this.hideLoading();
-      const errorMessage =
-        workflowResult.data.msg ||
-        workflowResult.data.message ||
-        "Failed to save Goods Delivery";
-      this.$message.error(errorMessage);
-      return;
-    }
-
-    // Handle success
-    if (
-      workflowResult.data.code === "200" ||
-      workflowResult.data.code === 200 ||
-      workflowResult.data.success === true
-    ) {
-      // Call createOrUpdatePicking after successful workflow
-      try {
-        const pickingSetupResponse = await db
-          .collection("picking_setup")
-          .where({
-            plant_id: data.plant_id,
-            picking_after: "Goods Delivery",
-            picking_required: 1,
-          })
-          .get();
-
-        const rawGdId = await db
-          .collection("goods_delivery")
-          .where({
-            delivery_no: data.delivery_no,
-            so_id: data.so_id,
-            plant_id: data.plant_id,
-            organization_id: data.organization_id,
-          })
-          .field("id")
-          .get();
-
-        const gdId = rawGdId.data[0].id;
-
-        if (pickingSetupResponse.data && pickingSetupResponse.data.length > 0) {
-          const isUpdate = data.page_status === "Edit";
-          const { pickingStatus } = await createOrUpdatePicking(
-            data,
-            gdId,
-            data.organization_id,
-            isUpdate,
-            pickingSetupResponse,
-          );
-
-          if (pickingStatus) {
-            await db.collection("goods_delivery").doc(gdId).update({
-              picking_status: pickingStatus,
-            });
-
-            await db
-              .collection("goods_delivery_fwii8mvb_sub")
-              .where({ goods_delivery_id: gdId })
-              .update({ picking_status: pickingStatus });
-          }
-        }
-      } catch (pickingError) {
-        console.error("Error handling picking:", pickingError);
-        // Don't fail the entire operation if picking handling fails
-      }
-
-      this.hideLoading();
-      const successMessage =
-        workflowResult.data.message ||
-        workflowResult.data.msg ||
-        "Goods Delivery saved successfully";
-      this.$message.success(successMessage);
-      closeDialog();
-    } else {
-      this.hideLoading();
-      this.$message.error("Unknown workflow status");
-    }
+    const workflowResult = await runGDWorkflow(data, "");
+    await handleWorkflowResult(workflowResult, data);
   } catch (error) {
     this.hideLoading();
     console.error("Error:", error);
