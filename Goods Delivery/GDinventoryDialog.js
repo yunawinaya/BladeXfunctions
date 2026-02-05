@@ -304,6 +304,175 @@
       });
     };
 
+    const applyAutoAllocation = async (
+      balanceData,
+      itemData,
+      plantId,
+      organizationId,
+      requestedQty,
+      batchDataArray = []
+    ) => {
+      console.log("Starting auto allocation for inventory dialog");
+
+      // Fetch picking setup
+      const pickingSetupRes = await db
+        .collection("picking_setup")
+        .where({
+          organization_id: organizationId,
+          picking_after: "Goods Delivery",
+          is_deleted: 0,
+        })
+        .get();
+
+      if (!pickingSetupRes.data || pickingSetupRes.data.length === 0) {
+        console.log("No picking setup found, skipping auto allocation");
+        return balanceData;
+      }
+
+      const pickingSetup = pickingSetupRes.data[0];
+
+      if (pickingSetup.picking_mode !== "Auto") {
+        console.log("Manual picking mode, skipping auto allocation");
+        return balanceData;
+      }
+
+      const defaultStrategy = pickingSetup.default_strategy_id;
+      const fallbackStrategy = pickingSetup.fallback_strategy_id;
+
+      // Get default bin for this item
+      const getDefaultBin = () => {
+        if (!itemData.table_default_bin?.length) return null;
+        const entry = itemData.table_default_bin.find(
+          (bin) => bin.plant_id === plantId
+        );
+        return entry?.bin_location || null;
+      };
+
+      const defaultBin = getDefaultBin();
+      const isBatchManaged = itemData.item_batch_management === 1;
+
+      // Sort by FIFO (batch items only)
+      const sortByFIFO = (balanceArray) => {
+        if (!isBatchManaged || !batchDataArray.length) return balanceArray;
+
+        return balanceArray.sort((a, b) => {
+          const batchA = batchDataArray.find((batch) => batch.id === a.batch_id);
+          const batchB = batchDataArray.find((batch) => batch.id === b.batch_id);
+
+          if (batchA?.expiry_date && batchB?.expiry_date) {
+            return (
+              new Date(batchA.expiry_date) - new Date(batchB.expiry_date)
+            );
+          }
+
+          return (batchA?.batch_number || "").localeCompare(
+            batchB?.batch_number || ""
+          );
+        });
+      };
+
+      // Allocate from balance list
+      const allocateFromBalances = (balanceList, remainingQty) => {
+        const allocated = [];
+
+        for (const balance of balanceList) {
+          if (remainingQty <= 0) break;
+
+          const availableQty = balance.unrestricted_qty || 0;
+          if (availableQty <= 0) continue;
+
+          const allocatedQty = Math.min(remainingQty, availableQty);
+
+          allocated.push({
+            ...balance,
+            gd_quantity: allocatedQty,
+          });
+
+          remainingQty -= allocatedQty;
+        }
+
+        return { allocated, remainingQty };
+      };
+
+      let allAllocations = [];
+      let remainingQty = requestedQty;
+
+      // STRATEGY: FIXED BIN
+      if (defaultStrategy === "FIXED BIN") {
+        // Step 1: Try default bin first (only if configured)
+        if (defaultBin) {
+          console.log(`Applying FIXED BIN strategy (bin: ${defaultBin})`);
+
+          const defaultBinBalances = balanceData.filter(
+            (b) =>
+              b.location_id === defaultBin && (b.unrestricted_qty || 0) > 0
+          );
+
+          const sortedDefaultBalances = sortByFIFO(defaultBinBalances);
+          const result1 = allocateFromBalances(
+            sortedDefaultBalances,
+            remainingQty
+          );
+          allAllocations.push(...result1.allocated);
+          remainingQty = result1.remainingQty;
+        }
+
+        // Step 2: Fallback to RANDOM for remainder (or if no default bin configured)
+        if (remainingQty > 0 && fallbackStrategy === "RANDOM") {
+          console.log(`Falling back to RANDOM strategy for remainder`);
+          const otherBalances = balanceData.filter(
+            (b) =>
+              (!defaultBin || b.location_id !== defaultBin) &&
+              (b.unrestricted_qty || 0) > 0
+          );
+
+          const sortedOtherBalances = sortByFIFO(otherBalances);
+          const result2 = allocateFromBalances(
+            sortedOtherBalances,
+            remainingQty
+          );
+          allAllocations.push(...result2.allocated);
+          remainingQty = result2.remainingQty;
+        }
+      }
+      // STRATEGY: RANDOM
+      else if (defaultStrategy === "RANDOM") {
+        console.log("Applying RANDOM strategy");
+        const availableBalances = balanceData.filter(
+          (b) => (b.unrestricted_qty || 0) > 0
+        );
+
+        const sortedBalances = sortByFIFO(availableBalances);
+        const result = allocateFromBalances(sortedBalances, remainingQty);
+        allAllocations.push(...result.allocated);
+        remainingQty = result.remainingQty;
+      }
+
+      // Merge allocations back into original balance data
+      const finalData = balanceData.map((balance) => {
+        const key = isBatchManaged
+          ? `${balance.location_id}-${balance.batch_id || "no_batch"}`
+          : `${balance.location_id}`;
+
+        const allocation = allAllocations.find((alloc) => {
+          const allocKey = isBatchManaged
+            ? `${alloc.location_id}-${alloc.batch_id || "no_batch"}`
+            : `${alloc.location_id}`;
+          return allocKey === key;
+        });
+
+        return {
+          ...balance,
+          gd_quantity: allocation ? allocation.gd_quantity : 0,
+        };
+      });
+
+      console.log(
+        `Auto allocation completed: ${requestedQty - remainingQty} allocated`
+      );
+      return finalData;
+    };
+
     const parseTempQtyData = (tempQtyData) => {
       if (!tempQtyData) {
         return [];
@@ -392,6 +561,9 @@
       altUOM,
       baseUOM,
       includeRawData = false,
+      organizationId = null,
+      requestedQty = 0,
+      batchDataArray = []
     ) => {
       try {
         const response = await db
@@ -412,11 +584,27 @@
           baseUOM,
         );
         const tempDataArray = parseTempQtyData(tempQtyData);
-        const finalData = mergeWithTempData(
+        let finalData = mergeWithTempData(
           processedFreshData,
           tempDataArray,
           itemData,
         );
+
+        // Apply auto allocation if no existing temp_qty_data
+        const hasExistingAllocation = tempDataArray && tempDataArray.length > 0;
+
+        if (!hasExistingAllocation && requestedQty > 0 && organizationId) {
+          console.log(`Applying auto allocation for qty: ${requestedQty}`);
+          finalData = await applyAutoAllocation(
+            finalData,
+            itemData,
+            plantId,
+            organizationId,
+            requestedQty,
+            batchDataArray
+          );
+        }
+
         const filteredData = filterZeroQuantityRecords(finalData, itemData);
 
         console.log("Final filtered data:", filteredData);
@@ -440,6 +628,23 @@
 
     const itemData = response.data[0];
     const baseUOM = itemData.based_uom;
+    const organizationId = data.organization_id;
+    const requestedQty = parseFloat(lineItemData.gd_qty) || 0;
+
+    // Fetch batch data if batch-managed (for FIFO sorting in auto allocation)
+    let batchDataArray = [];
+    if (itemData.item_batch_management === 1) {
+      const batchRes = await db
+        .collection("batch")
+        .where({
+          material_id: materialId,
+          plant_id: plantId,
+          organization_id: organizationId,
+          is_deleted: 0,
+        })
+        .get();
+      batchDataArray = batchRes.data || [];
+    }
 
     const defaultStorageLocation = await fetchDefaultStorageLocation(itemData);
 
@@ -515,6 +720,9 @@
           altUOM,
           baseUOM,
           true,
+          organizationId,
+          requestedQty,
+          batchDataArray
         );
       }
     } else if (itemData.item_batch_management === 1) {
@@ -540,6 +748,9 @@
           altUOM,
           baseUOM,
           false,
+          organizationId,
+          requestedQty,
+          batchDataArray
         );
       }
     } else {
@@ -565,6 +776,9 @@
           altUOM,
           baseUOM,
           false,
+          organizationId,
+          requestedQty,
+          batchDataArray
         );
       }
     }
