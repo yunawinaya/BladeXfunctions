@@ -20,12 +20,12 @@ const remark = {{workflowparams:remark}};
 
 const matchedOldRecords = oldAllocatedData.filter(
   (record) =>
-    record.doc_line_id === docLineId &&
-    record.material_id === materialId &&
-    (record.batch_id || null) === (batchId || null) &&
-    (record.bin_location || null) === (locationId || null) &&
+    String(record.doc_line_id) === String(docLineId) &&
+    String(record.material_id) === String(materialId) &&
+    String(record.batch_id || "") === String(batchId || "") &&
+    String(record.bin_location || "") === String(locationId || "") &&
     record.status === "Allocated" &&
-    record.target_gd_id === docId,
+    String(record.target_gd_id) === String(docId),
 );
 
 if (matchedOldRecords.length > 0) {
@@ -71,10 +71,10 @@ if (matchedOldRecords.length > 0) {
         (record) =>
           record.status === "Pending" &&
           record.doc_type === docType &&
-          record.parent_line_id === parentLineId &&
-          record.material_id === materialId &&
-          (record.batch_id || null) === (batchId || null) &&
-          (record.bin_location || null) === (locationId || null),
+          String(record.parent_line_id) === String(parentLineId) &&
+          String(record.material_id) === String(materialId) &&
+          String(record.batch_id || "") === String(batchId || "") &&
+          String(record.bin_location || "") === String(locationId || ""),
       );
     };
 
@@ -503,6 +503,7 @@ return {
   recordsToUpdate: recordsToUpdate,
   recordsToUpdateLength: recordsToUpdate.length,
   recordToCreate: recordToCreate,
+  recordToCreateExists: recordToCreate ? 1 : 0,
   inventoryMovements: inventoryMovements,
   inventoryMovementsLength: inventoryMovements.length,
   message: "Initial allocation successful",

@@ -31,10 +31,10 @@ const orphanedRecords = currentAllocatedRecords.data.filter(
   (allocated) =>
     !currentTempDataKeys.some(
       (current) =>
-        allocated.doc_line_id === current.doc_line_id &&
-        allocated.material_id === current.material_id &&
-        (allocated.batch_id || null) === (current.batch_id || null) &&
-        (allocated.bin_location || null) === (current.bin_location || null),
+        String(allocated.doc_line_id) === String(current.doc_line_id) &&
+        String(allocated.material_id) === String(current.material_id) &&
+        String(allocated.batch_id || "") === String(current.batch_id || "") &&
+        String(allocated.bin_location || "") === String(current.bin_location || ""),
     ),
 );
 
@@ -66,10 +66,10 @@ const findExistingPendingToMerge = (docType, parentLineId, materialId, batchId, 
     (record) =>
       record.status === "Pending" &&
       record.doc_type === docType &&
-      record.parent_line_id === parentLineId &&
-      record.material_id === materialId &&
-      (record.batch_id || null) === (batchId || null) &&
-      (record.bin_location || null) === (binLocation || null),
+      String(record.parent_line_id) === String(parentLineId) &&
+      String(record.material_id) === String(materialId) &&
+      String(record.batch_id || "") === String(batchId || "") &&
+      String(record.bin_location || "") === String(binLocation || ""),
   );
 };
 
@@ -138,7 +138,7 @@ for (const orphanedRecord of sortedOrphanedRecords) {
 
 for (const [pendingId, accumulatedQty] of pendingMergeAccumulator.entries()) {
   const existingPending = (existingPendingRecords?.data || []).find(
-    (r) => r.id === pendingId,
+    (r) => String(r.id) === String(pendingId),
   );
   if (existingPending) {
     recordsToUpdate.push({

@@ -20,12 +20,12 @@ const remark = {{workflowparams:remark}};
 
 const matchedAllocatedRecords = existingAllocatedData.filter(
   (record) =>
-    record.doc_line_id === docLineId &&
-    record.material_id === materialId &&
-    (record.batch_id || null) === (batchId || null) &&
-    (record.bin_location || null) === (locationId || null) &&
+    String(record.doc_line_id) === String(docLineId) &&
+    String(record.material_id) === String(materialId) &&
+    String(record.batch_id || "") === String(batchId || "") &&
+    String(record.bin_location || "") === String(locationId || "") &&
     record.status === "Allocated" &&
-    record.target_gd_id === docId,
+    String(record.target_gd_id) === String(docId),
 );
 
 if (matchedAllocatedRecords.length > 0) {
@@ -53,15 +53,15 @@ if (matchedAllocatedRecords.length > 0) {
         (releaseOrderPriority[b.doc_type] || 99),
     );
 
-    const findExistingPendingToMerge = (docType, parentLineId) => {
+    const findExistingPendingToMerge = (docType, recordParentLineId) => {
       return existingPendingData.find(
         (record) =>
           record.status === "Pending" &&
           record.doc_type === docType &&
-          record.parent_line_id === parentLineId &&
-          record.material_id === materialId &&
-          (record.batch_id || null) === (batchId || null) &&
-          (record.bin_location || null) === (locationId || null),
+          String(record.parent_line_id) === String(recordParentLineId) &&
+          String(record.material_id) === String(materialId) &&
+          String(record.batch_id || "") === String(batchId || "") &&
+          String(record.bin_location || "") === String(locationId || ""),
       );
     };
 
@@ -278,9 +278,9 @@ if (matchedAllocatedRecords.length > 0) {
 
     const matchedPendingRecords = existingPendingData.filter(
       (record) =>
-        record.material_id === materialId &&
-        (record.batch_id || null) === (batchId || null) &&
-        (record.bin_location || null) === (locationId || null) &&
+        String(record.material_id) === String(materialId) &&
+        String(record.batch_id || "") === String(batchId || "") &&
+        String(record.bin_location || "") === String(locationId || "") &&
         record.status === "Pending",
     );
 
@@ -444,9 +444,9 @@ if (matchedAllocatedRecords.length > 0) {
 
 const matchedPendingRecords = existingPendingData.filter(
   (record) =>
-    record.material_id === materialId &&
-    (record.batch_id || null) === (batchId || null) &&
-    (record.bin_location || null) === (locationId || null) &&
+    String(record.material_id) === String(materialId) &&
+    String(record.batch_id || "") === String(batchId || "") &&
+    String(record.bin_location || "") === String(locationId || "") &&
     record.status === "Pending",
 );
 
@@ -611,6 +611,7 @@ return {
   recordsToUpdate,
   recordsToUpdateLength: recordsToUpdate.length,
   recordToCreate,
+  recordToCreateExists: recordToCreate ? 1 : 0,
   inventoryMovements,
   inventoryMovementsLength: inventoryMovements.length,
   message: "Delivery processed successfully",
