@@ -597,7 +597,10 @@ const handleWorkflowResult = async (workflowResult, data) => {
   // Handle 401 - Zero quantity confirmation
   if (resultCode === "401" || resultCode === 401) {
     this.hideLoading();
-    const message = workflowResult.data.msg || workflowResult.data.message || "Some lines have zero delivery quantity. Would you like to proceed?";
+    const message =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Some lines have zero delivery quantity. Would you like to proceed?";
 
     try {
       await this.$confirm(message, "", {
@@ -650,18 +653,8 @@ const handleWorkflowResult = async (workflowResult, data) => {
         })
         .get();
 
-      const rawGdId = await db
-        .collection("goods_delivery")
-        .where({
-          delivery_no: data.delivery_no,
-          so_id: data.so_id,
-          plant_id: data.plant_id,
-          organization_id: data.organization_id,
-        })
-        .field("id")
-        .get();
-
-      const gdId = rawGdId.data[0].id;
+      const gdId =
+        data.page_status === "Add" ? workflowResult.data.gdId : data.id;
 
       if (pickingSetupResponse.data && pickingSetupResponse.data.length > 0) {
         const isUpdate = data.page_status === "Edit";

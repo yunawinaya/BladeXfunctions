@@ -313,7 +313,6 @@ const checkInventoryWithDuplicates = async (
   console.log("Material groups:", materialGroups);
 
   const insufficientItems = [];
-  const itemsForAllocation = [];
   const insufficientDialogData = []; // Build insufficient dialog table entries
 
   // ========================================================================
@@ -341,7 +340,7 @@ const checkInventoryWithDuplicates = async (
   );
 
   // Extract for easier access
-  const { pickingMode, defaultStrategy, fallbackStrategy } = pickingSetup;
+  const { pickingMode } = pickingSetup;
 
   // ========================================================================
   // STEP 2: Collect all location IDs for batch bin location fetch
@@ -386,7 +385,9 @@ const checkInventoryWithDuplicates = async (
         const index = item.originalIndex;
         const orderedQty = item.orderedQty;
         const deliveredQty = item.deliveredQtyFromSource;
+        const plannedQty = item.plannedQtyFromSource || 0;
         const undeliveredQty = orderedQty - deliveredQty;
+        const suggestedQty = Math.max(0, undeliveredQty - plannedQty);
 
         tableGdArray[index] = {
           ...tableGdArray[index],
@@ -406,7 +407,7 @@ const checkInventoryWithDuplicates = async (
           unit_price: item.unitPrice || 0,
           total_price: item.soAmount || 0,
           item_costing_method: "",
-          gd_qty: undeliveredQty,
+          gd_qty: suggestedQty,
         };
 
         fieldsToDisable.push(`table_gd.${index}.gd_delivery_qty`);
@@ -429,7 +430,9 @@ const checkInventoryWithDuplicates = async (
         const index = item.originalIndex;
         const orderedQty = item.orderedQty;
         const deliveredQty = item.deliveredQtyFromSource;
+        const plannedQty = item.plannedQtyFromSource || 0;
         const undeliveredQty = orderedQty - deliveredQty;
+        const suggestedQty = Math.max(0, undeliveredQty - plannedQty);
 
         tableGdArray[index] = {
           ...tableGdArray[index],
@@ -449,11 +452,11 @@ const checkInventoryWithDuplicates = async (
           unit_price: item.unitPrice || 0,
           total_price: item.soAmount || 0,
           item_costing_method: itemData.material_costing_method,
-          gd_qty: undeliveredQty,
+          gd_qty: suggestedQty,
           gd_undelivered_qty: 0,
         };
 
-        if (undeliveredQty <= 0) {
+        if (suggestedQty <= 0) {
           fieldsToDisable.push(
             `table_gd.${index}.gd_qty`,
             `table_gd.${index}.gd_delivery_qty`,
@@ -629,32 +632,8 @@ const checkInventoryWithDuplicates = async (
             good_delivery_uom_id: itemData.based_uom,
           };
 
-          if (pickingMode === "Manual") {
-            tableGdArray[index].gd_qty =
-              balanceData.length === 1 ? availableQtyBase : 0;
-          } else {
-            // Auto mode - check eligibility
-            const isEligible =
-              availableQtyBase > 0 &&
-              (balanceData.length === 1 ||
-                pickingMode === "Auto" ||
-                (["FIXED BIN", "RANDOM"].includes(defaultStrategy) &&
-                  ["FIXED BIN", "RANDOM"].includes(fallbackStrategy)));
-
-            if (isEligible) {
-              tableGdArray[index].gd_qty = availableQtyBase;
-              itemsForAllocation.push({
-                materialId,
-                rowIndex: index,
-                quantity: availableQtyBase,
-                plantId,
-                uomId: itemData.based_uom,
-                isSerializedItem: true,
-              });
-            } else {
-              tableGdArray[index].gd_qty = 0;
-            }
-          }
+          // Insufficient stock - don't fill gd_qty
+          tableGdArray[index].gd_qty = 0;
         });
       } else {
         // Non-serialized items
@@ -706,42 +685,8 @@ const checkInventoryWithDuplicates = async (
               Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
 
-          if (pickingMode === "Manual") {
-            tableGdArray[index].gd_qty =
-              balanceData.length === 1 ? availableQtyAlt : 0;
-          } else {
-            const isEligible =
-              availableQtyAlt > 0 &&
-              (balanceData.length === 1 ||
-                pickingMode === "Auto" ||
-                (["FIXED BIN", "RANDOM"].includes(defaultStrategy) &&
-                  ["FIXED BIN", "RANDOM"].includes(fallbackStrategy)));
-
-            if (isEligible) {
-              tableGdArray[index].gd_qty = availableQtyAlt;
-
-              let allocationQty = availableQtyAlt;
-              if (item.altUOM !== itemData.based_uom) {
-                const uomConv = itemData.table_uom_conversion?.find(
-                  (c) => c.alt_uom_id === item.altUOM,
-                );
-                allocationQty = uomConv?.base_qty
-                  ? availableQtyAlt * uomConv.base_qty
-                  : availableQtyAlt;
-              }
-
-              itemsForAllocation.push({
-                materialId,
-                rowIndex: index,
-                quantity: allocationQty,
-                plantId,
-                uomId: item.altUOM,
-                isSerializedItem: false,
-              });
-            } else {
-              tableGdArray[index].gd_qty = 0;
-            }
-          }
+          // Insufficient stock - don't fill gd_qty
+          tableGdArray[index].gd_qty = 0;
         });
       }
 
@@ -755,13 +700,32 @@ const checkInventoryWithDuplicates = async (
       // Sufficient stock
       console.log(`✅ Sufficient stock for material ${materialId}`);
 
-      items.forEach((item) => {
+      items.forEach(async (item) => {
         const index = item.originalIndex;
         const orderedQty = item.orderedQty;
         const deliveredQty = item.deliveredQtyFromSource;
-        const undeliveredQty = orderedQty - deliveredQty;
+        const plannedQty = item.plannedQtyFromSource || 0;
 
-        if (undeliveredQty <= 0) {
+        const pendingReservedData = await db
+          .collection("on_reserved_gd")
+          .where({
+            plant_id: item.plant_id,
+            material_id: item.material_id,
+            parent_line_id: item.so_line_item_id,
+            status: "Pending",
+          })
+          .get();
+
+        const pendingTotal = pendingReservedData?.data?.reduce(
+          (total, doc) => total + parseFloat(doc.open_qty || 0),
+          0,
+        );
+        const undeliveredQty = orderedQty - deliveredQty;
+        const suggestedQty = Math.max(0, undeliveredQty - plannedQty);
+        // Cap by pending reserved qty (if any reservations exist)
+        const finalQty = pendingTotal > 0 ? Math.min(suggestedQty, pendingTotal) : suggestedQty;
+
+        if (finalQty <= 0) {
           fieldsToDisable.push(
             `table_gd.${index}.gd_qty`,
             `table_gd.${index}.gd_delivery_qty`,
@@ -780,8 +744,8 @@ const checkInventoryWithDuplicates = async (
               item.altUOM,
               itemData,
             );
-            const undeliveredQtyBase = convertToBaseUOM(
-              undeliveredQty,
+            const finalQtyBase = convertToBaseUOM(
+              finalQty,
               item.altUOM,
               itemData,
             );
@@ -795,65 +759,20 @@ const checkInventoryWithDuplicates = async (
               good_delivery_uom_id: itemData.based_uom,
             };
 
+            // Sufficient stock - fill gd_qty only (allocation deferred to workflow)
             if (pickingMode === "Manual") {
               tableGdArray[index].gd_qty =
-                balanceData.length === 1 ? undeliveredQtyBase : 0;
+                balanceData.length === 1 ? finalQtyBase : 0;
             } else {
-              tableGdArray[index].gd_qty = undeliveredQtyBase;
-
-              const isEligible =
-                materialId &&
-                (balanceData.length === 1 ||
-                  pickingMode === "Auto" ||
-                  (["FIXED BIN", "RANDOM"].includes(defaultStrategy) &&
-                    ["FIXED BIN", "RANDOM"].includes(fallbackStrategy)));
-
-              if (isEligible) {
-                itemsForAllocation.push({
-                  materialId,
-                  rowIndex: index,
-                  quantity: undeliveredQtyBase,
-                  plantId,
-                  uomId: itemData.based_uom,
-                  isSerializedItem: true,
-                });
-              }
+              tableGdArray[index].gd_qty = finalQtyBase;
             }
           } else {
-            // Non-serialized
+            // Non-serialized - fill gd_qty only (allocation deferred to workflow)
             if (pickingMode === "Manual") {
               tableGdArray[index].gd_qty =
-                balanceData.length === 1 ? undeliveredQty : 0;
+                balanceData.length === 1 ? finalQty : 0;
             } else {
-              tableGdArray[index].gd_qty = undeliveredQty;
-
-              const isEligible =
-                materialId &&
-                (balanceData.length === 1 ||
-                  pickingMode === "Auto" ||
-                  (["FIXED BIN", "RANDOM"].includes(defaultStrategy) &&
-                    ["FIXED BIN", "RANDOM"].includes(fallbackStrategy)));
-
-              if (isEligible) {
-                let allocationQty = undeliveredQty;
-                if (item.altUOM !== itemData.based_uom) {
-                  const uomConv = itemData.table_uom_conversion?.find(
-                    (c) => c.alt_uom_id === item.altUOM,
-                  );
-                  allocationQty = uomConv?.base_qty
-                    ? undeliveredQty * uomConv.base_qty
-                    : undeliveredQty;
-                }
-
-                itemsForAllocation.push({
-                  materialId,
-                  rowIndex: index,
-                  quantity: allocationQty,
-                  plantId,
-                  uomId: item.altUOM,
-                  isSerializedItem: false,
-                });
-              }
+              tableGdArray[index].gd_qty = finalQty;
             }
           }
         }
@@ -889,788 +808,20 @@ const checkInventoryWithDuplicates = async (
 
   console.log(`✅ All ${tableGdArray.length} rows updated in single operation`);
 
-  // ========================================================================
-  // STEP 5: Process allocations sequentially (keep existing logic)
-  // ========================================================================
-  console.log(
-    `Processing ${itemsForAllocation.length} items for allocation...`,
-  );
-
-  itemsForAllocation.sort((a, b) => a.rowIndex - b.rowIndex);
-
-  for (const allocationItem of itemsForAllocation) {
-    console.log(`Processing allocation for row ${allocationItem.rowIndex}`);
-    await performAutomaticAllocation(
-      allocationItem.materialId,
-      allocationItem.rowIndex,
-      allocationItem.quantity,
-      allocationItem.plantId,
-      allocationItem.uomId,
-      allocationItem.isSerializedItem,
-    );
-  }
-
   console.log(
     `✅ OPTIMIZATION COMPLETE: Total time ${Date.now() - overallStart}ms`,
   );
-  console.log("All allocations completed");
+  console.log(
+    "Stock checking completed. Allocation will be performed during save workflow.",
+  );
   return insufficientItems;
 };
 
 // ============================================================================
-// OPTIMIZED ALLOCATION FUNCTION - Reuses cached data
+// ALLOCATION FUNCTIONS REMOVED
+// Allocation logic has been moved to the workflow (runs during GD save)
+// This improves performance and centralizes allocation logic
 // ============================================================================
-
-const performAutomaticAllocation = async (
-  materialId,
-  rowIndex,
-  quantity,
-  plantId,
-  uomId,
-  isSerializedItem = false,
-) => {
-  try {
-    console.log(
-      `Auto-allocating for row ${rowIndex}, material ${materialId}, quantity ${quantity}`,
-    );
-
-    // ========================================================================
-    // OPTIMIZATION: Reuse cached data instead of re-querying
-    // ========================================================================
-    const pickingSetup = window.cachedPickingSetup;
-    const itemData = window.cachedItemDataMap.get(materialId);
-    const balanceDataMaps = window.cachedBalanceDataMaps;
-    const batchDataMap = window.cachedBatchDataMap;
-    const binLocationMap = window.cachedBinLocationMap;
-
-    if (!itemData) {
-      console.log("Item not found in cache, skipping");
-      return;
-    }
-
-    const { pickingMode, defaultStrategy, fallbackStrategy } = pickingSetup;
-
-    if (pickingMode !== "Auto") {
-      console.log(`Picking mode is ${pickingMode}, skipping auto-allocation`);
-      return;
-    }
-
-    // Get current allocations
-    const getCurrentAllocations = (materialId, currentRowIndex) => {
-      const materialAllocations =
-        window.globalAllocationTracker.get(materialId) || new Map();
-      const allocatedQuantities = new Map();
-
-      materialAllocations.forEach((rowAllocations, rIdx) => {
-        if (rIdx !== currentRowIndex) {
-          rowAllocations.forEach((qty, locationKey) => {
-            const currentAllocated = allocatedQuantities.get(locationKey) || 0;
-            allocatedQuantities.set(locationKey, currentAllocated + qty);
-          });
-        }
-      });
-
-      return allocatedQuantities;
-    };
-
-    const applyAllocationsToBalances = (
-      balances,
-      allocatedQuantities,
-      isSerialManaged,
-      isBatchManaged,
-    ) => {
-      return balances.map((balance) => {
-        let key;
-        if (isSerialManaged) {
-          if (isBatchManaged) {
-            key = `${balance.location_id || balance.bin_location_id}-${
-              balance.serial_number || "no_serial"
-            }-${balance.batch_id || "no_batch"}`;
-          } else {
-            key = `${balance.location_id || balance.bin_location_id}-${
-              balance.serial_number || "no_serial"
-            }`;
-          }
-        } else if (isBatchManaged) {
-          key = `${balance.location_id}-${balance.batch_id || "no_batch"}`;
-        } else {
-          key = `${balance.location_id}`;
-        }
-
-        const allocatedFromOthers = allocatedQuantities.get(key) || 0;
-        const originalUnrestrictedQty = balance.unrestricted_qty || 0;
-        const adjustedUnrestrictedQty = Math.max(
-          0,
-          originalUnrestrictedQty - allocatedFromOthers,
-        );
-
-        return {
-          ...balance,
-          unrestricted_qty: adjustedUnrestrictedQty,
-          original_unrestricted_qty: originalUnrestrictedQty,
-        };
-      });
-    };
-
-    const getDefaultBin = (itemData, plantId) => {
-      if (!itemData.table_default_bin?.length) return null;
-      const defaultBinEntry = itemData.table_default_bin.find(
-        (bin) => bin.plant_id === plantId,
-      );
-      return defaultBinEntry?.bin_location || null;
-    };
-
-    const defaultBin = getDefaultBin(itemData, plantId);
-    const allocatedFromOtherRows = getCurrentAllocations(materialId, rowIndex);
-
-    let allAllocations = [];
-
-    // Get balance data from cache
-    if (itemData.serial_number_management === 1) {
-      const serialBalances = balanceDataMaps.serial.get(materialId) || [];
-      const batchDataArray =
-        itemData.item_batch_management === 1
-          ? batchDataMap.get(materialId) || []
-          : null;
-
-      const adjustedBalances = applyAllocationsToBalances(
-        serialBalances,
-        allocatedFromOtherRows,
-        true,
-        itemData.item_batch_management === 1,
-      );
-
-      allAllocations = await processAutoAllocationForSerializedItems(
-        adjustedBalances,
-        defaultBin,
-        quantity,
-        defaultStrategy,
-        fallbackStrategy,
-        itemData.item_batch_management === 1,
-        batchDataArray,
-        binLocationMap,
-      );
-    } else if (itemData.item_batch_management === 1) {
-      const batchBalances = balanceDataMaps.batch.get(materialId) || [];
-      const batchDataArray = batchDataMap.get(materialId) || [];
-
-      const adjustedBalances = applyAllocationsToBalances(
-        batchBalances,
-        allocatedFromOtherRows,
-        false,
-        true,
-      );
-
-      allAllocations = await processAutoAllocation(
-        adjustedBalances,
-        defaultBin,
-        quantity,
-        defaultStrategy,
-        fallbackStrategy,
-        true,
-        batchDataArray,
-        binLocationMap,
-      );
-    } else {
-      const regularBalances = balanceDataMaps.regular.get(materialId) || [];
-
-      const adjustedBalances = applyAllocationsToBalances(
-        regularBalances,
-        allocatedFromOtherRows,
-        false,
-        false,
-      );
-
-      allAllocations = await processAutoAllocation(
-        adjustedBalances,
-        defaultBin,
-        quantity,
-        defaultStrategy,
-        fallbackStrategy,
-        false,
-        null,
-        binLocationMap,
-      );
-    }
-
-    // Update global allocations
-    if (!window.globalAllocationTracker.has(materialId)) {
-      window.globalAllocationTracker.set(materialId, new Map());
-    }
-
-    const materialAllocations = window.globalAllocationTracker.get(materialId);
-    const rowAllocations = new Map();
-
-    allAllocations.forEach((allocation) => {
-      let key;
-      if (isSerializedItem) {
-        if (itemData.item_batch_management === 1) {
-          key = `${
-            allocation.balance.location_id || allocation.balance.bin_location_id
-          }-${allocation.serialNumber}-${
-            allocation.batchData?.id || "no_batch"
-          }`;
-        } else {
-          key = `${
-            allocation.balance.location_id || allocation.balance.bin_location_id
-          }-${allocation.serialNumber}`;
-        }
-      } else if (allocation.batchData) {
-        key = `${allocation.balance.location_id}-${allocation.batchData.id}`;
-      } else {
-        key = `${allocation.balance.location_id}`;
-      }
-      rowAllocations.set(key, allocation.quantity);
-    });
-
-    materialAllocations.set(rowIndex, rowAllocations);
-
-    // Create temp_qty_data and summary
-    const tempQtyData = allAllocations.map((allocation) => {
-      let gdQty = allocation.quantity;
-      if (uomId !== itemData.based_uom) {
-        const uomConv = itemData.table_uom_conversion?.find(
-          (c) => c.alt_uom_id === uomId,
-        );
-        gdQty = uomConv?.base_qty
-          ? allocation.quantity / uomConv.base_qty
-          : allocation.quantity;
-      }
-
-      const baseData = {
-        material_id: materialId,
-        location_id:
-          allocation.balance.location_id || allocation.balance.bin_location_id,
-        block_qty: allocation.balance.block_qty,
-        reserved_qty: allocation.balance.reserved_qty,
-        unrestricted_qty:
-          allocation.balance.original_unrestricted_qty ||
-          allocation.balance.unrestricted_qty,
-        qualityinsp_qty: allocation.balance.qualityinsp_qty,
-        intransit_qty: allocation.balance.intransit_qty,
-        balance_quantity: allocation.balance.balance_quantity,
-        plant_id: plantId,
-        organization_id: allocation.balance.organization_id,
-        is_deleted: 0,
-        gd_quantity: gdQty,
-      };
-
-      if (isSerializedItem && allocation.serialNumber) {
-        baseData.serial_number = allocation.serialNumber;
-      }
-
-      if (allocation.batchData) {
-        baseData.batch_id = allocation.batchData.id;
-      }
-
-      return baseData;
-    });
-
-    // Get UOM name
-    const getUOMData = async (uomId) => {
-      if (!uomId) return "";
-      try {
-        const uomResult = await db
-          .collection("unit_of_measurement")
-          .where({ id: uomId })
-          .get();
-        return uomResult?.data?.[0]?.uom_name || "";
-      } catch (error) {
-        console.error("Error fetching UOM data:", error);
-        return "";
-      }
-    };
-
-    const uomName = await getUOMData(uomId);
-
-    const summaryDetails = allAllocations.map((allocation, index) => {
-      let displayQty = allocation.quantity;
-      if (uomId !== itemData.based_uom) {
-        const uomConv = itemData.table_uom_conversion?.find(
-          (c) => c.alt_uom_id === uomId,
-        );
-        displayQty = uomConv?.base_qty
-          ? allocation.quantity / uomConv.base_qty
-          : allocation.quantity;
-      }
-
-      let summaryLine = `${index + 1}. ${
-        allocation.binLocation
-      }: ${displayQty} ${uomName}`;
-
-      if (isSerializedItem && allocation.serialNumber) {
-        summaryLine += `\n[Serial: ${allocation.serialNumber}]`;
-      }
-
-      if (allocation.batchData) {
-        summaryLine += `\n[Batch: ${allocation.batchData.batch_number}]`;
-      }
-
-      return summaryLine;
-    });
-
-    const totalAllocatedBase = allAllocations.reduce(
-      (sum, alloc) => sum + alloc.quantity,
-      0,
-    );
-
-    let totalAllocated = totalAllocatedBase;
-    if (uomId !== itemData.based_uom) {
-      const uomConv = itemData.table_uom_conversion?.find(
-        (c) => c.alt_uom_id === uomId,
-      );
-      totalAllocated = uomConv?.base_qty
-        ? totalAllocatedBase / uomConv.base_qty
-        : totalAllocatedBase;
-    }
-
-    const summary = `Total: ${totalAllocated} ${uomName}\n\nDETAILS:\n${summaryDetails.join(
-      "\n",
-    )}`;
-
-    const deliveredQty = this.getValue(
-      `table_gd.${rowIndex}.gd_initial_delivered_qty`,
-    );
-    const undeliveredQty = this.getValue(
-      `table_gd.${rowIndex}.gd_undelivered_qty`,
-    );
-
-    // Update the row data
-    this.setData({
-      [`table_gd.${rowIndex}.view_stock`]: summary,
-      [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify(tempQtyData),
-      [`table_gd.${rowIndex}.gd_delivered_qty`]: deliveredQty + totalAllocated,
-      [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-        undeliveredQty - totalAllocated,
-    });
-
-    console.log(
-      `Auto-allocation completed for row ${rowIndex}: ${allAllocations.length} allocations`,
-    );
-  } catch (error) {
-    console.error(`Error in auto-allocation for row ${rowIndex}:`, error);
-  }
-};
-
-// ============================================================================
-// OPTIMIZED ALLOCATION STRATEGY FUNCTIONS - Use cached bin location data
-// ============================================================================
-
-const processAutoAllocationForSerializedItems = async (
-  balances,
-  defaultBin,
-  quantity,
-  defaultStrategy,
-  fallbackStrategy,
-  isBatchManaged,
-  batchDataArray = null,
-  binLocationMap = new Map(),
-) => {
-  let allAllocations = [];
-  let remainingQty = Math.floor(quantity);
-
-  // OPTIMIZATION: Use cached bin location map instead of querying individually
-  const getBinLocationDetails = (locationId) => {
-    return binLocationMap.get(locationId) || null;
-  };
-
-  const findBatchData = (batchId) => {
-    if (!isBatchManaged || !batchDataArray) return null;
-    return batchDataArray.find((batch) => batch.id === batchId) || null;
-  };
-
-  const availableBalances = balances.filter(
-    (balance) =>
-      (balance.unrestricted_qty || 0) > 0 &&
-      balance.serial_number &&
-      balance.serial_number.trim() !== "",
-  );
-
-  if (defaultStrategy === "FIXED BIN") {
-    if (defaultBin) {
-      const defaultBinBalances = availableBalances.filter(
-        (balance) =>
-          (balance.location_id || balance.bin_location_id) === defaultBin,
-      );
-
-      if (isBatchManaged && batchDataArray) {
-        defaultBinBalances.sort((a, b) => {
-          const batchA = findBatchData(a.batch_id);
-          const batchB = findBatchData(b.batch_id);
-
-          // Get expiry_date from balance record OR batch record (handles both expired_date and expiry_date)
-          const expiredA = a.expired_date || a.expiry_date || batchA?.expired_date || batchA?.expiry_date;
-          const expiredB = b.expired_date || b.expiry_date || batchB?.expired_date || batchB?.expiry_date;
-
-          // Prioritize batches WITH expiry_date over those WITHOUT
-          if (expiredA && !expiredB) return -1;
-          if (!expiredA && expiredB) return 1;
-
-          // Both have expiry_date - sort by earliest first (FEFO)
-          if (expiredA && expiredB) {
-            return new Date(expiredA) - new Date(expiredB);
-          }
-
-          // Neither has expiry_date - fallback to serial number
-          return (a.serial_number || "").localeCompare(b.serial_number || "");
-        });
-      } else {
-        defaultBinBalances.sort((a, b) =>
-          (a.serial_number || "").localeCompare(b.serial_number || ""),
-        );
-      }
-
-      for (const balance of defaultBinBalances) {
-        if (remainingQty <= 0) break;
-
-        const allocatedQty = Math.min(1, remainingQty);
-
-        if (allocatedQty > 0) {
-          const binDetails = getBinLocationDetails(
-            balance.location_id || balance.bin_location_id,
-          );
-          if (binDetails) {
-            const batchData = isBatchManaged
-              ? findBatchData(balance.batch_id)
-              : null;
-
-            allAllocations.push({
-              balance: balance,
-              quantity: allocatedQty,
-              binLocation: binDetails.bin_location_combine,
-              batchData: batchData,
-              serialNumber: balance.serial_number,
-            });
-            remainingQty -= allocatedQty;
-          }
-        }
-      }
-    }
-
-    if (remainingQty > 0 && fallbackStrategy === "RANDOM") {
-      const otherBalances = availableBalances.filter(
-        (balance) =>
-          (balance.location_id || balance.bin_location_id) !== defaultBin,
-      );
-
-      if (isBatchManaged && batchDataArray) {
-        otherBalances.sort((a, b) => {
-          const batchA = findBatchData(a.batch_id);
-          const batchB = findBatchData(b.batch_id);
-
-          // Get expiry_date from balance record OR batch record (handles both expired_date and expiry_date)
-          const expiredA = a.expired_date || a.expiry_date || batchA?.expired_date || batchA?.expiry_date;
-          const expiredB = b.expired_date || b.expiry_date || batchB?.expired_date || batchB?.expiry_date;
-
-          // Prioritize batches WITH expiry_date over those WITHOUT
-          if (expiredA && !expiredB) return -1;
-          if (!expiredA && expiredB) return 1;
-
-          // Both have expiry_date - sort by earliest first (FEFO)
-          if (expiredA && expiredB) {
-            return new Date(expiredA) - new Date(expiredB);
-          }
-
-          // Neither has expiry_date - fallback to serial number
-          return (a.serial_number || "").localeCompare(b.serial_number || "");
-        });
-      } else {
-        otherBalances.sort((a, b) =>
-          (a.serial_number || "").localeCompare(b.serial_number || ""),
-        );
-      }
-
-      for (const balance of otherBalances) {
-        if (remainingQty <= 0) break;
-
-        const allocatedQty = Math.min(1, remainingQty);
-
-        if (allocatedQty > 0) {
-          const binDetails = getBinLocationDetails(
-            balance.location_id || balance.bin_location_id,
-          );
-          if (binDetails) {
-            const batchData = isBatchManaged
-              ? findBatchData(balance.batch_id)
-              : null;
-
-            allAllocations.push({
-              balance: balance,
-              quantity: allocatedQty,
-              binLocation: binDetails.bin_location_combine,
-              batchData: batchData,
-              serialNumber: balance.serial_number,
-            });
-            remainingQty -= allocatedQty;
-          }
-        }
-      }
-    }
-  } else if (defaultStrategy === "RANDOM") {
-    if (isBatchManaged && batchDataArray) {
-      availableBalances.sort((a, b) => {
-        const batchA = findBatchData(a.batch_id);
-        const batchB = findBatchData(b.batch_id);
-
-        // Get expiry_date from balance record OR batch record (handles both expired_date and expiry_date)
-        const expiredA = a.expired_date || a.expiry_date || batchA?.expired_date || batchA?.expiry_date;
-        const expiredB = b.expired_date || b.expiry_date || batchB?.expired_date || batchB?.expiry_date;
-
-        // Prioritize batches WITH expiry_date over those WITHOUT
-        if (expiredA && !expiredB) return -1;
-        if (!expiredA && expiredB) return 1;
-
-        // Both have expiry_date - sort by earliest first (FEFO)
-        if (expiredA && expiredB) {
-          return new Date(expiredA) - new Date(expiredB);
-        }
-
-        // Neither has expiry_date - fallback to serial number
-        return (a.serial_number || "").localeCompare(b.serial_number || "");
-      });
-    } else {
-      availableBalances.sort((a, b) =>
-        (a.serial_number || "").localeCompare(b.serial_number || ""),
-      );
-    }
-
-    for (const balance of availableBalances) {
-      if (remainingQty <= 0) break;
-
-      const allocatedQty = Math.min(1, remainingQty);
-
-      if (allocatedQty > 0) {
-        const binDetails = getBinLocationDetails(
-          balance.location_id || balance.bin_location_id,
-        );
-        if (binDetails) {
-          const batchData = isBatchManaged
-            ? findBatchData(balance.batch_id)
-            : null;
-
-          allAllocations.push({
-            balance: balance,
-            quantity: allocatedQty,
-            binLocation: binDetails.bin_location_combine,
-            batchData: batchData,
-            serialNumber: balance.serial_number,
-          });
-          remainingQty -= allocatedQty;
-        }
-      }
-    }
-  }
-
-  console.log(
-    `Serialized item allocation completed: ${
-      allAllocations.length
-    } serial numbers allocated out of ${Math.floor(quantity)} requested`,
-  );
-  return allAllocations;
-};
-
-const processAutoAllocation = async (
-  balances,
-  defaultBin,
-  quantity,
-  defaultStrategy,
-  fallbackStrategy,
-  isBatchManaged,
-  batchDataArray = null,
-  binLocationMap = new Map(),
-) => {
-  let allAllocations = [];
-  let remainingQty = quantity;
-
-  // OPTIMIZATION: Use cached bin location map
-  const getBinLocationDetails = (locationId) => {
-    return binLocationMap.get(locationId) || null;
-  };
-
-  const findBatchData = (batchId) => {
-    if (!isBatchManaged || !batchDataArray) return null;
-    return batchDataArray.find((batch) => batch.id === batchId) || null;
-  };
-
-  if (defaultStrategy === "FIXED BIN") {
-    if (defaultBin) {
-      const defaultBinBalances = balances.filter(
-        (balance) =>
-          balance.location_id === defaultBin &&
-          (balance.unrestricted_qty || 0) > 0,
-      );
-
-      if (isBatchManaged) {
-        defaultBinBalances.sort((a, b) => {
-          const batchA = findBatchData(a.batch_id);
-          const batchB = findBatchData(b.batch_id);
-
-          // Get expiry_date from balance record OR batch record (handles both expired_date and expiry_date)
-          const expiredA = a.expired_date || a.expiry_date || batchA?.expired_date || batchA?.expiry_date;
-          const expiredB = b.expired_date || b.expiry_date || batchB?.expired_date || batchB?.expiry_date;
-
-          // Prioritize batches WITH expiry_date over those WITHOUT
-          if (expiredA && !expiredB) return -1;
-          if (!expiredA && expiredB) return 1;
-
-          // Both have expiry_date - sort by earliest first (FEFO)
-          if (expiredA && expiredB) {
-            return new Date(expiredA) - new Date(expiredB);
-          }
-
-          // Neither has expiry_date - fallback to batch number
-          return (batchA?.batch_number || "").localeCompare(
-            batchB?.batch_number || "",
-          );
-        });
-      }
-
-      for (const balance of defaultBinBalances) {
-        if (remainingQty <= 0) break;
-
-        const availableQty = balance.unrestricted_qty || 0;
-        const allocatedQty = Math.min(remainingQty, availableQty);
-
-        if (allocatedQty > 0) {
-          const binDetails = getBinLocationDetails(balance.location_id);
-          if (binDetails) {
-            const batchData = isBatchManaged
-              ? findBatchData(balance.batch_id)
-              : null;
-
-            allAllocations.push({
-              balance: balance,
-              quantity: allocatedQty,
-              binLocation: binDetails.bin_location_combine,
-              batchData: batchData,
-            });
-            remainingQty -= allocatedQty;
-          }
-        }
-      }
-    }
-
-    if (remainingQty > 0 && fallbackStrategy === "RANDOM") {
-      const availableBalances = balances.filter(
-        (balance) =>
-          balance.location_id !== defaultBin &&
-          (balance.unrestricted_qty || 0) > 0,
-      );
-
-      if (isBatchManaged) {
-        availableBalances.sort((a, b) => {
-          const batchA = findBatchData(a.batch_id);
-          const batchB = findBatchData(b.batch_id);
-
-          // Get expiry_date from balance record OR batch record (handles both expired_date and expiry_date)
-          const expiredA = a.expired_date || a.expiry_date || batchA?.expired_date || batchA?.expiry_date;
-          const expiredB = b.expired_date || b.expiry_date || batchB?.expired_date || batchB?.expiry_date;
-
-          // Prioritize batches WITH expiry_date over those WITHOUT
-          if (expiredA && !expiredB) return -1;
-          if (!expiredA && expiredB) return 1;
-
-          // Both have expiry_date - sort by earliest first (FEFO)
-          if (expiredA && expiredB) {
-            return new Date(expiredA) - new Date(expiredB);
-          }
-
-          // Neither has expiry_date - fallback to batch number
-          return (batchA?.batch_number || "").localeCompare(
-            batchB?.batch_number || "",
-          );
-        });
-      } else {
-        availableBalances.sort(
-          (a, b) => balances.indexOf(a) - balances.indexOf(b),
-        );
-      }
-
-      for (const balance of availableBalances) {
-        if (remainingQty <= 0) break;
-
-        const availableQty = balance.unrestricted_qty || 0;
-        const allocatedQty = Math.min(remainingQty, availableQty);
-
-        if (allocatedQty > 0) {
-          const binDetails = getBinLocationDetails(balance.location_id);
-          if (binDetails) {
-            const batchData = isBatchManaged
-              ? findBatchData(balance.batch_id)
-              : null;
-
-            allAllocations.push({
-              balance: balance,
-              quantity: allocatedQty,
-              binLocation: binDetails.bin_location_combine,
-              batchData: batchData,
-            });
-            remainingQty -= allocatedQty;
-          }
-        }
-      }
-    }
-  } else if (defaultStrategy === "RANDOM") {
-    const availableBalances = balances.filter(
-      (balance) => (balance.unrestricted_qty || 0) > 0,
-    );
-
-    if (isBatchManaged) {
-      availableBalances.sort((a, b) => {
-        const batchA = findBatchData(a.batch_id);
-        const batchB = findBatchData(b.batch_id);
-
-        // Get expiry_date from balance record OR batch record (handles both expired_date and expiry_date)
-        const expiredA = a.expired_date || a.expiry_date || batchA?.expired_date || batchA?.expiry_date;
-        const expiredB = b.expired_date || b.expiry_date || batchB?.expired_date || batchB?.expiry_date;
-
-        // Prioritize batches WITH expiry_date over those WITHOUT
-        if (expiredA && !expiredB) return -1;
-        if (!expiredA && expiredB) return 1;
-
-        // Both have expiry_date - sort by earliest first (FEFO)
-        if (expiredA && expiredB) {
-          return new Date(expiredA) - new Date(expiredB);
-        }
-
-        // Neither has expiry_date - fallback to batch number
-        return (batchA?.batch_number || "").localeCompare(
-          batchB?.batch_number || "",
-        );
-      });
-    } else {
-      availableBalances.sort(
-        (a, b) => balances.indexOf(a) - balances.indexOf(b),
-      );
-    }
-
-    for (const balance of availableBalances) {
-      if (remainingQty <= 0) break;
-
-      const availableQty = balance.unrestricted_qty || 0;
-      const allocatedQty = Math.min(remainingQty, availableQty);
-
-      if (allocatedQty > 0) {
-        const binDetails = getBinLocationDetails(balance.location_id);
-        if (binDetails) {
-          const batchData = isBatchManaged
-            ? findBatchData(balance.batch_id)
-            : null;
-
-          allAllocations.push({
-            balance: balance,
-            quantity: allocatedQty,
-            binLocation: binDetails.bin_location_combine,
-            batchData: batchData,
-          });
-          remainingQty -= allocatedQty;
-        }
-      }
-    }
-  }
-
-  return allAllocations;
-};
 
 // Initialize global tracker
 if (!window.globalAllocationTracker) {

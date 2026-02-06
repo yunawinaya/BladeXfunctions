@@ -9,7 +9,7 @@ const docLineId = {{workflowparams:doc_line_id}};
 const docNo = {{workflowparams:doc_no}};
 const materialId = {{workflowparams:material_id}};
 const itemData = {{workflowparams:itemData}};
-const batchId = {{workflowparams:batch_id}};
+const batchId = {{node:code_node_pzzFHqbD.data.batchID}};
 const locationId = {{workflowparams:location_id}};
 const materialUom = {{workflowparams:material_uom}};
 const docDate = {{workflowparams:doc_date}};
@@ -43,9 +43,9 @@ if (matchedAllocatedRecords.length > 0) {
     let remainingQtyToRelease = totalAllocatedQty - quantity;
     let unrestrictedQtyToAdd = 0;
     const releaseOrderPriority = {
-      "Sales Order": 1,
-      "Production Receipt": 2,
-      "Good Delivery": 3,
+      "Good Delivery": 1,
+      "Sales Order": 2,
+      "Production": 3,
     };
     const sortedAllocatedRecords = [...matchedAllocatedRecords].sort(
       (a, b) =>
@@ -122,11 +122,14 @@ if (matchedAllocatedRecords.length > 0) {
               const { _id, id, ...recordWithoutId } = allocatedRecord;
               recordToCreate = {
                 ...recordWithoutId,
+                doc_id: "",
+                doc_no: "",
+                doc_line_id: "",
                 reserved_qty: remainderQty,
                 open_qty: remainderQty,
                 delivered_qty: 0,
                 status: "Pending",
-                source_reserved_id: allocatedRecord.id,
+                source_reserved_id: allocatedRecord.source_reserved_id || allocatedRecord.id,
                 target_gd_id: null,
               };
             }
@@ -171,8 +174,9 @@ if (matchedAllocatedRecords.length > 0) {
             } else {
               recordsToUpdate.push({
                 ...allocatedRecord,
-                reserved_qty: allocatedRecord.reserved_qty,
-                open_qty: allocatedRecord.open_qty,
+                doc_id: "",
+                doc_no: "",
+                doc_line_id: "",
                 status: "Pending",
                 target_gd_id: null,
               });
@@ -215,11 +219,14 @@ if (matchedAllocatedRecords.length > 0) {
               const { _id, id, ...recordWithoutId } = allocatedRecord;
               recordToCreate = {
                 ...recordWithoutId,
+                doc_id: "",
+                doc_no: "",
+                doc_line_id: "",
                 reserved_qty: releaseFromThisRecord,
                 open_qty: releaseFromThisRecord,
                 delivered_qty: 0,
                 status: "Pending",
-                source_reserved_id: allocatedRecord.id,
+                source_reserved_id: allocatedRecord.source_reserved_id || allocatedRecord.id,
                 target_gd_id: null,
               };
             }
@@ -253,6 +260,7 @@ if (matchedAllocatedRecords.length > 0) {
       recordsToUpdate,
       recordsToUpdateLength: recordsToUpdate.length,
       recordToCreate,
+      recordToCreateExists: recordToCreate ? 1 : 0,
       inventoryMovements,
       inventoryMovementsLength: inventoryMovements.length,
       message:
@@ -285,7 +293,7 @@ if (matchedAllocatedRecords.length > 0) {
     );
 
     const pendingProdReceiptData = matchedPendingRecords.filter(
-      (item) => item.doc_type === "Production Receipt",
+      (item) => item.doc_type === "Production",
     );
     const pendingSOData = matchedPendingRecords.filter(
       (item) => item.doc_type === "Sales Order",
@@ -330,11 +338,14 @@ if (matchedAllocatedRecords.length > 0) {
         const { _id, id, ...prodReceiptWithoutId } = pendingProdReceiptData[0];
         recordToCreate = {
           ...prodReceiptWithoutId,
+          doc_id: "",
+          doc_no: "",
+          doc_line_id: "",
           reserved_qty: prodReceiptQty - deliverQty,
           open_qty: prodReceiptQty - deliverQty,
           delivered_qty: 0,
           status: "Pending",
-          source_reserved_id: pendingProdReceiptData[0].id,
+          source_reserved_id: pendingProdReceiptData[0].source_reserved_id || pendingProdReceiptData[0].id,
           target_gd_id: null,
         };
       }
@@ -369,11 +380,14 @@ if (matchedAllocatedRecords.length > 0) {
         const { _id, id, ...soWithoutId } = pendingSOData[0];
         recordToCreate = {
           ...soWithoutId,
+          doc_id: "",
+          doc_no: "",
+          doc_line_id: "",
           reserved_qty: soQty - deliverQty,
           open_qty: soQty - deliverQty,
           delivered_qty: 0,
           status: "Pending",
-          source_reserved_id: pendingSOData[0].id,
+          source_reserved_id: pendingSOData[0].source_reserved_id || pendingSOData[0].id,
           target_gd_id: null,
         };
       }
@@ -435,6 +449,7 @@ if (matchedAllocatedRecords.length > 0) {
       recordsToUpdate,
       recordsToUpdateLength: recordsToUpdate.length,
       recordToCreate,
+      recordToCreateExists: recordToCreate ? 1 : 0,
       inventoryMovements,
       inventoryMovementsLength: inventoryMovements.length,
       message: "Delivery processed with re-allocation (increased qty)",
@@ -455,7 +470,7 @@ const pendingSOData = matchedPendingRecords.filter(
 );
 
 const pendingProdReceiptData = matchedPendingRecords.filter(
-  (item) => item.doc_type === "Production Receipt",
+  (item) => item.doc_type === "Production",
 );
 
 if (pendingSOData.length > 1) {
@@ -507,11 +522,14 @@ if (pendingProdReceiptData.length > 0 && remainingQtyToDeliver > 0) {
     const { _id, id, ...prodReceiptWithoutId } = pendingProdReceiptData[0];
     recordToCreate = {
       ...prodReceiptWithoutId,
+      doc_id: "",
+      doc_no: "",
+      doc_line_id: "",
       reserved_qty: productionReceiptOpenQty - deliverQty,
       open_qty: productionReceiptOpenQty - deliverQty,
       delivered_qty: 0,
       status: "Pending",
-      source_reserved_id: pendingProdReceiptData[0].id,
+      source_reserved_id: pendingProdReceiptData[0].source_reserved_id || pendingProdReceiptData[0].id,
       target_gd_id: null,
     };
   }
@@ -545,11 +563,14 @@ if (pendingSOData.length > 0 && remainingQtyToDeliver > 0) {
     const { _id, id, ...soWithoutId } = pendingSOData[0];
     recordToCreate = {
       ...soWithoutId,
+      doc_id: "",
+      doc_no: "",
+      doc_line_id: "",
       reserved_qty: salesOrderOpenQty - deliverQty,
       open_qty: salesOrderOpenQty - deliverQty,
       delivered_qty: 0,
       status: "Pending",
-      source_reserved_id: pendingSOData[0].id,
+      source_reserved_id: pendingSOData[0].source_reserved_id || pendingSOData[0].id,
       target_gd_id: null,
     };
   }

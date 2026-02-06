@@ -1,0 +1,908 @@
+================================================================================
+        GOODS DELIVERY CREATED LOGIC - TEST CASES
+================================================================================
+
+Total Test Cases: 40
+- Section 1: Creating New GD (15 tests)
+- Section 1B: Multiple GDs Sharing Same Source (5 tests)  ← NEW!
+- Section 2: Increasing Quantity (8 tests)
+- Section 3: Decreasing Quantity (12 tests)
+
+================================================================================
+SECTION 1: CREATING NEW GOODS DELIVERY (15 Tests)
+================================================================================
+
+Test 1.1: Allocate from Sales Order (SO)
+----------------------------------------
+Setup:
+  - Create new GD for Item A, 40 units
+  - SO pending has 50 units available
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Creates 1 allocation record
+  - ✓ Allocation type: "Sales Order"
+  - ✓ Allocated quantity: 40 units
+  - ✓ SO pending reduced by 40 units
+
+Check:
+  [ ] Open Reserved table, find allocation record
+  [ ] Check doc_type = "Sales Order"
+  [ ] Check reserved_qty = 40
+  [ ] Check status = "Allocated"
+  [ ] Verify SO pending updated
+
+
+Test 1.2: Allocate from Production Receipt (PR)
+------------------------------------------------
+Setup:
+  - Create new GD for Item B, 15 units
+  - PR pending has 20 units available
+  - No SO pending
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Creates 1 allocation from PR
+  - ✓ Allocation type: "Production Receipt"
+  - ✓ Allocated quantity: 15 units
+
+Check:
+  [ ] Allocation doc_type = "Production Receipt"
+  [ ] Reserved_qty = 15
+  [ ] PR pending updated correctly
+
+
+Test 1.3: Allocate from Unrestricted Inventory
+-----------------------------------------------
+Setup:
+  - Create new GD for Item A, 25 units
+  - No SO or PR pending available
+  - Unrestricted inventory: 100 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Creates 1 allocation from unrestricted
+  - ✓ Allocation type: "Good Delivery"
+  - ✓ Creates inventory movement (Reserved 25 units)
+  - ✓ Unrestricted inventory decreases by 25
+  - ✓ Reserved inventory increases by 25
+
+Check:
+  [ ] Allocation doc_type = "Good Delivery"
+  [ ] Inventory movement exists: 25 units
+  [ ] Movement type = "UNRESTRICTED_TO_RESERVED"
+  [ ] Check unrestricted inventory (should be 75)
+  [ ] Check reserved inventory (should be 25)
+
+
+Test 1.4: Allocate from SO + PR (Mixed)
+----------------------------------------
+Setup:
+  - Create GD for 90 units
+  - SO pending: 50 units
+  - PR pending: 40 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Creates 2 allocations
+  - ✓ First allocation: SO, 50 units
+  - ✓ Second allocation: PR, 40 units
+  - ✓ Total: 90 units
+  - ✓ No inventory movement (all from pending)
+
+Check:
+  [ ] 2 allocation records created
+  [ ] SO allocation created first (priority)
+  [ ] PR allocation created second
+  [ ] Total allocated = 90
+  [ ] No inventory movement
+
+
+Test 1.5: Allocate from SO + Unrestricted (Mixed)
+--------------------------------------------------
+Setup:
+  - Create GD for 70 units
+  - SO pending: 50 units
+  - No PR pending
+  - Unrestricted: 100 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Creates 2 allocations
+  - ✓ SO: 50 units (first)
+  - ✓ Unrestricted: 20 units (second)
+  - ✓ 1 inventory movement: 20 units
+
+Check:
+  [ ] 2 allocations created
+  [ ] SO allocation: 50 units
+  [ ] GD allocation: 20 units
+  [ ] Inventory movement: 20 units
+  [ ] Unrestricted decreased by 20
+
+
+Test 1.6: Allocate from PR + Unrestricted (Mixed)
+--------------------------------------------------
+Setup:
+  - Create GD for 35 units
+  - No SO pending
+  - PR pending: 20 units
+  - Unrestricted: 50 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ PR allocated first: 20 units
+  - ✓ Unrestricted allocated second: 15 units
+  - ✓ Inventory movement: 15 units
+
+Check:
+  [ ] PR allocation: 20 units
+  [ ] GD allocation: 15 units
+  [ ] Movement: 15 units
+
+
+Test 1.7: Allocate from All Three Sources (SO + PR + Unrestricted)
+-------------------------------------------------------------------
+Setup:
+  - Create GD for 150 units
+  - SO pending: 50 units
+  - PR pending: 40 units
+  - Unrestricted: 100 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ 3 allocations created in order:
+    1. SO: 50 units
+    2. PR: 40 units
+    3. Unrestricted: 60 units
+  - ✓ Total: 150 units
+  - ✓ Inventory movement: 60 units
+
+Check:
+  [ ] 3 allocations in correct priority order
+  [ ] SO first (50), PR second (40), GD third (60)
+  [ ] Inventory movement: 60 units
+
+
+Test 1.8: Not Enough Inventory
+-------------------------------
+Setup:
+  - Create GD for 200 units
+  - SO: 50 units
+  - PR: 30 units
+  - Unrestricted: 100 units
+  - Total available: 180 units (not enough!)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Should show error message
+  - ✓ OR allocate maximum available (180 units)
+  - (Check your business rule)
+
+Check:
+  [ ] Verify error message OR partial allocation
+  [ ] If error: no allocations created
+  [ ] If partial: 180 units allocated
+
+
+Test 1.9: Batched Item
+----------------------
+Setup:
+  - Create GD for Item B (batched item)
+  - Batch X, 20 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Allocation includes batch_id
+  - ✓ Only uses inventory from Batch X
+
+Check:
+  [ ] Allocation has batch_id = "Batch X"
+  [ ] No mixing with other batches
+
+
+Test 1.10: Non-Batched Item
+---------------------------
+Setup:
+  - Create GD for Item A (no batch)
+  - 30 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Allocation has batch_id = null/empty
+  - ✓ Works correctly without batch
+
+Check:
+  [ ] Allocation batch_id is null or empty
+  [ ] Allocates correctly
+
+
+Test 1.11: Multiple SO Pending Records
+---------------------------------------
+Setup:
+  - Create GD for 70 units
+  - SO #1 pending: 50 units
+  - SO #2 pending: 30 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Uses SO #1 first (50 units)
+  - ✓ Uses SO #2 next (20 units)
+  - ✓ Both SO pending records updated
+
+Check:
+  [ ] 2 SO allocations created
+  [ ] First: 50 units from SO #1
+  [ ] Second: 20 units from SO #2
+
+
+Test 1.12: Zero Quantity
+-------------------------
+Setup:
+  - Create GD with 0 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ No allocation created
+  - ✓ Success message
+
+Check:
+  [ ] No allocations
+  [ ] Returns success
+
+
+Test 1.13: Decimal Quantity
+---------------------------
+Setup:
+  - Create GD for 12.5 units (decimal)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Handles decimals correctly
+  - ✓ No rounding errors
+
+Check:
+  [ ] Allocation qty = 12.5 exactly
+  [ ] No precision issues
+
+
+Test 1.14: Very Large Quantity
+------------------------------
+Setup:
+  - Create GD for 1,000,000 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Handles large numbers
+  - ✓ No errors
+
+Check:
+  [ ] Creates allocation with large qty
+  [ ] No overflow errors
+
+
+Test 1.15: Multiple Line Items in Same GD
+-----------------------------------------
+Setup:
+  - Create GD with 2 lines:
+    Line 1: Item A, 30 units
+    Line 2: Item B, 20 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Each line allocated separately
+  - ✓ Allocations don't mix
+
+Check:
+  [ ] Separate allocations for each line
+  [ ] Item A: 30 units
+  [ ] Item B: 20 units
+
+
+================================================================================
+SECTION 1B: MULTIPLE GOODS DELIVERIES SHARING SAME SOURCE (5 Tests)
+================================================================================
+
+Test 1B.1: Two GDs Share Same SO Pending
+-----------------------------------------
+Setup:
+  - SO pending: 100 units available
+  - Create GD #1: 30 units
+  - Create GD #2: 40 units
+
+Action:
+  - Save both GDs
+
+Expected Result:
+  - ✓ GD #1 allocates 30 units from SO
+  - ✓ GD #2 allocates 40 units from same SO
+  - ✓ SO pending: 30 units remaining (100 - 30 - 40)
+  - ✓ Both GDs have separate allocations
+
+Check:
+  [ ] GD #1 allocation: 30 units from SO
+  [ ] GD #2 allocation: 40 units from SO
+  [ ] SO pending open_qty = 30
+  [ ] Both allocations point to same SO parent_line_id
+
+
+Test 1B.2: Create GD, Then Increase After Another GD Created
+-------------------------------------------------------------
+Setup:
+  - SO pending: 100 units
+  - Create GD #1: 30 units → SO pending now has 70 units
+  - Create GD #2: 40 units → SO pending now has 30 units
+  - Edit GD #1: Increase to 60 units (need 30 more)
+
+Action:
+  - Save GD #1 with new quantity (60 units)
+
+Expected Result:
+  - ✓ GD #1 now has total 60 units allocation
+  - ✓ Additional 30 units allocated from remaining SO pending
+  - ✓ SO pending: 0 units remaining (100 - 60 - 40)
+  - ✓ GD #2 unchanged: still 40 units
+
+Check:
+  [ ] GD #1 total allocation: 60 units
+  [ ] GD #2 allocation: 40 units (unchanged)
+  [ ] SO pending open_qty = 0 (fully allocated)
+  [ ] Both GDs still have separate allocations
+
+
+Test 1B.3: Multiple GDs, Decrease One GD
+-----------------------------------------
+Setup:
+  - SO pending: 100 units
+  - GD #1: 30 units from SO
+  - GD #2: 40 units from SO
+  - SO pending: 30 units remaining
+  - Edit GD #1: Decrease to 10 units (release 20)
+
+Action:
+  - Save GD #1 with reduced quantity
+
+Expected Result:
+  - ✓ GD #1 reduced to 10 units
+  - ✓ Released 20 units merged back to SO pending
+  - ✓ SO pending: 50 units available (30 + 20)
+  - ✓ GD #2 unchanged: 40 units
+
+Check:
+  [ ] GD #1 allocation: 10 units
+  [ ] GD #2 allocation: 40 units (unchanged)
+  [ ] SO pending open_qty = 50
+  [ ] Released 20 units available for other GDs
+
+
+Test 1B.4: Three GDs Compete for Same Pending
+----------------------------------------------
+Setup:
+  - SO pending: 100 units
+  - Create GD #1: 40 units → 60 remaining
+  - Create GD #2: 30 units → 30 remaining
+  - Create GD #3: 25 units → 5 remaining
+
+Action:
+  - Save all three GDs
+
+Expected Result:
+  - ✓ All three GDs allocated from same SO
+  - ✓ GD #1: 40 units
+  - ✓ GD #2: 30 units
+  - ✓ GD #3: 25 units
+  - ✓ SO pending: 5 units remaining
+
+Check:
+  [ ] All 3 allocations created
+  [ ] Total allocated: 95 units (40 + 30 + 25)
+  [ ] SO pending: 5 units left
+  [ ] Each GD has separate allocation record
+
+
+Test 1B.5: Increase GD When Not Enough in Shared Pending
+---------------------------------------------------------
+Setup:
+  - SO pending: 100 units
+  - GD #1: 40 units from SO → 60 remaining
+  - GD #2: 50 units from SO → 10 remaining
+  - Try to increase GD #1 to 60 units (need 20 more)
+  - Only 10 units available in SO pending
+
+Action:
+  - Save GD #1 with increased quantity
+
+Expected Result:
+  - ✓ GD #1 allocates remaining 10 units from SO
+  - ✓ GD #1 allocates 10 more from PR or Unrestricted
+  - ✓ Total GD #1: 60 units (40 SO + 10 SO + 10 PR/Unrestricted)
+  - ✓ OR: Error if no other sources available
+
+Check:
+  [ ] GD #1 total: 60 units
+  [ ] Uses multiple sources if needed
+  [ ] SO pending fully consumed: 0 units
+  [ ] GD #2 unchanged
+
+
+================================================================================
+SECTION 2: INCREASING QUANTITY (8 Tests)
+================================================================================
+
+Test 2.1: Increase - Allocate More from SO
+-------------------------------------------
+Setup:
+  - GD already exists with 30 units (from SO)
+  - Change quantity to 50 units (increase by 20)
+  - SO pending has enough
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Additional 20 units allocated from SO
+  - ✓ Total allocated: 50 units
+
+Check:
+  [ ] Total allocation = 50 units
+  [ ] All from SO
+  [ ] SO pending updated
+
+
+Test 2.2: Increase - Allocate More from PR
+-------------------------------------------
+Setup:
+  - GD exists with 10 units from PR
+  - Increase to 25 units (need 15 more)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Additional 15 units from PR
+  - ✓ Total: 25 units
+
+Check:
+  [ ] Total = 25 units from PR
+  [ ] PR pending updated
+
+
+Test 2.3: Increase - Allocate More from Unrestricted
+----------------------------------------------------
+Setup:
+  - GD exists with 20 units (unrestricted)
+  - Increase to 40 units (need 20 more)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Additional 20 units from unrestricted
+  - ✓ Inventory movement: 20 units
+  - ✓ Total: 40 units
+
+Check:
+  [ ] Additional GD allocation: 20 units
+  [ ] Movement: 20 units
+  [ ] Unrestricted inventory decreased
+
+
+Test 2.4: Increase - Use Multiple New Sources
+---------------------------------------------
+Setup:
+  - GD exists with 30 units from SO
+  - Increase to 80 units (need 50 more)
+  - SO is exhausted
+  - PR available: 20 units
+  - Unrestricted: 50 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Existing SO: 30 units (unchanged)
+  - ✓ New PR: 20 units
+  - ✓ New unrestricted: 30 units
+  - ✓ Total: 80 units
+
+Check:
+  [ ] 3 allocations: SO=30, PR=20, GD=30
+  [ ] Movement: 30 units
+
+
+Test 2.5: Small Increase (1 unit)
+----------------------------------
+Setup:
+  - GD with 50 units
+  - Increase to 51 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Allocates 1 more unit
+  - ✓ Uses correct priority source
+
+Check:
+  [ ] +1 unit allocated
+  [ ] From correct source
+
+
+Test 2.6: Double the Quantity
+-----------------------------
+Setup:
+  - GD with 25 units
+  - Increase to 50 units (double)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Allocates additional 25 units
+  - ✓ Total: 50 units
+
+Check:
+  [ ] Additional 25 units allocated
+  [ ] Total = 50
+
+
+Test 2.7: Increase with Mixed Batch Items
+-----------------------------------------
+Setup:
+  - GD Line 1: Batch X, 10 units
+  - Increase to 20 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Additional 10 units from Batch X only
+  - ✓ No batch mixing
+
+Check:
+  [ ] Additional allocation uses same batch
+  [ ] No other batches used
+
+
+Test 2.8: Increase When Not Enough Inventory
+--------------------------------------------
+Setup:
+  - GD with 50 units
+  - Increase to 200 units (need 150 more)
+  - Only 100 units available
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Error message OR
+  - ✓ Partial allocation (100 more)
+
+Check:
+  [ ] Check business rule for handling
+  [ ] Verify error or partial result
+
+
+================================================================================
+SECTION 3: DECREASING QUANTITY (12 Tests)
+================================================================================
+
+Test 3.1: Decrease - Release SO Allocation
+-------------------------------------------
+Setup:
+  - GD with 50 units from SO
+  - Decrease to 30 units (release 20)
+  - SO pending exists
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ SO allocation reduced to 30 units
+  - ✓ Released 20 units merged to SO pending
+  - ✓ SO pending: open_qty increases by 20
+  - ✓ No inventory movement
+
+Check:
+  [ ] SO allocation: 30 units
+  [ ] SO pending increased by 20
+  [ ] No movement
+
+
+Test 3.2: Decrease - Release PR Allocation
+-------------------------------------------
+Setup:
+  - GD with 25 units from PR
+  - Decrease to 15 units (release 10)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ PR allocation reduced to 15
+  - ✓ 10 units merged to PR pending
+
+Check:
+  [ ] PR allocation: 15 units
+  [ ] PR pending increased by 10
+
+
+Test 3.3: Decrease - Release GD Allocation (Unrestricted)
+---------------------------------------------------------
+Setup:
+  - GD with 40 units from unrestricted
+  - Decrease to 25 units (release 15)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ GD allocation reduced to 25
+  - ✓ Released 15 units marked "Cancelled"
+  - ✓ Inventory movement: RESERVED_TO_UNRESTRICTED, 15 units
+  - ✓ Reserved decreases by 15
+  - ✓ Unrestricted increases by 15
+
+Check:
+  [ ] GD allocation: 25 units
+  [ ] 1 Cancelled record: 15 units
+  [ ] Movement: 15 units RESERVED_TO_UNRESTRICTED
+  [ ] Reserved inventory decreased
+  [ ] Unrestricted inventory increased
+
+
+Test 3.4: Decrease - Mixed Allocations (Release by Priority)
+------------------------------------------------------------
+Setup:
+  - GD with:
+    • SO: 30 units
+    • PR: 20 units
+    • Unrestricted: 10 units
+    • Total: 60 units
+  - Decrease to 40 units (release 20)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Release order: Unrestricted first, then PR, then SO
+  - ✓ Unrestricted released: 10 units (all)
+  - ✓ PR released: 10 units (partial)
+  - ✓ SO unchanged: 30 units (highest priority, kept)
+
+Check:
+  [ ] SO: 30 units (unchanged)
+  [ ] PR: 10 units (was 20, released 10)
+  [ ] Unrestricted: 0 units (was 10, fully released)
+  [ ] 1 Cancelled record (unrestricted, 10 units)
+  [ ] Movement: 10 units
+  [ ] PR pending increased by 10
+
+
+Test 3.5: Decrease to Zero (Release Everything)
+-----------------------------------------------
+Setup:
+  - GD with SO 30 + PR 20 + Unrestricted 10 = 60 units
+  - Decrease to 0 (release all)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ All allocations released
+  - ✓ Unrestricted → Cancelled (10 units) + movement
+  - ✓ PR → merged to pending (20 units)
+  - ✓ SO → merged to pending (30 units)
+
+Check:
+  [ ] All allocations released
+  [ ] 1 Cancelled (unrestricted, 10 units)
+  [ ] SO pending: +30 units
+  [ ] PR pending: +20 units
+  [ ] Movement: 10 units
+
+
+Test 3.6: Decrease - Release with Existing Pending
+--------------------------------------------------
+Setup:
+  - GD with 50 units from SO
+  - SO pending already has open_qty = 10
+  - Decrease to 30 (release 20)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Released 20 merged to existing pending
+  - ✓ SO pending: open_qty = 10 + 20 = 30
+
+Check:
+  [ ] SO pending open_qty increased by 20
+  [ ] No new pending record created
+
+
+Test 3.7: Decrease - Release with No Existing Pending
+-----------------------------------------------------
+Setup:
+  - GD with 50 units from SO
+  - No SO pending exists (was fully allocated)
+  - Decrease to 30 (release 20)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Released allocation becomes "Pending"
+  - ✓ Can be allocated to another GD later
+
+Check:
+  [ ] Released record status = "Pending"
+  [ ] reserved_qty = 20, open_qty = 20
+
+
+Test 3.8: Small Decrease (1 unit)
+----------------------------------
+Setup:
+  - GD with 50 units
+  - Decrease to 49 units (release 1)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Releases 1 unit
+  - ✓ From lowest priority source first
+
+Check:
+  [ ] 1 unit released
+  [ ] From correct source
+
+
+Test 3.9: Decrease by Half
+--------------------------
+Setup:
+  - GD with 100 units
+  - Decrease to 50 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Releases 50 units
+  - ✓ Follows release priority
+
+Check:
+  [ ] 50 units released correctly
+  [ ] Priority order followed
+
+
+Test 3.10: Decrease - Only Unrestricted Allocation
+--------------------------------------------------
+Setup:
+  - GD with 50 units (all from unrestricted)
+  - Decrease to 30 units (release 20)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Releases 20 units
+  - ✓ Cancelled record created
+  - ✓ Inventory movement: 20 units
+
+Check:
+  [ ] GD allocation: 30 units
+  [ ] Cancelled: 20 units
+  [ ] Movement: 20 units
+
+
+Test 3.11: Decrease - Multiple Batches
+--------------------------------------
+Setup:
+  - GD Line 1: Batch X, 30 units
+  - GD Line 2: Batch Y, 20 units
+  - Decrease Line 1 to 15 units
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Only Line 1 (Batch X) affected
+  - ✓ Line 2 (Batch Y) unchanged
+  - ✓ Releases 15 units from Batch X
+
+Check:
+  [ ] Batch X: 15 units (was 30)
+  [ ] Batch Y: 20 units (unchanged)
+  [ ] No batch mixing
+
+
+Test 3.12: Decrease Below Minimum
+---------------------------------
+Setup:
+  - GD with 10 units
+  - Try to decrease to -5 units (negative)
+
+Action:
+  - Save GD
+
+Expected Result:
+  - ✓ Should fail validation
+  - ✓ Error message
+
+Check:
+  [ ] Returns error
+  [ ] No changes made
+
+
+================================================================================
+PRIORITY ORDER REFERENCE (Quick Guide)
+================================================================================
+
+ALLOCATION PRIORITY (First to Last):
+  1. Sales Order (SO)           ← Allocate from here FIRST
+  2. Production Receipt (PR)    ← Then allocate from here
+  3. Good Delivery (Unrestricted) ← Use this LAST
+
+RELEASE PRIORITY (First to Last):
+  1. Good Delivery (Unrestricted) ← Release this FIRST
+  2. Production Receipt (PR)      ← Then release this
+  3. Sales Order (SO)             ← Keep this LAST (highest priority)
+
+WHY?
+- SO has highest priority because it's a customer order
+- Keep SO allocations as long as possible
+- Release unrestricted inventory first when decreasing
+
+
+================================================================================
+TEST RESULTS SUMMARY (Fill after testing)
+================================================================================
+
+Section 1 (Creating): _____ / 15 passed
+Section 1B (Multiple GDs): _____ / 5 passed
+Section 2 (Increasing): _____ / 8 passed
+Section 3 (Decreasing): _____ / 12 passed
+
+TOTAL: _____ / 40 passed
+
+Critical Issues Found: _____
+
+Notes:
+_____________________________________________________________________________
+_____________________________________________________________________________
+
+
+================================================================================
+END OF DOCUMENT
+================================================================================

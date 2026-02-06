@@ -50,9 +50,9 @@ if (orphanedRecords.length === 0) {
 }
 
 const releaseOrderPriority = {
-  "Sales Order": 1,
-  "Production Receipt": 2,
-  "Good Delivery": 3,
+  "Good Delivery": 1,
+  "Sales Order": 2,
+  "Production": 3,
 };
 const sortedOrphanedRecords = [...orphanedRecords].sort(
   (a, b) =>
@@ -126,9 +126,10 @@ for (const orphanedRecord of sortedOrphanedRecords) {
       });
     } else {
       recordsToUpdate.push({
-        id: orphanedRecord.id,
-        reserved_qty: orphanedRecord.reserved_qty,
-        open_qty: orphanedRecord.reserved_qty,
+        ...orphanedRecord,
+        doc_id: "",
+        doc_no: "",
+        doc_line_id: "",
         status: "Pending",
         target_gd_id: null,
       });
