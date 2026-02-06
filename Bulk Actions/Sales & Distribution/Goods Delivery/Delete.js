@@ -10,29 +10,23 @@
 
     if (selectedRecords && selectedRecords.length > 0) {
       const goodsDeliveryIds = selectedRecords
-        .filter(
-          (item) => item.gd_status === "Draft" || item.gd_status === "Cancelled"
-        )
+        .filter((item) => item.gd_status === "Draft")
         .map((item) => item.id);
 
       if (goodsDeliveryIds.length === 0) {
-        this.$message.error(
-          "Please select at least one draft or cancelled goods delivery."
-        );
+        this.$message.error("Please select at least one draft goods delivery.");
         return;
       }
 
       const goodsDeliveryNumbers = selectedRecords
-        .filter(
-          (item) => item.gd_status === "Draft" || item.gd_status === "Cancelled"
-        )
+        .filter((item) => item.gd_status === "Draft")
         .map((item) => item.delivery_no);
 
       await this.$confirm(
         `You've selected ${
           goodsDeliveryNumbers.length
         } goods delivery(s) to delete. <br> <strong>Goods Delivery Numbers:</strong> <br>${goodsDeliveryNumbers.join(
-          ", "
+          ", ",
         )} <br>Do you want to proceed?`,
         "Goods Delivery Deletion",
         {
@@ -40,7 +34,7 @@
           cancelButtonText: "Cancel",
           type: "warning",
           dangerouslyUseHTMLString: true,
-        }
+        },
       ).catch(() => {
         console.log("User clicked Cancel or closed the dialog");
         throw new Error();
