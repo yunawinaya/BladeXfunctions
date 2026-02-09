@@ -1,5 +1,5 @@
 const existingAllocatedData = {{workflowparams:oldAllocatedData}} || [];
-const existingPendingData = {{node:search_node_pending.data.data}} || [];
+const existingPendingData = {{node:search_node_LD2gXBgY.data.data}} || [];
 const docId = {{workflowparams:doc_id}};
 const docLineId = {{workflowparams:doc_line_id}};
 const materialId = {{workflowparams:material_id}};

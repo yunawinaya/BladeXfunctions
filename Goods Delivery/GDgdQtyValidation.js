@@ -5,7 +5,7 @@ const gdStatus = data.gd_status;
 const isSelectPicking = data.is_select_picking;
 const order_quantity = parseFloat(data.table_gd[index].gd_order_quantity || 0);
 const gd_initial_delivered_qty = parseFloat(
-  data.table_gd[index].gd_initial_delivered_qty || 0
+  data.table_gd[index].gd_initial_delivered_qty || 0,
 );
 const gdUndeliveredQty = order_quantity - gd_initial_delivered_qty;
 const quantity = value;
@@ -69,7 +69,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
       if (!Array.isArray(table_uom_conversion)) return qty;
 
       const fromConversion = table_uom_conversion.find(
-        (conv) => conv.alt_uom_id === fromUOM
+        (conv) => conv.alt_uom_id === fromUOM,
       );
 
       if (fromConversion && fromConversion.base_qty) {
@@ -84,12 +84,12 @@ for (let i = 0; i < data.table_gd.length; i++) {
     const currentItemQtyTotalBase = convertToBaseUOM(
       currentItemQtyTotal,
       currentUOM,
-      itemData
+      itemData,
     );
     const gdUndeliveredQtyBase = convertToBaseUOM(
       gdUndeliveredQty,
       currentUOM,
-      itemData
+      itemData,
     );
 
     console.log("UOM Conversion Debug:", {
@@ -104,7 +104,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
     // Skip validation if stock control is disabled
     if (itemData.stock_control === 0) {
       console.log(
-        `Stock control disabled for item ${materialId}, skipping inventory validation`
+        `Stock control disabled for item ${materialId}, skipping inventory validation`,
       );
 
       // Still check order limits (use base quantities)
@@ -130,7 +130,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
     const isBatchManagedItem = itemData.item_batch_management === 1;
 
     console.log(
-      `Item ${materialId} - Serialized: ${isSerializedItem}, Batch: ${isBatchManagedItem}`
+      `Item ${materialId} - Serialized: ${isSerializedItem}, Batch: ${isBatchManagedItem}`,
     );
 
     // Calculate order limit with tolerance (use base quantities)
@@ -193,7 +193,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
       } catch (error) {
         console.error(
           `Error parsing temp_qty_data for GDPP validation:`,
-          error
+          error,
         );
         window.validationState[index] = false;
         callback("Error validating quantity");
@@ -216,7 +216,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
       }
 
       const prevTempData = JSON.parse(
-        resGD.data[0].table_gd[index].temp_qty_data
+        resGD.data[0].table_gd[index].temp_qty_data,
       );
 
       if (prevTempData.length >= 1) {
@@ -229,12 +229,12 @@ for (let i = 0; i < data.table_gd.length; i++) {
           const unrestricted_qty_base = convertToBaseUOM(
             parseFloat(tempItem.unrestricted_qty || 0),
             gdUOM,
-            itemData
+            itemData,
           );
           const reserved_qty_base = convertToBaseUOM(
             parseFloat(tempItem.reserved_qty || 0),
             gdUOM,
-            itemData
+            itemData,
           );
           totalAvailableQty += unrestricted_qty_base + reserved_qty_base;
         });
@@ -255,6 +255,31 @@ for (let i = 0; i < data.table_gd.length; i++) {
       // For other statuses (Draft, etc.): Check actual inventory balances
       let availableQty = 0;
 
+      // 🔧 NEW: Fetch pending reserved data for this SO line item
+      // Reserved stock for this SO should be counted as available
+      const soLineItemId = data.table_gd[index].so_line_item_id;
+      let pendingReservedQty = 0;
+
+      if (soLineItemId) {
+        const pendingReservedRes = await db
+          .collection("on_reserved_gd")
+          .where({
+            plant_id: data.plant_id,
+            material_id: materialId,
+            parent_line_id: soLineItemId,
+            status: "Pending",
+          })
+          .get();
+
+        if (pendingReservedRes?.data?.length > 0) {
+          pendingReservedQty = pendingReservedRes.data.reduce((total, reserved) => {
+            return total + parseFloat(reserved.open_qty || 0);
+          }, 0);
+        }
+
+        console.log(`Pending reserved qty for SO line ${soLineItemId}:`, pendingReservedQty);
+      }
+
       if (isSerializedItem) {
         // 🔧 NEW: Handle serialized items
         const resSerialBalance = await db
@@ -274,8 +299,13 @@ for (let i = 0; i < data.table_gd.length; i++) {
           }, 0);
         }
 
+        // 🔧 NEW: Add pending reserved qty (reserved stock is available for this SO)
+        availableQty += pendingReservedQty;
+
         console.log(`Draft GD validation for SERIALIZED item ${materialId}:`, {
-          availableQty,
+          unrestrictedQty: availableQty - pendingReservedQty,
+          pendingReservedQty,
+          totalAvailableQty: availableQty,
           currentItemQtyTotalBase,
           serialCount: resSerialBalance?.data?.length || 0,
         });
@@ -298,8 +328,13 @@ for (let i = 0; i < data.table_gd.length; i++) {
           }, 0);
         }
 
+        // 🔧 NEW: Add pending reserved qty (reserved stock is available for this SO)
+        availableQty += pendingReservedQty;
+
         console.log(`Draft GD validation for BATCH item ${materialId}:`, {
-          availableQty,
+          unrestrictedQty: availableQty - pendingReservedQty,
+          pendingReservedQty,
+          totalAvailableQty: availableQty,
           currentItemQtyTotalBase,
           batchCount: resItemBalance?.data?.length || 0,
         });
@@ -322,8 +357,13 @@ for (let i = 0; i < data.table_gd.length; i++) {
           }, 0);
         }
 
+        // 🔧 NEW: Add pending reserved qty (reserved stock is available for this SO)
+        availableQty += pendingReservedQty;
+
         console.log(`Draft GD validation for REGULAR item ${materialId}:`, {
-          availableQty,
+          unrestrictedQty: availableQty - pendingReservedQty,
+          pendingReservedQty,
+          totalAvailableQty: availableQty,
           currentItemQtyTotalBase,
           locationCount: resItemBalance?.data?.length || 0,
         });

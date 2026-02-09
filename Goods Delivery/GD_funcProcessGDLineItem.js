@@ -267,6 +267,49 @@ const batchFetchBatchData = async (materialIds, plantId) => {
   }
 };
 
+// 🔧 NEW: Batch fetch pending reserved data for all SO line items
+const batchFetchPendingReserved = async (soLineItemIds, plantId) => {
+  if (!soLineItemIds || soLineItemIds.length === 0) return new Map();
+  const uniqueIds = [
+    ...new Set(soLineItemIds.filter((id) => id && id !== "undefined")),
+  ];
+  if (uniqueIds.length === 0) return new Map();
+
+  try {
+    const result = await db
+      .collection("on_reserved_gd")
+      .filter([
+        {
+          type: "branch",
+          operator: "all",
+          children: [
+            { prop: "parent_line_id", operator: "in", value: uniqueIds },
+            { prop: "plant_id", operator: "equal", value: plantId },
+            { prop: "status", operator: "equal", value: "Pending" },
+          ],
+        },
+      ])
+      .get();
+
+    // Group by parent_line_id (so_line_item_id)
+    const reservedMap = new Map();
+    (result.data || []).forEach((reserved) => {
+      if (!reservedMap.has(reserved.parent_line_id)) {
+        reservedMap.set(reserved.parent_line_id, []);
+      }
+      reservedMap.get(reserved.parent_line_id).push(reserved);
+    });
+
+    console.log(
+      `✅ Batch fetched pending reserved data for ${reservedMap.size} SO lines in SINGLE query`,
+    );
+    return reservedMap;
+  } catch (error) {
+    console.error("Error batch fetching pending reserved data:", error);
+    return new Map();
+  }
+};
+
 // Helper function to convert quantity from alt UOM to base UOM
 const convertToBaseUOM = (quantity, altUOM, itemData) => {
   if (!altUOM || altUOM === itemData.based_uom) {
@@ -322,21 +365,32 @@ const checkInventoryWithDuplicates = async (
     (id) => id !== "undefined",
   );
 
+  // Collect all SO line item IDs for pending reserved fetch
+  const allSoLineItemIds = [];
+  Object.values(materialGroups).forEach((items) => {
+    items.forEach((item) => {
+      if (item.so_line_item_id) {
+        allSoLineItemIds.push(item.so_line_item_id);
+      }
+    });
+  });
+
   console.log(`🚀 Fetching data for ${materialIds.length} unique materials...`);
   const fetchStart = Date.now();
 
-  const [itemDataMap, balanceDataMaps, pickingSetup, batchDataMap] =
+  const [itemDataMap, balanceDataMaps, pickingSetup, batchDataMap, pendingReservedMap] =
     await Promise.all([
       batchFetchItems(materialIds),
       batchFetchBalanceData(materialIds, plantId),
       fetchPickingSetup(plantId),
       batchFetchBatchData(materialIds, plantId),
+      batchFetchPendingReserved(allSoLineItemIds, plantId),
     ]);
 
   console.log(
     `✅ All data fetched in ${
       Date.now() - fetchStart
-    }ms (was 500+ queries, now 4-5 queries)`,
+    }ms (was 500+ queries, now 5-6 queries)`,
   );
 
   // Extract for easier access
@@ -367,6 +421,7 @@ const checkInventoryWithDuplicates = async (
   window.cachedBalanceDataMaps = balanceDataMaps;
   window.cachedBatchDataMap = batchDataMap;
   window.cachedPickingSetup = pickingSetup;
+  window.cachedPendingReservedMap = pendingReservedMap;
 
   // ========================================================================
   // STEP 3: Process each material and build table data in memory
@@ -484,11 +539,23 @@ const checkInventoryWithDuplicates = async (
       collectionUsed = "item_balance";
     }
 
-    // Calculate total available stock
+    // Calculate total available stock (unrestricted + pending reserved for these SO lines)
     const totalUnrestrictedQtyBase = balanceData.reduce(
       (sum, balance) => sum + (balance.unrestricted_qty || 0),
       0,
     );
+
+    // 🔧 NEW: Calculate total pending reserved qty for all SO lines of this material
+    // Reserved stock for a specific SO is AVAILABLE for that SO
+    let totalPendingReservedQtyBase = 0;
+    items.forEach((item) => {
+      if (item.so_line_item_id) {
+        const reservedData = pendingReservedMap.get(item.so_line_item_id) || [];
+        reservedData.forEach((reserved) => {
+          totalPendingReservedQtyBase += parseFloat(reserved.open_qty || 0);
+        });
+      }
+    });
 
     // Subtract existing allocations
     let totalPreviousAllocations = 0;
@@ -505,13 +572,14 @@ const checkInventoryWithDuplicates = async (
       });
     }
 
+    // Available = unrestricted + reserved (for this SO) - previous allocations
     const availableStockAfterAllocations = Math.max(
       0,
-      totalUnrestrictedQtyBase - totalPreviousAllocations,
+      totalUnrestrictedQtyBase + totalPendingReservedQtyBase - totalPreviousAllocations,
     );
 
     console.log(
-      `Material ${materialId}: Available=${availableStockAfterAllocations}, Collection=${collectionUsed}`,
+      `Material ${materialId}: Unrestricted=${totalUnrestrictedQtyBase}, PendingReserved=${totalPendingReservedQtyBase}, Available=${availableStockAfterAllocations}, Collection=${collectionUsed}`,
     );
 
     // Handle UI controls based on balance data length
@@ -700,23 +768,15 @@ const checkInventoryWithDuplicates = async (
       // Sufficient stock
       console.log(`✅ Sufficient stock for material ${materialId}`);
 
-      items.forEach(async (item) => {
+      items.forEach((item) => {
         const index = item.originalIndex;
         const orderedQty = item.orderedQty;
         const deliveredQty = item.deliveredQtyFromSource;
         const plannedQty = item.plannedQtyFromSource || 0;
 
-        const pendingReservedData = await db
-          .collection("on_reserved_gd")
-          .where({
-            plant_id: item.plant_id,
-            material_id: item.material_id,
-            parent_line_id: item.so_line_item_id,
-            status: "Pending",
-          })
-          .get();
-
-        const pendingTotal = pendingReservedData?.data?.reduce(
+        // 🔧 Use cached pending reserved data instead of new DB query
+        const pendingReservedData = pendingReservedMap.get(item.so_line_item_id) || [];
+        const pendingTotal = pendingReservedData.reduce(
           (total, doc) => total + parseFloat(doc.open_qty || 0),
           0,
         );
