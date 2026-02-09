@@ -64,6 +64,9 @@
   console.log("Total dialog quantity:", totalDialogQuantity);
   console.log("Total delivered quantity:", totalDeliveredQty);
 
+  // Get SO line item ID for pending reserved check
+  const soLineItemId = data.table_gd[rowIndex].so_line_item_id;
+
   // Check each row for validation
   for (let idx = 0; idx < temporaryData.length; idx++) {
     const item = temporaryData[idx];
@@ -157,8 +160,40 @@
             return;
           }
         } else {
-          // For other statuses, check unrestricted quantity
-          if (unrestricted_field < quantity) {
+          // For Draft status, check pending reserved for this SO line at this location
+          let pendingReservedQty = 0;
+          const locationId = item.location_id;
+
+          if (soLineItemId && locationId) {
+            const pendingQuery = {
+              plant_id: data.plant_id,
+              material_id: materialId,
+              parent_line_id: soLineItemId,
+              status: "Pending",
+              location_id: locationId,
+            };
+
+            const pendingReservedRes = await db
+              .collection("on_reserved_gd")
+              .where(pendingQuery)
+              .get();
+
+            if (pendingReservedRes?.data?.length > 0) {
+              pendingReservedQty = pendingReservedRes.data.reduce(
+                (total, reserved) =>
+                  total + parseFloat(reserved.open_qty || 0),
+                0,
+              );
+            }
+
+            console.log(
+              `Row ${idx}: Pending reserved qty for SO line ${soLineItemId}:`,
+              pendingReservedQty,
+            );
+          }
+
+          const availableQty = unrestricted_field + pendingReservedQty;
+          if (availableQty < quantity) {
             console.log(
               `Row ${idx} validation failed: Serial item unrestricted quantity insufficient`,
             );
@@ -182,12 +217,52 @@
           console.log(`Row ${idx} validation failed: Quantity is not enough`);
           alert(`Row ${idx + 1}: Quantity is not enough`);
           return;
-        } else if (gdStatus !== "Created" && unrestricted_field < quantity) {
-          console.log(
-            `Row ${idx} validation failed: Unrestricted quantity is not enough`,
-          );
-          alert(`Row ${idx + 1}: Unrestricted quantity is not enough`);
-          return;
+        } else if (gdStatus !== "Created") {
+          // For Draft status, check pending reserved for this SO line at this location
+          let pendingReservedQty = 0;
+          const locationId = item.location_id;
+          const batchId = item.batch_id;
+
+          if (soLineItemId && locationId) {
+            const pendingQuery = {
+              plant_id: data.plant_id,
+              material_id: materialId,
+              parent_line_id: soLineItemId,
+              status: "Pending",
+              location_id: locationId,
+            };
+
+            if (batchId) {
+              pendingQuery.batch_id = batchId;
+            }
+
+            const pendingReservedRes = await db
+              .collection("on_reserved_gd")
+              .where(pendingQuery)
+              .get();
+
+            if (pendingReservedRes?.data?.length > 0) {
+              pendingReservedQty = pendingReservedRes.data.reduce(
+                (total, reserved) =>
+                  total + parseFloat(reserved.open_qty || 0),
+                0,
+              );
+            }
+
+            console.log(
+              `Row ${idx}: Pending reserved qty for SO line ${soLineItemId}:`,
+              pendingReservedQty,
+            );
+          }
+
+          const availableQty = unrestricted_field + pendingReservedQty;
+          if (availableQty < quantity) {
+            console.log(
+              `Row ${idx} validation failed: Unrestricted quantity is not enough`,
+            );
+            alert(`Row ${idx + 1}: Unrestricted quantity is not enough`);
+            return;
+          }
         }
       }
     }

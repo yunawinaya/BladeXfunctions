@@ -37,6 +37,9 @@
       data.gd_item_balance.table_item_balance[index].reserved_qty;
     const to_quantity_field =
       data.gd_item_balance.table_item_balance[index].to_quantity;
+    const locationId =
+      data.gd_item_balance.table_item_balance[index].location_id;
+    const batchId = data.gd_item_balance.table_item_balance[index].batch_id;
 
     if (!window.validationState) {
       window.validationState = {};
@@ -82,13 +85,49 @@
             window.validationState[index] = false;
             callback("Quantity is not enough");
             return;
-          } else if (
-            gdStatus !== "Created" &&
-            unrestricted_field < parsedValue
-          ) {
-            window.validationState[index] = false;
-            callback("Unrestricted quantity is not enough");
-            return;
+          } else if (gdStatus !== "Created") {
+            // For Draft status, check if there's pending reserved for this SO line at this location
+            const soLineItemId = data.table_gd[rowIndex].so_line_item_id;
+            let pendingReservedQty = 0;
+
+            if (soLineItemId && locationId) {
+              const pendingQuery = {
+                plant_id: data.plant_id,
+                material_id: materialId,
+                parent_line_id: soLineItemId,
+                status: "Pending",
+                location_id: locationId,
+              };
+
+              if (batchId) {
+                pendingQuery.batch_id = batchId;
+              }
+
+              const pendingReservedRes = await db
+                .collection("on_reserved_gd")
+                .where(pendingQuery)
+                .get();
+
+              if (pendingReservedRes?.data?.length > 0) {
+                pendingReservedQty = pendingReservedRes.data.reduce(
+                  (total, reserved) =>
+                    total + parseFloat(reserved.open_qty || 0),
+                  0,
+                );
+              }
+
+              console.log(
+                `Pending reserved qty for SO line ${soLineItemId} at location ${locationId}:`,
+                pendingReservedQty,
+              );
+            }
+
+            const availableQty = unrestricted_field + pendingReservedQty;
+            if (availableQty < parsedValue) {
+              window.validationState[index] = false;
+              callback("Unrestricted quantity is not enough");
+              return;
+            }
           }
         }
 
