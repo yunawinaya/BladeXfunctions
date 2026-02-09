@@ -119,6 +119,9 @@ if (matchedOldRecords.length > 0) {
           } else {
             recordsToUpdate.push({
               ...oldRecord,
+              doc_id: "",
+              doc_no: "",
+              doc_line_id: "",
               reserved_qty: oldRecord.reserved_qty,
               open_qty: oldRecord.reserved_qty,
               status: "Pending",
@@ -160,6 +163,9 @@ if (matchedOldRecords.length > 0) {
             const { _id, id, ...recordWithoutId } = oldRecord;
             recordToCreate = {
               ...recordWithoutId,
+              doc_id: "",
+              doc_no: "",
+              doc_line_id: "",
               reserved_qty: releaseFromThisRecord,
               open_qty: releaseFromThisRecord,
               status: "Pending",
