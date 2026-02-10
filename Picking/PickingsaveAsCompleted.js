@@ -9,7 +9,7 @@ const closeDialog = () => {
 
 const getPrefixData = async (
   organizationId,
-  documentType = "Transfer Order"
+  documentType = "Transfer Order",
 ) => {
   console.log("Getting prefix data for organization:", organizationId);
   try {
@@ -40,13 +40,13 @@ const getPrefixData = async (
 const updatePrefix = async (
   organizationId,
   runningNumber,
-  documentType = "Transfer Order"
+  documentType = "Transfer Order",
 ) => {
   console.log(
     "Updating prefix for organization:",
     organizationId,
     "with running number:",
-    runningNumber
+    runningNumber,
   );
   try {
     await db
@@ -75,16 +75,16 @@ const generatePrefix = (runNumber, now, prefixData) => {
     generated = generated.replace("suffix", prefixData.suffix_value);
     generated = generated.replace(
       "month",
-      String(now.getMonth() + 1).padStart(2, "0")
+      String(now.getMonth() + 1).padStart(2, "0"),
     );
     generated = generated.replace(
       "day",
-      String(now.getDate()).padStart(2, "0")
+      String(now.getDate()).padStart(2, "0"),
     );
     generated = generated.replace("year", now.getFullYear());
     generated = generated.replace(
       "running_number",
-      String(runNumber).padStart(prefixData.padding_zeroes, "0")
+      String(runNumber).padStart(prefixData.padding_zeroes, "0"),
     );
     console.log("Generated prefix:", generated);
     return generated;
@@ -98,7 +98,7 @@ const checkUniqueness = async (
   generatedPrefix,
   organizationId,
   collection = "transfer_order",
-  prefix = "to_id"
+  prefix = "to_id",
 ) => {
   const existingDoc = await db
     .collection(collection)
@@ -116,7 +116,7 @@ const findUniquePrefix = async (
   prefixData,
   organizationId,
   collection = "transfer_order",
-  prefix = "to_id"
+  prefix = "to_id",
 ) => {
   const now = new Date();
   let prefixToShow;
@@ -132,7 +132,7 @@ const findUniquePrefix = async (
       prefixToShow,
       organizationId,
       collection,
-      prefix
+      prefix,
     );
     if (!isUnique) {
       runningNumber++;
@@ -141,7 +141,7 @@ const findUniquePrefix = async (
 
   if (!isUnique) {
     throw new Error(
-      "Could not generate a unique Transfer Order number after maximum attempts"
+      "Could not generate a unique Transfer Order number after maximum attempts",
     );
   }
 
@@ -180,7 +180,7 @@ const validateForm = (data, requiredFields) => {
           const subValue = item[subField.name];
           if (validateField(subValue)) {
             missingFields.push(
-              `${subField.label} (in ${field.label} #${index + 1})`
+              `${subField.label} (in ${field.label} #${index + 1})`,
             );
           }
         });
@@ -222,23 +222,23 @@ const calculateLeftoverSerialNumbers = (item) => {
   console.log(
     `Item ${
       item.item_code || item.item_id
-    }: Original serial numbers: [${originalSerialNumbers.join(", ")}]`
+    }: Original serial numbers: [${originalSerialNumbers.join(", ")}]`,
   );
   console.log(
     `Item ${
       item.item_code || item.item_id
-    }: Processed serial numbers: [${processedSerialNumbers.join(", ")}]`
+    }: Processed serial numbers: [${processedSerialNumbers.join(", ")}]`,
   );
 
   // Calculate leftover serial numbers by removing processed ones
   const leftoverSerialNumbers = originalSerialNumbers.filter(
-    (originalSN) => !processedSerialNumbers.includes(originalSN)
+    (originalSN) => !processedSerialNumbers.includes(originalSN),
   );
 
   console.log(
     `Item ${
       item.item_code || item.item_id
-    }: Leftover serial numbers: [${leftoverSerialNumbers.join(", ")}]`
+    }: Leftover serial numbers: [${leftoverSerialNumbers.join(", ")}]`,
   );
 
   // Return the leftover serial numbers as a comma-separated string
@@ -262,7 +262,7 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
     console.log(
       `Item ${
         item.item_id || index
-      }: qtyToPick=${qtyToPick}, pendingProcessQty=${pendingProcessQty}, pickedQty=${pickedQty}`
+      }: qtyToPick=${qtyToPick}, pendingProcessQty=${pendingProcessQty}, pickedQty=${pickedQty}`,
     );
 
     // Validation checks
@@ -270,7 +270,7 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
       errors.push(
         `Picked quantity cannot be negative for item ${
           item.item_id || `#${index + 1}`
-        }`
+        }`,
       );
       continue;
     }
@@ -279,7 +279,7 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
       errors.push(
         `Picked quantity (${pickedQty}) cannot be greater than quantity to pick (${pendingProcessQty}) for item ${
           item.item_id || `#${index + 1}`
-        }`
+        }`,
       );
       continue;
     }
@@ -309,7 +309,7 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
       console.log(
         `Updated serial_numbers for partially processed item ${
           item.item_code || item.item_id
-        }: "${leftoverSerialNumbers}"`
+        }: "${leftoverSerialNumbers}"`,
       );
     } else if (item.is_serialized_item === 1 && pending_process_qty === 0) {
       // If fully processed, clear serial numbers
@@ -317,7 +317,7 @@ const validateAndUpdateLineStatuses = (pickingItems) => {
       console.log(
         `Cleared serial_numbers for fully processed item ${
           item.item_code || item.item_id
-        }`
+        }`,
       );
     }
 
@@ -341,22 +341,22 @@ const determineTransferOrderStatus = (pickingItems) => {
 
   // Count statuses
   const completedCount = lineStatuses.filter(
-    (status) => status === "Completed"
+    (status) => status === "Completed",
   ).length;
 
   const cancelledCount = lineStatuses.filter(
-    (status) => status === "Cancelled"
+    (status) => status === "Cancelled",
   ).length;
   const inProgressCount = lineStatuses.filter(
-    (status) => status === "In Progress"
+    (status) => status === "In Progress",
   ).length;
   const nullCount = lineStatuses.filter(
-    (status) => status === null || status === undefined || status === "Open"
+    (status) => status === null || status === undefined || status === "Open",
   ).length;
   const totalItems = pickingItems.length;
 
   console.log(
-    `Status counts - Completed: ${completedCount}, In Progress: ${inProgressCount}, Null: ${nullCount}, Total: ${totalItems}, Cancelled: ${cancelledCount}`
+    `Status counts - Completed: ${completedCount}, In Progress: ${inProgressCount}, Null: ${nullCount}, Total: ${totalItems}, Cancelled: ${cancelledCount}`,
   );
 
   // Determine overall status
@@ -398,7 +398,7 @@ const getFIFOCostPrice = async (
   plantId,
   locationId,
   organizationId,
-  batchId = null
+  batchId = null,
 ) => {
   try {
     const query = batchId
@@ -416,7 +416,7 @@ const getFIFOCostPrice = async (
 
     if (result && Array.isArray(result) && result.length > 0) {
       const sortedRecords = result.sort(
-        (a, b) => a.fifo_sequence - b.fifo_sequence
+        (a, b) => a.fifo_sequence - b.fifo_sequence,
       );
 
       if (!deductionQty) {
@@ -427,7 +427,7 @@ const getFIFOCostPrice = async (
           }
         }
         return roundPrice(
-          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0,
         );
       }
 
@@ -476,7 +476,7 @@ const getFIFOCostPrice = async (
 const getWeightedAverageCostPrice = async (
   materialId,
   plantId,
-  organizationId
+  organizationId,
 ) => {
   try {
     const query = db.collection("wa_costing_method").where({
@@ -521,7 +521,7 @@ const getFixedCostPrice = async (materialId) => {
   } catch (error) {
     console.error(
       `Error retrieving fixed cost price for ${materialId}:`,
-      error
+      error,
     );
     return 0;
   }
@@ -530,7 +530,7 @@ const getFixedCostPrice = async (materialId) => {
 const createTempQtyDataSummary = async (
   updatedTempQtyData,
   gdLineItem,
-  materialId
+  materialId,
 ) => {
   // Get item data to check if it's serialized
   let isSerializedItem = false;
@@ -564,7 +564,7 @@ const createTempQtyDataSummary = async (
     ...new Set(
       updatedTempQtyData
         .map((item) => item.batch_id)
-        .filter((batchId) => batchId != null && batchId !== "")
+        .filter((batchId) => batchId != null && batchId !== ""),
     ),
   ];
 
@@ -625,7 +625,7 @@ const createTempQtyDataSummary = async (
 
   const totalQty = updatedTempQtyData.reduce(
     (sum, item) => sum + parseFloat(item.gd_quantity || 0),
-    0
+    0,
   );
 
   let summary = `Total: ${totalQty} ${gdUOM}\n\nDETAILS:\n`;
@@ -673,7 +673,7 @@ const updateSalesOrderStatus = async (salesOrderId, tableGD) => {
   try {
     const updatePromises = soIds.map(async (salesOrderId) => {
       const filteredGD = tableGD.filter(
-        (item) => item.line_so_id === salesOrderId
+        (item) => item.line_so_id === salesOrderId,
       );
 
       const resSO = await db
@@ -698,7 +698,7 @@ const updateSalesOrderStatus = async (salesOrderId, tableGD) => {
         .map((item, index) => ({ ...item, originalIndex: index }))
         .filter((item) => item.item_name !== "" || item.so_desc !== "")
         .filter((item) =>
-          filteredGD.some((gd) => gd.so_line_item_id === item.id)
+          filteredGD.some((gd) => gd.so_line_item_id === item.id),
         );
 
       // Create a map to sum delivered quantities for each item
@@ -721,10 +721,10 @@ const updateSalesOrderStatus = async (salesOrderId, tableGD) => {
         const originalIndex = filteredItem.originalIndex;
         const orderedQty = parseFloat(filteredItem.so_quantity || 0);
         const gdDeliveredQty = parseFloat(
-          filteredGD[filteredIndex]?.gd_qty || 0
+          filteredGD[filteredIndex]?.gd_qty || 0,
         );
         const currentDeliveredQty = parseFloat(
-          updatedSoItems[originalIndex].delivered_qty || 0
+          updatedSoItems[originalIndex].delivered_qty || 0,
         );
         const totalDeliveredQty = currentDeliveredQty + gdDeliveredQty;
 
@@ -804,7 +804,7 @@ const updateSalesOrderStatus = async (salesOrderId, tableGD) => {
       // Log the status change if it occurred
       if (newSOStatus !== originalSOStatus) {
         console.log(
-          `Updated SO ${salesOrderId} status from ${originalSOStatus} to ${newSOStatus}`
+          `Updated SO ${salesOrderId} status from ${originalSOStatus} to ${newSOStatus}`,
         );
       }
       return {
@@ -875,13 +875,13 @@ const updateSalesOrder = async (toData) => {
       // Check line status distribution
       const allOpen = lineStatuses.every((status) => status === "Open");
       const allCompleted = lineStatuses.every(
-        (status) => status === "Completed"
+        (status) => status === "Completed",
       );
       const hasInProgress = lineStatuses.some(
-        (status) => status === "In Progress"
+        (status) => status === "In Progress",
       );
       const hasCompleted = lineStatuses.some(
-        (status) => status === "Completed"
+        (status) => status === "Completed",
       );
       const hasNonOpen = lineStatuses.some((status) => status !== "Open");
 
@@ -894,7 +894,7 @@ const updateSalesOrder = async (toData) => {
       // Case B: All line_status = "Completed" - Check Picking to_status
       if (allCompleted) {
         console.log(
-          `SO ${soId}: All lines Completed, checking Picking to_status`
+          `SO ${soId}: All lines Completed, checking Picking to_status`,
         );
 
         // Use Picking to_status to determine SO status
@@ -904,7 +904,7 @@ const updateSalesOrder = async (toData) => {
             to_status: "Completed",
           });
           console.log(
-            `SO ${soId}: Set to_status = "Completed" (Picking to_status is Completed)`
+            `SO ${soId}: Set to_status = "Completed" (Picking to_status is Completed)`,
           );
         } else {
           // Picking is not Completed - set SO to In Progress
@@ -912,7 +912,7 @@ const updateSalesOrder = async (toData) => {
             to_status: "In Progress",
           });
           console.log(
-            `SO ${soId}: Set to_status = "In Progress" (Picking to_status is not Completed)`
+            `SO ${soId}: Set to_status = "In Progress" (Picking to_status is not Completed)`,
           );
         }
         continue;
@@ -924,7 +924,7 @@ const updateSalesOrder = async (toData) => {
           to_status: "In Progress",
         });
         console.log(
-          `SO ${soId}: Set to_status = "In Progress" (mixed or in progress statuses)`
+          `SO ${soId}: Set to_status = "In Progress" (mixed or in progress statuses)`,
         );
       }
     }
@@ -943,7 +943,7 @@ const addEntry = async (organizationId, toData, isPacking, packingSetup) => {
         prefixData,
         organizationId,
         "transfer_order",
-        "to_id"
+        "to_id",
       );
 
       await updatePrefix(organizationId, runningNumber, "Transfer Order");
@@ -953,11 +953,11 @@ const addEntry = async (organizationId, toData, isPacking, packingSetup) => {
         toData.to_id,
         organizationId,
         "transfer_order",
-        "to_id"
+        "to_id",
       );
       if (!isUnique) {
         throw new Error(
-          `Picking Number "${toData.to_id}" already exists. Please use a different number.`
+          `Picking Number "${toData.to_id}" already exists. Please use a different number.`,
         );
       }
     }
@@ -998,7 +998,7 @@ const updateEntry = async (
   toId,
   originalToStatus,
   isPacking,
-  packingSetup
+  packingSetup,
 ) => {
   try {
     if (originalToStatus === "Draft") {
@@ -1009,7 +1009,7 @@ const updateEntry = async (
           prefixData,
           organizationId,
           "transfer_order",
-          "to_id"
+          "to_id",
         );
 
         await updatePrefix(organizationId, runningNumber, "Transfer Order");
@@ -1019,11 +1019,11 @@ const updateEntry = async (
           toData.to_id,
           organizationId,
           "transfer_order",
-          "to_id"
+          "to_id",
         );
         if (!isUnique) {
           throw new Error(
-            `Picking Number "${toData.to_id}" already exists. Please use a different number.`
+            `Picking Number "${toData.to_id}" already exists. Please use a different number.`,
           );
         }
       }
@@ -1093,7 +1093,7 @@ const setCreditLimitStatus = async (data, credit_limit_status) => {
 const checkCreditLimitForAutoComplete = async (
   customer_name,
   gd_total,
-  data
+  data,
 ) => {
   try {
     const fetchCustomer = await db
@@ -1251,14 +1251,14 @@ const checkCreditLimitForAutoComplete = async (
       // Sort by priority: blocks first, then overrides, then unblocks
       const priorityOrder = { block: 1, override: 2, unblock: 3 };
       applicableControls.sort(
-        (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]
+        (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority],
       );
 
       // Process in priority order
       for (const control of applicableControls) {
         if (control.result !== true) {
           console.log(
-            `Control Type ${control.control_type} triggered with ${control.priority} - blocking auto-complete`
+            `Control Type ${control.control_type} triggered with ${control.priority} - blocking auto-complete`,
           );
           return false;
         }
@@ -1269,7 +1269,7 @@ const checkCreditLimitForAutoComplete = async (
       return true;
     } else {
       console.log(
-        "No control type defined for customer or invalid control type format"
+        "No control type defined for customer or invalid control type format",
       );
       return true;
     }
@@ -1286,7 +1286,7 @@ const handleLoadingBayInventoryMovement = async (
   gdId,
   pickingItems,
   plantId,
-  organizationId
+  organizationId,
 ) => {
   try {
     console.log("Starting handleLoadingBayInventoryMovement for GD:", gdNo);
@@ -1308,7 +1308,7 @@ const handleLoadingBayInventoryMovement = async (
 
       if (!pickingItem) {
         console.log(
-          `No picking item found for GD line item ${gdLineItem.id}, skipping`
+          `No picking item found for GD line item ${gdLineItem.id}, skipping`,
         );
         continue;
       }
@@ -1317,13 +1317,13 @@ const handleLoadingBayInventoryMovement = async (
 
       if (!targetLocation) {
         console.log(
-          `No target location for GD line item ${gdLineItem.id}, skipping`
+          `No target location for GD line item ${gdLineItem.id}, skipping`,
         );
         continue;
       }
 
       console.log(
-        `Processing GD line item ${gdLineItem.id} - moving to target location ${targetLocation}`
+        `Processing GD line item ${gdLineItem.id} - moving to target location ${targetLocation}`,
       );
 
       // Parse temp_qty_data
@@ -1331,7 +1331,7 @@ const handleLoadingBayInventoryMovement = async (
 
       if (!tempQtyData || tempQtyData.length === 0) {
         console.log(
-          `No temp_qty_data for line item ${gdLineItem.id}, skipping`
+          `No temp_qty_data for line item ${gdLineItem.id}, skipping`,
         );
         continue;
       }
@@ -1366,7 +1366,7 @@ const handleLoadingBayInventoryMovement = async (
         const baseQty = parseFloat(tempItem.base_qty || quantityInOrderUOM);
 
         console.log(
-          `Moving ${baseQty} base qty from location ${sourceLocation} to ${targetLocation}`
+          `Moving ${baseQty} base qty from location ${sourceLocation} to ${targetLocation}`,
         );
 
         // Get costing price
@@ -1380,7 +1380,7 @@ const handleLoadingBayInventoryMovement = async (
             plantId,
             sourceLocation,
             organizationId,
-            batchId
+            batchId,
           );
           unitPrice = roundPrice(fifoCostPrice);
           totalPrice = roundPrice(fifoCostPrice * baseQty);
@@ -1388,13 +1388,13 @@ const handleLoadingBayInventoryMovement = async (
           const waCostPrice = await getWeightedAverageCostPrice(
             gdLineItem.material_id,
             plantId,
-            organizationId
+            organizationId,
           );
           unitPrice = roundPrice(waCostPrice);
           totalPrice = roundPrice(waCostPrice * baseQty);
         } else if (costingMethod === "Fixed Cost") {
           const fixedCostPrice = await getFixedCostPrice(
-            gdLineItem.material_id
+            gdLineItem.material_id,
           );
           unitPrice = roundPrice(fixedCostPrice);
           totalPrice = roundPrice(fixedCostPrice * baseQty);
@@ -1428,7 +1428,7 @@ const handleLoadingBayInventoryMovement = async (
         });
 
         console.log(
-          `Created OUT movement from Reserved at ${sourceLocation}: ${baseQty} base qty`
+          `Created OUT movement from Reserved at ${sourceLocation}: ${baseQty} base qty`,
         );
 
         // Wait before creating IN movement
@@ -1443,7 +1443,7 @@ const handleLoadingBayInventoryMovement = async (
         });
 
         console.log(
-          `Created IN movement to Reserved at ${targetLocation}: ${baseQty} base qty`
+          `Created IN movement to Reserved at ${targetLocation}: ${baseQty} base qty`,
         );
 
         // Update balance tables based on item type
@@ -1465,10 +1465,10 @@ const handleLoadingBayInventoryMovement = async (
           if (sourceBalanceQuery.data && sourceBalanceQuery.data.length > 0) {
             const sourceDoc = sourceBalanceQuery.data[0];
             const currentReservedQty = roundQty(
-              parseFloat(sourceDoc.reserved_qty || 0)
+              parseFloat(sourceDoc.reserved_qty || 0),
             );
             const currentBalanceQty = roundQty(
-              parseFloat(sourceDoc.balance_quantity || 0)
+              parseFloat(sourceDoc.balance_quantity || 0),
             );
 
             const finalReservedQty = roundQty(currentReservedQty - baseQty);
@@ -1480,7 +1480,7 @@ const handleLoadingBayInventoryMovement = async (
             });
 
             console.log(
-              `Updated source item_balance: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`
+              `Updated source item_balance: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`,
             );
           }
 
@@ -1500,10 +1500,10 @@ const handleLoadingBayInventoryMovement = async (
           if (targetBalanceQuery.data && targetBalanceQuery.data.length > 0) {
             const targetDoc = targetBalanceQuery.data[0];
             const currentReservedQty = roundQty(
-              parseFloat(targetDoc.reserved_qty || 0)
+              parseFloat(targetDoc.reserved_qty || 0),
             );
             const currentBalanceQty = roundQty(
-              parseFloat(targetDoc.balance_quantity || 0)
+              parseFloat(targetDoc.balance_quantity || 0),
             );
 
             const finalReservedQty = roundQty(currentReservedQty + baseQty);
@@ -1515,7 +1515,7 @@ const handleLoadingBayInventoryMovement = async (
             });
 
             console.log(
-              `Updated target item_balance: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`
+              `Updated target item_balance: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`,
             );
           } else {
             // Create new item_balance record for target location
@@ -1531,7 +1531,7 @@ const handleLoadingBayInventoryMovement = async (
             });
 
             console.log(
-              `Created new item_balance at target location with Reserved ${baseQty}`
+              `Created new item_balance at target location with Reserved ${baseQty}`,
             );
           }
         } else {
@@ -1560,10 +1560,10 @@ const handleLoadingBayInventoryMovement = async (
           if (sourceBalanceQuery.data && sourceBalanceQuery.data.length > 0) {
             const sourceDoc = sourceBalanceQuery.data[0];
             const currentReservedQty = roundQty(
-              parseFloat(sourceDoc.reserved_qty || 0)
+              parseFloat(sourceDoc.reserved_qty || 0),
             );
             const currentBalanceQty = roundQty(
-              parseFloat(sourceDoc.balance_quantity || 0)
+              parseFloat(sourceDoc.balance_quantity || 0),
             );
 
             const finalReservedQty = roundQty(currentReservedQty - baseQty);
@@ -1575,7 +1575,7 @@ const handleLoadingBayInventoryMovement = async (
             });
 
             console.log(
-              `Updated source ${balanceCollection}: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`
+              `Updated source ${balanceCollection}: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`,
             );
           }
 
@@ -1599,10 +1599,10 @@ const handleLoadingBayInventoryMovement = async (
           if (targetBalanceQuery.data && targetBalanceQuery.data.length > 0) {
             const targetDoc = targetBalanceQuery.data[0];
             const currentReservedQty = roundQty(
-              parseFloat(targetDoc.reserved_qty || 0)
+              parseFloat(targetDoc.reserved_qty || 0),
             );
             const currentBalanceQty = roundQty(
-              parseFloat(targetDoc.balance_quantity || 0)
+              parseFloat(targetDoc.balance_quantity || 0),
             );
 
             const finalReservedQty = roundQty(currentReservedQty + baseQty);
@@ -1614,7 +1614,7 @@ const handleLoadingBayInventoryMovement = async (
             });
 
             console.log(
-              `Updated target ${balanceCollection}: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`
+              `Updated target ${balanceCollection}: Reserved ${currentReservedQty}→${finalReservedQty}, Balance ${currentBalanceQty}→${finalBalanceQty}`,
             );
           } else {
             // Create new balance record
@@ -1636,7 +1636,7 @@ const handleLoadingBayInventoryMovement = async (
             await db.collection(balanceCollection).add(newBalanceRecord);
 
             console.log(
-              `Created new ${balanceCollection} at target with Reserved ${baseQty}`
+              `Created new ${balanceCollection} at target with Reserved ${baseQty}`,
             );
           }
 
@@ -1658,10 +1658,10 @@ const handleLoadingBayInventoryMovement = async (
             if (sourceAggQuery.data && sourceAggQuery.data.length > 0) {
               const sourceAggDoc = sourceAggQuery.data[0];
               const currentReservedQty = roundQty(
-                parseFloat(sourceAggDoc.reserved_qty || 0)
+                parseFloat(sourceAggDoc.reserved_qty || 0),
               );
               const currentBalanceQty = roundQty(
-                parseFloat(sourceAggDoc.balance_quantity || 0)
+                parseFloat(sourceAggDoc.balance_quantity || 0),
               );
 
               const finalReservedQty = roundQty(currentReservedQty - baseQty);
@@ -1673,7 +1673,7 @@ const handleLoadingBayInventoryMovement = async (
               });
 
               console.log(
-                `Updated source aggregate item_balance: Reserved ${currentReservedQty}→${finalReservedQty}`
+                `Updated source aggregate item_balance: Reserved ${currentReservedQty}→${finalReservedQty}`,
               );
             }
 
@@ -1693,10 +1693,10 @@ const handleLoadingBayInventoryMovement = async (
             if (targetAggQuery.data && targetAggQuery.data.length > 0) {
               const targetAggDoc = targetAggQuery.data[0];
               const currentReservedQty = roundQty(
-                parseFloat(targetAggDoc.reserved_qty || 0)
+                parseFloat(targetAggDoc.reserved_qty || 0),
               );
               const currentBalanceQty = roundQty(
-                parseFloat(targetAggDoc.balance_quantity || 0)
+                parseFloat(targetAggDoc.balance_quantity || 0),
               );
 
               const finalReservedQty = roundQty(currentReservedQty + baseQty);
@@ -1708,7 +1708,7 @@ const handleLoadingBayInventoryMovement = async (
               });
 
               console.log(
-                `Updated target aggregate item_balance: Reserved ${currentReservedQty}→${finalReservedQty}`
+                `Updated target aggregate item_balance: Reserved ${currentReservedQty}→${finalReservedQty}`,
               );
             } else {
               // Create new aggregate
@@ -1724,7 +1724,7 @@ const handleLoadingBayInventoryMovement = async (
               });
 
               console.log(
-                `Created new aggregate item_balance at target with Reserved ${baseQty}`
+                `Created new aggregate item_balance at target with Reserved ${baseQty}`,
               );
             }
           }
@@ -1753,7 +1753,7 @@ const handleLoadingBayInventoryMovement = async (
           let outMovementId = null;
           if (outMovementQuery.data && outMovementQuery.data.length > 0) {
             outMovementId = outMovementQuery.data.sort(
-              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time),
             )[0].id;
           }
 
@@ -1775,7 +1775,7 @@ const handleLoadingBayInventoryMovement = async (
           let inMovementId = null;
           if (inMovementQuery.data && inMovementQuery.data.length > 0) {
             inMovementId = inMovementQuery.data.sort(
-              (a, b) => new Date(b.create_time) - new Date(a.create_time)
+              (a, b) => new Date(b.create_time) - new Date(a.create_time),
             )[0].id;
           }
 
@@ -1811,7 +1811,7 @@ const handleLoadingBayInventoryMovement = async (
             }
 
             console.log(
-              `Created inv_serial_movement records for ${serialNumbers.length} serial numbers`
+              `Created inv_serial_movement records for ${serialNumbers.length} serial numbers`,
             );
 
             // Update item_serial_balance for each serial number
@@ -1837,7 +1837,7 @@ const handleLoadingBayInventoryMovement = async (
               if (sourceSerialQuery.data && sourceSerialQuery.data.length > 0) {
                 const sourceSerialDoc = sourceSerialQuery.data[0];
                 const currentReservedQty = roundQty(
-                  parseFloat(sourceSerialDoc.reserved_qty || 0)
+                  parseFloat(sourceSerialDoc.reserved_qty || 0),
                 );
 
                 const finalReservedQty = roundQty(currentReservedQty - 1);
@@ -1850,7 +1850,7 @@ const handleLoadingBayInventoryMovement = async (
                   });
 
                 console.log(
-                  `Updated source item_serial_balance for ${serialNumber}: Reserved ${currentReservedQty}→${finalReservedQty}`
+                  `Updated source item_serial_balance for ${serialNumber}: Reserved ${currentReservedQty}→${finalReservedQty}`,
                 );
               }
 
@@ -1875,7 +1875,7 @@ const handleLoadingBayInventoryMovement = async (
               if (targetSerialQuery.data && targetSerialQuery.data.length > 0) {
                 const targetSerialDoc = targetSerialQuery.data[0];
                 const currentReservedQty = roundQty(
-                  parseFloat(targetSerialDoc.reserved_qty || 0)
+                  parseFloat(targetSerialDoc.reserved_qty || 0),
                 );
 
                 const finalReservedQty = roundQty(currentReservedQty + 1);
@@ -1888,7 +1888,7 @@ const handleLoadingBayInventoryMovement = async (
                   });
 
                 console.log(
-                  `Updated target item_serial_balance for ${serialNumber}: Reserved ${currentReservedQty}→${finalReservedQty}`
+                  `Updated target item_serial_balance for ${serialNumber}: Reserved ${currentReservedQty}→${finalReservedQty}`,
                 );
               } else {
                 // Create new serial balance at target
@@ -1911,7 +1911,7 @@ const handleLoadingBayInventoryMovement = async (
                   .add(newSerialBalance);
 
                 console.log(
-                  `Created new item_serial_balance for ${serialNumber} at target with Reserved 1`
+                  `Created new item_serial_balance for ${serialNumber} at target with Reserved 1`,
                 );
               }
             }
@@ -1934,12 +1934,12 @@ const handleLoadingBayInventoryMovement = async (
       const updatedViewStock = await createTempQtyDataSummary(
         updatedTempQtyData,
         gdLineItem,
-        gdLineItem.material_id
+        gdLineItem.material_id,
       );
 
       // Find the line item in gdTableGd and update it
       const lineItemIndex = gdTableGd.findIndex(
-        (item) => item.id === gdLineItem.id
+        (item) => item.id === gdLineItem.id,
       );
 
       if (lineItemIndex !== -1) {
@@ -1947,7 +1947,7 @@ const handleLoadingBayInventoryMovement = async (
         gdTableGd[lineItemIndex].view_stock = updatedViewStock;
 
         console.log(
-          `Updated GD line item ${gdLineItem.id} temp_qty_data and view_stock`
+          `Updated GD line item ${gdLineItem.id} temp_qty_data and view_stock`,
         );
       }
     }
@@ -1971,7 +1971,7 @@ const handleLoadingBayInventoryMovement = async (
 
     if (existingReserved.data && existingReserved.data.length > 0) {
       console.log(
-        `Found ${existingReserved.data.length} on_reserved_gd records to update`
+        `Found ${existingReserved.data.length} on_reserved_gd records to update`,
       );
 
       const updatePromises = [];
@@ -1979,7 +1979,7 @@ const handleLoadingBayInventoryMovement = async (
       for (const reservedRecord of existingReserved.data) {
         // Find the corresponding line item in gdTableGd
         const matchingGDLineItem = gdTableGd.find(
-          (item, index) => index + 1 === reservedRecord.line_no
+          (item, index) => index + 1 === reservedRecord.line_no,
         );
 
         if (matchingGDLineItem) {
@@ -1989,11 +1989,11 @@ const handleLoadingBayInventoryMovement = async (
             updatePromises.push(
               db.collection("on_reserved_gd").doc(reservedRecord.id).update({
                 bin_location: matchingPickingItem.target_location,
-              })
+              }),
             );
 
             console.log(
-              `Updating on_reserved_gd record ${reservedRecord.id} bin_location to ${matchingPickingItem.target_location}`
+              `Updating on_reserved_gd record ${reservedRecord.id} bin_location to ${matchingPickingItem.target_location}`,
             );
           }
         }
@@ -2015,7 +2015,7 @@ const updateGoodsDelivery = async (
   isAutoCompleteGD = 0,
   isLoadingBay = 0,
   organizationId,
-  toData
+  toData,
 ) => {
   try {
     // Update each line item's picking status based on its line_status
@@ -2035,7 +2035,7 @@ const updateGoodsDelivery = async (
           .collection("goods_delivery_fwii8mvb_sub")
           .doc(toItem.gd_line_id)
           .update({ picking_status: linePickingStatus });
-      })
+      }),
     );
 
     const gd = await db.collection("goods_delivery").doc(gdId).get();
@@ -2081,7 +2081,7 @@ const updateGoodsDelivery = async (
         gdId,
         toData.table_picking_items,
         gdData.plant_id,
-        organizationId
+        organizationId,
       );
     }
 
@@ -2095,12 +2095,12 @@ const updateGoodsDelivery = async (
       const creditCheckPassed = await checkCreditLimitForAutoComplete(
         gdData.customer_name,
         gdData.gd_total,
-        gdData
+        gdData,
       );
 
       if (!creditCheckPassed) {
         console.log(
-          "Credit limit check failed - treating as if auto_completed_gd is 0"
+          "Credit limit check failed - treating as if auto_completed_gd is 0",
         );
         shouldAutoComplete = false;
       }
@@ -2165,7 +2165,7 @@ const createPickingRecord = async (toData) => {
           pickingRecord.serial_numbers = trimmedSerialNumbers.join("\n");
 
           console.log(
-            `Added ${trimmedSerialNumbers.length} serial numbers to picking record for ${item.item_code}: ${pickingRecord.serial_numbers}`
+            `Added ${trimmedSerialNumbers.length} serial numbers to picking record for ${item.item_code}: ${pickingRecord.serial_numbers}`,
           );
         }
       }
@@ -2182,7 +2182,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
   try {
     console.log(
       "Updating on_reserved_gd records for delivery (including serialized items):",
-      gdData.delivery_no
+      gdData.delivery_no,
     );
 
     // Get existing records for this GD
@@ -2201,7 +2201,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
 
       if (!gdLineItem.material_id || gdLineItem.material_id === "") {
         console.log(
-          `Skipping item ${gdLineItem.material_id} due to no material_id`
+          `Skipping item ${gdLineItem.material_id} due to no material_id`,
         );
         continue;
       }
@@ -2245,7 +2245,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
 
     if (existingReserved.data && existingReserved.data.length > 0) {
       console.log(
-        `Found ${existingReserved.data.length} existing reserved records to update (including serialized items)`
+        `Found ${existingReserved.data.length} existing reserved records to update (including serialized items)`,
       );
 
       const updatePromises = [];
@@ -2260,7 +2260,10 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
         const newData = newReservedData[i];
 
         updatePromises.push(
-          db.collection("on_reserved_gd").doc(existingRecord.id).update(newData)
+          db
+            .collection("on_reserved_gd")
+            .doc(existingRecord.id)
+            .update(newData),
         );
       }
 
@@ -2275,7 +2278,7 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
           updatePromises.push(
             db.collection("on_reserved_gd").doc(extraRecord.id).update({
               is_deleted: 1,
-            })
+            }),
           );
         }
       }
@@ -2298,12 +2301,12 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
 
       await Promise.all(updatePromises);
       console.log(
-        "Successfully updated existing reserved records (including serialized items)"
+        "Successfully updated existing reserved records (including serialized items)",
       );
     } else {
       // No existing records, create new ones
       console.log(
-        "No existing records found, creating new ones (including serialized items)"
+        "No existing records found, creating new ones (including serialized items)",
       );
 
       const createPromises = newReservedData.map((data) => {
@@ -2316,17 +2319,17 @@ const updateOnReserveGoodsDelivery = async (organizationId, gdData) => {
 
       await Promise.all(createPromises);
       console.log(
-        `Created ${newReservedData.length} new reserved goods records (including serialized items)`
+        `Created ${newReservedData.length} new reserved goods records (including serialized items)`,
       );
     }
 
     console.log(
-      "Updated reserved goods records successfully (including serialized items)"
+      "Updated reserved goods records successfully (including serialized items)",
     );
   } catch (error) {
     console.error(
       "Error updating reserved goods delivery (serialized items):",
-      error
+      error,
     );
     throw error;
   }
@@ -2360,7 +2363,7 @@ const getPackingSetup = async (organizationId) => {
     const isLoadingBay = this.models["is_loading_bay"];
 
     console.log(
-      `Page Status: ${page_status}, Original TO Status: ${originalToStatus}`
+      `Page Status: ${page_status}, Original TO Status: ${originalToStatus}`,
     );
 
     // Define required fields
@@ -2419,7 +2422,7 @@ const getPackingSetup = async (organizationId) => {
     // Determine the new transfer order status dynamically based on picked quantities
     const newTransferOrderStatus = determineTransferOrderStatus(updatedItems);
     console.log(
-      `Determined new transfer order status: ${newTransferOrderStatus}`
+      `Determined new transfer order status: ${newTransferOrderStatus}`,
     );
 
     // Prepare transfer order object
@@ -2477,7 +2480,7 @@ const getPackingSetup = async (organizationId) => {
           isAutoCompleteGD,
           isLoadingBay,
           organizationId,
-          toData
+          toData,
         );
       }
     } else if (page_status === "Edit") {
@@ -2488,7 +2491,7 @@ const getPackingSetup = async (organizationId) => {
         toId,
         originalToStatus,
         isPacking,
-        packingSetup
+        packingSetup,
       );
       for (const gdId of data.gd_no) {
         await updateGoodsDelivery(
@@ -2496,7 +2499,7 @@ const getPackingSetup = async (organizationId) => {
           isAutoCompleteGD,
           isLoadingBay,
           organizationId,
-          toData
+          toData,
         );
       }
     }
@@ -2510,7 +2513,7 @@ const getPackingSetup = async (organizationId) => {
     this.$message.success(
       `${
         page_status === "Add" ? "Added" : "Updated"
-      } successfully${statusMessage}`
+      } successfully${statusMessage}`,
     );
 
     this.hideLoading();
