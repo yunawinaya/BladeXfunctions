@@ -39,7 +39,7 @@ const validateForm = (data, requiredFields) => {
           const subValue = item[subField.name];
           if (validateField(subValue, subField)) {
             missingFields.push(
-              `${subField.label} (in ${field.label} #${index + 1})`
+              `${subField.label} (in ${field.label} #${index + 1})`,
             );
           }
         });
@@ -57,44 +57,6 @@ const validateField = (value, _field) => {
   if (Array.isArray(value)) return value.length === 0;
   if (typeof value === "object") return Object.keys(value).length === 0;
   return !value;
-};
-
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Transfer Order",
-      is_deleted: 0,
-      organization_id: organizationId,
-      is_active: 1,
-    })
-    .get();
-
-  const prefixData = prefixEntry.data[0];
-
-  return prefixData;
-};
-
-const generateDraftPrefix = async (organizationId) => {
-  try {
-    const prefixData = await getPrefixData(organizationId);
-    if (prefixData) {
-      const currDraftNum = parseInt(prefixData.draft_number) + 1;
-      const newPrefix = "DRAFT-TO-" + currDraftNum;
-
-      db.collection("prefix_configuration")
-        .where({
-          document_types: "Transfer Order",
-          organization_id: organizationId,
-          is_deleted: 0,
-        })
-        .update({ draft_number: currDraftNum });
-
-      return newPrefix;
-    }
-  } catch (error) {
-    this.$message.error(error);
-  }
 };
 
 // Main execution wrapped in an async IIFE
@@ -140,11 +102,19 @@ const generateDraftPrefix = async (organizationId) => {
         organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
 
+      if (
+        data.to_id_type !== -9999 &&
+        (!data.to_id || data.to_id === null || data.to_id === "")
+      ) {
+        data.to_id = "draft";
+      }
+
       // Prepare transfer order object
       const to = {
         to_status: "Draft",
         plant_id: data.plant_id,
         to_id: data.to_id,
+        to_id_type: data.to_id_type,
         movement_type: data.movement_type,
         ref_doc_type: data.ref_doc_type,
         gd_no: data.gd_no,
@@ -172,8 +142,6 @@ const generateDraftPrefix = async (organizationId) => {
 
       // Add or update based on page status
       if (page_status === "Add") {
-        const newPrefix = await generateDraftPrefix(organizationId);
-        to.to_id = newPrefix;
         await db.collection("transfer_order").add(to);
         this.$message.success("Add successfully");
         closeDialog();
@@ -196,7 +164,7 @@ const generateDraftPrefix = async (organizationId) => {
     this.hideLoading();
     this.$message.error(
       error.message ||
-        "An error occurred while processing the transfer order draft"
+        "An error occurred while processing the transfer order draft",
     );
   } finally {
     console.log("Draft function execution completed");

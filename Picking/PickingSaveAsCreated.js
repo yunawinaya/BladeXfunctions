@@ -7,147 +7,6 @@ const closeDialog = () => {
   }
 };
 
-const getPrefixData = async (
-  organizationId,
-  documentType = "Transfer Order"
-) => {
-  console.log("Getting prefix data for organization:", organizationId);
-  try {
-    const prefixEntry = await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: documentType,
-        is_deleted: 0,
-        organization_id: organizationId,
-        is_active: 1,
-      })
-      .get();
-
-    console.log("Prefix data result:", prefixEntry);
-
-    if (!prefixEntry.data || prefixEntry.data.length === 0) {
-      console.log("No prefix configuration found");
-      return null;
-    }
-
-    return prefixEntry.data[0];
-  } catch (error) {
-    console.error("Error getting prefix data:", error);
-    throw error;
-  }
-};
-
-const updatePrefix = async (
-  organizationId,
-  runningNumber,
-  documentType = "Transfer Order"
-) => {
-  console.log(
-    "Updating prefix for organization:",
-    organizationId,
-    "with running number:",
-    runningNumber
-  );
-  try {
-    await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: documentType,
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .update({
-        running_number: parseInt(runningNumber) + 1,
-        has_record: 1,
-      });
-    console.log("Prefix update successful");
-  } catch (error) {
-    console.error("Error updating prefix:", error);
-    throw error;
-  }
-};
-
-const generatePrefix = (runNumber, now, prefixData) => {
-  console.log("Generating prefix with running number:", runNumber);
-  try {
-    let generated = prefixData.current_prefix_config;
-    generated = generated.replace("prefix", prefixData.prefix_value);
-    generated = generated.replace("suffix", prefixData.suffix_value);
-    generated = generated.replace(
-      "month",
-      String(now.getMonth() + 1).padStart(2, "0")
-    );
-    generated = generated.replace(
-      "day",
-      String(now.getDate()).padStart(2, "0")
-    );
-    generated = generated.replace("year", now.getFullYear());
-    generated = generated.replace(
-      "running_number",
-      String(runNumber).padStart(prefixData.padding_zeroes, "0")
-    );
-    console.log("Generated prefix:", generated);
-    return generated;
-  } catch (error) {
-    console.error("Error generating prefix:", error);
-    throw error;
-  }
-};
-
-const checkUniqueness = async (
-  generatedPrefix,
-  organizationId,
-  collection = "transfer_order",
-  prefix = "to_id"
-) => {
-  const existingDoc = await db
-    .collection(collection)
-    .where({
-      [prefix]: generatedPrefix,
-      organization_id: organizationId,
-      is_deleted: 0,
-    })
-    .get();
-
-  return !existingDoc.data || existingDoc.data.length === 0;
-};
-
-const findUniquePrefix = async (
-  prefixData,
-  organizationId,
-  collection = "transfer_order",
-  prefix = "to_id"
-) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number || 1;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(
-      prefixToShow,
-      organizationId,
-      collection,
-      prefix
-    );
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Transfer Order number after maximum attempts"
-    );
-  }
-
-  return { prefixToShow, runningNumber };
-};
-
 const validateForm = (data, requiredFields) => {
   const missingFields = [];
 
@@ -180,7 +39,7 @@ const validateForm = (data, requiredFields) => {
           const subValue = item[subField.name];
           if (validateField(subValue, subField)) {
             missingFields.push(
-              `${subField.label} (in ${field.label} #${index + 1})`
+              `${subField.label} (in ${field.label} #${index + 1})`,
             );
           }
         });
@@ -200,35 +59,8 @@ const validateField = (value) => {
   return !value;
 };
 
-const addEntry = async (organizationId, toData) => {
+const addEntry = async (toData) => {
   try {
-    const prefixData = await getPrefixData(organizationId, "Transfer Order");
-
-    if (prefixData) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId,
-        "transfer_order",
-        "to_id"
-      );
-
-      await updatePrefix(organizationId, runningNumber, "Transfer Order");
-      toData.to_id = prefixToShow;
-    } else {
-      const isUnique = await checkUniqueness(
-        toData.to_id,
-        organizationId,
-        "transfer_order",
-        "to_id"
-      );
-      if (!isUnique) {
-        throw new Error(
-          `Picking Number "${toData.to_id}" already exists. Please use a different number.`
-        );
-      }
-    }
-
-    // Add the record
     await db.collection("transfer_order").add(toData);
   } catch (error) {
     console.error("Error in addEntry:", error);
@@ -236,42 +68,9 @@ const addEntry = async (organizationId, toData) => {
   }
 };
 
-const updateEntry = async (organizationId, toData, toId, originalToStatus) => {
+const updateEntry = async (toData, toId) => {
   try {
-    if (
-      !originalToStatus ||
-      originalToStatus === "" ||
-      originalToStatus !== "Draft"
-    ) {
-      const prefixData = await getPrefixData(organizationId, "Transfer Order");
-
-      if (prefixData) {
-        const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData,
-          organizationId,
-          "transfer_order",
-          "to_id"
-        );
-
-        await updatePrefix(organizationId, runningNumber, "Transfer Order");
-        toData.to_id = prefixToShow;
-      } else {
-        const isUnique = await checkUniqueness(
-          toData.to_id,
-          organizationId,
-          "transfer_order",
-          "to_id"
-        );
-        if (!isUnique) {
-          throw new Error(
-            `Picking Number "${toData.to_id}" already exists. Please use a different number.`
-          );
-        }
-      }
-    }
-
     await db.collection("transfer_order").doc(toId).update(toData);
-
     console.log("Transfer order updated successfully");
     return toId;
   } catch (error) {
@@ -318,12 +117,12 @@ const updateGoodsDeliveryPickingStatus = async (toData) => {
       gdIDs.map((gdId) =>
         db.collection("goods_delivery").doc(gdId).update({
           picking_status: "Created",
-        })
-      )
+        }),
+      ),
     );
 
     const filterPickingItems = toData.table_picking_items.filter(
-      (item) => item.line_status !== "Cancelled"
+      (item) => item.line_status !== "Cancelled",
     );
 
     await Promise.all(
@@ -331,8 +130,8 @@ const updateGoodsDeliveryPickingStatus = async (toData) => {
         db
           .collection("goods_delivery_fwii8mvb_sub")
           .where({ id: toItem.gd_line_id })
-          .update({ picking_status: "Created" })
-      )
+          .update({ picking_status: "Created" }),
+      ),
     );
     this.$message.success("Goods Delivery picking status updated successfully");
   } catch (error) {
@@ -347,7 +146,6 @@ const updateGoodsDeliveryPickingStatus = async (toData) => {
     this.showLoading();
     const data = await this.getValues();
     const page_status = data.page_status;
-    const originalToStatus = data.to_status;
 
     // Define required fields
     const requiredFields = [
@@ -382,11 +180,22 @@ const updateGoodsDeliveryPickingStatus = async (toData) => {
 
     const newTransferOrderStatus = "Created";
 
+    if (
+      data.to_id_type !== -9999 &&
+      (!data.to_id ||
+        data.to_id === null ||
+        data.to_id === "" ||
+        data.to_status === "Draft")
+    ) {
+      data.to_id = "issued";
+    }
+
     // Prepare transfer order object
     const toData = {
       to_status: newTransferOrderStatus,
       plant_id: data.plant_id,
       to_id: data.to_id,
+      to_id_type: data.to_id_type,
       movement_type: data.movement_type,
       ref_doc_type: data.ref_doc_type,
       gd_no: data.gd_no,
@@ -414,11 +223,11 @@ const updateGoodsDeliveryPickingStatus = async (toData) => {
 
     // Perform action based on page status
     if (page_status === "Add") {
-      await addEntry(organizationId, toData);
+      await addEntry(toData);
       await updateGoodsDeliveryPickingStatus(toData);
     } else if (page_status === "Edit") {
       toId = data.id;
-      await updateEntry(organizationId, toData, toId, originalToStatus);
+      await updateEntry(toData, toId);
       await updateGoodsDeliveryPickingStatus(toData);
     }
 
@@ -427,7 +236,7 @@ const updateGoodsDeliveryPickingStatus = async (toData) => {
     this.$message.success(
       `${
         page_status === "Add" ? "Added" : "Updated"
-      } successfully${statusMessage}`
+      } successfully${statusMessage}`,
     );
 
     this.hideLoading();
