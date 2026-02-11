@@ -102,13 +102,13 @@
     const isBatchManagedItem = itemData.item_batch_management === 1;
 
     console.log(
-      `Row ${rowIndex}: Checking manual allocation for material ${itemCode}, quantity ${quantity}`
+      `Row ${rowIndex}: Checking manual allocation for material ${itemCode}, quantity ${quantity}`,
     );
     console.log(
-      `Item type - Serialized: ${isSerializedItem}, Batch: ${isBatchManagedItem}`
+      `Item type - Serialized: ${isSerializedItem}, Batch: ${isBatchManagedItem}`,
     );
     console.log(
-      `Row ${rowIndex}: Has existing allocation: ${hasExistingAllocation}`
+      `Row ${rowIndex}: Has existing allocation: ${hasExistingAllocation}`,
     );
 
     let balanceData = null;
@@ -147,14 +147,14 @@
 
         if (!batchResult?.data?.length) {
           console.error(
-            `Row ${rowIndex}: No batches found for serialized item`
+            `Row ${rowIndex}: No batches found for serialized item`,
           );
           return;
         }
 
         if (batchResult.data.length !== 1) {
           console.warn(
-            `Row ${rowIndex}: Manual picking requires exactly one batch for serialized item, found: ${batchResult.data.length}`
+            `Row ${rowIndex}: Manual picking requires exactly one batch for serialized item, found: ${batchResult.data.length}`,
           );
           return;
         }
@@ -176,19 +176,19 @@
 
       // For manual allocation, we can only handle when there's exactly the required quantity available
       const availableSerials = serialBalanceResult.data.filter(
-        (serial) => parseFloat(serial.unrestricted_qty || 0) > 0
+        (serial) => parseFloat(serial.unrestricted_qty || 0) > 0,
       );
 
       if (availableSerials.length < quantity) {
         console.error(
-          `Row ${rowIndex}: Not enough serialized items available. Required: ${quantity}, Available: ${availableSerials.length}`
+          `Row ${rowIndex}: Not enough serialized items available. Required: ${quantity}, Available: ${availableSerials.length}`,
         );
         return;
       }
 
       if (quantity !== 1) {
         console.warn(
-          `Row ${rowIndex}: Manual allocation for serialized items typically requires quantity of 1, but ${quantity} requested`
+          `Row ${rowIndex}: Manual allocation for serialized items typically requires quantity of 1, but ${quantity} requested`,
         );
         // 🔧 UPDATED: Only show the message if there's no existing allocation
         if (!hasExistingAllocation) {
@@ -252,7 +252,7 @@
       });
 
       console.log(
-        `Row ${rowIndex}: Manual allocation completed for serialized item: ${serialData.serial_number}`
+        `Row ${rowIndex}: Manual allocation completed for serialized item: ${serialData.serial_number}`,
       );
       return;
     }
@@ -276,7 +276,7 @@
 
       if (batchResult.data.length !== 1) {
         console.warn(
-          `Row ${rowIndex}: Manual picking requires exactly one batch, found: ${batchResult.data.length}`
+          `Row ${rowIndex}: Manual picking requires exactly one batch, found: ${batchResult.data.length}`,
         );
         return;
       }
@@ -302,7 +302,7 @@
 
       if (batchBalanceResult.data.length !== 1) {
         console.error(
-          `Row ${rowIndex}: Manual picking requires exactly one batch balance, found: ${batchBalanceResult.data.length}`
+          `Row ${rowIndex}: Manual picking requires exactly one batch balance, found: ${batchBalanceResult.data.length}`,
         );
         return;
       }
@@ -327,7 +327,7 @@
 
       if (itemBalanceResult.data.length !== 1) {
         console.error(
-          `Row ${rowIndex}: Manual picking requires exactly one item balance, found: ${itemBalanceResult.data.length}`
+          `Row ${rowIndex}: Manual picking requires exactly one item balance, found: ${itemBalanceResult.data.length}`,
         );
         return;
       }
@@ -385,13 +385,13 @@
       console.log(
         `Row ${rowIndex}: Allocated ${quantity} from ${binLocation}${
           batchData ? ` [${batchData.batch_number}]` : ""
-        }`
+        }`,
       );
     }
   } catch (error) {
     console.error(
       `Row ${rowIndex}: Error processing manual allocation:`,
-      error
+      error,
     );
   }
 })();
