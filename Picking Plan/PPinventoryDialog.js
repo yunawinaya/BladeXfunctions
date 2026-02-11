@@ -25,7 +25,7 @@
 
     const fetchDefaultStorageLocation = async (itemData) => {
       const defaultBin = itemData?.table_default_bin?.find(
-        (bin) => bin.plant_id === plantId
+        (bin) => bin.plant_id === plantId,
       );
 
       const defaultStorageLocationId = defaultBin?.storage_location_id;
@@ -69,8 +69,8 @@
       try {
         const resUOM = await Promise.all(
           uomIds.map((id) =>
-            db.collection("unit_of_measurement").where({ id }).get()
-          )
+            db.collection("unit_of_measurement").where({ id }).get(),
+          ),
         );
 
         const uomData = resUOM
@@ -95,21 +95,21 @@
       }
 
       const uomConversion = itemData.table_uom_conversion.find(
-        (conv) => conv.alt_uom_id === altUOM
+        (conv) => conv.alt_uom_id === altUOM,
       );
 
       if (!uomConversion || !uomConversion.base_qty) {
         return baseQty;
       }
 
-      return Math.round(baseQty / uomConversion.base_qty * 1000) / 1000;
+      return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
     };
 
     const processItemBalanceData = (
       itemBalanceData,
       itemData,
       altUOM,
-      baseUOM
+      baseUOM,
     ) => {
       if (!Array.isArray(itemBalanceData)) {
         return [];
@@ -133,7 +133,7 @@
               processedRecord[field] = convertBaseToAlt(
                 processedRecord[field],
                 itemData,
-                altUOM
+                altUOM,
               );
             }
           });
@@ -183,7 +183,7 @@
 
         if (tempItem) {
           console.log(
-            `Merging data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, temp to_quantity=${tempItem.to_quantity}`
+            `Merging data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, temp to_quantity=${tempItem.to_quantity}`,
           );
           return {
             ...dbItem,
@@ -238,7 +238,7 @@
             (record.balance_quantity && record.balance_quantity > 0);
 
           console.log(
-            `Serial ${record.serial_number}: hasQuantity=${hasQuantity}, unrestricted=${record.unrestricted_qty}, reserved=${record.reserved_qty}, balance=${record.balance_quantity}`
+            `Serial ${record.serial_number}: hasQuantity=${hasQuantity}, unrestricted=${record.unrestricted_qty}, reserved=${record.reserved_qty}, balance=${record.balance_quantity}`,
           );
 
           return hasQuantity;
@@ -273,7 +273,7 @@
 
     const setTableBalanceData = async (
       filteredData,
-      includeRawData = false
+      includeRawData = false,
     ) => {
       this.models["full_balance_data"] = filteredData;
 
@@ -284,7 +284,7 @@
       if (defaultStorageLocation) {
         const binLocationList =
           defaultStorageLocation.table_bin_location?.map(
-            (bin) => bin.bin_location_id
+            (bin) => bin.bin_location_id,
           ) || [];
 
         console.log("binLocationList", binLocationList);
@@ -323,7 +323,7 @@
       itemData,
       altUOM,
       baseUOM,
-      includeRawData = false
+      includeRawData = false,
     ) => {
       try {
         const response = await db
@@ -341,13 +341,13 @@
           freshDbData,
           itemData,
           altUOM,
-          baseUOM
+          baseUOM,
         );
         const tempDataArray = parseTempQtyData(tempQtyData);
         const finalData = mergeWithTempData(
           processedFreshData,
           tempDataArray,
-          itemData
+          itemData,
         );
         const filteredData = filterZeroQuantityRecords(finalData, itemData);
 
@@ -406,7 +406,7 @@
 
     if (itemData.serial_number_management === 1) {
       console.log(
-        "Processing serialized item (may also have batch management)"
+        "Processing serialized item (may also have batch management)",
       );
 
       this.display("to_item_balance.table_item_balance.serial_number");
@@ -417,12 +417,12 @@
       if (itemData.item_batch_management === 1) {
         this.display("to_item_balance.table_item_balance.batch_id");
         console.log(
-          "Serialized item with batch management - showing both serial and batch columns"
+          "Serialized item with batch management - showing both serial and batch columns",
         );
       } else {
         this.hide("to_item_balance.table_item_balance.batch_id");
         console.log(
-          "Serialized item without batch management - hiding batch column"
+          "Serialized item without batch management - hiding batch column",
         );
       }
 
@@ -434,7 +434,7 @@
         itemData,
         altUOM,
         baseUOM,
-        true
+        true,
       );
     } else if (itemData.item_batch_management === 1) {
       console.log("Processing batch item (non-serialized)");
@@ -450,7 +450,7 @@
         itemData,
         altUOM,
         baseUOM,
-        false
+        false,
       );
     } else {
       console.log("Processing regular item (no batch, no serial)");
@@ -466,7 +466,7 @@
         itemData,
         altUOM,
         baseUOM,
-        false
+        false,
       );
     }
 
