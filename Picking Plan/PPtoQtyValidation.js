@@ -4,7 +4,7 @@ const index = fieldParts[1];
 const toStatus = data.to_status;
 const order_quantity = parseFloat(data.table_to[index].to_order_quantity || 0);
 const to_initial_delivered_qty = parseFloat(
-  data.table_to[index].to_initial_delivered_qty || 0
+  data.table_to[index].to_initial_delivered_qty || 0,
 );
 const toUndeliveredQty = order_quantity - to_initial_delivered_qty;
 const quantity = value;
@@ -68,7 +68,7 @@ for (let i = 0; i < data.table_to.length; i++) {
       if (!Array.isArray(table_uom_conversion)) return qty;
 
       const fromConversion = table_uom_conversion.find(
-        (conv) => conv.alt_uom_id === fromUOM
+        (conv) => conv.alt_uom_id === fromUOM,
       );
 
       if (fromConversion && fromConversion.base_qty) {
@@ -83,12 +83,12 @@ for (let i = 0; i < data.table_to.length; i++) {
     const currentItemQtyTotalBase = convertToBaseUOM(
       currentItemQtyTotal,
       currentUOM,
-      itemData
+      itemData,
     );
     const toUndeliveredQtyBase = convertToBaseUOM(
       toUndeliveredQty,
       currentUOM,
-      itemData
+      itemData,
     );
 
     console.log("UOM Conversion Debug:", {
@@ -103,7 +103,7 @@ for (let i = 0; i < data.table_to.length; i++) {
     // Skip validation if stock control is disabled
     if (itemData.stock_control === 0) {
       console.log(
-        `Stock control disabled for item ${materialId}, skipping inventory validation`
+        `Stock control disabled for item ${materialId}, skipping inventory validation`,
       );
 
       // Still check order limits (use base quantities)
@@ -129,7 +129,7 @@ for (let i = 0; i < data.table_to.length; i++) {
     const isBatchManagedItem = itemData.item_batch_management === 1;
 
     console.log(
-      `Item ${materialId} - Serialized: ${isSerializedItem}, Batch: ${isBatchManagedItem}`
+      `Item ${materialId} - Serialized: ${isSerializedItem}, Batch: ${isBatchManagedItem}`,
     );
 
     // Calculate order limit with tolerance (use base quantities)
@@ -163,7 +163,7 @@ for (let i = 0; i < data.table_to.length; i++) {
       }
 
       const prevTempData = JSON.parse(
-        resTO.data[0].table_to[index].temp_qty_data
+        resTO.data[0].table_to[index].temp_qty_data,
       );
 
       if (prevTempData.length >= 1) {
@@ -175,12 +175,12 @@ for (let i = 0; i < data.table_to.length; i++) {
           const unrestricted_qty_base = convertToBaseUOM(
             parseFloat(tempItem.unrestricted_qty || 0),
             toUOM,
-            itemData
+            itemData,
           );
           const reserved_qty_base = convertToBaseUOM(
             parseFloat(tempItem.reserved_qty || 0),
             toUOM,
-            itemData
+            itemData,
           );
           totalAvailableQty += unrestricted_qty_base + reserved_qty_base;
         });
