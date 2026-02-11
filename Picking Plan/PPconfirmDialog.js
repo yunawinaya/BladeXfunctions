@@ -27,16 +27,16 @@
   }
 
   console.log(
-    `Item type: Serialized=${isSerializedItem}, Batch=${isBatchManagedItem}`
+    `Item type: Serialized=${isSerializedItem}, Batch=${isBatchManagedItem}`,
   );
 
   // Re-validate all rows with quantities > 0 before confirming
   const toStatus = data.to_status;
   const to_order_quantity = parseFloat(
-    data.table_to[rowIndex].to_order_quantity || 0
+    data.table_to[rowIndex].to_order_quantity || 0,
   );
   const initialDeliveredQty = parseFloat(
-    data.table_to[rowIndex].to_initial_delivered_qty || 0
+    data.table_to[rowIndex].to_initial_delivered_qty || 0,
   );
 
   let orderLimit = 0;
@@ -86,10 +86,10 @@
       // For serialized items, quantity should typically be 1 (whole units)
       if (quantity !== Math.floor(quantity)) {
         console.log(
-          `Row ${idx} validation failed: Serialized items must be whole units`
+          `Row ${idx} validation failed: Serialized items must be whole units`,
         );
         alert(
-          `Row ${idx + 1}: Serialized items must be delivered in whole units`
+          `Row ${idx + 1}: Serialized items must be delivered in whole units`,
         );
         return;
       }
@@ -100,12 +100,12 @@
         // For Created status, allow more flexibility
         if (unrestricted_field < quantity) {
           console.log(
-            `Row ${idx} validation failed: Serial item not available`
+            `Row ${idx} validation failed: Serial item not available`,
           );
           alert(
             `Row ${idx + 1}: Serial number ${
               item.serial_number
-            } is not available`
+            } is not available`,
           );
           return;
         }
@@ -113,12 +113,12 @@
         // For other statuses, check unrestricted quantity
         if (unrestricted_field < quantity) {
           console.log(
-            `Row ${idx} validation failed: Serial item unrestricted quantity insufficient`
+            `Row ${idx} validation failed: Serial item unrestricted quantity insufficient`,
           );
           alert(
             `Row ${idx + 1}: Serial number ${
               item.serial_number
-            } unrestricted quantity is insufficient`
+            } unrestricted quantity is insufficient`,
           );
           return;
         }
@@ -137,7 +137,7 @@
         return;
       } else if (toStatus !== "Created" && unrestricted_field < quantity) {
         console.log(
-          `Row ${idx} validation failed: Unrestricted quantity is not enough`
+          `Row ${idx} validation failed: Unrestricted quantity is not enough`,
         );
         alert(`Row ${idx + 1}: Unrestricted quantity is not enough`);
         return;
@@ -161,7 +161,7 @@
 
   if (selectedUOM !== pickingPlanUOM) {
     console.log(
-      "Converting quantities back from selectedUOM to pickingPlanUOM"
+      "Converting quantities back from selectedUOM to pickingPlanUOM",
     );
     console.log("From UOM:", selectedUOM, "To UOM:", pickingPlanUOM);
 
@@ -176,7 +176,7 @@
       table_uom_conversion,
       fromUOM,
       toUOM,
-      baseUOM
+      baseUOM,
     ) => {
       if (!value || fromUOM === toUOM) return value;
 
@@ -184,7 +184,7 @@
       let baseQty = value;
       if (fromUOM !== baseUOM) {
         const fromConversion = table_uom_conversion.find(
-          (conv) => conv.alt_uom_id === fromUOM
+          (conv) => conv.alt_uom_id === fromUOM,
         );
         if (fromConversion && fromConversion.base_qty) {
           baseQty = value * fromConversion.base_qty;
@@ -194,10 +194,10 @@
       // Then convert from base UOM to target UOM
       if (toUOM !== baseUOM) {
         const toConversion = table_uom_conversion.find(
-          (conv) => conv.alt_uom_id === toUOM
+          (conv) => conv.alt_uom_id === toUOM,
         );
         if (toConversion && toConversion.base_qty) {
-          return Math.round(baseQty / toConversion.base_qty * 1000) / 1000;
+          return Math.round((baseQty / toConversion.base_qty) * 1000) / 1000;
         }
       }
 
@@ -225,10 +225,10 @@
             tableUOMConversion,
             selectedUOM,
             pickingPlanUOM,
-            baseUOM
+            baseUOM,
           );
           console.log(
-            `Record ${index} ${field}: ${originalValue} -> ${convertedRecord[field]}`
+            `Record ${index} ${field}: ${originalValue} -> ${convertedRecord[field]}`,
           );
         }
       });
@@ -238,13 +238,13 @@
 
     console.log(
       "Converted temporary data back to pickingPlanUOM:",
-      processedTemporaryData
+      processedTemporaryData,
     );
   }
 
   // Filter out items where to_quantity is less than or equal to 0
   const filteredData = processedTemporaryData.filter(
-    (item) => item.to_quantity > 0
+    (item) => item.to_quantity > 0,
   );
   console.log("Filtered data (excluding to_quantity <= 0):", filteredData);
 
@@ -259,7 +259,7 @@
       ...new Set(
         filteredData
           .map((item) => item.batch_id)
-          .filter((batchId) => batchId != null && batchId !== "")
+          .filter((batchId) => batchId != null && batchId !== ""),
       ),
     ];
 
@@ -320,7 +320,7 @@
 
     const totalQty = filteredData.reduce(
       (sum, item) => sum + (item.to_quantity || 0),
-      0
+      0,
     );
 
     let summary = `Total: ${totalQty} ${toUOM}\n\nDETAILS:\n`;
@@ -353,7 +353,7 @@
           } else {
             itemDetail += ` [Serial: NOT SET]`;
             console.warn(
-              `Row ${index + 1}: Serial number missing for serialized item`
+              `Row ${index + 1}: Serial number missing for serialized item`,
             );
           }
         }
@@ -395,7 +395,7 @@
   // Sum up all to_quantity values from filtered data
   const totalToQuantity = filteredData.reduce(
     (sum, item) => sum + (item.to_quantity || 0),
-    0
+    0,
   );
   console.log("Total TO quantity:", totalToQuantity);
 
@@ -434,7 +434,7 @@
   });
 
   console.log(
-    `Updated row ${rowIndex} with serialized=${isSerializedItem}, batch=${isBatchManagedItem}`
+    `Updated row ${rowIndex} with serialized=${isSerializedItem}, batch=${isBatchManagedItem}`,
   );
 
   // Recalculate total from all rows
@@ -460,7 +460,7 @@
       newTotal += rowPrice;
 
       console.log(
-        `Row ${index}: qty=${rowToQty}, pricePerItem=${rowPricePerItem}, rowTotal=${rowPrice}`
+        `Row ${index}: qty=${rowToQty}, pricePerItem=${rowPricePerItem}, rowTotal=${rowPrice}`,
       );
     }
   });
