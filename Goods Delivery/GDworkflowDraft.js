@@ -59,7 +59,7 @@ const closeDialog = () => {
       const successMessage =
         workflowResult.data.message ||
         workflowResult.data.msg ||
-        "Misc Issue saved successfully";
+        "Goods Delivery saved successfully";
       this.$message.success(successMessage);
       closeDialog();
     } else {
