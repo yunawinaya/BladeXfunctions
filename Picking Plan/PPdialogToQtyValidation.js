@@ -8,10 +8,10 @@
 
     const materialId = data.table_to[rowIndex].material_id;
     const to_order_quantity = parseFloat(
-      data.table_to[rowIndex].to_order_quantity || 0
+      data.table_to[rowIndex].to_order_quantity || 0,
     );
     const initialDeliveredQty = parseFloat(
-      data.table_to[rowIndex].to_initial_delivered_qty || 0
+      data.table_to[rowIndex].to_initial_delivered_qty || 0,
     );
 
     // Calculate total EXCLUDING the current row being validated
@@ -20,7 +20,7 @@
       if (i !== parseInt(index)) {
         // Exclude current row
         currentDialogTotal += parseFloat(
-          data.to_item_balance.table_item_balance[i].to_quantity || 0
+          data.to_item_balance.table_item_balance[i].to_quantity || 0,
         );
       }
     }
@@ -76,7 +76,7 @@
         console.log("Initial delivered quantity:", initialDeliveredQty);
         console.log(
           "Current dialog total (excluding current row):",
-          currentDialogTotal
+          currentDialogTotal,
         );
         console.log("New value being validated:", parsedValue);
         console.log("Total with new value:", totalWithNewValue);
