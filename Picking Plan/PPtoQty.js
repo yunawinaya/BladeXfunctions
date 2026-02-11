@@ -210,7 +210,30 @@
         return;
       }
 
-      // Take the first available serial
+      // 🔧 NEW: Check if there's exactly 1 serial available (single balance scenario)
+      if (availableSerials.length !== 1) {
+        console.warn(
+          `Row ${rowIndex}: Manual allocation requires exactly one serial available, found: ${availableSerials.length}`,
+        );
+        if (!hasExistingAllocation) {
+          this.setData({
+            [`table_to.${rowIndex}.to_delivered_qty`]: totalDeliveredQty,
+            [`table_to.${rowIndex}.to_undelivered_qty`]:
+              orderedQty - totalDeliveredQty,
+            [`table_to.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog to select serial number`,
+            [`table_to.${rowIndex}.temp_qty_data`]: "[]",
+          });
+        } else {
+          this.setData({
+            [`table_to.${rowIndex}.to_delivered_qty`]: totalDeliveredQty,
+            [`table_to.${rowIndex}.to_undelivered_qty`]:
+              orderedQty - totalDeliveredQty,
+          });
+        }
+        return;
+      }
+
+      // Take the first (and only) available serial
       serialData = availableSerials[0];
 
       // Create temporary data for serialized item

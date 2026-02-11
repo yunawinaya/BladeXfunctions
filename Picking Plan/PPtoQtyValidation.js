@@ -201,6 +201,31 @@ for (let i = 0; i < data.table_to.length; i++) {
       // For other statuses (Draft, etc.): Check actual inventory balances
       let availableQty = 0;
 
+      // 🔧 NEW: Fetch pending reserved data for this SO line item
+      // Reserved stock for this SO should be counted as available
+      const soLineItemId = data.table_to[index].so_line_item_id;
+      let pendingReservedQty = 0;
+
+      if (soLineItemId) {
+        const pendingReservedRes = await db
+          .collection("on_reserved_gd")
+          .where({
+            plant_id: data.plant_id,
+            material_id: materialId,
+            parent_line_id: soLineItemId,
+            status: "Pending",
+          })
+          .get();
+
+        if (pendingReservedRes?.data?.length > 0) {
+          pendingReservedQty = pendingReservedRes.data.reduce((total, reserved) => {
+            return total + parseFloat(reserved.open_qty || 0);
+          }, 0);
+        }
+
+        console.log(`Pending reserved qty for SO line ${soLineItemId}:`, pendingReservedQty);
+      }
+
       if (isSerializedItem) {
         // 🔧 NEW: Handle serialized items
         const resSerialBalance = await db
@@ -220,8 +245,13 @@ for (let i = 0; i < data.table_to.length; i++) {
           }, 0);
         }
 
+        // 🔧 NEW: Add pending reserved qty (reserved stock is available for this SO)
+        availableQty += pendingReservedQty;
+
         console.log(`Draft TO validation for SERIALIZED item ${materialId}:`, {
-          availableQty,
+          unrestrictedQty: availableQty - pendingReservedQty,
+          pendingReservedQty,
+          totalAvailableQty: availableQty,
           currentItemQtyTotalBase,
           serialCount: resSerialBalance?.data?.length || 0,
         });
@@ -244,8 +274,13 @@ for (let i = 0; i < data.table_to.length; i++) {
           }, 0);
         }
 
+        // 🔧 NEW: Add pending reserved qty (reserved stock is available for this SO)
+        availableQty += pendingReservedQty;
+
         console.log(`Draft TO validation for BATCH item ${materialId}:`, {
-          availableQty,
+          unrestrictedQty: availableQty - pendingReservedQty,
+          pendingReservedQty,
+          totalAvailableQty: availableQty,
           currentItemQtyTotalBase,
           batchCount: resItemBalance?.data?.length || 0,
         });
@@ -268,8 +303,13 @@ for (let i = 0; i < data.table_to.length; i++) {
           }, 0);
         }
 
+        // 🔧 NEW: Add pending reserved qty (reserved stock is available for this SO)
+        availableQty += pendingReservedQty;
+
         console.log(`Draft TO validation for REGULAR item ${materialId}:`, {
-          availableQty,
+          unrestrictedQty: availableQty - pendingReservedQty,
+          pendingReservedQty,
+          totalAvailableQty: availableQty,
           currentItemQtyTotalBase,
           locationCount: resItemBalance?.data?.length || 0,
         });

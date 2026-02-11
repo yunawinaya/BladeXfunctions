@@ -7,16 +7,16 @@ const generatePrefix = (prefixData) => {
   prefixToShow = prefixToShow.replace("suffix", prefixData.suffix_value);
   prefixToShow = prefixToShow.replace(
     "month",
-    String(now.getMonth() + 1).padStart(2, "0")
+    String(now.getMonth() + 1).padStart(2, "0"),
   );
   prefixToShow = prefixToShow.replace(
     "day",
-    String(now.getDate()).padStart(2, "0")
+    String(now.getDate()).padStart(2, "0"),
   );
   prefixToShow = prefixToShow.replace("year", now.getFullYear());
   prefixToShow = prefixToShow.replace(
     "running_number",
-    String(prefixData.running_number).padStart(prefixData.padding_zeroes, "0")
+    String(prefixData.running_number).padStart(prefixData.padding_zeroes, "0"),
   );
 
   return prefixToShow;
@@ -52,7 +52,7 @@ const findUniquePrefix = async (prefixData, organizationId) => {
 
   if (!isUnique) {
     throw new Error(
-      "Could not generate a unique Picking Plan number after maximum attempts"
+      "Could not generate a unique Picking Plan number after maximum attempts",
     );
   }
 
@@ -146,7 +146,7 @@ const disabledField = async (status, pickingStatus) => {
         "order_remark",
         "to_item_balance.table_item_balance",
       ],
-      true
+      true,
     );
 
     // Disable table rows
@@ -178,7 +178,7 @@ const disabledField = async (status, pickingStatus) => {
         "document_description",
         "order_remark",
       ],
-      false
+      false,
     );
   }
 };
@@ -190,11 +190,11 @@ const disableTableRows = () => {
 
     rows.forEach((row, index) => {
       const fieldNames = Object.keys(row).filter(
-        (key) => key !== "to_delivery_qty"
+        (key) => key !== "to_delivery_qty",
       );
 
       const fieldsToDisable = fieldNames.map(
-        (field) => `table_to.${index}.${field}`
+        (field) => `table_to.${index}.${field}`,
       );
 
       this.disabled(fieldsToDisable, true);
@@ -385,8 +385,8 @@ const fetchDeliveredQuantity = async () => {
 
   const resSOLineData = await Promise.all(
     tableGD.map((item) =>
-      db.collection("sales_order_axszx8cj_sub").doc(item.so_line_item_id).get()
-    )
+      db.collection("sales_order_axszx8cj_sub").doc(item.so_line_item_id).get(),
+    ),
   );
 
   const soLineItemData = resSOLineData.map((response) => response.data[0]);
@@ -517,3 +517,21 @@ const displayPlanQty = async (data) => {
     this.$message.error(error.message || "An error occurred");
   }
 })();
+
+setTimeout(async () => {
+  if (this.isAdd) {
+    const op = await this.onDropdownVisible("to_no_type", true);
+    function getDefaultItem(arr) {
+      return arr?.find((item) => item?.item?.item?.is_default === 1);
+    }
+    setTimeout(() => {
+      const optionsData = this.getOptionData("to_no_type") || [];
+      const data = getDefaultItem(optionsData);
+      if (data) {
+        this.setData({
+          to_no_type: data.value,
+        });
+      }
+    }, 500);
+  }
+}, 500);
