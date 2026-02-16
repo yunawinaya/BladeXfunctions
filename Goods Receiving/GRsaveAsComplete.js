@@ -1953,6 +1953,8 @@ const addInventory = async (
         doc_date: data.gr_date,
         manufacturing_date: item.manufacturing_date,
         expired_date: item.expired_date,
+        actual_qty: roundQty(altQty),
+        actual_base_qty: roundQty(baseQty),
       };
 
       await updateOnOrderPurchaseOrder(

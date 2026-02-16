@@ -228,6 +228,9 @@ const addInventoryMovementData = async (
       basedQty = inspQuantity;
     }
 
+    const actualQty = movementType === "OUT" ? -inspQuantity : inspQuantity;
+    const actualBasedQty = movementType === "OUT" ? -basedQty : basedQty;
+
     const inventoryMovementData = {
       transaction_type: "QI - RI",
       trx_no: data.inspection_lot_no,
@@ -246,6 +249,8 @@ const addInventoryMovementData = async (
       costing_method_id: itemData.material_costing_method,
       plant_id: data.plant_id,
       organization_id: data.organization_id,
+      actual_qty: actualQty,
+      actual_based_qty: actualBasedQty,
     };
 
     await db.collection("inventory_movement").add(inventoryMovementData);
@@ -599,6 +604,11 @@ const processSerializedItemMovements = async (
       const totalQuantity = group.serials.length;
       const totalPrice = roundPrice(mat.unit_price * totalQuantity);
 
+      const actualQty =
+        group.movement === "OUT" ? -totalQuantity : totalQuantity;
+      const actualBasedQty =
+        group.movement === "OUT" ? -totalQuantity : totalQuantity;
+
       // Create grouped inventory movement
       const inventoryMovementData = {
         transaction_type: "QI - RI",
@@ -618,6 +628,8 @@ const processSerializedItemMovements = async (
         costing_method_id: itemData.material_costing_method,
         plant_id: data.plant_id,
         organization_id: data.organization_id,
+        actual_qty: actualQty,
+        actual_based_qty: actualBasedQty,
       };
 
       const inventoryMovementResult = await db
