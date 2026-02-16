@@ -38,7 +38,7 @@ const updatePrefix = async (organizationId, runningNumber) => {
     "Updating prefix for organization:",
     organizationId,
     "with running number:",
-    runningNumber
+    runningNumber,
   );
   try {
     await db
@@ -67,16 +67,16 @@ const generatePrefix = (runNumber, now, prefixData) => {
     generated = generated.replace("suffix", prefixData.suffix_value);
     generated = generated.replace(
       "month",
-      String(now.getMonth() + 1).padStart(2, "0")
+      String(now.getMonth() + 1).padStart(2, "0"),
     );
     generated = generated.replace(
       "day",
-      String(now.getDate()).padStart(2, "0")
+      String(now.getDate()).padStart(2, "0"),
     );
     generated = generated.replace("year", now.getFullYear());
     generated = generated.replace(
       "running_number",
-      String(runNumber).padStart(prefixData.padding_zeroes, "0")
+      String(runNumber).padStart(prefixData.padding_zeroes, "0"),
     );
     console.log("Generated prefix:", generated);
     return generated;
@@ -118,7 +118,7 @@ const findUniquePrefix = async (prefixData, organizationId) => {
 
   if (!isUnique) {
     throw new Error(
-      "Could not generate a unique Putaway number after maximum attempts"
+      "Could not generate a unique Putaway number after maximum attempts",
     );
   }
 
@@ -157,7 +157,7 @@ const validateForm = (data, requiredFields) => {
           const subValue = item[subField.name];
           if (validateField(subValue, subField)) {
             missingFields.push(
-              `${subField.label} (in ${field.label} #${index + 1})`
+              `${subField.label} (in ${field.label} #${index + 1})`,
             );
           }
         });
@@ -217,7 +217,7 @@ const validateAndUpdateLineStatuses = (putawayItems) => {
     console.log(
       `Item ${
         item.item_code || index
-      }: qtyToPutaway=${qtyToPutaway}, pendingProcessQty=${pendingProcessQty}, putawayQty=${putawayQty}`
+      }: qtyToPutaway=${qtyToPutaway}, pendingProcessQty=${pendingProcessQty}, putawayQty=${putawayQty}`,
     );
 
     // Validation checks
@@ -225,7 +225,7 @@ const validateAndUpdateLineStatuses = (putawayItems) => {
       errors.push(
         `Picked quantity cannot be negative for item ${
           item.item_code || `#${index + 1}`
-        }`
+        }`,
       );
       return null;
     }
@@ -234,7 +234,7 @@ const validateAndUpdateLineStatuses = (putawayItems) => {
       errors.push(
         `Picked quantity (${putawayQty}) cannot be greater than quantity to pick (${pendingProcessQty}) for item ${
           item.item_code || `#${index + 1}`
-        }`
+        }`,
       );
       return null;
     }
@@ -281,16 +281,16 @@ const validateAndUpdateLineStatuses = (putawayItems) => {
       // Check if all child items are completed
       const childItems = updatedItems.filter(
         (child) =>
-          child.parent_index === index && child.parent_or_child === "Child"
+          child.parent_index === index && child.parent_or_child === "Child",
       );
       const allChildrenCompleted = childItems.every(
-        (child) => itemStatusMap.get(child.item_code) === "Completed"
+        (child) => itemStatusMap.get(child.item_code) === "Completed",
       );
 
       // Update parent status
       item.line_status = allChildrenCompleted ? "Completed" : "In Progress";
       item.pending_process_qty = childItems.some(
-        (child) => itemStatusMap.get(child.item_code) !== "Completed"
+        (child) => itemStatusMap.get(child.item_code) !== "Completed",
       )
         ? item.pending_process_qty
         : 0;
@@ -298,7 +298,7 @@ const validateAndUpdateLineStatuses = (putawayItems) => {
       console.log(
         `Parent Item ${item.item_code || index} line status: ${
           item.line_status
-        }`
+        }`,
       );
     }
   }
@@ -320,19 +320,19 @@ const determineTransferOrderStatus = (putawayItems) => {
 
   // Count statuses
   const completedCount = lineStatuses.filter(
-    (status) => status === "Completed"
+    (status) => status === "Completed",
   ).length;
   const inProgressCount = lineStatuses.filter(
-    (status) => status === "In Progress"
+    (status) => status === "In Progress",
   ).length;
   const nullCount = lineStatuses.filter(
-    (status) => status === null || status === undefined
+    (status) => status === null || status === undefined,
   ).length;
 
   const totalItems = putawayItems.length;
 
   console.log(
-    `Status counts - Completed: ${completedCount}, In Progress: ${inProgressCount}, Null: ${nullCount}, Total: ${totalItems}`
+    `Status counts - Completed: ${completedCount}, In Progress: ${inProgressCount}, Null: ${nullCount}, Total: ${totalItems}`,
   );
 
   // Determine overall status
@@ -383,10 +383,16 @@ const createPutawayRecords = async (toData, tablePutawayItem) => {
 
       if (trimmedSerialNumbers.length > 0) {
         // Show all serial numbers with line breaks for better presentation
-        putawayRecord.serial_numbers = trimmedSerialNumbers.join("\n");
+        console.log("Serial Numbers:", trimmedSerialNumbers);
+
+        putawayRecord.serial_numbers = JSON.stringify(
+          trimmedSerialNumbers.join("\n"),
+        );
+
+        console.log("Serial Numbers:", putawayRecord.serial_numbers);
 
         console.log(
-          `Added ${trimmedSerialNumbers.length} serial numbers to putaway record for ${item.item_code}: ${putawayRecord.serial_numbers}`
+          `Added ${trimmedSerialNumbers.length} serial numbers to putaway record for ${item.item_code}: ${putawayRecord.serial_numbers}`,
         );
       }
     }
@@ -415,7 +421,7 @@ const addEntry = async (organizationId, toData) => {
     if (prefixData) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
         prefixData,
-        organizationId
+        organizationId,
       );
 
       await updatePrefix(organizationId, runningNumber);
@@ -444,7 +450,7 @@ const updateEntry = async (organizationId, toData, toId, originalToStatus) => {
       if (prefixData) {
         const { prefixToShow, runningNumber } = await findUniquePrefix(
           prefixData,
-          organizationId
+          organizationId,
         );
 
         await updatePrefix(organizationId, runningNumber);
@@ -471,7 +477,7 @@ const addInventoryMovementData = async (
   data,
   movementType,
   itemData,
-  matData
+  matData,
 ) => {
   try {
     let basedQty = 0;
@@ -485,6 +491,10 @@ const addInventoryMovementData = async (
     } else if (matData.item_uom === itemData.based_uom) {
       basedQty = roundQty(matData.putaway_qty);
     }
+
+    const actualQty =
+      movementType === "OUT" ? -matData.putaway_qty : matData.putaway_qty;
+    const actualBasedQty = movementType === "OUT" ? -basedQty : basedQty;
 
     const inventoryMovementData = {
       transaction_type: "TO - PA",
@@ -508,6 +518,8 @@ const addInventoryMovementData = async (
       costing_method_id: itemData.material_costing_method,
       plant_id: data.plant_id,
       organization_id: data.organization_id,
+      actual_qty: actualQty,
+      actual_base_qty: actualBasedQty,
     };
 
     await db.collection("inventory_movement").add(inventoryMovementData);
@@ -523,11 +535,11 @@ const processSerializedItemMovement = async (
   itemData,
   matData,
   movementType,
-  serialNumbers
+  serialNumbers,
 ) => {
   try {
     console.log(
-      `Processing serialized item movement for ${matData.item_code}, movement: ${movementType} with ${serialNumbers.length} serials`
+      `Processing serialized item movement for ${matData.item_code}, movement: ${movementType} with ${serialNumbers.length} serials`,
     );
 
     // Create CONSOLIDATED inventory movement for all serial numbers
@@ -558,7 +570,7 @@ const processSerializedItemMovement = async (
 
     await db.collection("inventory_movement").add(inventoryMovementData);
     console.log(
-      `Created consolidated ${movementType} movement for ${consolidatedQty} serial numbers`
+      `Created consolidated ${movementType} movement for ${consolidatedQty} serial numbers`,
     );
 
     // Wait and fetch the created movement ID
@@ -582,13 +594,13 @@ const processSerializedItemMovement = async (
 
     if (movementQuery.data && movementQuery.data.length > 0) {
       const movementId = movementQuery.data.sort(
-        (a, b) => new Date(b.create_time) - new Date(a.create_time)
+        (a, b) => new Date(b.create_time) - new Date(a.create_time),
       )[0].id;
       console.log(`Found consolidated movement ID: ${movementId}`);
 
       // Create individual inv_serial_movement records for each serial number
       console.log(
-        `Creating ${serialNumbers.length} inv_serial_movement records`
+        `Creating ${serialNumbers.length} inv_serial_movement records`,
       );
 
       for (const serialNumber of serialNumbers) {
@@ -596,7 +608,7 @@ const processSerializedItemMovement = async (
         if (!trimmedSerialNumber) continue;
 
         console.log(
-          `Creating inv_serial_movement for serial: ${trimmedSerialNumber}`
+          `Creating inv_serial_movement for serial: ${trimmedSerialNumber}`,
         );
 
         try {
@@ -611,7 +623,7 @@ const processSerializedItemMovement = async (
           });
 
           console.log(
-            `✓ Created inv_serial_movement for serial ${trimmedSerialNumber}`
+            `✓ Created inv_serial_movement for serial ${trimmedSerialNumber}`,
           );
 
           // Process individual serial balance movement
@@ -620,12 +632,12 @@ const processSerializedItemMovement = async (
             itemData,
             trimmedSerialNumber,
             movementType,
-            data
+            data,
           );
         } catch (serialError) {
           console.error(
             `Error creating inv_serial_movement for serial ${trimmedSerialNumber}:`,
-            serialError
+            serialError,
           );
           throw serialError;
         }
@@ -660,15 +672,15 @@ const processSerializedItemMovement = async (
           const generalBalance = generalBalanceQuery.data[0];
 
           const currentUnrestricted = parseFloat(
-            generalBalance.unrestricted_qty || 0
+            generalBalance.unrestricted_qty || 0,
           );
           const currentReserved = parseFloat(generalBalance.reserved_qty || 0);
           const currentQualityInsp = parseFloat(
-            generalBalance.qualityinsp_qty || 0
+            generalBalance.qualityinsp_qty || 0,
           );
           const currentBlocked = parseFloat(generalBalance.block_qty || 0);
           const currentInTransit = parseFloat(
-            generalBalance.intransit_qty || 0
+            generalBalance.intransit_qty || 0,
           );
 
           let newUnrestricted = currentUnrestricted;
@@ -683,7 +695,7 @@ const processSerializedItemMovement = async (
               case "Unrestricted":
                 newUnrestricted = Math.max(
                   0,
-                  currentUnrestricted - consolidatedQty
+                  currentUnrestricted - consolidatedQty,
                 );
                 break;
               case "Reserved":
@@ -692,7 +704,7 @@ const processSerializedItemMovement = async (
               case "Quality Inspection":
                 newQualityInsp = Math.max(
                   0,
-                  currentQualityInsp - consolidatedQty
+                  currentQualityInsp - consolidatedQty,
                 );
                 break;
               case "Blocked":
@@ -704,7 +716,7 @@ const processSerializedItemMovement = async (
               default:
                 newUnrestricted = Math.max(
                   0,
-                  currentUnrestricted - consolidatedQty
+                  currentUnrestricted - consolidatedQty,
                 );
             }
           } else if (movementType === "IN") {
@@ -759,7 +771,7 @@ const processSerializedItemMovement = async (
               matData.item_code
             } ${movementType} movement: ${inventoryCategory} qty ${
               movementType === "OUT" ? "-" : "+"
-            }${consolidatedQty}`
+            }${consolidatedQty}`,
           );
         } else if (movementType === "IN") {
           // Create new item_balance record for IN movement
@@ -792,33 +804,33 @@ const processSerializedItemMovement = async (
 
           await db.collection("item_balance").add(itemBalanceData);
           console.log(
-            `✓ Created item_balance for serialized item ${matData.item_code} IN movement: ${inventoryCategory} qty +${consolidatedQty}`
+            `✓ Created item_balance for serialized item ${matData.item_code} IN movement: ${inventoryCategory} qty +${consolidatedQty}`,
           );
         }
       } catch (itemBalanceError) {
         console.error(
           `Error updating item_balance for serialized item ${matData.item_code}:`,
-          itemBalanceError
+          itemBalanceError,
         );
         throw itemBalanceError;
       }
 
       console.log(
-        `Successfully processed consolidated movement with ${serialNumbers.length} inv_serial_movement records`
+        `Successfully processed consolidated movement with ${serialNumbers.length} inv_serial_movement records`,
       );
     } else {
       throw new Error(
-        `Could not find created consolidated movement for ${movementType}`
+        `Could not find created consolidated movement for ${movementType}`,
       );
     }
 
     console.log(
-      `Successfully processed serialized item ${matData.item_code} with ${serialNumbers.length} serial numbers`
+      `Successfully processed serialized item ${matData.item_code} with ${serialNumbers.length} serial numbers`,
     );
   } catch (error) {
     console.error(`Error processing serialized item movement:`, error);
     throw new Error(
-      `Error processing serialized item movement: ${error.message}`
+      `Error processing serialized item movement: ${error.message}`,
     );
   }
 };
@@ -829,7 +841,7 @@ const processSerialBalanceMovement = async (
   itemData,
   serialNumber,
   movementType,
-  data
+  data,
 ) => {
   try {
     const locationId =
@@ -840,7 +852,7 @@ const processSerialBalanceMovement = async (
         : matData.target_inv_category;
 
     console.log(
-      `Processing serial balance for ${serialNumber}, movement: ${movementType}, location: ${locationId}`
+      `Processing serial balance for ${serialNumber}, movement: ${movementType}, location: ${locationId}`,
     );
 
     if (movementType === "OUT") {
@@ -867,11 +879,11 @@ const processSerialBalanceMovement = async (
 
         // Get current quantities
         const currentUnrestricted = parseFloat(
-          serialBalance.unrestricted_qty || 0
+          serialBalance.unrestricted_qty || 0,
         );
         const currentReserved = parseFloat(serialBalance.reserved_qty || 0);
         const currentQualityInsp = parseFloat(
-          serialBalance.qualityinsp_qty || 0
+          serialBalance.qualityinsp_qty || 0,
         );
         const currentBlocked = parseFloat(serialBalance.block_qty || 0);
         const currentInTransit = parseFloat(serialBalance.intransit_qty || 0);
@@ -903,7 +915,7 @@ const processSerialBalanceMovement = async (
             break;
           default:
             console.warn(
-              `Unknown source inventory category: ${matData.source_inv_category}, defaulting to Unrestricted`
+              `Unknown source inventory category: ${matData.source_inv_category}, defaulting to Unrestricted`,
             );
             newUnrestricted = Math.max(0, currentUnrestricted - qtyToDeduct);
         }
@@ -934,11 +946,11 @@ const processSerialBalanceMovement = async (
 
         console.log(
           `Updated serial balance for OUT movement: ${serialNumber} - ` +
-            `${matData.source_inv_category}: ${qtyToDeduct} deducted from location ${matData.source_bin}`
+            `${matData.source_inv_category}: ${qtyToDeduct} deducted from location ${matData.source_bin}`,
         );
       } else {
         console.warn(
-          `No existing serial balance found for OUT movement: ${serialNumber} at location ${matData.source_bin}`
+          `No existing serial balance found for OUT movement: ${serialNumber} at location ${matData.source_bin}`,
         );
       }
     } else if (movementType === "IN") {
@@ -968,11 +980,11 @@ const processSerialBalanceMovement = async (
 
         // Get current quantities
         const currentUnrestricted = parseFloat(
-          serialBalance.unrestricted_qty || 0
+          serialBalance.unrestricted_qty || 0,
         );
         const currentReserved = parseFloat(serialBalance.reserved_qty || 0);
         const currentQualityInsp = parseFloat(
-          serialBalance.qualityinsp_qty || 0
+          serialBalance.qualityinsp_qty || 0,
         );
         const currentBlocked = parseFloat(serialBalance.block_qty || 0);
         const currentInTransit = parseFloat(serialBalance.intransit_qty || 0);
@@ -1002,7 +1014,7 @@ const processSerialBalanceMovement = async (
             break;
           default:
             console.warn(
-              `Unknown target inventory category: ${matData.target_inv_category}, defaulting to Unrestricted`
+              `Unknown target inventory category: ${matData.target_inv_category}, defaulting to Unrestricted`,
             );
             newUnrestricted = currentUnrestricted + qtyToAdd;
         }
@@ -1034,7 +1046,7 @@ const processSerialBalanceMovement = async (
 
         console.log(
           `Updated existing serial balance for IN movement: ${serialNumber} - ` +
-            `${matData.target_inv_category}: ${qtyToAdd} added to location ${matData.target_location}`
+            `${matData.target_inv_category}: ${qtyToAdd} added to location ${matData.target_location}`,
         );
       } else {
         // Create new serial balance record
@@ -1071,14 +1083,14 @@ const processSerialBalanceMovement = async (
         await db.collection("item_serial_balance").add(serialBalanceData);
         console.log(
           `Created new serial balance for IN movement: ${serialNumber} - ` +
-            `${matData.target_inv_category}: ${qtyToAdd} at location ${matData.target_location}`
+            `${matData.target_inv_category}: ${qtyToAdd} at location ${matData.target_location}`,
         );
       }
     }
   } catch (error) {
     console.error(
       `Error processing serial balance movement for ${serialNumber}:`,
-      error
+      error,
     );
     throw error;
   }
@@ -1112,7 +1124,7 @@ const processBalanceTable = async (balanceUpdates) => {
         balance_quantity,
         plant_id: matData.plant_id,
         organization_id: matData.organization_id,
-        material_uom: matData.material_uom || "default_uom",
+        material_uom: matData.material_uom || "",
       };
 
       if (matData.batch_id) {
@@ -1164,7 +1176,7 @@ const processBalanceTable = async (balanceUpdates) => {
           intransit_qty = record.intransit_qty || 0;
 
         console.log(
-          `Processing ${update.movementType} movement for balance update`
+          `Processing ${update.movementType} movement for balance update`,
         );
         if (update.movementType === "OUT") {
           block_qty -= update.block_qty;
@@ -1206,7 +1218,7 @@ const processBalanceTable = async (balanceUpdates) => {
           balance_quantity,
           plant_id: record.plant_id,
           organization_id: record.organization_id,
-          material_uom: record.material_uom || "default_uom",
+          material_uom: record.material_uom || "",
           ...(collection === "item_batch_balance" && {
             batch_id: record.batch_id,
           }),
@@ -1240,17 +1252,17 @@ const processBalanceTable = async (balanceUpdates) => {
               const generalBalance = generalBalanceQuery.data[0];
 
               const currentUnrestricted = parseFloat(
-                generalBalance.unrestricted_qty || 0
+                generalBalance.unrestricted_qty || 0,
               );
               const currentReserved = parseFloat(
-                generalBalance.reserved_qty || 0
+                generalBalance.reserved_qty || 0,
               );
               const currentQualityInsp = parseFloat(
-                generalBalance.qualityinsp_qty || 0
+                generalBalance.qualityinsp_qty || 0,
               );
               const currentBlocked = parseFloat(generalBalance.block_qty || 0);
               const currentInTransit = parseFloat(
-                generalBalance.intransit_qty || 0
+                generalBalance.intransit_qty || 0,
               );
 
               let newUnrestricted = currentUnrestricted;
@@ -1263,20 +1275,20 @@ const processBalanceTable = async (balanceUpdates) => {
                 // Deduct from item_balance
                 newUnrestricted = Math.max(
                   0,
-                  currentUnrestricted - update.unrestricted_qty
+                  currentUnrestricted - update.unrestricted_qty,
                 );
                 newReserved = Math.max(
                   0,
-                  currentReserved - update.reserved_qty
+                  currentReserved - update.reserved_qty,
                 );
                 newQualityInsp = Math.max(
                   0,
-                  currentQualityInsp - update.qualityinsp_qty
+                  currentQualityInsp - update.qualityinsp_qty,
                 );
                 newBlocked = Math.max(0, currentBlocked - update.block_qty);
                 newInTransit = Math.max(
                   0,
-                  currentInTransit - update.intransit_qty
+                  currentInTransit - update.intransit_qty,
                 );
               } else if (update.movementType === "IN") {
                 // Add to item_balance
@@ -1312,7 +1324,7 @@ const processBalanceTable = async (balanceUpdates) => {
                 .update(generalUpdateData);
 
               console.log(
-                `✓ Updated item_balance for batch item ${update.material_id} ${update.movementType} movement at location ${update.location_id}`
+                `✓ Updated item_balance for batch item ${update.material_id} ${update.movementType} movement at location ${update.location_id}`,
               );
             } else if (update.movementType === "IN") {
               // Create new item_balance record for IN movement
@@ -1341,20 +1353,20 @@ const processBalanceTable = async (balanceUpdates) => {
 
               await db.collection("item_balance").add(itemBalanceData);
               console.log(
-                `✓ Created item_balance for batch item ${update.material_id} IN movement at location ${update.location_id}`
+                `✓ Created item_balance for batch item ${update.material_id} IN movement at location ${update.location_id}`,
               );
             }
           } catch (itemBalanceError) {
             console.error(
               `Error updating item_balance for batch item ${update.material_id}:`,
-              itemBalanceError
+              itemBalanceError,
             );
             throw itemBalanceError;
           }
         }
       } else if (update.movementType === "IN") {
         console.log(
-          "No existing balance record found for IN movement, creating new"
+          "No existing balance record found for IN movement, creating new",
         );
         const newBalance = await initializeBalanceData(update);
         if (collection === "item_batch_balance") {
@@ -1374,7 +1386,7 @@ const processBalanceTable = async (balanceUpdates) => {
 
 const processInventoryMovementandBalanceTable = async (
   toData,
-  updatedItems
+  updatedItems,
 ) => {
   try {
     const balanceUpdates = {};
@@ -1437,7 +1449,7 @@ const processInventoryMovementandBalanceTable = async (
 
               if (isSerializedItem) {
                 console.log(
-                  `Processing serialized item: ${mat.item_code} with ${mat.select_serial_number.length} serial numbers`
+                  `Processing serialized item: ${mat.item_code} with ${mat.select_serial_number.length} serial numbers`,
                 );
 
                 // Validate that putaway_qty matches serial number count
@@ -1447,7 +1459,7 @@ const processInventoryMovementandBalanceTable = async (
 
                 if (trimmedSerialNumbers.length !== mat.putaway_qty) {
                   console.warn(
-                    `Serial number count (${trimmedSerialNumbers.length}) doesn't match putaway quantity (${mat.putaway_qty}) for item ${mat.item_code}`
+                    `Serial number count (${trimmedSerialNumbers.length}) doesn't match putaway quantity (${mat.putaway_qty}) for item ${mat.item_code}`,
                   );
                 }
 
@@ -1457,20 +1469,20 @@ const processInventoryMovementandBalanceTable = async (
                   itemData,
                   mat,
                   "OUT",
-                  trimmedSerialNumbers
+                  trimmedSerialNumbers,
                 );
                 await processSerializedItemMovement(
                   toData,
                   itemData,
                   mat,
                   "IN",
-                  trimmedSerialNumbers
+                  trimmedSerialNumbers,
                 );
 
                 console.log(
                   `Successfully processed serialized item ${
                     mat.item_code
-                  } with serial numbers: [${trimmedSerialNumbers.join(", ")}]`
+                  } with serial numbers: [${trimmedSerialNumbers.join(", ")}]`,
                 );
               } else {
                 // Process non-serialized items as before
@@ -1483,7 +1495,7 @@ const processInventoryMovementandBalanceTable = async (
                 const baseQty = await convertUOM(
                   mat.putaway_qty,
                   itemData,
-                  mat
+                  mat,
                 );
 
                 // Initialize category quantities
@@ -1620,7 +1632,7 @@ const processInventoryMovementandBalanceTable = async (
 const updateGoodsReceiving = async (
   grId,
   isAutoCompleteGR,
-  _organizationId
+  _organizationId,
 ) => {
   try {
     const gr = await db.collection("goods_receiving").doc(grId).get();
@@ -1648,13 +1660,13 @@ const updateGoodsReceiving = async (
 
     if (resPutaway && resPutaway.data.length > 0) {
       const putawayData = resPutaway.data.filter(
-        (putaway) => putaway.id !== this.getValue("id")
+        (putaway) => putaway.id !== this.getValue("id"),
       );
 
       console.log("putawayData", putawayData);
 
       isPutawayCompleted = putawayData.every(
-        (putaway) => putaway.to_status === "Completed"
+        (putaway) => putaway.to_status === "Completed",
       )
         ? "Yes"
         : "No";
@@ -1662,7 +1674,7 @@ const updateGoodsReceiving = async (
 
     if (resQI && resQI.data.length > 0) {
       isQICompleted = resQI.data.every(
-        (qi) => qi.receiving_insp_status === "Completed"
+        (qi) => qi.receiving_insp_status === "Completed",
       )
         ? "Yes"
         : "No";
@@ -1686,7 +1698,7 @@ const updateGoodsReceiving = async (
     if (isGRCompleted === "Yes") {
       const { po_data_array } = await updatePurchaseOrderStatus(
         grData.purchase_order_id,
-        grData.table_gr
+        grData.table_gr,
       );
       await this.runWorkflow(
         "1917412667253141505",
@@ -1698,11 +1710,11 @@ const updateGoodsReceiving = async (
           this.$message.error("Workflow execution failed");
           console.error("失败结果：", err);
           closeDialog();
-        }
+        },
       );
     }
     this.$message.success(
-      "Goods Receiving putaway status updated successfully"
+      "Goods Receiving putaway status updated successfully",
     );
   } catch (error) {
     this.$message.error("Error updating Goods Receiving putaway status");
@@ -1723,7 +1735,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
     const updatePromises = poIds.map(async (purchaseOrderId) => {
       try {
         const _filteredGR = tableGR.filter(
-          (item) => item.line_po_id === purchaseOrderId
+          (item) => item.line_po_id === purchaseOrderId,
         );
 
         // Fetch purchase order and related goods receiving documents in parallel
@@ -1773,7 +1785,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
           const originalIndex = filteredItem.originalIndex;
           const purchaseQty = parseFloat(filteredItem.quantity || 0);
           const currentReceivedQty = parseFloat(
-            updatedPoItems[originalIndex].received_qty || 0
+            updatedPoItems[originalIndex].received_qty || 0,
           );
 
           // Count items with ANY delivered quantity as "partially delivered"
@@ -1834,7 +1846,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
       } catch (error) {
         console.error(
           `Error updating purchase order ${purchaseOrderId} status:`,
-          error
+          error,
         );
         return {
           poId: purchaseOrderId,
@@ -1915,7 +1927,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
           item.target_location === ""
         ) {
           missingFields.push(
-            `Target Location (in Putaway Items #${index + 1})`
+            `Target Location (in Putaway Items #${index + 1})`,
           );
         }
       }
@@ -1935,11 +1947,13 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
+    console.log("Table putaway item", data.table_putaway_item);
     // Validate quantities and update line statuses
     const { updatedItems, errors } = validateAndUpdateLineStatuses(
-      data.table_putaway_item
+      data.table_putaway_item,
     );
 
+    console.log("updatedItems", updatedItems);
     if (errors.length > 0) {
       this.hideLoading();
       this.$message.error(errors.join("; "));
@@ -1949,7 +1963,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
     // Determine the new transfer order status
     const newTransferOrderStatus = determineTransferOrderStatus(updatedItems);
     console.log(
-      `Determined new transfer order status: ${newTransferOrderStatus}`
+      `Determined new transfer order status: ${newTransferOrderStatus}`,
     );
 
     // Block process if status would be "In Progress"
@@ -2005,7 +2019,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
           confirmButtonText: "OK",
           type: "warning",
           dangerouslyUseHTMLString: false,
-        }
+        },
       );
 
       console.log("Process blocked due to incomplete putaway");
@@ -2041,6 +2055,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
       gr_no: data.gr_no,
       receiving_no: data.receiving_no,
       assigned_to: data.assigned_to,
+      supplier_id: data.supplier_id,
       created_by: data.created_by,
       created_at: data.created_at,
       organization_id: organizationId,
@@ -2093,7 +2108,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
     this.$message.success(
       `${
         page_status === "Add" ? "Added" : "Updated"
-      } successfully${statusMessage}`
+      } successfully${statusMessage}`,
     );
 
     this.hideLoading();

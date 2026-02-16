@@ -614,6 +614,10 @@ const addInventoryMovementData = async (
       basedQty = roundQty(matData.putaway_qty);
     }
 
+    const actualQty =
+      movementType === "OUT" ? -matData.putaway_qty : matData.putaway_qty;
+    const actualBasedQty = movementType === "OUT" ? -basedQty : basedQty;
+
     const inventoryMovementData = {
       transaction_type: "TO - PA",
       trx_no: data.to_id,
@@ -636,6 +640,8 @@ const addInventoryMovementData = async (
       costing_method_id: itemData.material_costing_method,
       plant_id: data.plant_id,
       organization_id: data.organization_id,
+      actual_qty: actualQty,
+      actual_base_qty: actualBasedQty,
     };
 
     await db.collection("inventory_movement").add(inventoryMovementData);

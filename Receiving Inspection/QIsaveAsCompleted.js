@@ -250,7 +250,7 @@ const addInventoryMovementData = async (
       plant_id: data.plant_id,
       organization_id: data.organization_id,
       actual_qty: actualQty,
-      actual_based_qty: actualBasedQty,
+      actual_base_qty: actualBasedQty,
     };
 
     await db.collection("inventory_movement").add(inventoryMovementData);
@@ -629,7 +629,7 @@ const processSerializedItemMovements = async (
         plant_id: data.plant_id,
         organization_id: data.organization_id,
         actual_qty: actualQty,
-        actual_based_qty: actualBasedQty,
+        actual_base_qty: actualBasedQty,
       };
 
       const inventoryMovementResult = await db
