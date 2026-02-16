@@ -64,7 +64,7 @@ const validateCompletionQuantities = async (tableGR, poIds) => {
 
       for (const grItem of tableGR) {
         const poItem = poDoc.table_po.find(
-          (po) => po.id === grItem.po_line_item_id
+          (po) => po.id === grItem.po_line_item_id,
         );
         if (!poItem) continue;
 
@@ -103,7 +103,7 @@ const validateCompletionQuantities = async (tableGR, poIds) => {
     if (validationErrors.length > 0) {
       console.error(
         "Validation failed - over-receiving detected:",
-        validationErrors
+        validationErrors,
       );
 
       const errorMessages = validationErrors.map(
@@ -112,12 +112,12 @@ const validateCompletionQuantities = async (tableGR, poIds) => {
           `• Already received: ${err.alreadyReceived}<br>` +
           `• Attempting to receive: ${err.attemptingToReceive}<br>` +
           `• Total would be: ${err.totalWouldBe}<br>` +
-          `• Max allowed (with ${err.tolerance}% tolerance): ${err.maxAllowed}`
+          `• Max allowed (with ${err.tolerance}% tolerance): ${err.maxAllowed}`,
       );
 
       await this.$alert(
         `Cannot receive GR - the following line(s) would exceed PO quantity:<br><br>${errorMessages.join(
-          "<br><br>"
+          "<br><br>",
         )}<br><br>` +
           `Please reduce the received quantities or cancel/edit conflicting Created GRs.`,
         "Invalid Received Quantity",
@@ -125,7 +125,7 @@ const validateCompletionQuantities = async (tableGR, poIds) => {
           confirmButtonText: "OK",
           type: "error",
           dangerouslyUseHTMLString: true,
-        }
+        },
       );
 
       throw new Error("Invalid received quantity detected.");
@@ -174,25 +174,25 @@ const migratePOQuantitiesOnTransition = async (transitionInfo, tableGR) => {
         // Find matching GR line items for this PO line
         // Use NEW data (tableGR) for adding to received_qty
         const matchingNewGRItems = tableGR.filter(
-          (gr) => gr.po_line_item_id === poItem.id
+          (gr) => gr.po_line_item_id === poItem.id,
         );
 
         // Use OLD data (transitionInfo.tableGR) for subtracting from created_received_qty
         const matchingOldGRItems = transitionInfo.tableGR.filter(
-          (gr) => gr.po_line_item_id === poItem.id
+          (gr) => gr.po_line_item_id === poItem.id,
         );
 
         if (matchingNewGRItems.length > 0) {
           // NEW quantity to add to received_qty
           const newGRQty = matchingNewGRItems.reduce(
             (sum, gr) => sum + (gr.received_qty || 0),
-            0
+            0,
           );
 
           // OLD quantity to subtract from created_received_qty
           const oldGRQty = matchingOldGRItems.reduce(
             (sum, gr) => sum + (gr.received_qty || 0),
-            0
+            0,
           );
 
           console.log(`Migrating quantity for PO line ${poItem.id}`, {
@@ -206,12 +206,12 @@ const migratePOQuantitiesOnTransition = async (transitionInfo, tableGR) => {
             ...poItem,
             // Subtract OLD quantity from created_received_qty
             created_received_qty: roundQty(
-              (poItem.created_received_qty || 0) - oldGRQty
+              (poItem.created_received_qty || 0) - oldGRQty,
             ),
             // Add NEW quantity to received_qty
             received_qty: roundQty((poItem.received_qty || 0) + newGRQty),
             outstanding_quantity: roundQty(
-              (poItem.quantity || 0) - ((poItem.received_qty || 0) + newGRQty)
+              (poItem.quantity || 0) - ((poItem.received_qty || 0) + newGRQty),
             ),
             // Update line status based on new received_qty
             line_status:
@@ -219,8 +219,8 @@ const migratePOQuantitiesOnTransition = async (transitionInfo, tableGR) => {
               (poItem.quantity || 0)
                 ? "Completed"
                 : roundQty((poItem.received_qty || 0) + newGRQty) > 0
-                ? "Processing"
-                : poItem.line_status,
+                  ? "Processing"
+                  : poItem.line_status,
           };
         }
         return poItem;
@@ -228,10 +228,10 @@ const migratePOQuantitiesOnTransition = async (transitionInfo, tableGR) => {
 
       // Determine new PO status (NOW it can change from Issued)
       const allCompleted = updatedPoItems.every(
-        (item) => item.line_status === "Completed"
+        (item) => item.line_status === "Completed",
       );
       const anyProcessing = updatedPoItems.some(
-        (item) => item.line_status === "Processing"
+        (item) => item.line_status === "Processing",
       );
 
       let newPOStatus = poDoc.po_status;
@@ -269,7 +269,7 @@ const addInventory = async (
   data,
   plantId,
   organizationId,
-  putAwaySetupData
+  putAwaySetupData,
 ) => {
   const items = data.table_gr;
 
@@ -282,14 +282,14 @@ const addInventory = async (
     typeof data.purchase_order_number === "string"
       ? data.purchase_order_number.split(",").map((num) => num.trim())
       : Array.isArray(data.purchase_order_number)
-      ? data.purchase_order_number
-      : [data.purchase_order_number];
+        ? data.purchase_order_number
+        : [data.purchase_order_number];
 
   // Calculate cost price based on PO data
   const calculateCostPrice = (itemData, conversion) => {
     if (!conversion || conversion <= 0 || !isFinite(conversion)) {
       console.warn(
-        `Invalid conversion factor (${conversion}) for item ${itemData.item_id}, using 1.0`
+        `Invalid conversion factor (${conversion}) for item ${itemData.item_id}, using 1.0`,
       );
       conversion = 1.0;
     }
@@ -316,7 +316,7 @@ const addInventory = async (
 
         // Find matching items in the PO that have the same material ID
         const matchingPoItems = poData.table_po.filter(
-          (poItem) => poItem.item_id === itemData.item_id
+          (poItem) => poItem.item_id === itemData.item_id,
         );
 
         // Find the specific PO item that corresponds to this GR item
@@ -328,13 +328,13 @@ const addInventory = async (
           const lineIdMatch = matchingPoItems.find(
             (poItem) =>
               poItem.id === itemData.po_line_item_id ||
-              poItem.line_id === itemData.po_line_item_id
+              poItem.line_id === itemData.po_line_item_id,
           );
 
           if (lineIdMatch) {
             targetPoItem = lineIdMatch;
             console.log(
-              `Found exact match by po_line_item_id: ${itemData.po_line_item_id} for item ${itemData.item_id}`
+              `Found exact match by po_line_item_id: ${itemData.po_line_item_id} for item ${itemData.item_id}`,
             );
           }
         }
@@ -348,13 +348,13 @@ const addInventory = async (
           const lineNoMatch = matchingPoItems.find(
             (poItem) =>
               poItem.po_no === itemData.line_po_no ||
-              poItem.line_po_no === itemData.line_po_no
+              poItem.line_po_no === itemData.line_po_no,
           );
 
           if (lineNoMatch) {
             targetPoItem = lineNoMatch;
             console.log(
-              `Found exact match by line_po_no: ${itemData.line_po_no} for item ${itemData.item_id}`
+              `Found exact match by line_po_no: ${itemData.line_po_no} for item ${itemData.item_id}`,
             );
           }
         }
@@ -372,7 +372,7 @@ const addInventory = async (
               (grItem) =>
                 grItem === itemData ||
                 (grItem.item_id === itemData.item_id &&
-                  grItem.line_po_id === itemData.line_po_id)
+                  grItem.line_po_id === itemData.line_po_id),
             );
 
             // Look for uniquely identifying properties in the GR item that might match the PO
@@ -389,14 +389,14 @@ const addInventory = async (
               if (
                 itemData[identifier] &&
                 matchingPoItems.some(
-                  (poItem) => poItem[identifier] === itemData[identifier]
+                  (poItem) => poItem[identifier] === itemData[identifier],
                 )
               ) {
                 targetPoItem = matchingPoItems.find(
-                  (poItem) => poItem[identifier] === itemData[identifier]
+                  (poItem) => poItem[identifier] === itemData[identifier],
                 );
                 console.log(
-                  `Matched by ${identifier}: ${itemData[identifier]} for item ${itemData.item_id}`
+                  `Matched by ${identifier}: ${itemData[identifier]} for item ${itemData.item_id}`,
                 );
                 break;
               }
@@ -408,14 +408,14 @@ const addInventory = async (
                 (poItem) =>
                   Math.abs(
                     parseFloat(poItem.po_amount || 0) -
-                      parseFloat(itemData.total_price || 0)
-                  ) < 0.0001
+                      parseFloat(itemData.total_price || 0),
+                  ) < 0.0001,
               );
 
               if (priceMatch) {
                 targetPoItem = priceMatch;
                 console.log(
-                  `Matched by total price: ${itemData.total_price} for item ${itemData.item_id}`
+                  `Matched by total price: ${itemData.total_price} for item ${itemData.item_id}`,
                 );
               }
             }
@@ -433,13 +433,13 @@ const addInventory = async (
                 console.log(
                   `Position-based match: Item #${
                     itemsBeforeCount + 1
-                  } of type ${itemData.item_id}`
+                  } of type ${itemData.item_id}`,
                 );
               } else {
                 // Fallback to the first matching item
                 targetPoItem = matchingPoItems[0];
                 console.warn(
-                  `Couldn't find exact PO item match for ${itemData.item_id} at position ${itemPosition}, using first match`
+                  `Couldn't find exact PO item match for ${itemData.item_id} at position ${itemPosition}, using first match`,
                 );
               }
             }
@@ -448,7 +448,7 @@ const addInventory = async (
 
         if (!targetPoItem) {
           console.warn(
-            `No matching PO item found for ${itemData.item_id}, using default pricing`
+            `No matching PO item found for ${itemData.item_id}, using default pricing`,
           );
           return roundPrice(itemData.unit_price);
         }
@@ -461,22 +461,22 @@ const addInventory = async (
         const pricePerUnit =
           poQuantity > 0 ? roundPrice(totalAmount / poQuantity) : 0;
         const costPrice = roundPrice(
-          (pricePerUnit / conversion) * exchangeRate
+          (pricePerUnit / conversion) * exchangeRate,
         );
 
         console.log(
           `Cost price for ${
             itemData.item_id
           }: ${costPrice} (from PO item amount: ${totalAmount}, qty: ${poQuantity}, poItem: ${JSON.stringify(
-            targetPoItem.id || "unknown"
-          )})`
+            targetPoItem.id || "unknown",
+          )})`,
         );
 
         return costPrice;
       })
       .catch((error) => {
         console.error(
-          `Error calculating cost price for ${itemData.item_id}: ${error.message}`
+          `Error calculating cost price for ${itemData.item_id}: ${error.message}`,
         );
         return roundPrice(itemData.unit_price);
       });
@@ -520,7 +520,7 @@ const addInventory = async (
         fifoResponse.data.length > 0
       ) {
         const existingSequences = fifoResponse.data.map((doc) =>
-          parseInt(doc.fifo_sequence || 0, 10)
+          parseInt(doc.fifo_sequence || 0, 10),
         );
         sequenceNumber = Math.max(...existingSequences, 0) + 1;
         console.log(
@@ -528,15 +528,15 @@ const addInventory = async (
             fifoResponse.data.length
           } records, max sequence: ${Math.max(
             ...existingSequences,
-            0
-          )}, using new sequence: ${sequenceNumber}`
+            0,
+          )}, using new sequence: ${sequenceNumber}`,
         );
       }
 
       // Calculate cost price
       const costPrice = await calculateCostPrice(
         itemData,
-        roundQty(baseQty / parseFloat(itemData.received_qty))
+        roundQty(baseQty / parseFloat(itemData.received_qty)),
       );
 
       // Create FIFO record
@@ -553,7 +553,7 @@ const addInventory = async (
 
       await db.collection("fifo_costing_history").add(fifoData);
       console.log(
-        `Successfully processed FIFO for batch item ${itemData.item_id} with sequence ${sequenceNumber}`
+        `Successfully processed FIFO for batch item ${itemData.item_id} with sequence ${sequenceNumber}`,
       );
     } catch (error) {
       console.error(`Error processing FIFO for batch: ${error.message}`);
@@ -582,7 +582,7 @@ const addInventory = async (
       ) {
         // Parse all sequence numbers as integers and find the maximum
         const existingSequences = fifoResponse.data.map((doc) =>
-          parseInt(doc.fifo_sequence || 0, 10)
+          parseInt(doc.fifo_sequence || 0, 10),
         );
         sequenceNumber = Math.max(...existingSequences, 0) + 1;
         console.log(
@@ -590,19 +590,19 @@ const addInventory = async (
             fifoResponse.data.length
           } records, max sequence: ${Math.max(
             ...existingSequences,
-            0
-          )}, using new sequence: ${sequenceNumber}`
+            0,
+          )}, using new sequence: ${sequenceNumber}`,
         );
       } else {
         console.log(
-          `FIFO for ${itemData.item_id}: No existing records, using sequence: 1`
+          `FIFO for ${itemData.item_id}: No existing records, using sequence: 1`,
         );
       }
 
       // Calculate the cost price
       const costPrice = await calculateCostPrice(
         itemData,
-        roundQty(baseQty / parseFloat(itemData.received_qty))
+        roundQty(baseQty / parseFloat(itemData.received_qty)),
       );
 
       // Prepare the FIFO data
@@ -619,12 +619,12 @@ const addInventory = async (
       // Add the FIFO record
       await db.collection("fifo_costing_history").add(fifoData);
       console.log(
-        `Successfully processed FIFO for item ${itemData.item_id} with sequence ${sequenceNumber}`
+        `Successfully processed FIFO for item ${itemData.item_id} with sequence ${sequenceNumber}`,
       );
     } catch (error) {
       console.error(
         `Error processing FIFO for item ${itemData.item_id}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -635,7 +635,7 @@ const addInventory = async (
     try {
       const costPrice = await calculateCostPrice(
         item,
-        roundQty(baseQty / parseFloat(item.received_qty))
+        roundQty(baseQty / parseFloat(item.received_qty)),
       );
 
       await db.collection("wa_costing_method").add({
@@ -649,12 +649,12 @@ const addInventory = async (
       });
 
       console.log(
-        `Successfully processed Weighted Average for batch item ${item.item_id}`
+        `Successfully processed Weighted Average for batch item ${item.item_id}`,
       );
     } catch (error) {
       console.error(
         `Error processing Weighted Average for batch item ${item.item_id}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -691,11 +691,11 @@ const addInventory = async (
         // Calculate cost price and new weighted average
         const costPrice = await calculateCostPrice(
           item,
-          roundQty(baseQty / parseFloat(item.received_qty))
+          roundQty(baseQty / parseFloat(item.received_qty)),
         );
 
         const calculatedWaCostPrice = roundPrice(
-          (waCostPrice * waQuantity + costPrice * baseQty) / newWaQuantity
+          (waCostPrice * waQuantity + costPrice * baseQty) / newWaQuantity,
         );
 
         const newWaCostPrice = roundPrice(calculatedWaCostPrice);
@@ -710,13 +710,13 @@ const addInventory = async (
         });
 
         console.log(
-          `Updated Weighted Average for item ${item.item_id}: quantity=${newWaQuantity}, price=${newWaCostPrice}`
+          `Updated Weighted Average for item ${item.item_id}: quantity=${newWaQuantity}, price=${newWaCostPrice}`,
         );
       } else {
         // Create new weighted average record
         const costPrice = await calculateCostPrice(
           item,
-          roundQty(baseQty / parseFloat(item.received_qty))
+          roundQty(baseQty / parseFloat(item.received_qty)),
         );
 
         await db.collection("wa_costing_method").add({
@@ -729,13 +729,13 @@ const addInventory = async (
         });
 
         console.log(
-          `Created new Weighted Average for item ${item.item_id}: quantity=${baseQty}, price=${costPrice}`
+          `Created new Weighted Average for item ${item.item_id}: quantity=${baseQty}, price=${costPrice}`,
         );
       }
     } catch (error) {
       console.error(
         `Error processing Weighted Average for item ${item.item_id}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -750,7 +750,7 @@ const addInventory = async (
     unrestricted_qty,
     qualityinsp_qty,
     intransit_qty,
-    materialUom
+    materialUom,
   ) => {
     try {
       // Get current item balance records
@@ -765,7 +765,7 @@ const addInventory = async (
         balanceResponse.data.length > 0;
 
       console.log(
-        `Item ${item.item_id}: Found existing balance: ${hasExistingBalance}`
+        `Item ${item.item_id}: Found existing balance: ${hasExistingBalance}`,
       );
 
       const existingDoc = hasExistingBalance ? balanceResponse.data[0] : null;
@@ -775,23 +775,23 @@ const addInventory = async (
       if (existingDoc && existingDoc.id) {
         // Update existing balance
         console.log(
-          `Updating existing balance for item ${item.item_id} at location ${item.location_id}`
+          `Updating existing balance for item ${item.item_id} at location ${item.location_id}`,
         );
 
         const updatedBlockQty = roundQty(
-          parseFloat(existingDoc.block_qty || 0) + block_qty
+          parseFloat(existingDoc.block_qty || 0) + block_qty,
         );
         const updatedReservedQty = roundQty(
-          parseFloat(existingDoc.reserved_qty || 0) + reserved_qty
+          parseFloat(existingDoc.reserved_qty || 0) + reserved_qty,
         );
         const updatedUnrestrictedQty = roundQty(
-          parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty
+          parseFloat(existingDoc.unrestricted_qty || 0) + unrestricted_qty,
         );
         const updatedQualityInspQty = roundQty(
-          parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty
+          parseFloat(existingDoc.qualityinsp_qty || 0) + qualityinsp_qty,
         );
         const updatedIntransitQty = roundQty(
-          parseFloat(existingDoc.intransit_qty || 0) + intransit_qty
+          parseFloat(existingDoc.intransit_qty || 0) + intransit_qty,
         );
 
         balance_quantity =
@@ -814,12 +814,12 @@ const addInventory = async (
           });
 
         console.log(
-          `Updated balance for item ${item.item_id}: ${balance_quantity}`
+          `Updated balance for item ${item.item_id}: ${balance_quantity}`,
         );
       } else {
         // Create new balance record
         console.log(
-          `Creating new balance for item ${item.item_id} at location ${item.location_id}`
+          `Creating new balance for item ${item.item_id} at location ${item.location_id}`,
         );
 
         balance_quantity =
@@ -845,13 +845,13 @@ const addInventory = async (
 
         await db.collection("item_balance").add(newBalanceData);
         console.log(
-          `Created new balance for item ${item.item_id}: ${balance_quantity}`
+          `Created new balance for item ${item.item_id}: ${balance_quantity}`,
         );
       }
     } catch (error) {
       console.error(
         `Error processing item_balance for item ${item.item_id}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -872,7 +872,7 @@ const addInventory = async (
       } catch (parseError) {
         console.error(
           `Error parsing serial number data for item ${item.item_id}:`,
-          parseError
+          parseError,
         );
         return null;
       }
@@ -925,7 +925,7 @@ const addInventory = async (
             aggregated_unrestricted_qty +
             aggregated_qualityinsp_qty +
             aggregated_intransit_qty
-          }`
+          }`,
       );
 
       return {
@@ -939,7 +939,7 @@ const addInventory = async (
     } catch (error) {
       console.error(
         `Error calculating aggregated serial quantities for item ${item.item_id}:`,
-        error
+        error,
       );
       return null;
     }
@@ -950,18 +950,18 @@ const addInventory = async (
     item,
     baseQty,
     purchaseOrderNumbers,
-    data
+    data,
   ) => {
     try {
       const poNumbers = Array.isArray(purchaseOrderNumbers)
         ? purchaseOrderNumbers
         : typeof purchaseOrderNumbers === "string"
-        ? purchaseOrderNumbers.split(",").map((num) => num.trim())
-        : [];
+          ? purchaseOrderNumbers.split(",").map((num) => num.trim())
+          : [];
 
       if (poNumbers.length === 0) {
         console.warn(
-          `No purchase order numbers found for item ${item.item_id}`
+          `No purchase order numbers found for item ${item.item_id}`,
         );
         return;
       }
@@ -1004,12 +1004,12 @@ const addInventory = async (
         // Check if we have multiple matching records
         if (OnOrderPOData && OnOrderPOData.length > 1) {
           console.log(
-            `Found ${OnOrderPOData.length} records for item ${item.item_id} in PO ${poNumber}`
+            `Found ${OnOrderPOData.length} records for item ${item.item_id} in PO ${poNumber}`,
           );
 
           // Find the position of this item in the GR table
           const itemPosition = data.table_gr.findIndex(
-            (grItem) => grItem === item
+            (grItem) => grItem === item,
           );
 
           // Count how many items with this material ID come before this one in the GR
@@ -1025,7 +1025,7 @@ const addInventory = async (
           // Make sure we don't go out of bounds
           const targetRecordIndex = Math.min(
             itemIndexInGroup,
-            OnOrderPOData.length - 1
+            OnOrderPOData.length - 1,
           );
 
           // Only update the record corresponding to this item
@@ -1036,21 +1036,21 @@ const addInventory = async (
               item.item_id
             } record at index ${targetRecordIndex} (item is #${
               itemIndexInGroup + 1
-            } of its type in GR)`
+            } of its type in GR)`,
           );
 
           if (targetRecord && targetRecord.id) {
             const existingReceived = roundQty(
-              parseFloat(targetRecord.received_qty || 0)
+              parseFloat(targetRecord.received_qty || 0),
             );
             const openQuantity = roundQty(
-              parseFloat(targetRecord.open_qty || 0)
+              parseFloat(targetRecord.open_qty || 0),
             );
             const newReceived = roundQty(
-              existingReceived + parseFloat(baseQty || 0)
+              existingReceived + parseFloat(baseQty || 0),
             );
             let newOpenQuantity = roundQty(
-              openQuantity - parseFloat(baseQty || 0)
+              openQuantity - parseFloat(baseQty || 0),
             );
 
             if (newOpenQuantity < 0) {
@@ -1071,14 +1071,14 @@ const addInventory = async (
                   targetRecordIndex + 1
                 }/${OnOrderPOData.length} for PO ${poNumber}, item ${
                   item.item_id
-                }: received=${newReceived}, open=${newOpenQuantity}`
+                }: received=${newReceived}, open=${newOpenQuantity}`,
               );
 
               updatedAnyRecords = true;
             } catch (updateError) {
               console.error(
                 `Error updating on_order_purchase_order record for item ${item.item_id}:`,
-                updateError
+                updateError,
               );
             }
           }
@@ -1087,14 +1087,14 @@ const addInventory = async (
           const doc = OnOrderPOData[0];
           if (doc && doc.id) {
             const existingReceived = roundQty(
-              parseFloat(doc.received_qty || 0)
+              parseFloat(doc.received_qty || 0),
             );
             const openQuantity = roundQty(parseFloat(doc.open_qty || 0));
             const newReceived = roundQty(
-              existingReceived + parseFloat(baseQty || 0)
+              existingReceived + parseFloat(baseQty || 0),
             );
             let newOpenQuantity = roundQty(
-              openQuantity - parseFloat(baseQty || 0)
+              openQuantity - parseFloat(baseQty || 0),
             );
 
             if (newOpenQuantity < 0) {
@@ -1111,20 +1111,20 @@ const addInventory = async (
                 });
 
               console.log(
-                `Updated on_order_purchase_order for PO ${poNumber}, item ${item.item_id}: received=${newReceived}, open=${newOpenQuantity}`
+                `Updated on_order_purchase_order for PO ${poNumber}, item ${item.item_id}: received=${newReceived}, open=${newOpenQuantity}`,
               );
 
               updatedAnyRecords = true;
             } catch (updateError) {
               console.error(
                 `Error updating on_order_purchase_order for item ${item.item_id}:`,
-                updateError
+                updateError,
               );
             }
           }
         } else {
           console.warn(
-            `No on_order_purchase_order records found for PO ${poNumber}, item ${item.item_id}`
+            `No on_order_purchase_order records found for PO ${poNumber}, item ${item.item_id}`,
           );
         }
       }
@@ -1133,13 +1133,13 @@ const addInventory = async (
         console.warn(
           `No matching on_order_purchase_order record found for item ${
             item.item_id
-          } in POs: ${poNumbersToCheck.join(", ")}`
+          } in POs: ${poNumbersToCheck.join(", ")}`,
         );
       }
     } catch (error) {
       console.error(
         `Error updating on_order_purchase_order for item ${item.item_id}:`,
-        error
+        error,
       );
     }
   };
@@ -1151,12 +1151,12 @@ const addInventory = async (
     batchId,
     totalPrice,
     unitPrice,
-    materialCode
+    materialCode,
   ) => {
     try {
       const prefixData = await getPrefixData(
         organizationId,
-        "Receiving Inspection"
+        "Receiving Inspection",
       );
       let inspPrefix = "";
 
@@ -1164,13 +1164,13 @@ const addInventory = async (
         const { prefixToShow, runningNumber } = await findUniquePrefix(
           prefixData,
           organizationId,
-          "Receiving Inspection"
+          "Receiving Inspection",
         );
 
         await updatePrefix(
           organizationId,
           runningNumber,
-          "Receiving Inspection"
+          "Receiving Inspection",
         );
 
         inspPrefix = prefixToShow;
@@ -1200,7 +1200,7 @@ const addInventory = async (
             // Check if we have "Auto generated serial number" placeholders
             const hasPlaceholders = serialData.table_serial_number.some(
               (serial) =>
-                serial.system_serial_number === "Auto generated serial number"
+                serial.system_serial_number === "Auto generated serial number",
             );
 
             if (hasPlaceholders) {
@@ -1227,7 +1227,7 @@ const addInventory = async (
                       dbSerial.supplier_serial_number || "",
                     passed: 0,
                     fm_key: "", // fm_key not stored in serial_number collection
-                  })
+                  }),
                 );
 
                 const updatedSerialData = {
@@ -1325,12 +1325,12 @@ const addInventory = async (
     data,
     organizationId,
     unitPriceArray,
-    totalPriceArray
+    totalPriceArray,
   ) => {
     try {
       const prefixData = await getPrefixData(
         organizationId,
-        "Transfer Order (Putaway)"
+        "Transfer Order (Putaway)",
       );
       let putAwayPrefix = "";
 
@@ -1338,13 +1338,13 @@ const addInventory = async (
         const { prefixToShow, runningNumber } = await findUniquePrefix(
           prefixData,
           organizationId,
-          "Transfer Order (Putaway)"
+          "Transfer Order (Putaway)",
         );
 
         await updatePrefix(
           organizationId,
           runningNumber,
-          "Transfer Order (Putaway)"
+          "Transfer Order (Putaway)",
         );
 
         putAwayPrefix = prefixToShow;
@@ -1363,7 +1363,7 @@ const addInventory = async (
       const putAwayLineItemData = [];
       const tableGR = data.table_gr.filter((gr) => gr.item_id);
       const grWithoutQI = tableGR.filter(
-        (gr) => gr.inv_category !== "Quality Inspection"
+        (gr) => gr.inv_category !== "Quality Inspection",
       );
 
       for (const [index, item] of grWithoutQI.entries()) {
@@ -1389,7 +1389,7 @@ const addInventory = async (
         ) {
           serialNumbers = item.generated_serial_numbers.join(", ");
           console.log(
-            `Using generated serial numbers for putaway item ${item.item_id}: ${serialNumbers}`
+            `Using generated serial numbers for putaway item ${item.item_id}: ${serialNumbers}`,
           );
         }
 
@@ -1466,7 +1466,7 @@ const addInventory = async (
           (err) => {
             this.$message.error("Workflow execution failed");
             console.error("Workflow execution failed:", err);
-          }
+          },
         );
       }
     } catch {
@@ -1480,11 +1480,11 @@ const addInventory = async (
     inventoryMovementId,
     organizationId,
     plantId,
-    batchId = null // Add batchId as optional parameter
+    batchId = null, // Add batchId as optional parameter
   ) => {
     try {
       console.log(
-        `Processing serial number inventory for item ${item.item_id}`
+        `Processing serial number inventory for item ${item.item_id}`,
       );
 
       // Parse the serial number data
@@ -1499,7 +1499,7 @@ const addInventory = async (
       } catch (parseError) {
         console.error(
           `Error parsing serial number data for item ${item.item_id}:`,
-          parseError
+          parseError,
         );
         return;
       }
@@ -1531,13 +1531,13 @@ const addInventory = async (
         itemData.table_uom_conversion.length > 0
       ) {
         const uomConversion = itemData.table_uom_conversion.find(
-          (conv) => conv.alt_uom_id === altUOM
+          (conv) => conv.alt_uom_id === altUOM,
         );
 
         if (uomConversion) {
           baseQty = roundQty(altQty * uomConversion.base_qty);
           console.log(
-            `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM} for serial processing`
+            `Converted ${altQty} ${altUOM} to ${baseQty} ${baseUOM} for serial processing`,
           );
         }
       }
@@ -1563,13 +1563,13 @@ const addInventory = async (
           if (batchResponse.data && batchResponse.data.length > 0) {
             finalBatchId = batchResponse.data[0].id;
             console.log(
-              `Found batch_id: ${finalBatchId} for batch number: ${item.item_batch_no}`
+              `Found batch_id: ${finalBatchId} for batch number: ${item.item_batch_no}`,
             );
           }
         } catch (batchError) {
           console.warn(
             `Could not find batch_id for batch number: ${item.item_batch_no}`,
-            batchError
+            batchError,
           );
         }
       }
@@ -1584,7 +1584,7 @@ const addInventory = async (
       if (isAuto === 1) {
         const needsGeneration = tableSerialNumber.some(
           (serial) =>
-            serial.system_serial_number === "Auto generated serial number"
+            serial.system_serial_number === "Auto generated serial number",
         );
 
         if (needsGeneration) {
@@ -1599,10 +1599,10 @@ const addInventory = async (
             resSerialConfig.data.length === 0
           ) {
             console.error(
-              `No serial configuration found for organization: ${organizationId}`
+              `No serial configuration found for organization: ${organizationId}`,
             );
             throw new Error(
-              `Serial number configuration not found for organization ${organizationId}`
+              `Serial number configuration not found for organization ${organizationId}`,
             );
           }
 
@@ -1644,7 +1644,7 @@ const addInventory = async (
 
       // Process all serial numbers SEQUENTIALLY to maintain order
       console.log(
-        `Processing ${tableSerialNumber.length} serial numbers sequentially for item ${item.item_id}`
+        `Processing ${tableSerialNumber.length} serial numbers sequentially for item ${item.item_id}`,
       );
 
       for (
@@ -1664,7 +1664,7 @@ const addInventory = async (
           console.log(
             `Generated serial number: ${finalSystemSerialNumber} for item ${
               item.item_id
-            } (sequence ${serialIndex + 1})`
+            } (sequence ${serialIndex + 1})`,
           );
         }
 
@@ -1684,7 +1684,7 @@ const addInventory = async (
             console.log(
               `Processing serial number ${serialIndex + 1}/${
                 tableSerialNumber.length
-              }: ${finalSystemSerialNumber}`
+              }: ${finalSystemSerialNumber}`,
             );
 
             // 1. Insert serial_number record
@@ -1702,7 +1702,7 @@ const addInventory = async (
 
             await db.collection("serial_number").add(serialNumberRecord);
             console.log(
-              `✓ Inserted serial_number record for ${finalSystemSerialNumber}`
+              `✓ Inserted serial_number record for ${finalSystemSerialNumber}`,
             );
 
             // 2. Insert inv_serial_movement record
@@ -1720,7 +1720,7 @@ const addInventory = async (
               .collection("inv_serial_movement")
               .add(invSerialMovementRecord);
             console.log(
-              `✓ Inserted inv_serial_movement record for ${finalSystemSerialNumber}`
+              `✓ Inserted inv_serial_movement record for ${finalSystemSerialNumber}`,
             );
 
             // 3. Insert item_serial_balance record
@@ -1742,14 +1742,14 @@ const addInventory = async (
 
             await db.collection("item_serial_balance").add(serialBalanceRecord);
             console.log(
-              `✓ Inserted item_serial_balance record for ${finalSystemSerialNumber}`
+              `✓ Inserted item_serial_balance record for ${finalSystemSerialNumber}`,
             );
           } catch (insertError) {
             console.error(
               `Failed to insert records for serial number ${finalSystemSerialNumber} (sequence ${
                 serialIndex + 1
               }):`,
-              insertError
+              insertError,
             );
             throw insertError;
           }
@@ -1757,7 +1757,7 @@ const addInventory = async (
       }
 
       console.log(
-        `✓ Successfully processed all ${tableSerialNumber.length} serial numbers for item ${item.item_id}`
+        `✓ Successfully processed all ${tableSerialNumber.length} serial numbers for item ${item.item_id}`,
       );
 
       // Update the serial configuration running number (only if we generated new numbers)
@@ -1773,12 +1773,12 @@ const addInventory = async (
           console.log(
             `Updated serial running number to ${
               currentRunningNumber + generatedCount
-            } after generating ${generatedCount} serial numbers`
+            } after generating ${generatedCount} serial numbers`,
           );
         } catch (configUpdateError) {
           console.error(
             `Error updating serial configuration:`,
-            configUpdateError
+            configUpdateError,
           );
           // Don't throw here as the serial numbers are already created
         }
@@ -1794,7 +1794,7 @@ const addInventory = async (
       const itemIndex = data.table_gr.findIndex((grItem) => grItem === item);
       if (itemIndex !== -1) {
         data.table_gr[itemIndex].serial_number_data = JSON.stringify(
-          updatedSerialNumberData
+          updatedSerialNumberData,
         );
 
         // Store the generated serial numbers for putaway use
@@ -1804,7 +1804,7 @@ const addInventory = async (
             (serial) =>
               serial &&
               serial !== "" &&
-              serial !== "Auto generated serial number"
+              serial !== "Auto generated serial number",
           );
         data.table_gr[itemIndex].generated_serial_numbers =
           generatedSerialNumbers;
@@ -1812,8 +1812,8 @@ const addInventory = async (
           `Stored ${
             generatedSerialNumbers.length
           } generated serial numbers for putaway: [${generatedSerialNumbers.join(
-            ", "
-          )}]`
+            ", ",
+          )}]`,
         );
       }
 
@@ -1824,10 +1824,10 @@ const addInventory = async (
     } catch (error) {
       console.error(
         `Error processing serial number inventory for item ${item.item_id}:`,
-        error
+        error,
       );
       throw new Error(
-        `Failed to process serial number inventory for item ${item.item_id}: ${error.message}`
+        `Failed to process serial number inventory for item ${item.item_id}: ${error.message}`,
       );
     }
   };
@@ -1849,7 +1849,7 @@ const addInventory = async (
     ) {
       console.error(`Invalid item data for index ${itemIndex}:`, item);
       console.log(
-        `Skipping item with zero or invalid received quantity: ${item.item_id}`
+        `Skipping item with zero or invalid received quantity: ${item.item_id}`,
       );
       continue;
     }
@@ -1869,7 +1869,7 @@ const addInventory = async (
       const itemData = itemRes.data[0];
       if (itemData.stock_control === 0) {
         console.log(
-          `Skipping inventory update for item ${item.item_id} (stock_control=0)`
+          `Skipping inventory update for item ${item.item_id} (stock_control=0)`,
         );
         continue;
       }
@@ -1887,12 +1887,12 @@ const addInventory = async (
         console.log(`Checking UOM conversions for item ${item.item_id}`);
 
         const uomConversion = itemData.table_uom_conversion.find(
-          (conv) => conv.alt_uom_id === altUOM
+          (conv) => conv.alt_uom_id === altUOM,
         );
 
         if (uomConversion) {
           console.log(
-            `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`
+            `Found UOM conversion: 1 ${uomConversion.alt_uom_id} = ${uomConversion.base_qty} ${uomConversion.base_uom_id}`,
           );
 
           baseQty = roundQty(altQty * uomConversion.base_qty);
@@ -1903,7 +1903,7 @@ const addInventory = async (
         }
       } else {
         console.log(
-          `No UOM conversion table for item ${item.item_id}, using received quantity as-is`
+          `No UOM conversion table for item ${item.item_id}, using received quantity as-is`,
         );
       }
 
@@ -1918,7 +1918,7 @@ const addInventory = async (
       ) {
         const fifoCostPrice = await calculateCostPrice(
           item,
-          roundQty(baseQty / parseFloat(item.received_qty))
+          roundQty(baseQty / parseFloat(item.received_qty)),
         );
         unitPrice = roundPrice(fifoCostPrice);
         totalPrice = roundPrice(fifoCostPrice * baseQty);
@@ -1959,7 +1959,7 @@ const addInventory = async (
         item,
         baseQty,
         purchaseOrderNumbers,
-        data
+        data,
       );
 
       // Setup inventory category quantities
@@ -2023,7 +2023,7 @@ const addInventory = async (
 
             while (!batchId && retryCount < maxRetries) {
               await new Promise((resolve) =>
-                setTimeout(resolve, retryDelay * (retryCount + 1))
+                setTimeout(resolve, retryDelay * (retryCount + 1)),
               );
 
               const response = await db
@@ -2040,7 +2040,7 @@ const addInventory = async (
               if (response.data && response.data.length > 0) {
                 batchId = response.data[0].id;
                 console.log(
-                  `Found batch_id: ${batchId} after ${retryCount + 1} retries`
+                  `Found batch_id: ${batchId} after ${retryCount + 1} retries`,
                 );
               }
 
@@ -2050,7 +2050,7 @@ const addInventory = async (
             if (!batchId) {
               console.error("Failed to get batch_id after maximum retries");
               throw new Error(
-                `Failed to create or retrieve batch for ${item.item_batch_no}`
+                `Failed to create or retrieve batch for ${item.item_batch_no}`,
               );
             }
           } else {
@@ -2063,7 +2063,7 @@ const addInventory = async (
             .add(inventoryMovementData)
             .then((res) => {
               console.log(
-                `Created inventory movement with ID: ${res.id} for batch item ${item.item_id}`
+                `Created inventory movement with ID: ${res.id} for batch item ${item.item_id}`,
               );
             });
 
@@ -2094,11 +2094,11 @@ const addInventory = async (
               inventoryMovementId,
               organizationId,
               plantId,
-              batchId // Pass the batchId as a parameter
+              batchId, // Pass the batchId as a parameter
             );
 
             console.log(
-              `Created inventory movement with ID: ${inventoryMovementId} for serialized batch item ${item.item_id}`
+              `Created inventory movement with ID: ${inventoryMovementId} for serialized batch item ${item.item_id}`,
             );
           }
 
@@ -2132,11 +2132,11 @@ const addInventory = async (
 
             await db.collection("item_batch_balance").add(newBalanceData);
             console.log(
-              "Successfully added item_batch_balance record for non-serialized batch item"
+              "Successfully added item_batch_balance record for non-serialized batch item",
             );
           } else {
             console.log(
-              "Skipped item_batch_balance creation for serialized batch item"
+              "Skipped item_batch_balance creation for serialized batch item",
             );
           }
 
@@ -2151,13 +2151,13 @@ const addInventory = async (
               unrestricted_qty,
               qualityinsp_qty,
               intransit_qty,
-              baseUOM
+              baseUOM,
             );
           } else {
             // Serialized items: calculate aggregated quantities from serial number data
             const aggregatedQuantities = calculateAggregatedSerialQuantities(
               item,
-              baseQty
+              baseQty,
             );
             if (aggregatedQuantities) {
               await processItemBalance(
@@ -2168,14 +2168,14 @@ const addInventory = async (
                 aggregatedQuantities.unrestricted_qty,
                 aggregatedQuantities.qualityinsp_qty,
                 aggregatedQuantities.intransit_qty,
-                baseUOM
+                baseUOM,
               );
               console.log(
-                `Created item_balance record for serialized batch item ${item.item_id} with ${aggregatedQuantities.serial_count} serial numbers`
+                `Created item_balance record for serialized batch item ${item.item_id} with ${aggregatedQuantities.serial_count} serial numbers`,
               );
             } else {
               console.log(
-                "Skipped item_balance creation for serialized batch item - no valid serial data"
+                "Skipped item_balance creation for serialized batch item - no valid serial data",
               );
             }
           }
@@ -2190,7 +2190,7 @@ const addInventory = async (
           console.log(
             `Successfully completed processing for batch item ${item.item_id}${
               isSerializedItem ? " (serialized)" : ""
-            } with batch_id: ${batchId}`
+            } with batch_id: ${batchId}`,
           );
         } catch (error) {
           console.error(`Error in batch processing: ${error.message}`);
@@ -2204,7 +2204,7 @@ const addInventory = async (
           .add(inventoryMovementData)
           .then((res) => {
             console.log(
-              `Created inventory movement with ID: ${res.id} for non-batch item ${item.item_id}`
+              `Created inventory movement with ID: ${res.id} for non-batch item ${item.item_id}`,
             );
           });
 
@@ -2236,11 +2236,11 @@ const addInventory = async (
               inventoryMovementId,
               organizationId,
               plantId,
-              null // No batchId for non-batch items
+              null, // No batchId for non-batch items
             );
 
             console.log(
-              `Created inventory movement with ID: ${inventoryMovementId} for serialized non-batch item ${item.item_id}`
+              `Created inventory movement with ID: ${inventoryMovementId} for serialized non-batch item ${item.item_id}`,
             );
           }
 
@@ -2255,13 +2255,13 @@ const addInventory = async (
               unrestricted_qty,
               qualityinsp_qty,
               intransit_qty,
-              baseUOM
+              baseUOM,
             );
           } else {
             // Serialized items: calculate aggregated quantities from serial number data
             const aggregatedQuantities = calculateAggregatedSerialQuantities(
               item,
-              baseQty
+              baseQty,
             );
             if (aggregatedQuantities) {
               await processItemBalance(
@@ -2272,14 +2272,14 @@ const addInventory = async (
                 aggregatedQuantities.unrestricted_qty,
                 aggregatedQuantities.qualityinsp_qty,
                 aggregatedQuantities.intransit_qty,
-                baseUOM
+                baseUOM,
               );
               console.log(
-                `Created item_balance record for serialized non-batch item ${item.item_id} with ${aggregatedQuantities.serial_count} serial numbers`
+                `Created item_balance record for serialized non-batch item ${item.item_id} with ${aggregatedQuantities.serial_count} serial numbers`,
               );
             } else {
               console.log(
-                "Skipped item_balance creation for serialized non-batch item - no valid serial data"
+                "Skipped item_balance creation for serialized non-batch item - no valid serial data",
               );
             }
           }
@@ -2294,11 +2294,11 @@ const addInventory = async (
           console.log(
             `Successfully processed non-batch item ${item.item_id}${
               isSerializedItem ? " (serialized)" : ""
-            }`
+            }`,
           );
         } catch (nonBatchError) {
           console.error(
-            `Error processing non-batch item: ${nonBatchError.message}`
+            `Error processing non-batch item: ${nonBatchError.message}`,
           );
           continue;
         }
@@ -2315,13 +2315,13 @@ const addInventory = async (
           batchId,
           totalPrice,
           unitPrice,
-          itemData.material_code
+          itemData.material_code,
         );
       }
     } catch (error) {
       console.error(`Error processing item ${item.item_id}:`, error);
       console.log(
-        `Error encountered for item ${item.item_id}, continuing with next item`
+        `Error encountered for item ${item.item_id}, continuing with next item`,
       );
     }
   }
@@ -2330,7 +2330,7 @@ const addInventory = async (
     if (putAwaySetupData.auto_trigger_to === 1) {
       const allNoItemCode = data.table_gr.every((gr) => !gr.item_id);
       const allQICategory = data.table_gr.every(
-        (gr) => gr.inv_category === "Quality Inspection"
+        (gr) => gr.inv_category === "Quality Inspection",
       );
 
       if (!allNoItemCode && !allQICategory)
@@ -2338,7 +2338,7 @@ const addInventory = async (
           data,
           organizationId,
           unitPriceArray,
-          totalPriceArray
+          totalPriceArray,
         );
       else if (allQICategory && !allNoItemCode) return;
       else
@@ -2384,7 +2384,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
 
       try {
         const filteredGR = tableGR.filter(
-          (item) => item.line_po_id === purchaseOrderId
+          (item) => item.line_po_id === purchaseOrderId,
         );
         console.log(`Filtered GR for PO ${purchaseOrderId}`, {
           filteredGRCount: filteredGR.length,
@@ -2430,7 +2430,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
           .map((item, index) => ({ ...item, originalIndex: index }))
           .filter((item) => item.item_id !== "" || item.item_desc !== "")
           .filter((item) =>
-            filteredGR.some((gr) => gr.po_line_item_id === item.id)
+            filteredGR.some((gr) => gr.po_line_item_id === item.id),
           );
         console.log(`Filtered PO items for ${purchaseOrderId}`, {
           filteredPOCount: filteredPO.length,
@@ -2454,10 +2454,10 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
           const originalIndex = filteredItem.originalIndex;
           const purchaseQty = parseFloat(filteredItem.quantity || 0);
           const grReceivedQty = parseFloat(
-            filteredGR[filteredIndex]?.received_qty || 0
+            filteredGR[filteredIndex]?.received_qty || 0,
           );
           const currentReceivedQty = parseFloat(
-            updatedPoItems[originalIndex].received_qty || 0
+            updatedPoItems[originalIndex].received_qty || 0,
           );
           const totalReceivedQty = currentReceivedQty + grReceivedQty;
 
@@ -2475,7 +2475,7 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
               grReceivedQty,
               currentReceivedQty,
               totalReceivedQty,
-            }
+            },
           );
 
           updatedPoItems[originalIndex].received_qty = totalReceivedQty;
@@ -2560,13 +2560,13 @@ const updatePurchaseOrderStatus = async (purchaseOrderIds, tableGR) => {
 
         if (newPOStatus !== originalPOStatus) {
           console.log(
-            `Updated PO ${purchaseOrderId} status from ${originalPOStatus} to ${newPOStatus}`
+            `Updated PO ${purchaseOrderId} status from ${originalPOStatus} to ${newPOStatus}`,
           );
         }
       } catch (error) {
         console.error(
           `Error updating purchase order ${purchaseOrderId} status:`,
-          error
+          error,
         );
         return {
           poId: purchaseOrderId,
@@ -2641,7 +2641,7 @@ const validateForm = (data, requiredFields) => {
           const subValue = item[subField.name];
           if (validateField(subValue)) {
             missingFields.push(
-              `${subField.label} (in ${field.label} #${index + 1})`
+              `${subField.label} (in ${field.label} #${index + 1})`,
             );
           }
         });
@@ -2697,13 +2697,13 @@ const generatePrefix = (runNumber, now, prefixData) => {
   generated = generated.replace("suffix", prefixData.suffix_value);
   generated = generated.replace(
     "month",
-    String(now.getMonth() + 1).padStart(2, "0")
+    String(now.getMonth() + 1).padStart(2, "0"),
   );
   generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
   generated = generated.replace("year", now.getFullYear());
   generated = generated.replace(
     "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0")
+    String(runNumber).padStart(prefixData.padding_zeroes, "0"),
   );
   return generated;
 };
@@ -2711,7 +2711,7 @@ const generatePrefix = (runNumber, now, prefixData) => {
 const checkUniqueness = async (
   generatedPrefix,
   organizationId,
-  documentTypes
+  documentTypes,
 ) => {
   if (documentTypes === "Goods Receiving") {
     const existingDoc = await db
@@ -2754,7 +2754,7 @@ const findUniquePrefix = async (prefixData, organizationId, documentTypes) => {
     isUnique = await checkUniqueness(
       prefixToShow,
       organizationId,
-      documentTypes
+      documentTypes,
     );
     if (!isUnique) {
       runningNumber++;
@@ -2763,7 +2763,7 @@ const findUniquePrefix = async (prefixData, organizationId, documentTypes) => {
 
   if (!isUnique) {
     this.$message.error(
-      `Could not generate a unique ${documentTypes} number after maximum attempts`
+      `Could not generate a unique ${documentTypes} number after maximum attempts`,
     );
   }
 
@@ -2775,7 +2775,7 @@ const createSerialNumberRecord = async (entry) => {
   for (const [index, item] of entry.table_gr.entries()) {
     if (item.is_serialized_item !== 1) {
       console.log(
-        `Skipping serial number record for non-serialized item ${item.item_id}`
+        `Skipping serial number record for non-serialized item ${item.item_id}`,
       );
       continue;
     }
@@ -2805,7 +2805,7 @@ const createSerialNumberRecord = async (entry) => {
         serialNumberRecord.serial_numbers =
           item.generated_serial_numbers.join("\n");
         console.log(
-          `Using generated serial numbers for goods receiving item ${item.item_id}: ${serialNumberRecord.serial_numbers}`
+          `Using generated serial numbers for goods receiving item ${item.item_id}: ${serialNumberRecord.serial_numbers}`,
         );
       }
 
@@ -2837,7 +2837,7 @@ const processRow = async (item, organizationId) => {
 
           if (!issueDate)
             throw new Error(
-              "Received Date is required for generating batch number."
+              "Received Date is required for generating batch number.",
             );
 
           console.log("issueDate", new Date(issueDate));
@@ -2869,6 +2869,34 @@ const processRow = async (item, organizationId) => {
           console.log("batchDate", batchDate);
           break;
 
+        case "Manufacturing Date by Quarter":
+          let manufacturingDatebyQ = item.manufacturing_date;
+
+          console.log("manufacturingDatebyQ", manufacturingDatebyQ);
+
+          if (!manufacturingDatebyQ)
+            throw new Error(
+              "Manufacturing Date is required for generating batch number.",
+            );
+
+          manufacturingDatebyQ = new Date(manufacturingDatebyQ);
+
+          // Get year (last 2 digits)
+          yy = String(manufacturingDatebyQ.getFullYear()).slice(-2);
+
+          // Get quarter (Q1, Q2, Q3, Q4)
+          const month = manufacturingDatebyQ.getMonth() + 1; // Months are 0-indexed
+          let quarter;
+          if (month <= 3) quarter = "01";
+          else if (month <= 6) quarter = "02";
+          else if (month <= 9) quarter = "03";
+          else quarter = "04";
+
+          batchDate = quarter + yy; // Format: 2401, 2402, etc.
+
+          console.log("batchDate", batchDate);
+          break;
+
         case "Manufacturing Date":
           let manufacturingDate = item.manufacturing_date;
 
@@ -2876,7 +2904,7 @@ const processRow = async (item, organizationId) => {
 
           if (!manufacturingDate)
             throw new Error(
-              "Manufacturing Date is required for generating batch number."
+              "Manufacturing Date is required for generating batch number.",
             );
 
           manufacturingDate = new Date(manufacturingDate);
@@ -2897,7 +2925,7 @@ const processRow = async (item, organizationId) => {
 
           if (!expiredDate)
             throw new Error(
-              "Expired Date is required for generating batch number."
+              "Expired Date is required for generating batch number.",
             );
 
           expiredDate = new Date(expiredDate);
@@ -2918,9 +2946,10 @@ const processRow = async (item, organizationId) => {
       const generatedBatchNo =
         batchPrefix +
         batchDate +
+        "-" +
         String(batchConfigData.batch_running_number).padStart(
           batchConfigData.batch_padding_zeroes,
-          "0"
+          "0",
         );
 
       item.item_batch_no = generatedBatchNo;
@@ -2970,7 +2999,7 @@ const updateEntry = async (
   organizationId,
   entry,
   goodsReceivingId,
-  putAwaySetupData
+  putAwaySetupData,
 ) => {
   try {
     const prefixData = await getPrefixData(organizationId, "Goods Receiving");
@@ -2979,7 +3008,7 @@ const updateEntry = async (
       const { prefixToShow, runningNumber } = await findUniquePrefix(
         prefixData,
         organizationId,
-        "Goods Receiving"
+        "Goods Receiving",
       );
 
       await updatePrefix(organizationId, runningNumber, "Goods Receiving");
@@ -2989,7 +3018,7 @@ const updateEntry = async (
       const isUnique = await checkUniqueness(entry.gr_no, organizationId);
       if (!isUnique) {
         throw new Error(
-          `GR Number "${entry.gr_no}" already exists. Please use a different number.`
+          `GR Number "${entry.gr_no}" already exists. Please use a different number.`,
         );
       }
     }
@@ -3071,12 +3100,12 @@ const validateSerialNumberAllocation = async (tableGR) => {
       .join("\n");
 
     throw new Error(
-      `Serial number allocation is required for the following serialized items:\n\n${itemsList}\n\nPlease allocate serial numbers for all serialized items before saving.`
+      `Serial number allocation is required for the following serialized items:\n\n${itemsList}\n\nPlease allocate serial numbers for all serialized items before saving.`,
     );
   }
 
   console.log(
-    "Serial number allocation validation passed for all serialized items"
+    "Serial number allocation validation passed for all serialized items",
   );
   return true;
 };
@@ -3109,7 +3138,7 @@ const processGRLineItem = async (entry) => {
         cancelButtonText: "Cancel",
         type: "warning",
         dangerouslyUseHTMLString: false,
-      }
+      },
     )
       .then(async () => {
         console.log("User clicked OK");
@@ -3147,7 +3176,7 @@ const processGRLineItem = async (entry) => {
 const saveGoodsReceiving = async (
   entry,
   putAwaySetupData,
-  skipPOUpdate = false
+  skipPOUpdate = false,
 ) => {
   try {
     const status = this.getValue("gr_status");
@@ -3170,7 +3199,7 @@ const saveGoodsReceiving = async (
         const { prefixToShow, runningNumber } = await findUniquePrefix(
           prefixData,
           organizationId,
-          "Goods Receiving"
+          "Goods Receiving",
         );
 
         await updatePrefix(organizationId, runningNumber, "Goods Receiving");
@@ -3180,7 +3209,7 @@ const saveGoodsReceiving = async (
         const isUnique = await checkUniqueness(entry.gr_no, organizationId);
         if (!isUnique) {
           throw new Error(
-            `GR Number "${entry.gr_no}" already exists. Please use a different number.`
+            `GR Number "${entry.gr_no}" already exists. Please use a different number.`,
           );
         }
       }
@@ -3194,14 +3223,14 @@ const saveGoodsReceiving = async (
       if (!status || status === "Draft") {
         const prefixData = await getPrefixData(
           organizationId,
-          "Goods Receiving"
+          "Goods Receiving",
         );
 
         if (prefixData !== null) {
           const { prefixToShow, runningNumber } = await findUniquePrefix(
             prefixData,
             organizationId,
-            "Goods Receiving"
+            "Goods Receiving",
           );
 
           await updatePrefix(organizationId, runningNumber, "Goods Receiving");
@@ -3211,7 +3240,7 @@ const saveGoodsReceiving = async (
           const isUnique = await checkUniqueness(entry.gr_no, organizationId);
           if (!isUnique) {
             throw new Error(
-              `GR Number "${entry.gr_no}" already exists. Please use a different number.`
+              `GR Number "${entry.gr_no}" already exists. Please use a different number.`,
             );
           }
         }
@@ -3223,7 +3252,7 @@ const saveGoodsReceiving = async (
       entry,
       entry.plant_id,
       entry.organization_id,
-      putAwaySetupData
+      putAwaySetupData,
     );
     await createSerialNumberRecord(entry);
     await db.collection("goods_receiving").doc(grID).update({
@@ -3237,7 +3266,7 @@ const saveGoodsReceiving = async (
       await updatePurchaseOrderStatus(purchaseOrderIds, entry.table_gr);
     } else {
       console.log(
-        "Skipping updatePurchaseOrderStatus - already updated during migration"
+        "Skipping updatePurchaseOrderStatus - already updated during migration",
       );
     }
 
@@ -3274,7 +3303,7 @@ const saveGoodsReceiving = async (
     for (const [index] of data.table_gr.entries()) {
       await this.validate(
         `table_gr.${index}.received_qty`,
-        `table_gr.${index}.item_batch_no`
+        `table_gr.${index}.item_batch_no`,
       );
     }
 
@@ -3304,7 +3333,7 @@ const saveGoodsReceiving = async (
               cancelButtonText: "Cancel",
               type: "warning",
               dangerouslyUseHTMLString: false,
-            }
+            },
           ).catch(() => {
             console.log("User clicked Cancel or closed the dialog");
             this.hideLoading();
@@ -3320,12 +3349,12 @@ const saveGoodsReceiving = async (
 
       if (latestGR.table_gr.length === 0) {
         throw new Error(
-          "All Received Quantity must not be 0. Please add at lease one item with received quantity > 0."
+          "All Received Quantity must not be 0. Please add at lease one item with received quantity > 0.",
         );
       }
 
       console.log(
-        "Validating serial number allocation for serialized items..."
+        "Validating serial number allocation for serialized items...",
       );
       await validateSerialNumberAllocation(latestGR.table_gr);
 
@@ -3336,16 +3365,16 @@ const saveGoodsReceiving = async (
       // Detect and handle Created → Completed transition
       const transitionInfo = await detectCreatedToCompletedTransition(
         data.gr_no,
-        organizationId
+        organizationId,
       );
 
       if (transitionInfo.wasCreated) {
         console.log(
-          "Detected Created → Received transition, migrating PO quantities"
+          "Detected Created → Received transition, migrating PO quantities",
         );
         await migratePOQuantitiesOnTransition(
           transitionInfo,
-          latestGR.table_gr
+          latestGR.table_gr,
         );
       } else {
         // For Draft → Received (or new GR), validate quantities directly
@@ -3360,14 +3389,14 @@ const saveGoodsReceiving = async (
         await saveGoodsReceiving(
           latestGR,
           putAwaySetupData,
-          transitionInfo.wasCreated
+          transitionInfo.wasCreated,
         );
         this.$message.success("Add successfully");
       } else if (page_status === "Edit") {
         await saveGoodsReceiving(
           latestGR,
           putAwaySetupData,
-          transitionInfo.wasCreated
+          transitionInfo.wasCreated,
         );
         this.$message.success("Update successfully");
       }
