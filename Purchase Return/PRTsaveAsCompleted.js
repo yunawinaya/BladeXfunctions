@@ -697,6 +697,8 @@ const updateInventory = async (data, plantId, organizationId) => {
           totalPrice = roundPrice(fixedCostPrice * group.total_quantity);
         }
 
+        const totalQty = roundQty(group.total_quantity);
+
         // Create consolidated inventory movement
         const inventoryMovementData = {
           transaction_type: "PRT",
@@ -705,11 +707,11 @@ const updateInventory = async (data, plantId, organizationId) => {
           movement: "OUT", // Purchase return is OUT movement
           unit_price: unitPrice,
           total_price: totalPrice,
-          quantity: roundQty(group.total_quantity),
+          quantity: totalQty,
           item_id: item.material_id,
           inventory_category: group.category,
           uom_id: item.return_uom_id || materialData.based_uom,
-          base_qty: roundQty(group.total_quantity),
+          base_qty: totalQty,
           base_uom_id: materialData.based_uom,
           bin_location_id: group.location_id,
           batch_number_id: group.batch_id,
@@ -717,6 +719,8 @@ const updateInventory = async (data, plantId, organizationId) => {
           created_at: new Date(),
           plant_id: plant_id,
           organization_id: organization_id,
+          actual_qty: -totalQty,
+          actual_base_qty: -totalQty,
         };
 
         await db.collection("inventory_movement").add(inventoryMovementData);
@@ -939,6 +943,8 @@ const updateInventory = async (data, plantId, organizationId) => {
               costing_method_id: item.costing_method,
               plant_id: plantId,
               organization_id: organizationId,
+              actual_qty: -altQty,
+              actual_base_qty: -baseQty,
             });
 
             const categoryType = temp.inventory_category;
