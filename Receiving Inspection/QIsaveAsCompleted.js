@@ -74,7 +74,7 @@ const validateForm = (data, requiredFields, table_insp_mat) => {
           const subValue = item[subField.name];
           if (validateField(subValue)) {
             missingFields.push(
-              `${subField.label} (in ${field.label} #${index + 1})`
+              `${subField.label} (in ${field.label} #${index + 1})`,
             );
           }
         });
@@ -84,11 +84,11 @@ const validateForm = (data, requiredFields, table_insp_mat) => {
     for (const [index, item] of table_insp_mat.entries()) {
       if (item.passed_qty + item.failed_qty !== item.received_qty) {
         missingFields.push(
-          `Total quantity of ${index} must be equals to received quantity.`
+          `Total quantity of ${index} must be equals to received quantity.`,
         );
       } else if (item.passed_qty + item.failed_qty === 0) {
         missingFields.push(
-          `Total quantity of ${index} must be equals to received quantity.`
+          `Total quantity of ${index} must be equals to received quantity.`,
         );
       }
     }
@@ -142,13 +142,13 @@ const generatePrefix = (runNumber, now, prefixData) => {
   generated = generated.replace("suffix", prefixData.suffix_value);
   generated = generated.replace(
     "month",
-    String(now.getMonth() + 1).padStart(2, "0")
+    String(now.getMonth() + 1).padStart(2, "0"),
   );
   generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
   generated = generated.replace("year", now.getFullYear());
   generated = generated.replace(
     "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0")
+    String(runNumber).padStart(prefixData.padding_zeroes, "0"),
   );
   return generated;
 };
@@ -156,7 +156,7 @@ const generatePrefix = (runNumber, now, prefixData) => {
 const checkUniqueness = async (
   generatedPrefix,
   organizationId,
-  documentTypes
+  documentTypes,
 ) => {
   if (documentTypes === "Receiving Inspection") {
     const existingDoc = await db
@@ -190,7 +190,7 @@ const findUniquePrefix = async (prefixData, organizationId, documentTypes) => {
     isUnique = await checkUniqueness(
       prefixToShow,
       organizationId,
-      documentTypes
+      documentTypes,
     );
     if (!isUnique) {
       runningNumber++;
@@ -199,7 +199,7 @@ const findUniquePrefix = async (prefixData, organizationId, documentTypes) => {
 
   if (!isUnique) {
     this.$message.error(
-      `Could not generate a unique ${documentTypes} number after maximum attempts`
+      `Could not generate a unique ${documentTypes} number after maximum attempts`,
     );
   }
 
@@ -212,7 +212,7 @@ const addInventoryMovementData = async (
   movementType,
   itemData,
   matData,
-  quantity
+  quantity,
 ) => {
   try {
     let basedQty = 0;
@@ -258,7 +258,7 @@ const createPutAway = async (data, organizationId) => {
   try {
     const prefixData = await getPrefixData(
       organizationId,
-      "Transfer Order (Putaway)"
+      "Transfer Order (Putaway)",
     );
     let putAwayPrefix = "";
 
@@ -266,13 +266,13 @@ const createPutAway = async (data, organizationId) => {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
         prefixData,
         organizationId,
-        "Transfer Order (Putaway)"
+        "Transfer Order (Putaway)",
       );
 
       await updatePrefix(
         organizationId,
         runningNumber,
-        "Transfer Order (Putaway)"
+        "Transfer Order (Putaway)",
       );
 
       putAwayPrefix = prefixToShow;
@@ -300,7 +300,7 @@ const createPutAway = async (data, organizationId) => {
         } catch (parseError) {
           console.error(
             "Error parsing serial number data for putaway:",
-            parseError
+            parseError,
           );
           continue;
         }
@@ -311,10 +311,10 @@ const createPutAway = async (data, organizationId) => {
         ) {
           // Group serial numbers by passed status
           const passedSerials = serialData.table_serial_number.filter(
-            (serial) => serial.passed === 1
+            (serial) => serial.passed === 1,
           );
           const failedSerials = serialData.table_serial_number.filter(
-            (serial) => serial.passed === 0
+            (serial) => serial.passed === 0,
           );
 
           // Create grouped putaway entry for failed serials (to Blocked)
@@ -513,7 +513,7 @@ const processSerializedItemMovements = async (
   data,
   mat,
   itemData,
-  putAwayRequired
+  putAwayRequired,
 ) => {
   try {
     if (!mat.serial_number_data) {
@@ -541,7 +541,7 @@ const processSerializedItemMovements = async (
     const validSerials = serialData.table_serial_number.filter(
       (serialItem) =>
         serialItem.system_serial_number &&
-        serialItem.system_serial_number !== "Auto generated serial number"
+        serialItem.system_serial_number !== "Auto generated serial number",
     );
 
     if (validSerials.length === 0) {
@@ -644,7 +644,7 @@ const processSerializedItemMovements = async (
         inventoryMovementResult.id;
 
       console.log(
-        `Created grouped ${group.movement} inventory movement for ${totalQuantity} serials in ${group.category}`
+        `Created grouped ${group.movement} inventory movement for ${totalQuantity} serials in ${group.category}`,
       );
 
       // Create individual serial movement records for each serial in the group
@@ -685,7 +685,7 @@ const processSerializedItemMovements = async (
               ...currentBalance,
               [group.targetQtyField]: Math.max(
                 0,
-                roundQty(currentBalance[group.targetQtyField] - 1)
+                roundQty(currentBalance[group.targetQtyField] - 1),
               ),
             };
           } else {
@@ -693,7 +693,7 @@ const processSerializedItemMovements = async (
             updatedBalance = {
               ...currentBalance,
               [group.targetQtyField]: roundQty(
-                currentBalance[group.targetQtyField] + 1
+                currentBalance[group.targetQtyField] + 1,
               ),
             };
           }
@@ -727,15 +727,15 @@ const processSerializedItemMovements = async (
           const generalBalance = generalBalanceQuery.data[0];
 
           const currentUnrestricted = parseFloat(
-            generalBalance.unrestricted_qty || 0
+            generalBalance.unrestricted_qty || 0,
           );
           const currentReserved = parseFloat(generalBalance.reserved_qty || 0);
           const currentQualityInsp = parseFloat(
-            generalBalance.qualityinsp_qty || 0
+            generalBalance.qualityinsp_qty || 0,
           );
           const currentBlocked = parseFloat(generalBalance.block_qty || 0);
           const currentInTransit = parseFloat(
-            generalBalance.intransit_qty || 0
+            generalBalance.intransit_qty || 0,
           );
 
           let newUnrestricted = currentUnrestricted;
@@ -750,13 +750,13 @@ const processSerializedItemMovements = async (
               case "qualityinsp_qty":
                 newQualityInsp = Math.max(
                   0,
-                  currentQualityInsp - consolidatedQty
+                  currentQualityInsp - consolidatedQty,
                 );
                 break;
               case "unrestricted_qty":
                 newUnrestricted = Math.max(
                   0,
-                  currentUnrestricted - consolidatedQty
+                  currentUnrestricted - consolidatedQty,
                 );
                 break;
               case "block_qty":
@@ -768,7 +768,7 @@ const processSerializedItemMovements = async (
               default:
                 newQualityInsp = Math.max(
                   0,
-                  currentQualityInsp - consolidatedQty
+                  currentQualityInsp - consolidatedQty,
                 );
             }
           } else if (group.operation === "add") {
@@ -820,7 +820,7 @@ const processSerializedItemMovements = async (
               group.movement
             } movement: ${group.targetQtyField} ${
               group.operation === "subtract" ? "-" : "+"
-            }${consolidatedQty}`
+            }${consolidatedQty}`,
           );
         } else if (group.operation === "add") {
           // Create new item_balance record for IN movement
@@ -853,24 +853,24 @@ const processSerializedItemMovements = async (
 
           await db.collection("item_balance").add(itemBalanceData);
           console.log(
-            `✓ Created item_balance for serialized item ${mat.item_id} IN movement: ${group.targetQtyField} +${consolidatedQty}`
+            `✓ Created item_balance for serialized item ${mat.item_id} IN movement: ${group.targetQtyField} +${consolidatedQty}`,
           );
         }
       } catch (itemBalanceError) {
         console.error(
           `Error updating item_balance for serialized item ${mat.item_id}:`,
-          itemBalanceError
+          itemBalanceError,
         );
         throw itemBalanceError;
       }
 
       console.log(
-        `Created ${group.serials.length} inv_serial_movement records for ${group.category} ${group.movement}`
+        `Created ${group.serials.length} inv_serial_movement records for ${group.category} ${group.movement}`,
       );
     }
 
     console.log(
-      `Successfully processed ${validSerials.length} serial numbers for item ${mat.item_id} with grouped inventory movements`
+      `Successfully processed ${validSerials.length} serial numbers for item ${mat.item_id} with grouped inventory movements`,
     );
   } catch (error) {
     console.error("Error processing serialized item movements:", error);
@@ -907,7 +907,7 @@ const processInventoryMovement = async (data) => {
               data,
               mat,
               itemData,
-              putAwayRequired
+              putAwayRequired,
             );
           } else {
             // Process non-serialized item as before
@@ -917,7 +917,7 @@ const processInventoryMovement = async (data) => {
               "OUT",
               itemData,
               mat,
-              mat.received_qty
+              mat.received_qty,
             );
 
             if (mat.passed_qty > 0) {
@@ -927,7 +927,7 @@ const processInventoryMovement = async (data) => {
                 "IN",
                 itemData,
                 mat,
-                mat.passed_qty
+                mat.passed_qty,
               );
             }
 
@@ -938,7 +938,7 @@ const processInventoryMovement = async (data) => {
                 "IN",
                 itemData,
                 mat,
-                mat.failed_qty
+                mat.failed_qty,
               );
             }
           }
@@ -1027,7 +1027,7 @@ const processBalanceTable = async (itemData, matData, putAwayRequired) => {
                 convertUOM(
                   matData.passed_qty + matData.failed_qty,
                   itemData,
-                  matData
+                  matData,
                 ),
           material_uom: itemData.based_uom,
         };
@@ -1057,17 +1057,17 @@ const processBalanceTable = async (itemData, matData, putAwayRequired) => {
             const generalBalance = generalBalanceQuery.data[0];
 
             const currentUnrestricted = parseFloat(
-              generalBalance.unrestricted_qty || 0
+              generalBalance.unrestricted_qty || 0,
             );
             const currentReserved = parseFloat(
-              generalBalance.reserved_qty || 0
+              generalBalance.reserved_qty || 0,
             );
             const currentQualityInsp = parseFloat(
-              generalBalance.qualityinsp_qty || 0
+              generalBalance.qualityinsp_qty || 0,
             );
             const currentBlocked = parseFloat(generalBalance.block_qty || 0);
             const currentInTransit = parseFloat(
-              generalBalance.intransit_qty || 0
+              generalBalance.intransit_qty || 0,
             );
 
             // Calculate the deltas from batch balance changes
@@ -1086,12 +1086,12 @@ const processBalanceTable = async (itemData, matData, putAwayRequired) => {
 
             const newUnrestricted = Math.max(
               0,
-              currentUnrestricted + deltaUnrestricted
+              currentUnrestricted + deltaUnrestricted,
             );
             const newReserved = Math.max(0, currentReserved + deltaReserved);
             const newQualityInsp = Math.max(
               0,
-              currentQualityInsp + deltaQualityInsp
+              currentQualityInsp + deltaQualityInsp,
             );
             const newBlocked = Math.max(0, currentBlocked + deltaBlocked);
             const newInTransit = Math.max(0, currentInTransit + deltaInTransit);
@@ -1121,7 +1121,7 @@ const processBalanceTable = async (itemData, matData, putAwayRequired) => {
               .update(generalUpdateData);
 
             console.log(
-              `✓ Updated item_balance for batch item ${matData.item_id} at location ${matData.location_id}`
+              `✓ Updated item_balance for batch item ${matData.item_id} at location ${matData.location_id}`,
             );
           } else {
             // Create new item_balance record if none exists
@@ -1150,13 +1150,13 @@ const processBalanceTable = async (itemData, matData, putAwayRequired) => {
 
             await db.collection("item_balance").add(itemBalanceData);
             console.log(
-              `✓ Created item_balance for batch item ${matData.item_id} at location ${matData.location_id}`
+              `✓ Created item_balance for batch item ${matData.item_id} at location ${matData.location_id}`,
             );
           }
         } catch (itemBalanceError) {
           console.error(
             `Error updating item_balance for batch item ${matData.item_id}:`,
-            itemBalanceError
+            itemBalanceError,
           );
           throw itemBalanceError;
         }
@@ -1200,7 +1200,7 @@ const processBalanceTable = async (itemData, matData, putAwayRequired) => {
                 convertUOM(
                   matData.passed_qty + matData.failed_qty,
                   itemData,
-                  matData
+                  matData,
                 ),
           material_uom: itemData.based_uom,
         };
@@ -1220,14 +1220,14 @@ const updateEntry = async (organizationId, entry, inspLotId) => {
   try {
     const prefixData = await getPrefixData(
       organizationId,
-      "Receiving Inspection"
+      "Receiving Inspection",
     );
 
     if (prefixData !== null) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
         prefixData,
         organizationId,
-        "Receiving Inspection"
+        "Receiving Inspection",
       );
 
       await updatePrefix(organizationId, runningNumber, "Receiving Inspection");
@@ -1251,14 +1251,14 @@ const addEntry = async (organizationId, entry) => {
   try {
     const prefixData = await getPrefixData(
       organizationId,
-      "Receiving Inspection"
+      "Receiving Inspection",
     );
 
     if (prefixData !== null) {
       const { prefixToShow, runningNumber } = await findUniquePrefix(
         prefixData,
         organizationId,
-        "Receiving Inspection"
+        "Receiving Inspection",
       );
 
       await updatePrefix(organizationId, runningNumber, "Receiving Inspection");
@@ -1302,7 +1302,7 @@ const addEntry = async (organizationId, entry) => {
     for (const [index, item] of data.table_insp_mat.entries()) {
       await this.validate(
         `table_insp_mat.${index}.passed_qty`,
-        `table_insp_mat.${index}.failed_qty`
+        `table_insp_mat.${index}.failed_qty`,
       );
 
       // Validate that both passed_qty and failed_qty can't be 0
@@ -1311,7 +1311,7 @@ const addEntry = async (organizationId, entry) => {
         this.$message.error(
           `Item ${
             index + 1
-          }: Both passed quantity and failed quantity cannot be 0. Please specify inspection results.`
+          }: Both passed quantity and failed quantity cannot be 0. Please specify inspection results.`,
         );
         return;
       }
@@ -1322,7 +1322,7 @@ const addEntry = async (organizationId, entry) => {
     const missingFields = await validateForm(
       data,
       requiredFields,
-      data.table_insp_mat
+      data.table_insp_mat,
     );
 
     if (missingFields.length === 0) {
