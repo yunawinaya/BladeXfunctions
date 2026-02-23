@@ -18,6 +18,9 @@ const plantId = {{workflowparams:plant_id}};
 const organizationId = {{workflowparams:organization_id}};
 const remark = {{workflowparams:remark}};
 
+const isPP = {{workflowparams:doc_type}} === "Picking Plan" ? true : false;
+const allocDocType = isPP ? "Picking Plan" : "Good Delivery";
+
 const matchedOldRecords = oldAllocatedData.filter(
   (record) =>
     String(record.doc_line_id) === String(docLineId) &&
@@ -58,6 +61,7 @@ if (matchedOldRecords.length > 0) {
 
     const releaseOrderPriority = {
       "Good Delivery": 1,
+      "Picking Plan": 1,
       "Sales Order": 2,
       "Production": 3,
     };
@@ -87,7 +91,7 @@ if (matchedOldRecords.length > 0) {
         remainingQtyToRelease,
       );
 
-      const isFromUnrestricted = oldRecord.doc_type === "Good Delivery";
+      const isFromUnrestricted = oldRecord.doc_type === "Good Delivery" || oldRecord.doc_type === "Picking Plan";
 
       if (releaseFromThisRecord === oldRecord.reserved_qty) {
         if (isFromUnrestricted) {
@@ -327,7 +331,7 @@ if (matchedOldRecords.length > 0) {
     if (remainingQtyToAllocate > 0) {
       shortfallQty = remainingQtyToAllocate;
       recordToCreate = {
-        doc_type: "Good Delivery",
+        doc_type: allocDocType,
         status: "Allocated",
         source_reserved_id: null,
         parent_id: parentId,
@@ -499,7 +503,7 @@ let shortfallQty = 0;
 if (remainingQtyToAllocate > 0) {
   shortfallQty = remainingQtyToAllocate;
   recordToCreate = {
-    doc_type: "Good Delivery",
+    doc_type: allocDocType,
     status: "Allocated",
     source_reserved_id: null,
     parent_id: parentId,

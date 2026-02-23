@@ -44,6 +44,7 @@ if (matchedAllocatedRecords.length > 0) {
     let unrestrictedQtyToAdd = 0;
     const releaseOrderPriority = {
       "Good Delivery": 1,
+      "Picking Plan": 1,
       "Sales Order": 2,
       "Production": 3,
     };
@@ -69,7 +70,7 @@ if (matchedAllocatedRecords.length > 0) {
       if (remainingQtyToDeliver <= 0 && remainingQtyToRelease <= 0) break;
 
       const recordQty = allocatedRecord.open_qty || 0;
-      const isFromUnrestricted = allocatedRecord.doc_type === "Good Delivery";
+      const isFromUnrestricted = allocatedRecord.doc_type === "Good Delivery" || allocatedRecord.doc_type === "Picking Plan";
 
       if (remainingQtyToDeliver > 0) {
         const deliverFromThisRecord = Math.min(recordQty, remainingQtyToDeliver);

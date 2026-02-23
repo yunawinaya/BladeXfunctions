@@ -51,6 +51,7 @@ if (orphanedRecords.length === 0) {
 
 const releaseOrderPriority = {
   "Good Delivery": 1,
+  "Picking Plan": 1,
   "Sales Order": 2,
   "Production": 3,
 };
@@ -80,7 +81,7 @@ const inventoryMovementMap = new Map();
 for (const orphanedRecord of sortedOrphanedRecords) {
   const releaseQty = orphanedRecord.reserved_qty || 0;
 
-  if (orphanedRecord.doc_type === "Good Delivery") {
+  if (orphanedRecord.doc_type === "Good Delivery" || orphanedRecord.doc_type === "Picking Plan") {
     recordsToUpdate.push({
       id: orphanedRecord.id,
       reserved_qty: orphanedRecord.reserved_qty,

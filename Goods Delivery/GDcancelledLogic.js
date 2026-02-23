@@ -31,6 +31,7 @@ if (!matchedAllocatedRecords || matchedAllocatedRecords.length === 0) {
 
 const releaseOrderPriority = {
   "Good Delivery": 1,
+  "Picking Plan": 1,
   "Sales Order": 2,
   "Production": 3,
 };
@@ -60,7 +61,7 @@ const inventoryMovementMap = new Map();
 for (const allocation of sortedAllocations) {
   const releaseQty = allocation.reserved_qty || 0;
 
-  if (allocation.doc_type === "Good Delivery") {
+  if (allocation.doc_type === "Good Delivery" || allocation.doc_type === "Picking Plan") {
     recordsToUpdate.push({
       id: allocation.id,
       reserved_qty: allocation.reserved_qty,

@@ -311,7 +311,7 @@
       organizationId,
       requestedQty,
       batchDataArray = [],
-      soLineItemId = null
+      soLineItemId = null,
     ) => {
       console.log("Starting auto allocation for inventory dialog");
 
@@ -344,7 +344,7 @@
       const getDefaultBin = () => {
         if (!itemData.table_default_bin?.length) return null;
         const entry = itemData.table_default_bin.find(
-          (bin) => bin.plant_id === plantId
+          (bin) => bin.plant_id === plantId,
         );
         return entry?.bin_location || null;
       };
@@ -357,17 +357,21 @@
         if (!isBatchManaged || !batchDataArray.length) return balanceArray;
 
         return balanceArray.sort((a, b) => {
-          const batchA = batchDataArray.find((batch) => batch.id === a.batch_id);
-          const batchB = batchDataArray.find((batch) => batch.id === b.batch_id);
+          const batchA = batchDataArray.find(
+            (batch) => batch.id === a.batch_id,
+          );
+          const batchB = batchDataArray.find(
+            (batch) => batch.id === b.batch_id,
+          );
 
-          if (batchA?.expiry_date && batchB?.expiry_date) {
+          if (batchA?.expired_date && batchB?.expired_date) {
             return (
-              new Date(batchA.expiry_date) - new Date(batchB.expiry_date)
+              new Date(batchA.expired_date) - new Date(batchB.expired_date)
             );
           }
 
           return (batchA?.batch_number || "").localeCompare(
-            batchB?.batch_number || ""
+            batchB?.batch_number || "",
           );
         });
       };
@@ -415,12 +419,16 @@
         const pendingReservedData = pendingReservedRes?.data || [];
 
         if (pendingReservedData.length > 0) {
-          console.log(`Found ${pendingReservedData.length} pending reservations, prioritizing...`);
+          console.log(
+            `Found ${pendingReservedData.length} pending reservations, prioritizing...`,
+          );
 
           // Sort to prioritize Production over Sales Order
           const sortedReservedData = [...pendingReservedData].sort((a, b) => {
-            if (a.doc_type === "Production" && b.doc_type !== "Production") return -1;
-            if (a.doc_type !== "Production" && b.doc_type === "Production") return 1;
+            if (a.doc_type === "Production" && b.doc_type !== "Production")
+              return -1;
+            if (a.doc_type !== "Production" && b.doc_type === "Production")
+              return 1;
             return 0;
           });
 
@@ -442,12 +450,17 @@
             if (matchingBalance) {
               const availableQty = matchingBalance.unrestricted_qty || 0;
               // Allocate min of: remaining qty, reserved qty, available balance
-              const allocatedQty = Math.min(remainingQty, reservedQty, availableQty);
+              const allocatedQty = Math.min(
+                remainingQty,
+                reservedQty,
+                availableQty,
+              );
 
               if (allocatedQty > 0) {
                 // Check if already allocated to this location
                 const existingAlloc = allAllocations.find((a) => {
-                  const locMatch = a.location_id === matchingBalance.location_id;
+                  const locMatch =
+                    a.location_id === matchingBalance.location_id;
                   if (isBatchManaged) {
                     return locMatch && a.batch_id === matchingBalance.batch_id;
                   }
@@ -464,7 +477,9 @@
                 }
 
                 remainingQty -= allocatedQty;
-                console.log(`Reserved allocation (${reservation.doc_type}): ${allocatedQty} from bin ${reservation.bin_location}`);
+                console.log(
+                  `Reserved allocation (${reservation.doc_type}): ${allocatedQty} from bin ${reservation.bin_location}`,
+                );
               }
             }
           }
@@ -482,8 +497,8 @@
           allAllocations.map((a) =>
             isBatchManaged
               ? `${a.location_id}-${a.batch_id || "no_batch"}`
-              : `${a.location_id}`
-          )
+              : `${a.location_id}`,
+          ),
         );
 
         // Filter out already allocated balances
@@ -501,13 +516,13 @@
             console.log(`Applying FIXED BIN strategy (bin: ${defaultBin})`);
 
             const defaultBinBalances = remainingBalances.filter(
-              (b) => b.location_id === defaultBin
+              (b) => b.location_id === defaultBin,
             );
 
             const sortedDefaultBalances = sortByFIFO(defaultBinBalances);
             const result1 = allocateFromBalances(
               sortedDefaultBalances,
-              remainingQty
+              remainingQty,
             );
             allAllocations.push(...result1.allocated);
             remainingQty = result1.remainingQty;
@@ -517,13 +532,13 @@
           if (remainingQty > 0 && fallbackStrategy === "RANDOM") {
             console.log(`Falling back to RANDOM strategy for remainder`);
             const otherBalances = remainingBalances.filter(
-              (b) => !defaultBin || b.location_id !== defaultBin
+              (b) => !defaultBin || b.location_id !== defaultBin,
             );
 
             const sortedOtherBalances = sortByFIFO(otherBalances);
             const result2 = allocateFromBalances(
               sortedOtherBalances,
-              remainingQty
+              remainingQty,
             );
             allAllocations.push(...result2.allocated);
             remainingQty = result2.remainingQty;
@@ -559,7 +574,7 @@
       });
 
       console.log(
-        `Auto allocation completed: ${requestedQty - remainingQty} allocated`
+        `Auto allocation completed: ${requestedQty - remainingQty} allocated`,
       );
       return finalData;
     };
@@ -655,7 +670,7 @@
       organizationId = null,
       requestedQty = 0,
       batchDataArray = [],
-      soLineItemId = null
+      soLineItemId = null,
     ) => {
       try {
         const response = await db
@@ -694,7 +709,7 @@
             organizationId,
             requestedQty,
             batchDataArray,
-            soLineItemId
+            soLineItemId,
           );
         }
 
@@ -816,7 +831,7 @@
           organizationId,
           requestedQty,
           batchDataArray,
-          lineItemData.so_line_item_id
+          lineItemData.so_line_item_id,
         );
       }
     } else if (itemData.item_batch_management === 1) {
@@ -845,7 +860,7 @@
           organizationId,
           requestedQty,
           batchDataArray,
-          lineItemData.so_line_item_id
+          lineItemData.so_line_item_id,
         );
       }
     } else {
@@ -874,7 +889,7 @@
           organizationId,
           requestedQty,
           batchDataArray,
-          lineItemData.so_line_item_id
+          lineItemData.so_line_item_id,
         );
       }
     }
