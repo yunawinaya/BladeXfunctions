@@ -5,7 +5,7 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
   }
 
   const uomConversion = itemData.table_uom_conversion?.find(
-    (conv) => conv.alt_uom_id === altUOM
+    (conv) => conv.alt_uom_id === altUOM,
   );
 
   if (uomConversion && uomConversion.base_qty) {
@@ -77,23 +77,23 @@ const createTableGdWithBaseUOM = async (allItems) => {
       const soOrderedQtyBase = convertToBaseUOM(
         soOrderedQty,
         item.altUOM,
-        itemData
+        itemData,
       );
       const pickedQtyBase = convertToBaseUOM(pickedQty, item.altUOM, itemData);
       const alreadyDeliveredBase = convertToBaseUOM(
         alreadyDelivered,
         item.altUOM,
-        itemData
+        itemData,
       );
       const remainingToDeliverBase = convertToBaseUOM(
         remainingToDeliver,
         item.altUOM,
-        itemData
+        itemData,
       );
       const undeliveredQtyBase = convertToBaseUOM(
         undeliveredQty,
         item.altUOM,
-        itemData
+        itemData,
       );
 
       processedItems.push({
@@ -213,7 +213,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         cancelButtonText: "Cancel",
         type: "error",
         dangerouslyUseHTMLString: true,
-      }
+      },
     ).catch(() => {
       console.log("User clicked Cancel or closed the dialog");
       throw new Error();
@@ -228,8 +228,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
         ? Array.isArray(so.customer_id)
           ? so.customer_id[0]
           : so.customer_id
-        : so.customer_id.id
-    )
+        : so.customer_id.id,
+    ),
   );
   const allSameCustomer = uniqueCustomer.size === 1;
 
@@ -240,7 +240,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
       {
         confirmButtonText: "OK",
         type: "error",
-      }
+      },
     );
     return;
   }
@@ -254,7 +254,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         cancelButtonText: "Cancel",
         type: "error",
         dangerouslyUseHTMLString: true,
-      }
+      },
     ).catch(() => {
       console.log("User clicked Cancel or closed the dialog");
       throw new Error();
@@ -273,7 +273,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
       for (const pp of currentItemArray) {
         // Filter table_to to exclude fully delivered line items
         const availableLineItems = (pp.table_to || []).filter(
-          (lineItem) => lineItem.delivery_status !== "Fully Delivered"
+          (lineItem) => lineItem.delivery_status !== "Fully Delivered",
         );
 
         console.log(
@@ -281,7 +281,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
             availableLineItems.length
           } available (${
             pp.table_to.length - availableLineItems.length
-          } fully delivered)`
+          } fully delivered)`,
         );
 
         for (const ppItem of availableLineItems) {
@@ -364,17 +364,17 @@ const createTableGdWithBaseUOM = async (allItems) => {
   allItems = allItems.filter((item) => {
     const fullyDelivered = item.delivery_status === "Fully Delivered";
     const alreadyInGD = existingGD.find(
-      (gdItem) => gdItem.pp_line_id === item.pp_line_id
+      (gdItem) => gdItem.pp_line_id === item.pp_line_id,
     );
 
     if (fullyDelivered) {
       console.log(
-        `Filtering out ${item.itemName}: ${item.delivery_status} (${item.deliveredQty}/${item.pickedQty})`
+        `Filtering out ${item.itemName}: ${item.delivery_status} (${item.deliveredQty}/${item.pickedQty})`,
       );
     }
     if (alreadyInGD) {
       console.log(
-        `Filtering out ${item.itemName}: already in GD (pp_line_id: ${item.pp_line_id})`
+        `Filtering out ${item.itemName}: already in GD (pp_line_id: ${item.pp_line_id})`,
       );
     }
 
@@ -434,7 +434,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
           this.disabled([`table_gd.${i}.gd_delivery_qty`], false);
           this.disabled([`table_gd.${i}.gd_qty`], true);
           console.log(
-            `Item ${i}: Multiple locations (${tempDataArray.length}) - dialog required`
+            `Item ${i}: Multiple locations (${tempDataArray.length}) - dialog required`,
           );
         }
       } catch (error) {
