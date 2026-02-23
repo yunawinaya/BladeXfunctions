@@ -1,28 +1,16 @@
 const showStatusHTML = (status) => {
-  switch (status) {
-    case "Draft":
-      this.display(["draft_status"]);
-      break;
-    case "Issued":
-      this.display(["issued_status"]);
-      break;
-    case "In Progress":
-      this.display(["processing_status"]);
-      break;
-    case "Created":
-      this.display(["created_status"]);
-      break;
-    case "Completed":
-      this.display(["completed_status"]);
-      break;
-    case "Fully Posted":
-      this.display(["fullyposted_status"]);
-      break;
-    case "Cancelled":
-      this.display(["cancel_status"]);
-      break;
-    default:
-      break;
+  const statusMap = {
+    Draft: "draft_status",
+    Issued: "issued_status",
+    "In Progress": "processing_status",
+    Created: "created_status",
+    Completed: "completed_status",
+    "Fully Posted": "fullyposted_status",
+    Cancelled: "cancel_status",
+  };
+
+  if (statusMap[status]) {
+    this.display([statusMap[status]]);
   }
 };
 
@@ -30,25 +18,17 @@ const CONFIG = {
   fields: {
     all: [
       "stock_movement.item_selection",
-      "stock_movement.view_stock",
       "stock_movement.transfer_stock",
-      "stock_movement.edit_stock",
       "stock_movement.total_quantity",
       "stock_movement.to_recv_qty",
       "stock_movement.received_quantity",
       "stock_movement.received_quantity_uom",
       "stock_movement.quantity_uom",
-      "stock_movement.unit_price",
-      "stock_movement.amount",
-      "stock_movement.location_id",
-      "stock_movement.storage_location_id",
-      "stock_movement.batch_id",
       "stock_movement.category",
       "stock_movement.stock_summary",
       "movement_reason",
       "delivery_method",
       "receiving_operation_faci",
-      "is_production_order",
     ],
     buttons: [
       "button_post",
@@ -57,243 +37,93 @@ const CONFIG = {
       "button_complete_receive",
       "button_save_as_draft",
       "button_issued_ift",
-      "button_completed",
+    ],
+    hide: [
+      "stock_movement.view_stock",
+      "stock_movement.edit_stock",
+      "stock_movement.unit_price",
+      "stock_movement.amount",
+      "stock_movement.location_id",
+      "stock_movement.storage_location_id",
+      "is_production_order",
+      "stock_movement.batch_id",
     ],
   },
   hideFields: {
-    Add: ["stock_movement.edit_stock", "stock_movement.view_stock"],
-    View: ["stock_movement.transfer_stock", "stock_movement.edit_stock"],
-    Edit: ["stock_movement.view_stock", "stock_movement.transfer_stock"],
-    "Inter Operation Facility Transfer": [
-      "stock_movement.received_quantity",
-      "stock_movement.category",
-      "stock_movement.received_quantity_uom",
-      "stock_movement.unit_price",
-      "stock_movement.amount",
-      "stock_movement.location_id",
-      "stock_movement.storage_location_id",
-      "is_production_order",
-      "stock_movement.to_recv_qty",
-      "stock_movement.batch_id",
-    ],
-    "Location Transfer": [
-      "delivery_method",
-      "receiving_operation_faci",
-      "stock_movement.category",
+    "Plant Transfer": [
       "stock_movement.received_quantity",
       "stock_movement.received_quantity_uom",
-      "stock_movement.unit_price",
-      "stock_movement.amount",
-      "stock_movement.to_recv_qty",
-      "stock_movement.batch_id",
-    ],
-    "Miscellaneous Issue": [
-      "receiving_operation_faci",
-      "delivery_method",
       "stock_movement.category",
-      "stock_movement.received_quantity",
-      "stock_movement.received_quantity_uom",
-      "stock_movement.unit_price",
-      "stock_movement.amount",
-      "stock_movement.location_id",
-      "stock_movement.storage_location_id",
-      "is_production_order",
       "stock_movement.to_recv_qty",
-      "stock_movement.batch_id",
     ],
-    "Miscellaneous Receipt": [
-      "delivery_method",
-      "receiving_operation_faci",
+    "Plant Transfer (Receiving)": [
       "stock_movement.transfer_stock",
       "stock_movement.total_quantity",
       "stock_movement.quantity_uom",
-      "is_production_order",
-      "stock_movement.to_recv_qty",
-      "stock_movement.view_stock",
-      "stock_movement.edit_stock",
-      "stock_movement.stock_summary",
-    ],
-    "Disposal/Scrap": [
-      "receiving_operation_faci",
-      "delivery_method",
-      "stock_movement.category",
-      "stock_movement.received_quantity",
-      "stock_movement.received_quantity_uom",
-      "stock_movement.unit_price",
-      "stock_movement.amount",
-      "stock_movement.location_id",
-      "stock_movement.storage_location_id",
-      "is_production_order",
-      "stock_movement.to_recv_qty",
-      "stock_movement.batch_id",
-    ],
-    "Inventory Category Transfer Posting": [
-      "receiving_operation_faci",
-      "delivery_method",
-      "movement_reason",
-      "stock_movement.category",
-      "stock_movement.received_quantity",
-      "stock_movement.received_quantity_uom",
-      "stock_movement.unit_price",
-      "stock_movement.amount",
-      "stock_movement.location_id",
-      "stock_movement.storage_location_id",
-      "is_production_order",
-      "stock_movement.to_recv_qty",
-      "stock_movement.batch_id",
-    ],
-    "Inter Operation Facility Transfer (Receiving)": [
-      "stock_movement.transfer_stock",
-      "stock_movement.amount",
-      "stock_movement.quantity_uom",
-      "is_production_order",
       "delivery_method",
       "receiving_operation_faci",
-      "stock_movement.view_stock",
-      "stock_movement.edit_stock",
-      "stock_movement.stock_summary",
-    ],
-    "Good Issue": [
-      "receiving_operation_faci",
-      "delivery_method",
-      "stock_movement.category",
-      "stock_movement.received_quantity",
-      "stock_movement.received_quantity_uom",
-      "stock_movement.unit_price",
-      "stock_movement.amount",
-      "stock_movement.location_id",
-      "stock_movement.storage_location_id",
-      "stock_movement.to_recv_qty",
-      "stock_movement.batch_id",
-    ],
-    "Production Receipt": [
-      "delivery_method",
-      "receiving_operation_faci",
-      "stock_movement.quantity_uom",
-      "stock_movement.transfer_stock",
-      "stock_movement.total_quantity",
-      "stock_movement.to_recv_qty",
-      "stock_movement.view_stock",
-      "stock_movement.edit_stock",
       "stock_movement.stock_summary",
     ],
   },
   buttonConfig: {
-    Add: {
-      "Inter Operation Facility Transfer (Receiving)": [
-        "button_save_as_draft",
-        "button_complete_receive",
-      ],
-      "Inter Operation Facility Transfer": [
-        "button_issued_ift",
-        "button_save_as_draft",
-      ],
-      "Location Transfer": ["button_save_as_draft", "button_completed"],
-      "Inventory Category Transfer Posting": [
-        "button_save_as_draft",
-        "button_completed",
-      ],
-      "Miscellaneous Issue": [
-        "button_save_as_draft",
-        "button_completed",
-        "comp_post_button",
-      ],
-      "Good Issue": [
-        "button_save_as_draft",
-        "button_completed",
-        "comp_post_button",
-      ],
-      "Miscellaneous Receipt": [
-        "button_save_as_draft",
-        "button_completed",
-        "comp_post_button",
-      ],
-      "Production Receipt": [
-        "button_save_as_draft",
-        "button_completed",
-        "comp_post_button",
-      ],
-      "Disposal/Scrap": [
-        "button_save_as_draft",
-        "button_completed",
-        "comp_post_button",
-      ],
+    Add: ["button_save_as_draft", "button_issued_ift"],
+    Draft: ["button_save_as_draft", "button_issued_ift"],
+    Issued: ["button_inprogress_ift"],
+    Created: {
+      "Plant Transfer (Receiving)": ["button_complete_receive"],
     },
-    Edit: {
-      Issued: {
-        "Inter Operation Facility Transfer": ["button_inprogress_ift"],
-      },
-      Completed: {
-        default: ["button_post"],
-      },
-      Created: {
-        "Inter Operation Facility Transfer (Receiving)": [
-          "button_complete_receive",
-        ],
-        "Location Transfer": ["button_completed"],
-      },
-    },
+    Completed: ["button_post"],
   },
 };
 
-const configureFields = (movementType, isProductionOrder) => {
+const initMovementReason = async () => {
+  const resType = await db
+    .collection("blade_dict")
+    .where({ dict_key: "Plant Transfer" })
+    .get();
+
+  const movementTypeId = resType.data[0]?.id;
+
+  if (movementTypeId) {
+    const resReason = await db
+      .collection("blade_dict")
+      .where({ parent_id: movementTypeId })
+      .get();
+    this.setOptionData("movement_reason", resReason.data);
+  }
+};
+
+const configureFields = (movementType) => {
   this.display(CONFIG.fields.all);
+  this.hide(CONFIG.fields.hide);
+
   if (CONFIG.hideFields[movementType]) {
     this.hide(CONFIG.hideFields[movementType]);
   }
 
-  if (movementType === "Location Transfer" && isProductionOrder) {
-    this.display(["stock_movement.requested_qty"]);
-  }
-
-  if (movementType === "Inter Operation Facility Transfer (Receiving)") {
+  if (movementType === "Plant Transfer (Receiving)") {
     this.disabled(["stock_movement.received_quantity_uom"], true);
     this.disabled(["stock_movement.category"], false);
   }
-
-  const disableFields = [
-    "Location Transfer",
-    "Miscellaneous Issue",
-    "Disposal/Scrap",
-  ];
-  if (disableFields.includes(movementType)) {
-    this.disabled(["stock_movement.total_quantity"], true);
-  }
 };
 
-const configureButtons = (movementType, pageStatus, stockMovementStatus) => {
+const configureButtons = (pageStatus, stockMovementStatus, movementType) => {
   this.hide(CONFIG.fields.buttons);
 
-  if (
-    pageStatus === "Add" ||
-    (stockMovementStatus === "Draft" && pageStatus === "Edit")
-  ) {
-    this.display(
-      CONFIG.buttonConfig.Add[movementType] || [
-        "button_save_as_draft",
-        "button_completed",
-        "comp_post_button",
-      ],
-    );
+  if (pageStatus === "Add" || stockMovementStatus === "Draft") {
+    this.display(CONFIG.buttonConfig.Draft);
+  } else if (stockMovementStatus === "Issued") {
+    this.display(CONFIG.buttonConfig.Issued);
   } else if (
-    pageStatus === "Edit" &&
-    CONFIG.buttonConfig.Edit[stockMovementStatus]?.[movementType]
+    stockMovementStatus === "Created" &&
+    movementType === "Plant Transfer (Receiving)"
   ) {
-    this.display(CONFIG.buttonConfig.Edit[stockMovementStatus][movementType]);
+    this.display(CONFIG.buttonConfig.Created["Plant Transfer (Receiving)"]);
   } else if (
-    pageStatus === "Edit" &&
-    stockMovementStatus === "Completed" &&
-    [
-      "Inter Operation Facility Transfer",
-      "Miscellaneous Issue",
-      "Good Issue",
-      "Miscellaneous Receipt",
-      "Production Receipt",
-      "Disposal/Scrap",
-      "Inter Operation Facility Transfer (Receiving)",
-    ].includes(movementType)
+    stockMovementStatus === "Completed" ||
+    stockMovementStatus === "Fully Posted"
   ) {
-    this.display(CONFIG.buttonConfig.Edit.Completed.default);
+    this.display(CONFIG.buttonConfig.Completed);
   }
 };
 
@@ -315,45 +145,16 @@ const checkAccIntegrationType = async (organizationId) => {
   }
 };
 
-const filterMovementType = async () => {
-  const resDict = await db
-    .collection("blade_dict")
-    .where({ dict_value: "Stock Movement Type" })
-    .get();
-
-  if (resDict && resDict.data.length > 0) {
-    const stockMovementId = resDict.data[0].id;
-
-    const resMovementType = await db
-      .collection("blade_dict")
-      .where({ parent_id: stockMovementId })
-      .get();
-
-    if (resMovementType && resMovementType.data.length > 0) {
-      const allMovementTypes = await resMovementType.data;
-      const restrictedTypes = [
-        "Good Issue",
-        "Production Receipt",
-        "Inter Operation Facility Transfer (Receiving)",
-      ];
-
-      const filteredTypes = allMovementTypes.filter(
-        (type) => !restrictedTypes.includes(type.dict_value),
-      );
-
-      this.setOptionData(["movement_type"], filteredTypes);
-    } else {
-      console.error("No movement types found in database");
-      return;
-    }
-  } else {
-    console.error("No movement types found in database");
-    return;
-  }
-};
-
 const displayDeliveryField = async () => {
   const deliveryMethodName = this.getValue("delivery_method");
+
+  const fields = [
+    "self_pickup",
+    "courier_service",
+    "company_truck",
+    "shipping_service",
+    "third_party_transporter",
+  ];
 
   if (
     deliveryMethodName &&
@@ -372,13 +173,6 @@ const displayDeliveryField = async () => {
     };
 
     const selectedField = visibilityMap[deliveryMethodName] || null;
-    const fields = [
-      "self_pickup",
-      "courier_service",
-      "company_truck",
-      "shipping_service",
-      "third_party_transporter",
-    ];
 
     if (!selectedField) {
       this.hide(fields);
@@ -389,19 +183,11 @@ const displayDeliveryField = async () => {
     }
   } else {
     this.setData({ delivery_method_text: "" });
-
-    const fields = [
-      "self_pickup",
-      "courier_service",
-      "company_truck",
-      "shipping_service",
-      "third_party_transporter",
-    ];
     this.hide(fields);
   }
 };
 
-const filterIOFTReceivingCategory = async () => {
+const filterPTReceivingCategory = async () => {
   const data = this.getValues();
   const stockMovement = data.stock_movement;
 
@@ -416,7 +202,6 @@ const filterIOFTReceivingCategory = async () => {
     allowedCategories.includes(category.dict_key),
   );
 
-  // Set category options
   for (const [rowIndex, _sm] of stockMovement.entries()) {
     await this.setOptionData(
       [`stock_movement.${rowIndex}.category`],
@@ -425,43 +210,46 @@ const filterIOFTReceivingCategory = async () => {
   }
 };
 
-const showProductionOrder = (data) => {
-  if (data.is_production_order === 1) {
-    this.display(["production_order_id", "is_production_order"]);
-    this.disabled(
-      [
-        "stock_movement.item_selection",
-        "stock_movement.location_id",
-        "stock_movement.storage_location_id",
-      ],
-      true,
-    );
-  }
-};
+const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
+  const tableSM = this.getValue("stock_movement");
 
-const checkPrefixConfiguration = async (movementType, organizationId) => {
-  try {
-    const prefixEntry = await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Stock Movement",
-        movement_type: movementType,
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .get();
-
-    if (prefixEntry.data && prefixEntry.data.length > 0) {
-      return prefixEntry.data[0];
+  if (pageStatus === "Edit" && status === "Created") {
+    for (const [index, item] of tableSM.entries()) {
+      if (item.batch_id && item.batch_id !== "-") {
+        await this.display([
+          "stock_movement.manufacturing_date",
+          "stock_movement.expired_date",
+        ]);
+        await this.disabled(
+          [
+            `stock_movement.${index}.manufacturing_date`,
+            `stock_movement.${index}.expired_date`,
+          ],
+          false,
+        );
+      } else {
+        await this.disabled(
+          [
+            `stock_movement.${index}.manufacturing_date`,
+            `stock_movement.${index}.expired_date`,
+          ],
+          true,
+        );
+      }
     }
-    return null;
-  } catch (error) {
-    console.error("Error checking prefix configuration:", error);
-    return null;
+  } else if (pageStatus === "View" || status === "Completed") {
+    for (const [_index, item] of tableSM.entries()) {
+      if (item.batch_id && item.batch_id !== "-") {
+        await this.display([
+          "stock_movement.manufacturing_date",
+          "stock_movement.expired_date",
+        ]);
+      }
+    }
   }
 };
 
-const editDisabledField = async (data) => {
+const editDisabledField = () => {
   this.disabled(
     [
       "issue_date",
@@ -478,8 +266,6 @@ const editDisabledField = async (data) => {
       "reference_documents",
       "receiving_operation_faci",
       "movement_id",
-      "is_production_order",
-      "production_order_id",
 
       "cp_driver_name",
       "cp_ic_no",
@@ -519,221 +305,57 @@ const editDisabledField = async (data) => {
       "stock_movement.category",
       "stock_movement.received_quantity",
       "stock_movement.received_quantity_uom",
-      "stock_movement.unit_price",
-      "stock_movement.amount",
-      "stock_movement.location_id",
-      "stock_movement.storage_location_id",
-      "stock_movement.batch_id",
     ],
     true,
   );
 
-  // Hide edit button
   setTimeout(() => {
-    const editButton = document.querySelector(
-      ".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--small.is-link",
+    const editButtons = document.querySelectorAll(
+      ".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--default.is-link",
     );
-    if (editButton) {
-      editButton.style.display = "none";
+    editButtons.forEach((button) => {
+      button.style.display = "none";
+    });
+
+    const styleId = "pt-hide-row-actions";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        .fm-virtual-table__row-cell .scope-action { display: none !important; }
+        .fm-virtual-table__row-cell .scope-index { display: flex !important; }
+      `;
+      document.head.appendChild(style);
     }
   }, 500);
 
-  this.hide(["stock_movement.transfer_stock", "stock_movement.edit_stock"]);
-
-  if (
-    data.movement_type === "Miscellaneous Issue" ||
-    data.movement_type === "Miscellaneous Receipt" ||
-    data.movement_type === "Disposal/Scrap"
-  ) {
-    this.display("button_post");
-  }
-};
-
-const filterInvCategory = async (movementType, stockMovement) => {
-  const movementTypeCategories = {
-    "Inter Operation Facility Transfer": ["Unrestricted", "Blocked"],
-    "Inter Operation Facility Transfer (Receiving)": [
-      "Unrestricted",
-      "Quality Inspection",
-      "Blocked",
-    ],
-    "Location Transfer": ["Unrestricted", "Blocked"],
-    "Miscellaneous Issue": ["Unrestricted"],
-    "Miscellaneous Receipt": ["Unrestricted", "Blocked"],
-    "Disposal/Scrap": ["Unrestricted", "Blocked"],
-    "Inventory Category Transfer Posting": ["Unrestricted", "Blocked"],
-  };
-
-  let filteredCategories;
-
-  const categoryObjectResponse = await db
-    .collection("blade_dict")
-    .where({ code: "inventory_category" })
-    .get();
-
-  setTimeout(async () => {
-    const allowedCategories = movementTypeCategories[movementType] || [
-      "Unrestricted",
-    ];
-    filteredCategories = categoryObjectResponse.data.filter((category) =>
-      allowedCategories.includes(category.dict_key),
-    );
-
-    console.log("filteredCategories", filteredCategories);
-
-    for (const [index, _sm] of stockMovement.entries()) {
-      await this.setOptionData(
-        [`stock_movement.${index}.category`],
-        filteredCategories,
-      );
-      this.disabled([`stock_movement.${index}.category`], false);
-    }
-    // Set category options
-  }, 50);
-};
-
-const viewSerialNumber = async () => {
-  const tableSM = this.getValue("stock_movement");
-  tableSM.forEach((sm, index) => {
-    if (sm.is_serialized_item === 1) {
-      this.display(`stock_movement.select_serial_number`);
-      this.disabled(`stock_movement.${index}.received_quantity`, true);
-    } else {
-      this.disabled(`stock_movement.${index}.received_quantity`, false);
-    }
-  });
+  this.hide(["stock_movement.transfer_stock"]);
 };
 
 const hideSerialNumberRecordTab = () => {
   setTimeout(() => {
     const tableSerialNumber = this.getValue("table_sn_records");
     if (!tableSerialNumber || tableSerialNumber.length === 0) {
-      const tabSelector =
-        '.el-drawer[role="dialog"] .el-tabs__item.is-top#tab-serial_number_records[tabindex="-1"][aria-selected="false"]';
-      const tab = document.querySelector(tabSelector);
-
+      const tab = document.querySelector(
+        '.el-drawer[role="dialog"] .el-tabs__item#tab-serial_number_records',
+      );
       if (tab) {
         tab.style.display = "none";
-      } else {
-        const fallbackTab = document.querySelector(
-          '.el-drawer[role="dialog"] .el-tabs__item#tab-serial_number_records',
-        );
-        if (fallbackTab) {
-          fallbackTab.style.display = "none";
-        } else {
-          console.log("Completion tab not found");
-        }
-      }
-
-      const inactiveTabSelector =
-        '.el-drawer[role="dialog"] .el-tabs__item.is-top[tabindex="-1"]:not(#tab-serial_number_records)';
-      const inactiveTab = document.querySelector(inactiveTabSelector);
-      if (inactiveTab) {
-        inactiveTab.setAttribute("aria-disabled", "true");
-        inactiveTab.classList.add("is-disabled");
       }
     }
-  }, 10); // Small delay to ensure DOM is ready
-};
-
-const displayManufacturingAndExpiredDate = async (
-  status,
-  pageStatus,
-  movementType,
-) => {
-  const tableSM = this.getValue("stock_movement");
-  if (movementType === "Miscellaneous Receipt") {
-    if (pageStatus === "Edit") {
-      if (status === "Draft") {
-        for (const [index, item] of tableSM.entries()) {
-          if (item.batch_id !== "-") {
-            await this.display([
-              "stock_movement.manufacturing_date",
-              "stock_movement.expired_date",
-            ]);
-            await this.disabled(
-              [
-                `stock_movement.${index}.manufacturing_date`,
-                `stock_movement.${index}.expired_date`,
-              ],
-              false,
-            );
-          } else {
-            await this.disabled(
-              [
-                `stock_movement.${index}.manufacturing_date`,
-                `stock_movement.${index}.expired_date`,
-              ],
-              true,
-            );
-          }
-        }
-      } else {
-        for (const [_index, item] of tableSM.entries()) {
-          if (item.batch_id !== "-") {
-            await this.display([
-              "stock_movement.manufacturing_date",
-              "stock_movement.expired_date",
-            ]);
-          }
-        }
-      }
-    } else {
-      for (const [_index, item] of tableSM.entries()) {
-        if (item.item_batch_no !== "-") {
-          await this.display([
-            "stock_movement.manufacturing_date",
-            "stock_movement.expired_date",
-          ]);
-        }
-      }
-    }
-  }
+  }, 10);
 };
 
 const setPlant = (organizationId, pageStatus) => {
   const currentDept = this.getVarSystem("deptIds").split(",")[0];
+  const isSameDept = currentDept === organizationId;
 
-  if (currentDept === organizationId) {
-    this.disabled("issuing_operation_faci", false);
-  } else {
-    this.disabled("issuing_operation_faci", true);
-  }
+  this.disabled("issuing_operation_faci", !isSameDept);
 
-  if (pageStatus === "Add" && currentDept !== organizationId) {
+  if (pageStatus === "Add" && !isSameDept) {
     this.setData({ issuing_operation_faci: currentDept });
   }
-};
-
-const setStorageLocation = async () => {
-  try {
-    const smTable = this.getValue("stock_movement");
-
-    if (smTable.length > 0) {
-      for (const [index, item] of smTable.entries()) {
-        console.log("location_id", item.location_id);
-        console.log("storage_location_id", item.storage_location_id);
-        if (!item.storage_location_id && item.location_id) {
-          this.setData({
-            [`stock_movement.${index}.storage_location_id`]: "",
-            [`stock_movement.${index}.location_id`]: "",
-          });
-          const binLocationData = await db
-            .collection("bin_location")
-            .where({ id: item.location_id })
-            .get()
-            .then((res) => res.data[0]);
-
-          this.setData({
-            [`stock_movement.${index}.storage_location_id`]:
-              binLocationData.storage_location_id,
-          });
-        }
-      }
-    }
-  } catch (error) {
-    console.log(error);
-  }
+  return currentDept;
 };
 
 (async () => {
@@ -747,7 +369,6 @@ const setStorageLocation = async () => {
     else if (this.isCopy) pageStatus = "Clone";
     else throw new Error("Invalid page state");
 
-    // Get organization ID
     let organizationId = this.getVarGlobal("deptParentId");
     if (organizationId === "0") {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
@@ -757,119 +378,102 @@ const setStorageLocation = async () => {
 
     switch (pageStatus) {
       case "Add":
-        const nickName = await this.getVarGlobal("nickname");
+        const nickName = this.getVarGlobal("nickname");
         this.setData({
           organization_id: organizationId,
           issued_by: nickName,
           issue_date: new Date().toISOString().split("T")[0],
+          movement_type: "Plant Transfer",
         });
 
-        this.disabled(
-          ["stock_movement", "movement_type", "movement_reason"],
-          true,
-        );
-        this.display(["draft_status", "button_save_as_draft"]);
-        this.hide([
-          "delivery_method",
-          "receiving_operation_faci",
-          "stock_movement.view_stock",
-          "stock_movement.edit_stock",
-        ]);
-        await setPlant(organizationId, pageStatus);
+        this.disabled(["stock_movement", "movement_type"], true);
+        this.display(["draft_status"]);
+
+        configureFields("Plant Transfer");
+        configureButtons(pageStatus, null, "Plant Transfer");
+        setPlant(organizationId, pageStatus);
+        hideSerialNumberRecordTab();
+        await initMovementReason();
         await checkAccIntegrationType(organizationId);
-        await filterMovementType();
-        await hideSerialNumberRecordTab();
-        await setStorageLocation();
         break;
 
       case "Edit":
-        const prefixConfig = await checkPrefixConfiguration(
-          data.movement_type,
-          organizationId,
-        );
-
-        if (prefixConfig && prefixConfig.is_active === 0) {
-          this.disabled(["stock_movement_no"], false);
-        }
+        const movementType = data.movement_type;
 
         this.disabled("movement_type", true);
-        this.hide([
-          "stock_movement.transfer_stock",
-          "stock_movement.view_stock",
-        ]);
+
+        configureFields(movementType);
+        configureButtons(pageStatus, data.stock_movement_status, movementType);
 
         if (
           data.stock_movement_status === "Created" &&
-          data.movement_type === "Inter Operation Facility Transfer (Receiving)"
+          movementType === "Plant Transfer (Receiving)"
         ) {
           this.disabled(["stock_movement.received_quantity"], true);
-          await filterIOFTReceivingCategory();
+          await filterPTReceivingCategory();
+          await displayManufacturingAndExpiredDate(
+            data.stock_movement_status,
+            pageStatus,
+          );
         }
 
         if (
           data.stock_movement_status === "Completed" ||
           data.stock_movement_status === "Fully Posted"
         ) {
-          await editDisabledField(data);
+          editDisabledField();
+          if (movementType === "Plant Transfer (Receiving)") {
+            await displayManufacturingAndExpiredDate(
+              data.stock_movement_status,
+              pageStatus,
+            );
+          }
         }
 
-        if (
-          data.stock_movement_status === "Draft" &&
-          data.movement_type == "Miscellaneous Receipt"
-        ) {
-          await filterInvCategory(data.movement_type, data.stock_movement);
-          await viewSerialNumber();
+        if (data.stock_movement_status === "Issued") {
+          this.disabled(
+            [
+              "issuing_operation_faci",
+              "issue_date",
+              "movement_reason",
+              "stock_movement",
+            ],
+            true,
+          );
         }
 
-        await configureFields(data.movement_type, data.is_production_order);
-        await configureButtons(
-          data.movement_type,
-          pageStatus,
-          data.stock_movement_status,
-        );
-
-        this.hide(CONFIG.hideFields[pageStatus]);
         if (data.stock_movement_status === "Draft") {
-          await setPlant(organizationId, pageStatus);
+          setPlant(organizationId, pageStatus);
         }
-        await filterMovementType();
-        await displayDeliveryField();
-        await showProductionOrder(data);
-        await showStatusHTML(data.stock_movement_status);
-        await checkAccIntegrationType(organizationId);
-        await hideSerialNumberRecordTab();
-        await displayManufacturingAndExpiredDate(
-          data.stock_movement_status,
-          pageStatus,
-          data.movement_type,
-        );
-        await setStorageLocation();
 
+        showStatusHTML(data.stock_movement_status);
+        displayDeliveryField();
+        hideSerialNumberRecordTab();
+        await checkAccIntegrationType(organizationId);
         break;
 
       case "View":
-        await configureFields(data.movement_type, data.is_production_order);
-        await configureButtons(
-          data.movement_type,
-          pageStatus,
-          data.stock_movement_status,
-        );
-        this.hide([
-          "stock_movement.transfer_stock",
-          "stock_movement.view_stock",
-          "stock_movement.edit_stock",
-        ]);
+        const viewMovementType = data.movement_type;
 
-        await displayDeliveryField();
-        await showStatusHTML(data.stock_movement_status);
-        await showProductionOrder(data);
-        await checkAccIntegrationType(organizationId);
-        await hideSerialNumberRecordTab();
-        await displayManufacturingAndExpiredDate(
-          data.stock_movement_status,
+        configureFields(viewMovementType);
+        configureButtons(
           pageStatus,
-          data.movement_type,
+          data.stock_movement_status,
+          viewMovementType,
         );
+        this.hide(["stock_movement.transfer_stock"]);
+
+        if (viewMovementType === "Plant Transfer (Receiving)") {
+          await displayManufacturingAndExpiredDate(
+            data.stock_movement_status,
+            pageStatus,
+          );
+        }
+
+        showStatusHTML(data.stock_movement_status);
+        displayDeliveryField();
+        hideSerialNumberRecordTab();
+        await checkAccIntegrationType(organizationId);
         break;
     }
   } catch (error) {
@@ -877,3 +481,21 @@ const setStorageLocation = async () => {
     this.$message.error(error.message || "An error occurred");
   }
 })();
+
+setTimeout(async () => {
+  if (this.isAdd) {
+    await this.onDropdownVisible("stock_movement_no_type", true);
+    function getDefaultItem(arr) {
+      return arr?.find((item) => item?.item?.item?.is_default === 1);
+    }
+    setTimeout(() => {
+      const optionsData = this.getOptionData("stock_movement_no_type") || [];
+      const data = getDefaultItem(optionsData);
+      if (data) {
+        this.setData({
+          stock_movement_no_type: data.value,
+        });
+      }
+    }, 500);
+  }
+}, 500);
