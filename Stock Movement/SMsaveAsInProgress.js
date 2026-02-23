@@ -21,11 +21,11 @@ class StockAdjuster {
 
   validateRequiredFields(data, requiredFields, context = "") {
     const missingFields = requiredFields.filter(
-      (field) => !data[field] && data[field] !== 0
+      (field) => !data[field] && data[field] !== 0,
     );
     if (missingFields.length > 0) {
       return `Please fill in all required fields marked with (*) ${context}: ${missingFields.join(
-        ", "
+        ", ",
       )}`;
     }
     return null;
@@ -45,7 +45,7 @@ class StockAdjuster {
     ];
     const topLevelValidationError = this.validateRequiredFields(
       allData,
-      requiredTopLevelFields
+      requiredTopLevelFields,
     );
     if (topLevelValidationError) {
       errors.push(topLevelValidationError);
@@ -59,9 +59,8 @@ class StockAdjuster {
     // Step 3: Validate stock movement items
     let processedItems = [];
     if (allData.stock_movement && allData.stock_movement.length > 0) {
-      const itemValidationErrors = await this.validateStockMovementItems(
-        allData
-      );
+      const itemValidationErrors =
+        await this.validateStockMovementItems(allData);
       errors.push(...itemValidationErrors);
       processedItems = this.processStockMovementItems(allData);
     } else {
@@ -78,7 +77,7 @@ class StockAdjuster {
           {
             confirmButtonText: "OK",
             type: "error",
-          }
+          },
         );
         self.hideLoading();
       } else {
@@ -98,7 +97,7 @@ class StockAdjuster {
               confirmButtonText: "Proceed",
               cancelButtonText: "Cancel",
               type: "success",
-            }
+            },
           )
           .then(async () => {
             try {
@@ -110,7 +109,7 @@ class StockAdjuster {
                 stockMovementNumber,
                 allData,
                 self,
-                organizationId
+                organizationId,
               );
               resolve({
                 ...updateResults,
@@ -125,7 +124,7 @@ class StockAdjuster {
                   {
                     confirmButtonText: "OK",
                     type: "error",
-                  }
+                  },
                 );
               } else {
                 alert(errorMessage);
@@ -146,7 +145,7 @@ class StockAdjuster {
           stockMovementNumber,
           allData,
           self,
-          organizationId
+          organizationId,
         )
           .then((updateResults) => {
             resolve({
@@ -169,7 +168,7 @@ class StockAdjuster {
       const itemValidationError = this.validateRequiredFields(
         stockItem,
         requiredFields,
-        `for item ${stockItem.item_selection || "unknown"}`
+        `for item ${stockItem.item_selection || "unknown"}`,
       );
       if (itemValidationError) {
         errors.push(itemValidationError);
@@ -189,32 +188,34 @@ class StockAdjuster {
         }
         if (!materialData.id) {
           errors.push(
-            `Invalid material data: material_id is missing for item ${stockItem.item_selection}`
+            `Invalid material data: material_id is missing for item ${stockItem.item_selection}`,
           );
           continue;
         }
         if (!materialData.material_costing_method) {
           errors.push(
-            `Material costing method is not defined for item ${stockItem.item_selection}`
+            `Material costing method is not defined for item ${stockItem.item_selection}`,
           );
           continue;
         }
         if (!allData.issuing_operation_faci) {
           errors.push(
-            `Plant ID is required for costing update for item ${stockItem.item_selection}`
+            `Plant ID is required for costing update for item ${stockItem.item_selection}`,
           );
           continue;
         }
       } catch (error) {
         errors.push(
-          `Failed to fetch material data for item ${stockItem.item_selection}: ${error.message}`
+          `Failed to fetch material data for item ${stockItem.item_selection}: ${error.message}`,
         );
         continue;
       }
 
+      console.log("balance_index", allData.balance_index);
+
       // Validate balances
       const relatedBalances = allData.balance_index.filter(
-        (balance) => balance.material_id === stockItem.item_selection
+        (balance) => balance.material_id === stockItem.item_selection,
       );
       if (!relatedBalances.length) {
         errors.push(`No balances found for item ${stockItem.item_selection}`);
@@ -226,7 +227,7 @@ class StockAdjuster {
         const balanceValidationError = this.validateRequiredFields(
           balance,
           balanceRequiredFields,
-          `for balance of item ${stockItem.item_selection}`
+          `for balance of item ${stockItem.item_selection}`,
         );
         if (balanceValidationError) {
           errors.push(balanceValidationError);
@@ -248,7 +249,7 @@ class StockAdjuster {
             // For serialized items, validate serial balance
             if (!balance.serial_number) {
               errors.push(
-                `Serial number is required for serialized item ${stockItem.item_selection}`
+                `Serial number is required for serialized item ${stockItem.item_selection}`,
               );
               continue;
             }
@@ -277,7 +278,7 @@ class StockAdjuster {
               serialBalanceResponse.data.length === 0
             ) {
               errors.push(
-                `No serial balance found for serial ${balance.serial_number} of item ${stockItem.item_selection}`
+                `No serial balance found for serial ${balance.serial_number} of item ${stockItem.item_selection}`,
               );
               continue;
             }
@@ -287,7 +288,7 @@ class StockAdjuster {
 
             if (intransitQty < stockItem.received_quantity) {
               errors.push(
-                `Insufficient intransit quantity for serial ${balance.serial_number} of item ${stockItem.item_selection}. Available: ${intransitQty}, Requested: ${stockItem.received_quantity}`
+                `Insufficient intransit quantity for serial ${balance.serial_number} of item ${stockItem.item_selection}. Available: ${intransitQty}, Requested: ${stockItem.received_quantity}`,
               );
             }
           } else {
@@ -316,13 +317,13 @@ class StockAdjuster {
                   stockItem.item_selection
                 }. Available: ${balanceData.intransit_qty || 0}, Requested: ${
                   stockItem.received_quantity
-                }`
+                }`,
               );
             }
           }
         } catch (error) {
           errors.push(
-            `Failed to validate balance for item ${stockItem.item_selection}: ${error.message}`
+            `Failed to validate balance for item ${stockItem.item_selection}: ${error.message}`,
           );
         }
       }
@@ -368,7 +369,7 @@ class StockAdjuster {
     stockMovementNumber,
     allData,
     self,
-    organizationId
+    organizationId,
   ) {
     const results = {
       balanceUpdates: [],
@@ -393,12 +394,12 @@ class StockAdjuster {
             balance.category,
             balance.serial_number, // Pass serial number
             stockMovementIssuingPlantId,
-            organizationId
+            organizationId,
           );
           results.balanceUpdates.push({ issuing: issuingBalanceUpdate });
         } catch (err) {
           errors.push(
-            `Failed to update issuing balance for item ${balance.material_id}: ${err.message}`
+            `Failed to update issuing balance for item ${balance.material_id}: ${err.message}`,
           );
           continue;
         }
@@ -413,7 +414,7 @@ class StockAdjuster {
 
         if (!materialData) {
           throw new Error(
-            `Material not found for ID: ${itemDetails.item_selection}`
+            `Material not found for ID: ${itemDetails.item_selection}`,
           );
         }
 
@@ -421,7 +422,7 @@ class StockAdjuster {
 
         if (isSerializedItem && balances.length > 0) {
           console.log(
-            `🎯 Processing serialized item ${itemDetails.item_selection} with ${balances.length} serial numbers for GROUPED inventory movements`
+            `🎯 Processing serialized item ${itemDetails.item_selection} with ${balances.length} serial numbers for GROUPED inventory movements`,
           );
 
           // Create ONE grouped inventory movement for all serials of this material
@@ -436,7 +437,7 @@ class StockAdjuster {
             balances[0].batch_id,
             organizationId,
             null,
-            balances
+            balances,
           );
 
           results.inventoryMovements.push(groupedInventoryMovement);
@@ -453,14 +454,14 @@ class StockAdjuster {
               stockMovementNumber,
               balance.batch_id,
               organizationId,
-              balance.serial_number
+              balance.serial_number,
             );
             results.inventoryMovements.push(inventoryMovement);
           }
         }
       } catch (err) {
         errors.push(
-          `Failed to record inventory movement for item ${itemDetails.item_selection}: ${err.message}`
+          `Failed to record inventory movement for item ${itemDetails.item_selection}: ${err.message}`,
         );
         continue;
       }
@@ -506,11 +507,11 @@ class StockAdjuster {
 
         console.log(
           "Updated document data:",
-          results.stockMovementUpdates.issuing
+          results.stockMovementUpdates.issuing,
         );
       } else {
         errors.push(
-          `Issuing stock movement not found for stock_movement_no: ${stockMovementNumber}`
+          `Issuing stock movement not found for stock_movement_no: ${stockMovementNumber}`,
         );
       }
     } catch (err) {
@@ -525,7 +526,7 @@ class StockAdjuster {
           allData,
           stockMovementId,
           self,
-          organizationId
+          organizationId,
         );
         results.receivingIOFT = receivingIOFT.data[0];
       } catch (err) {
@@ -547,7 +548,7 @@ class StockAdjuster {
     category,
     serialNumber,
     plantId,
-    organizationId
+    organizationId,
   ) {
     let materialData;
     try {
@@ -601,7 +602,7 @@ class StockAdjuster {
 
         if (!serialBalanceQuery.data || serialBalanceQuery.data.length === 0) {
           throw new Error(
-            `No serial balance found for serial: ${serialNumber}`
+            `No serial balance found for serial: ${serialNumber}`,
           );
         }
 
@@ -609,22 +610,22 @@ class StockAdjuster {
         const categoryField = this.categoryMap[category] || "unrestricted_qty";
 
         const currentCategoryQty = this.roundQty(
-          parseFloat(existingSerialBalance[categoryField] || 0)
+          parseFloat(existingSerialBalance[categoryField] || 0),
         );
         const currentIntransitQty = this.roundQty(
-          parseFloat(existingSerialBalance.intransit_qty || 0)
+          parseFloat(existingSerialBalance.intransit_qty || 0),
         );
 
         const newCategoryQty = this.roundQty(
-          currentCategoryQty - formattedSmQuantity
+          currentCategoryQty - formattedSmQuantity,
         );
         const newIntransitQty = this.roundQty(
-          currentIntransitQty + formattedSmQuantity
+          currentIntransitQty + formattedSmQuantity,
         );
 
         if (newCategoryQty < 0) {
           throw new Error(
-            `Insufficient ${category} quantity for serial ${serialNumber}. Available: ${currentCategoryQty}, Requested: ${formattedSmQuantity}`
+            `Insufficient ${category} quantity for serial ${serialNumber}. Available: ${currentCategoryQty}, Requested: ${formattedSmQuantity}`,
           );
         }
 
@@ -640,7 +641,7 @@ class StockAdjuster {
           .update(updateData);
 
         console.log(
-          `Updated serial balance for ${serialNumber}: ${category}=${newCategoryQty}, intransit=${newIntransitQty}`
+          `Updated serial balance for ${serialNumber}: ${category}=${newCategoryQty}, intransit=${newIntransitQty}`,
         );
 
         return {
@@ -678,10 +679,10 @@ class StockAdjuster {
 
       const updateData = {
         [categoryField]: this.roundQty(
-          (balanceData[categoryField] || 0) - formattedSmQuantity
+          (balanceData[categoryField] || 0) - formattedSmQuantity,
         ),
         intransit_qty: this.roundQty(
-          (balanceData.intransit_qty || 0) + formattedSmQuantity
+          (balanceData.intransit_qty || 0) + formattedSmQuantity,
         ),
         balance_quantity: this.roundQty(balanceData.balance_quantity),
         update_time: new Date().toISOString(),
@@ -717,18 +718,18 @@ class StockAdjuster {
             const generalBalance = generalBalanceQuery.data[0];
 
             const currentGeneralCategoryQty = parseFloat(
-              generalBalance[categoryField] || 0
+              generalBalance[categoryField] || 0,
             );
             const currentGeneralIntransitQty = parseFloat(
-              generalBalance.intransit_qty || 0
+              generalBalance.intransit_qty || 0,
             );
 
             const generalUpdateData = {
               [categoryField]: this.roundQty(
-                currentGeneralCategoryQty - formattedSmQuantity
+                currentGeneralCategoryQty - formattedSmQuantity,
               ),
               intransit_qty: this.roundQty(
-                currentGeneralIntransitQty + formattedSmQuantity
+                currentGeneralIntransitQty + formattedSmQuantity,
               ),
               // Balance quantity stays the same (just moving between categories)
               update_time: new Date().toISOString(),
@@ -740,18 +741,18 @@ class StockAdjuster {
               .update(generalUpdateData);
 
             console.log(
-              `Updated aggregated item_balance for issuing balance, material ${materialId}`
+              `Updated aggregated item_balance for issuing balance, material ${materialId}`,
             );
           } else {
             // This case is rare - item_balance should exist if item_batch_balance exists
             console.warn(
-              `No existing item_balance found for batched material ${materialId} during issuing balance update`
+              `No existing item_balance found for batched material ${materialId} during issuing balance update`,
             );
           }
         } catch (error) {
           console.error(
             `Error updating aggregated item_balance for issuing balance, material ${materialId}:`,
-            error
+            error,
           );
           // Don't throw - let the main process continue
         }
@@ -769,7 +770,7 @@ class StockAdjuster {
     baseQty,
     baseUOM,
     plantId,
-    organizationId
+    organizationId,
   ) {
     const invSerialMovementRecord = {
       inventory_movement_id: inventoryMovementId,
@@ -805,17 +806,17 @@ class StockAdjuster {
       if (result && Array.isArray(result) && result.length > 0) {
         // Sort by FIFO sequence (lowest/oldest first, as per FIFO principle)
         const sortedRecords = result.sort(
-          (a, b) => a.fifo_sequence - b.fifo_sequence
+          (a, b) => a.fifo_sequence - b.fifo_sequence,
         );
 
         // First look for records with available quantity
         for (const record of sortedRecords) {
           const availableQty = this.roundQty(
-            record.fifo_available_quantity || 0
+            record.fifo_available_quantity || 0,
           );
           if (availableQty > 0) {
             console.log(
-              `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`
+              `Found FIFO record with available quantity: Sequence ${record.fifo_sequence}, Cost price ${record.fifo_cost_price}`,
             );
             return this.roundPrice(record.fifo_cost_price || 0);
           }
@@ -823,10 +824,10 @@ class StockAdjuster {
 
         // If no records with available quantity, use the most recent record
         console.warn(
-          `No FIFO records with available quantity found for ${materialData.id}, using most recent cost price`
+          `No FIFO records with available quantity found for ${materialData.id}, using most recent cost price`,
         );
         return this.roundPrice(
-          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0
+          sortedRecords[sortedRecords.length - 1].fifo_cost_price || 0,
         );
       }
 
@@ -835,7 +836,7 @@ class StockAdjuster {
     } catch (error) {
       console.error(
         `Error retrieving FIFO cost price for ${materialData.id}:`,
-        error
+        error,
       );
       return 0;
     }
@@ -869,13 +870,13 @@ class StockAdjuster {
       }
 
       console.warn(
-        `No weighted average records found for material ${materialData.id}`
+        `No weighted average records found for material ${materialData.id}`,
       );
       return 0;
     } catch (error) {
       console.error(
         `Error retrieving WA cost price for ${materialData.id}:`,
-        error
+        error,
       );
       return 0;
     }
@@ -898,7 +899,7 @@ class StockAdjuster {
     stockMovementNumber,
     batchId,
     organizationId,
-    serialBalances // Array of all serial balances in this group
+    serialBalances, // Array of all serial balances in this group
   ) {
     // Get unit price based on costing method
     let unitPrice;
@@ -906,13 +907,13 @@ class StockAdjuster {
     if (materialData.material_costing_method === "First In First Out") {
       const fifoCostPrice = await this.getLatestFIFOCostPrice(
         materialData,
-        batchId
+        batchId,
       );
       unitPrice = fifoCostPrice;
     } else if (materialData.material_costing_method === "Weighted Average") {
       const waCostPrice = await this.getWeightedAverageCostPrice(
         materialData,
-        batchId
+        batchId,
       );
       unitPrice = waCostPrice;
     } else if (materialData.material_costing_method === "Fixed Cost") {
@@ -920,7 +921,7 @@ class StockAdjuster {
       unitPrice = fixedCostPrice;
     } else {
       throw new Error(
-        `Unsupported costing method: ${materialData.material_costing_method}`
+        `Unsupported costing method: ${materialData.material_costing_method}`,
       );
     }
 
@@ -983,7 +984,7 @@ class StockAdjuster {
       ]);
 
       console.log(
-        `✅ Created grouped inventory movements for ${serialBalances.length} serial numbers`
+        `✅ Created grouped inventory movements for ${serialBalances.length} serial numbers`,
       );
 
       // Wait for inventory movement records to be created
@@ -1047,8 +1048,8 @@ class StockAdjuster {
                 serialQuantity,
                 materialData.based_uom,
                 stockMovementIssuingPlantId,
-                organizationId
-              )
+                organizationId,
+              ),
             );
           }
 
@@ -1062,8 +1063,8 @@ class StockAdjuster {
                 serialQuantity,
                 materialData.based_uom,
                 stockMovementIssuingPlantId,
-                organizationId
-              )
+                organizationId,
+              ),
             );
           }
         }
@@ -1073,7 +1074,7 @@ class StockAdjuster {
       await Promise.all(serialPromises);
 
       console.log(
-        `✅ Created ${serialPromises.length} serial movement records for group`
+        `✅ Created ${serialPromises.length} serial movement records for group`,
       );
 
       return {
@@ -1086,7 +1087,7 @@ class StockAdjuster {
       };
     } catch (err) {
       throw new Error(
-        `Failed to create grouped inventory movement: ${err.message}`
+        `Failed to create grouped inventory movement: ${err.message}`,
       );
     }
   }
@@ -1102,7 +1103,7 @@ class StockAdjuster {
     batchId,
     organizationId,
     serialNumber = null,
-    allBalances = [] // NEW: Array of all balances for this material (for grouping)
+    allBalances = [], // NEW: Array of all balances for this material (for grouping)
   ) {
     let materialData;
     try {
@@ -1128,7 +1129,7 @@ class StockAdjuster {
     // NEW: GROUP SERIALIZED ITEMS BEFORE CREATING INVENTORY MOVEMENTS
     if (isSerializedItem && allBalances && allBalances.length > 0) {
       console.log(
-        `🔍 Grouping ${allBalances.length} serialized balances for inventory movements`
+        `🔍 Grouping ${allBalances.length} serialized balances for inventory movements`,
       );
 
       // Group balances by location, batch, and category (same logic as SM code)
@@ -1163,7 +1164,7 @@ class StockAdjuster {
       }
 
       console.log(
-        `📦 Grouped ${allBalances.length} serial balances into ${groupedBalances.size} inventory movements for material ${materialId}`
+        `📦 Grouped ${allBalances.length} serial balances into ${groupedBalances.size} inventory movements for material ${materialId}`,
       );
 
       // Create inventory movements for each group
@@ -1178,7 +1179,7 @@ class StockAdjuster {
         const actualCategory = groupCategory || "Unrestricted";
 
         console.log(
-          `🎯 Creating inventory movement for group: Location(${actualLocationId}), Batch(${actualBatchId}), Category(${actualCategory}), Qty(${group.totalQty})`
+          `🎯 Creating inventory movement for group: Location(${actualLocationId}), Batch(${actualBatchId}), Category(${actualCategory}), Qty(${group.totalQty})`,
         );
 
         // Create grouped inventory movement
@@ -1192,7 +1193,7 @@ class StockAdjuster {
           stockMovementNumber,
           actualBatchId,
           organizationId,
-          group.balances // Pass all balances in this group for serial processing
+          group.balances, // Pass all balances in this group for serial processing
         );
 
         allResults.push({
@@ -1217,13 +1218,13 @@ class StockAdjuster {
     if (materialData.material_costing_method === "First In First Out") {
       const fifoCostPrice = await this.getLatestFIFOCostPrice(
         materialData,
-        batchId
+        batchId,
       );
       unitPrice = fifoCostPrice;
     } else if (materialData.material_costing_method === "Weighted Average") {
       const waCostPrice = await this.getWeightedAverageCostPrice(
         materialData,
-        batchId
+        batchId,
       );
       unitPrice = waCostPrice;
     } else if (materialData.material_costing_method === "Fixed Cost") {
@@ -1287,7 +1288,7 @@ class StockAdjuster {
       // Handle single serialized item
       if (isSerializedItem && serialNumber) {
         console.log(
-          `Processing single serialized item movement for serial: ${serialNumber}`
+          `Processing single serialized item movement for serial: ${serialNumber}`,
         );
 
         await new Promise((resolve) => setTimeout(resolve, 300));
@@ -1340,7 +1341,7 @@ class StockAdjuster {
             formattedSmQuantity,
             materialData.based_uom,
             stockMovementIssuingPlantId,
-            organizationId
+            organizationId,
           );
         }
 
@@ -1352,7 +1353,7 @@ class StockAdjuster {
             formattedSmQuantity,
             materialData.based_uom,
             stockMovementIssuingPlantId,
-            organizationId
+            organizationId,
           );
         }
       }
@@ -1371,7 +1372,7 @@ class StockAdjuster {
     allData,
     stockMovementId,
     self,
-    organizationId
+    organizationId,
   ) {
     try {
       // Store material data, unit prices, and balance info for all items
@@ -1395,7 +1396,7 @@ class StockAdjuster {
 
         // Find related balances for this item
         const relatedBalances = allData.balance_index.filter(
-          (balance) => balance.material_id === item.item_selection
+          (balance) => balance.material_id === item.item_selection,
         );
 
         // Get first balance to use for this specific item
@@ -1419,12 +1420,12 @@ class StockAdjuster {
         if (material.material_costing_method === "First In First Out") {
           unitPrice = await this.getLatestFIFOCostPrice(
             material,
-            balanceInfoMap[item.item_selection].batch_id
+            balanceInfoMap[item.item_selection].batch_id,
           );
         } else if (material.material_costing_method === "Weighted Average") {
           unitPrice = await this.getWeightedAverageCostPrice(
             material,
-            balanceInfoMap[item.item_selection].batch_id
+            balanceInfoMap[item.item_selection].batch_id,
           );
         } else if (material.material_costing_method === "Fixed Cost") {
           unitPrice = await this.getFixedCostPrice(material.id);
@@ -1458,7 +1459,7 @@ class StockAdjuster {
       } else {
         console.warn(
           "No default bin location found for plant:",
-          receivingPlantId
+          receivingPlantId,
         );
       }
 
@@ -1492,16 +1493,16 @@ class StockAdjuster {
         generated = generated.replace("suffix", prefixData.suffix_value);
         generated = generated.replace(
           "month",
-          String(now.getMonth() + 1).padStart(2, "0")
+          String(now.getMonth() + 1).padStart(2, "0"),
         );
         generated = generated.replace(
           "day",
-          String(now.getDate()).padStart(2, "0")
+          String(now.getDate()).padStart(2, "0"),
         );
         generated = generated.replace("year", now.getFullYear());
         generated = generated.replace(
           "running_number",
-          String(runNumber).padStart(prefixData.padding_zeroes, "0")
+          String(runNumber).padStart(prefixData.padding_zeroes, "0"),
         );
         return generated;
       };
@@ -1534,7 +1535,7 @@ class StockAdjuster {
 
         if (!isUnique) {
           throw new Error(
-            "Could not generate a unique Stock Movement number after maximum attempts"
+            "Could not generate a unique Stock Movement number after maximum attempts",
           );
         } else {
           newPrefix = prefixToShow;
@@ -1561,7 +1562,7 @@ class StockAdjuster {
           const material = materialsMap[item.item_selection];
           if (!material) {
             throw new Error(
-              `Material with ID ${item.item_selection} not found`
+              `Material with ID ${item.item_selection} not found`,
             );
           }
 
@@ -1631,7 +1632,7 @@ class StockAdjuster {
                         fm_key: `ioft_${Date.now()}_${serialIndex}_${Math.random()
                           .toString(36)
                           .substr(2, 8)}`,
-                      })
+                      }),
                     ),
                   })
                 : "",
@@ -1640,7 +1641,7 @@ class StockAdjuster {
             receiving_plant: allData.receiving_operation_faci || null,
             line_index: index + 1,
           };
-        })
+        }),
       );
 
       // Now create the receiving IOFT with the processed items
@@ -1681,7 +1682,7 @@ const updateItemTransactionDate = async (entry) => {
       ...new Set(
         tableSM
           .filter((item) => item.item_selection)
-          .map((item) => item.item_selection)
+          .map((item) => item.item_selection),
       ),
     ];
 
@@ -1694,7 +1695,7 @@ const updateItemTransactionDate = async (entry) => {
           .update({ last_transaction_date: date });
       } catch {
         throw new Error(
-          `Cannot update last transaction date for item #${index + 1}.`
+          `Cannot update last transaction date for item #${index + 1}.`,
         );
       }
     }
@@ -1717,7 +1718,7 @@ async function processFormData(db, self, organizationId) {
     const results = await adjuster.processStockAdjustment(
       db,
       self,
-      organizationId
+      organizationId,
     );
 
     const entry = self.getValues();

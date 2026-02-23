@@ -30,7 +30,7 @@ const validateForm = (data, requiredFields) => {
           const subValue = item[subField.name];
           if (validateField(subValue, subField)) {
             missingFields.push(
-              `${subField.label} (in ${field.label} #${index + 1})`
+              `${subField.label} (in ${field.label} #${index + 1})`,
             );
           }
         });
@@ -75,6 +75,7 @@ const fillbackHeaderFields = async (entry) => {
       { name: "issue_date", label: "Issue Date" },
       { name: "movement_type", label: "Movement Type" },
       { name: "receiving_operation_faci", label: "Receiving Plant" },
+      { name: "stock_movement_no", label: "Stock Movement No" },
       {
         name: "stock_movement",
         label: "Stock Movement Items",
@@ -145,6 +146,8 @@ const fillbackHeaderFields = async (entry) => {
       material_id,
       material_name,
       row_index,
+      remark2,
+      remark3,
     } = formData;
 
     // Get organization ID
@@ -208,6 +211,8 @@ const fillbackHeaderFields = async (entry) => {
       material_id,
       material_name,
       row_index,
+      remark2,
+      remark3,
     };
 
     entry.stock_movement = await fillbackHeaderFields(entry);
@@ -236,16 +241,16 @@ const fillbackHeaderFields = async (entry) => {
         generated = generated.replace("suffix", prefixData.suffix_value);
         generated = generated.replace(
           "month",
-          String(now.getMonth() + 1).padStart(2, "0")
+          String(now.getMonth() + 1).padStart(2, "0"),
         );
         generated = generated.replace(
           "day",
-          String(now.getDate()).padStart(2, "0")
+          String(now.getDate()).padStart(2, "0"),
         );
         generated = generated.replace("year", now.getFullYear());
         generated = generated.replace(
           "running_number",
-          String(runNumber).padStart(prefixData.padding_zeroes, "0")
+          String(runNumber).padStart(prefixData.padding_zeroes, "0"),
         );
         return generated;
       };
@@ -272,7 +277,7 @@ const fillbackHeaderFields = async (entry) => {
 
       if (!isUnique) {
         throw new Error(
-          "Could not generate a unique Stock Movement number after maximum attempts"
+          "Could not generate a unique Stock Movement number after maximum attempts",
         );
       }
 
@@ -283,7 +288,7 @@ const fillbackHeaderFields = async (entry) => {
     const updatePrefixRunningNumber = async (
       movementType,
       runningNumber,
-      organizationId
+      organizationId,
     ) => {
       await db
         .collection("prefix_configuration")
@@ -307,7 +312,7 @@ const fillbackHeaderFields = async (entry) => {
           ...new Set(
             tableSM
               .filter((item) => item.item_selection)
-              .map((item) => item.item_selection)
+              .map((item) => item.item_selection),
           ),
         ];
 
@@ -320,7 +325,7 @@ const fillbackHeaderFields = async (entry) => {
               .update({ last_transaction_date: date });
           } catch (error) {
             throw new Error(
-              `Cannot update last transaction date for item #${index + 1}.`
+              `Cannot update last transaction date for item #${index + 1}.`,
             );
           }
         }
@@ -350,15 +355,25 @@ const fillbackHeaderFields = async (entry) => {
           const prefixData = prefixEntryResponse.data[0];
           const { prefixToShow, runningNumber } = await generateUniquePrefix(
             prefixData,
-            organizationId
+            organizationId,
           );
 
           entry.stock_movement_no = prefixToShow;
           await updatePrefixRunningNumber(
             movement_type,
             runningNumber,
-            organizationId
+            organizationId,
           );
+        } else {
+          const isUnique = await checkUniqueness(
+            entry.stock_movement_no,
+            organizationId,
+          );
+          if (!isUnique) {
+            throw new Error(
+              `Movement Number "${entry.stock_movement_no}" already exists. Please use a different number.`,
+            );
+          }
         }
         await db.collection("stock_movement").add(entry);
 
@@ -381,7 +396,7 @@ const fillbackHeaderFields = async (entry) => {
           const prefixData = prefixEntryResponse.data[0];
           const { prefixToShow, runningNumber } = await generateUniquePrefix(
             prefixData,
-            organizationId
+            organizationId,
           );
 
           // Update entry with new stock_movement_no
@@ -391,13 +406,22 @@ const fillbackHeaderFields = async (entry) => {
           await updatePrefixRunningNumber(
             movement_type,
             runningNumber,
-            organizationId
+            organizationId,
           );
           await db
             .collection("stock_movement")
             .doc(stockMovementId)
             .update(entry);
         } else {
+          const isUnique = await checkUniqueness(
+            entry.stock_movement_no,
+            organizationId,
+          );
+          if (!isUnique) {
+            throw new Error(
+              `Movement Number "${entry.stock_movement_no}" already exists. Please use a different number.`,
+            );
+          }
           await db
             .collection("stock_movement")
             .doc(stockMovementId)
