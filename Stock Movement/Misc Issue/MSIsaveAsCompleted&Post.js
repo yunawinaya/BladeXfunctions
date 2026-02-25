@@ -73,6 +73,10 @@ const postToAccounting = async (
     organizationId &&
     organizationId !== ""
   ) {
+    await db.collection("sm_misc_issue").doc(stockMovementId).update({
+      stock_movement_status: "Completed",
+      posted_status: "",
+    });
     this.$message.success("Misc Issue completed and posted successfully.");
     closeDialog();
   } else {
@@ -85,7 +89,6 @@ const postToAccounting = async (
     this.showLoading("Saving Misc Issue as Completed & Posting...");
 
     const data = this.getValues();
-    const stockMovementId = data.id;
 
     let organizationId = this.getVarGlobal("deptParentId");
     if (organizationId === "0") {
@@ -134,6 +137,8 @@ const postToAccounting = async (
       workflowResult.data.code === 200 ||
       workflowResult.data.success === true
     ) {
+      const stockMovementId = workflowResult.data.id;
+
       // Update stock movement with posted status
       await db.collection("sm_misc_issue").doc(stockMovementId).update({
         stock_movement_status: "Completed",

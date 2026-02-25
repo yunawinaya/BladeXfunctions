@@ -46,7 +46,6 @@ const CONFIG = {
       "stock_movement.location_id",
       "stock_movement.storage_location_id",
       "is_production_order",
-      "stock_movement.batch_id",
     ],
   },
   hideFields: {
@@ -55,6 +54,9 @@ const CONFIG = {
       "stock_movement.received_quantity_uom",
       "stock_movement.category",
       "stock_movement.to_recv_qty",
+      "stock_movement.batch_id",
+      "stock_movement.batch_no",
+      "parent_id",
     ],
     "Plant Transfer (Receiving)": [
       "stock_movement.transfer_stock",
@@ -63,6 +65,9 @@ const CONFIG = {
       "delivery_method",
       "receiving_operation_faci",
       "stock_movement.stock_summary",
+      "stock_movement.item_remark",
+      "stock_movement.item_remark_2",
+      "stock_movement.item_remark_3",
     ],
   },
   buttonConfig: {
@@ -215,7 +220,7 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
 
   if (pageStatus === "Edit" && status === "Created") {
     for (const [index, item] of tableSM.entries()) {
-      if (item.batch_id && item.batch_id !== "-") {
+      if (item.batch_no && item.batch_no !== "-") {
         await this.display([
           "stock_movement.manufacturing_date",
           "stock_movement.expired_date",
@@ -239,7 +244,7 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
     }
   } else if (pageStatus === "View" || status === "Completed") {
     for (const [_index, item] of tableSM.entries()) {
-      if (item.batch_id && item.batch_id !== "-") {
+      if (item.batch_no && item.batch_no !== "-") {
         await this.display([
           "stock_movement.manufacturing_date",
           "stock_movement.expired_date",
@@ -358,6 +363,110 @@ const setPlant = (organizationId, pageStatus) => {
   return currentDept;
 };
 
+const setStorageLocation = async (plantID) => {
+  try {
+    if (plantID) {
+      let defaultStorageLocationID = "";
+
+      const resStorageLocation = await db
+        .collection("storage_location")
+        .where({
+          plant_id: plantID,
+          is_deleted: 0,
+          is_default: 1,
+          storage_status: 1,
+          location_type: "Common",
+        })
+        .get();
+
+      if (resStorageLocation.data && resStorageLocation.data.length > 0) {
+        defaultStorageLocationID = resStorageLocation.data[0].id;
+        this.setData({
+          default_storage_location: defaultStorageLocationID,
+        });
+      }
+
+      if (defaultStorageLocationID && defaultStorageLocationID !== "") {
+        const resBinLocation = await db
+          .collection("bin_location")
+          .where({
+            plant_id: plantID,
+            storage_location_id: defaultStorageLocationID,
+            is_deleted: 0,
+            is_default: 1,
+            bin_status: 1,
+          })
+          .get();
+
+        if (resBinLocation.data && resBinLocation.data.length > 0) {
+          this.setData({
+            default_bin: resBinLocation.data[0].id,
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    this.$message.error(error.message || "An error occurred");
+  }
+};
+
+const handleBinLocation = async (
+  defaultBin,
+  defaultStorageLocation,
+  smLineItem,
+) => {
+  try {
+    for (const [index, _item] of smLineItem.entries()) {
+      const rowIndex = smLineItem.length + index;
+
+      if (defaultBin && defaultStorageLocation) {
+        this.setData({
+          [`stock_movement.${rowIndex}.location_id`]: defaultBin,
+          [`stock_movement.${rowIndex}.storage_location_id`]:
+            defaultStorageLocation,
+        });
+      }
+
+      this.disabled(`stock_movement.${rowIndex}.location_id`, false);
+      this.disabled(`stock_movement.${rowIndex}.storage_location_id`, false);
+    }
+  } catch (error) {
+    console.error(error);
+    this.$message.error(error.message || "An error occurred");
+  }
+};
+
+const isGenerateBatch = async (organizationId) => {
+  try {
+    const resPlantTransferSetup = await db
+      .collection("plant_transfer_setup")
+      .where({
+        organization_id: organizationId,
+      })
+      .get();
+
+    if (
+      !resPlantTransferSetup.data ||
+      resPlantTransferSetup.data.length === 0
+    ) {
+      return;
+    }
+
+    const isGenerateBatch = resPlantTransferSetup.data[0].generate_new_batch;
+    if (isGenerateBatch) {
+      this.display(["stock_movement.batch_no"]);
+      this.hide(["stock_movement.batch_id"]);
+    } else {
+      this.display(["stock_movement.batch_id"]);
+      this.hide(["stock_movement.batch_no"]);
+    }
+  } catch (error) {
+    console.error(error);
+    this.$message.error(error.message || "An error occurred");
+  }
+};
+
 (async () => {
   try {
     const data = this.getValues();
@@ -386,7 +495,6 @@ const setPlant = (organizationId, pageStatus) => {
           movement_type: "Plant Transfer",
         });
 
-        this.disabled(["stock_movement", "movement_type"], true);
         this.display(["draft_status"]);
 
         configureFields("Plant Transfer");
@@ -415,6 +523,13 @@ const setPlant = (organizationId, pageStatus) => {
             data.stock_movement_status,
             pageStatus,
           );
+          await setStorageLocation(data.plant_id);
+          await handleBinLocation(
+            this.getValue("default_bin"),
+            this.getValue("default_storage_location"),
+            data.stock_movement,
+          );
+          await isGenerateBatch(organizationId);
         }
 
         if (
@@ -468,6 +583,7 @@ const setPlant = (organizationId, pageStatus) => {
             data.stock_movement_status,
             pageStatus,
           );
+          await isGenerateBatch(organizationId);
         }
 
         showStatusHTML(data.stock_movement_status);
@@ -484,7 +600,7 @@ const setPlant = (organizationId, pageStatus) => {
 
 setTimeout(async () => {
   if (this.isAdd) {
-    await this.onDropdownVisible("stock_movement_no_type", true);
+    const op = await this.onDropdownVisible("stock_movement_no_type", true);
     function getDefaultItem(arr) {
       return arr?.find((item) => item?.item?.item?.is_default === 1);
     }
