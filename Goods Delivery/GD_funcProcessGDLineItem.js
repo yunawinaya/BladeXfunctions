@@ -378,14 +378,19 @@ const checkInventoryWithDuplicates = async (
   console.log(`🚀 Fetching data for ${materialIds.length} unique materials...`);
   const fetchStart = Date.now();
 
-  const [itemDataMap, balanceDataMaps, pickingSetup, batchDataMap, pendingReservedMap] =
-    await Promise.all([
-      batchFetchItems(materialIds),
-      batchFetchBalanceData(materialIds, plantId),
-      fetchPickingSetup(plantId),
-      batchFetchBatchData(materialIds, plantId),
-      batchFetchPendingReserved(allSoLineItemIds, plantId),
-    ]);
+  const [
+    itemDataMap,
+    balanceDataMaps,
+    pickingSetup,
+    batchDataMap,
+    pendingReservedMap,
+  ] = await Promise.all([
+    batchFetchItems(materialIds),
+    batchFetchBalanceData(materialIds, plantId),
+    fetchPickingSetup(plantId),
+    batchFetchBatchData(materialIds, plantId),
+    batchFetchPendingReserved(allSoLineItemIds, plantId),
+  ]);
 
   console.log(
     `✅ All data fetched in ${
@@ -575,7 +580,9 @@ const checkInventoryWithDuplicates = async (
     // Available = unrestricted + reserved (for this SO) - previous allocations
     const availableStockAfterAllocations = Math.max(
       0,
-      totalUnrestrictedQtyBase + totalPendingReservedQtyBase - totalPreviousAllocations,
+      totalUnrestrictedQtyBase +
+        totalPendingReservedQtyBase -
+        totalPreviousAllocations,
     );
 
     console.log(
@@ -775,7 +782,8 @@ const checkInventoryWithDuplicates = async (
         const plannedQty = item.plannedQtyFromSource || 0;
 
         // 🔧 Use cached pending reserved data instead of new DB query
-        const pendingReservedData = pendingReservedMap.get(item.so_line_item_id) || [];
+        const pendingReservedData =
+          pendingReservedMap.get(item.so_line_item_id) || [];
         const pendingTotal = pendingReservedData.reduce(
           (total, doc) => total + parseFloat(doc.open_qty || 0),
           0,
@@ -783,7 +791,10 @@ const checkInventoryWithDuplicates = async (
         const undeliveredQty = orderedQty - deliveredQty;
         const suggestedQty = Math.max(0, undeliveredQty - plannedQty);
         // Cap by pending reserved qty (if any reservations exist)
-        const finalQty = pendingTotal > 0 ? Math.min(suggestedQty, pendingTotal) : suggestedQty;
+        const finalQty =
+          pendingTotal > 0
+            ? Math.min(suggestedQty, pendingTotal)
+            : suggestedQty;
 
         if (finalQty <= 0) {
           fieldsToDisable.push(
