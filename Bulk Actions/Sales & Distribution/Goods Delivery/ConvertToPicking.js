@@ -27,20 +27,20 @@ const handlePicking = async (selectedRecords) => {
       {
         confirmButtonText: "OK",
         type: "error",
-      }
+      },
     );
     throw new Error(
-      "All selected goods deliveries must be from the same plant."
+      "All selected goods deliveries must be from the same plant.",
     );
   }
 
   const packingRequired = await getPackingSetup(
-    selectedRecords[0].organization_id
+    selectedRecords[0].organization_id,
   );
 
   if (packingRequired === 1) {
     const uniqueCustomers = new Set(
-      selectedRecords.map((gd) => gd.customer_id)
+      selectedRecords.map((gd) => gd.customer_id),
     );
     const allSameCustomer = uniqueCustomers.size === 1;
 
@@ -51,10 +51,10 @@ const handlePicking = async (selectedRecords) => {
         {
           confirmButtonText: "OK",
           type: "error",
-        }
+        },
       );
       throw new Error(
-        "All selected goods deliveries must be from the same customer due to packing requirement."
+        "All selected goods deliveries must be from the same customer due to packing requirement.",
       );
     }
   }
@@ -82,7 +82,7 @@ const handlePicking = async (selectedRecords) => {
     (err) => {
       this.hideLoading();
       throw err;
-    }
+    },
   );
 };
 
@@ -98,7 +98,7 @@ const handlePicking = async (selectedRecords) => {
 
     if (selectedRecords && selectedRecords.length > 0) {
       selectedRecords = selectedRecords.filter((item) =>
-        item.table_gd.some((gdItem) => gdItem.picking_status === "Not Created")
+        item.table_gd.some((gdItem) => gdItem.picking_status === "Not Created"),
       );
 
       if (selectedRecords.length === 0) {
@@ -109,7 +109,7 @@ const handlePicking = async (selectedRecords) => {
             confirmButtonText: "OK",
             dangerouslyUseHTMLString: true,
             type: "warning",
-          }
+          },
         );
         return;
       }
@@ -121,7 +121,7 @@ const handlePicking = async (selectedRecords) => {
     .map((item) => {
       const totalItems = item.table_gd.length;
       const pickableItems = item.table_gd.filter(
-        (gdItem) => gdItem.picking_status === "Not Created"
+        (gdItem) => gdItem.picking_status === "Not Created",
       ).length;
       return `${item.delivery_no} (${pickableItems}/${totalItems} items)`;
     })
@@ -132,7 +132,7 @@ const handlePicking = async (selectedRecords) => {
           cancelButtonText: "Cancel",
           dangerouslyUseHTMLString: true,
           type: "info",
-        }
+        },
       ).catch(() => {
         console.log("User clicked Cancel or closed the dialog");
         throw new Error();
