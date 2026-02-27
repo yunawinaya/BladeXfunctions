@@ -10,14 +10,11 @@ const getPlantDefaultBin = async (plantId) => {
       is_default: 1,
       location_type: "Common",
     })
-    .get()
-    .then((res) => {
-      if (res.data.length > 0) {
-        defaultStorageLocation = res.data[0].id;
-      }
-    });
+    .get();
 
   if (resStorageLocation && resStorageLocation.data.length > 0) {
+    defaultStorageLocation = resStorageLocation.data[0].id;
+
     const resBinLocation = await db
       .collection("bin_location")
       .where({
@@ -26,15 +23,13 @@ const getPlantDefaultBin = async (plantId) => {
         is_default: 1,
         is_deleted: 0,
       })
-      .get()
-      .then((res) => {
-        if (res.data.length > 0) {
-          defaultBinLocation = res.data[0].id;
-        }
-      });
+      .get();
 
-    if (!resBinLocation && resBinLocation.data.length === 0)
+    if (resBinLocation && resBinLocation.data.length > 0) {
+      defaultBinLocation = resBinLocation.data[0].id;
+    } else {
       throw new Error("Cannot find default bin location.");
+    }
   }
 
   return {
@@ -49,7 +44,7 @@ const getPlantDefaultBin = async (plantId) => {
 
     const pageStatus = data.page_status;
     const status = data.to_status;
-    const tablePutaway = data.table_putaway_item;
+    const tablePutaway = data.table_putaway_item || [];
     const plantId = data.plant_id;
 
     console.log("Putaway Get Strategy");
@@ -66,6 +61,9 @@ const getPlantDefaultBin = async (plantId) => {
 
           // if putaway mode is Auto
           if (putawaySetupData.putaway_mode === "Auto") {
+            // Build updated table without looping setData
+            const updatedTablePutaway = [...tablePutaway];
+
             // if putaway default strategy is Fixed Bin
             if (
               putawaySetupData.default_strategy_id &&
@@ -78,40 +76,34 @@ const getPlantDefaultBin = async (plantId) => {
                   .where({ id: itemId, is_deleted: 0 })
                   .get();
 
-                if (!resItem && resItem.data.length === 0) continue;
+                if (!resItem || resItem.data.length === 0) continue;
 
                 const itemData = resItem.data[0];
 
                 // find plant default bin from item table
-                if (itemData.table_default_bin.length > 0) {
-                  for (const bin of itemData.table_default_bin) {
-                    // if the table default bin has the selected plant id
-                    if (bin.plant_id === plantId) {
-                      this.setData({
-                        [`table_putaway_item.${index}.target_location`]:
-                          bin.bin_location,
-                        [`table_putaway_item.${index}.storage_location`]:
-                          bin.storage_location,
-                      });
-                    }
-                    // if the table default bin doesnt have the selected plant id, look at the fallback strategy
-                    else {
-                      // if the fallback strategy has no data and the fallback strategy is Random, then get the plant default bin location from bin location table
-                      if (
-                        !putawaySetupData.fallback_strategy_id ||
-                        putawaySetupData.fallback_strategy_id === "RANDOM"
-                      ) {
-                        const { defaultBinLocation, defaultStorageLocation } =
-                          await getPlantDefaultBin(plantId);
+                if (itemData.table_default_bin && itemData.table_default_bin.length > 0) {
+                  const matchingBin = itemData.table_default_bin.find(
+                    (bin) => bin.plant_id === plantId
+                  );
 
-                        this.setData({
-                          [`table_putaway_item.${index}.target_location`]:
-                            defaultBinLocation,
-                          [`table_putaway_item.${index}.storage_location`]:
-                            defaultStorageLocation,
-                        });
-                      }
-                    }
+                  if (matchingBin) {
+                    updatedTablePutaway[index] = {
+                      ...updatedTablePutaway[index],
+                      target_location: matchingBin.bin_location,
+                      storage_location: matchingBin.storage_location,
+                    };
+                  } else if (
+                    !putawaySetupData.fallback_strategy_id ||
+                    putawaySetupData.fallback_strategy_id === "RANDOM"
+                  ) {
+                    const { defaultBinLocation, defaultStorageLocation } =
+                      await getPlantDefaultBin(plantId);
+
+                    updatedTablePutaway[index] = {
+                      ...updatedTablePutaway[index],
+                      target_location: defaultBinLocation,
+                      storage_location: defaultStorageLocation,
+                    };
                   }
                 } else {
                   if (
@@ -121,12 +113,11 @@ const getPlantDefaultBin = async (plantId) => {
                     const { defaultBinLocation, defaultStorageLocation } =
                       await getPlantDefaultBin(plantId);
 
-                    this.setData({
-                      [`table_putaway_item.${index}.target_location`]:
-                        defaultBinLocation,
-                      [`table_putaway_item.${index}.storage_location`]:
-                        defaultStorageLocation,
-                    });
+                    updatedTablePutaway[index] = {
+                      ...updatedTablePutaway[index],
+                      target_location: defaultBinLocation,
+                      storage_location: defaultStorageLocation,
+                    };
                   }
                 }
               }
@@ -139,15 +130,18 @@ const getPlantDefaultBin = async (plantId) => {
             ) {
               const { defaultBinLocation, defaultStorageLocation } =
                 await getPlantDefaultBin(plantId);
-              for (const [index, _item] of tablePutaway.entries()) {
-                this.setData({
-                  [`table_putaway_item.${index}.target_location`]:
-                    defaultBinLocation,
-                  [`table_putaway_item.${index}.storage_location`]:
-                    defaultStorageLocation,
-                });
+
+              for (let i = 0; i < updatedTablePutaway.length; i++) {
+                updatedTablePutaway[i] = {
+                  ...updatedTablePutaway[i],
+                  target_location: defaultBinLocation,
+                  storage_location: defaultStorageLocation,
+                };
               }
             }
+
+            // Single setData call for the entire table
+            this.setData({ table_putaway_item: updatedTablePutaway });
           }
         }
       }
@@ -164,10 +158,13 @@ const getPlantDefaultBin = async (plantId) => {
           console.log("arguments[0]", arguments[0]);
           // if putaway mode is Auto
           if (putawaySetupData.putaway_mode === "Auto") {
+            // Build updated table without looping setData
+            const updatedTablePutaway = [...tablePutaway];
+
             for (const [rowIndex, putawayLine] of tablePutaway.entries()) {
               const itemId = putawayLine.item_code;
 
-              if (!itemId) return;
+              if (!itemId) continue;
 
               // if putaway default strategy is Fixed Bin
               if (
@@ -179,40 +176,34 @@ const getPlantDefaultBin = async (plantId) => {
                   .where({ id: itemId, is_deleted: 0 })
                   .get();
 
-                if (!resItem && resItem.data.length === 0) return;
+                if (!resItem || resItem.data.length === 0) continue;
 
                 const itemData = resItem.data[0];
 
                 // find plant default bin from item table
-                if (itemData.table_default_bin.length > 0) {
-                  for (const bin of itemData.table_default_bin) {
-                    // if the table default bin has the selected plant id
-                    if (bin.plant_id === plantId) {
-                      this.setData({
-                        [`table_putaway_item.${rowIndex}.target_location`]:
-                          bin.bin_location,
-                        [`table_putaway_item.${rowIndex}.storage_location`]:
-                          bin.storage_location,
-                      });
-                    }
-                    // if the table default bin doesnt have the selected plant id, look at the fallback strategy
-                    else {
-                      // if the fallback strategy has no data and the fallback strategy is Random, then get the plant default bin location from bin location table
-                      if (
-                        !putawaySetupData.fallback_strategy_id ||
-                        putawaySetupData.fallback_strategy_id === "RANDOM"
-                      ) {
-                        const { defaultBinLocation, defaultStorageLocation } =
-                          await getPlantDefaultBin(plantId);
+                if (itemData.table_default_bin && itemData.table_default_bin.length > 0) {
+                  const matchingBin = itemData.table_default_bin.find(
+                    (bin) => bin.plant_id === plantId
+                  );
 
-                        this.setData({
-                          [`table_putaway_item.${rowIndex}.target_location`]:
-                            defaultBinLocation,
-                          [`table_putaway_item.${rowIndex}.storage_location`]:
-                            defaultStorageLocation,
-                        });
-                      }
-                    }
+                  if (matchingBin) {
+                    updatedTablePutaway[rowIndex] = {
+                      ...updatedTablePutaway[rowIndex],
+                      target_location: matchingBin.bin_location,
+                      storage_location: matchingBin.storage_location,
+                    };
+                  } else if (
+                    !putawaySetupData.fallback_strategy_id ||
+                    putawaySetupData.fallback_strategy_id === "RANDOM"
+                  ) {
+                    const { defaultBinLocation, defaultStorageLocation } =
+                      await getPlantDefaultBin(plantId);
+
+                    updatedTablePutaway[rowIndex] = {
+                      ...updatedTablePutaway[rowIndex],
+                      target_location: defaultBinLocation,
+                      storage_location: defaultStorageLocation,
+                    };
                   }
                 }
               }
@@ -225,14 +216,16 @@ const getPlantDefaultBin = async (plantId) => {
                 const { defaultBinLocation, defaultStorageLocation } =
                   await getPlantDefaultBin(plantId);
 
-                this.setData({
-                  [`table_putaway_item.${rowIndex}.target_location`]:
-                    defaultBinLocation,
-                  [`table_putaway_item.${rowIndex}.storage_location`]:
-                    defaultStorageLocation,
-                });
+                updatedTablePutaway[rowIndex] = {
+                  ...updatedTablePutaway[rowIndex],
+                  target_location: defaultBinLocation,
+                  storage_location: defaultStorageLocation,
+                };
               }
             }
+
+            // Single setData call for the entire table
+            this.setData({ table_putaway_item: updatedTablePutaway });
           }
         }
       }

@@ -43,8 +43,6 @@ const CONFIG = {
       "stock_movement.edit_stock",
       "stock_movement.unit_price",
       "stock_movement.amount",
-      "stock_movement.location_id",
-      "stock_movement.storage_location_id",
       "is_production_order",
     ],
   },
@@ -56,6 +54,8 @@ const CONFIG = {
       "stock_movement.to_recv_qty",
       "stock_movement.batch_id",
       "stock_movement.batch_no",
+      "stock_movement.location_id",
+      "stock_movement.storage_location_id",
       "parent_id",
     ],
     "Plant Transfer (Receiving)": [
@@ -411,26 +411,16 @@ const setStorageLocation = async (plantID) => {
   }
 };
 
-const handleBinLocation = async (
-  defaultBin,
-  defaultStorageLocation,
-  smLineItem,
-) => {
+const handleBinLocation = async (defaultBin, defaultStorageLocation) => {
   try {
-    for (const [index, _item] of smLineItem.entries()) {
-      const rowIndex = smLineItem.length + index;
-
-      if (defaultBin && defaultStorageLocation) {
-        this.setData({
-          [`stock_movement.${rowIndex}.location_id`]: defaultBin,
-          [`stock_movement.${rowIndex}.storage_location_id`]:
-            defaultStorageLocation,
-        });
-      }
-
-      this.disabled(`stock_movement.${rowIndex}.location_id`, false);
-      this.disabled(`stock_movement.${rowIndex}.storage_location_id`, false);
+    if (defaultBin && defaultStorageLocation) {
+      this.setData({
+        [`stock_movement.storage_location_id`]: defaultStorageLocation,
+        [`stock_movement.location_id`]: defaultBin,
+      });
     }
+    this.disabled(`stock_movement.storage_location_id`, false);
+    this.disabled(`stock_movement.location_id`, false);
   } catch (error) {
     console.error(error);
     this.$message.error(error.message || "An error occurred");
@@ -517,18 +507,22 @@ const isGenerateBatch = async (organizationId) => {
           data.stock_movement_status === "Created" &&
           movementType === "Plant Transfer (Receiving)"
         ) {
-          this.disabled(["stock_movement.received_quantity"], true);
+          this.disabled(
+            ["issuing_operation_faci", "stock_movement.received_quantity"],
+            true,
+          );
           await filterPTReceivingCategory();
           await displayManufacturingAndExpiredDate(
             data.stock_movement_status,
             pageStatus,
           );
-          await setStorageLocation(data.plant_id);
-          await handleBinLocation(
-            this.getValue("default_bin"),
-            this.getValue("default_storage_location"),
-            data.stock_movement,
-          );
+          await setStorageLocation(data.issuing_operation_faci);
+          setTimeout(async () => {
+            await handleBinLocation(
+              this.getValue("default_bin"),
+              this.getValue("default_storage_location"),
+            );
+          }, 500);
           await isGenerateBatch(organizationId);
         }
 

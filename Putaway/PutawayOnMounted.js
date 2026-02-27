@@ -1,96 +1,3 @@
-// Helper functions
-const generatePrefix = (prefixData) => {
-  const now = new Date();
-  let prefixToShow = prefixData.current_prefix_config;
-
-  prefixToShow = prefixToShow.replace("prefix", prefixData.prefix_value);
-  prefixToShow = prefixToShow.replace("suffix", prefixData.suffix_value);
-  prefixToShow = prefixToShow.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0")
-  );
-  prefixToShow = prefixToShow.replace(
-    "day",
-    String(now.getDate()).padStart(2, "0")
-  );
-  prefixToShow = prefixToShow.replace("year", now.getFullYear());
-  prefixToShow = prefixToShow.replace(
-    "running_number",
-    String(prefixData.running_number).padStart(prefixData.padding_zeroes, "0")
-  );
-
-  return prefixToShow;
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("transfer_order_putaway")
-    .where({ to_id: generatedPrefix, organization_id: organizationId })
-    .get();
-
-  return !existingDoc.data || existingDoc.data.length === 0;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  let prefixToShow;
-  let runningNumber = prefixData.running_number || 1;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = generatePrefix({
-      ...prefixData,
-      running_number: runningNumber,
-    });
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Putaway number after maximum attempts"
-    );
-  }
-
-  return { prefixToShow, runningNumber };
-};
-
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Transfer Order (Putaway)",
-      is_deleted: 0,
-      organization_id: organizationId,
-    })
-    .get();
-
-  if (!prefixEntry.data || prefixEntry.data.length === 0) {
-    return null;
-  } else {
-    if (prefixEntry.data[0].is_active === 0) {
-      this.disabled(["to_id"], false);
-    } else {
-      this.disabled(["to_id"], true);
-    }
-  }
-
-  return prefixEntry.data[0];
-};
-
-const setPrefix = async (organizationId) => {
-  const prefixData = await getPrefixData(organizationId);
-
-  if (prefixData && prefixData.is_active === 1) {
-    const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
-    this.setData({ to_id: prefixToShow });
-  }
-};
-
 const showStatusHTML = (status) => {
   switch (status) {
     case "Draft":
@@ -132,7 +39,7 @@ const disabledField = async (status) => {
           "table_putaway_records",
           "remarks",
         ],
-        true
+        true,
       );
 
       this.hide([
@@ -158,7 +65,7 @@ const disabledField = async (status) => {
           "created_by",
           "created_at",
         ],
-        true
+        true,
       );
 
       this.hide(["button_save_as_draft"]);
@@ -209,7 +116,7 @@ const enabledTargetCategoryField = async () => {
         console.log("item qi no", item.qi_no);
         this.disabled(
           [`table_putaway_item.${index}.target_inv_category`],
-          false
+          false,
         );
       }
     }
@@ -256,7 +163,7 @@ const setSerialNumber = async () => {
         if (putaway.is_serialized_item === 1) {
           console.log(
             `Processing serialized item at index ${index}:`,
-            putaway.item_code || putaway.id
+            putaway.item_code || putaway.id,
           );
 
           // Check if serial_numbers exists and is not empty
@@ -268,7 +175,7 @@ const setSerialNumber = async () => {
             putaway.serial_numbers.trim() === ""
           ) {
             console.warn(
-              `No valid serial numbers found for item at index ${index}`
+              `No valid serial numbers found for item at index ${index}`,
             );
             continue;
           }
@@ -281,20 +188,20 @@ const setSerialNumber = async () => {
 
           if (serialNumbers.length === 0) {
             console.warn(
-              `No valid serial numbers after processing for item at index ${index}`
+              `No valid serial numbers after processing for item at index ${index}`,
             );
             continue;
           }
 
           console.log(
             `Setting ${serialNumbers.length} serial numbers for item at index ${index}:`,
-            serialNumbers
+            serialNumbers,
           );
 
           // Set option data for select dropdown
           await this.setOptionData(
             [`table_putaway_item.${index}.select_serial_number`],
-            serialNumbers
+            serialNumbers,
           );
 
           // Set the actual data
@@ -305,11 +212,11 @@ const setSerialNumber = async () => {
           // Disable putaway_qty field for serialized items
           await this.disabled(
             [`table_putaway_item.${index}.putaway_qty`],
-            true
+            true,
           );
 
           console.log(
-            `Successfully set serial numbers for item at index ${index}`
+            `Successfully set serial numbers for item at index ${index}`,
           );
         }
       } catch (itemError) {
@@ -356,14 +263,12 @@ const setDocType = async (plantId) => {
         this.display(["draft_status"]);
 
         await setPlant(organizationId);
-        await setPrefix(organizationId);
         await setDocType(this.getValue("plant_id"));
         break;
 
       case "Edit":
-        if (status === "Draft") {
-          await getPrefixData(organizationId);
-        } else {
+        this.setData({ previous_status: status });
+        if (status !== "Draft") {
           this.hide(["gr_no"]);
           this.display(["receiving_no"]);
 
@@ -408,3 +313,21 @@ const setDocType = async (plantId) => {
     this.$message.error(error.message || "An error occurred");
   }
 })();
+
+setTimeout(async () => {
+  if (this.isAdd) {
+    const op = await this.onDropdownVisible("to_id_type", true);
+    function getDefaultItem(arr) {
+      return arr?.find((item) => item?.item?.item?.is_default === 1);
+    }
+    setTimeout(() => {
+      const optionsData = this.getOptionData("to_id_type") || [];
+      const data = getDefaultItem(optionsData);
+      if (data) {
+        this.setData({
+          to_id_type: data.value,
+        });
+      }
+    }, 500);
+  }
+}, 500);
