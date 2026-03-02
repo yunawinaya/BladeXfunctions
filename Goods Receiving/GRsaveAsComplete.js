@@ -1425,7 +1425,10 @@ const addInventory = async (
         table_putaway_item: putAwayLineItemData,
       };
 
-      await db.collection("transfer_order_putaway").add(putawayData);
+      const putawayResponse = await db
+        .collection("transfer_order_putaway")
+        .add(putawayData);
+
       await db
         .collection("goods_receiving")
         .where({ id: grId })
@@ -1434,16 +1437,16 @@ const addInventory = async (
       if (data.assigned_to && data.assigned_to.length > 0) {
         const notificationParam = {
           title: "New Putaway Assignment",
-          body: `You have been assigned a putaway task for Goods Receiving: ${data.gr_no}. Transfer Order: ${putAwayPrefix}`,
+          body: `You have been assigned a putaway task for Goods Receiving: ${data.gr_no}. Transfer Order: ${putawayResponse.data[0].to_id}`,
           userId: data.assigned_to,
           data: {
-            docId: putAwayPrefix,
-            deepLink: `sudumobileexpo://putaway/batch/${putAwayPrefix}`,
+            docId: putawayResponse.data[0].to_id,
+            deepLink: `sudumobileexpo://putaway/batch/${putawayResponse.data[0].to_id}`,
           },
         };
 
         await this.runWorkflow(
-          "1945684747032735745",
+          "2021117086140157953",
           notificationParam,
           async (res) => {
             console.log("Notification sent successfully:", res);
