@@ -1144,6 +1144,23 @@ const addInventory = async (
     }
   };
 
+  const getDefaultDocFormat = async (docType, organizationID) => {
+    const response = await db
+      .collection("su_code_serial_no_rule")
+      .where({
+        department_id: organizationID,
+        business_type: docType,
+        is_default: 1,
+      })
+      .get();
+
+    if (response && response.data && response.data.length > 0) {
+      return response.data[0].id;
+    } else {
+      return null;
+    }
+  };
+
   const createInspectionLot = async (
     data,
     item,
@@ -1154,27 +1171,10 @@ const addInventory = async (
     materialCode,
   ) => {
     try {
-      const prefixData = await getPrefixData(
-        organizationId,
+      const inspPrefixID = await getDefaultDocFormat(
         "Receiving Inspection",
+        data.organization_id,
       );
-      let inspPrefix = "";
-
-      if (prefixData !== null) {
-        const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData,
-          organizationId,
-          "Receiving Inspection",
-        );
-
-        await updatePrefix(
-          organizationId,
-          runningNumber,
-          "Receiving Inspection",
-        );
-
-        inspPrefix = prefixToShow;
-      }
 
       let grId = null;
       const resGR = await db
@@ -1210,7 +1210,7 @@ const addInventory = async (
                 .where({
                   material_id: item.item_id,
                   transaction_no: data.gr_no,
-                  organization_id: organizationId,
+                  organization_id: data.organization_id,
                 })
                 .get();
 
@@ -1280,7 +1280,8 @@ const addInventory = async (
       }
 
       const inspectionData = {
-        inspection_lot_no: inspPrefix,
+        inspection_lot_no: "issued",
+        inspection_lot_no_type: inspPrefixID,
         goods_receiving_no: grId,
         gr_no_display: data.gr_no,
         insp_lot_created_on: new Date().toISOString().split("T")[0],
@@ -1328,27 +1329,10 @@ const addInventory = async (
     totalPriceArray,
   ) => {
     try {
-      const prefixData = await getPrefixData(
-        organizationId,
-        "Transfer Order (Putaway)",
+      const putAwayPrefixID = await getDefaultDocFormat(
+        "Putaway",
+        data.organization_id,
       );
-      let putAwayPrefix = "";
-
-      if (prefixData !== null) {
-        const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData,
-          organizationId,
-          "Transfer Order (Putaway)",
-        );
-
-        await updatePrefix(
-          organizationId,
-          runningNumber,
-          "Transfer Order (Putaway)",
-        );
-
-        putAwayPrefix = prefixToShow;
-      }
 
       let grId = null;
       const resGR = await db
@@ -1426,7 +1410,8 @@ const addInventory = async (
 
       const putawayData = {
         plant_id: data.plant_id,
-        to_id: putAwayPrefix,
+        to_id: "issued",
+        to_id_type: putAwayPrefixID,
         movement_type: "Putaway",
         ref_doc_type: "Goods Receiving",
         gr_no: grId,
@@ -2662,116 +2647,6 @@ const validateField = (value) => {
   return !value;
 };
 
-const getPrefixData = async (organizationId, documentTypes) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: documentTypes,
-      is_deleted: 0,
-      organization_id: organizationId,
-      is_active: 1,
-    })
-    .get();
-
-  const prefixData = await prefixEntry.data[0];
-
-  return prefixData;
-};
-
-const updatePrefix = async (organizationId, runningNumber, documentTypes) => {
-  try {
-    await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: documentTypes,
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
-  } catch (error) {
-    this.$message.error(error);
-  }
-};
-
-const generatePrefix = (runNumber, now, prefixData) => {
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0"),
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0"),
-  );
-  return generated;
-};
-
-const checkUniqueness = async (
-  generatedPrefix,
-  organizationId,
-  documentTypes,
-) => {
-  if (documentTypes === "Goods Receiving") {
-    const existingDoc = await db
-      .collection("goods_receiving")
-      .where({ gr_no: generatedPrefix, organization_id: organizationId })
-      .get();
-
-    return existingDoc.data[0] ? false : true;
-  } else if (documentTypes === "Transfer Order (Putaway)") {
-    const existingDoc = await db
-      .collection("transfer_order_putaway")
-      .where({ to_id: generatedPrefix, organization_id: organizationId })
-      .get();
-
-    return existingDoc.data[0] ? false : true;
-  } else if (documentTypes === "Receiving Inspection") {
-    const existingDoc = await db
-      .collection("basic_inspection_lot")
-      .where({
-        inspection_lot_no: generatedPrefix,
-        organization_id: organizationId,
-      })
-      .get();
-
-    return existingDoc.data[0] ? false : true;
-  }
-};
-
-const findUniquePrefix = async (prefixData, organizationId, documentTypes) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(
-      prefixToShow,
-      organizationId,
-      documentTypes,
-    );
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    this.$message.error(
-      `Could not generate a unique ${documentTypes} number after maximum attempts`,
-    );
-  }
-
-  return { prefixToShow, runningNumber };
-};
-
 const createSerialNumberRecord = async (entry) => {
   const serialNumberRecords = [];
   for (const [index, item] of entry.table_gr.entries()) {
@@ -2997,62 +2872,6 @@ const findFieldMessage = (obj) => {
   return null;
 };
 
-const updateEntry = async (
-  organizationId,
-  entry,
-  goodsReceivingId,
-  putAwaySetupData,
-) => {
-  try {
-    const prefixData = await getPrefixData(organizationId, "Goods Receiving");
-
-    if (prefixData !== null) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId,
-        "Goods Receiving",
-      );
-
-      await updatePrefix(organizationId, runningNumber, "Goods Receiving");
-
-      entry.gr_no = prefixToShow;
-    } else {
-      const isUnique = await checkUniqueness(entry.gr_no, organizationId);
-      if (!isUnique) {
-        throw new Error(
-          `GR Number "${entry.gr_no}" already exists. Please use a different number.`,
-        );
-      }
-    }
-
-    const processedTableGr = [];
-    for (const item of entry.table_gr) {
-      const processedItem = await processRow(item, organizationId);
-      processedTableGr.push(processedItem);
-    }
-    entry.table_gr = processedTableGr;
-
-    await db.collection("goods_receiving").doc(goodsReceivingId).update(entry);
-
-    await addInventory(entry, entry.plant_id, organizationId, putAwaySetupData);
-
-    await createSerialNumberRecord(entry);
-
-    // Update the entry with serial number records
-    await db.collection("goods_receiving").doc(goodsReceivingId).update({
-      table_sn_records: entry.table_sn_records,
-    });
-    const purchaseOrderIds = entry.po_id;
-
-    await updatePurchaseOrderStatus(purchaseOrderIds, entry.table_gr);
-    this.$message.success("Update successfully");
-    await closeDialog();
-  } catch (error) {
-    this.hideLoading();
-    this.$message.error(error);
-  }
-};
-
 // Note: fetchReceivedQuantity() function removed - was redundant with validateCompletionQuantities()
 // validateCompletionQuantities() provides better error messages and is always called
 
@@ -3185,6 +3004,7 @@ const saveGoodsReceiving = async (
     const pageStatus = this.getValue("page_status");
     const organizationId = entry.organization_id;
     let grID = "";
+    let result = {};
 
     const processedTableGr = [];
     for (const item of entry.table_gr) {
@@ -3195,68 +3015,27 @@ const saveGoodsReceiving = async (
 
     // add status
     if (pageStatus === "Add") {
-      const prefixData = await getPrefixData(organizationId, "Goods Receiving");
-
-      if (prefixData !== null) {
-        const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData,
-          organizationId,
-          "Goods Receiving",
-        );
-
-        await updatePrefix(organizationId, runningNumber, "Goods Receiving");
-
-        entry.gr_no = prefixToShow;
-      } else {
-        const isUnique = await checkUniqueness(entry.gr_no, organizationId);
-        if (!isUnique) {
-          throw new Error(
-            `GR Number "${entry.gr_no}" already exists. Please use a different number.`,
-          );
-        }
-      }
       const grResponse = await db.collection("goods_receiving").add(entry);
       grID = grResponse.data[0].id;
+      result = grResponse.data[0];
     }
     // edit status
     if (pageStatus === "Edit") {
       grID = entry.id;
-      // draft status
-      if (!status || status === "Draft") {
-        const prefixData = await getPrefixData(
-          organizationId,
-          "Goods Receiving",
-        );
-
-        if (prefixData !== null) {
-          const { prefixToShow, runningNumber } = await findUniquePrefix(
-            prefixData,
-            organizationId,
-            "Goods Receiving",
-          );
-
-          await updatePrefix(organizationId, runningNumber, "Goods Receiving");
-
-          entry.gr_no = prefixToShow;
-        } else {
-          const isUnique = await checkUniqueness(entry.gr_no, organizationId);
-          if (!isUnique) {
-            throw new Error(
-              `GR Number "${entry.gr_no}" already exists. Please use a different number.`,
-            );
-          }
-        }
-      }
-      await db.collection("goods_receiving").doc(grID).update(entry);
+      const response = await db
+        .collection("goods_receiving")
+        .doc(grID)
+        .update(entry);
+      result = response.data.modifiedResults[0];
     }
 
     await addInventory(
-      entry,
+      result,
       entry.plant_id,
       entry.organization_id,
       putAwaySetupData,
     );
-    await createSerialNumberRecord(entry);
+    await createSerialNumberRecord(result);
     await db.collection("goods_receiving").doc(grID).update({
       table_sn_records: entry.table_sn_records,
     });
@@ -3284,6 +3063,8 @@ const saveGoodsReceiving = async (
   try {
     const data = this.getValues();
     this.showLoading("Saving Goods Receiving...");
+    let entry = data;
+    entry.gr_status = "Received";
 
     const requiredFields = [
       { name: "gr_no", label: "Good Receiving Number" },
@@ -3307,6 +3088,16 @@ const saveGoodsReceiving = async (
         `table_gr.${index}.received_qty`,
         `table_gr.${index}.item_batch_no`,
       );
+    }
+
+    if (
+      entry.gr_no_type !== -9999 &&
+      (!entry.gr_no ||
+        entry.gr_no === null ||
+        entry.gr_no === "" ||
+        entry.previous_status === "Draft")
+    ) {
+      entry.gr_no = "issued";
     }
 
     const resPutAwaySetup = await db
@@ -3343,9 +3134,6 @@ const saveGoodsReceiving = async (
           });
         }
       }
-
-      let entry = data;
-      entry.gr_status = "Received";
 
       const latestGR = await processGRLineItem(entry);
 
