@@ -18,15 +18,34 @@ const plantId = {{workflowparams:plant_id}};
 const organizationId = {{workflowparams:organization_id}};
 const remark = {{workflowparams:remark}};
 
-const matchedAllocatedRecords = existingAllocatedData.filter(
-  (record) =>
-    String(record.doc_line_id) === String(docLineId) &&
-    String(record.material_id) === String(materialId) &&
-    String(record.batch_id || "") === String(batchId || "") &&
-    String(record.bin_location || "") === String(locationId || "") &&
-    record.status === "Allocated" &&
-    String(record.target_gd_id) === String(docId),
-);
+const pickingPlanId = {{workflowparams:picking_plan_id}} || "";
+const pickingPlanLineId = {{workflowparams:picking_plan_line_id}} || "";
+
+const isGDPP = {{workflowparams:isGDPP}} || 0;
+
+let matchedAllocatedRecords = [];
+
+if (isGDPP === 1) {
+  matchedAllocatedRecords = existingAllocatedData.filter(
+    (record) =>
+      String(record.doc_line_id) === String(pickingPlanLineId) &&
+      String(record.material_id) === String(materialId) &&
+      String(record.batch_id || "") === String(batchId || "") &&
+      String(record.bin_location || "") === String(locationId || "") &&
+      record.status === "Allocated" &&
+      String(record.target_gd_id) === String(pickingPlanId)
+  );
+} else {
+  matchedAllocatedRecords = existingAllocatedData.filter(
+    (record) =>
+      String(record.doc_line_id) === String(docLineId) &&
+      String(record.material_id) === String(materialId) &&
+      String(record.batch_id || "") === String(batchId || "") &&
+      String(record.bin_location || "") === String(locationId || "") &&
+      record.status === "Allocated" &&
+      String(record.target_gd_id) === String(docId)
+  );
+}
 
 if (matchedAllocatedRecords.length > 0) {
   const totalAllocatedQty = matchedAllocatedRecords.reduce(
@@ -70,7 +89,8 @@ if (matchedAllocatedRecords.length > 0) {
       if (remainingQtyToDeliver <= 0 && remainingQtyToRelease <= 0) break;
 
       const recordQty = allocatedRecord.open_qty || 0;
-      const isFromUnrestricted = allocatedRecord.doc_type === "Good Delivery" || allocatedRecord.doc_type === "Picking Plan";
+      const isFromUnrestricted = allocatedRecord.doc_type === "Good Delivery";
+      const isFromPP = allocatedRecord.doc_type === "Picking Plan";
 
       if (remainingQtyToDeliver > 0) {
         const deliverFromThisRecord = Math.min(recordQty, remainingQtyToDeliver);
@@ -82,6 +102,11 @@ if (matchedAllocatedRecords.length > 0) {
             open_qty: 0,
             delivered_qty: (allocatedRecord.delivered_qty || 0) + deliverFromThisRecord,
             status: "Delivered",
+            doc_id: isFromPP ? docId : allocatedRecord.doc_id,
+            doc_no: isFromPP ? docNo : allocatedRecord.doc_no,
+            doc_line_id: isFromPP ? docLineId : allocatedRecord.doc_line_id,
+            doc_type: isFromPP ? "Good Delivery" : allocatedRecord.doc_type,
+            target_gd_id: isFromPP ? docId : allocatedRecord.target_gd_id,
           });
         } else {
           recordsToUpdate.push({
@@ -90,11 +115,26 @@ if (matchedAllocatedRecords.length > 0) {
             open_qty: 0,
             delivered_qty: deliverFromThisRecord,
             status: "Delivered",
+            doc_id: isFromPP ? docId : allocatedRecord.doc_id,
+            doc_no: isFromPP ? docNo : allocatedRecord.doc_no,
+            doc_line_id: isFromPP ? docLineId : allocatedRecord.doc_line_id,
+            doc_type: isFromPP ? "Good Delivery" : allocatedRecord.doc_type,
+            target_gd_id: isFromPP ? docId : allocatedRecord.target_gd_id,
           });
 
           const remainderQty = recordQty - deliverFromThisRecord;
 
-          if (isFromUnrestricted) {
+          if (isFromPP) {
+            const { _id, id, ...recordWithoutId } = allocatedRecord;
+            recordToCreate = {
+              ...recordWithoutId,
+              reserved_qty: remainderQty,
+              open_qty: remainderQty,
+              delivered_qty: 0,
+              status: "Allocated",
+              source_reserved_id: allocatedRecord.id,
+            };
+          } else if (isFromUnrestricted) {
             const { _id, id, ...recordWithoutId } = allocatedRecord;
             recordToCreate = {
               ...recordWithoutId,
@@ -143,7 +183,15 @@ if (matchedAllocatedRecords.length > 0) {
         const releaseFromThisRecord = Math.min(recordQty, remainingQtyToRelease);
 
         if (releaseFromThisRecord === recordQty) {
-          if (isFromUnrestricted) {
+          if (isFromPP) {
+            // PP: Keep as Allocated, no release
+            recordsToUpdate.push({
+              ...allocatedRecord,
+              reserved_qty: allocatedRecord.reserved_qty,
+              open_qty: allocatedRecord.reserved_qty,
+              status: "Allocated",
+            });
+          } else if (isFromUnrestricted) {
             recordsToUpdate.push({
               ...allocatedRecord,
               reserved_qty: allocatedRecord.reserved_qty,
@@ -184,14 +232,18 @@ if (matchedAllocatedRecords.length > 0) {
             }
           }
         } else {
-          recordsToUpdate.push({
-            ...allocatedRecord,
-            reserved_qty: recordQty - releaseFromThisRecord,
-            open_qty: recordQty - releaseFromThisRecord,
-            status: "Allocated",
-          });
+          // Partial release
+          if (isFromPP) {
+            // PP: Keep as Allocated, no partial release - don't reduce the record
+            remainingQtyToRelease = 0;
+          } else if (isFromUnrestricted) {
+            recordsToUpdate.push({
+              ...allocatedRecord,
+              reserved_qty: recordQty - releaseFromThisRecord,
+              open_qty: recordQty - releaseFromThisRecord,
+              status: "Allocated",
+            });
 
-          if (isFromUnrestricted) {
             const { _id, id, ...recordWithoutId } = allocatedRecord;
             recordToCreate = {
               ...recordWithoutId,
@@ -204,6 +256,14 @@ if (matchedAllocatedRecords.length > 0) {
             };
             unrestrictedQtyToAdd += releaseFromThisRecord;
           } else {
+            // SO/PR: Reduce record and create pending
+            recordsToUpdate.push({
+              ...allocatedRecord,
+              reserved_qty: recordQty - releaseFromThisRecord,
+              open_qty: recordQty - releaseFromThisRecord,
+              status: "Allocated",
+            });
+
             const existingPending = findExistingPendingToMerge(
               allocatedRecord.doc_type,
               allocatedRecord.parent_line_id,
@@ -273,12 +333,20 @@ if (matchedAllocatedRecords.length > 0) {
 
   if (quantity > totalAllocatedQty) {
     for (const allocatedRecord of matchedAllocatedRecords) {
+      const isFromPP = allocatedRecord.doc_type === "Picking Plan";
+
       recordsToUpdate.push({
         ...allocatedRecord,
         reserved_qty: allocatedRecord.reserved_qty,
         open_qty: 0,
         delivered_qty: (allocatedRecord.delivered_qty || 0) + allocatedRecord.open_qty,
         status: "Delivered",
+        // Switch doc fields to GD if from PP
+        doc_id: isFromPP ? docId : allocatedRecord.doc_id,
+        doc_no: isFromPP ? docNo : allocatedRecord.doc_no,
+        doc_line_id: isFromPP ? docLineId : allocatedRecord.doc_line_id,
+        doc_type: isFromPP ? "Good Delivery" : allocatedRecord.doc_type,
+        target_gd_id: isFromPP ? docId : allocatedRecord.target_gd_id,
       });
     }
     reservedQtyToSubtract = totalAllocatedQty;

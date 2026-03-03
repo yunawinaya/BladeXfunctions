@@ -1,58 +1,50 @@
 (async () => {
-  const currentPPArray = this.getValue(`dialog_select_picking.item_array`);
-  const selectedPPItem = arguments[0].$eventArgs[0];
+  const currentPickingArray = this.getValue(`dialog_select_picking.item_array`);
+  const selectedPickingItem = arguments[0].$eventArgs[0];
   const referenceType = this.getValue(`dialog_select_picking.reference_type`);
 
   console.log("arguments[0].$eventArgs[0]", arguments[0].$eventArgs[0]);
-  const index = currentPPArray.findIndex(
-    (item) => item.picking_plan_line_id === selectedPPItem.id
+  const index = currentPickingArray.findIndex(
+    (item) => item.picking_record_id === selectedPickingItem.id,
   );
   if (index !== -1) {
-    currentPPArray.splice(index, 1);
+    currentPickingArray.splice(index, 1);
   } else {
-    currentPPArray.push({
-      picking_plan_line_id: selectedPPItem.id,
-      item: selectedPPItem.material_id,
-      picking_plan: selectedPPItem.picking_plan_id,
-      customer_id: selectedPPItem.customer_id,
-      to_desc: selectedPPItem.to_material_desc,
-      more_desc: selectedPPItem.more_desc,
-      to_order_quantity: selectedPPItem.to_order_quantity,
-      to_qty: selectedPPItem.to_qty,
-      to_order_uom_id: selectedPPItem.to_order_uom_id.id,
-      base_uom_id: selectedPPItem.base_uom_id,
-      temp_qty_data: selectedPPItem.temp_qty_data,
-      gd_temp_qty_data: selectedPPItem.gd_temp_qty_data,
-      view_stock: selectedPPItem.view_stock,
-      fifo_sequence: selectedPPItem.fifo_sequence,
-      item_category_id: selectedPPItem.item_category_id.id,
-      line_so_id: selectedPPItem.line_so_id.id,
-      line_so_no: selectedPPItem.line_so_no,
-      item_costing_method: selectedPPItem.item_costing_method,
-      so_line_item_id: selectedPPItem.so_line_item_id.id,
-      unit_price: selectedPPItem.unit_price,
-      total_price: selectedPPItem.total_price,
-      line_remark_1: selectedPPItem.line_remark_1,
-      line_remark_2: selectedPPItem.line_remark_2,
-      gd_undelivered_qty: selectedPPItem.gd_undelivered_qty,
-      gd_delivered_qty: selectedPPItem.gd_delivered_qty,
-      delivery_status: selectedPPItem.delivery_status,
+    currentPickingArray.push({
+      picking_record_id: selectedPickingItem.id,
+      picking_data: selectedPickingItem.transfer_order_id,
+      item: selectedPickingItem.item_code,
+      store_out_qty: selectedPickingItem.store_out_qty,
+      delivered_qty: selectedPickingItem.delivered_qty,
+      uom_id: selectedPickingItem.item_uom.id,
+      location_id: selectedPickingItem.target_location.id,
+      pp_id: selectedPickingItem.to_id.id,
+      pp_line_id: selectedPickingItem.to_line_id.id,
+      delivery_status: selectedPickingItem.delivery_status,
+      // SO information
+      so_id: selectedPickingItem.so_id.id,
+      so_no: selectedPickingItem.so_no,
+      so_line_id: selectedPickingItem.so_line_id.id,
+      // Batch information
+      batch_no: selectedPickingItem.target_batch.id,
+      // Customer information (from picking/transfer_order)
+      customer_id: selectedPickingItem.transfer_order_id?.customer_id,
     });
   }
 
-  console.log("currentPPArray", currentPPArray);
+  console.log("currentPickingArray", currentPickingArray);
 
-  const updatedPPNumber = currentPPArray.map(
-    (item) => item.picking_plan.to_no + "\t" + item.item.material_code
+  const updatedPickingNumber = currentPickingArray.map(
+    (item) => item.picking_data.to_id + "\t" + item.item.material_code,
   );
 
-  console.log("updatedPPNumber", updatedPPNumber.join(", "));
+  console.log("updatedPickingNumber", updatedPickingNumber.join(", "));
 
   this.setData({
     ...(!referenceType || referenceType === ""
       ? { [`dialog_select_picking.reference_type`]: "Item" }
       : {}),
-    [`dialog_select_picking.to_number_array`]: updatedPPNumber.join(`\n`),
-    [`dialog_select_picking.item_array`]: currentPPArray,
+    [`dialog_select_picking.to_number_array`]: updatedPickingNumber.join(`\n`),
+    [`dialog_select_picking.item_array`]: currentPickingArray,
   });
 })();

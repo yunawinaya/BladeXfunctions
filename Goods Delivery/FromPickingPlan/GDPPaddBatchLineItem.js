@@ -114,9 +114,12 @@ const createTableGdWithBaseUOM = async (allItems) => {
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
-        line_to_id: item.pp_id,
-        line_to_no: item.pp_no,
-        to_line_item_id: item.pp_line_id,
+        // Picking Plan reference
+        line_pp_id: item.pp_id,
+        pp_line_item_id: item.pp_line_id,
+        // Picking (transfer_order) reference
+        line_to_id: item.picking_id,
+        line_to_no: item.picking_no,
         item_category_id: item.item_category_id,
         temp_qty_data: addGdQuantityToTempData(item.temp_qty_data),
         plan_temp_qty_data: item.temp_qty_data,
@@ -149,9 +152,12 @@ const createTableGdWithBaseUOM = async (allItems) => {
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
-        line_to_id: item.pp_id,
-        line_to_no: item.pp_no,
-        to_line_item_id: item.pp_line_id,
+        // Picking Plan reference
+        line_pp_id: item.pp_id,
+        pp_line_item_id: item.pp_line_id,
+        // Picking (transfer_order) reference
+        line_to_id: item.picking_id,
+        line_to_no: item.picking_no,
         item_category_id: item.item_category_id,
         temp_qty_data: addGdQuantityToTempData(item.temp_qty_data),
         plan_temp_qty_data: item.temp_qty_data,
@@ -193,6 +199,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   let allItems = [];
   let salesOrderNumber = [];
+  let pickingNumber = [];
   let soId = [];
 
   if (currentItemArray.length === 0) {
@@ -223,12 +230,13 @@ const createTableGdWithBaseUOM = async (allItems) => {
   }
 
   const uniqueCustomer = new Set(
-    currentItemArray.map((so) =>
-      referenceType === "Document"
-        ? Array.isArray(so.customer_id)
-          ? so.customer_id[0]
-          : so.customer_id
-        : so.customer_id.id,
+    currentItemArray.map(
+      (item) =>
+        referenceType === "Document"
+          ? Array.isArray(item.customer_id)
+            ? item.customer_id[0]
+            : item.customer_id
+          : item.customer_id, // Item mode: customer_id is direct value
     ),
   );
   const allSameCustomer = uniqueCustomer.size === 1;
@@ -266,91 +274,403 @@ const createTableGdWithBaseUOM = async (allItems) => {
   this.closeDialog("dialog_select_picking");
   this.showLoading();
 
+  // ========================================================================
+  // Step 1: Batch fetch SO data for original order quantities
+  // SO line data is embedded in sales_order.table_so
+  // ========================================================================
+  const allSoIds = [];
+  if (referenceType === "Document") {
+    // Document mode: SO IDs are in picking_record_data
+    for (const picking of currentItemArray) {
+      for (const record of picking.picking_record_data || []) {
+        if (record.so_id) allSoIds.push(record.so_id);
+      }
+    }
+  } else {
+    // Item mode: SO IDs are directly in currentItemArray
+    for (const item of currentItemArray) {
+      if (item.so_id) allSoIds.push(item.so_id);
+    }
+  }
+
+  const soLineMap = new Map(); // Maps so_line_id -> { so_quantity, ... }
+  if (allSoIds.length > 0) {
+    const uniqueSoIds = [...new Set(allSoIds)];
+    try {
+      const soResult = await db
+        .collection("sales_order")
+        .filter([
+          {
+            type: "branch",
+            operator: "all",
+            children: [{ prop: "id", operator: "in", value: uniqueSoIds }],
+          },
+        ])
+        .get();
+
+      // Build map from so_line_id to line item data
+      (soResult.data || []).forEach((so) => {
+        (so.table_so || []).forEach((line) => {
+          soLineMap.set(line.id, line);
+        });
+      });
+      console.log(
+        `Fetched ${soResult.data?.length || 0} SO documents, mapped ${soLineMap.size} SO lines`,
+      );
+    } catch (error) {
+      console.error("Error fetching SO data:", error);
+    }
+  }
+
+  // ========================================================================
+  // Step 2: Collect all location and batch IDs for batch fetching
+  // ========================================================================
+  const allLocationIds = new Set();
+  const allBatchIds = new Set();
+  const allUomIds = new Set();
+
+  if (referenceType === "Document") {
+    for (const picking of currentItemArray) {
+      for (const record of picking.picking_record_data || []) {
+        if (record.target_location) allLocationIds.add(record.target_location);
+        if (record.batch_no) allBatchIds.add(record.batch_no);
+        if (record.target_batch) allBatchIds.add(record.target_batch);
+        if (record.item_uom) allUomIds.add(record.item_uom);
+      }
+    }
+  } else {
+    for (const item of currentItemArray) {
+      if (item.location_id) allLocationIds.add(item.location_id);
+      if (item.batch_no) allBatchIds.add(item.batch_no);
+      if (item.uom_id) allUomIds.add(item.uom_id);
+    }
+  }
+
+  // Batch fetch location names
+  const locationMap = new Map();
+  if (allLocationIds.size > 0) {
+    try {
+      const locationResult = await db
+        .collection("bin_location")
+        .filter([
+          {
+            type: "branch",
+            operator: "all",
+            children: [
+              { prop: "id", operator: "in", value: [...allLocationIds] },
+            ],
+          },
+        ])
+        .get();
+      (locationResult.data || []).forEach((loc) => {
+        locationMap.set(loc.id, loc.bin_location_combine || loc.id);
+      });
+      console.log(`Fetched ${locationMap.size} location names`);
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+    }
+  }
+
+  // Batch fetch batch names
+  const batchMap = new Map();
+  if (allBatchIds.size > 0) {
+    try {
+      const batchResult = await db
+        .collection("batch")
+        .filter([
+          {
+            type: "branch",
+            operator: "all",
+            children: [{ prop: "id", operator: "in", value: [...allBatchIds] }],
+          },
+        ])
+        .get();
+      (batchResult.data || []).forEach((batch) => {
+        batchMap.set(batch.id, batch.batch_number || batch.id);
+      });
+      console.log(`Fetched ${batchMap.size} batch names`);
+    } catch (error) {
+      console.error("Error fetching batches:", error);
+    }
+  }
+
+  // Batch fetch UOM names
+  const uomMap = new Map();
+  if (allUomIds.size > 0) {
+    try {
+      const uomResult = await db
+        .collection("unit_of_measurement")
+        .filter([
+          {
+            type: "branch",
+            operator: "all",
+            children: [{ prop: "id", operator: "in", value: [...allUomIds] }],
+          },
+        ])
+        .get();
+      (uomResult.data || []).forEach((uom) => {
+        uomMap.set(uom.id, uom.uom_name || uom.id);
+      });
+      console.log(`Fetched ${uomMap.size} UOM names`);
+    } catch (error) {
+      console.error("Error fetching UOMs:", error);
+    }
+  }
+
+  // Helper function to build view_stock string for locations
+  const buildMultiLocationViewStock = (locationBatchInfo, uomId) => {
+    const uomName = uomMap.get(uomId) || "";
+    const totalQty = locationBatchInfo.reduce((sum, info) => sum + info.qty, 0);
+
+    let viewStock = `Total: ${totalQty} ${uomName}\n\nDETAILS:\n`;
+
+    locationBatchInfo.forEach((info, index) => {
+      const locationName =
+        locationMap.get(info.locationId) || info.locationId || "Unknown";
+      viewStock += `${index + 1}. ${locationName}: ${info.qty} ${uomName}`;
+
+      if (info.batchId) {
+        const batchName = batchMap.get(info.batchId) || info.batchId;
+        viewStock += `\n[Batch: ${batchName}]`;
+      }
+
+      if (index < locationBatchInfo.length - 1) viewStock += "\n";
+    });
+
+    return viewStock;
+  };
+
+  // ========================================================================
+  // Step 3: Process picking records based on reference type
+  // ========================================================================
   switch (referenceType) {
     case "Document":
-      // Document mode: Take all items from selected Picking Plan(s)
-      // Filter out fully delivered line items from table_to
-      for (const pp of currentItemArray) {
-        // Filter table_to to exclude fully delivered line items
-        const availableLineItems = (pp.table_to || []).filter(
-          (lineItem) => lineItem.delivery_status !== "Fully Delivered",
-        );
+      // Document mode: Group picking records by pp_line_id + material_id
+      const groupedItemsDoc = new Map(); // Key: `${record.to_line_id}|${record.item_code}`
+
+      for (const picking of currentItemArray) {
+        const pickingRecords = picking.picking_record_data || [];
 
         console.log(
-          `PP ${pp.to_no}: ${pp.table_to.length} total items, ${
-            availableLineItems.length
-          } available (${
-            pp.table_to.length - availableLineItems.length
-          } fully delivered)`,
+          `Picking ${picking.to_no}: ${pickingRecords.length} picking records`,
         );
 
-        for (const ppItem of availableLineItems) {
-          console.log("ppItem", ppItem);
-          allItems.push({
-            itemId: ppItem.material_id,
-            itemName: ppItem.material_name,
-            itemDesc: ppItem.to_material_desc || "",
-            orderedQty: parseFloat(ppItem.to_order_quantity || 0), // Original SO quantity
-            pickedQty: parseFloat(ppItem.to_qty || 0), // Actually picked quantity
-            deliveredQty: parseFloat(ppItem.gd_delivered_qty || 0), // Already delivered via GD (field from PP)
-            delivery_status: ppItem.delivery_status || "", // Line item delivery status
-            altUOM: ppItem.to_order_uom_id || "",
-            baseUOM: ppItem.base_uom_id || "",
-            sourceItem: ppItem,
-            original_so_id: ppItem.line_so_id, // SO header ID
-            so_no: ppItem.line_so_no, // SO number
-            so_line_item_id: ppItem.so_line_item_id, // SO line item ID
-            pp_id: pp.picking_plan_id,
-            pp_no: pp.to_no,
-            pp_line_id: ppItem.id,
-            item_category_id: ppItem.item_category_id,
-            temp_qty_data: ppItem.temp_qty_data, // Location/batch details
-            view_stock: ppItem.view_stock,
-            fifo_sequence: ppItem.fifo_sequence,
-            unit_price: ppItem.unit_price,
-            total_price: ppItem.total_price,
-            item_costing_method: ppItem.item_costing_method,
-            plant_id: ppItem.plant_id,
-            customer_id: ppItem.customer_id,
-            is_force_complete: ppItem.is_force_complete || 0,
-            picking_status: ppItem.picking_status,
-          });
+        for (const record of pickingRecords) {
+          // Skip fully delivered records
+          const storeOutQty = parseFloat(record.store_out_qty || 0);
+          const deliveredQty = parseFloat(record.delivered_qty || 0);
+          if (deliveredQty >= storeOutQty) {
+            console.log(
+              `Skipping ${record.item_name}: fully delivered (${deliveredQty}/${storeOutQty})`,
+            );
+            continue;
+          }
+
+          const groupKey = `${record.to_line_id}|${record.item_code}`;
+          const remainingQty = storeOutQty - deliveredQty;
+          const batchId = record.batch_no || record.target_batch;
+
+          const tempEntry = {
+            location_id: record.target_location,
+            batch_id: batchId,
+            to_quantity: storeOutQty,
+            gd_quantity: remainingQty,
+            picking_record_id: record.id,
+          };
+
+          if (!groupedItemsDoc.has(groupKey)) {
+            // First record for this group - initialize
+            const soLine = soLineMap.get(record.so_line_id);
+            const orderedQty = soLine?.so_quantity || storeOutQty;
+
+            console.log("pickingRecord (first in group)", record);
+            groupedItemsDoc.set(groupKey, {
+              itemId: record.item_code,
+              itemName: record.item_name,
+              itemDesc: "",
+              orderedQty: parseFloat(orderedQty),
+              pickedQty: storeOutQty,
+              deliveredQty: deliveredQty,
+              altUOM: record.item_uom,
+              baseUOM: record.item_uom,
+              sourceItem: record,
+              original_so_id: record.so_id,
+              so_no: record.so_no,
+              so_line_item_id: record.so_line_id,
+              pp_id: record.to_id,
+              pp_line_id: record.to_line_id,
+              picking_id: picking.to_id,
+              picking_no: picking.to_no,
+              customer_id: picking.customer_id?.[0],
+              tempEntries: [tempEntry],
+              locationBatchInfo: [
+                {
+                  locationId: record.target_location,
+                  batchId,
+                  qty: remainingQty,
+                  uomId: record.item_uom,
+                },
+              ],
+            });
+          } else {
+            // Existing group - merge
+            console.log("pickingRecord (merging into group)", record);
+            const existing = groupedItemsDoc.get(groupKey);
+            existing.pickedQty += storeOutQty;
+            existing.deliveredQty += deliveredQty;
+            existing.tempEntries.push(tempEntry);
+            existing.locationBatchInfo.push({
+              locationId: record.target_location,
+              batchId,
+              qty: remainingQty,
+              uomId: record.item_uom,
+            });
+          }
         }
+      }
+
+      // Convert grouped items to allItems array
+      for (const [, group] of groupedItemsDoc) {
+        const tempQtyData = JSON.stringify(group.tempEntries);
+        const viewStock = buildMultiLocationViewStock(
+          group.locationBatchInfo,
+          group.altUOM,
+        );
+
+        allItems.push({
+          itemId: group.itemId,
+          itemName: group.itemName,
+          itemDesc: group.itemDesc,
+          orderedQty: group.orderedQty,
+          pickedQty: group.pickedQty,
+          deliveredQty: group.deliveredQty,
+          altUOM: group.altUOM,
+          baseUOM: group.baseUOM,
+          sourceItem: group.sourceItem,
+          original_so_id: group.original_so_id,
+          so_no: group.so_no,
+          so_line_item_id: group.so_line_item_id,
+          pp_id: group.pp_id,
+          pp_line_id: group.pp_line_id,
+          picking_id: group.picking_id,
+          picking_no: group.picking_no,
+          customer_id: group.customer_id,
+          temp_qty_data: tempQtyData,
+          view_stock: viewStock,
+        });
       }
       break;
 
     case "Item":
-      // Item mode: Take selected individual PP line items
-      for (const ppItem of currentItemArray) {
-        console.log("ppItem (Item mode)", ppItem);
+      // Item mode: Group selected items by pp_line_id + material_id
+      const groupedItemsItem = new Map(); // Key: `${pp_line_id}|${item_id}`
+
+      for (const pickingItem of currentItemArray) {
+        console.log("pickingItem (Item mode)", pickingItem);
+
+        // Skip fully delivered records
+        const storeOutQty = parseFloat(pickingItem.store_out_qty || 0);
+        const deliveredQty = parseFloat(pickingItem.delivered_qty || 0);
+        if (deliveredQty >= storeOutQty) {
+          console.log(
+            `Skipping ${pickingItem.item?.material_code}: fully delivered`,
+          );
+          continue;
+        }
+
+        const ppLineId = pickingItem.pp_line_id || "";
+        const itemId = pickingItem.item?.id || "";
+        const groupKey = `${ppLineId}|${itemId}`;
+
+        const remainingQty = storeOutQty - deliveredQty;
+        const batchId = pickingItem.batch_no;
+
+        const tempEntry = {
+          location_id: pickingItem.location_id,
+          batch_id: batchId,
+          to_quantity: storeOutQty,
+          gd_quantity: remainingQty,
+          picking_record_id: pickingItem.picking_record_id,
+        };
+
+        if (!groupedItemsItem.has(groupKey)) {
+          // First record for this group - initialize
+          const soLine = soLineMap.get(pickingItem.so_line_id);
+          const orderedQty = soLine?.so_quantity || storeOutQty;
+
+          console.log("pickingItem (first in group)", pickingItem);
+          groupedItemsItem.set(groupKey, {
+            itemId: itemId,
+            itemName: pickingItem.item?.material_code || "",
+            itemDesc: "",
+            orderedQty: parseFloat(orderedQty),
+            pickedQty: storeOutQty,
+            deliveredQty: deliveredQty,
+            altUOM: pickingItem.uom_id,
+            baseUOM: pickingItem.uom_id,
+            sourceItem: pickingItem,
+            original_so_id: pickingItem.so_id,
+            so_no: pickingItem.so_no,
+            so_line_item_id: pickingItem.so_line_id,
+            pp_id: pickingItem.pp_id,
+            pp_line_id: pickingItem.pp_line_id,
+            picking_id: pickingItem.picking_data?.id,
+            picking_no: pickingItem.picking_data?.to_id,
+            customer_id: pickingItem.customer_id,
+            tempEntries: [tempEntry],
+            locationBatchInfo: [
+              {
+                locationId: pickingItem.location_id,
+                batchId,
+                qty: remainingQty,
+                uomId: pickingItem.uom_id,
+              },
+            ],
+          });
+        } else {
+          // Existing group - merge
+          console.log("pickingItem (merging into group)", pickingItem);
+          const existing = groupedItemsItem.get(groupKey);
+          existing.pickedQty += storeOutQty;
+          existing.deliveredQty += deliveredQty;
+          existing.tempEntries.push(tempEntry);
+          existing.locationBatchInfo.push({
+            locationId: pickingItem.location_id,
+            batchId,
+            qty: remainingQty,
+            uomId: pickingItem.uom_id,
+          });
+        }
+      }
+
+      // Convert grouped items to allItems array
+      for (const [, group] of groupedItemsItem) {
+        const tempQtyData = JSON.stringify(group.tempEntries);
+        const viewStock = buildMultiLocationViewStock(
+          group.locationBatchInfo,
+          group.altUOM,
+        );
+
         allItems.push({
-          itemId: ppItem.item.id,
-          itemName: ppItem.item.material_code,
-          itemDesc: ppItem.to_material_desc || "",
-          orderedQty: parseFloat(ppItem.to_order_quantity || 0), // SO ordered qty
-          pickedQty: parseFloat(ppItem.to_qty || 0), // Actually picked qty
-          deliveredQty: parseFloat(ppItem.gd_delivered_qty || 0), // Already delivered via GD (field from PP)
-          delivery_status: ppItem.delivery_status || "", // Line item delivery status
-          altUOM: ppItem.to_order_uom_id || "",
-          baseUOM: ppItem.base_uom_id || "",
-          sourceItem: ppItem,
-          original_so_id: ppItem.line_so_id,
-          so_no: ppItem.line_so_no,
-          so_line_item_id: ppItem.so_line_item_id,
-          pp_id: ppItem.picking_plan.id,
-          pp_no: ppItem.picking_plan.to_no,
-          pp_line_id: ppItem.picking_plan_line_id,
-          item_category_id: ppItem.item_category_id,
-          temp_qty_data: ppItem.temp_qty_data,
-          view_stock: ppItem.view_stock,
-          fifo_sequence: ppItem.fifo_sequence,
-          unit_price: ppItem.unit_price,
-          total_price: ppItem.total_price,
-          item_costing_method: ppItem.item_costing_method,
-          plant_id: ppItem.plant_id,
-          customer_id: ppItem.customer_id.id,
-          is_force_complete: ppItem.is_force_complete || 0,
-          picking_status: ppItem.picking_plan.picking_status,
+          itemId: group.itemId,
+          itemName: group.itemName,
+          itemDesc: group.itemDesc,
+          orderedQty: group.orderedQty,
+          pickedQty: group.pickedQty,
+          deliveredQty: group.deliveredQty,
+          altUOM: group.altUOM,
+          baseUOM: group.baseUOM,
+          sourceItem: group.sourceItem,
+          original_so_id: group.original_so_id,
+          so_no: group.so_no,
+          so_line_item_id: group.so_line_item_id,
+          pp_id: group.pp_id,
+          pp_line_id: group.pp_line_id,
+          picking_id: group.picking_id,
+          picking_no: group.picking_no,
+          customer_id: group.customer_id,
+          temp_qty_data: tempQtyData,
+          view_stock: viewStock,
         });
       }
       break;
@@ -359,22 +679,47 @@ const createTableGdWithBaseUOM = async (allItems) => {
   console.log("allItems", allItems);
 
   // Filter out items that:
-  // 1. Are fully delivered (delivery_status === "Fully Delivered")
-  // 2. Are already in the existing GD (match by pp_line_id to avoid duplicates)
+  // 1. Are fully delivered (deliveredQty >= pickedQty)
+  // 2. Are already in the existing GD (match by picking_record_id in temp_qty_data to avoid duplicates)
   allItems = allItems.filter((item) => {
-    const fullyDelivered = item.delivery_status === "Fully Delivered";
-    const alreadyInGD = existingGD.find(
-      (gdItem) => gdItem.pp_line_id === item.pp_line_id,
-    );
+    const fullyDelivered = item.deliveredQty >= item.pickedQty;
+
+    // Get all picking_record_ids from this item's temp_qty_data
+    let itemPickingRecordIds = [];
+    try {
+      const itemTempData = JSON.parse(item.temp_qty_data || "[]");
+      itemPickingRecordIds = itemTempData
+        .map((entry) => entry.picking_record_id)
+        .filter(Boolean);
+    } catch (e) {
+      console.error("Error parsing item temp_qty_data:", e);
+    }
+
+    // Check if ANY picking_record_id exists in any existing GD's temp_qty_data
+    const alreadyInGD = itemPickingRecordIds.length > 0 && existingGD.some((gdItem) => {
+      if (!gdItem.temp_qty_data) return false;
+      try {
+        const gdTempData = JSON.parse(gdItem.temp_qty_data);
+        const gdPickingRecordIds = gdTempData
+          .map((entry) => entry.picking_record_id)
+          .filter(Boolean);
+        // Check if any of item's picking_record_ids are in GD's picking_record_ids
+        return itemPickingRecordIds.some((id) =>
+          gdPickingRecordIds.includes(id),
+        );
+      } catch (e) {
+        return false;
+      }
+    });
 
     if (fullyDelivered) {
       console.log(
-        `Filtering out ${item.itemName}: ${item.delivery_status} (${item.deliveredQty}/${item.pickedQty})`,
+        `Filtering out ${item.itemName}: fully delivered (${item.deliveredQty}/${item.pickedQty})`,
       );
     }
     if (alreadyInGD) {
       console.log(
-        `Filtering out ${item.itemName}: already in GD (pp_line_id: ${item.pp_line_id})`,
+        `Filtering out ${item.itemName}: already in GD (picking_record_ids: ${itemPickingRecordIds.join(", ")})`,
       );
     }
 
@@ -387,11 +732,19 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   const latestTableGD = [...existingGD, ...newTableGd];
 
-  soId = [...new Set(latestTableGD.map((gr) => gr.line_so_id))];
-  salesOrderNumber = [...new Set(latestTableGD.map((gr) => gr.line_so_no))];
+  soId = [...new Set(latestTableGD.map((gd) => gd.line_so_id))];
+  salesOrderNumber = [...new Set(latestTableGD.map((gd) => gd.line_so_no))];
+  pickingNumber = [...new Set(latestTableGD.map((gd) => gd.line_to_no))];
 
-  // Collect unique PP numbers for reference
-  const ppNumbers = [...new Set(latestTableGD.map((gr) => gr.line_to_no))];
+  // Collect unique Picking numbers for reference (line_to_no = picking number)
+  const pickingNumbers = [
+    ...new Set(latestTableGD.map((gd) => gd.line_to_no).filter(Boolean)),
+  ];
+
+  // Collect unique PP IDs for reference
+  const ppIds = [
+    ...new Set(latestTableGD.map((gd) => gd.line_pp_id).filter(Boolean)),
+  ];
 
   await this.setData({
     currency_code:
@@ -401,15 +754,21 @@ const createTableGdWithBaseUOM = async (allItems) => {
     customer_name:
       referenceType === "Document"
         ? currentItemArray[0].customer_id[0]
-        : currentItemArray[0].customer_id.id,
+        : currentItemArray[0].customer_id, // Item mode: customer_id is direct value
     table_gd: latestTableGD,
     so_no: salesOrderNumber.join(", "),
+    to_no: pickingNumber.join(", "),
     so_id: soId,
-    pp_no: ppNumbers.join(", "), // Add PP reference
+    pp_id: ppIds, // Add PP IDs reference
+    picking_no: pickingNumbers.join(", "), // Add Picking reference
     reference_type: referenceType,
   });
 
-  await this.display(["table_gd.line_to_no", "table_gd.plan_qty"]);
+  await this.display([
+    "table_gd.line_to_no",
+    "table_gd.plan_qty",
+    "table_gd.view_stock",
+  ]);
 
   // GDPP: Enable/disable fields based on temp_qty_data length
   setTimeout(() => {

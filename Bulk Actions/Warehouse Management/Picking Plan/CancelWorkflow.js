@@ -187,6 +187,7 @@ const runPPWorkflow = async (data) => {
 
       this.hideLoading();
       this.refresh();
+      this.hide("custom_41s73hyl");
     } else {
       this.hideLoading();
       this.$message.error("Please select at least one record.");

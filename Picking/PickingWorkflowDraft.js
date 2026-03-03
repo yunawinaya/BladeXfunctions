@@ -1,8 +1,12 @@
-const closeDialog = () => {
+const closeDialog = (data) => {
   if (this.parentGenerateForm) {
     this.parentGenerateForm.$refs.SuPageDialogRef.hide();
     this.parentGenerateForm.refresh();
-    this.parentGenerateForm.hide("tabs_picking");
+    if (data.to_no && data.to_no.length > 0) {
+      this.parentGenerateForm.hide("custom_41s73hyl");
+    } else {
+      this.parentGenerateForm.hide("tabs_picking");
+    }
   }
 };
 
@@ -65,7 +69,7 @@ const closeDialog = () => {
         workflowResult.data.msg ||
         "Picking saved successfully";
       this.$message.success(successMessage);
-      closeDialog();
+      closeDialog(arrayData[0]);
     } else {
       this.hideLoading();
       this.$message.error("Unknown workflow status");

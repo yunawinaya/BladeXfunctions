@@ -550,14 +550,18 @@ const checkInventoryWithDuplicates = async (
       0,
     );
 
-    // 🔧 NEW: Calculate total pending reserved qty for all SO lines of this material
+    // 🔧 FIXED: Calculate total pending reserved qty WITH UOM conversion to base
     // Reserved stock for a specific SO is AVAILABLE for that SO
     let totalPendingReservedQtyBase = 0;
     items.forEach((item) => {
       if (item.so_line_item_id) {
         const reservedData = pendingReservedMap.get(item.so_line_item_id) || [];
         reservedData.forEach((reserved) => {
-          totalPendingReservedQtyBase += parseFloat(reserved.open_qty || 0);
+          const altQty = parseFloat(reserved.open_qty || 0);
+          const altUOM = reserved.item_uom;
+          // Convert to base UOM before summing
+          const baseQty = convertToBaseUOM(altQty, altUOM, itemData);
+          totalPendingReservedQtyBase += baseQty;
         });
       }
     });

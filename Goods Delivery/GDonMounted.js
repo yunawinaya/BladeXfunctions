@@ -321,7 +321,7 @@ const setPickingSetup = async (data) => {
       this.display("assigned_to");
     } else if (pickingSetupResponse.data[0].picking_after === "Sales Order") {
       this.setData({ is_select_picking: 1 });
-      this.display("pp_no");
+      this.display("to_no");
       this.hide("button_save_as_created");
     }
   }

@@ -18,14 +18,50 @@
   // Get item data to check if it's serialized
   let isSerializedItem = false;
   let isBatchManagedItem = false;
+  let itemData = null;
 
   if (materialId) {
     const resItem = await db.collection("Item").where({ id: materialId }).get();
     if (resItem.data && resItem.data[0]) {
-      isSerializedItem = resItem.data[0].serial_number_management === 1;
-      isBatchManagedItem = resItem.data[0].item_batch_management === 1;
+      itemData = resItem.data[0];
+      isSerializedItem = itemData.serial_number_management === 1;
+      isBatchManagedItem = itemData.item_batch_management === 1;
     }
   }
+
+  // Helper function to convert quantity from alt UOM to base UOM
+  const convertToBaseUOM = (quantity, altUOM) => {
+    if (!itemData || !altUOM || altUOM === itemData.based_uom) {
+      return quantity;
+    }
+
+    const uomConversion = itemData.table_uom_conversion?.find(
+      (conv) => conv.alt_uom_id === altUOM,
+    );
+
+    if (uomConversion && uomConversion.base_qty) {
+      return quantity * uomConversion.base_qty;
+    }
+
+    return quantity;
+  };
+
+  // Helper function to convert quantity from base UOM to alt UOM
+  const convertFromBaseUOM = (quantity, altUOM) => {
+    if (!itemData || !altUOM || altUOM === itemData.based_uom) {
+      return quantity;
+    }
+
+    const uomConversion = itemData.table_uom_conversion?.find(
+      (conv) => conv.alt_uom_id === altUOM,
+    );
+
+    if (uomConversion && uomConversion.base_qty) {
+      return quantity / uomConversion.base_qty;
+    }
+
+    return quantity;
+  };
 
   console.log(
     `Item type: Serialized=${isSerializedItem}, Batch=${isBatchManagedItem}`,
@@ -91,7 +127,7 @@
         alert(
           `Row ${
             idx + 1
-          }: Quantity exceeds picked quantity from Picking Plan (${to_quantity_field})`,
+          }: Quantity exceeds picked quantity from Picking (${to_quantity_field})`,
         );
         return;
       }
@@ -180,8 +216,14 @@
 
             if (pendingReservedRes?.data?.length > 0) {
               pendingReservedQty = pendingReservedRes.data.reduce(
-                (total, reserved) =>
-                  total + parseFloat(reserved.open_qty || 0),
+                (total, reserved) => {
+                  const altQty = parseFloat(reserved.open_qty || 0);
+                  const altUOM = reserved.item_uom;
+                  // Convert to base UOM, then to selected UOM for comparison
+                  const baseQty = convertToBaseUOM(altQty, altUOM);
+                  const convertedQty = convertFromBaseUOM(baseQty, selectedUOM);
+                  return total + convertedQty;
+                },
                 0,
               );
             }
@@ -243,8 +285,14 @@
 
             if (pendingReservedRes?.data?.length > 0) {
               pendingReservedQty = pendingReservedRes.data.reduce(
-                (total, reserved) =>
-                  total + parseFloat(reserved.open_qty || 0),
+                (total, reserved) => {
+                  const altQty = parseFloat(reserved.open_qty || 0);
+                  const altUOM = reserved.item_uom;
+                  // Convert to base UOM, then to selected UOM for comparison
+                  const baseQty = convertToBaseUOM(altQty, altUOM);
+                  const convertedQty = convertFromBaseUOM(baseQty, selectedUOM);
+                  return total + convertedQty;
+                },
                 0,
               );
             }

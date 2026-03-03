@@ -52,7 +52,7 @@
           [`table_gd.${rowIndex}.gd_qty`]: totalToQuantity,
         });
         alert(
-          `Quantity cannot exceed picked quantity from Picking Plan (${totalToQuantity})`,
+          `Quantity cannot exceed picked quantity from Picking (${totalToQuantity})`,
         );
         return;
       }
