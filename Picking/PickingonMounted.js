@@ -251,11 +251,6 @@ const disabledPickedQtyField = async () => {
 
 const PickingPlan = async () => {
   try {
-    const refDocType = await this.getValue("ref_doc_type");
-    if (refDocType === "Picking Plan") {
-      await this.hide(["gd_no", "delivery_no"]);
-    }
-
     const pickingSetup = await db
       .collection("picking_setup")
       .where({
@@ -267,17 +262,11 @@ const PickingPlan = async () => {
     if (pickingSetup.data && pickingSetup.data.length > 0) {
       if (pickingSetup.data[0].picking_after === "Goods Delivery") {
         await this.display(["button_completed"]);
-        await this.hide(["button_complete_pp"]);
       } else if (pickingSetup.data[0].picking_after === "Sales Order") {
-        await this.display(["button_complete_pp", "to_validity_period"]);
-        await this.hide([
-          "button_completed",
-          "button_created",
-          "button_save_as_draft",
-        ]);
+        await this.display(["to_validity_period", "to_no"]);
+        await this.hide(["gd_no", "delivery_no"]);
       } else {
         await this.display(["button_completed"]);
-        await this.hide(["button_complete_pp"]);
       }
     }
 
@@ -300,7 +289,7 @@ const PickingPlan = async () => {
   try {
     let pageStatus = "";
     const status = await this.getValue("to_status");
-    console.log("Debug", this.getValues());
+    console.log("Debug", status, this.getValues());
 
     if (this.isAdd) pageStatus = "Add";
     else if (this.isEdit) pageStatus = "Edit";
@@ -313,7 +302,9 @@ const PickingPlan = async () => {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
-    this.setData({ page_status: pageStatus });
+    console.log("pageStatus", pageStatus);
+    await this.setData({ page_status: pageStatus });
+    console.log("pageStatusData", this.getValue("page_status"));
 
     switch (pageStatus) {
       case "Add":
@@ -321,10 +312,9 @@ const PickingPlan = async () => {
         this.display(["draft_status"]);
         this.disabled("assigned_to", false);
         this.setData({
-          "table_picking_items.picked_qty": 0,
+          page_status: pageStatus,
           created_by: this.getVarGlobal("nickname"),
           movement_type: "Picking",
-          ref_doc_type: "Goods Delivery",
         });
 
         await setPlant(organizationId);
@@ -339,18 +329,12 @@ const PickingPlan = async () => {
         break;
 
       case "Edit":
-        this.setData({
-          "table_picking_items.picked_qty": 0,
-          "table_picking_items.remark": "",
-        });
+        // this.setData({
+        //   "table_picking_items.picked_qty": 0,
+        //   "table_picking_items.remark": "",
+        // });
         if (status !== "Draft") {
-          this.hide(["gd_no"]);
-          this.hide(["button_save_as_draft"]);
-          this.display(["delivery_no"]);
-
-          if (status !== "Created") {
-            this.hide(["button_created"]);
-          }
+          this.hide(["gd_no", "button_save_as_draft", "button_created"]);
         }
         await disabledField(status);
         await showStatusHTML(status);

@@ -4,8 +4,9 @@ const runPPWorkflow = async (data) => {
       "2021431201147527170",
       {
         allData: data,
-        saveAs: "Cancelled",
+        saveAs: "Created",
         pageStatus: "Edit",
+        isForceComplete: 1,
       },
       (res) => {
         console.log("Picking Plan workflow response:", res);
@@ -45,10 +46,10 @@ const runPPWorkflow = async (data) => {
       await this.$confirm(
         `You've selected ${
           pickingPlanNumbers.length
-        } picking plan(s) to cancel. <br> <strong>Picking Plan Numbers:</strong> <br>${pickingPlanNumbers.join(
+        } picking plan(s) to force complete. <br> <strong>Picking Plan Numbers:</strong> <br>${pickingPlanNumbers.join(
           ", ",
         )} <br>Do you want to proceed?`,
-        "Picking Plan Cancellation",
+        "Picking Plan Force Complete",
         {
           confirmButtonText: "Proceed",
           cancelButtonText: "Cancel",
@@ -90,7 +91,7 @@ const runPPWorkflow = async (data) => {
             const errorMessage =
               workflowResult.data.msg ||
               workflowResult.data.message ||
-              "Failed to cancel Picking Plan";
+              "Failed to force complete Picking Plan";
             results.push({
               to_no: toItem.to_no,
               success: false,
@@ -105,48 +106,6 @@ const runPPWorkflow = async (data) => {
             resultCode === 200 ||
             workflowResult.data.success === true
           ) {
-            // Handle picking status update
-            if (toItem.picking_status) {
-              const pickingFilter = new Filter().in("to_no", [id]).build();
-
-              const resPicking = await db
-                .collection("transfer_order")
-                .filter(pickingFilter)
-                .get();
-
-              if (resPicking && resPicking.data.length > 0) {
-                console.log("resPicking", resPicking);
-                const pickingList = resPicking.data;
-
-                for (const pickingData of pickingList) {
-                  for (const pickingItem of pickingData.table_picking_items) {
-                    if (pickingItem.to_id === id) {
-                      pickingItem.line_status = "Cancelled";
-                    }
-                  }
-
-                  const isAllPPCancelled =
-                    pickingData.table_picking_items.every(
-                      (item) => item.line_status === "Cancelled",
-                    );
-
-                  if (isAllPPCancelled) {
-                    pickingData.to_status = "Cancelled";
-                  }
-
-                  console.log("pickingData", pickingData);
-
-                  await db
-                    .collection("transfer_order")
-                    .doc(pickingData.id)
-                    .update({
-                      table_picking_items: pickingData.table_picking_items,
-                      to_status: pickingData.to_status,
-                    });
-                }
-              }
-            }
-
             results.push({
               to_no: toItem.to_no,
               success: true,
@@ -162,7 +121,7 @@ const runPPWorkflow = async (data) => {
           results.push({
             to_no: toItem.to_no,
             success: false,
-            error: error.message || "Failed to cancel",
+            error: error.message || "Failed to force complete",
           });
         }
       }
@@ -181,7 +140,7 @@ const runPPWorkflow = async (data) => {
         );
       } else {
         this.$message.success(
-          `All ${successCount} Picking Plan cancelled successfully`,
+          `All ${successCount} Picking Plan force completed successfully`,
         );
       }
 
