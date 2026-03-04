@@ -27,6 +27,14 @@
     if (isSelectPicking) {
       console.log("GDPP mode: Showing to_quantity, hiding balance columns");
       this.display("gd_item_balance.table_item_balance.to_quantity");
+      this.hide([
+        "gd_item_balance.table_item_balance.unrestricted_qty",
+        "gd_item_balance.table_item_balance.block_qty",
+        "gd_item_balance.table_item_balance.reserved_qty",
+        "gd_item_balance.table_item_balance.qualityinsp_qty",
+        "gd_item_balance.table_item_balance.intransit_qty",
+        "gd_item_balance.table_item_balance.balance_quantity",
+      ]);
     } else {
       console.log(
         "Regular GD mode: Hiding to_quantity, showing balance columns",
@@ -320,7 +328,6 @@
         .collection("picking_setup")
         .where({
           organization_id: organizationId,
-          picking_after: "Goods Delivery",
           is_deleted: 0,
         })
         .get();
@@ -652,10 +659,9 @@
         altUOM,
         baseUOM,
       );
-      const filteredData = filterZeroQuantityRecords(finalData, itemData);
 
-      console.log("Final filtered data (GDPP):", filteredData);
-      setTableBalanceData(filteredData, includeRawData);
+      console.log("Final data (GDPP):", finalData);
+      setTableBalanceData(finalData, includeRawData);
     };
 
     const processRegularMode = async (
