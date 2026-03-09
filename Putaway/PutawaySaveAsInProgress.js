@@ -16,125 +16,6 @@ const roundPrice = (value) => {
   return parseFloat(parseFloat(value || 0).toFixed(4));
 };
 
-const getPrefixData = async (organizationId) => {
-  console.log("Getting prefix data for organization:", organizationId);
-  try {
-    const prefixEntry = await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Transfer Order (Putaway)",
-        is_deleted: 0,
-        organization_id: organizationId,
-        is_active: 1,
-      })
-      .get();
-
-    console.log("Prefix data result:", prefixEntry);
-
-    if (!prefixEntry.data || prefixEntry.data.length === 0) {
-      console.log("No prefix configuration found");
-      return null;
-    }
-
-    return prefixEntry.data[0];
-  } catch (error) {
-    console.error("Error getting prefix data:", error);
-    throw error;
-  }
-};
-
-const updatePrefix = async (organizationId, runningNumber) => {
-  console.log(
-    "Updating prefix for organization:",
-    organizationId,
-    "with running number:",
-    runningNumber,
-  );
-  try {
-    await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Transfer Order (Putaway)",
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .update({
-        running_number: parseInt(runningNumber) + 1,
-        has_record: 1,
-      });
-    console.log("Prefix update successful");
-  } catch (error) {
-    console.error("Error updating prefix:", error);
-    throw error;
-  }
-};
-
-const generatePrefix = (runNumber, now, prefixData) => {
-  console.log("Generating prefix with running number:", runNumber);
-  try {
-    let generated = prefixData.current_prefix_config;
-    generated = generated.replace("prefix", prefixData.prefix_value);
-    generated = generated.replace("suffix", prefixData.suffix_value);
-    generated = generated.replace(
-      "month",
-      String(now.getMonth() + 1).padStart(2, "0"),
-    );
-    generated = generated.replace(
-      "day",
-      String(now.getDate()).padStart(2, "0"),
-    );
-    generated = generated.replace("year", now.getFullYear());
-    generated = generated.replace(
-      "running_number",
-      String(runNumber).padStart(prefixData.padding_zeroes, "0"),
-    );
-    console.log("Generated prefix:", generated);
-    return generated;
-  } catch (error) {
-    console.error("Error generating prefix:", error);
-    throw error;
-  }
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("transfer_order_putaway")
-    .where({
-      to_id: generatedPrefix,
-      organization_id: organizationId,
-      is_deleted: 0,
-    })
-    .get();
-
-  return !existingDoc.data || existingDoc.data.length === 0;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number || 1;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Putaway number after maximum attempts",
-    );
-  }
-
-  return { prefixToShow, runningNumber };
-};
-
 const validateForm = (data, requiredFields) => {
   const missingFields = [];
 
@@ -1756,6 +1637,7 @@ const processInventoryMovementandBalanceTable = async (
     const data = await this.getValues();
     const page_status = data.page_status;
     const originalToStatus = data.to_status;
+    let toData = data;
 
     // Define required fields
     const requiredFields = [
@@ -1773,10 +1655,18 @@ const processInventoryMovementandBalanceTable = async (
       },
     ];
 
-    await this.validate("to_id");
+    if (
+      toData.to_id_type !== -9999 &&
+      (!toData.to_id ||
+        toData.to_id === null ||
+        toData.to_id === "" ||
+        toData.previous_status === "Draft")
+    ) {
+      toData.to_id = "issued";
+    }
 
     // Validate items
-    const missingFields = validateForm(data, requiredFields);
+    const missingFields = validateForm(toData, requiredFields);
 
     for (const [index, item] of data.table_putaway_item.entries()) {
       await this.validate(`table_putaway_item.${index}.putaway_qty`);
@@ -1866,27 +1756,9 @@ const processInventoryMovementandBalanceTable = async (
 
     const newTransferOrderStatus = "In Progress";
 
-    // Prepare transfer order object
-    const toData = {
-      to_status: newTransferOrderStatus,
-      plant_id: data.plant_id,
-      to_id: data.to_id,
-      movement_type: data.movement_type,
-      ref_doc_type: data.ref_doc_type,
-      gr_no: data.gr_no,
-      receiving_no: data.receiving_no,
-      assigned_to: data.assigned_to,
-      supplier_id: data.supplier_id,
-      created_by: data.created_by,
-      created_at: data.created_at,
-      organization_id: organizationId,
-      ref_doc: data.ref_doc,
-      quality_insp_no: data.quality_insp_no,
-      table_putaway_item: latestPutawayItems,
-      table_putaway_records: data.table_putaway_records,
-      remarks: data.remarks,
-      qi_id: data.qi_id,
-    };
+    toData.to_status = newTransferOrderStatus;
+    toData.table_putaway_item = latestPutawayItems;
+    toData.organization_id = organizationId;
 
     await createPutawayRecords(toData, updatedItems);
 
