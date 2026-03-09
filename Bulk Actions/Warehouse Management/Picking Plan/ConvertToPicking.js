@@ -57,6 +57,42 @@ const handlePicking = async (selectedRecords) => {
     }
   }
 
+  const createdPickings = await db
+    .collection("transfer_order")
+    .filter([
+      {
+        type: "branch",
+        operator: "all",
+        children: [
+          {
+            prop: "to_no",
+            operator: "in",
+            value: selectedRecords.map((pp) => pp.id),
+          },
+          {
+            prop: "to_status",
+            operator: "equal",
+            value: "Created",
+          },
+        ],
+      },
+    ])
+    .get();
+
+  if (createdPickings.data.length > 0) {
+    this.$alert(
+      "Some picking plan records are already converted to picking and still in Created status. Please complete the picking first before converting another picking.",
+      "Error",
+      {
+        confirmButtonText: "OK",
+        type: "error",
+      },
+    );
+    throw new Error(
+      "Some picking plan records are already converted to picking.",
+    );
+  }
+
   this.showLoading("Converting to Picking...");
   await this.runWorkflow(
     "2027285718294261761",

@@ -14,8 +14,10 @@
   const organizationId = data.organization_id;
 
   // Calculate undelivered quantity
-  const undeliveredQty = orderedQty - initialDeliveredQty;
-  const totalDeliveredQty = quantity + initialDeliveredQty;
+  const undeliveredQty =
+    Math.round((orderedQty - initialDeliveredQty) * 1000) / 1000;
+  const totalDeliveredQty =
+    Math.round((quantity + initialDeliveredQty) * 1000) / 1000;
 
   // 🔧 NEW: Check if there's existing temp_qty_data from allocation dialog
   const existingTempData = data.table_to[rowIndex].temp_qty_data;
@@ -75,7 +77,7 @@
     this.setData({
       [`table_to.${rowIndex}.to_delivered_qty`]: totalDeliveredQty,
       [`table_to.${rowIndex}.to_undelivered_qty`]:
-        orderedQty - totalDeliveredQty,
+        Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
       [`table_to.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}`,
     });
     return;
@@ -195,7 +197,7 @@
           this.setData({
             [`table_to.${rowIndex}.to_delivered_qty`]: totalDeliveredQty,
             [`table_to.${rowIndex}.to_undelivered_qty`]:
-              orderedQty - totalDeliveredQty,
+              Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
             [`table_to.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog for serialized items with quantity > 1`,
             [`table_to.${rowIndex}.temp_qty_data`]: "[]", // Clear any existing temp data
           });
@@ -204,7 +206,7 @@
           this.setData({
             [`table_to.${rowIndex}.to_delivered_qty`]: totalDeliveredQty,
             [`table_to.${rowIndex}.to_undelivered_qty`]:
-              orderedQty - totalDeliveredQty,
+              Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
           });
         }
         return;
@@ -219,7 +221,7 @@
           this.setData({
             [`table_to.${rowIndex}.to_delivered_qty`]: totalDeliveredQty,
             [`table_to.${rowIndex}.to_undelivered_qty`]:
-              orderedQty - totalDeliveredQty,
+              Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
             [`table_to.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog to select serial number`,
             [`table_to.${rowIndex}.temp_qty_data`]: "[]",
           });
@@ -227,7 +229,7 @@
           this.setData({
             [`table_to.${rowIndex}.to_delivered_qty`]: totalDeliveredQty,
             [`table_to.${rowIndex}.to_undelivered_qty`]:
-              orderedQty - totalDeliveredQty,
+              Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
           });
         }
         return;
@@ -269,7 +271,7 @@
       this.setData({
         [`table_to.${rowIndex}.to_delivered_qty`]: totalDeliveredQty,
         [`table_to.${rowIndex}.to_undelivered_qty`]:
-          orderedQty - totalDeliveredQty,
+          Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
         [`table_to.${rowIndex}.view_stock`]: summary,
         [`table_to.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
       });
@@ -399,7 +401,7 @@
       this.setData({
         [`table_to.${rowIndex}.to_delivered_qty`]: totalDeliveredQty,
         [`table_to.${rowIndex}.to_undelivered_qty`]:
-          orderedQty - totalDeliveredQty,
+          Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
         [`table_to.${rowIndex}.view_stock`]: summary,
         [`table_to.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
       });

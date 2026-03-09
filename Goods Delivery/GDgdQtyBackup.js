@@ -185,13 +185,15 @@
   // ============================================================================
 
   // Simply update delivery quantities - allocation will happen in workflow when saving
+  const undeliveredQty =
+    Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000;
   this.setData({
     [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-    [`table_gd.${rowIndex}.gd_undelivered_qty`]: orderedQty - totalDeliveredQty,
+    [`table_gd.${rowIndex}.gd_undelivered_qty`]: undeliveredQty,
   });
 
   console.log(
-    `Row ${rowIndex}: Updated quantities - gd_qty: ${quantity}, delivered: ${totalDeliveredQty}, undelivered: ${orderedQty - totalDeliveredQty}`,
+    `Row ${rowIndex}: Updated quantities - gd_qty: ${quantity}, delivered: ${totalDeliveredQty}, undelivered: ${undeliveredQty}`,
   );
   console.log(
     `Row ${rowIndex}: Allocation will be performed during save workflow`,

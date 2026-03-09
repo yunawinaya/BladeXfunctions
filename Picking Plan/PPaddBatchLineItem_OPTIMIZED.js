@@ -970,7 +970,8 @@ const createTableToWithBaseUOM = async (allItems) => {
         to_material_desc: item.itemDesc || "",
         to_order_quantity: orderedQtyBase,
         to_delivered_qty: deliveredQtyBase,
-        to_undelivered_qty: orderedQtyBase - deliveredQtyBase,
+        to_undelivered_qty:
+          Math.round((orderedQtyBase - deliveredQtyBase) * 1000) / 1000,
         to_order_uom_id: itemData.based_uom,
         to_uom_id: itemData.based_uom,
         unit_price: item.sourceItem.so_item_price || 0,
@@ -992,7 +993,9 @@ const createTableToWithBaseUOM = async (allItems) => {
         to_material_desc: item.itemDesc || "",
         to_order_quantity: item.orderedQty,
         to_delivered_qty: item.deliveredQtyFromSource,
-        to_undelivered_qty: item.orderedQty - item.deliveredQtyFromSource,
+        to_undelivered_qty:
+          Math.round((item.orderedQty - item.deliveredQtyFromSource) * 1000) /
+          1000,
         to_order_uom_id: item.altUOM,
         to_uom_id: item.altUOM,
         unit_price: item.sourceItem.so_item_price || 0,

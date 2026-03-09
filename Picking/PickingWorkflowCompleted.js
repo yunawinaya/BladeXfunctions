@@ -28,6 +28,7 @@ const closeDialog = (data) => {
         arrayData: arrayData,
         saveAs: "Completed",
         pageStatus: data.page_status,
+        confirmed_by: this.getVarGlobal("nickname"),
       },
       async (res) => {
         console.log("Picking saved successfully:", res);

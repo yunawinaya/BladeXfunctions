@@ -303,10 +303,12 @@ const fetchDeliveredQuantity = async () => {
     const soLine = soLineItemData[index];
     const totalDeliveredQuantity = soLine ? soLine.delivered_qty || 0 : 0;
     const orderQty = soLine ? soLine.so_quantity || 0 : 0;
-    const maxDeliverableQty = orderQty - totalDeliveredQuantity;
+    const maxDeliverableQty =
+      Math.round((orderQty - totalDeliveredQuantity) * 1000) / 1000;
     return {
       ...item,
-      to_undelivered_qty: maxDeliverableQty - item.to_qty,
+      to_undelivered_qty:
+        Math.round((maxDeliverableQty - item.to_qty) * 1000) / 1000,
       to_initial_delivered_qty: totalDeliveredQuantity,
     };
   });

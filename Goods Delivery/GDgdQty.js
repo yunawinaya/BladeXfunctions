@@ -165,7 +165,7 @@
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
         [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          orderedQty - totalDeliveredQty,
+          Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify(updatedTempData),
       });
@@ -241,7 +241,7 @@
     this.setData({
       [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
       [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-        orderedQty - totalDeliveredQty,
+        Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
       [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}`,
     });
     return;
@@ -361,7 +361,7 @@
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
             [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              orderedQty - totalDeliveredQty,
+              Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
             [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog for serialized items with quantity > 1`,
             [`table_gd.${rowIndex}.temp_qty_data`]: "[]", // Clear any existing temp data
           });
@@ -370,7 +370,7 @@
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
             [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              orderedQty - totalDeliveredQty,
+              Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
           });
         }
         return;
@@ -385,7 +385,7 @@
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
             [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              orderedQty - totalDeliveredQty,
+              Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
             [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog to select serial number`,
             [`table_gd.${rowIndex}.temp_qty_data`]: "[]",
           });
@@ -393,7 +393,7 @@
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
             [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              orderedQty - totalDeliveredQty,
+              Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
           });
         }
         return;
@@ -435,7 +435,7 @@
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
         [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          orderedQty - totalDeliveredQty,
+          Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
       });
@@ -565,7 +565,7 @@
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
         [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          orderedQty - totalDeliveredQty,
+          Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
       });

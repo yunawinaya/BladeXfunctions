@@ -361,10 +361,12 @@ const fetchDeliveredQuantity = async () => {
       const soLine = soLineItemData[index];
       const totalDeliveredQuantity = soLine ? soLine.delivered_qty || 0 : 0;
       const orderQty = soLine ? soLine.so_quantity || 0 : 0;
-      const maxDeliverableQty = orderQty - totalDeliveredQuantity;
+      const maxDeliverableQty =
+        Math.round((orderQty - totalDeliveredQuantity) * 1000) / 1000;
       return {
         ...item,
-        gd_undelivered_qty: maxDeliverableQty - item.gd_qty,
+        gd_undelivered_qty:
+          Math.round((maxDeliverableQty - item.gd_qty) * 1000) / 1000,
         gd_initial_delivered_qty: totalDeliveredQuantity,
       };
     });
@@ -502,7 +504,7 @@ const displayPlanQty = async (data) => {
 })();
 
 setTimeout(async () => {
-  if (this.isAdd) {
+  if (this.isAdd || this.isEdit) {
     const op = await this.onDropdownVisible("delivery_no_type", true);
     function getDefaultItem(arr) {
       return arr?.find((item) => item?.item?.item?.is_default === 1);

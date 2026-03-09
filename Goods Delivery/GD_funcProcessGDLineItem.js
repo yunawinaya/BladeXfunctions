@@ -942,7 +942,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
         gd_material_desc: item.itemDesc || "",
         gd_order_quantity: orderedQtyBase,
         gd_delivered_qty: deliveredQtyBase,
-        gd_undelivered_qty: orderedQtyBase - deliveredQtyBase,
+        gd_undelivered_qty:
+          Math.round((orderedQtyBase - deliveredQtyBase) * 1000) / 1000,
         gd_order_uom_id: itemData.based_uom,
         good_delivery_uom_id: itemData.based_uom,
         unit_price: item.unitPrice || 0,
@@ -964,7 +965,9 @@ const createTableGdWithBaseUOM = async (allItems) => {
         gd_material_desc: item.itemDesc || "",
         gd_order_quantity: item.orderedQty,
         gd_delivered_qty: item.deliveredQtyFromSource,
-        gd_undelivered_qty: item.orderedQty - item.deliveredQtyFromSource,
+        gd_undelivered_qty:
+          Math.round((item.orderedQty - item.deliveredQtyFromSource) * 1000) /
+          1000,
         gd_order_uom_id: item.altUOM,
         good_delivery_uom_id: item.altUOM,
         unit_price: item.unitPrice || 0,

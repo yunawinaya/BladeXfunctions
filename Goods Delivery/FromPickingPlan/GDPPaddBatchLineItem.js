@@ -69,8 +69,10 @@ const createTableGdWithBaseUOM = async (allItems) => {
     const soOrderedQty = item.orderedQty; // to_order_quantity (10)
     const pickedQty = item.pickedQty; // to_qty (8)
     const alreadyDelivered = item.deliveredQty || 0; // gd_delivered_qty from PP (5 after first GD)
-    const remainingToDeliver = pickedQty - alreadyDelivered; // 8 - 5 = 3
-    const undeliveredQty = soOrderedQty - pickedQty; // 10 - 8 = 2
+    const remainingToDeliver =
+      Math.round((pickedQty - alreadyDelivered) * 1000) / 1000; // 8 - 5 = 3
+    const undeliveredQty =
+      Math.round((soOrderedQty - pickedQty) * 1000) / 1000; // 10 - 8 = 2
 
     // If serialized, convert to base UOM
     if (itemData?.serial_number_management === 1) {
