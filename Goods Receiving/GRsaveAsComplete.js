@@ -841,6 +841,9 @@ const addInventory = async (
           plant_id: plantId,
           organization_id: organizationId,
           material_uom: materialUom,
+          remark: item.line_remark_1,
+          remark2: item.line_remark_2,
+          remark3: item.line_remark_3,
         };
 
         await db.collection("item_balance").add(newBalanceData);
@@ -1997,6 +2000,11 @@ const addInventory = async (
             parent_transaction_no: item.line_po_no,
             plant_id: plantId,
             organization_id: organizationId,
+            manufacturing_date: item.manufacturing_date,
+            expired_date: item.expired_date,
+            remark: item.line_remark_1,
+            remark2: item.line_remark_2,
+            remark3: item.line_remark_3,
           };
 
           // Create the batch and get the response
@@ -2118,6 +2126,9 @@ const addInventory = async (
               manufacturing_date: item.manufacturing_date,
               expired_date: item.expired_date,
               material_uom: baseUOM,
+              remark: item.line_remark_1,
+              remark2: item.line_remark_2,
+              remark3: item.line_remark_3,
             };
 
             await db.collection("item_batch_balance").add(newBalanceData);
