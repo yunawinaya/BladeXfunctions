@@ -1192,6 +1192,14 @@ const processBalanceTable = async (balanceUpdates) => {
           unrestricted_qty += update.unrestricted_qty;
           qualityinsp_qty += update.qualityinsp_qty;
           intransit_qty += update.intransit_qty;
+        } else if (update.movementType === "TRANSFER") {
+          // For TRANSFER, the quantities are already pre-calculated as net changes
+          // (negative for source category, positive for target category)
+          block_qty += update.block_qty;
+          reserved_qty += update.reserved_qty;
+          unrestricted_qty += update.unrestricted_qty;
+          qualityinsp_qty += update.qualityinsp_qty;
+          intransit_qty += update.intransit_qty;
         }
 
         console.log("Updated quantities", {
@@ -1299,6 +1307,25 @@ const processBalanceTable = async (balanceUpdates) => {
                 newQualityInsp = currentQualityInsp + update.qualityinsp_qty;
                 newBlocked = currentBlocked + update.block_qty;
                 newInTransit = currentInTransit + update.intransit_qty;
+              } else if (update.movementType === "TRANSFER") {
+                // For TRANSFER, quantities are pre-calculated as net changes
+                newUnrestricted = Math.max(
+                  0,
+                  currentUnrestricted + update.unrestricted_qty,
+                );
+                newReserved = Math.max(
+                  0,
+                  currentReserved + update.reserved_qty,
+                );
+                newQualityInsp = Math.max(
+                  0,
+                  currentQualityInsp + update.qualityinsp_qty,
+                );
+                newBlocked = Math.max(0, currentBlocked + update.block_qty);
+                newInTransit = Math.max(
+                  0,
+                  currentInTransit + update.intransit_qty,
+                );
               }
 
               const generalUpdateData = {
@@ -1500,123 +1527,210 @@ const processInventoryMovementandBalanceTable = async (
                   mat,
                 );
 
-                // Initialize category quantities
-                const outCategories = {
-                  block_qty:
-                    mat.source_inv_category === "Blocked" ? baseQty : 0,
-                  reserved_qty:
-                    mat.source_inv_category === "Reserved" ? baseQty : 0,
-                  unrestricted_qty:
-                    mat.source_inv_category === "Unrestricted" ? baseQty : 0,
-                  qualityinsp_qty:
-                    mat.source_inv_category === "Quality Inspection"
-                      ? baseQty
-                      : 0,
-                  intransit_qty:
-                    mat.source_inv_category === "In Transit" ? baseQty : 0,
-                };
+                // Check if source and target are the same location (category transfer)
+                const isSameLocation = mat.source_bin === mat.target_location;
 
-                const inCategories = {
-                  block_qty:
-                    mat.target_inv_category === "Blocked" ? baseQty : 0,
-                  reserved_qty:
-                    mat.target_inv_category === "Reserved" ? baseQty : 0,
-                  unrestricted_qty:
-                    mat.target_inv_category === "Unrestricted" ? baseQty : 0,
-                  qualityinsp_qty:
-                    mat.target_inv_category === "Quality Inspection"
-                      ? baseQty
-                      : 0,
-                  intransit_qty:
-                    mat.target_inv_category === "In Transit" ? baseQty : 0,
-                };
-                // OUT movement aggregation (source_bin)
-                const outKey =
-                  itemData.item_batch_management === 1
-                    ? `${mat.item_code}_${mat.source_bin}_${
-                        mat.batch_no || "no_batch"
-                      }`
-                    : `${mat.item_code}_${mat.source_bin}`;
+                if (isSameLocation) {
+                  // Handle as category transfer within the same location
+                  console.log("Same location detected - handling as category transfer", {
+                    location: mat.source_bin,
+                    from_category: mat.source_inv_category,
+                    to_category: mat.target_inv_category,
+                    qty: baseQty,
+                  });
 
-                if (!balanceUpdates[outKey]) {
-                  balanceUpdates[outKey] = {
-                    material_id: mat.item_code,
-                    location_id: mat.source_bin,
-                    batch_id: mat.batch_no || "",
-                    block_qty: 0,
-                    reserved_qty: 0,
-                    unrestricted_qty: 0,
-                    qualityinsp_qty: 0,
-                    intransit_qty: 0,
-                    movementType: "OUT",
-                    material_uom: itemData.based_uom,
-                    plant_id: toData.plant_id,
-                    organization_id: toData.organization_id,
+                  const transferKey =
+                    itemData.item_batch_management === 1
+                      ? `${mat.item_code}_${mat.source_bin}_${mat.batch_no || "no_batch"}_TRANSFER`
+                      : `${mat.item_code}_${mat.source_bin}_TRANSFER`;
+
+                  if (!balanceUpdates[transferKey]) {
+                    balanceUpdates[transferKey] = {
+                      material_id: mat.item_code,
+                      location_id: mat.source_bin,
+                      batch_id: mat.batch_no || "",
+                      block_qty: 0,
+                      reserved_qty: 0,
+                      unrestricted_qty: 0,
+                      qualityinsp_qty: 0,
+                      intransit_qty: 0,
+                      movementType: "TRANSFER",
+                      material_uom: itemData.based_uom,
+                      plant_id: toData.plant_id,
+                      organization_id: toData.organization_id,
+                    };
+                  }
+
+                  // Deduct from source category
+                  switch (mat.source_inv_category) {
+                    case "Blocked":
+                      balanceUpdates[transferKey].block_qty -= baseQty;
+                      break;
+                    case "Reserved":
+                      balanceUpdates[transferKey].reserved_qty -= baseQty;
+                      break;
+                    case "Unrestricted":
+                      balanceUpdates[transferKey].unrestricted_qty -= baseQty;
+                      break;
+                    case "Quality Inspection":
+                      balanceUpdates[transferKey].qualityinsp_qty -= baseQty;
+                      break;
+                    case "In Transit":
+                      balanceUpdates[transferKey].intransit_qty -= baseQty;
+                      break;
+                  }
+
+                  // Add to target category
+                  switch (mat.target_inv_category) {
+                    case "Blocked":
+                      balanceUpdates[transferKey].block_qty += baseQty;
+                      break;
+                    case "Reserved":
+                      balanceUpdates[transferKey].reserved_qty += baseQty;
+                      break;
+                    case "Unrestricted":
+                      balanceUpdates[transferKey].unrestricted_qty += baseQty;
+                      break;
+                    case "Quality Inspection":
+                      balanceUpdates[transferKey].qualityinsp_qty += baseQty;
+                      break;
+                    case "In Transit":
+                      balanceUpdates[transferKey].intransit_qty += baseQty;
+                      break;
+                  }
+
+                  console.log("Category transfer quantities", {
+                    key: transferKey,
+                    block_qty: balanceUpdates[transferKey].block_qty,
+                    reserved_qty: balanceUpdates[transferKey].reserved_qty,
+                    unrestricted_qty: balanceUpdates[transferKey].unrestricted_qty,
+                    qualityinsp_qty: balanceUpdates[transferKey].qualityinsp_qty,
+                    intransit_qty: balanceUpdates[transferKey].intransit_qty,
+                    from_category: mat.source_inv_category,
+                    to_category: mat.target_inv_category,
+                  });
+                } else {
+                  // Different locations - handle as separate OUT and IN movements
+                  // Initialize category quantities
+                  const outCategories = {
+                    block_qty:
+                      mat.source_inv_category === "Blocked" ? baseQty : 0,
+                    reserved_qty:
+                      mat.source_inv_category === "Reserved" ? baseQty : 0,
+                    unrestricted_qty:
+                      mat.source_inv_category === "Unrestricted" ? baseQty : 0,
+                    qualityinsp_qty:
+                      mat.source_inv_category === "Quality Inspection"
+                        ? baseQty
+                        : 0,
+                    intransit_qty:
+                      mat.source_inv_category === "In Transit" ? baseQty : 0,
                   };
-                }
 
-                balanceUpdates[outKey].block_qty += outCategories.block_qty;
-                balanceUpdates[outKey].reserved_qty +=
-                  outCategories.reserved_qty;
-                balanceUpdates[outKey].unrestricted_qty +=
-                  outCategories.unrestricted_qty;
-                balanceUpdates[outKey].qualityinsp_qty +=
-                  outCategories.qualityinsp_qty;
-                balanceUpdates[outKey].intransit_qty +=
-                  outCategories.intransit_qty;
-
-                console.log("Aggregated OUT quantities", {
-                  key: outKey,
-                  block_qty: balanceUpdates[outKey].block_qty,
-                  reserved_qty: balanceUpdates[outKey].reserved_qty,
-                  unrestricted_qty: balanceUpdates[outKey].unrestricted_qty,
-                  qualityinsp_qty: balanceUpdates[outKey].qualityinsp_qty,
-                  intransit_qty: balanceUpdates[outKey].intransit_qty,
-                  inv_category: mat.source_inv_category,
-                });
-                // IN movement aggregation (target_location)
-                const inKey =
-                  itemData.item_batch_management === 1
-                    ? `${mat.item_code}_${mat.target_location}_${
-                        mat.batch_no || "no_batch"
-                      }`
-                    : `${mat.item_code}_${mat.target_location}`;
-
-                if (!balanceUpdates[inKey]) {
-                  balanceUpdates[inKey] = {
-                    material_id: mat.item_code,
-                    location_id: mat.target_location,
-                    batch_id: mat.batch_no || "",
-                    block_qty: 0,
-                    reserved_qty: 0,
-                    unrestricted_qty: 0,
-                    qualityinsp_qty: 0,
-                    intransit_qty: 0,
-                    movementType: "IN",
-                    plant_id: toData.plant_id,
-                    material_uom: itemData.based_uom,
-                    organization_id: toData.organization_id,
+                  const inCategories = {
+                    block_qty:
+                      mat.target_inv_category === "Blocked" ? baseQty : 0,
+                    reserved_qty:
+                      mat.target_inv_category === "Reserved" ? baseQty : 0,
+                    unrestricted_qty:
+                      mat.target_inv_category === "Unrestricted" ? baseQty : 0,
+                    qualityinsp_qty:
+                      mat.target_inv_category === "Quality Inspection"
+                        ? baseQty
+                        : 0,
+                    intransit_qty:
+                      mat.target_inv_category === "In Transit" ? baseQty : 0,
                   };
+
+                  // OUT movement aggregation (source_bin)
+                  const outKey =
+                    itemData.item_batch_management === 1
+                      ? `${mat.item_code}_${mat.source_bin}_${
+                          mat.batch_no || "no_batch"
+                        }`
+                      : `${mat.item_code}_${mat.source_bin}`;
+
+                  if (!balanceUpdates[outKey]) {
+                    balanceUpdates[outKey] = {
+                      material_id: mat.item_code,
+                      location_id: mat.source_bin,
+                      batch_id: mat.batch_no || "",
+                      block_qty: 0,
+                      reserved_qty: 0,
+                      unrestricted_qty: 0,
+                      qualityinsp_qty: 0,
+                      intransit_qty: 0,
+                      movementType: "OUT",
+                      material_uom: itemData.based_uom,
+                      plant_id: toData.plant_id,
+                      organization_id: toData.organization_id,
+                    };
+                  }
+
+                  balanceUpdates[outKey].block_qty += outCategories.block_qty;
+                  balanceUpdates[outKey].reserved_qty +=
+                    outCategories.reserved_qty;
+                  balanceUpdates[outKey].unrestricted_qty +=
+                    outCategories.unrestricted_qty;
+                  balanceUpdates[outKey].qualityinsp_qty +=
+                    outCategories.qualityinsp_qty;
+                  balanceUpdates[outKey].intransit_qty +=
+                    outCategories.intransit_qty;
+
+                  console.log("Aggregated OUT quantities", {
+                    key: outKey,
+                    block_qty: balanceUpdates[outKey].block_qty,
+                    reserved_qty: balanceUpdates[outKey].reserved_qty,
+                    unrestricted_qty: balanceUpdates[outKey].unrestricted_qty,
+                    qualityinsp_qty: balanceUpdates[outKey].qualityinsp_qty,
+                    intransit_qty: balanceUpdates[outKey].intransit_qty,
+                    inv_category: mat.source_inv_category,
+                  });
+
+                  // IN movement aggregation (target_location)
+                  const inKey =
+                    itemData.item_batch_management === 1
+                      ? `${mat.item_code}_${mat.target_location}_${
+                          mat.batch_no || "no_batch"
+                        }`
+                      : `${mat.item_code}_${mat.target_location}`;
+
+                  if (!balanceUpdates[inKey]) {
+                    balanceUpdates[inKey] = {
+                      material_id: mat.item_code,
+                      location_id: mat.target_location,
+                      batch_id: mat.batch_no || "",
+                      block_qty: 0,
+                      reserved_qty: 0,
+                      unrestricted_qty: 0,
+                      qualityinsp_qty: 0,
+                      intransit_qty: 0,
+                      movementType: "IN",
+                      plant_id: toData.plant_id,
+                      material_uom: itemData.based_uom,
+                      organization_id: toData.organization_id,
+                    };
+                  }
+
+                  balanceUpdates[inKey].block_qty += inCategories.block_qty;
+                  balanceUpdates[inKey].reserved_qty += inCategories.reserved_qty;
+                  balanceUpdates[inKey].unrestricted_qty +=
+                    inCategories.unrestricted_qty;
+                  balanceUpdates[inKey].qualityinsp_qty +=
+                    inCategories.qualityinsp_qty;
+                  balanceUpdates[inKey].intransit_qty +=
+                    inCategories.intransit_qty;
+
+                  console.log("Aggregated IN quantities", {
+                    key: inKey,
+                    block_qty: balanceUpdates[inKey].block_qty,
+                    reserved_qty: balanceUpdates[inKey].reserved_qty,
+                    unrestricted_qty: balanceUpdates[inKey].unrestricted_qty,
+                    qualityinsp_qty: balanceUpdates[inKey].qualityinsp_qty,
+                    intransit_qty: balanceUpdates[inKey].intransit_qty,
+                    inv_category: mat.target_inv_category,
+                  });
                 }
-
-                balanceUpdates[inKey].block_qty += inCategories.block_qty;
-                balanceUpdates[inKey].reserved_qty += inCategories.reserved_qty;
-                balanceUpdates[inKey].unrestricted_qty +=
-                  inCategories.unrestricted_qty;
-                balanceUpdates[inKey].qualityinsp_qty +=
-                  inCategories.qualityinsp_qty;
-                balanceUpdates[inKey].intransit_qty +=
-                  inCategories.intransit_qty;
-
-                console.log("Aggregated IN quantities", {
-                  key: inKey,
-                  block_qty: balanceUpdates[inKey].block_qty,
-                  reserved_qty: balanceUpdates[inKey].reserved_qty,
-                  unrestricted_qty: balanceUpdates[inKey].unrestricted_qty,
-                  qualityinsp_qty: balanceUpdates[inKey].qualityinsp_qty,
-                  intransit_qty: balanceUpdates[inKey].intransit_qty,
-                  inv_category: mat.target_inv_category,
-                });
               } // Close the if (!isSerializedItem) block
             }
           }
