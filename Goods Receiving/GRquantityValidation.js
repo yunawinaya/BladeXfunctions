@@ -25,7 +25,7 @@ const parsedValue = parseFloat(value);
   // For Created GRs, don't block - just show visual feedback via to_received_qty
   if (grStatus === "Created") {
     console.log(
-      "Created status - skipping validation, allowing over-commitment"
+      "Created status - skipping validation, allowing over-commitment",
     );
     window.validationState[index] = true;
     callback();
