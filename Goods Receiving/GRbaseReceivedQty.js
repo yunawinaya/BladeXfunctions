@@ -1,3 +1,8 @@
+// Helper function to round quantity to 3 decimal places
+const roundQty = (value) => {
+  return Math.round(value * 1000) / 1000;
+};
+
 (async () => {
   try {
     // Get input values
@@ -34,10 +39,13 @@
     });
 
     // quantity is base_received_qty, divide by uomConversion to get received_qty (alt UOM)
-    const receivedQty = uomConversion > 0 ? quantity / uomConversion : quantity;
+    // Apply rounding to avoid floating-point precision issues
+    const receivedQty = roundQty(
+      uomConversion > 0 ? quantity / uomConversion : quantity
+    );
 
     // Calculate remaining qty in alt UOM (orderedQty, receivedQty, initialReceivedQty are all in alt UOM)
-    const toReceivedQty = orderedQty - receivedQty - initialReceivedQty;
+    const toReceivedQty = roundQty(orderedQty - receivedQty - initialReceivedQty);
 
     await this.setData({
       [`table_gr.${rowIndex}.received_qty`]: receivedQty,
