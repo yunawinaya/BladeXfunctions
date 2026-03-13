@@ -44,7 +44,7 @@ const disabledField = async (status, pickingStatus) => {
         "driver_name",
         "driver_contact_no",
         "validity_of_collection",
-        "vehicle_no",
+        "sp_vehicle_no",
         "pickup_date",
         "courier_company",
         "shipping_date",
@@ -111,7 +111,14 @@ const disabledField = async (status, pickingStatus) => {
         "gd_ref_doc",
         "gd_delivery_method",
         "document_description",
+        "order_tnc",
+        "order_payment_details",
+        "order_delivery_term",
         "order_remark",
+        "order_remark2",
+        "order_remark3",
+        "order_remark4",
+        "order_remark5",
         "select_vehicle_id",
         "select_driver_id",
       ],
@@ -444,7 +451,11 @@ const displayPlanQty = async (data) => {
       case "Edit":
         console.log("Full data", data);
         const fromConvert = this.getValue("from_convert");
-        if (fromConvert === "Yes") {
+        const gd_status = this.getValue("gd_status");
+        if (
+          fromConvert === "Yes" &&
+          (gd_status !== "Completed" || gd_status !== "Created")
+        ) {
           let allItem = this.getValue("all_item");
           if (allItem !== "") {
             console.log("all item mounted", allItem);
@@ -504,7 +515,7 @@ const displayPlanQty = async (data) => {
 })();
 
 setTimeout(async () => {
-  if (this.isAdd || this.isEdit) {
+  if (this.isAdd) {
     const op = await this.onDropdownVisible("delivery_no_type", true);
     function getDefaultItem(arr) {
       return arr?.find((item) => item?.item?.item?.is_default === 1);
