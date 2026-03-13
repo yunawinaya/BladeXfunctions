@@ -23,6 +23,22 @@ if (isPending === 1) {
 
 const isBatchManaged = itemData.item_batch_management === 1;
 
+// FIELD MAPPING BY ALLOCATION TYPE
+const getFieldNames = () => {
+  switch (allocationType) {
+    case "GD":
+      return { qtyField: "gd_quantity", locationField: "location_id" };
+    case "PP":
+      return { qtyField: "to_quantity", locationField: "location_id" };
+    case "MR":
+      return { qtyField: "issue_qty", locationField: "bin_location_id" };
+    default:
+      return { qtyField: "quantity", locationField: "location_id" };
+  }
+};
+
+const { qtyField, locationField } = getFieldNames();
+
 // HELPER FUNCTIONS
 
 const generateKey = (locationId, batchId) => {
@@ -140,13 +156,19 @@ const allocateFromBalances = (balanceList, remainingQty) => {
 
     const allocatedQty = Math.min(remaining, availableQty);
 
-    allocated.push({
+    const allocationRecord = {
       ...balance,
-      quantity: allocatedQty,
+      [qtyField]: allocatedQty,
       unrestricted_qty:
         balance.original_unrestricted_qty || balance.unrestricted_qty,
-    });
+    };
 
+    // For MR, rename location_id to bin_location_id
+    if (allocationType === "MR") {
+      allocationRecord.bin_location_id = balance.location_id;
+    }
+
+    allocated.push(allocationRecord);
     remaining -= allocatedQty;
   }
 
@@ -198,14 +220,21 @@ const allocateFromPending = (pendingRecords, balances, requestedQty) => {
         });
 
         if (existingIdx >= 0) {
-          allAllocations[existingIdx].quantity += allocatedQty;
+          allAllocations[existingIdx][qtyField] += allocatedQty;
         } else {
-          allAllocations.push({
+          const allocationRecord = {
             ...matchingBalance,
-            quantity: allocatedQty,
+            [qtyField]: allocatedQty,
             unrestricted_qty:
               matchingBalance.original_unrestricted_qty || matchingBalance.unrestricted_qty,
-          });
+          };
+
+          // For MR, rename location_id to bin_location_id
+          if (allocationType === "MR") {
+            allocationRecord.bin_location_id = matchingBalance.location_id;
+          }
+
+          allAllocations.push(allocationRecord);
         }
 
         usedBalanceKeys.add(key);
@@ -341,7 +370,7 @@ if (remainingQty > 0) {
     });
 
     if (existingIdx >= 0) {
-      allAllocations[existingIdx].quantity += strategyAlloc.quantity;
+      allAllocations[existingIdx][qtyField] += strategyAlloc[qtyField];
     } else {
       allAllocations.push(strategyAlloc);
     }
@@ -351,7 +380,7 @@ if (remainingQty > 0) {
 }
 
 const totalAllocated = allAllocations.reduce(
-  (sum, a) => sum + a.quantity,
+  (sum, a) => sum + (a[qtyField] || 0),
   0
 );
 
