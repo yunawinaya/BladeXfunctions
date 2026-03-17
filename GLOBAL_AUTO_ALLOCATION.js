@@ -346,6 +346,20 @@ const adjustedBalances = adjustBalancesForExisting(
 
 const availableBalances = filterAvailableBalances(adjustedBalances);
 
+const totalAvailable = availableBalances.reduce(
+  (sum, b) => sum + (b.unrestricted_qty || 0),
+  0
+);
+
+if (totalAvailable < quantity) {
+  return {
+    code: "400",
+    message: `Insufficient stock. Available: ${totalAvailable}, Requested: ${quantity}`,
+    allocationData: [],
+    totalAllocated: 0,
+  };
+}
+
 let allAllocations = [];
 let remainingQty = quantity;
 
