@@ -14,89 +14,6 @@ const showStatusHTML = (status) => {
   }
 };
 
-const generatePrefix = (prefixData) => {
-  const now = new Date();
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0")
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(prefixData.running_number).padStart(prefixData.padding_zeroes, "0")
-  );
-  return generated;
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  try {
-    const existingDoc = await db
-      .collection("stock_adjustment")
-      .where({
-        adjustment_no: generatedPrefix,
-        organization_id: organizationId,
-        is_deleted: 0,
-      })
-      .get();
-    return !existingDoc.data || existingDoc.data.length === 0;
-  } catch (error) {
-    console.error("Error checking uniqueness:", error);
-    return false;
-  }
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  let prefixToShow;
-  let runningNumber = prefixData.running_number || 1;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = generatePrefix({
-      ...prefixData,
-      running_number: runningNumber,
-    });
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Stock Adjustment number after maximum attempts"
-    );
-  }
-
-  return { prefixToShow, runningNumber };
-};
-
-const checkPrefixConfiguration = async (organizationId) => {
-  try {
-    const prefixEntry = await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Stock Adjustment",
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .get();
-
-    return prefixEntry.data && prefixEntry.data.length > 0
-      ? prefixEntry.data[0]
-      : null;
-  } catch (error) {
-    console.error("Error checking prefix configuration:", error);
-    return null;
-  }
-};
-
 const checkAccIntegrationType = async (organizationId) => {
   if (organizationId) {
     const resAI = await db
@@ -112,25 +29,6 @@ const checkAccIntegrationType = async (organizationId) => {
         this.hide(["button_completed_posted", "button_posted"]);
       }
     }
-  }
-};
-
-const setPrefix = async (organizationId) => {
-  const prefixData = await checkPrefixConfiguration(organizationId);
-  let newPrefix = "";
-
-  if (prefixData) {
-    if (prefixData.is_active === 1) {
-      const { prefixToShow } = await findUniquePrefix(
-        prefixData,
-        organizationId
-      );
-      newPrefix = prefixToShow;
-      this.disabled(["adjustment_no"], true);
-    } else if (prefixData.is_active === 0) {
-      this.disabled(["adjustment_no"], false);
-    }
-    this.setData({ adjustment_no: newPrefix });
   }
 };
 
@@ -159,12 +57,8 @@ const disabledEditField = async (stockAdjustmentStatus) => {
         "stock_adjustment.material_id",
         "stock_adjustment.total_quantity",
       ],
-      true
+      true,
     );
-    this.hide([
-      "stock_adjustment.link_adjust_stock",
-      "stock_adjustment.view_link",
-    ]);
 
     if (stockAdjustmentStatus === "Fully Posted") {
       this.hide([
@@ -237,18 +131,10 @@ const setPlant = (organizationId, pageStatus) => {
         this.disabled(["adjustment_type", "stock_adjustment"], true);
 
         await checkAccIntegrationType(organizationId);
-        await setPrefix(organizationId);
         break;
 
       case "Edit":
-        // Check if prefix is active
-        const prefixConfig = await checkPrefixConfiguration(organizationId);
-        if (prefixConfig && prefixConfig.is_active === 0) {
-          this.disabled(["adjustment_no"], false);
-        } else if (prefixConfig && prefixConfig.is_active === 1) {
-          this.disabled(["adjustment_no"], true);
-        }
-
+        this.setData({ previous_status: data.stock_adjustment_status });
         if (data.adjustment_type === "Write Off") {
           this.hide("stock_adjustment.unit_price");
         }
@@ -291,3 +177,21 @@ const setPlant = (organizationId, pageStatus) => {
     this.$message.error(error.message || "An error occurred");
   }
 })();
+
+setTimeout(async () => {
+  if (this.isAdd) {
+    const op = await this.onDropdownVisible("adjustment_no_type", true);
+    function getDefaultItem(arr) {
+      return arr?.find((item) => item?.item?.item?.is_default === 1);
+    }
+    setTimeout(() => {
+      const optionsData = this.getOptionData("adjustment_no_type") || [];
+      const data = getDefaultItem(optionsData);
+      if (data) {
+        this.setData({
+          adjustment_no_type: data.value,
+        });
+      }
+    }, 500);
+  }
+}, 500);

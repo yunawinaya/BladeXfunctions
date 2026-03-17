@@ -4,6 +4,7 @@ const index = fieldParts[2];
 console.log("index", index);
 
 const category_type = data.sa_item_balance.table_item_balance[index].category;
+const adjustment_type = data.adjustment_type;
 const movementType =
   data.sa_item_balance.table_item_balance[index].movement_type;
 
@@ -28,52 +29,96 @@ if (isNaN(numValue)) {
   return;
 }
 
-if (movementType === "Out") {
-  let selectedField;
-  let fieldName;
+if (adjustment_type === "Stock Count") {
+  // Stock Count: negative = OUT, positive = IN
+  if (numValue < 0) {
+    // OUT movement (negative quantity)
+    const absValue = Math.abs(numValue);
+    let selectedField;
 
-  switch (category_type) {
-    case "Unrestricted":
-      selectedField = unrestricted_field;
-      fieldName = "unrestricted_qty";
-      break;
-    case "Reserved":
-      selectedField = reserved_field;
-      fieldName = "reserved_qty";
-      break;
-    case "Quality Inspection":
-      selectedField = quality_field;
-      fieldName = "qualityinsp_qty";
-      break;
-    case "Blocked":
-      selectedField = blocked_field;
-      fieldName = "block_qty";
-      break;
-    default:
-      callback("Invalid category type");
+    switch (category_type) {
+      case "Unrestricted":
+        selectedField = unrestricted_field;
+        break;
+      case "Reserved":
+        selectedField = reserved_field;
+        break;
+      case "Quality Inspection":
+        selectedField = quality_field;
+        break;
+      case "Blocked":
+        selectedField = blocked_field;
+        break;
+      default:
+        callback("Invalid category type");
+        return;
+    }
+
+    const numSelectedField = parseFloat(selectedField);
+    if (isNaN(numSelectedField)) {
+      callback(`Invalid quantity format for ${category_type}`);
       return;
-  }
+    }
 
-  const numSelectedField = parseFloat(selectedField);
-  if (isNaN(numSelectedField)) {
-    callback(`Invalid quantity format for ${category_type}`);
-    return;
-  }
-
-  if (numSelectedField < numValue) {
-    window.validationState.stockAdjustment[index] = false;
-    callback(`Insufficient quantity in ${category_type}`);
-  } else {
+    if (numSelectedField < absValue) {
+      window.validationState.stockAdjustment[index] = false;
+      callback(`Insufficient quantity in ${category_type}`);
+    } else {
+      window.validationState.stockAdjustment[index] = true;
+      callback();
+    }
+  } else if (numValue > 0) {
+    // IN movement (positive quantity)
     window.validationState.stockAdjustment[index] = true;
     callback();
+  } else {
+    // Zero is not valid
+    callback("Quantity cannot be zero");
   }
-} else if (movementType === "In") {
-  if (numValue <= 0) {
-    callback("Quantity must be greater than zero for In movement");
-    return;
-  }
-  window.validationState.stockAdjustment[index] = true;
-  callback();
 } else {
-  callback("Invalid movement type. Must be 'In' or 'Out'");
+  // Other adjustment types: use movementType field
+  if (movementType === "OUT") {
+    let selectedField;
+
+    switch (category_type) {
+      case "Unrestricted":
+        selectedField = unrestricted_field;
+        break;
+      case "Reserved":
+        selectedField = reserved_field;
+        break;
+      case "Quality Inspection":
+        selectedField = quality_field;
+        break;
+      case "Blocked":
+        selectedField = blocked_field;
+        break;
+      default:
+        callback("Invalid category type");
+        return;
+    }
+
+    const numSelectedField = parseFloat(selectedField);
+    if (isNaN(numSelectedField)) {
+      callback(`Invalid quantity format for ${category_type}`);
+      return;
+    }
+
+    if (numSelectedField < numValue) {
+      window.validationState.stockAdjustment[index] = false;
+      callback(`Insufficient quantity in ${category_type}`);
+    } else {
+      window.validationState.stockAdjustment[index] = true;
+      callback();
+    }
+  } else if (movementType === "IN") {
+    if (numValue <= 0) {
+      callback("Quantity must be greater than zero for IN movement");
+      return;
+    }
+    window.validationState.stockAdjustment[index] = true;
+    callback();
+  } else {
+    callback("Invalid movement type. Must be 'IN' or 'OUT'");
+  }
 }

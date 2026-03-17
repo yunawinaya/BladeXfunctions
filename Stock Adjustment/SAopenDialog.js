@@ -14,8 +14,8 @@ const fetchUomData = async (uomIds) => {
   try {
     const resUOM = await Promise.all(
       uomIds.map((id) =>
-        db.collection("unit_of_measurement").where({ id }).get()
-      )
+        db.collection("unit_of_measurement").where({ id }).get(),
+      ),
     );
 
     return resUOM.map((response) => response.data[0]).filter(Boolean);
@@ -50,7 +50,7 @@ const filterZeroQuantityRecords = (data, itemData) => {
         (record.balance_quantity && record.balance_quantity > 0);
 
       console.log(
-        `Serial ${record.serial_number}: hasQuantity=${hasQuantity}, unrestricted=${record.unrestricted_qty}, reserved=${record.reserved_qty}, balance=${record.balance_quantity}`
+        `Serial ${record.serial_number}: hasQuantity=${hasQuantity}, unrestricted=${record.unrestricted_qty}, reserved=${record.reserved_qty}, balance=${record.balance_quantity}`,
       );
 
       return hasQuantity; // Only include if both serial exists AND has quantity > 0
@@ -138,7 +138,7 @@ const mergeWithSavedData = (freshDbData, savedDataArray, itemData) => {
 
     if (savedItem) {
       console.log(
-        `Merging saved data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, saved data merged`
+        `Merging saved data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, saved data merged`,
       );
 
       // Merge all relevant fields from saved data, preserving saved modifications
@@ -244,7 +244,7 @@ if (materialId) {
 
       // Get UOM options and set up material UOM
       const altUoms = itemData.table_uom_conversion?.map(
-        (data) => data.alt_uom_id
+        (data) => data.alt_uom_id,
       );
       let uomOptions = [];
 
@@ -273,7 +273,7 @@ if (materialId) {
       // Handle Serialized Items (takes priority over batch management)
       if (itemData.serial_number_management === 1) {
         console.log(
-          "Processing serialized item (may also have batch management)"
+          "Processing serialized item (may also have batch management)",
         );
 
         // Show serial number column
@@ -293,7 +293,7 @@ if (materialId) {
             "sa_item_balance.table_item_balance.manufacturing_date",
           ]);
           console.log(
-            "Serialized item with batch management - showing both serial and batch columns"
+            "Serialized item with batch management - showing both serial and batch columns",
           );
         } else {
           this.hide([
@@ -302,7 +302,7 @@ if (materialId) {
             "sa_item_balance.table_item_balance.manufacturing_date",
           ]);
           console.log(
-            "Serialized item without batch management - hiding batch column"
+            "Serialized item without batch management - hiding batch column",
           );
         }
 
@@ -336,16 +336,25 @@ if (materialId) {
               finalData = mergeWithSavedData(
                 mappedData,
                 previousBalanceData,
-                itemData
+                itemData,
               );
             }
 
             const filteredData = filterZeroQuantityRecords(finalData, itemData);
             console.log("Final filtered serialized data:", filteredData);
 
-            filteredData.forEach((item) => {
-              item.movement_type = "Out";
-            });
+            // For Stock Count, display negative sa_quantity for OUT movements
+            if (adjustment_type === "Stock Count") {
+              filteredData.forEach((item) => {
+                if (item.movement_type === "OUT" && item.sa_quantity > 0) {
+                  item.sa_quantity = -item.sa_quantity;
+                }
+              });
+            } else {
+              filteredData.forEach((item) => {
+                item.movement_type = "Out";
+              });
+            }
 
             this.setData({
               [`sa_item_balance.table_item_balance`]: filteredData,
@@ -361,13 +370,22 @@ if (materialId) {
                 [`sa_item_balance.table_item_balance.movement_type`]: "Out",
               });
               this.hide("sa_item_balance.table_item_balance.movement_type");
+            } else if (adjustment_type === "Stock Count") {
+              // For Stock Count, movement_type is determined by quantity sign
+              this.disabled(
+                [`sa_item_balance.table_item_balance.movement_type`],
+                true,
+              );
+              this.display([
+                `sa_item_balance.table_item_balance.movement_type`,
+              ]);
             } else {
               this.setData({
                 [`sa_item_balance.table_item_balance.movement_type`]: "Out",
               });
               this.disabled(
                 [`sa_item_balance.table_item_balance.movement_type`],
-                true
+                true,
               );
               this.display([
                 `sa_item_balance.table_item_balance.movement_type`,
@@ -429,12 +447,21 @@ if (materialId) {
               finalData = mergeWithSavedData(
                 mappedData,
                 previousBalanceData,
-                itemData
+                itemData,
               );
             }
 
             const filteredData = filterZeroQuantityRecords(finalData, itemData);
             console.log("Final filtered batch data:", filteredData);
+
+            // For Stock Count, display negative sa_quantity for OUT movements
+            if (adjustment_type === "Stock Count") {
+              filteredData.forEach((item) => {
+                if (item.movement_type === "OUT" && item.sa_quantity > 0) {
+                  item.sa_quantity = -item.sa_quantity;
+                }
+              });
+            }
 
             this.setData({
               [`sa_item_balance.table_item_balance`]: filteredData,
@@ -445,6 +472,15 @@ if (materialId) {
                 [`sa_item_balance.table_item_balance.movement_type`]: "Out",
               });
               this.hide("sa_item_balance.table_item_balance.movement_type");
+            } else if (adjustment_type === "Stock Count") {
+              // For Stock Count, movement_type is determined by quantity sign
+              this.disabled(
+                [`sa_item_balance.table_item_balance.movement_type`],
+                true,
+              );
+              this.display([
+                `sa_item_balance.table_item_balance.movement_type`,
+              ]);
             } else {
               this.display([
                 `sa_item_balance.table_item_balance.movement_type`,
@@ -506,12 +542,21 @@ if (materialId) {
               finalData = mergeWithSavedData(
                 mappedData,
                 previousBalanceData,
-                itemData
+                itemData,
               );
             }
 
             const filteredData = filterZeroQuantityRecords(finalData, itemData);
             console.log("Final filtered regular data:", filteredData);
+
+            // For Stock Count, display negative sa_quantity for OUT movements
+            if (adjustment_type === "Stock Count") {
+              filteredData.forEach((item) => {
+                if (item.movement_type === "OUT" && item.sa_quantity > 0) {
+                  item.sa_quantity = -item.sa_quantity;
+                }
+              });
+            }
 
             this.setData({
               [`sa_item_balance.table_item_balance`]: filteredData,
@@ -522,6 +567,15 @@ if (materialId) {
                 [`sa_item_balance.table_item_balance.movement_type`]: "Out",
               });
               this.hide("sa_item_balance.table_item_balance.movement_type");
+            } else if (adjustment_type === "Stock Count") {
+              // For Stock Count, movement_type is determined by quantity sign
+              this.disabled(
+                [`sa_item_balance.table_item_balance.movement_type`],
+                true,
+              );
+              this.display([
+                `sa_item_balance.table_item_balance.movement_type`,
+              ]);
             } else {
               this.display([
                 `sa_item_balance.table_item_balance.movement_type`,

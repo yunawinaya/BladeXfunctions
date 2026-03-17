@@ -1979,104 +1979,13 @@ const validateField = (value, _field) => {
   return !value;
 };
 
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Stock Adjustment",
-      is_deleted: 0,
-      organization_id: organizationId,
-      is_active: 1,
-    })
-    .get();
-
-  const prefixData = await prefixEntry.data[0];
-
-  return prefixData;
-};
-
-const updatePrefix = async (organizationId, runningNumber) => {
-  try {
-    await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Stock Adjustment",
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
-  } catch (error) {
-    this.$message.error(error);
-  }
-};
-
-const generatePrefix = (runNumber, now, prefixData) => {
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0"),
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0"),
-  );
-  return generated;
-};
-
-const checkUniqueness = async (generatedPrefix) => {
-  const existingDoc = await db
-    .collection("stock_adjustment")
-    .where({ adjustment_no: generatedPrefix })
-    .get();
-  return existingDoc.data[0] ? false : true;
-};
-
-const findUniquePrefix = async (prefixData) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    this.$message.error(
-      "Could not generate a unique Stock Adjustment number after maximum attempts",
-    );
-  }
-
-  return { prefixToShow, runningNumber };
-};
-
 const addEntry = async (organizationId, sa, self) => {
   try {
-    const prefixData = await getPrefixData(organizationId);
-
-    if (prefixData.length !== 0) {
-      const { prefixToShow, runningNumber } =
-        await findUniquePrefix(prefixData);
-
-      await updatePrefix(organizationId, runningNumber);
-
-      sa.adjustment_no = prefixToShow;
-    }
-
     await preCheckQuantitiesAndCosting(sa, self);
-    const resSA = await db.collection("stock_adjustment").add(sa);
-    await updateInventory(sa);
+
+    const saResponse = await db.collection("stock_adjustment").add(sa);
+    const result = saResponse.data[0];
+    await updateInventory(result);
 
     const accIntegrationType = this.getValue("acc_integration_type");
 
@@ -2130,7 +2039,7 @@ const addEntry = async (organizationId, sa, self) => {
       console.log("Calling AutoCount workflow");
       await this.runWorkflow(
         "1996041757448597505",
-        { sa_id: [resSA.data[0].id] },
+        { sa_id: [result.id] },
         (res) => {
           console.log("成功结果：", res);
           this.$message.success("Add Stock Adjustment successfully.");
@@ -2163,20 +2072,14 @@ const addEntry = async (organizationId, sa, self) => {
 
 const updateEntry = async (organizationId, sa, self, stockAdjustmentId) => {
   try {
-    const prefixData = await getPrefixData(organizationId);
-
-    if (prefixData.length !== 0) {
-      const { prefixToShow, runningNumber } =
-        await findUniquePrefix(prefixData);
-
-      await updatePrefix(organizationId, runningNumber);
-
-      sa.adjustment_no = prefixToShow;
-    }
-
     await preCheckQuantitiesAndCosting(sa, self);
-    await db.collection("stock_adjustment").doc(stockAdjustmentId).update(sa);
-    await updateInventory(sa);
+
+    const saResponse = await db
+      .collection("stock_adjustment")
+      .doc(stockAdjustmentId)
+      .update(sa);
+    const result = saResponse.data.modifiedResults[0];
+    await updateInventory(result);
 
     const accIntegrationType = this.getValue("acc_integration_type");
 
@@ -2286,10 +2189,12 @@ const fillbackHeaderFields = async (sa) => {
     this.showLoading();
     const data = this.getValues();
     const page_status = this.getValue("page_status");
+    let sa = data;
     const self = this;
     const stockAdjustmentId = this.getValue("id");
     const requiredFields = [
       { name: "adjustment_date", label: "Adjustment Date" },
+      { name: "adjustment_no", label: "Adjustment Number" },
       { name: "adjustment_type", label: "Adjustment Type" },
       { name: "plant_id", label: "Plant" },
       {
@@ -2301,48 +2206,27 @@ const fillbackHeaderFields = async (sa) => {
       },
     ];
 
-    const missingFields = await validateForm(data, requiredFields);
-    if (missingFields.length === 0) {
-      const {
-        organization_id,
-        stock_count_id,
-        adjustment_date,
-        adjustment_type,
-        plant_id,
-        adjusted_by,
-        adjustment_no,
-        adjustment_remarks,
-        adjustment_remarks2,
-        adjustment_remarks3,
-        reference_documents,
-        stock_adjustment,
-        table_index,
-      } = data;
+    if (
+      sa.adjustment_no_type !== -9999 &&
+      (!sa.adjustment_no ||
+        sa.adjustment_no === null ||
+        sa.adjustment_no === "" ||
+        sa.previous_status === "Draft")
+    ) {
+      sa.adjustment_no = "issued";
+    }
 
-      const sa = {
-        stock_adjustment_status: "Completed",
-        posted_status: "Pending Post",
-        organization_id,
-        stock_count_id,
-        adjustment_no,
-        adjustment_date,
-        adjustment_type,
-        adjusted_by,
-        plant_id,
-        adjustment_remarks,
-        adjustment_remarks2,
-        adjustment_remarks3,
-        reference_documents,
-        stock_adjustment,
-        table_index,
-      };
+    const missingFields = await validateForm(sa, requiredFields);
+    if (missingFields.length === 0) {
+      sa.stock_adjustment_status = "Completed";
+      sa.posted_status = "Pending Post";
 
       sa.stock_adjustment = await fillbackHeaderFields(sa);
 
       if (page_status === "Add") {
-        await addEntry(organization_id, sa, self);
+        await addEntry(data.organization_id, sa, self);
       } else if (page_status === "Edit") {
-        await updateEntry(organization_id, sa, self, stockAdjustmentId);
+        await updateEntry(data.organization_id, sa, self, stockAdjustmentId);
       }
     } else {
       this.hideLoading();

@@ -8,6 +8,7 @@
     const page_status = allData.page_status;
     const quantityUOM = allData.sa_item_balance.uom_id;
     const selectedUOM = allData.sa_item_balance.material_uom;
+    const adjustment_type = allData.adjustment_type;
     console.log("temporaryData:", temporaryData); // Log temporaryData
     console.log("rowIndex:", rowIndex); // Log rowIndex
     console.log("page_status:", page_status); // Log page_status
@@ -70,7 +71,7 @@
         table_uom_conversion,
         fromUOM,
         toUOM,
-        baseUOM
+        baseUOM,
       ) => {
         if (!value || fromUOM === toUOM) return value;
 
@@ -78,7 +79,7 @@
         let baseQty = value;
         if (fromUOM !== baseUOM) {
           const fromConversion = table_uom_conversion.find(
-            (conv) => conv.alt_uom_id === fromUOM
+            (conv) => conv.alt_uom_id === fromUOM,
           );
           if (fromConversion && fromConversion.base_qty) {
             baseQty = value * fromConversion.base_qty;
@@ -88,10 +89,10 @@
         // Then convert from base UOM to target UOM
         if (toUOM !== baseUOM) {
           const toConversion = table_uom_conversion.find(
-            (conv) => conv.alt_uom_id === toUOM
+            (conv) => conv.alt_uom_id === toUOM,
           );
           if (toConversion && toConversion.base_qty) {
-            return Math.round(baseQty / toConversion.base_qty * 1000) / 1000;
+            return Math.round((baseQty / toConversion.base_qty) * 1000) / 1000;
           }
         }
 
@@ -119,10 +120,10 @@
               tableUOMConversion,
               selectedUOM,
               quantityUOM,
-              baseUOM
+              baseUOM,
             );
             console.log(
-              `Record ${index} ${field}: ${originalValue} -> ${convertedRecord[field]}`
+              `Record ${index} ${field}: ${originalValue} -> ${convertedRecord[field]}`,
             );
           }
         });
@@ -132,22 +133,31 @@
 
       console.log(
         "Converted temporary data back to quantityUOM:",
-        processedTemporaryData
+        processedTemporaryData,
       );
     }
 
     // Filter out items with quantity 0 and sum up sa_quantity values
     const totalSaQuantity = processedTemporaryData
       .filter((item) => {
-        const isValidItem =
-          item.sa_quantity && item.sa_quantity > 0 ? true : false;
+        let isValidItem;
+        if (adjustment_type === "Stock Count") {
+          // For Stock Count, include both positive and negative quantities (but not zero)
+          isValidItem = item.sa_quantity && item.sa_quantity !== 0;
+        } else {
+          isValidItem = item.sa_quantity && item.sa_quantity > 0;
+        }
         console.log("Filtering item:", item, "isValidItem:", isValidItem); // Log each filtered item
         return isValidItem;
       })
       .reduce((sum, item) => {
         const category_type = item.category;
         const movementType = item.movement_type;
-        const quantity = item.sa_quantity || 0;
+        // For Stock Count, use absolute value of quantity
+        const quantity =
+          adjustment_type === "Stock Count"
+            ? Math.abs(item.sa_quantity || 0)
+            : item.sa_quantity || 0;
         console.log("Reducing item:", {
           category_type,
           movementType,
@@ -166,8 +176,8 @@
           blocked_field,
         }); // Log quantity fields
 
-        // Validate only if movementType is "Out"
-        if (movementType === "Out" && quantity > 0) {
+        // Validate only if movementType is "Out" or "OUT"
+        if ((movementType === "Out" || movementType === "OUT") && quantity > 0) {
           let selectedField;
           switch (category_type) {
             case "Unrestricted":
@@ -213,10 +223,13 @@
     const formatFilteredData = async (temporaryData, itemData) => {
       try {
         console.log("Starting formatFilteredData"); // Log function start
-        // Filter data to only include items with quantity > 0
-        const filteredData = temporaryData.filter(
-          (item) => item.sa_quantity && item.sa_quantity > 0
-        );
+        // Filter data to only include items with quantity != 0
+        const filteredData = temporaryData.filter((item) => {
+          if (adjustment_type === "Stock Count") {
+            return item.sa_quantity && item.sa_quantity !== 0;
+          }
+          return item.sa_quantity && item.sa_quantity > 0;
+        });
         console.log("filteredData:", filteredData); // Log filtered data
 
         // Return empty string if no filtered data
@@ -236,7 +249,7 @@
           ...new Set(
             filteredData
               .map((item) => item.batch_id)
-              .filter((batchId) => batchId != null && batchId !== "")
+              .filter((batchId) => batchId != null && batchId !== ""),
           ),
         ];
         console.log("batchIds:", batchIds); // Log batch IDs
@@ -311,10 +324,13 @@
         console.log("batchMap:", batchMap); // Log batch map
 
         // Calculate total from filtered data
-        const totalQty = filteredData.reduce(
-          (sum, item) => sum + (item.sa_quantity || 0),
-          0
-        );
+        const totalQty = filteredData.reduce((sum, item) => {
+          const qty =
+            adjustment_type === "Stock Count"
+              ? Math.abs(item.sa_quantity || 0)
+              : item.sa_quantity || 0;
+          return sum + qty;
+        }, 0);
         console.log("totalQty in formatFilteredData:", totalQty); // Log total quantity
 
         let summary = `Total: ${totalQty} ${gdUOM}\nDETAILS:\n`;
@@ -325,7 +341,11 @@
           .map((item, index) => {
             const locationName =
               locationMap[item.location_id] || item.location_id;
-            const qty = item.sa_quantity || 0;
+            // For Stock Count, use absolute value for display
+            const qty =
+              adjustment_type === "Stock Count"
+                ? Math.abs(item.sa_quantity || 0)
+                : item.sa_quantity || 0;
             const category = item.category;
             const categoryAbbr = categoryMap[category] || category || "UNR";
             console.log("Processing item detail:", {
@@ -337,7 +357,9 @@
             }); // Log item detail
 
             const movementTypeLabel =
-              item.movement_type === "In" ? "IN" : "OUT";
+              item.movement_type === "In" || item.movement_type === "IN"
+                ? "IN"
+                : "OUT";
             let itemDetail = `${
               index + 1
             }. ${locationName}: ${qty} ${gdUOM} (${categoryAbbr}) - ${movementTypeLabel}`;
@@ -388,14 +410,25 @@
 
     const formattedString = await formatFilteredData(
       processedTemporaryData,
-      itemData
+      itemData,
     );
     console.log("📋 Formatted string:", formattedString); // Already present
 
-    // Filter processedTemporaryData to only include items with sa_quantity > 0 for saving
-    const filteredDataForSave = processedTemporaryData.filter(
-      (item) => item.sa_quantity && item.sa_quantity > 0
-    );
+    // Filter processedTemporaryData to only include items with sa_quantity != 0 for saving
+    let filteredDataForSave = processedTemporaryData.filter((item) => {
+      if (adjustment_type === "Stock Count") {
+        return item.sa_quantity && item.sa_quantity !== 0;
+      }
+      return item.sa_quantity && item.sa_quantity > 0;
+    });
+
+    // For Stock Count, convert negative sa_quantity to absolute value for saving
+    if (adjustment_type === "Stock Count") {
+      filteredDataForSave = filteredDataForSave.map((item) => ({
+        ...item,
+        sa_quantity: Math.abs(item.sa_quantity),
+      }));
+    }
     console.log("Filtered data for saving:", filteredDataForSave); // Log filtered data for save
 
     // Only update data and close dialog if all validations pass
@@ -415,9 +448,9 @@
         [`dialog_index.table_index`]: filteredDataForSave,
       });
 
-      // Show unit_price only if there are "In" movement types
+      // Show unit_price only if there are "In" or "IN" movement types
       const hasInMovement = filteredDataForSave.some(
-        (item) => item.movement_type === "In"
+        (item) => item.movement_type === "In" || item.movement_type === "IN",
       );
       if (hasInMovement) {
         this.display(`stock_adjustment.${rowIndex}.unit_price`);
@@ -430,7 +463,7 @@
       console.log("processedTemporaryData:", processedTemporaryData); // Already present
       console.log(
         "closeDialog exists:",
-        typeof this.closeDialog === "function"
+        typeof this.closeDialog === "function",
       ); // Log closeDialog check
 
       this.models["previous_material_uom"] = undefined;
@@ -457,7 +490,7 @@
     if (this.$message) {
       console.log("Showing error message via $message"); // Log $message call
       this.$message.error(
-        "Failed to process stock adjustment. Please try again."
+        "Failed to process stock adjustment. Please try again.",
       );
     }
   }
