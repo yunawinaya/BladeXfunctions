@@ -35,6 +35,13 @@
  */
 
 // ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+// FIX: Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
+const roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;
+
+// ============================================================================
 // BATCH QUERY HELPER FUNCTIONS
 // ============================================================================
 
@@ -492,7 +499,7 @@ const checkInventoryWithDuplicates = async (
         const index = item.originalIndex;
         const orderedQty = item.orderedQty;
         const deliveredQty = item.deliveredQtyFromSource;
-        const undeliveredQty = orderedQty - deliveredQty;
+        const undeliveredQty = roundQty(orderedQty - deliveredQty);
 
         tableToArray[index] = {
           ...tableToArray[index],
@@ -534,7 +541,7 @@ const checkInventoryWithDuplicates = async (
         const index = item.originalIndex;
         const orderedQty = item.orderedQty;
         const deliveredQty = item.deliveredQtyFromSource;
-        const undeliveredQty = orderedQty - deliveredQty;
+        const undeliveredQty = roundQty(orderedQty - deliveredQty);
 
         tableToArray[index] = {
           ...tableToArray[index],
@@ -542,7 +549,7 @@ const checkInventoryWithDuplicates = async (
           material_name: item.itemName,
           to_material_desc: item.sourceItem.so_desc || "",
           to_order_quantity: orderedQty,
-          to_delivered_qty: deliveredQty + undeliveredQty,
+          to_delivered_qty: roundQty(deliveredQty + undeliveredQty),
           to_initial_delivered_qty: deliveredQty,
           to_order_uom_id: item.altUOM,
           to_uom_id: item.altUOM,
@@ -639,14 +646,14 @@ const checkInventoryWithDuplicates = async (
     // Calculate total demand
     let totalDemandBase = 0;
     items.forEach((item) => {
-      const undeliveredQty = item.orderedQty - item.deliveredQtyFromSource;
+      const undeliveredQty = roundQty(item.orderedQty - item.deliveredQtyFromSource);
       let undeliveredQtyBase = undeliveredQty;
       if (item.altUOM !== itemData.based_uom) {
         const uomConversion = itemData.table_uom_conversion?.find(
           (conv) => conv.alt_uom_id === item.altUOM,
         );
         if (uomConversion && uomConversion.base_qty) {
-          undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
+          undeliveredQtyBase = roundQty(undeliveredQty * uomConversion.base_qty);
         }
       }
       totalDemandBase += undeliveredQtyBase;
@@ -694,23 +701,23 @@ const checkInventoryWithDuplicates = async (
           const index = item.originalIndex;
           const orderedQty = item.orderedQty;
           const deliveredQty = item.deliveredQtyFromSource;
-          const undeliveredQty = orderedQty - deliveredQty;
+          const undeliveredQty = roundQty(orderedQty - deliveredQty);
 
-          const orderedQtyBase = convertToBaseUOM(
+          const orderedQtyBase = roundQty(convertToBaseUOM(
             orderedQty,
             item.altUOM,
             itemData,
-          );
-          const deliveredQtyBase = convertToBaseUOM(
+          ));
+          const deliveredQtyBase = roundQty(convertToBaseUOM(
             deliveredQty,
             item.altUOM,
             itemData,
-          );
-          const undeliveredQtyBase = convertToBaseUOM(
+          ));
+          const undeliveredQtyBase = roundQty(convertToBaseUOM(
             undeliveredQty,
             item.altUOM,
             itemData,
-          );
+          ));
 
           let availableQtyBase = 0;
           if (remainingSerialCount > 0 && undeliveredQtyBase > 0) {
@@ -730,7 +737,7 @@ const checkInventoryWithDuplicates = async (
             order_quantity: orderedQtyBase,
             undelivered_qty: undeliveredQtyBase,
             available_qty: availableQtyBase,
-            shortfall_qty: undeliveredQtyBase - availableQtyBase,
+            shortfall_qty: roundQty(undeliveredQtyBase - availableQtyBase),
             fm_key:
               Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
@@ -756,7 +763,7 @@ const checkInventoryWithDuplicates = async (
           const index = item.originalIndex;
           const orderedQty = item.orderedQty;
           const deliveredQty = item.deliveredQtyFromSource;
-          const undeliveredQty = orderedQty - deliveredQty;
+          const undeliveredQty = roundQty(orderedQty - deliveredQty);
 
           let availableQtyAlt = 0;
           if (remainingStockBase > 0 && undeliveredQty > 0) {
@@ -766,7 +773,7 @@ const checkInventoryWithDuplicates = async (
                 (conv) => conv.alt_uom_id === item.altUOM,
               );
               if (uomConversion && uomConversion.base_qty) {
-                undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
+                undeliveredQtyBase = roundQty(undeliveredQty * uomConversion.base_qty);
               }
             }
 
@@ -779,7 +786,7 @@ const checkInventoryWithDuplicates = async (
             );
             availableQtyAlt =
               item.altUOM !== itemData.based_uom
-                ? allocatedBase / (uomConversion?.base_qty || 1)
+                ? roundQty(allocatedBase / (uomConversion?.base_qty || 1))
                 : allocatedBase;
 
             remainingStockBase -= allocatedBase;
@@ -793,7 +800,7 @@ const checkInventoryWithDuplicates = async (
             order_quantity: orderedQty,
             undelivered_qty: undeliveredQty,
             available_qty: availableQtyAlt,
-            shortfall_qty: undeliveredQty - availableQtyAlt,
+            shortfall_qty: roundQty(undeliveredQty - availableQtyAlt),
             fm_key:
               Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
@@ -817,7 +824,7 @@ const checkInventoryWithDuplicates = async (
         const index = item.originalIndex;
         const orderedQty = item.orderedQty;
         const deliveredQty = item.deliveredQtyFromSource;
-        const undeliveredQty = orderedQty - deliveredQty;
+        const undeliveredQty = roundQty(orderedQty - deliveredQty);
 
         // 🔧 Use cached pending reserved data instead of new DB query
         const pendingReservedData = pendingReservedMap.get(item.so_line_item_id) || [];
@@ -826,7 +833,7 @@ const checkInventoryWithDuplicates = async (
           0,
         );
         // Cap by pending reserved qty (if any reservations exist)
-        const suggestedQty = pendingTotal > 0 ? Math.min(undeliveredQty, pendingTotal) : undeliveredQty;
+        const suggestedQty = roundQty(pendingTotal > 0 ? Math.min(undeliveredQty, pendingTotal) : undeliveredQty);
 
         if (suggestedQty <= 0) {
           fieldsToDisable.push(
@@ -837,21 +844,21 @@ const checkInventoryWithDuplicates = async (
         } else {
           if (itemData.serial_number_management === 1) {
             // Serialized - use base UOM
-            const orderedQtyBase = convertToBaseUOM(
+            const orderedQtyBase = roundQty(convertToBaseUOM(
               orderedQty,
               item.altUOM,
               itemData,
-            );
-            const deliveredQtyBase = convertToBaseUOM(
+            ));
+            const deliveredQtyBase = roundQty(convertToBaseUOM(
               deliveredQty,
               item.altUOM,
               itemData,
-            );
-            const suggestedQtyBase = convertToBaseUOM(
+            ));
+            const suggestedQtyBase = roundQty(convertToBaseUOM(
               suggestedQty,
               item.altUOM,
               itemData,
-            );
+            ));
 
             tableToArray[index] = {
               ...tableToArray[index],
@@ -953,16 +960,16 @@ const createTableToWithBaseUOM = async (allItems) => {
     }
 
     if (itemData?.serial_number_management === 1) {
-      const orderedQtyBase = convertToBaseUOM(
+      const orderedQtyBase = roundQty(convertToBaseUOM(
         item.orderedQty,
         item.altUOM,
         itemData,
-      );
-      const deliveredQtyBase = convertToBaseUOM(
+      ));
+      const deliveredQtyBase = roundQty(convertToBaseUOM(
         item.deliveredQtyFromSource,
         item.altUOM,
         itemData,
-      );
+      ));
 
       processedItems.push({
         material_id: item.itemId || "",
@@ -970,8 +977,7 @@ const createTableToWithBaseUOM = async (allItems) => {
         to_material_desc: item.itemDesc || "",
         to_order_quantity: orderedQtyBase,
         to_delivered_qty: deliveredQtyBase,
-        to_undelivered_qty:
-          Math.round((orderedQtyBase - deliveredQtyBase) * 1000) / 1000,
+        to_undelivered_qty: roundQty(orderedQtyBase - deliveredQtyBase),
         to_order_uom_id: itemData.based_uom,
         to_uom_id: itemData.based_uom,
         unit_price: item.sourceItem.so_item_price || 0,
@@ -993,9 +999,7 @@ const createTableToWithBaseUOM = async (allItems) => {
         to_material_desc: item.itemDesc || "",
         to_order_quantity: item.orderedQty,
         to_delivered_qty: item.deliveredQtyFromSource,
-        to_undelivered_qty:
-          Math.round((item.orderedQty - item.deliveredQtyFromSource) * 1000) /
-          1000,
+        to_undelivered_qty: roundQty(item.orderedQty - item.deliveredQtyFromSource),
         to_order_uom_id: item.altUOM,
         to_uom_id: item.altUOM,
         unit_price: item.sourceItem.so_item_price || 0,
@@ -1117,7 +1121,7 @@ const createTableToWithBaseUOM = async (allItems) => {
             orderedQty: parseFloat(soItem.so_quantity || 0),
             altUOM: soItem.so_item_uom || "",
             sourceItem: soItem,
-            deliveredQtyFromSource: parseFloat(soItem.delivered_qty || 0) + parseFloat(soItem.planned_qty || 0),
+            deliveredQtyFromSource: roundQty(parseFloat(soItem.delivered_qty || 0) + parseFloat(soItem.planned_qty || 0)),
             original_so_id: so.sales_order_id,
             so_no: so.sales_order_number,
             so_line_item_id: soItem.id,
@@ -1137,7 +1141,7 @@ const createTableToWithBaseUOM = async (allItems) => {
           orderedQty: parseFloat(soItem.so_quantity || 0),
           altUOM: soItem.so_item_uom || "",
           sourceItem: soItem,
-          deliveredQtyFromSource: parseFloat(soItem.delivered_qty || 0) + parseFloat(soItem.planned_qty || 0),
+          deliveredQtyFromSource: roundQty(parseFloat(soItem.delivered_qty || 0) + parseFloat(soItem.planned_qty || 0)),
           original_so_id: soItem.sales_order.id,
           so_no: soItem.sales_order.so_no,
           so_line_item_id: soItem.sales_order_line_id,

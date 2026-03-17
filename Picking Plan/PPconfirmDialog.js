@@ -1,4 +1,7 @@
 (async () => {
+  // Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
+  const roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;
+
   const data = this.getValues();
   const temporaryData = data.to_item_balance.table_item_balance;
   const rowIndex = data.to_item_balance.row_index;
@@ -51,11 +54,11 @@
   }
 
   // Calculate total quantity from all rows with to_quantity > 0
-  const totalDialogQuantity = temporaryData.reduce((sum, item) => {
+  const totalDialogQuantity = roundQty(temporaryData.reduce((sum, item) => {
     return sum + (item.to_quantity > 0 ? parseFloat(item.to_quantity || 0) : 0);
-  }, 0);
+  }, 0));
 
-  const totalDeliveredQty = initialDeliveredQty + totalDialogQuantity;
+  const totalDeliveredQty = roundQty(initialDeliveredQty + totalDialogQuantity);
 
   console.log("Re-validation check:");
   console.log("Order limit with tolerance:", orderLimit);
@@ -145,7 +148,7 @@
           );
         }
 
-        const availableQty = unrestricted_field + pendingReservedQty;
+        const availableQty = roundQty(unrestricted_field + pendingReservedQty);
         if (availableQty < quantity) {
           console.log(
             `Row ${idx} validation failed: Serial item unrestricted quantity insufficient`,
@@ -208,7 +211,7 @@
           );
         }
 
-        const availableQty = unrestricted_field + pendingReservedQty;
+        const availableQty = roundQty(unrestricted_field + pendingReservedQty);
         if (availableQty < quantity) {
           console.log(
             `Row ${idx} validation failed: Unrestricted quantity is not enough`,
@@ -393,10 +396,10 @@
       return map;
     }, {});
 
-    const totalQty = filteredData.reduce(
+    const totalQty = roundQty(filteredData.reduce(
       (sum, item) => sum + (item.to_quantity || 0),
       0,
-    );
+    ));
 
     let summary = `Total: ${totalQty} ${toUOM}\n\nDETAILS:\n`;
 
@@ -468,10 +471,10 @@
   console.log("Row index:", rowIndex);
 
   // Sum up all to_quantity values from filtered data
-  const totalToQuantity = filteredData.reduce(
+  const totalToQuantity = roundQty(filteredData.reduce(
     (sum, item) => sum + (item.to_quantity || 0),
     0,
-  );
+  ));
   console.log("Total TO quantity:", totalToQuantity);
 
   // Get the initial delivered quantity from the table_to
@@ -479,7 +482,7 @@
     data.table_to[rowIndex].to_initial_delivered_qty || 0;
   console.log("Initial delivered quantity:", initialDeliveredQty2);
 
-  const deliveredQty = initialDeliveredQty2 + totalToQuantity;
+  const deliveredQty = roundQty(initialDeliveredQty2 + totalToQuantity);
   console.log("Final delivered quantity:", deliveredQty);
 
   // Calculate price per item for the current row
@@ -544,7 +547,7 @@
 
   // Update the grand total
   this.setData({
-    [`to_total`]: newTotal,
+    [`to_total`]: roundQty(newTotal),
   });
 
   this.models["previous_material_uom"] = undefined;

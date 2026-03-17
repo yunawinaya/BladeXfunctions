@@ -1,96 +1,4 @@
 // Helper functions
-const generatePrefix = (prefixData) => {
-  const now = new Date();
-  let prefixToShow = prefixData.current_prefix_config;
-
-  prefixToShow = prefixToShow.replace("prefix", prefixData.prefix_value);
-  prefixToShow = prefixToShow.replace("suffix", prefixData.suffix_value);
-  prefixToShow = prefixToShow.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0")
-  );
-  prefixToShow = prefixToShow.replace(
-    "day",
-    String(now.getDate()).padStart(2, "0")
-  );
-  prefixToShow = prefixToShow.replace("year", now.getFullYear());
-  prefixToShow = prefixToShow.replace(
-    "running_number",
-    String(prefixData.running_number).padStart(prefixData.padding_zeroes, "0")
-  );
-
-  return prefixToShow;
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("packing")
-    .where({ packing_no: generatedPrefix, organization_id: organizationId })
-    .get();
-
-  return !existingDoc.data || existingDoc.data.length === 0;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  let prefixToShow;
-  let runningNumber = prefixData.running_number || 1;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = generatePrefix({
-      ...prefixData,
-      running_number: runningNumber,
-    });
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Transfer Order number after maximum attempts"
-    );
-  }
-
-  return { prefixToShow, runningNumber };
-};
-
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Packing",
-      is_deleted: 0,
-      organization_id: organizationId,
-    })
-    .get();
-
-  if (!prefixEntry.data || prefixEntry.data.length === 0) {
-    return null;
-  } else {
-    if (prefixEntry.data[0].is_active === 0) {
-      this.disabled(["packing_no"], false);
-    } else {
-      this.disabled(["packing_no"], true);
-    }
-  }
-
-  return prefixEntry.data[0];
-};
-
-const setPrefix = async (organizationId) => {
-  const prefixData = await getPrefixData(organizationId);
-
-  if (prefixData && prefixData.is_active === 1) {
-    const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
-    this.setData({ packing_no: prefixToShow });
-  }
-};
-
 const showStatusHTML = async (status) => {
   switch (status) {
     case "Draft":
@@ -135,7 +43,7 @@ const disabledField = async (status) => {
         "table_items",
         "remarks",
       ],
-      true
+      true,
     );
 
     this.hide(["button_save_as_draft", "button_created", "button_completed"]);
@@ -231,25 +139,6 @@ const fetchPickingSetup = async (organizationId) => {
   }
 };
 
-const setPackingDefaultDocNo = async (organizationID) => {
-  const defaultDocFormatFilter = new Filter("all")
-    .equal("organization_id", organizationID)
-    .equal("document_types", "Packing")
-    .numberEqual("is_default", 1)
-    .build();
-  const resDefaultDocFormat = await db
-    .collection("document_number")
-    .filter(defaultDocFormatFilter)
-    .get();
-
-  if (resDefaultDocFormat && resDefaultDocFormat.data.length > 0) {
-    this.setData({
-      pkg_doc_no_format: resDefaultDocFormat.data[0].id,
-      packing_no: "<<new>>",
-    });
-  }
-};
-
 const setHUDefaultDocNo = async (organizationID) => {
   const defaultDocFormatFilter = new Filter("all")
     .equal("organization_id", organizationID)
@@ -303,17 +192,12 @@ const setHUDefaultDocNo = async (organizationID) => {
         if (convertFromGD) {
           await viewSerialNumber();
         }
-        await setPrefix(organizationId);
         await setPackingMode();
         await fetchPickingSetup(organizationId);
-        await setPackingDefaultDocNo(organizationId);
         await setHUDefaultDocNo(organizationId);
         break;
 
       case "Edit":
-        if (status !== "Completed" || status !== "Created") {
-          await getPrefixData(organizationId);
-        }
         if (status !== "Draft") {
           this.hide(["button_save_as_draft"]);
           await fetchPickingSetup(organizationId);
@@ -341,3 +225,39 @@ const setHUDefaultDocNo = async (organizationID) => {
     this.$message.error(error.message || "An error occurred");
   }
 })();
+
+setTimeout(async () => {
+  if (this.isAdd) {
+    await this.onDropdownVisible("packing_no_type", true);
+    function getDefaultItem(arr) {
+      return arr?.find((item) => item?.item?.item?.is_default === 1);
+    }
+    setTimeout(() => {
+      const optionsData = this.getOptionData("packing_no_type") || [];
+      const data = getDefaultItem(optionsData);
+      if (data) {
+        this.setData({
+          packing_no_type: data.value,
+        });
+      }
+    }, 500);
+  }
+}, 500);
+
+setTimeout(async () => {
+  if (this.isAdd) {
+    await this.onDropdownVisible("table_hu.hu_no_type", true);
+    function getDefaultItem(arr) {
+      return arr?.find((item) => item?.item?.item?.is_default === 1);
+    }
+    setTimeout(() => {
+      const optionsData = this.getOptionData("table_hu.hu_no_type") || [];
+      const data = getDefaultItem(optionsData);
+      if (data) {
+        this.setData({
+          ["table_hu.hu_no_type"]: data.value,
+        });
+      }
+    }, 500);
+  }
+}, 500);

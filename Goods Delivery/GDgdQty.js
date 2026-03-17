@@ -1,13 +1,16 @@
 (async () => {
+  // FIX: Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
+  const roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;
+
   // Extract input parameters
   const data = this.getValues();
   const { rowIndex } = arguments[0];
-  const quantity = data.table_gd[rowIndex].gd_qty;
+  const quantity = roundQty(data.table_gd[rowIndex].gd_qty);
   const isSelectPicking = data.is_select_picking;
 
   // Retrieve values from context
-  const orderedQty = data.table_gd[rowIndex].gd_order_quantity;
-  const initialDeliveredQty = data.table_gd[rowIndex].gd_initial_delivered_qty;
+  const orderedQty = parseFloat(data.table_gd[rowIndex].gd_order_quantity) || 0;
+  const initialDeliveredQty = parseFloat(data.table_gd[rowIndex].gd_initial_delivered_qty) || 0;
   const uomId = data.table_gd[rowIndex].gd_order_uom_id;
   const itemCode = data.table_gd[rowIndex].material_id;
   const itemDesc = data.table_gd[rowIndex].gd_material_desc;
@@ -15,8 +18,8 @@
   const organizationId = data.organization_id;
 
   // Calculate undelivered quantity
-  const undeliveredQty = orderedQty - initialDeliveredQty;
-  const totalDeliveredQty = quantity + initialDeliveredQty;
+  const undeliveredQty = roundQty(orderedQty - initialDeliveredQty);
+  const totalDeliveredQty = roundQty(quantity + initialDeliveredQty);
 
   // GDPP mode: Update existing temp_qty_data proportionally
   if (isSelectPicking === 1) {
@@ -39,9 +42,9 @@
       const tempDataArray = JSON.parse(existingTempData);
 
       // Calculate total to_quantity (ceiling from PP)
-      const totalToQuantity = tempDataArray.reduce((sum, item) => {
+      const totalToQuantity = roundQty(tempDataArray.reduce((sum, item) => {
         return sum + parseFloat(item.to_quantity || 0);
-      }, 0);
+      }, 0));
 
       // Validate: quantity cannot exceed total to_quantity
       if (quantity > totalToQuantity) {
@@ -62,7 +65,7 @@
       const updatedTempData = tempDataArray.map((item) => {
         const itemToQty = parseFloat(item.to_quantity || 0);
         const proportion = itemToQty / totalToQuantity;
-        const newGdQty = Math.round(quantity * proportion * 1000) / 1000;
+        const newGdQty = roundQty(quantity * proportion);
 
         return {
           ...item,
@@ -165,7 +168,7 @@
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
         [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
+          roundQty(orderedQty - totalDeliveredQty),
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify(updatedTempData),
       });
@@ -241,7 +244,7 @@
     this.setData({
       [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
       [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-        Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
+        roundQty(orderedQty - totalDeliveredQty),
       [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}`,
     });
     return;
@@ -361,7 +364,7 @@
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
             [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
+              roundQty(orderedQty - totalDeliveredQty),
             [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog for serialized items with quantity > 1`,
             [`table_gd.${rowIndex}.temp_qty_data`]: "[]", // Clear any existing temp data
           });
@@ -370,7 +373,7 @@
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
             [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
+              roundQty(orderedQty - totalDeliveredQty),
           });
         }
         return;
@@ -385,7 +388,7 @@
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
             [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
+              roundQty(orderedQty - totalDeliveredQty),
             [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog to select serial number`,
             [`table_gd.${rowIndex}.temp_qty_data`]: "[]",
           });
@@ -393,7 +396,7 @@
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
             [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
+              roundQty(orderedQty - totalDeliveredQty),
           });
         }
         return;
@@ -435,7 +438,7 @@
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
         [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
+          roundQty(orderedQty - totalDeliveredQty),
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
       });
@@ -565,7 +568,7 @@
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
         [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          Math.round((orderedQty - totalDeliveredQty) * 1000) / 1000,
+          roundQty(orderedQty - totalDeliveredQty),
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
       });

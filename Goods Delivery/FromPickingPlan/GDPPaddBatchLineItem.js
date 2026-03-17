@@ -1,3 +1,6 @@
+// FIX: Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
+const roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;
+
 // Helper function to convert quantity from alt UOM to base UOM
 const convertToBaseUOM = (quantity, altUOM, itemData) => {
   if (!altUOM || altUOM === itemData.based_uom) {
@@ -66,36 +69,28 @@ const createTableGdWithBaseUOM = async (allItems) => {
     // - gd_delivered_qty = Total picked qty (to_qty)
     // - gd_undelivered_qty = SO qty - picked qty (gap between ordered and picked)
 
-    const soOrderedQty = item.orderedQty; // to_order_quantity (10)
-    const pickedQty = item.pickedQty; // to_qty (8)
-    const alreadyDelivered = item.deliveredQty || 0; // gd_delivered_qty from PP (5 after first GD)
-    const remainingToDeliver =
-      Math.round((pickedQty - alreadyDelivered) * 1000) / 1000; // 8 - 5 = 3
-    const undeliveredQty =
-      Math.round((soOrderedQty - pickedQty) * 1000) / 1000; // 10 - 8 = 2
+    const soOrderedQty = parseFloat(item.orderedQty) || 0; // to_order_quantity (10)
+    const pickedQty = parseFloat(item.pickedQty) || 0; // to_qty (8)
+    const alreadyDelivered = parseFloat(item.deliveredQty) || 0; // gd_delivered_qty from PP (5 after first GD)
+    const remainingToDeliver = roundQty(pickedQty - alreadyDelivered); // 8 - 5 = 3
+    const undeliveredQty = roundQty(soOrderedQty - pickedQty); // 10 - 8 = 2
 
     // If serialized, convert to base UOM
     if (itemData?.serial_number_management === 1) {
-      const soOrderedQtyBase = convertToBaseUOM(
-        soOrderedQty,
-        item.altUOM,
-        itemData,
+      const soOrderedQtyBase = roundQty(
+        convertToBaseUOM(soOrderedQty, item.altUOM, itemData),
       );
-      const pickedQtyBase = convertToBaseUOM(pickedQty, item.altUOM, itemData);
-      const alreadyDeliveredBase = convertToBaseUOM(
-        alreadyDelivered,
-        item.altUOM,
-        itemData,
+      const pickedQtyBase = roundQty(
+        convertToBaseUOM(pickedQty, item.altUOM, itemData),
       );
-      const remainingToDeliverBase = convertToBaseUOM(
-        remainingToDeliver,
-        item.altUOM,
-        itemData,
+      const alreadyDeliveredBase = roundQty(
+        convertToBaseUOM(alreadyDelivered, item.altUOM, itemData),
       );
-      const undeliveredQtyBase = convertToBaseUOM(
-        undeliveredQty,
-        item.altUOM,
-        itemData,
+      const remainingToDeliverBase = roundQty(
+        convertToBaseUOM(remainingToDeliver, item.altUOM, itemData),
+      );
+      const undeliveredQtyBase = roundQty(
+        convertToBaseUOM(undeliveredQty, item.altUOM, itemData),
       );
 
       processedItems.push({
@@ -469,7 +464,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
           }
 
           const groupKey = `${record.to_line_id}|${record.item_code}`;
-          const remainingQty = storeOutQty - deliveredQty;
+          const remainingQty = roundQty(storeOutQty - deliveredQty);
           const batchId = record.batch_no || record.target_batch;
 
           const tempEntry = {
@@ -489,7 +484,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
             groupedItemsDoc.set(groupKey, {
               itemId: record.item_code,
               itemName: record.item_name,
-              itemDesc: "",
+              itemDesc: record.item_desc,
               orderedQty: parseFloat(orderedQty),
               pickedQty: storeOutQty,
               deliveredQty: deliveredQty,
@@ -518,8 +513,10 @@ const createTableGdWithBaseUOM = async (allItems) => {
             // Existing group - merge
             console.log("pickingRecord (merging into group)", record);
             const existing = groupedItemsDoc.get(groupKey);
-            existing.pickedQty += storeOutQty;
-            existing.deliveredQty += deliveredQty;
+            existing.pickedQty = roundQty(existing.pickedQty + storeOutQty);
+            existing.deliveredQty = roundQty(
+              existing.deliveredQty + deliveredQty,
+            );
             existing.tempEntries.push(tempEntry);
             existing.locationBatchInfo.push({
               locationId: record.target_location,
@@ -584,7 +581,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         const itemId = pickingItem.item?.id || "";
         const groupKey = `${ppLineId}|${itemId}`;
 
-        const remainingQty = storeOutQty - deliveredQty;
+        const remainingQty = roundQty(storeOutQty - deliveredQty);
         const batchId = pickingItem.batch_no;
 
         const tempEntry = {
@@ -633,8 +630,10 @@ const createTableGdWithBaseUOM = async (allItems) => {
           // Existing group - merge
           console.log("pickingItem (merging into group)", pickingItem);
           const existing = groupedItemsItem.get(groupKey);
-          existing.pickedQty += storeOutQty;
-          existing.deliveredQty += deliveredQty;
+          existing.pickedQty = roundQty(existing.pickedQty + storeOutQty);
+          existing.deliveredQty = roundQty(
+            existing.deliveredQty + deliveredQty,
+          );
           existing.tempEntries.push(tempEntry);
           existing.locationBatchInfo.push({
             locationId: pickingItem.location_id,
@@ -698,21 +697,23 @@ const createTableGdWithBaseUOM = async (allItems) => {
     }
 
     // Check if ANY picking_record_id exists in any existing GD's temp_qty_data
-    const alreadyInGD = itemPickingRecordIds.length > 0 && existingGD.some((gdItem) => {
-      if (!gdItem.temp_qty_data) return false;
-      try {
-        const gdTempData = JSON.parse(gdItem.temp_qty_data);
-        const gdPickingRecordIds = gdTempData
-          .map((entry) => entry.picking_record_id)
-          .filter(Boolean);
-        // Check if any of item's picking_record_ids are in GD's picking_record_ids
-        return itemPickingRecordIds.some((id) =>
-          gdPickingRecordIds.includes(id),
-        );
-      } catch (e) {
-        return false;
-      }
-    });
+    const alreadyInGD =
+      itemPickingRecordIds.length > 0 &&
+      existingGD.some((gdItem) => {
+        if (!gdItem.temp_qty_data) return false;
+        try {
+          const gdTempData = JSON.parse(gdItem.temp_qty_data);
+          const gdPickingRecordIds = gdTempData
+            .map((entry) => entry.picking_record_id)
+            .filter(Boolean);
+          // Check if any of item's picking_record_ids are in GD's picking_record_ids
+          return itemPickingRecordIds.some((id) =>
+            gdPickingRecordIds.includes(id),
+          );
+        } catch (e) {
+          return false;
+        }
+      });
 
     if (fullyDelivered) {
       console.log(
