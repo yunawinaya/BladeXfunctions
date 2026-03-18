@@ -25,7 +25,7 @@ const closeDialog = () => {
       (err) => {
         console.error("Failed to create Packing:", err);
         workflowResult = err;
-      }
+      },
     );
 
     if (
@@ -35,7 +35,7 @@ const closeDialog = () => {
       if (workflowResult.data.errorStatus === "missingFields") {
         this.hideLoading();
         this.$message.error(
-          `Validation errors: ${workflowResult.data.message}`
+          `Validation errors: ${workflowResult.data.message}`,
         );
         return;
       }
@@ -49,19 +49,6 @@ const closeDialog = () => {
     }
 
     if (workflowResult.data.status === "Success") {
-      const entry = workflowResult.data.entry;
-      console.log("entry", entry);
-
-      if (entry.page_status === "Add") {
-        const finalData = await db.collection("packing").add(entry);
-        console.log("Added successfully:", finalData);
-      } else if (entry.page_status === "Edit") {
-        const updatedData = await db
-          .collection("packing")
-          .doc(entry.id)
-          .update(entry);
-        console.log("Updated successfully:", updatedData);
-      }
       this.$message.success("Packing created successfully");
       this.hideLoading();
       closeDialog();

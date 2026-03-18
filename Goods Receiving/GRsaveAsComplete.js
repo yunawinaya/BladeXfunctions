@@ -752,6 +752,15 @@ const addInventory = async (
     intransit_qty,
     materialUom,
   ) => {
+    console.log(`processItemBalance called for item ${item.item_id}`, {
+      itemBalanceParams,
+      block_qty,
+      reserved_qty,
+      unrestricted_qty,
+      qualityinsp_qty,
+      intransit_qty,
+      materialUom,
+    });
     try {
       // Get current item balance records
       const balanceResponse = await db
@@ -1960,6 +1969,7 @@ const addInventory = async (
         material_id: item.item_id,
         location_id: item.location_id,
         plant_id: plantId,
+        organization_id: organizationId,
       };
 
       let block_qty = 0,
@@ -2011,7 +2021,7 @@ const addInventory = async (
           const batchResponse = await db.collection("batch").add(batchData);
 
           // Get the batch_id from the add response if available
-          let batchId = batchResponse?.id || null;
+          batchId = batchResponse?.id || null;
 
           // If we don't get the ID from the response, query for it with retries
           if (!batchId) {
@@ -2144,6 +2154,9 @@ const addInventory = async (
           // Also create/update item_balance for batched items (both serialized and non-serialized)
           if (!isSerializedItem) {
             // Non-serialized items: use existing quantities
+            console.log(
+              `Processing item_balance for batch item ${item.item_id}`,
+            );
             await processItemBalance(
               item,
               itemBalanceParams,
@@ -2153,6 +2166,9 @@ const addInventory = async (
               qualityinsp_qty,
               intransit_qty,
               baseUOM,
+            );
+            console.log(
+              `Successfully processed item_balance for batch item ${item.item_id}`,
             );
           } else {
             // Serialized items: calculate aggregated quantities from serial number data
@@ -2194,7 +2210,8 @@ const addInventory = async (
             } with batch_id: ${batchId}`,
           );
         } catch (error) {
-          console.error(`Error in batch processing: ${error.message}`);
+          console.error(`Error in batch processing for item ${item.item_id}:`, error.message);
+          console.error("Full error:", error);
           // Continue to next item instead of breaking the loop
           continue;
         }

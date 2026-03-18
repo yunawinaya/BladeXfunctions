@@ -1355,16 +1355,21 @@ const processBalanceTable = async (balanceUpdates) => {
               console.log(
                 `✓ Updated item_balance for batch item ${update.material_id} ${update.movementType} movement at location ${update.location_id}`,
               );
-            } else if (update.movementType === "IN") {
-              // Create new item_balance record for IN movement
+            } else if (
+              update.movementType === "IN" ||
+              update.movementType === "TRANSFER"
+            ) {
+              // Create new item_balance record for IN or TRANSFER movement
+              // For TRANSFER, use Math.max(0, qty) to ensure no negative values
+              // (TRANSFER has negative source category and positive target category)
               const itemBalanceData = {
                 material_id: update.material_id,
                 location_id: update.location_id,
-                unrestricted_qty: update.unrestricted_qty,
-                reserved_qty: update.reserved_qty,
-                qualityinsp_qty: update.qualityinsp_qty,
-                block_qty: update.block_qty,
-                intransit_qty: update.intransit_qty,
+                unrestricted_qty: Math.max(0, update.unrestricted_qty),
+                reserved_qty: Math.max(0, update.reserved_qty),
+                qualityinsp_qty: Math.max(0, update.qualityinsp_qty),
+                block_qty: Math.max(0, update.block_qty),
+                intransit_qty: Math.max(0, update.intransit_qty),
                 plant_id: update.plant_id,
                 organization_id: update.organization_id,
                 material_uom: update.material_uom,
@@ -1382,7 +1387,7 @@ const processBalanceTable = async (balanceUpdates) => {
 
               await db.collection("item_balance").add(itemBalanceData);
               console.log(
-                `✓ Created item_balance for batch item ${update.material_id} IN movement at location ${update.location_id}`,
+                `✓ Created item_balance for batch item ${update.material_id} ${update.movementType} movement at location ${update.location_id}`,
               );
             }
           } catch (itemBalanceError) {
@@ -1393,11 +1398,30 @@ const processBalanceTable = async (balanceUpdates) => {
             throw itemBalanceError;
           }
         }
-      } else if (update.movementType === "IN") {
+      } else if (
+        update.movementType === "IN" ||
+        update.movementType === "TRANSFER"
+      ) {
         console.log(
-          "No existing balance record found for IN movement, creating new",
+          `No existing balance record found for ${update.movementType} movement, creating new`,
         );
         const newBalance = await initializeBalanceData(update);
+
+        // For TRANSFER, ensure no negative quantities
+        if (update.movementType === "TRANSFER") {
+          newBalance.block_qty = Math.max(0, newBalance.block_qty);
+          newBalance.reserved_qty = Math.max(0, newBalance.reserved_qty);
+          newBalance.unrestricted_qty = Math.max(0, newBalance.unrestricted_qty);
+          newBalance.qualityinsp_qty = Math.max(0, newBalance.qualityinsp_qty);
+          newBalance.intransit_qty = Math.max(0, newBalance.intransit_qty);
+          newBalance.balance_quantity =
+            newBalance.block_qty +
+            newBalance.reserved_qty +
+            newBalance.unrestricted_qty +
+            newBalance.qualityinsp_qty +
+            newBalance.intransit_qty;
+        }
+
         if (collection === "item_batch_balance") {
           newBalance.batch_id = update.batch_id;
           console.log("Added batch_id to new balance", {
@@ -1405,7 +1429,126 @@ const processBalanceTable = async (balanceUpdates) => {
           });
         }
         await db.collection(collection).add(newBalance);
-        console.log("New balance record created successfully");
+        console.log(`New ${collection} record created successfully`);
+
+        // ✅ CRITICAL FIX: When creating new item_batch_balance, also create/update item_balance
+        if (collection === "item_batch_balance") {
+          try {
+            const generalItemBalanceParams = {
+              material_id: update.material_id,
+              location_id: update.location_id,
+              plant_id: update.plant_id,
+              organization_id: update.organization_id,
+            };
+
+            const generalBalanceQuery = await db
+              .collection("item_balance")
+              .where(generalItemBalanceParams)
+              .get();
+
+            if (
+              generalBalanceQuery.data &&
+              generalBalanceQuery.data.length > 0
+            ) {
+              // Update existing item_balance
+              const generalBalance = generalBalanceQuery.data[0];
+
+              const updatedItemBalance = {
+                unrestricted_qty:
+                  parseFloat(generalBalance.unrestricted_qty || 0) +
+                  (update.movementType === "TRANSFER"
+                    ? Math.max(0, update.unrestricted_qty)
+                    : update.unrestricted_qty),
+                reserved_qty:
+                  parseFloat(generalBalance.reserved_qty || 0) +
+                  (update.movementType === "TRANSFER"
+                    ? Math.max(0, update.reserved_qty)
+                    : update.reserved_qty),
+                qualityinsp_qty:
+                  parseFloat(generalBalance.qualityinsp_qty || 0) +
+                  (update.movementType === "TRANSFER"
+                    ? Math.max(0, update.qualityinsp_qty)
+                    : update.qualityinsp_qty),
+                block_qty:
+                  parseFloat(generalBalance.block_qty || 0) +
+                  (update.movementType === "TRANSFER"
+                    ? Math.max(0, update.block_qty)
+                    : update.block_qty),
+                intransit_qty:
+                  parseFloat(generalBalance.intransit_qty || 0) +
+                  (update.movementType === "TRANSFER"
+                    ? Math.max(0, update.intransit_qty)
+                    : update.intransit_qty),
+                updated_at: new Date(),
+              };
+
+              updatedItemBalance.balance_quantity =
+                updatedItemBalance.unrestricted_qty +
+                updatedItemBalance.reserved_qty +
+                updatedItemBalance.qualityinsp_qty +
+                updatedItemBalance.block_qty +
+                updatedItemBalance.intransit_qty;
+
+              await db
+                .collection("item_balance")
+                .doc(generalBalance.id)
+                .update(updatedItemBalance);
+
+              console.log(
+                `✓ Updated item_balance for batch item ${update.material_id} ${update.movementType} movement at location ${update.location_id}`,
+              );
+            } else {
+              // Create new item_balance record
+              const itemBalanceData = {
+                material_id: update.material_id,
+                location_id: update.location_id,
+                unrestricted_qty:
+                  update.movementType === "TRANSFER"
+                    ? Math.max(0, update.unrestricted_qty)
+                    : update.unrestricted_qty,
+                reserved_qty:
+                  update.movementType === "TRANSFER"
+                    ? Math.max(0, update.reserved_qty)
+                    : update.reserved_qty,
+                qualityinsp_qty:
+                  update.movementType === "TRANSFER"
+                    ? Math.max(0, update.qualityinsp_qty)
+                    : update.qualityinsp_qty,
+                block_qty:
+                  update.movementType === "TRANSFER"
+                    ? Math.max(0, update.block_qty)
+                    : update.block_qty,
+                intransit_qty:
+                  update.movementType === "TRANSFER"
+                    ? Math.max(0, update.intransit_qty)
+                    : update.intransit_qty,
+                plant_id: update.plant_id,
+                organization_id: update.organization_id,
+                material_uom: update.material_uom,
+                created_at: new Date(),
+                updated_at: new Date(),
+              };
+
+              itemBalanceData.balance_quantity =
+                itemBalanceData.unrestricted_qty +
+                itemBalanceData.reserved_qty +
+                itemBalanceData.qualityinsp_qty +
+                itemBalanceData.block_qty +
+                itemBalanceData.intransit_qty;
+
+              await db.collection("item_balance").add(itemBalanceData);
+              console.log(
+                `✓ Created item_balance for batch item ${update.material_id} ${update.movementType} movement at location ${update.location_id}`,
+              );
+            }
+          } catch (itemBalanceError) {
+            console.error(
+              `Error creating/updating item_balance for batch item ${update.material_id}:`,
+              itemBalanceError,
+            );
+            throw itemBalanceError;
+          }
+        }
       }
     }
   } catch (error) {
