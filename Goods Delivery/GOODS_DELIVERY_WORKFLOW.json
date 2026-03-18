@@ -1,6 +1,34 @@
 [
   {
-    "id": "code_node_RK5yYuCI",
+    "id": "code_node_dIlQDXKR",
+    "type": "code-node",
+    "data": {
+      "language": "javascript",
+      "code": "",
+      "timeout": 30000,
+      "title": "Unique Index",
+      "isValidator": true,
+      "nodeName": "Unique Index",
+      "name": "Unique Index",
+      "script": {
+        "type": "javascript",
+        "code": "const allData = {{workflowparams:allData}};\nconst unique = `${allData.gd_created_by || \"\"}_${Date.now()}`;\n\nreturn {\n  unique\n};\n"
+      },
+      "response_json": [
+        {
+          "key": "nfgua2wj",
+          "name": "unique",
+          "title": "unique",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+        }
+      ]
+    },
+    "blocks": []
+  },
+  {
+    "id": "code_node_jxNsjdNJ",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -12,7 +40,7 @@
       "name": "Zero Quantity Check",
       "script": {
         "type": "javascript",
-        "code": "const allData = {{workflowparams:allData}}\n\nconst zeroQtyArray = [];\nfor (const [index, gd] of allData.table_gd.entries()) {\n  if (gd.gd_qty <= 0) {\n    zeroQtyArray.push(`#${index + 1}`);\n  }\n}\nlet hasZero = 0\nlet message = null;\nif (zeroQtyArray.length > 0) {\n  message = `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\n    \", \",\n  )} ha${\n    zeroQtyArray.length > 1 ? \"ve\" : \"s\"\n  } a zero deliver quantity, which may prevent processing.\\nIf you proceed, it will delete the row with 0 deliver quantity. \\nWould you like to proceed?`;\n  hasZero = 1\n}\n\nreturn {\n  message,\n  hasZero\n};\n"
+        "code": "const allData = {{workflowparams:allData}}\n\nconst zeroQtyArray = [];\nfor (const [index, gd] of allData.table_gd.entries()) {\n  if (gd.gd_qty <= 0) {\n    zeroQtyArray.push(`#${index + 1}`);\n  }\n}\nlet hasZero = 0\nlet message = null;\nif (zeroQtyArray.length > 0) {\n  message = `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\n    \", \",\n  )} ha${\n    zeroQtyArray.length > 1 ? \"ve\" : \"s\"\n  } a zero deliver quantity, which may prevent processing.\\nIf you proceed, it will delete the row with 0 deliver quantity. \\nWould you like to proceed?`;\n  hasZero = 1\n}\n\nlet pickingStatus = {{workflowparams:allData.picking_status}} || 'Not Required'\n\nreturn {\n  message,\n  hasZero,\n  pickingStatus\n};\n"
       },
       "response_json": [
         {
@@ -31,13 +59,21 @@
           "bsonType": "int",
           "isExpand": false,
           "children": []
+        },
+        {
+          "key": "v4xx13js",
+          "name": "pickingStatus",
+          "title": "pickingStatus",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
         }
       ]
     },
     "blocks": []
   },
   {
-    "id": "if_cDciOCm5",
+    "id": "if_lCknlVLw",
     "type": "if",
     "data": {
       "title": "IF Zero Qty",
@@ -172,7 +208,7 @@
     ]
   },
   {
-    "id": "get_node_ePvpLyQF",
+    "id": "get_node_WNJ2GRiG",
     "type": "get-node",
     "data": {
       "table_id": {
@@ -233,7 +269,7 @@
     "blocks": []
   },
   {
-    "id": "if_i2YJBzgX",
+    "id": "if_xBl0rC27",
     "type": "if",
     "data": {
       "title": "IF Auto PickingMode",
@@ -582,7 +618,7 @@
                         "type": "javascript",
                         "code": "{{workflowparams:allData.table_gd}}"
                       },
-                      "redis_key": "tableGD"
+                      "redis_key": "tableGD_{{node:code_node_eOO3RTkR.data.unique}}"
                     },
                     "blocks": []
                   },
@@ -598,7 +634,7 @@
                       "nodeName": "Set allocationTracker",
                       "name": "Set allocationTracker",
                       "custom_wkbocgni": { "type": "javascript", "code": "{}" },
-                      "redis_key": "allocationTracker"
+                      "redis_key": "allocationTracker_{{node:code_node_eOO3RTkR.data.unique}}"
                     },
                     "blocks": []
                   },
@@ -614,7 +650,7 @@
                       "nodeName": "Set allocationIndex",
                       "name": "Set allocationIndex",
                       "custom_wkbocgni": { "type": "javascript", "code": "0" },
-                      "redis_key": "allocationIndex"
+                      "redis_key": "allocationIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                     },
                     "blocks": []
                   },
@@ -675,7 +711,7 @@
                           "isValidator": true,
                           "nodeName": "Get tableGD",
                           "name": "Get tableGD",
-                          "redis_key": "tableGD"
+                          "redis_key": "tableGD_{{node:code_node_eOO3RTkR.data.unique}}"
                         },
                         "blocks": []
                       },
@@ -689,7 +725,7 @@
                           "isValidator": true,
                           "nodeName": "Get allocationTracker",
                           "name": "Get allocationTracker",
-                          "redis_key": "allocationTracker"
+                          "redis_key": "allocationTracker_{{node:code_node_eOO3RTkR.data.unique}}"
                         },
                         "blocks": []
                       },
@@ -703,7 +739,7 @@
                           "isValidator": true,
                           "nodeName": "Get allocationIndex",
                           "name": "Get allocationIndex",
-                          "redis_key": "allocationIndex"
+                          "redis_key": "allocationIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                         },
                         "blocks": []
                       },
@@ -1165,7 +1201,7 @@
                           "name": "executeAllocation",
                           "script": {
                             "type": "javascript",
-                            "code": "// executeAllocation - Updated with pendingReservedData priority (Production first)\n// ============================================================================\n// INPUTS\n// ============================================================================\nconst currentRow = {{node:code_node_aay7z3VT.data.currentRow}};\nconst itemData = {{node:get_node_URWeTqPt.data.data}};\nconst isBatchManaged = itemData.item_batch_management === 1;\nconst pickingSetup = {{node:get_node_iFPuvJX2.data.data}};\nconst rawTracker = {{node:get_cache_node_QGhmYUxQ.data}};\nlet allocationTracker = {};\n\n// 🔧 NEW: Pending reserved data (fetched from search node)\nconst pendingReservedData = {{node:search_node_1KCBFU3W.data.data}} || [];\n\nif (rawTracker) {\n  if (typeof rawTracker === 'string') {\n    try {\n      allocationTracker = JSON.parse(rawTracker);\n    } catch (e) {\n      console.log('Failed to parse allocation tracker, using empty object');\n      allocationTracker = {};\n    }\n  } else if (typeof rawTracker === 'object') {\n    allocationTracker = rawTracker;\n  }\n}\n\n// Pre-fetched data\nconst allUOMs = {{node:search_node_pltmkkw3.data.data}} || [];\nconst allBinLocations = {{node:search_node_nbpWEAFx.data.data}} || [];\n\n// Get balance data based on batch management\nlet balances = [];\nlet batchMasterData = [];\n\nif (isBatchManaged) {\n  batchMasterData = {{node:search_node_9fEXFXTX.data.data}} || [];\n  balances = {{node:search_node_Osh9qIRX.data.data}} || [];\n} else {\n  balances = {{node:search_node_l1dv5zjL.data.data}} || [];\n}\n\n// ============================================================================\n// HELPER FUNCTIONS\n// ============================================================================\n\n// Get default bin for this item and plant\nconst getDefaultBin = (itemData, plantId) => {\n  if (!itemData.table_default_bin?.length) return null;\n  const entry = itemData.table_default_bin.find(bin => bin.plant_id === plantId);\n  return entry?.bin_location || null;\n};\n\n// Get allocations from other rows of the same material (deduplication)\nconst getCurrentAllocations = (materialId, currentRowIndex, tracker) => {\n  const materialAllocations = tracker[materialId] || {};\n  const allocatedQuantities = {};\n\n  Object.entries(materialAllocations).forEach(([rIdx, rowAllocs]) => {\n    if (parseInt(rIdx) !== currentRowIndex) {\n      Object.entries(rowAllocs).forEach(([locationKey, qty]) => {\n        allocatedQuantities[locationKey] = (allocatedQuantities[locationKey] || 0) + qty;\n      });\n    }\n  });\n\n  return allocatedQuantities;\n};\n\n// Apply cross-row deduplication to balances\nconst applyAllocationsToBalances = (balances, allocatedQuantities, isBatchManaged) => {\n  return balances.map(balance => {\n    const key = isBatchManaged\n      ? `${balance.location_id}-${balance.batch_id || \"no_batch\"}`\n      : `${balance.location_id}`;\n\n    const allocatedFromOthers = allocatedQuantities[key] || 0;\n    const originalQty = balance.unrestricted_qty || 0;\n    const adjustedQty = Math.max(0, originalQty - allocatedFromOthers);\n\n    return {\n      ...balance,\n      unrestricted_qty: adjustedQty,\n      original_unrestricted_qty: originalQty\n    };\n  });\n};\n\n// Find batch master data by batch_id\nconst findBatchData = (batchId) => {\n  if (!isBatchManaged || !batchMasterData.length) return null;\n  return batchMasterData.find(b => b.id === batchId) || null;\n};\n\n// Lookup bin location from pre-fetched data\nconst getBinLocationDetails = (locationId) => {\n  const binLocation = allBinLocations.find(bin => bin.id === locationId);\n  return binLocation ? binLocation.bin_location_combine : locationId;\n};\n\n// Lookup UOM name from pre-fetched data\nconst getUOMName = (uomId) => {\n  const uom = allUOMs.find(u => u.id === uomId);\n  return uom ? uom.uom_name : \"\";\n};\n\n// ============================================================================\n// DEDUPLICATION\n// ============================================================================\nconst allocatedFromOtherRows = getCurrentAllocations(\n  currentRow.materialId,\n  currentRow.rowIndex,\n  allocationTracker\n);\n\nconst adjustedBalances = applyAllocationsToBalances(\n  balances,\n  allocatedFromOtherRows,\n  isBatchManaged\n);\n\n// ============================================================================\n// ALLOCATION ENGINE - STEP 0: PRIORITIZE PENDING RESERVED DATA\n// ============================================================================\nlet allAllocations = [];\nlet remainingQty = currentRow.quantity;\n\n// 🔧 NEW: Sort pending reserved data to prioritize Production over Sales Order\nif (pendingReservedData.length > 0 && currentRow.soLineItemId) {\n  const sortedReservedData = [...pendingReservedData].sort((a, b) => {\n    if (a.doc_type === \"Production\" && b.doc_type !== \"Production\") return -1;\n    if (a.doc_type !== \"Production\" && b.doc_type === \"Production\") return 1;\n    return 0;\n  });\n\n  for (const reservation of sortedReservedData) {\n    if (remainingQty <= 0) break;\n\n    const reservedQty = parseFloat(reservation.open_qty || 0);\n    if (reservedQty <= 0) continue;\n\n    // Find matching balance by bin_location and batch_id (if batch-managed)\n    const matchingBalance = adjustedBalances.find((b) => {\n      const binMatch = b.location_id === reservation.bin_location;\n      if (isBatchManaged) {\n        return binMatch && b.batch_id === reservation.batch_id;\n      }\n      return binMatch;\n    });\n\n    if (matchingBalance) {\n      const availableQty = matchingBalance.unrestricted_qty || 0;\n      // Allocate min of: remaining qty, reserved qty, available balance\n      const allocatedQty = Math.min(remainingQty, reservedQty, availableQty);\n\n      if (allocatedQty > 0) {\n        const binLocationName = getBinLocationDetails(matchingBalance.location_id);\n        const batchData = isBatchManaged ? findBatchData(matchingBalance.batch_id) : null;\n\n        // Check if already allocated to this location\n        const existingAllocIndex = allAllocations.findIndex((a) => {\n          const locMatch = a.balance.location_id === matchingBalance.location_id;\n          if (isBatchManaged) {\n            return locMatch && a.batchData?.id === matchingBalance.batch_id;\n          }\n          return locMatch;\n        });\n\n        if (existingAllocIndex >= 0) {\n          allAllocations[existingAllocIndex].quantity += allocatedQty;\n        } else {\n          allAllocations.push({\n            balance: matchingBalance,\n            quantity: allocatedQty,\n            binLocation: binLocationName,\n            batchData: batchData,\n            source: `Reserved (${reservation.doc_type})`  // For debugging\n          });\n        }\n\n        remainingQty -= allocatedQty;\n        // Reduce balance for next iteration\n        matchingBalance.unrestricted_qty = Math.max(0, matchingBalance.unrestricted_qty - allocatedQty);\n      }\n    }\n  }\n}\n\n// ============================================================================\n// ALLOCATION ENGINE - STEP 1: APPLY STRATEGY FOR REMAINING QTY\n// ============================================================================\nif (remainingQty > 0) {\n  const defaultBin = getDefaultBin(itemData, currentRow.plantId);\n  const defaultStrategy = pickingSetup.default_strategy_id;\n  const fallbackStrategy = pickingSetup.fallback_strategy_id;\n\n  // Helper: Sort by FIFO (expiry date)\n  const sortByFIFO = (balanceArray) => {\n    if (!isBatchManaged) return balanceArray;\n\n    return balanceArray.sort((a, b) => {\n      const batchA = findBatchData(a.batch_id);\n      const batchB = findBatchData(b.batch_id);\n\n      if (batchA?.expiry_date && batchB?.expiry_date) {\n        return new Date(batchA.expiry_date) - new Date(batchB.expiry_date);\n      }\n\n      return (batchA?.batch_number || \"\").localeCompare(batchB?.batch_number || \"\");\n    });\n  };\n\n  // Helper: Allocate from a list of balances\n  const allocateFromBalances = (balanceList) => {\n    const allocated = [];\n\n    for (const balance of balanceList) {\n      if (remainingQty <= 0) break;\n\n      const availableQty = balance.unrestricted_qty || 0;\n      if (availableQty <= 0) continue;\n\n      const allocatedQty = Math.min(remainingQty, availableQty);\n\n      const binLocationName = getBinLocationDetails(balance.location_id);\n      const batchData = isBatchManaged ? findBatchData(balance.batch_id) : null;\n\n      allocated.push({\n        balance: balance,\n        quantity: allocatedQty,\n        binLocation: binLocationName,\n        batchData: batchData,\n        source: \"Strategy\"  // For debugging\n      });\n\n      remainingQty -= allocatedQty;\n    }\n\n    return allocated;\n  };\n\n  // Get already allocated location keys to exclude\n  const allocatedKeys = new Set(\n    allAllocations.map((a) =>\n      isBatchManaged\n        ? `${a.balance.location_id}-${a.batchData?.id || \"no_batch\"}`\n        : `${a.balance.location_id}`\n    )\n  );\n\n  // Filter out already allocated balances\n  const remainingBalances = adjustedBalances.filter((b) => {\n    const key = isBatchManaged\n      ? `${b.location_id}-${b.batch_id || \"no_batch\"}`\n      : `${b.location_id}`;\n    return !allocatedKeys.has(key) && (b.unrestricted_qty || 0) > 0;\n  });\n\n  // STRATEGY: FIXED BIN\n  if (defaultStrategy === \"FIXED BIN\") {\n    // Step 1: Try default bin first (only if configured)\n    if (defaultBin) {\n      const defaultBinBalances = remainingBalances.filter(\n        b => b.location_id === defaultBin\n      );\n\n      const sortedDefaultBalances = sortByFIFO(defaultBinBalances);\n      const defaultAllocations = allocateFromBalances(sortedDefaultBalances);\n      allAllocations.push(...defaultAllocations);\n    }\n\n    // Step 2: Fallback to RANDOM for remainder (or if no default bin configured)\n    if (remainingQty > 0 && fallbackStrategy === \"RANDOM\") {\n      const otherBalances = remainingBalances.filter(\n        b => !defaultBin || b.location_id !== defaultBin\n      );\n\n      const sortedOtherBalances = sortByFIFO(otherBalances);\n      const fallbackAllocations = allocateFromBalances(sortedOtherBalances);\n      allAllocations.push(...fallbackAllocations);\n    }\n  }\n  // STRATEGY: RANDOM\n  else if (defaultStrategy === \"RANDOM\") {\n    const sortedBalances = sortByFIFO(remainingBalances);\n    const randomAllocations = allocateFromBalances(sortedBalances);\n    allAllocations.push(...randomAllocations);\n  }\n}\n\n// ============================================================================\n// BUILD RESULTS\n// ============================================================================\n\n// Build temp_qty_data array\nconst tempQtyData = allAllocations.map(alloc => ({\n  material_id: currentRow.materialId,\n  location_id: alloc.balance.location_id,\n  block_qty: alloc.balance.block_qty,\n  reserved_qty: alloc.balance.reserved_qty,\n  unrestricted_qty: alloc.balance.original_unrestricted_qty || alloc.balance.unrestricted_qty,\n  qualityinsp_qty: alloc.balance.qualityinsp_qty,\n  intransit_qty: alloc.balance.intransit_qty,\n  balance_quantity: alloc.balance.balance_quantity,\n  plant_id: currentRow.plantId,\n  organization_id: alloc.balance.organization_id,\n  is_deleted: 0,\n  gd_quantity: alloc.quantity,\n  ...(alloc.batchData && { batch_id: alloc.batchData.id })\n}));\n\n// Get UOM name from pre-fetched data\nconst uomName = getUOMName(currentRow.uomId);\n\n// Build view_stock summary\nconst summaryLines = allAllocations.map((alloc, idx) => {\n  let line = `${idx + 1}. ${alloc.binLocation}: ${alloc.quantity} ${uomName}`;\n  if (alloc.batchData) {\n    line += `\\n[${alloc.batchData.batch_number}]`;\n  }\n  return line;\n});\n\nconst totalAllocated = allAllocations.reduce((sum, alloc) => sum + alloc.quantity, 0);\nconst viewStock = totalAllocated > 0\n  ? `Total: ${totalAllocated} ${uomName}\\n\\nDETAILS:\\n${summaryLines.join(\"\\n\")}`\n  : \"\";\n\n// Update allocation tracker\nconst updatedTracker = { ...allocationTracker };\nif (!updatedTracker[currentRow.materialId]) {\n  updatedTracker[currentRow.materialId] = {};\n}\n\nconst rowAllocations = {};\nallAllocations.forEach(alloc => {\n  const key = alloc.batchData\n    ? `${alloc.balance.location_id}-${alloc.batchData.id}`\n    : `${alloc.balance.location_id}`;\n  rowAllocations[key] = alloc.quantity;\n});\n\nupdatedTracker[currentRow.materialId][currentRow.rowIndex] = rowAllocations;\n\n// ============================================================================\n// RETURN RESULTS\n// ============================================================================\nreturn {\n  temp_qty_data: JSON.stringify(tempQtyData),\n  view_stock: viewStock,\n  total_allocated: totalAllocated,\n  rowIndex: currentRow.rowIndex,\n  updatedTracker: updatedTracker\n};\n"
+                            "code": "// executeAllocation - Updated with pendingReservedData priority (Production first)\n// ============================================================================\n// INPUTS\n// ============================================================================\nconst currentRow = {{node:code_node_aay7z3VT.data.currentRow}};\nconst itemData = {{node:get_node_URWeTqPt.data.data}};\nconst isBatchManaged = itemData.item_batch_management === 1;\nconst pickingSetup = {{node:get_node_iFPuvJX2.data.data}};\nconst rawTracker = {{node:get_cache_node_QGhmYUxQ.data}};\nlet allocationTracker = {};\n\n// 🔧 NEW: Pending reserved data (fetched from search node)\nconst pendingReservedData = {{node:search_node_1KCBFU3W.data.data}} || [];\n\nif (rawTracker) {\n  if (typeof rawTracker === 'string') {\n    try {\n      allocationTracker = JSON.parse(rawTracker);\n    } catch (e) {\n      console.log('Failed to parse allocation tracker, using empty object');\n      allocationTracker = {};\n    }\n  } else if (typeof rawTracker === 'object') {\n    allocationTracker = rawTracker;\n  }\n}\n\n// Pre-fetched data\nconst allUOMs = {{node:search_node_pltmkkw3.data.data}} || [];\nconst allBinLocations = {{node:search_node_nbpWEAFx.data.data}} || [];\n\n// Get balance data based on batch management\nlet balances = [];\nlet batchMasterData = [];\n\nif (isBatchManaged) {\n  batchMasterData = {{node:search_node_9fEXFXTX.data.data}} || [];\n  balances = {{node:search_node_Osh9qIRX.data.data}} || [];\n} else {\n  balances = {{node:search_node_l1dv5zjL.data.data}} || [];\n}\n\n// ============================================================================\n// HELPER FUNCTIONS\n// ============================================================================\n\n// Get default bin for this item and plant\nconst getDefaultBin = (itemData, plantId) => {\n  if (!itemData.table_default_bin?.length) return null;\n  const entry = itemData.table_default_bin.find(bin => bin.plant_id === plantId);\n  return entry?.bin_location || null;\n};\n\n// Get allocations from other rows of the same material (deduplication)\nconst getCurrentAllocations = (materialId, currentRowIndex, tracker) => {\n  const materialAllocations = tracker[materialId] || {};\n  const allocatedQuantities = {};\n\n  Object.entries(materialAllocations).forEach(([rIdx, rowAllocs]) => {\n    if (parseInt(rIdx) !== currentRowIndex) {\n      Object.entries(rowAllocs).forEach(([locationKey, qty]) => {\n        allocatedQuantities[locationKey] = (allocatedQuantities[locationKey] || 0) + qty;\n      });\n    }\n  });\n\n  return allocatedQuantities;\n};\n\n// Apply cross-row deduplication to balances\nconst applyAllocationsToBalances = (balances, allocatedQuantities, isBatchManaged) => {\n  return balances.map(balance => {\n    const key = isBatchManaged\n      ? `${balance.location_id}-${balance.batch_id || \"no_batch\"}`\n      : `${balance.location_id}`;\n\n    const allocatedFromOthers = allocatedQuantities[key] || 0;\n    const originalQty = balance.unrestricted_qty || 0;\n    const adjustedQty = Math.max(0, originalQty - allocatedFromOthers);\n\n    return {\n      ...balance,\n      unrestricted_qty: adjustedQty,\n      original_unrestricted_qty: originalQty\n    };\n  });\n};\n\n// Find batch master data by batch_id\nconst findBatchData = (batchId) => {\n  if (!isBatchManaged || !batchMasterData.length) return null;\n  return batchMasterData.find(b => b.id === batchId) || null;\n};\n\n// Lookup bin location from pre-fetched data\nconst getBinLocationDetails = (locationId) => {\n  const binLocation = allBinLocations.find(bin => bin.id === locationId);\n  return binLocation ? binLocation.bin_location_combine : locationId;\n};\n\n// Lookup UOM name from pre-fetched data\nconst getUOMName = (uomId) => {\n  const uom = allUOMs.find(u => u.id === uomId);\n  return uom ? uom.uom_name : \"\";\n};\n\n// ============================================================================\n// DEDUPLICATION\n// ============================================================================\nconst allocatedFromOtherRows = getCurrentAllocations(\n  currentRow.materialId,\n  currentRow.rowIndex,\n  allocationTracker\n);\n\nconst adjustedBalances = applyAllocationsToBalances(\n  balances,\n  allocatedFromOtherRows,\n  isBatchManaged\n);\n\n// ============================================================================\n// ALLOCATION ENGINE - STEP 0: PRIORITIZE PENDING RESERVED DATA\n// ============================================================================\nlet allAllocations = [];\nlet remainingQty = currentRow.quantity;\n\n// 🔧 NEW: Sort pending reserved data to prioritize Production over Sales Order\nif (pendingReservedData.length > 0 && currentRow.soLineItemId) {\n  const sortedReservedData = [...pendingReservedData].sort((a, b) => {\n    if (a.doc_type === \"Production\" && b.doc_type !== \"Production\") return -1;\n    if (a.doc_type !== \"Production\" && b.doc_type === \"Production\") return 1;\n    return 0;\n  });\n\n  for (const reservation of sortedReservedData) {\n    if (remainingQty <= 0) break;\n\n    const reservedQty = parseFloat(reservation.open_qty || 0);\n    if (reservedQty <= 0) continue;\n\n    // Find matching balance by bin_location and batch_id (if batch-managed)\n    const matchingBalance = adjustedBalances.find((b) => {\n      const binMatch = b.location_id === reservation.bin_location;\n      if (isBatchManaged) {\n        return binMatch && b.batch_id === reservation.batch_id;\n      }\n      return binMatch;\n    });\n\n    if (matchingBalance) {\n      const availableQty = matchingBalance.unrestricted_qty || 0;\n      // Allocate min of: remaining qty, reserved qty, available balance\n      const allocatedQty = Math.min(remainingQty, reservedQty, availableQty);\n\n      if (allocatedQty > 0) {\n        const binLocationName = getBinLocationDetails(matchingBalance.location_id);\n        const batchData = isBatchManaged ? findBatchData(matchingBalance.batch_id) : null;\n\n        // Check if already allocated to this location\n        const existingAllocIndex = allAllocations.findIndex((a) => {\n          const locMatch = a.balance.location_id === matchingBalance.location_id;\n          if (isBatchManaged) {\n            return locMatch && a.batchData?.id === matchingBalance.batch_id;\n          }\n          return locMatch;\n        });\n\n        if (existingAllocIndex >= 0) {\n          allAllocations[existingAllocIndex].quantity += allocatedQty;\n        } else {\n          allAllocations.push({\n            balance: matchingBalance,\n            quantity: allocatedQty,\n            binLocation: binLocationName,\n            batchData: batchData,\n            source: `Reserved (${reservation.doc_type})`  // For debugging\n          });\n        }\n\n        remainingQty -= allocatedQty;\n        // Reduce balance for next iteration\n        matchingBalance.unrestricted_qty = Math.max(0, matchingBalance.unrestricted_qty - allocatedQty);\n      }\n    }\n  }\n}\n\n// ============================================================================\n// ALLOCATION ENGINE - STEP 1: APPLY STRATEGY FOR REMAINING QTY\n// ============================================================================\nif (remainingQty > 0) {\n  const defaultBin = getDefaultBin(itemData, currentRow.plantId);\n  const defaultStrategy = pickingSetup.default_strategy_id;\n  const fallbackStrategy = pickingSetup.fallback_strategy_id;\n\n  // Helper: Sort by FIFO (expiry date)\n  const sortByFIFO = (balanceArray) => {\n    if (!isBatchManaged) return balanceArray;\n\n    return balanceArray.sort((a, b) => {\n      const batchA = findBatchData(a.batch_id);\n      const batchB = findBatchData(b.batch_id);\n\n      if (batchA?.expired_date && batchB?.expired_date) {\n        return new Date(batchA.expired_date) - new Date(batchB.expired_date);\n      }\n\n      return (batchA?.batch_number || \"\").localeCompare(batchB?.batch_number || \"\");\n    });\n  };\n\n  // Helper: Allocate from a list of balances\n  const allocateFromBalances = (balanceList) => {\n    const allocated = [];\n\n    for (const balance of balanceList) {\n      if (remainingQty <= 0) break;\n\n      const availableQty = balance.unrestricted_qty || 0;\n      if (availableQty <= 0) continue;\n\n      const allocatedQty = Math.min(remainingQty, availableQty);\n\n      const binLocationName = getBinLocationDetails(balance.location_id);\n      const batchData = isBatchManaged ? findBatchData(balance.batch_id) : null;\n\n      allocated.push({\n        balance: balance,\n        quantity: allocatedQty,\n        binLocation: binLocationName,\n        batchData: batchData,\n        source: \"Strategy\"  // For debugging\n      });\n\n      remainingQty -= allocatedQty;\n    }\n\n    return allocated;\n  };\n\n  // Get already allocated location keys to exclude\n  const allocatedKeys = new Set(\n    allAllocations.map((a) =>\n      isBatchManaged\n        ? `${a.balance.location_id}-${a.batchData?.id || \"no_batch\"}`\n        : `${a.balance.location_id}`\n    )\n  );\n\n  // Filter out already allocated balances\n  const remainingBalances = adjustedBalances.filter((b) => {\n    const key = isBatchManaged\n      ? `${b.location_id}-${b.batch_id || \"no_batch\"}`\n      : `${b.location_id}`;\n    return !allocatedKeys.has(key) && (b.unrestricted_qty || 0) > 0;\n  });\n\n  // STRATEGY: FIXED BIN\n  if (defaultStrategy === \"FIXED BIN\") {\n    // Step 1: Try default bin first (only if configured)\n    if (defaultBin) {\n      const defaultBinBalances = remainingBalances.filter(\n        b => b.location_id === defaultBin\n      );\n\n      const sortedDefaultBalances = sortByFIFO(defaultBinBalances);\n      const defaultAllocations = allocateFromBalances(sortedDefaultBalances);\n      allAllocations.push(...defaultAllocations);\n    }\n\n    // Step 2: Fallback to RANDOM for remainder (or if no default bin configured)\n    if (remainingQty > 0 && fallbackStrategy === \"RANDOM\") {\n      const otherBalances = remainingBalances.filter(\n        b => !defaultBin || b.location_id !== defaultBin\n      );\n\n      const sortedOtherBalances = sortByFIFO(otherBalances);\n      const fallbackAllocations = allocateFromBalances(sortedOtherBalances);\n      allAllocations.push(...fallbackAllocations);\n    }\n  }\n  // STRATEGY: RANDOM\n  else if (defaultStrategy === \"RANDOM\") {\n    const sortedBalances = sortByFIFO(remainingBalances);\n    const randomAllocations = allocateFromBalances(sortedBalances);\n    allAllocations.push(...randomAllocations);\n  }\n}\n\n// ============================================================================\n// BUILD RESULTS\n// ============================================================================\n\n// Build temp_qty_data array\nconst tempQtyData = allAllocations.map(alloc => ({\n  material_id: currentRow.materialId,\n  location_id: alloc.balance.location_id,\n  block_qty: alloc.balance.block_qty,\n  reserved_qty: alloc.balance.reserved_qty,\n  unrestricted_qty: alloc.balance.original_unrestricted_qty || alloc.balance.unrestricted_qty,\n  qualityinsp_qty: alloc.balance.qualityinsp_qty,\n  intransit_qty: alloc.balance.intransit_qty,\n  balance_quantity: alloc.balance.balance_quantity,\n  plant_id: currentRow.plantId,\n  organization_id: alloc.balance.organization_id,\n  is_deleted: 0,\n  gd_quantity: alloc.quantity,\n  ...(alloc.batchData && { batch_id: alloc.batchData.id })\n}));\n\n// Get UOM name from pre-fetched data\nconst uomName = getUOMName(currentRow.uomId);\n\n// Build view_stock summary\nconst summaryLines = allAllocations.map((alloc, idx) => {\n  let line = `${idx + 1}. ${alloc.binLocation}: ${alloc.quantity} ${uomName}`;\n  if (alloc.batchData) {\n    line += `\\n[${alloc.batchData.batch_number}]`;\n  }\n  return line;\n});\n\nconst totalAllocated = allAllocations.reduce((sum, alloc) => sum + alloc.quantity, 0);\nconst viewStock = totalAllocated > 0\n  ? `Total: ${totalAllocated} ${uomName}\\n\\nDETAILS:\\n${summaryLines.join(\"\\n\")}`\n  : \"\";\n\n// Update allocation tracker\nconst updatedTracker = { ...allocationTracker };\nif (!updatedTracker[currentRow.materialId]) {\n  updatedTracker[currentRow.materialId] = {};\n}\n\nconst rowAllocations = {};\nallAllocations.forEach(alloc => {\n  const key = alloc.batchData\n    ? `${alloc.balance.location_id}-${alloc.batchData.id}`\n    : `${alloc.balance.location_id}`;\n  rowAllocations[key] = alloc.quantity;\n});\n\nupdatedTracker[currentRow.materialId][currentRow.rowIndex] = rowAllocations;\n\n// ============================================================================\n// RETURN RESULTS\n// ============================================================================\nreturn {\n  temp_qty_data: JSON.stringify(tempQtyData),\n  view_stock: viewStock,\n  total_allocated: totalAllocated,\n  rowIndex: currentRow.rowIndex,\n  updatedTracker: updatedTracker\n};\n"
                           },
                           "response_json": [
                             {
@@ -1279,7 +1315,7 @@
                             "type": "javascript",
                             "code": "{{node:code_node_56IOJIBu.data.tableGD}}"
                           },
-                          "redis_key": "tableGD"
+                          "redis_key": "tableGD_{{node:code_node_eOO3RTkR.data.unique}}"
                         },
                         "blocks": []
                       },
@@ -1298,7 +1334,7 @@
                             "type": "javascript",
                             "code": "{{node:code_node_56IOJIBu.data.updatedTracker}}"
                           },
-                          "redis_key": "allocationTracker"
+                          "redis_key": "allocationTracker_{{node:code_node_eOO3RTkR.data.unique}}"
                         },
                         "blocks": []
                       },
@@ -1317,7 +1353,7 @@
                             "type": "javascript",
                             "code": "{{node:code_node_aay7z3VT.data.nextIndex}}"
                           },
-                          "redis_key": "allocationIndex"
+                          "redis_key": "allocationIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                         },
                         "blocks": []
                       }
@@ -1333,7 +1369,7 @@
                       "isValidator": true,
                       "nodeName": "Get allocated tableGD",
                       "name": "Get allocated tableGD",
-                      "redis_key": "tableGD"
+                      "redis_key": "tableGD_{{node:code_node_eOO3RTkR.data.unique}}"
                     },
                     "blocks": []
                   }
@@ -1398,7 +1434,7 @@
     ]
   },
   {
-    "id": "if_hYBRvOW2",
+    "id": "if_YG9Bm7qV",
     "type": "if",
     "data": {
       "title": "IF Created",
@@ -1479,7 +1515,7 @@
               "condition_type": "Expression",
               "expression": {
                 "type": "javascript",
-                "code": "'{{workflowparams:allData.picking_status}}' == 'In Progress' || '{{workflowparams:allData.picking_status}}' == 'Completed' "
+                "code": "'{{node:code_node_shTWK0Nm.data.pickingStatus}}' == 'In Progress' || '{{node:code_node_shTWK0Nm.data.pickingStatus}}' == 'Completed'"
               },
               "filter": {
                 "list": [
@@ -1631,7 +1667,7 @@
     ]
   },
   {
-    "id": "code_node_apDvx5Sb",
+    "id": "code_node_NjSAwhU8",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -1643,7 +1679,7 @@
       "name": "fillbackHeaderFields",
       "script": {
         "type": "javascript",
-        "code": "let allData = {{workflowparams:allData}};\nconst updatedGD = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst isForceComplete = {{workflowparams:isForceComplete}};\nconst pickingSetup = {{node:get_node_iFPuvJX2.data.data}};\nconst pageStatus = {{workflowparams:pageStatus}}\n\n// Track invalid rows for reporting\nconst skippedRows = [];\n\nif (pickingSetup?.picking_mode === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableGD = {{node:code_node_ymugKpln.data.tableGD}}\n  if (tableGD?.length > 0) {\n    allData.table_gd = tableGD\n  }\n}\n\nfor (const [index, gdLineItem] of allData.table_gd.entries()) {\n  if (!gdLineItem.gd_qty || gdLineItem.gd_qty === 0) {\n    continue;\n  }\n\n  // ============================================================================\n  // PRECAUTION: Skip if gd_qty > 0 but temp_qty_data is empty\n  // This prevents invalid state where quantity exists without allocation\n  // ============================================================================\n  const tempQtyData = gdLineItem.temp_qty_data;\n  const isEmpty =\n    !tempQtyData ||\n    tempQtyData === \"\" ||\n    tempQtyData === \"[]\" ||\n    tempQtyData === null;\n\n  if (isEmpty) {\n    skippedRows.push({\n      index: index,\n      material_code: gdLineItem.material_code || \"Unknown\",\n      material_name: gdLineItem.material_name || \"Unknown\",\n      gd_qty: gdLineItem.gd_qty,\n      so_no: gdLineItem.so_no || \"\",\n    });\n    continue;\n  }\n\n  gdLineItem.customer_id = allData.customer_name || null;\n  gdLineItem.organization_id = allData.organization_id;\n  gdLineItem.plant_id = allData.plant_id || null;\n  gdLineItem.billing_state_id = allData.billing_address_state || null;\n  gdLineItem.billing_country_id = allData.billing_address_country || null;\n  gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n  gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n  gdLineItem.assigned_to = allData.assigned_to || null;\n  gdLineItem.line_index = index + 1;\n\n  if (isForceComplete === \"Yes\") {\n    gdLineItem.picking_status = \"Completed\";\n  } else if (saveAs === \"Cancelled\") {\n    gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n  }\n\n  if (\n    pickingSetup &&\n    !allData.picking_status &&\n    saveAs === \"Created\" &&\n    pageStatus === \"Add\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      gdLineItem.picking_status = \"Created\";\n    } else {\n      gdLineItem.picking_status = \"Not Created\";\n    }\n  }\n\n  updatedGD.push(gdLineItem);\n}\n\nallData.table_gd = updatedGD;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gd_status = \"Draft\";\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\")\n    ) {\n      allData.delivery_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\" ||\n        allData.gd_status === \"Draft\")\n    ) {\n      allData.delivery_no = \"issued\";\n    }\n  }\n}\n\nlet needCL;\n\nif (allData.acc_integration_type !== \"No Accounting\" && {{workflowparams:needCL}} === \"required\") {\n  needCL = \"required\";\n} else {\n  needCL = \"not required\";\n}\n\nif (isForceComplete === \"Yes\") {\n  allData.picking_status = \"Completed\"\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n}\n\nlet needSOCleanUp = 0\n\nif (allData.gd_status === \"Created\") {\n  const originalGD = {{node:get_node_xTRvHWB8.data.data}};\n\n  // Match by so_line_item_id instead of index\n  allData.table_gd.forEach((item) => {\n    const originalItem = originalGD.table_gd?.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  if (allData.table_gd.length !== originalGD.table_gd.length) {\n    needSOCleanUp = 1\n  }\n}\n\n// Build validation report\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.index + 1}: ${row.material_code} (${row.material_name}) - qty: ${row.gd_qty}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"}`\n  ).join(\"\\n\");\n  \n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to missing allocation data (gd_qty > 0 but temp_qty_data empty):\\n\\n${rowDetails}\\n\\nThese rows may need manual allocation or the allocation workflow may have failed.`;\n}\n\nreturn {\n  allData: allData,\n  gd_status: allData.gd_status,\n  needCL: needCL,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage\n};"
+        "code": "let allData = {{workflowparams:allData}};\nconst updatedGD = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst isForceComplete = {{workflowparams:isForceComplete}};\nconst pickingSetup = {{node:get_node_iFPuvJX2.data.data}};\nconst pageStatus = {{workflowparams:pageStatus}}\n\n// Track invalid rows for reporting\nconst skippedRows = [];\n\nif (pickingSetup?.picking_mode === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableGD = {{node:code_node_ymugKpln.data.tableGD}}\n  if (tableGD?.length > 0) {\n    allData.table_gd = tableGD\n  }\n}\n\nfor (const [index, gdLineItem] of allData.table_gd.entries()) {\n  // Compare using parseFloat since values are now strings\n  if (!gdLineItem.gd_qty || parseFloat(gdLineItem.gd_qty) === 0) {\n    continue;\n  }\n\n  // ============================================================================\n  // PRECAUTION: Skip if gd_qty > 0 but temp_qty_data is empty\n  // This prevents invalid state where quantity exists without allocation\n  // ============================================================================\n  const tempQtyData = gdLineItem.temp_qty_data;\n  const isEmpty =\n    !tempQtyData ||\n    tempQtyData === \"\" ||\n    tempQtyData === \"[]\" ||\n    tempQtyData === null;\n\n  if (isEmpty) {\n    skippedRows.push({\n      index: index,\n      material_code: gdLineItem.material_code || \"Unknown\",\n      material_name: gdLineItem.material_name || \"Unknown\",\n      gd_qty: gdLineItem.gd_qty,\n      so_no: gdLineItem.so_no || \"\",\n    });\n    continue;\n  }\n\n  gdLineItem.customer_id = allData.customer_name || null;\n  gdLineItem.organization_id = allData.organization_id;\n  gdLineItem.plant_id = allData.plant_id || null;\n  gdLineItem.billing_state_id = allData.billing_address_state || null;\n  gdLineItem.billing_country_id = allData.billing_address_country || null;\n  gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n  gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n  gdLineItem.assigned_to = allData.assigned_to || null;\n  gdLineItem.line_index = index + 1;\n\n  if (isForceComplete === \"Yes\") {\n    gdLineItem.picking_status = \"Completed\";\n  } else if (saveAs === \"Cancelled\") {\n    gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n  }\n\n  if (\n    pickingSetup &&\n    (!allData.picking_status || allData.picking_status === \"\") &&\n    saveAs === \"Created\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      gdLineItem.picking_status = \"Created\";\n    } else {\n      gdLineItem.picking_status = \"Not Created\";\n    }\n  }\n\n  updatedGD.push(gdLineItem);\n}\n\nallData.table_gd = updatedGD;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gd_status = \"Draft\";\n}\n\nif (\n  pickingSetup &&\n  (!allData.picking_status || allData.picking_status === \"\") &&\n  saveAs === \"Created\" &&\n  pickingSetup.picking_required === 1\n) {\n  if (pickingSetup.auto_trigger_to === 1) {\n    allData.picking_status = \"Created\";\n  } else {\n    allData.picking_status = \"Not Created\";\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\")\n    ) {\n      allData.delivery_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\" ||\n        allData.gd_status === \"Draft\")\n    ) {\n      allData.delivery_no = \"issued\";\n    }\n  }\n}\n\nlet needCL;\n\nif (allData.acc_integration_type !== \"No Accounting\" && {{workflowparams:needCL}} === \"required\") {\n  needCL = \"required\";\n} else {\n  needCL = \"not required\";\n}\n\nif (isForceComplete === \"Yes\") {\n  allData.picking_status = \"Completed\"\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n}\n\nlet needSOCleanUp = 0\n\nif (allData.gd_status === \"Created\") {\n  const originalGD = {{node:get_node_xTRvHWB8.data.data}};\n\n  // Match by so_line_item_id instead of index\n  allData.table_gd.forEach((item) => {\n    const originalItem = originalGD.table_gd?.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  if (allData.table_gd.length !== originalGD.table_gd.length) {\n    needSOCleanUp = 1\n  }\n}\n\n// Build validation report\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.index + 1}: ${row.material_code} (${row.material_name}) - qty: ${row.gd_qty}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"}`\n  ).join(\"\\n\");\n  \n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to missing allocation data (gd_qty > 0 but temp_qty_data empty):\\n\\n${rowDetails}\\n\\nThese rows may need manual allocation or the allocation workflow may have failed.`;\n}\n\nreturn {\n  allData: allData,\n  gd_status: allData.gd_status,\n  needCL: needCL,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage\n};"
       },
       "response_json": [
         {
@@ -1718,7 +1754,7 @@
     "blocks": []
   },
   {
-    "id": "if_stobf7ul",
+    "id": "if_WE1x9tF5",
     "type": "if",
     "data": {
       "title": "IF invalidData",
@@ -1799,7 +1835,7 @@
     ]
   },
   {
-    "id": "code_node_INW96XkS",
+    "id": "code_node_8GGSdZEA",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -1835,7 +1871,7 @@
     "blocks": []
   },
   {
-    "id": "workflow_node_DransOWP",
+    "id": "workflow_node_hlHx4POx",
     "type": "workflow-node",
     "data": {
       "workflow_id": "",
@@ -1892,7 +1928,7 @@
     "blocks": []
   },
   {
-    "id": "if_RD0IXEuZ",
+    "id": "if_5LUTNE9J",
     "type": "if",
     "data": {
       "title": "IF Validation Failed",
@@ -1973,7 +2009,7 @@
     ]
   },
   {
-    "id": "code_node_0UJnCRKU",
+    "id": "code_node_ktaI2fLj",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -1985,7 +2021,7 @@
       "name": "Picking Status",
       "script": {
         "type": "javascript",
-        "code": "const pickingSetup = {{node:get_node_iFPuvJX2.data.data}} || {};\nconst saveAs = {{workflowparams:saveAs}}\nconst pageStatus = {{workflowparams:pageStatus}}\nlet picking_status = {{node:code_node_IyJHrBst.data.picking_status}}\n\nif (pickingSetup && !picking_status && saveAs === \"Created\" && pageStatus === \"Add\" && pickingSetup.picking_required === 1) {\n  if (pickingSetup.auto_trigger_to === 1) {\n    picking_status = \"Created\"\n  } else {\n    picking_status = \"Not Created\"\n  }\n}\n\nif (pickingSetup && pickingSetup.picking_required === 1 && saveAs === \"Cancelled\") {\n  picking_status = \"Cancelled\"\n}\n\nreturn {\n  picking_status: picking_status,\n  auto_trigger_to: pickingSetup.auto_trigger_to\n}"
+        "code": "const pickingSetup = {{node:get_node_iFPuvJX2.data.data}} || {};\nconst saveAs = {{workflowparams:saveAs}}\nconst pageStatus = {{workflowparams:pageStatus}}\nlet picking_status = {{node:code_node_IyJHrBst.data.picking_status}}\n\nif (pickingSetup && (!picking_status || picking_status === \"\") && saveAs === \"Created\" && pickingSetup.picking_required === 1) {\n  if (pickingSetup.auto_trigger_to === 1) {\n    picking_status = \"Created\"\n  } else {\n    picking_status = \"Not Created\"\n  }\n}\n\nif (pickingSetup && pickingSetup.picking_required === 1 && saveAs === \"Cancelled\") {\n  picking_status = \"Cancelled\"\n}\n\nreturn {\n  picking_status: picking_status,\n  auto_trigger_to: pickingSetup.auto_trigger_to\n}"
       },
       "response_json": [
         {
@@ -2010,7 +2046,7 @@
     "blocks": []
   },
   {
-    "id": "if_2iVzrKhF",
+    "id": "if_VihDTQgr",
     "type": "if",
     "data": {
       "title": "IF Completed",
@@ -2642,7 +2678,7 @@
                                               "name": "Update Picking Data",
                                               "script": {
                                                 "type": "javascript",
-                                                "code": "let pickingData = {{node:get_node_oU2TK3ms.data.data}}\n\nfor (const pickingLineItem of pickingData.table_picking_items) {\n  if (pickingLineItem.gd_id === data.id) {\n    pickingLineItem.line_status = \"Completed\";\n  }\n}\n\n//check if all pickingLineItem.line_status is \"Completed\" if yes then pickingData.to_status = \"Completed\"\nlet allPickingLineItemCompleted = true;\nfor (const pickingLineItem of pickingData.table_picking_items) {\n  if (pickingLineItem.line_status !== \"Completed\") {\n    allPickingLineItemCompleted = false;\n    break;\n  }\n}\n\nif (allPickingLineItemCompleted) {\n  pickingData.to_status = \"Completed\";\n}\n\nreturn {\n  pickingData\n}"
+                                                "code": "let pickingData = {{node:get_node_oU2TK3ms.data.data}};\nconst data = {{node:code_node_IyJHrBst.data.allData}};\n\nfor (const pickingLineItem of pickingData.table_picking_items) {\n  if (pickingLineItem.gd_id === data.id) {\n    pickingLineItem.line_status = \"Completed\";\n  }\n}\n\n//check if all pickingLineItem.line_status is \"Completed\" if yes then pickingData.to_status = \"Completed\"\nlet allPickingLineItemCompleted = true;\nfor (const pickingLineItem of pickingData.table_picking_items) {\n  if (pickingLineItem.line_status !== \"Completed\") {\n    allPickingLineItemCompleted = false;\n    break;\n  }\n}\n\nif (allPickingLineItemCompleted) {\n  pickingData.to_status = \"Completed\";\n}\n\nreturn {\n  pickingData\n}"
                                               },
                                               "response_json": [
                                                 {
@@ -2965,7 +3001,7 @@
     ]
   },
   {
-    "id": "if_nJxPMulf",
+    "id": "if_rPtSaUwA",
     "type": "if",
     "data": {
       "title": "IF !Draft",
@@ -3051,7 +3087,7 @@
               "nodeName": "Set initial quantityCheckIndex",
               "name": "Set initial quantityCheckIndex",
               "custom_wkbocgni": { "type": "javascript", "code": "0" },
-              "redis_key": "quantityCheckIndex"
+              "redis_key": "quantityCheckIndex_{{node:code_node_eOO3RTkR.data.unique}}"
             },
             "blocks": []
           },
@@ -3067,7 +3103,7 @@
               "nodeName": "Set updatedSOTable",
               "name": "Set updatedSOTable",
               "custom_wkbocgni": { "type": "javascript", "code": "[]" },
-              "redis_key": "updatedSOTable"
+              "redis_key": "updatedSOTable_{{node:code_node_eOO3RTkR.data.unique}}"
             },
             "blocks": []
           },
@@ -3128,7 +3164,7 @@
                   "isValidator": true,
                   "nodeName": "Get quantityCheckIndex",
                   "name": "Get quantityCheckIndex",
-                  "redis_key": "quantityCheckIndex"
+                  "redis_key": "quantityCheckIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                 },
                 "blocks": []
               },
@@ -3142,7 +3178,7 @@
                   "isValidator": true,
                   "nodeName": "Get updatedSOTable",
                   "name": "Get updatedSOTable",
-                  "redis_key": "updatedSOTable"
+                  "redis_key": "updatedSOTable_{{node:code_node_eOO3RTkR.data.unique}}"
                 },
                 "blocks": []
               },
@@ -3282,6 +3318,87 @@
                 "blocks": []
               },
               {
+                "id": "if_9DC5Lah8",
+                "type": "if",
+                "data": {
+                  "title": "IF Item not found",
+                  "isValidator": true,
+                  "nodeName": "IF Item not found",
+                  "name": "IF Item not found",
+                  "condition_type": "ConditionRule",
+                  "expression": { "type": "javascript", "code": "" },
+                  "filter": {
+                    "list": [
+                      {
+                        "id": 1736695973613,
+                        "parentId": 1736695973612,
+                        "isTop": true,
+                        "prop": "node.get_node_DDcDRdMe.data.count",
+                        "operator": "numberEqual",
+                        "valueType": "value",
+                        "value": 0,
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "结果条数",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  }
+                },
+                "blocks": [
+                  {
+                    "id": "if_block_l2C6brGB",
+                    "type": "ifBlock",
+                    "data": { "title": "true" },
+                    "blocks": [
+                      {
+                        "id": "return_node_78ucW0dY",
+                        "type": "return-node",
+                        "data": {
+                          "return_data": {},
+                          "status_code": 200,
+                          "title": "Return Data",
+                          "isValidator": true,
+                          "nodeName": "Return Data",
+                          "name": "Return Data",
+                          "response_value": {
+                            "list": [
+                              {
+                                "prop": "code",
+                                "propLabel": "code",
+                                "operator": "",
+                                "operatorLabel": "",
+                                "valueType": "value",
+                                "valueTypeLabel": "",
+                                "value": "400",
+                                "valueLabel": ""
+                              },
+                              {
+                                "prop": "message",
+                                "operator": "",
+                                "valueType": "value",
+                                "value": "Material not found or has been deleted",
+                                "valueLabel": "",
+                                "propLabel": "message"
+                              }
+                            ]
+                          },
+                          "return_raw_data": 0
+                        },
+                        "blocks": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "if_block_Zs_tyyuy",
+                    "type": "ifBlock",
+                    "data": { "title": "false" },
+                    "blocks": []
+                  }
+                ]
+              },
+              {
                 "id": "get_node_YMto3jtl",
                 "type": "get-node",
                 "data": {
@@ -3328,7 +3445,7 @@
                   "name": "Validate Quantity & Update SO Table",
                   "script": {
                     "type": "javascript",
-                    "code": "const gdItem = {{node:code_node_SOBNriDH.data.gdItem}}\nconst originalGdItem = {{node:code_node_SOBNriDH.data.originalGdItem}}\nconst itemData = {{node:get_node_DDcDRdMe.data.data}}\nconst soItem = {{node:get_node_YMto3jtl.data.data}}\nconst rowIndex = {{node:code_node_SOBNriDH.data.nextIndex}}\nconst gd_status = {{node:code_node_IyJHrBst.data.gd_status}}\nconst saveAs = {{workflowparams:saveAs}}\nconst isGDPP = {{workflowparams:allData.is_select_picking}} || 0;\n\nconst orderLimit = (gdItem.gd_order_quantity * (100 + (itemData.over_delivery_tolerance || 0))) / 100;\nconst deliveredQty = soItem.delivered_qty || 0;\nconst plannedQty = soItem.planned_qty || 0;\n\nlet gdQtyChange = gdItem.gd_qty\nif (originalGdItem) {\n  gdQtyChange = gdItem.gd_qty - originalGdItem.gd_qty\n}\n\nlet totalCommitted;\nif (isGDPP === 1) {\n  totalCommitted = deliveredQty + gdItem.gd_qty;\n} else {\n  totalCommitted = deliveredQty + plannedQty + gdQtyChange;\n}\n\nlet validationMessage = null\nif (totalCommitted > orderLimit && saveAs !== \"Cancelled\") {\n  validationMessage = `Row ${rowIndex} with Item ${itemData.material_code} validation failed: quantity is exceeding the maximum deliverable quantity.`\n}\n\nlet updatedSOTable = {{node:get_cache_node_pLyxuBie.data}}\nif (typeof updatedSOTable === 'string') {\n  try {\n    updatedSOTable = JSON.parse(updatedSOTable)\n  } catch (e) {\n    updatedSOTable = []\n  }\n}\nif (!Array.isArray(updatedSOTable)) {\n  updatedSOTable = []\n}\nlet updatedSOItem = {{node:get_node_YMto3jtl.data.data}}\n\nif (isGDPP === 1) {\n  if (saveAs === \"Completed\") {\n    updatedSOItem.delivered_qty = deliveredQty + gdItem.gd_qty\n    updatedSOItem.planned_qty = plannedQty - gdItem.gd_qty\n    updatedSOItem.outstanding_quantity = updatedSOItem.so_quantity - updatedSOItem.delivered_qty\n  }\n  \n} else {\n  if (gd_status === \"Draft\" && saveAs === \"Completed\") {\n    updatedSOItem.delivered_qty = deliveredQty + gdItem.gd_qty\n    updatedSOItem.outstanding_quantity = updatedSOItem.so_quantity - updatedSOItem.delivered_qty\n    \n  } else if (gd_status === \"Draft\" && saveAs === \"Created\") {\n    updatedSOItem.planned_qty = plannedQty + gdItem.gd_qty\n    \n  } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n    const origQty = originalGdItem?.gd_qty || 0\n    updatedSOItem.planned_qty = plannedQty - origQty\n    updatedSOItem.delivered_qty = deliveredQty + gdItem.gd_qty\n    updatedSOItem.outstanding_quantity = updatedSOItem.so_quantity - updatedSOItem.delivered_qty\n    \n  } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n    const origQty = originalGdItem?.gd_qty || 0\n    updatedSOItem.planned_qty = plannedQty - origQty + gdItem.gd_qty\n\n  } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n    updatedSOItem.planned_qty = plannedQty - gdItem.gd_qty\n  }\n}\n\nif (saveAs === \"Completed\") {\n  if (updatedSOItem.outstanding_quantity > 0) {\n    updatedSOItem.line_status = \"Processing\"\n  } else {\n    updatedSOItem.line_status = \"Completed\"\n  }\n}\n\nupdatedSOTable.push(updatedSOItem)\n\nreturn {\n  validationMessage: validationMessage,\n  updatedSOTable: updatedSOTable\n}\n"
+                    "code": "const gdItem = {{node:code_node_SOBNriDH.data.gdItem}}\nconst originalGdItem = {{node:code_node_SOBNriDH.data.originalGdItem}}\nconst itemData = {{node:get_node_DDcDRdMe.data.data}}\nconst soItem = {{node:get_node_YMto3jtl.data.data}}\nconst rowIndex = {{node:code_node_SOBNriDH.data.nextIndex}}\nconst gd_status = {{node:code_node_IyJHrBst.data.gd_status}}\nconst saveAs = {{workflowparams:saveAs}}\nconst isGDPP = {{workflowparams:allData.is_select_picking}} || 0;\n\nconst orderLimit = (gdItem.gd_order_quantity * (100 + (itemData.over_delivery_tolerance || 0))) / 100;\nconst deliveredQty = soItem.delivered_qty || 0;\nconst plannedQty = soItem.planned_qty || 0;\n\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\n// FIX: Parse gd_qty as number to avoid string concatenation\nconst currentGdQty = parseFloat(gdItem.gd_qty) || 0;\n\nlet gdQtyChange = currentGdQty;\nif (originalGdItem) {\n  gdQtyChange = currentGdQty - (parseFloat(originalGdItem.gd_qty) || 0);\n}\n\nlet totalCommitted;\nif (isGDPP === 1) {\n  totalCommitted = deliveredQty + currentGdQty;\n} else {\n  totalCommitted = deliveredQty + plannedQty + gdQtyChange;\n}\n\nlet validationMessage = null\nif (totalCommitted > orderLimit && saveAs !== \"Cancelled\") {\n  validationMessage = `Row ${rowIndex} with Item ${itemData.material_code} validation failed: quantity is exceeding the maximum deliverable quantity.`\n}\n\nlet updatedSOTable = {{node:get_cache_node_pLyxuBie.data}}\nif (typeof updatedSOTable === 'string') {\n  try {\n    updatedSOTable = JSON.parse(updatedSOTable)\n  } catch (e) {\n    updatedSOTable = []\n  }\n}\nif (!Array.isArray(updatedSOTable)) {\n  updatedSOTable = []\n}\nlet updatedSOItem = {{node:get_node_YMto3jtl.data.data}}\n\nif (isGDPP === 1) {\n  if (saveAs === \"Completed\") {\n    updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty)\n    updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty)\n    updatedSOItem.outstanding_quantity = formatNumber(updatedSOItem.so_quantity - updatedSOItem.delivered_qty)\n  }\n  \n} else {\n  if (gd_status === \"Draft\" && saveAs === \"Completed\") {\n    updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty)\n    updatedSOItem.outstanding_quantity = formatNumber(updatedSOItem.so_quantity - updatedSOItem.delivered_qty)\n    \n  } else if (gd_status === \"Draft\" && saveAs === \"Created\") {\n    updatedSOItem.planned_qty = formatNumber(plannedQty + currentGdQty)\n    \n  } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n    const origQty = parseFloat(originalGdItem?.gd_qty) || 0\n    updatedSOItem.planned_qty = formatNumber(plannedQty - origQty)\n    updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty)\n    updatedSOItem.outstanding_quantity = formatNumber(updatedSOItem.so_quantity - updatedSOItem.delivered_qty)\n    \n  } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n    const origQty = parseFloat(originalGdItem?.gd_qty) || 0\n    updatedSOItem.planned_qty = formatNumber(plannedQty - origQty + currentGdQty)\n\n  } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n    updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty)\n  }\n}\n\nif (saveAs === \"Completed\") {\n  if (updatedSOItem.outstanding_quantity > 0) {\n    updatedSOItem.line_status = \"Processing\"\n  } else {\n    updatedSOItem.line_status = \"Completed\"\n  }\n}\n\nupdatedSOTable.push(updatedSOItem)\n\nreturn {\n  validationMessage: validationMessage,\n  updatedSOTable: updatedSOTable\n}\n"
                   },
                   "response_json": [
                     {
@@ -3492,7 +3609,7 @@
                             "type": "javascript",
                             "code": "0"
                           },
-                          "redis_key": "tempDataIndex"
+                          "redis_key": "tempDataIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                         },
                         "blocks": []
                       },
@@ -3553,7 +3670,7 @@
                               "isValidator": true,
                               "nodeName": "Get tempDataIndex",
                               "name": "Get tempDataIndex",
-                              "redis_key": "tempDataIndex"
+                              "redis_key": "tempDataIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                             },
                             "blocks": []
                           },
@@ -4036,7 +4153,7 @@
                                       "name": "Check Inventory Availability",
                                       "script": {
                                         "type": "javascript",
-                                        "code": "const prepData = {{node:code_node_N6SXncGe.data}};\nconst isBatchManagedItem = prepData.isBatchManagedItem;\nconst gd_status = {{node:code_node_IyJHrBst.data.gd_status}};\nconst itemData = {{node:get_node_DDcDRdMe.data.data}};\n\nconst roundQty = (value) => parseFloat(parseFloat(value || 0).toFixed(3));\n\nlet balanceData;\nif (isBatchManagedItem === 1) {\n  balanceData = {{node:get_node_Z4jStMAi.data.data}};\n} else {\n  balanceData = {{node:get_node_loqLTDOB.data.data}};\n}\n\n// Get pending reserved data for this SO line\nconst pendingReservedData = {{node:search_node_KvcmxZgb.data.data}} || [];\n\n// Get UOM conversion table from item master\nconst tableUomConversion = itemData.table_uom_conversion || [];\n\n// Helper function to convert altUOM qty to baseUOM qty\nconst convertToBaseQty = (altQty, altUomId) => {\n  if (!altUomId || altUomId === itemData.based_uom) {\n    return roundQty(altQty);\n  }\n  \n  const uomConversion = tableUomConversion.find(\n    (conv) => conv.alt_uom_id === altUomId\n  );\n  \n  if (uomConversion) {\n    return roundQty(altQty * uomConversion.base_qty);\n  }\n  \n  // No conversion found, assume already in base UOM\n  return roundQty(altQty);\n};\n\nlet pendingReservedQty = 0;\npendingReservedData.forEach((reserved) => {\n  // Match bin_location (on_reserved_gd field) with location_id (from prepData)\n  if (reserved.bin_location === prepData.location_id) {\n    if (isBatchManagedItem === 1) {\n      if (reserved.batch_id === prepData.batch_id) {\n        const altQty = parseFloat(reserved.open_qty || 0);\n        const baseQty = convertToBaseQty(altQty, reserved.item_uom);\n        pendingReservedQty += baseQty;\n      }\n    } else {\n      const altQty = parseFloat(reserved.open_qty || 0);\n      const baseQty = convertToBaseQty(altQty, reserved.item_uom);\n      pendingReservedQty += baseQty;\n    }\n  }\n});\n\n// Round the total after summing\npendingReservedQty = roundQty(pendingReservedQty);\n\nlet totalAvailableQty = 0;\nif (balanceData) {\n  const unrestrictedQty = roundQty(parseFloat(balanceData.unrestricted_qty || 0));\n  \n  if (gd_status === \"Created\") {\n    const reservedQty = roundQty(parseFloat(balanceData.reserved_qty || 0));\n    totalAvailableQty = roundQty(unrestrictedQty + reservedQty);\n  } else {\n    totalAvailableQty = roundQty(unrestrictedQty + pendingReservedQty);\n  }\n}\n\nlet validationMessage = null;\nif (totalAvailableQty < prepData.gd_quantity) {\n  validationMessage = `Row ${prepData.rowIndex} with Item ${prepData.material_code} has insufficient inventory. Required: ${prepData.gd_quantity}, Available: ${totalAvailableQty}`;\n}\n\nreturn { validationMessage: validationMessage };"
+                                        "code": "const prepData = {{node:code_node_N6SXncGe.data}};\nconst isBatchManagedItem = prepData.isBatchManagedItem;\nconst gd_status = {{node:code_node_IyJHrBst.data.gd_status}};\nconst itemData = {{node:get_node_DDcDRdMe.data.data}};\nconst isGDPP = {{node:code_node_IyJHrBst.data.allData.is_select_picking}} || 0;\n\nconst roundQty = (value) => parseFloat(parseFloat(value || 0).toFixed(3));\n\nlet balanceData;\nif (isBatchManagedItem === 1) {\n  balanceData = {{node:get_node_Z4jStMAi.data.data}};\n} else {\n  balanceData = {{node:get_node_loqLTDOB.data.data}};\n}\n\n// Get pending reserved data for this SO line\nconst pendingReservedData = {{node:search_node_KvcmxZgb.data.data}} || [];\n\n// Get UOM conversion table from item master\nconst tableUomConversion = itemData.table_uom_conversion || [];\n\n// Helper function to convert altUOM qty to baseUOM qty\nconst convertToBaseQty = (altQty, altUomId) => {\n  if (!altUomId || altUomId === itemData.based_uom) {\n    return roundQty(altQty);\n  }\n  \n  const uomConversion = tableUomConversion.find(\n    (conv) => conv.alt_uom_id === altUomId\n  );\n  \n  if (uomConversion) {\n    return roundQty(altQty * uomConversion.base_qty);\n  }\n  \n  // No conversion found, assume already in base UOM\n  return roundQty(altQty);\n};\n\nlet pendingReservedQty = 0;\npendingReservedData.forEach((reserved) => {\n  // Match bin_location (on_reserved_gd field) with location_id (from prepData)\n  if (reserved.bin_location === prepData.location_id) {\n    if (isBatchManagedItem === 1) {\n      if (reserved.batch_id === prepData.batch_id) {\n        const altQty = parseFloat(reserved.open_qty || 0);\n        const baseQty = convertToBaseQty(altQty, reserved.item_uom);\n        pendingReservedQty += baseQty;\n      }\n    } else {\n      const altQty = parseFloat(reserved.open_qty || 0);\n      const baseQty = convertToBaseQty(altQty, reserved.item_uom);\n      pendingReservedQty += baseQty;\n    }\n  }\n});\n\n// Round the total after summing\npendingReservedQty = roundQty(pendingReservedQty);\n\nlet totalAvailableQty = 0;\nif (balanceData) {\n  const unrestrictedQty = roundQty(parseFloat(balanceData.unrestricted_qty || 0));\n  \n  if (gd_status === \"Created\" || isGDPP === 1) {\n    const reservedQty = roundQty(parseFloat(balanceData.reserved_qty || 0));\n    totalAvailableQty = roundQty(unrestrictedQty + reservedQty);\n  } else {\n    totalAvailableQty = roundQty(unrestrictedQty + pendingReservedQty);\n  }\n}\n\nlet validationMessage = null;\nif (totalAvailableQty < prepData.gd_quantity) {\n  validationMessage = `Row ${prepData.rowIndex} with Item ${prepData.material_code} has insufficient inventory. Required: ${prepData.gd_quantity}, Available: ${totalAvailableQty}`;\n}\n\nreturn { validationMessage: validationMessage };"
                                       },
                                       "response_json": [
                                         {
@@ -4157,7 +4274,7 @@
                                 "type": "javascript",
                                 "code": "{{node:code_node_N6SXncGe.data.nextIndex}}"
                               },
-                              "redis_key": "tempDataIndex"
+                              "redis_key": "tempDataIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                             },
                             "blocks": []
                           }
@@ -4188,7 +4305,7 @@
                     "type": "javascript",
                     "code": "{{node:code_node_SOBNriDH.data.nextIndex}}"
                   },
-                  "redis_key": "quantityCheckIndex"
+                  "redis_key": "quantityCheckIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                 },
                 "blocks": []
               },
@@ -4207,7 +4324,7 @@
                     "type": "javascript",
                     "code": "{{node:code_node_muzjP26e.data.updatedSOTable}}"
                   },
-                  "redis_key": "updatedSOTable"
+                  "redis_key": "updatedSOTable_{{node:code_node_eOO3RTkR.data.unique}}"
                 },
                 "blocks": []
               }
@@ -4224,7 +4341,36 @@
     ]
   },
   {
-    "id": "if_45urNOdS",
+    "id": "code_node_soy8iIk3",
+    "type": "code-node",
+    "data": {
+      "language": "javascript",
+      "code": "",
+      "timeout": 30000,
+      "title": "Table GD",
+      "isValidator": true,
+      "nodeName": "Table GD",
+      "name": "Table GD",
+      "script": {
+        "type": "javascript",
+        "code": "let allData = {{node:code_node_IyJHrBst.data.allData}};\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\n// Format table_gd fields\nif (allData.table_gd && allData.table_gd.length > 0) {\n  allData.table_gd = allData.table_gd.map(item => ({\n    ...item,\n    gd_order_quantity: formatNumber(item.gd_order_quantity),\n    plan_qty: formatNumber(item.plan_qty),\n    gd_qty: formatNumber(item.gd_qty),\n    gd_initial_delivered_qty: formatNumber(item.gd_initial_delivered_qty),\n    gd_delivered_qty: formatNumber(item.gd_delivered_qty),\n    gd_undelivered_qty: formatNumber(item.gd_undelivered_qty),\n    unit_price: formatNumber(item.unit_price),\n    total_price: formatNumber(item.total_price),\n  }));\n}\n\n// Format top-level fields\nallData.gd_total = formatNumber(allData.gd_total);\n\nreturn {\n  allData: allData\n};\n"
+      },
+      "response_json": [
+        {
+          "key": "gctaqv9q",
+          "name": "allData",
+          "title": "allData",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+        }
+      ]
+    },
+    "blocks": []
+  },
+  {
+    "id": "if_pLLz3xev",
     "type": "if",
     "data": {
       "title": "IF !Draft",
@@ -4815,7 +4961,7 @@
                                     "prop": "table_gd",
                                     "operator": "",
                                     "valueType": "field",
-                                    "value": "{{node:code_node_IyJHrBst.data.allData.table_gd}}",
+                                    "value": "{{node:code_node_GKc0ALEe.data.allData.table_gd}}",
                                     "valueLabel": "",
                                     "propLabel": "table_gd"
                                   },
@@ -4823,7 +4969,7 @@
                                     "prop": "gd_total",
                                     "operator": "",
                                     "valueType": "field",
-                                    "value": "{{node:code_node_IyJHrBst.data.allData.gd_total}}",
+                                    "value": "{{node:code_node_GKc0ALEe.data.allData.gd_total}}",
                                     "valueLabel": "",
                                     "propLabel": "gd_total"
                                   },
@@ -5074,6 +5220,38 @@
                                     "value": "{{node:code_node_IyJHrBst.data.allData.shipping_attention}}",
                                     "valueLabel": "",
                                     "propLabel": "Attention"
+                                  },
+                                  {
+                                    "prop": "to_no",
+                                    "operator": "",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_IyJHrBst.data.allData.to_no}}",
+                                    "valueLabel": "",
+                                    "propLabel": "Picking Number"
+                                  },
+                                  {
+                                    "prop": "pp_id",
+                                    "operator": "",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_IyJHrBst.data.allData.pp_id}}",
+                                    "valueLabel": "",
+                                    "propLabel": "PP ID"
+                                  },
+                                  {
+                                    "prop": "is_select_picking",
+                                    "operator": "",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_IyJHrBst.data.allData.is_select_picking}}",
+                                    "valueLabel": "",
+                                    "propLabel": "Is Select Picking"
+                                  },
+                                  {
+                                    "prop": "sp_vehicle_no",
+                                    "operator": "",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_IyJHrBst.data.allData.sp_vehicle_no}}",
+                                    "valueLabel": "",
+                                    "propLabel": "Vehicle Number"
                                   }
                                 ]
                               }
@@ -5574,7 +5752,7 @@
                                     "prop": "table_gd",
                                     "operator": "",
                                     "valueType": "field",
-                                    "value": "{{node:code_node_IyJHrBst.data.allData.table_gd}}",
+                                    "value": "{{node:code_node_GKc0ALEe.data.allData.table_gd}}",
                                     "valueLabel": "",
                                     "propLabel": "table_gd"
                                   },
@@ -5582,7 +5760,7 @@
                                     "prop": "gd_total",
                                     "operator": "",
                                     "valueType": "field",
-                                    "value": "{{node:code_node_IyJHrBst.data.allData.gd_total}}",
+                                    "value": "{{node:code_node_GKc0ALEe.data.allData.gd_total}}",
                                     "valueLabel": "",
                                     "propLabel": "gd_total"
                                   },
@@ -5849,6 +6027,38 @@
                                     "value": "{{node:code_node_IyJHrBst.data.allData.delivery_no_type}}",
                                     "valueLabel": "",
                                     "propLabel": "规则"
+                                  },
+                                  {
+                                    "prop": "to_no",
+                                    "operator": "",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_IyJHrBst.data.allData.to_no}}",
+                                    "valueLabel": "",
+                                    "propLabel": "Picking Number"
+                                  },
+                                  {
+                                    "prop": "pp_id",
+                                    "operator": "",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_IyJHrBst.data.allData.pp_id}}",
+                                    "valueLabel": "",
+                                    "propLabel": "PP ID"
+                                  },
+                                  {
+                                    "prop": "is_select_picking",
+                                    "operator": "",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_IyJHrBst.data.allData.is_select_picking}}",
+                                    "valueLabel": "",
+                                    "propLabel": "Is Select Picking"
+                                  },
+                                  {
+                                    "prop": "sp_vehicle_no",
+                                    "operator": "",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_IyJHrBst.data.allData.sp_vehicle_no}}",
+                                    "valueLabel": "",
+                                    "propLabel": "Vehicle Number"
                                   }
                                 ]
                               }
@@ -6391,7 +6601,7 @@
                             "prop": "table_gd",
                             "operator": "",
                             "valueType": "field",
-                            "value": "{{node:code_node_IyJHrBst.data.allData.table_gd}}",
+                            "value": "{{node:code_node_GKc0ALEe.data.allData.table_gd}}",
                             "valueLabel": "",
                             "propLabel": "table_gd"
                           },
@@ -6399,7 +6609,7 @@
                             "prop": "gd_total",
                             "operator": "",
                             "valueType": "field",
-                            "value": "{{node:code_node_IyJHrBst.data.allData.gd_total}}",
+                            "value": "{{node:code_node_GKc0ALEe.data.allData.gd_total}}",
                             "valueLabel": "",
                             "propLabel": "gd_total"
                           },
@@ -6658,6 +6868,38 @@
                             "value": "{{node:code_node_IyJHrBst.data.allData.delivery_no_type}}",
                             "valueLabel": "",
                             "propLabel": "规则"
+                          },
+                          {
+                            "prop": "to_no",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_IyJHrBst.data.allData.to_no}}",
+                            "valueLabel": "",
+                            "propLabel": "Picking Number"
+                          },
+                          {
+                            "prop": "is_select_picking",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_IyJHrBst.data.allData.is_select_picking}}",
+                            "valueLabel": "",
+                            "propLabel": "Is Select Picking"
+                          },
+                          {
+                            "prop": "pp_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_IyJHrBst.data.allData.pp_id}}",
+                            "valueLabel": "",
+                            "propLabel": "PP ID"
+                          },
+                          {
+                            "prop": "sp_vehicle_no",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_IyJHrBst.data.allData.sp_vehicle_no}}",
+                            "valueLabel": "",
+                            "propLabel": "Vehicle Number"
                           }
                         ]
                       }
@@ -6774,11 +7016,11 @@
               "name": "Run GD Process Table",
               "workflow": {
                 "rules": {
-                  "collectionId": "2016718099272978433",
+                  "collectionId": "2032273338771128322",
                   "list": [
                     {
-                      "id": 1723795236686,
-                      "parentId": 1723795236685,
+                      "id": 1773738511925,
+                      "parentId": 1773738511924,
                       "isTop": true,
                       "prop": "",
                       "operator": "",
@@ -6789,7 +7031,7 @@
                     }
                   ]
                 },
-                "source": "GD_PROCESS_TABLE:Workflow:2016718099272978433"
+                "source": "GD_UNUSED_FN_NEW:Workflow:2032273338771128322"
               },
               "remote": true,
               "remoteType": "innerdatasource",
@@ -6900,6 +7142,14 @@
                     "value": "{{node:code_node_Pgtw6zFL.data.picking_plan_id}}",
                     "valueLabel": "",
                     "propLabel": "PP ID"
+                  },
+                  {
+                    "prop": "transaction_type",
+                    "operator": "",
+                    "valueType": "value",
+                    "value": "GDL",
+                    "valueLabel": "",
+                    "propLabel": "Trx Type"
                   }
                 ]
               }
@@ -7157,7 +7407,7 @@
               "isValidator": true,
               "nodeName": "Get updatedSOTable",
               "name": "Get updatedSOTable",
-              "redis_key": "updatedSOTable"
+              "redis_key": "updatedSOTable_{{node:code_node_eOO3RTkR.data.unique}}"
             },
             "blocks": []
           },
@@ -8354,7 +8604,7 @@
                       "name": "Notification Preparation",
                       "script": {
                         "type": "javascript",
-                        "code": "const pickingResult = {{node:code_node_6L2Ozea8.data}}\nconst toNo = pickingResult.existingTONo || \"\";\n\n// Prepare cancellation notifications for removed users\nconst cancellationNotifications = [];\nif (pickingResult.removedUsers && pickingResult.removedUsers.length > 0) {\n  pickingResult.removedUsers.forEach((userId) => {\n    cancellationNotifications.push({\n      title: \"Picking Assignment Cancelled\",\n      body: `Your picking task for Transfer Order: ${toNo} has been cancelled.`,\n      userId: [userId],\n      data: {\n        docId: toNo,\n        deepLink: `sudumobileexpo://picking/batch/${toNo}`,\n        action: \"cancelled\",\n      },\n    });\n  });\n}\n\n// Prepare assignment notifications for added users\nconst assignmentNotifications = [];\nif (pickingResult.addedUsers && pickingResult.addedUsers.length > 0) {\n  pickingResult.addedUsers.forEach((userId) => {\n    assignmentNotifications.push({\n      title: \"New Picking Assignment\",\n      body: `You have been assigned a picking task for Goods Delivery: ${pickingResult.deliveryNo}. Transfer Order: ${toNo}`,\n      userId: [userId],\n      data: {\n        docId: toNo,\n        deepLink: `sudumobileexpo://picking/batch/${toNo}`,\n        action: \"assigned\",\n      },\n    });\n  });\n}\n\n// Combined notifications for workflow-node or loop processing\nconst allNotifications = [...cancellationNotifications, ...assignmentNotifications];\n\nreturn {\n  cancellationNotifications,\n  assignmentNotifications,\n  allNotifications,\n  totalNotifications: allNotifications.length,\n  hasCancellations: cancellationNotifications.length > 0 ? 1 : 0,\n  hasAssignments: assignmentNotifications.length > 0 ? 1 : 0,\n};\n"
+                        "code": "const isUpdate = {{node:code_node_6L2Ozea8.data.isUpdate}} || 0;\nlet toNo;\nlet pickingResult;\n\nif (isUpdate === 1) {\n  pickingResult = {{node:code_node_6L2Ozea8.data}};\n  toNo = pickingResult.existingTONo || \"\";\n} else {\n  pickingResult = {{node:add_node_rk182M1q.data}};\n  toNo = pickingResult[0]?.to_id || \"\";\n}\n\n// Prepare cancellation notifications for removed users\nconst cancellationNotifications = [];\nif (pickingResult.removedUsers && pickingResult.removedUsers.length > 0) {\n  pickingResult.removedUsers.forEach((userId) => {\n    cancellationNotifications.push({\n      title: \"Picking Assignment Cancelled\",\n      body: `Your picking task for Transfer Order: ${toNo} has been cancelled.`,\n      userId: [userId],\n      data: {\n        docId: toNo,\n        deepLink: `sudumobileexpo://picking/batch/${toNo}`,\n        action: \"cancelled\",\n      },\n    });\n  });\n}\n\n// Prepare assignment notifications for added users\nconst assignmentNotifications = [];\nif (pickingResult.addedUsers && pickingResult.addedUsers.length > 0) {\n  pickingResult.addedUsers.forEach((userId) => {\n    assignmentNotifications.push({\n      title: \"New Picking Assignment\",\n      body: `You have been assigned a picking task for Goods Delivery: ${pickingResult.deliveryNo}. Transfer Order: ${toNo}`,\n      userId: [userId],\n      data: {\n        docId: toNo,\n        deepLink: `sudumobileexpo://picking/batch/${toNo}`,\n        action: \"assigned\",\n      },\n    });\n  });\n}\n\n// Combined notifications for workflow-node or loop processing\nconst allNotifications = [...cancellationNotifications, ...assignmentNotifications];\n\nreturn {\n  cancellationNotifications,\n  assignmentNotifications,\n  allNotifications,\n  totalNotifications: allNotifications.length,\n  hasCancellations: cancellationNotifications.length > 0 ? 1 : 0,\n  hasAssignments: assignmentNotifications.length > 0 ? 1 : 0,\n};\n"
                       },
                       "response_json": [
                         {
@@ -8469,7 +8719,7 @@
                                 "type": "javascript",
                                 "code": "0"
                               },
-                              "redis_key": "cancelNotifIndex"
+                              "redis_key": "cancelNotifIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                             },
                             "blocks": []
                           },
@@ -8530,7 +8780,7 @@
                                   "isValidator": true,
                                   "nodeName": "Get cancelNotifIndex",
                                   "name": "Get cancelNotifIndex",
-                                  "redis_key": "cancelNotifIndex"
+                                  "redis_key": "cancelNotifIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                                 },
                                 "blocks": []
                               },
@@ -8660,7 +8910,7 @@
                                     "type": "javascript",
                                     "code": "{{node:code_node_6YcpKK5A.data.nextIndex}}"
                                   },
-                                  "redis_key": "cancelNotifIndex"
+                                  "redis_key": "cancelNotifIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                                 },
                                 "blocks": []
                               }
@@ -8726,7 +8976,7 @@
                                 "type": "javascript",
                                 "code": "0"
                               },
-                              "redis_key": "assignNotifIndex"
+                              "redis_key": "assignNotifIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                             },
                             "blocks": []
                           },
@@ -8787,7 +9037,7 @@
                                   "isValidator": true,
                                   "nodeName": "Get assignNotifIndex",
                                   "name": "Get assignNotifIndex",
-                                  "redis_key": "assignNotifIndex"
+                                  "redis_key": "assignNotifIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                                 },
                                 "blocks": []
                               },
@@ -8917,7 +9167,7 @@
                                     "type": "javascript",
                                     "code": "{{node:code_node_gUADQXoM.data.nextIndex}}"
                                   },
-                                  "redis_key": "assignNotifIndex"
+                                  "redis_key": "assignNotifIndex_{{node:code_node_eOO3RTkR.data.unique}}"
                                 },
                                 "blocks": []
                               }
@@ -9472,7 +9722,7 @@
                             "prop": "table_gd",
                             "operator": "",
                             "valueType": "field",
-                            "value": "{{node:code_node_IyJHrBst.data.allData.table_gd}}",
+                            "value": "{{node:code_node_GKc0ALEe.data.allData.table_gd}}",
                             "valueLabel": "",
                             "propLabel": "table_gd"
                           },
@@ -9480,7 +9730,7 @@
                             "prop": "gd_total",
                             "operator": "",
                             "valueType": "field",
-                            "value": "{{node:code_node_IyJHrBst.data.allData.gd_total}}",
+                            "value": "{{node:code_node_GKc0ALEe.data.allData.gd_total}}",
                             "valueLabel": "",
                             "propLabel": "gd_total"
                           },
@@ -9731,6 +9981,14 @@
                             "value": "{{node:code_node_IyJHrBst.data.allData.shipping_attention}}",
                             "valueLabel": "",
                             "propLabel": "Attention"
+                          },
+                          {
+                            "prop": "sp_vehicle_no",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_IyJHrBst.data.allData.sp_vehicle_no}}",
+                            "valueLabel": "",
+                            "propLabel": "Vehicle Number"
                           }
                         ]
                       }
@@ -10235,7 +10493,7 @@
                             "prop": "table_gd",
                             "operator": "",
                             "valueType": "field",
-                            "value": "{{node:code_node_IyJHrBst.data.allData.table_gd}}",
+                            "value": "{{node:code_node_GKc0ALEe.data.allData.table_gd}}",
                             "valueLabel": "",
                             "propLabel": "table_gd"
                           },
@@ -10243,7 +10501,7 @@
                             "prop": "gd_total",
                             "operator": "",
                             "valueType": "field",
-                            "value": "{{node:code_node_IyJHrBst.data.allData.gd_total}}",
+                            "value": "{{node:code_node_GKc0ALEe.data.allData.gd_total}}",
                             "valueLabel": "",
                             "propLabel": "gd_total"
                           },
@@ -10502,6 +10760,14 @@
                             "value": "{{node:code_node_IyJHrBst.data.allData.delivery_no_type}}",
                             "valueLabel": "",
                             "propLabel": "规则"
+                          },
+                          {
+                            "prop": "sp_vehicle_no",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_IyJHrBst.data.allData.sp_vehicle_no}}",
+                            "valueLabel": "",
+                            "propLabel": "Vehicle Number"
                           }
                         ]
                       }
@@ -10517,14 +10783,14 @@
     ]
   },
   {
-    "id": "code_node_J4olhCEZ",
+    "id": "code_node_9tqmlO5L",
     "type": "code-node",
     "data": {
       "language": "javascript",
       "code": "",
       "timeout": 30000,
       "title": "updateItemTransactionDate",
-      "isValidator": false,
+      "isValidator": true,
       "nodeName": "updateItemTransactionDate",
       "name": "updateItemTransactionDate",
       "script": {
@@ -10557,7 +10823,7 @@
     "blocks": []
   },
   {
-    "id": "update_node_kwROo9bP",
+    "id": "update_node_YZ6spfvw",
     "type": "update-node",
     "data": {
       "table_id": {
@@ -10613,7 +10879,7 @@
     "blocks": []
   },
   {
-    "id": "code_node_Nyebskf4",
+    "id": "code_node_evKr65Q6",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -10641,7 +10907,7 @@
     "blocks": []
   },
   {
-    "id": "return_node_DgMfYHWv",
+    "id": "return_node_D2p9d2Ox",
     "type": "return-node",
     "data": {
       "return_data": {},
