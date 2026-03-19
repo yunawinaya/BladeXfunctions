@@ -1,5 +1,7 @@
 (async () => {
   try {
+    const plantId = this.getValue("plant_id");
+    const organizationId = this.getValue("organization_id");
     const tableItems = this.getValue("table_items");
     const tableHU = this.getValue("table_hu");
     const rowIndex = arguments[0].rowIndex;
@@ -32,23 +34,81 @@
       },
     });
 
+    // Helper function to fetch balance_id for an item
+    const fetchBalanceId = async (item) => {
+      try {
+        const materialId = item.item_code;
+        let balanceResult;
+
+        // Check batch management by whether batch_no has a value
+        if (item.batch_no && item.batch_no !== "") {
+          // Query item_batch_balance for batch-managed items
+          balanceResult = await db
+            .collection("item_batch_balance")
+            .where({
+              material_id: materialId,
+              plant_id: plantId,
+              organization_id: organizationId,
+              batch_id: item.batch_no,
+              location_id: item.source_bin,
+              is_deleted: 0,
+            })
+            .get();
+        } else {
+          // Query item_balance for non-batch items
+          balanceResult = await db
+            .collection("item_balance")
+            .where({
+              material_id: materialId,
+              plant_id: plantId,
+              organization_id: organizationId,
+              location_id: item.source_bin,
+              is_deleted: 0,
+            })
+            .get();
+        }
+
+        if (
+          balanceResult &&
+          balanceResult.data &&
+          balanceResult.data.length > 0
+        ) {
+          return balanceResult.data[0].id;
+        }
+
+        return null;
+      } catch (error) {
+        console.error(
+          `Error fetching balance_id for material ${materialId}:`,
+          error,
+        );
+        return null;
+      }
+    };
+
     // Always start fresh from table items to get correct total_quantity
     // Then overlay quantity_to_pack from temp_data if editing
     let tableSelectItems = [];
 
-    tableItems.forEach((item, index) => {
+    // Build tableSelectItems with balance_id
+    for (let index = 0; index < tableItems.length; index++) {
+      const item = tableItems[index];
+      const balanceId = await fetchBalanceId(item);
+
       tableSelectItems.push({
         item_code: item.item_code,
         item_name: item.item_name,
         item_desc: item.item_desc,
         batch_no: item.batch_no || "",
+        source_bin_id: item.source_bin,
         item_uom: item.item_uom,
         total_quantity: parseFloat(item.total_quantity) || 0,
         quantity_to_pack: 0,
         line_index: index,
         line_item_id: item.id || "",
+        balance_id: balanceId || "",
       });
-    });
+    }
 
     // If editing existing HU, restore the quantity_to_pack from temp_data
     if (
@@ -62,11 +122,12 @@
             selectItem.line_index === tempItem.line_index ||
             (selectItem.line_item_id &&
               tempItem.line_item_id &&
-              selectItem.line_item_id === tempItem.line_item_id)
+              selectItem.line_item_id === tempItem.line_item_id),
         );
 
         if (matchingItem) {
-          matchingItem.quantity_to_pack = parseFloat(tempItem.quantity_to_pack) || 0;
+          matchingItem.quantity_to_pack =
+            parseFloat(tempItem.quantity_to_pack) || 0;
         }
       });
     }
@@ -89,7 +150,7 @@
         } catch (parseError) {
           console.error(
             `Error parsing temp_data for HU row ${huIndex}:`,
-            parseError
+            parseError,
           );
         }
       }
@@ -131,7 +192,7 @@
     console.log("Dialog select items:", this.getValue("dialog_select_items"));
   } catch (error) {
     this.$message.error(
-      "Error in PackingOpenSelectItemDialog: " + error.message
+      "Error in PackingOpenSelectItemDialog: " + error.message,
     );
     console.error("Error in PackingOpenSelectItemDialog:", error);
   }

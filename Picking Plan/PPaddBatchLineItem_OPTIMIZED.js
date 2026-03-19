@@ -437,14 +437,19 @@ const checkInventoryWithDuplicates = async (
   console.log(`🚀 Fetching data for ${materialIds.length} unique materials...`);
   const fetchStart = Date.now();
 
-  const [itemDataMap, balanceDataMaps, pickingSetup, batchDataMap, pendingReservedMap] =
-    await Promise.all([
-      batchFetchItems(materialIds),
-      batchFetchBalanceData(materialIds, plantId),
-      fetchPickingSetup(plantId),
-      batchFetchBatchData(materialIds, plantId),
-      batchFetchPendingReserved(allSoLineItemIds, plantId),
-    ]);
+  const [
+    itemDataMap,
+    balanceDataMaps,
+    pickingSetup,
+    batchDataMap,
+    pendingReservedMap,
+  ] = await Promise.all([
+    batchFetchItems(materialIds),
+    batchFetchBalanceData(materialIds, plantId),
+    fetchPickingSetup(plantId),
+    batchFetchBatchData(materialIds, plantId),
+    batchFetchPendingReserved(allSoLineItemIds, plantId),
+  ]);
 
   console.log(
     `✅ All data fetched in ${
@@ -628,7 +633,9 @@ const checkInventoryWithDuplicates = async (
     // Available = unrestricted + reserved (for this SO) - previous allocations
     const availableStockAfterAllocations = Math.max(
       0,
-      totalUnrestrictedQtyBase + totalPendingReservedQtyBase - totalPreviousAllocations,
+      totalUnrestrictedQtyBase +
+        totalPendingReservedQtyBase -
+        totalPreviousAllocations,
     );
 
     console.log(
@@ -646,14 +653,18 @@ const checkInventoryWithDuplicates = async (
     // Calculate total demand
     let totalDemandBase = 0;
     items.forEach((item) => {
-      const undeliveredQty = roundQty(item.orderedQty - item.deliveredQtyFromSource);
+      const undeliveredQty = roundQty(
+        item.orderedQty - item.deliveredQtyFromSource,
+      );
       let undeliveredQtyBase = undeliveredQty;
       if (item.altUOM !== itemData.based_uom) {
         const uomConversion = itemData.table_uom_conversion?.find(
           (conv) => conv.alt_uom_id === item.altUOM,
         );
         if (uomConversion && uomConversion.base_qty) {
-          undeliveredQtyBase = roundQty(undeliveredQty * uomConversion.base_qty);
+          undeliveredQtyBase = roundQty(
+            undeliveredQty * uomConversion.base_qty,
+          );
         }
       }
       totalDemandBase += undeliveredQtyBase;
@@ -703,21 +714,15 @@ const checkInventoryWithDuplicates = async (
           const deliveredQty = item.deliveredQtyFromSource;
           const undeliveredQty = roundQty(orderedQty - deliveredQty);
 
-          const orderedQtyBase = roundQty(convertToBaseUOM(
-            orderedQty,
-            item.altUOM,
-            itemData,
-          ));
-          const deliveredQtyBase = roundQty(convertToBaseUOM(
-            deliveredQty,
-            item.altUOM,
-            itemData,
-          ));
-          const undeliveredQtyBase = roundQty(convertToBaseUOM(
-            undeliveredQty,
-            item.altUOM,
-            itemData,
-          ));
+          const orderedQtyBase = roundQty(
+            convertToBaseUOM(orderedQty, item.altUOM, itemData),
+          );
+          const deliveredQtyBase = roundQty(
+            convertToBaseUOM(deliveredQty, item.altUOM, itemData),
+          );
+          const undeliveredQtyBase = roundQty(
+            convertToBaseUOM(undeliveredQty, item.altUOM, itemData),
+          );
 
           let availableQtyBase = 0;
           if (remainingSerialCount > 0 && undeliveredQtyBase > 0) {
@@ -773,7 +778,9 @@ const checkInventoryWithDuplicates = async (
                 (conv) => conv.alt_uom_id === item.altUOM,
               );
               if (uomConversion && uomConversion.base_qty) {
-                undeliveredQtyBase = roundQty(undeliveredQty * uomConversion.base_qty);
+                undeliveredQtyBase = roundQty(
+                  undeliveredQty * uomConversion.base_qty,
+                );
               }
             }
 
@@ -827,13 +834,18 @@ const checkInventoryWithDuplicates = async (
         const undeliveredQty = roundQty(orderedQty - deliveredQty);
 
         // 🔧 Use cached pending reserved data instead of new DB query
-        const pendingReservedData = pendingReservedMap.get(item.so_line_item_id) || [];
+        const pendingReservedData =
+          pendingReservedMap.get(item.so_line_item_id) || [];
         const pendingTotal = pendingReservedData.reduce(
           (total, doc) => total + parseFloat(doc.open_qty || 0),
           0,
         );
         // Cap by pending reserved qty (if any reservations exist)
-        const suggestedQty = roundQty(pendingTotal > 0 ? Math.min(undeliveredQty, pendingTotal) : undeliveredQty);
+        const suggestedQty = roundQty(
+          pendingTotal > 0
+            ? Math.min(undeliveredQty, pendingTotal)
+            : undeliveredQty,
+        );
 
         if (suggestedQty <= 0) {
           fieldsToDisable.push(
@@ -844,21 +856,15 @@ const checkInventoryWithDuplicates = async (
         } else {
           if (itemData.serial_number_management === 1) {
             // Serialized - use base UOM
-            const orderedQtyBase = roundQty(convertToBaseUOM(
-              orderedQty,
-              item.altUOM,
-              itemData,
-            ));
-            const deliveredQtyBase = roundQty(convertToBaseUOM(
-              deliveredQty,
-              item.altUOM,
-              itemData,
-            ));
-            const suggestedQtyBase = roundQty(convertToBaseUOM(
-              suggestedQty,
-              item.altUOM,
-              itemData,
-            ));
+            const orderedQtyBase = roundQty(
+              convertToBaseUOM(orderedQty, item.altUOM, itemData),
+            );
+            const deliveredQtyBase = roundQty(
+              convertToBaseUOM(deliveredQty, item.altUOM, itemData),
+            );
+            const suggestedQtyBase = roundQty(
+              convertToBaseUOM(suggestedQty, item.altUOM, itemData),
+            );
 
             tableToArray[index] = {
               ...tableToArray[index],
@@ -960,16 +966,12 @@ const createTableToWithBaseUOM = async (allItems) => {
     }
 
     if (itemData?.serial_number_management === 1) {
-      const orderedQtyBase = roundQty(convertToBaseUOM(
-        item.orderedQty,
-        item.altUOM,
-        itemData,
-      ));
-      const deliveredQtyBase = roundQty(convertToBaseUOM(
-        item.deliveredQtyFromSource,
-        item.altUOM,
-        itemData,
-      ));
+      const orderedQtyBase = roundQty(
+        convertToBaseUOM(item.orderedQty, item.altUOM, itemData),
+      );
+      const deliveredQtyBase = roundQty(
+        convertToBaseUOM(item.deliveredQtyFromSource, item.altUOM, itemData),
+      );
 
       processedItems.push({
         material_id: item.itemId || "",
@@ -999,7 +1001,9 @@ const createTableToWithBaseUOM = async (allItems) => {
         to_material_desc: item.itemDesc || "",
         to_order_quantity: item.orderedQty,
         to_delivered_qty: item.deliveredQtyFromSource,
-        to_undelivered_qty: roundQty(item.orderedQty - item.deliveredQtyFromSource),
+        to_undelivered_qty: roundQty(
+          item.orderedQty - item.deliveredQtyFromSource,
+        ),
         to_order_uom_id: item.altUOM,
         to_uom_id: item.altUOM,
         unit_price: item.sourceItem.so_item_price || 0,
@@ -1121,7 +1125,10 @@ const createTableToWithBaseUOM = async (allItems) => {
             orderedQty: parseFloat(soItem.so_quantity || 0),
             altUOM: soItem.so_item_uom || "",
             sourceItem: soItem,
-            deliveredQtyFromSource: roundQty(parseFloat(soItem.delivered_qty || 0) + parseFloat(soItem.planned_qty || 0)),
+            deliveredQtyFromSource: roundQty(
+              parseFloat(soItem.delivered_qty || 0) +
+                parseFloat(soItem.planned_qty || 0),
+            ),
             original_so_id: so.sales_order_id,
             so_no: so.sales_order_number,
             so_line_item_id: soItem.id,
@@ -1141,7 +1148,10 @@ const createTableToWithBaseUOM = async (allItems) => {
           orderedQty: parseFloat(soItem.so_quantity || 0),
           altUOM: soItem.so_item_uom || "",
           sourceItem: soItem,
-          deliveredQtyFromSource: roundQty(parseFloat(soItem.delivered_qty || 0) + parseFloat(soItem.planned_qty || 0)),
+          deliveredQtyFromSource: roundQty(
+            parseFloat(soItem.delivered_qty || 0) +
+              parseFloat(soItem.planned_qty || 0),
+          ),
           original_so_id: soItem.sales_order.id,
           so_no: soItem.sales_order.so_no,
           so_line_item_id: soItem.sales_order_line_id,
