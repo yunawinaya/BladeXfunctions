@@ -1,6 +1,6 @@
 [
   {
-    "id": "set_cache_node_tfsmJn1N",
+    "id": "set_cache_node_582cSLvc",
     "type": "set-cache-node",
     "data": {
       "cache_key": "",
@@ -11,12 +11,12 @@
       "nodeName": "Set Table Index",
       "name": "Set Table Index",
       "custom_wkbocgni": { "type": "javascript", "code": "0" },
-      "redis_key": "tableIndex"
+      "redis_key": "tableIndex_{{workflowparams:doc_id}}"
     },
     "blocks": []
   },
   {
-    "id": "if_trXgZ3yE",
+    "id": "if_gapE0x4Q",
     "type": "if",
     "data": {
       "title": "IF isGDPP",
@@ -242,11 +242,11 @@
     ]
   },
   {
-    "id": "loop_tA6WHdmY",
+    "id": "loop_4qWUTWvE",
     "type": "loop",
     "data": {
       "title": "Loop Table",
-      "isValidator": false,
+      "isValidator": true,
       "nodeName": "Loop Table",
       "name": "Loop Table",
       "loopType": "Var",
@@ -301,7 +301,7 @@
           "isValidator": true,
           "nodeName": "Get Table Index",
           "name": "Get Table Index",
-          "redis_key": "tableIndex"
+          "redis_key": "tableIndex_{{workflowparams:doc_id}}"
         },
         "blocks": []
       },
@@ -421,7 +421,7 @@
                 "valueLabel": "",
                 "propLabel": "结果条数",
                 "prop": "node.get_node_kXaJ7CW6.data.count",
-                "operatorLabel": "等于"
+                "operatorLabel": "Equal"
               }
             ]
           }
@@ -491,7 +491,7 @@
           "name": "Table Data Preparation",
           "script": {
             "type": "javascript",
-            "code": "const parseJsonSafely = (jsonString, defaultValue = []) => {\n  try {\n    return jsonString ? JSON.parse(jsonString) : defaultValue;\n  } catch (error) {\n    return defaultValue;\n  }\n};\n\nconst item = {{node:code_node_gG7AZrE1.data.item}}\nconst itemMaster = {{node:get_node_kXaJ7CW6.data.data}}\nconst isPickingPlan = {{workflowparams:isPickingPlan}} || null\n\nconst material_id = item.material_id;\nconst material_uom = isPickingPlan ? item.to_order_uom_id || item.picking_plan_uom_id : item.gd_order_uom_id || item.good_delivery_uom_id;\nconst parent_id = item.line_so_id || \"\";\nconst parent_line_id = item.so_line_item_id || \"\";\nconst parent_no = item.line_so_no || \"\";\nconst doc_line_id = item.id || \"\";\nconst remark = item.line_remark_1 || \"\";\nconst picking_plan_id = item.line_pp_id || \"\";\nconst picking_plan_line_id = item.pp_line_item_id||\"\";\n\nconst isBatchManagedItem = itemMaster.item_batch_management === 1;\nconst temporaryData = parseJsonSafely(item.temp_qty_data);\n\nlet message = null;\nlet code = null;\n\nif (\n  temporaryData.length === 0\n) {\n  message = `No temp_qty_data to process for item ${item.material_name}`;\n  code = \"200\";\n}\n\n// GROUP temp_qty_data by location + batch combination\nconst groupedTempData = {};\n\nfor (const temp of temporaryData) {\n  const groupKey =\n    isBatchManagedItem && temp.batch_id\n      ? `${temp.location_id}|${temp.batch_id}`\n      : temp.location_id;\n\n  if (!groupedTempData[groupKey]) {\n    groupedTempData[groupKey] = {\n      location_id: temp.location_id,\n      batch_id: temp.batch_id || null,\n      totalQty: 0,\n    };\n  }\n\n  groupedTempData[groupKey].totalQty += parseFloat(\n    temp.gd_quantity || temp.to_quantity || temp.quantity || 0,\n  );\n}\n\nconst groupKeys = Object.keys(groupedTempData);\n\nreturn {\n  message: message,\n  code: code,\n  groupKeys: groupKeys,\n  groupedTempData: groupedTempData,\n  material_id: material_id,\n  material_uom: material_uom,\n  parent_id: parent_id,\n  parent_line_id: parent_line_id,\n  parent_no: parent_no,\n  doc_line_id: doc_line_id,\n  picking_plan_id: picking_plan_id,\n  picking_plan_line_id: picking_plan_line_id,\n  remark: remark\n};\n"
+            "code": "const parseJsonSafely = (jsonString, defaultValue = []) => {\n  try {\n    return jsonString ? JSON.parse(jsonString) : defaultValue;\n  } catch (error) {\n    return defaultValue;\n  }\n};\n\nconst item = {{node:code_node_gG7AZrE1.data.item}}\nconst itemMaster = {{node:get_node_kXaJ7CW6.data.data}}\nconst isPickingPlan = {{workflowparams:isPickingPlan}} || null\nconst isGDPP = {{workflowparams:isGDPP}} || 0;\n\nconst material_id = item.material_id;\nconst material_uom = isPickingPlan ? item.to_order_uom_id || item.picking_plan_uom_id : item.gd_order_uom_id || item.good_delivery_uom_id;\nconst parent_id = item.line_so_id || \"\";\nconst parent_line_id = item.so_line_item_id || \"\";\nconst parent_no = item.line_so_no || \"\";\nconst doc_line_id = item.id || \"\";\nconst remark = item.line_remark_1 || \"\";\nconst picking_plan_id = item.line_pp_id || \"\";\nconst picking_plan_line_id = item.pp_line_item_id||\"\";\nconst picking_id = item.line_to_id || \"\";\n\nconst isBatchManagedItem = itemMaster.item_batch_management === 1;\nconst temporaryData = parseJsonSafely(item.temp_qty_data);\n\nlet message = null;\nlet code = null;\n\nif (\n  temporaryData.length === 0\n) {\n  message = `No temp_qty_data to process for item ${item.material_name}`;\n  code = \"200\";\n}\n\n// GROUP temp_qty_data by location + batch combination\nconst groupedTempData = {};\n\nfor (const temp of temporaryData) {\n  const groupKey =\n    isBatchManagedItem && temp.batch_id\n      ? `${temp.location_id}|${temp.batch_id}`\n      : temp.location_id;\n\n  if (!groupedTempData[groupKey]) {\n    groupedTempData[groupKey] = {\n      location_id: temp.location_id,\n      batch_id: temp.batch_id || null,\n      totalQty: 0,\n    };\n  }\n\n  groupedTempData[groupKey].totalQty += parseFloat(\n    temp.gd_quantity || temp.to_quantity || temp.quantity || 0,\n  );\n}\n\nconst groupKeys = Object.keys(groupedTempData);\n\nreturn {\n  message: message,\n  code: code,\n  groupKeys: groupKeys,\n  groupedTempData: groupedTempData,\n  material_id: material_id,\n  material_uom: material_uom,\n  parent_id: parent_id,\n  parent_line_id: parent_line_id,\n  parent_no: parent_no,\n  doc_line_id: doc_line_id,\n  picking_plan_id: picking_plan_id,\n  picking_plan_line_id: picking_plan_line_id,\n  picking_id: picking_id,\n  remark: remark,\n  isGDPP: isGDPP,\n};\n"
           },
           "response_json": [
             {
@@ -610,6 +610,23 @@
               "description": "",
               "bsonType": "string",
               "isExpand": false
+            },
+            {
+              "key": "m1kgef7v",
+              "name": "isGDPP",
+              "title": "isGDPP",
+              "description": "",
+              "bsonType": "int",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "tg5y93au",
+              "name": "picking_id",
+              "title": "picking_id",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
             }
           ]
         },
@@ -649,7 +666,7 @@
                     "level": 2,
                     "propLabel": "code",
                     "valueLabel": "",
-                    "operatorLabel": "没有值"
+                    "operatorLabel": "Is Null"
                   },
                   {
                     "id": 1769660503031,
@@ -662,7 +679,7 @@
                     "level": 2,
                     "propLabel": "message",
                     "valueLabel": "",
-                    "operatorLabel": "没有值"
+                    "operatorLabel": "Is Null"
                   }
                 ]
               }
@@ -687,7 +704,7 @@
                   "nodeName": "Set initial groupKey Index",
                   "name": "Set initial groupKey Index",
                   "custom_wkbocgni": { "type": "javascript", "code": "0" },
-                  "redis_key": "groupKeyIndex"
+                  "redis_key": "groupKeyIndex_{{workflowparams:doc_id}}"
                 },
                 "blocks": []
               },
@@ -696,7 +713,7 @@
                 "type": "loop",
                 "data": {
                   "title": "Loop GroupKeys",
-                  "isValidator": false,
+                  "isValidator": true,
                   "nodeName": "Loop GroupKeys",
                   "name": "Loop GroupKeys",
                   "loopType": "Var",
@@ -751,7 +768,7 @@
                       "isValidator": true,
                       "nodeName": "Get groupKey Index",
                       "name": "Get groupKey Index",
-                      "redis_key": "groupKeyIndex"
+                      "redis_key": "groupKeyIndex_{{workflowparams:doc_id}}"
                     },
                     "blocks": []
                   },
@@ -2581,7 +2598,7 @@
                         "type": "javascript",
                         "code": "{{node:code_node_cbVKYuou.data.nextIndex}}"
                       },
-                      "redis_key": "groupKeyIndex"
+                      "redis_key": "groupKeyIndex_{{workflowparams:doc_id}}"
                     },
                     "blocks": []
                   }
@@ -2612,14 +2629,14 @@
             "type": "javascript",
             "code": "{{node:code_node_gG7AZrE1.data.nextIndex}}"
           },
-          "redis_key": "tableIndex"
+          "redis_key": "tableIndex_{{workflowparams:doc_id}}"
         },
         "blocks": []
       }
     ]
   },
   {
-    "id": "if_f0SENMIY",
+    "id": "if_WmN4T2iC",
     "type": "if",
     "data": {
       "title": "IF Need Clean Up",
@@ -3137,7 +3154,7 @@
                       "nodeName": "Set inventoryMovements Index",
                       "name": "Set inventoryMovements Index",
                       "custom_wkbocgni": { "type": "javascript", "code": "0" },
-                      "redis_key": "inventoryMovementsIndex"
+                      "redis_key": "inventoryMovementsIndex_{{workflowparams:doc_id}}"
                     },
                     "blocks": []
                   },
@@ -3166,7 +3183,7 @@
                           "isValidator": true,
                           "nodeName": "Get inventoryMovements Index",
                           "name": "Get inventoryMovements Index",
-                          "redis_key": "inventoryMovementsIndex"
+                          "redis_key": "inventoryMovementsIndex_{{workflowparams:doc_id}}"
                         },
                         "blocks": []
                       },
@@ -3625,7 +3642,7 @@
                           "workflow_name": "",
                           "input_params": {},
                           "title": "Add Inventory Workflow",
-                          "isValidator": false,
+                          "isValidator": true,
                           "nodeName": "Add Inventory Workflow",
                           "name": "Add Inventory Workflow",
                           "workflow": {
@@ -3874,7 +3891,7 @@
                             "type": "javascript",
                             "code": "{{node:code_node_oA7eXLn7.data.nextIndex}}"
                           },
-                          "redis_key": "inventoryMovementsIndex"
+                          "redis_key": "inventoryMovementsIndex_{{workflowparams:doc_id}}"
                         },
                         "blocks": []
                       }
@@ -3889,42 +3906,6 @@
                 "blocks": []
               }
             ]
-          },
-          {
-            "id": "return_node_MxwqtV3J",
-            "type": "return-node",
-            "data": {
-              "return_data": {},
-              "status_code": 200,
-              "title": "Return Data",
-              "isValidator": true,
-              "nodeName": "Return Data",
-              "name": "Return Data",
-              "response_value": {
-                "list": [
-                  {
-                    "prop": "code",
-                    "propLabel": "code",
-                    "operator": "",
-                    "operatorLabel": "",
-                    "valueType": "field",
-                    "valueTypeLabel": "",
-                    "value": "{{node:code_node_xUK0UwrB.data.code}}",
-                    "valueLabel": ""
-                  },
-                  {
-                    "prop": "message",
-                    "operator": "",
-                    "valueType": "field",
-                    "value": "{{node:code_node_xUK0UwrB.data.message}}",
-                    "valueLabel": "",
-                    "propLabel": "message"
-                  }
-                ]
-              },
-              "return_raw_data": 0
-            },
-            "blocks": []
           }
         ]
       },
@@ -3937,7 +3918,435 @@
     ]
   },
   {
-    "id": "return_node_xqGKBn70",
+    "id": "if_ZXv0oUlV",
+    "type": "if",
+    "data": {
+      "title": "IF isGDPP",
+      "isValidator": true,
+      "nodeName": "IF isGDPP",
+      "name": "IF isGDPP",
+      "condition_type": "ConditionRule",
+      "expression": { "type": "javascript", "code": "" },
+      "filter": {
+        "list": [
+          {
+            "id": 1736695973613,
+            "parentId": 1736695973612,
+            "isTop": true,
+            "prop": "workflowparams.isGDPP",
+            "operator": "numberEqual",
+            "valueType": "value",
+            "value": 1,
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "isGDPP",
+            "valueLabel": "",
+            "operatorLabel": "Equal"
+          }
+        ]
+      }
+    },
+    "blocks": [
+      {
+        "id": "if_block_mzsfwiT2",
+        "type": "ifBlock",
+        "data": { "title": "true" },
+        "blocks": [
+          {
+            "id": "code_node_swuVYCVw",
+            "type": "code-node",
+            "data": {
+              "language": "javascript",
+              "code": "",
+              "timeout": 30000,
+              "title": "Picking Record Preparation",
+              "isValidator": true,
+              "nodeName": "Picking Record Preparation",
+              "name": "Picking Record Preparation",
+              "script": {
+                "type": "javascript",
+                "code": "const tableData = {{workflowparams:tableData}};\nconst pickingRecordUpdates = [];\nconst pickingIdsSet = new Set();\n\nfor (const item of tableData) {\n  if (item.line_to_id) {\n    pickingIdsSet.add(item.line_to_id);\n  }\n\n  if (!item.temp_qty_data) continue;\n  \n  try {\n    const tempData = JSON.parse(item.temp_qty_data);\n    for (const temp of tempData) {\n      if (temp.picking_record_id) {\n        const qty = parseFloat(temp.gd_quantity || temp.to_quantity || 0);\n        pickingRecordUpdates.push({\n          id: temp.picking_record_id,\n          qty: qty,\n        });\n      }\n    }\n  } catch (e) {\n    console.error(\"Error parsing temp_qty_data:\", e);\n  }\n}\n\nconst pickingIds = Array.from(pickingIdsSet);\n\nreturn {\n  pickingRecordUpdates: pickingRecordUpdates,\n  pickingIds: pickingIds,\n};\n"
+              },
+              "response_json": [
+                {
+                  "key": "dvak9hkg",
+                  "name": "pickingRecordUpdates",
+                  "title": "pickingRecordUpdates",
+                  "description": "",
+                  "bsonType": "array",
+                  "isExpand": true,
+                  "children": [
+                    {
+                      "key": "0vh6eogp",
+                      "name": "items",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "isArrayItem": true,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "key": "0t1wjw1o",
+                  "name": "pickingIds",
+                  "title": "pickingIds",
+                  "description": "",
+                  "bsonType": "array",
+                  "isExpand": true,
+                  "children": [
+                    {
+                      "key": "o77h0hxj",
+                      "name": "items",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "isArrayItem": true,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            "blocks": []
+          },
+          {
+            "id": "search_node_2Bcop3DP",
+            "type": "search-node",
+            "data": {
+              "table_id": {
+                "source": "Transfer Order Picking:Table:1935556443668959233",
+                "rules": {
+                  "collectionId": "1935556443668959233",
+                  "list": [
+                    {
+                      "id": 1772524904552,
+                      "parentId": 1772524904551,
+                      "isTop": true,
+                      "prop": "id",
+                      "operator": "in",
+                      "valueType": "field",
+                      "value": "{{node:code_node_swuVYCVw.data.pickingIds}}",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "主键ID",
+                      "valueLabel": "",
+                      "operatorLabel": "In"
+                    }
+                  ]
+                }
+              },
+              "condition": {},
+              "limit": 100,
+              "title": "Get Pickings",
+              "isValidator": true,
+              "nodeName": "Get Pickings",
+              "name": "Get Pickings"
+            },
+            "blocks": []
+          },
+          {
+            "id": "code_node_LKm6dX2G",
+            "type": "code-node",
+            "data": {
+              "language": "javascript",
+              "code": "",
+              "timeout": 30000,
+              "title": "Calculate Delivery",
+              "isValidator": true,
+              "nodeName": "Calculate Delivery",
+              "name": "Calculate Delivery",
+              "script": {
+                "type": "javascript",
+                "code": "const pickingRecordUpdates = {{node:code_node_swuVYCVw.data.pickingRecordUpdates}};\nconst pickings = {{node:search_node_2Bcop3DP.data.data}};\n\n// Create a map of picking_record_id -> qty being delivered\nconst updateMap = new Map();\nfor (const update of pickingRecordUpdates) {\n  updateMap.set(update.id, update.qty);\n}\n\nconst recordUpdates = [];\nconst headerUpdates = [];\n\nfor (const picking of pickings) {\n  const allRecords = picking.table_picking_records || [];\n  \n  let allCompleted = true;\n  let anyDelivered = false;\n\n  for (const record of allRecords) {\n    const storeOutQty = parseFloat(record.store_out_qty || 0);\n    const existingDelivered = parseFloat(record.delivered_qty || 0);\n    \n    // Check if this record is being updated\n    const additionalQty = updateMap.get(record.id) || 0;\n    const newDeliveredQty = existingDelivered + additionalQty;\n\n    // Calculate record delivery_status\n    let recordDeliveryStatus;\n    if (newDeliveredQty >= storeOutQty) {\n      recordDeliveryStatus = \"Fully Delivered\";\n    } else if (newDeliveredQty > 0) {\n      recordDeliveryStatus = \"Partially Delivered\";\n    } else {\n      recordDeliveryStatus = \"\";\n    }\n\n    // Only add to recordUpdates if this record is being updated\n    if (additionalQty > 0) {\n      recordUpdates.push({\n        id: record.id,\n        delivered_qty: newDeliveredQty,\n        delivery_status: recordDeliveryStatus,\n      });\n    }\n\n    // Track for header status calculation (use new values)\n    if (newDeliveredQty > 0) anyDelivered = true;\n    if (newDeliveredQty < storeOutQty) allCompleted = false;\n  }\n\n  // Calculate header delivery_status\n  let headerDeliveryStatus;\n  if (allCompleted && anyDelivered) {\n    headerDeliveryStatus = \"Fully Delivered\";\n  } else if (anyDelivered) {\n    headerDeliveryStatus = \"Partially Delivered\";\n  } else {\n    headerDeliveryStatus = \"\";\n  }\n\n  headerUpdates.push({\n    id: picking.id,\n    delivery_status: headerDeliveryStatus,\n  });\n}\n\nreturn {\n  recordUpdates: recordUpdates,\n  isRecord: recordUpdates.length > 0 ? 1 : 0,\n  headerUpdates: headerUpdates,\n  isHeader: headerUpdates.length > 0 ? 1 : 0,\n};\n"
+              },
+              "response_json": [
+                {
+                  "key": "zcfowt8m",
+                  "name": "recordUpdates",
+                  "title": "recordUpdates",
+                  "description": "",
+                  "bsonType": "array",
+                  "isExpand": true,
+                  "children": [
+                    {
+                      "key": "sasllve3",
+                      "name": "items",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "isArrayItem": true,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "key": "vnkb6kcp",
+                  "name": "isRecord",
+                  "title": "isRecord",
+                  "description": "",
+                  "bsonType": "int",
+                  "isExpand": false,
+                  "children": []
+                },
+                {
+                  "key": "9se0l91y",
+                  "name": "headerUpdates",
+                  "title": "headerUpdates",
+                  "description": "",
+                  "bsonType": "array",
+                  "isExpand": true,
+                  "children": [
+                    {
+                      "key": "7ry4ccra",
+                      "name": "items",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "isArrayItem": true,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "key": "ye8jcuo8",
+                  "name": "isHeader",
+                  "title": "isHeader",
+                  "description": "",
+                  "bsonType": "int",
+                  "isExpand": false,
+                  "children": []
+                }
+              ]
+            },
+            "blocks": []
+          },
+          {
+            "id": "if__YWQ8ol1",
+            "type": "if",
+            "data": {
+              "title": "IF isRecord",
+              "isValidator": true,
+              "nodeName": "IF isRecord",
+              "name": "IF isRecord",
+              "condition_type": "ConditionRule",
+              "expression": { "type": "javascript", "code": "" },
+              "filter": {
+                "list": [
+                  {
+                    "id": 1736695973613,
+                    "parentId": 1736695973612,
+                    "isTop": true,
+                    "prop": "node.code_node_LKm6dX2G.data.isRecord",
+                    "operator": "numberEqual",
+                    "valueType": "value",
+                    "value": 1,
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "isRecord",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            },
+            "blocks": [
+              {
+                "id": "if_block_4tNAvvyK",
+                "type": "ifBlock",
+                "data": { "title": "true" },
+                "blocks": [
+                  {
+                    "id": "update_node_L4XWAYp6",
+                    "type": "update-node",
+                    "data": {
+                      "table_id": {
+                        "source": "Picking Items(Transfer Order Picking):Table:1939915130372202497",
+                        "rules": {
+                          "collectionId": "1939915130372202497",
+                          "list": [
+                            {
+                              "id": 1772527650407,
+                              "parentId": 1772527650406,
+                              "isTop": true,
+                              "prop": "id",
+                              "operator": "in",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LKm6dX2G.data.recordUpdates.id}}",
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "主键ID",
+                              "valueLabel": "",
+                              "operatorLabel": "In"
+                            }
+                          ]
+                        }
+                      },
+                      "fields": [],
+                      "condition": {},
+                      "title": "Update Picking Record",
+                      "isValidator": true,
+                      "nodeName": "Update Picking Record",
+                      "name": "Update Picking Record",
+                      "props": {
+                        "modelName": "",
+                        "list": [
+                          {
+                            "prop": "id",
+                            "valueType": "field",
+                            "value": "{{node:code_node_LKm6dX2G.data.recordUpdates.id}}",
+                            "operator": "",
+                            "valueLabel": "",
+                            "propLabel": "主键ID"
+                          },
+                          {
+                            "prop": "delivery_status",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_LKm6dX2G.data.recordUpdates.delivery_status}}",
+                            "valueLabel": "",
+                            "propLabel": "Delivery Status"
+                          },
+                          {
+                            "prop": "delivered_qty",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_LKm6dX2G.data.recordUpdates.delivered_qty}}",
+                            "valueLabel": "",
+                            "propLabel": "Delivered Quantity"
+                          }
+                        ]
+                      }
+                    },
+                    "blocks": []
+                  }
+                ]
+              },
+              {
+                "id": "if_block_Yu0xtPHq",
+                "type": "ifBlock",
+                "data": { "title": "false" },
+                "blocks": []
+              }
+            ]
+          },
+          {
+            "id": "if_RpiqzItp",
+            "type": "if",
+            "data": {
+              "title": "IF isHeader",
+              "isValidator": true,
+              "nodeName": "IF isHeader",
+              "name": "IF isHeader",
+              "condition_type": "ConditionRule",
+              "expression": { "type": "javascript", "code": "" },
+              "filter": {
+                "list": [
+                  {
+                    "id": 1736695973613,
+                    "parentId": 1736695973612,
+                    "isTop": true,
+                    "prop": "node.code_node_LKm6dX2G.data.isHeader",
+                    "operator": "numberEqual",
+                    "valueType": "value",
+                    "value": 1,
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "isHeader",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            },
+            "blocks": [
+              {
+                "id": "if_block_KJve0dxP",
+                "type": "ifBlock",
+                "data": { "title": "true" },
+                "blocks": [
+                  {
+                    "id": "update_node_kXM5H15r",
+                    "type": "update-node",
+                    "data": {
+                      "table_id": {
+                        "source": "Transfer Order Picking:Table:1935556443668959233",
+                        "rules": {
+                          "collectionId": "1935556443668959233",
+                          "list": [
+                            {
+                              "id": 1772527725107,
+                              "parentId": 1772527725106,
+                              "isTop": true,
+                              "prop": "id",
+                              "operator": "in",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LKm6dX2G.data.headerUpdates.id}}",
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "主键ID",
+                              "valueLabel": "",
+                              "operatorLabel": "In"
+                            }
+                          ]
+                        }
+                      },
+                      "fields": [],
+                      "condition": {},
+                      "title": "Update Picking Header",
+                      "isValidator": true,
+                      "nodeName": "Update Picking Header",
+                      "name": "Update Picking Header",
+                      "props": {
+                        "modelName": "",
+                        "list": [
+                          {
+                            "prop": "id",
+                            "valueType": "field",
+                            "value": "{{node:code_node_LKm6dX2G.data.headerUpdates.id}}",
+                            "operator": "",
+                            "valueLabel": "",
+                            "propLabel": "主键ID"
+                          },
+                          {
+                            "prop": "delivery_status",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_LKm6dX2G.data.headerUpdates.delivery_status}}",
+                            "valueLabel": "",
+                            "propLabel": "Delivery Status"
+                          }
+                        ]
+                      }
+                    },
+                    "blocks": []
+                  }
+                ]
+              },
+              {
+                "id": "if_block_4hJargDy",
+                "type": "ifBlock",
+                "data": { "title": "false" },
+                "blocks": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "if_block_EjZ7THYg",
+        "type": "ifBlock",
+        "data": { "title": "false" },
+        "blocks": []
+      }
+    ]
+  },
+  {
+    "id": "return_node_5vKvpQPg",
     "type": "return-node",
     "data": {
       "return_data": {},

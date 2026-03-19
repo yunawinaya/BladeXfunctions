@@ -1,0 +1,2967 @@
+[
+  {
+    "id": "code_node_BdyN4MYe",
+    "type": "code-node",
+    "data": {
+      "language": "javascript",
+      "code": "",
+      "timeout": 30000,
+      "title": "Material ID Extraction",
+      "isValidator": true,
+      "nodeName": "Material ID Extraction",
+      "name": "Material ID Extraction",
+      "script": {
+        "type": "javascript",
+        "code": "const tableData = {{workflowparams:tableData}} || [];\n\nconst materialIds = [];\nconst seen = new Set();\n\nfor (const item of tableData) {\n  if (item.material_id && !seen.has(item.material_id)) {\n    seen.add(item.material_id);\n    materialIds.push(item.material_id);\n  }\n}\n\nreturn {\n  materialIds: materialIds,\n  count: materialIds.length\n};\n"
+      },
+      "response_json": [
+        {
+          "key": "nv7h41yv",
+          "name": "materialIds",
+          "title": "materialIds",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+            {
+              "key": "ibrvv6kb",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    "blocks": []
+  },
+  {
+    "id": "search_node_ZWAmcR7X",
+    "type": "search-node",
+    "data": {
+      "table_id": {
+        "source": "Item:Table:1901546842240438273",
+        "rules": {
+          "collectionId": "1901546842240438273",
+          "list": [
+            {
+              "id": 1772203067451,
+              "parentId": 1772203067450,
+              "isTop": true,
+              "prop": "id",
+              "operator": "in",
+              "valueType": "field",
+              "value": "{{node:code_node_SSWylCan.data.materialIds}}",
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "主键ID",
+              "valueLabel": "",
+              "operatorLabel": "In"
+            }
+          ]
+        }
+      },
+      "condition": {},
+      "limit": 100,
+      "title": "Get Item Datas",
+      "isValidator": true,
+      "nodeName": "Get Item Datas",
+      "name": "Get Item Datas"
+    },
+    "blocks": []
+  },
+  {
+    "id": "condition_all_node_zUAyZf8l",
+    "type": "condition-all-node",
+    "data": {
+      "title": "Parallel Branch",
+      "filter": { "list": [] },
+      "expression": { "code": "" },
+      "displayContent": "sdk.form.setCondition"
+    },
+    "blocks": [
+      {
+        "id": "condition_all_node_item_XXjxAXKm",
+        "type": "condition-all-node-item",
+        "data": {
+          "title": "Branch 1",
+          "filter": {
+            "list": [
+              {
+                "id": 1773645890324,
+                "parentId": 1773645890323,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          },
+          "expression": { "code": "1 == 1", "type": "javascript" },
+          "displayContent": "sdk.form.setCondition",
+          "isValidator": true,
+          "nodeName": "Branch 1",
+          "name": "Branch 1",
+          "condition_type": "Expression"
+        },
+        "blocks": [
+          {
+            "id": "if_ZgEbBXSa",
+            "type": "if",
+            "data": {
+              "title": "IF isGDPP",
+              "isValidator": true,
+              "nodeName": "IF isGDPP",
+              "name": "IF isGDPP",
+              "condition_type": "ConditionRule",
+              "filter": {
+                "list": [
+                  {
+                    "id": 1736695973613,
+                    "parentId": 1736695973612,
+                    "isTop": true,
+                    "prop": "workflowparams.isGDPP",
+                    "operator": "numberEqual",
+                    "valueType": "value",
+                    "value": 1,
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "isGDPP",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            },
+            "blocks": [
+              {
+                "id": "ifBlock_UuEthYuX",
+                "type": "ifBlock",
+                "data": { "title": "true" },
+                "blocks": [
+                  {
+                    "id": "search_node_NxFJeRXS",
+                    "type": "search-node",
+                    "data": {
+                      "table_id": {
+                        "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                        "rules": {
+                          "collectionId": "1935880014687440897",
+                          "list": [
+                            {
+                              "id": 1772203117493,
+                              "parentId": 1772203117494,
+                              "isTop": true,
+                              "type": "branch",
+                              "operator": "all",
+                              "prop": "",
+                              "valueType": "",
+                              "value": "",
+                              "level": 1,
+                              "children": [
+                                {
+                                  "id": 1772203117495,
+                                  "parentId": 1772203117493,
+                                  "isTop": false,
+                                  "prop": "target_gd_id",
+                                  "operator": "contains",
+                                  "valueType": "field",
+                                  "value": "{{workflowparams:picking_plan_id}}",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "Target Goods Delivery ID",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Contains"
+                                },
+                                {
+                                  "id": 1772203117497,
+                                  "parentId": 1772203117493,
+                                  "isTop": false,
+                                  "prop": "organization_id",
+                                  "operator": "equal",
+                                  "valueType": "field",
+                                  "value": "{{workflowparams:organization_id}}",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "Organization ID",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                },
+                                {
+                                  "id": 1772203117496,
+                                  "parentId": 1772203117493,
+                                  "isTop": false,
+                                  "prop": "plant_id",
+                                  "operator": "numberEqual",
+                                  "valueType": "field",
+                                  "value": "{{workflowparams:plant_id}}",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "Plant ID",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                },
+                                {
+                                  "id": 1772203117495,
+                                  "parentId": 1772203117493,
+                                  "isTop": false,
+                                  "prop": "status",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "Allocated",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "Status",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      },
+                      "condition": {},
+                      "limit": 100,
+                      "title": "Get All Allocated PP Records",
+                      "isValidator": true,
+                      "nodeName": "Get All Allocated PP Records",
+                      "name": "Get All Allocated PP Records"
+                    },
+                    "blocks": []
+                  }
+                ]
+              },
+              {
+                "id": "ifBlock_xHvLRjhx",
+                "type": "ifBlock",
+                "data": { "title": "false" },
+                "blocks": [
+                  {
+                    "id": "search_node_r3NiR6B7",
+                    "type": "search-node",
+                    "data": {
+                      "table_id": {
+                        "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                        "rules": {
+                          "collectionId": "1935880014687440897",
+                          "list": [
+                            {
+                              "id": 1772203117493,
+                              "parentId": 1772203117494,
+                              "isTop": true,
+                              "type": "branch",
+                              "operator": "all",
+                              "prop": "",
+                              "valueType": "",
+                              "value": "",
+                              "level": 1,
+                              "children": [
+                                {
+                                  "id": 1772203117495,
+                                  "parentId": 1772203117493,
+                                  "isTop": false,
+                                  "prop": "target_gd_id",
+                                  "operator": "equal",
+                                  "valueType": "field",
+                                  "value": "{{workflowparams:doc_id}}",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "Target Goods Delivery ID",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                },
+                                {
+                                  "id": 1772203117497,
+                                  "parentId": 1772203117493,
+                                  "isTop": false,
+                                  "prop": "organization_id",
+                                  "operator": "equal",
+                                  "valueType": "field",
+                                  "value": "{{workflowparams:organization_id}}",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "Organization ID",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                },
+                                {
+                                  "id": 1772203117496,
+                                  "parentId": 1772203117493,
+                                  "isTop": false,
+                                  "prop": "plant_id",
+                                  "operator": "numberEqual",
+                                  "valueType": "field",
+                                  "value": "{{workflowparams:plant_id}}",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "Plant ID",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                },
+                                {
+                                  "id": 1772203117495,
+                                  "parentId": 1772203117493,
+                                  "isTop": false,
+                                  "prop": "status",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "Allocated",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "Status",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      },
+                      "condition": {},
+                      "limit": 100,
+                      "title": "Get All Allocated GD Records",
+                      "isValidator": true,
+                      "nodeName": "Get All Allocated GD Records",
+                      "name": "Get All Allocated GD Records"
+                    },
+                    "blocks": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "condition_all_node_item_JCQaqTs3",
+        "type": "condition-all-node-item",
+        "data": {
+          "title": "Branch 2",
+          "filter": {
+            "list": [
+              {
+                "id": 1773645897558,
+                "parentId": 1773645897557,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          },
+          "expression": { "code": "1 == 1", "type": "javascript" },
+          "displayContent": "sdk.form.setCondition",
+          "isValidator": true,
+          "nodeName": "Branch 2",
+          "name": "Branch 2",
+          "condition_type": "Expression"
+        },
+        "blocks": [
+          {
+            "id": "search_node_QdY1FLLA",
+            "type": "search-node",
+            "data": {
+              "table_id": {
+                "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                "rules": {
+                  "collectionId": "1935880014687440897",
+                  "list": [
+                    {
+                      "id": 1772203255149,
+                      "parentId": 1772203255150,
+                      "isTop": true,
+                      "type": "branch",
+                      "operator": "all",
+                      "prop": "",
+                      "valueType": "",
+                      "value": "",
+                      "level": 1,
+                      "children": [
+                        {
+                          "id": 1772203255155,
+                          "parentId": 1772203255149,
+                          "isTop": false,
+                          "prop": "plant_id",
+                          "operator": "numberEqual",
+                          "valueType": "field",
+                          "value": "{{workflowparams:plant_id}}",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "Plant ID",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        },
+                        {
+                          "id": 1772203255151,
+                          "parentId": 1772203255149,
+                          "isTop": false,
+                          "prop": "organization_id",
+                          "operator": "equal",
+                          "valueType": "field",
+                          "value": "{{workflowparams:organization_id}}",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "Organization ID",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        },
+                        {
+                          "id": 1772203255152,
+                          "parentId": 1772203255149,
+                          "isTop": false,
+                          "prop": "status",
+                          "operator": "equal",
+                          "valueType": "value",
+                          "value": "Pending",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "Status",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        },
+                        {
+                          "id": 1772203255153,
+                          "parentId": 1772203255149,
+                          "isTop": false,
+                          "prop": "doc_type",
+                          "operator": "notEqual",
+                          "valueType": "value",
+                          "value": "Good Delivery",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "Document Type",
+                          "valueLabel": "",
+                          "operatorLabel": "Not Equal"
+                        },
+                        {
+                          "id": 1772203255154,
+                          "parentId": 1772203255149,
+                          "isTop": false,
+                          "prop": "doc_type",
+                          "operator": "notEqual",
+                          "valueType": "value",
+                          "value": "Picking Plan",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "Document Type",
+                          "valueLabel": "",
+                          "operatorLabel": "Not Equal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "condition": {},
+              "limit": 100,
+              "title": "Get All Pending Records",
+              "isValidator": true,
+              "nodeName": "Get All Pending Records",
+              "name": "Get All Pending Records"
+            },
+            "blocks": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "code_node_dEoNfDdg",
+    "type": "code-node",
+    "data": {
+      "language": "javascript",
+      "code": "",
+      "timeout": 30000,
+      "title": "Batch Fetch",
+      "isValidator": true,
+      "nodeName": "Batch Fetch",
+      "name": "Batch Fetch",
+      "script": {
+        "type": "javascript",
+        "code": "/**\n * GDProcessTable_batchFetch.js\n *\n * PURPOSE: Replace multiple database queries inside loops with a SINGLE batch fetch\n * USAGE: Add as a code node BEFORE the Loop Table in GD_PROCESS_TABLE workflow\n *\n * WORKFLOW CHANGES REQUIRED:\n * 1. Add search nodes BEFORE this code node to fetch:\n *    - All Items (using IN clause with all unique material_ids)\n *    - All Allocated records for this GD\n *    - All Pending records (non-GD/PP doc_types)\n * 2. This code node processes the fetched data into Maps for O(1) lookup\n * 3. Remove the individual \"Get itemData\" queries inside the loop\n *\n * INPUT (from workflow params and previous search nodes):\n * - workflowparams:tableData - the table_gd array\n * - node:search_all_items.data.data - all items fetched in batch\n * - node:search_all_allocated.data.data - all allocated records\n * - node:search_all_pending.data.data - all pending records\n *\n * OUTPUT: Pre-processed data ready for batch allocation processing\n */\n\nconst tableData = {{workflowparams:tableData}} || [];\nconst isGDPP = {{workflowparams:isGDPP}} || 0;\nconst docId = {{workflowparams:doc_id}};\nconst docNo = {{workflowparams:doc_no}};\nconst plantId = {{workflowparams:plant_id}};\nconst organizationId = {{workflowparams:organization_id}};\nconst saveAs = {{workflowparams:saveAs}};\nconst docDate = {{workflowparams:doc_date}};\nconst parentId = {{workflowparams:parent_id}};\nconst parentNo = {{workflowparams:parent_no}};\nconst pickingPlanId = {{workflowparams:picking_plan_id}} || \"\";\n\n// Data from batch search nodes (these need to be added to workflow)\nconst allItemsData = {{node:search_node_muUXSBRg.data.data}} || [];\nconst allAllocatedData = isGDPP === 0 ? {{node:search_node_r3NiR6B7.data.data}} : {{node:search_node_NxFJeRXS.data.data}} || [];\nconst allPendingData = {{node:search_node_QdY1FLLA.data.data}} || [];\n\n// Helper function to safely parse JSON\nconst parseJsonSafely = (jsonString, defaultValue = []) => {\n  try {\n    if (typeof jsonString === 'object') return jsonString || defaultValue;\n    return jsonString ? JSON.parse(jsonString) : defaultValue;\n  } catch (error) {\n    return defaultValue;\n  }\n};\n\n// Create item lookup Map (material_id -> itemData) for internal use in this code node\nconst itemDataMap = {};\nfor (const item of allItemsData) {\n  itemDataMap[item.id] = item;\n}\n// Note: We pass allItemsData as array to next node (workflow can't handle object maps)\n\n// Pre-process table data: extract unique material_ids and group temp_qty_data\nconst processedTableData = [];\nconst allGroupKeys = [];\n\nfor (let tableIndex = 0; tableIndex < tableData.length; tableIndex++) {\n  const item = tableData[tableIndex];\n  if (!item.material_id) continue;\n\n  const tempQtyData = parseJsonSafely(item.temp_qty_data);\n  if (tempQtyData.length === 0) {\n    processedTableData.push({\n      tableIndex,\n      item,\n      itemData: itemDataMap[item.material_id] || null,\n      groupedTempData: {},\n      groupKeys: [],\n      skipProcessing: true,\n      skipReason: \"No temp_qty_data\"\n    });\n    continue;\n  }\n\n  const itemData = itemDataMap[item.material_id];\n  if (!itemData) {\n    processedTableData.push({\n      tableIndex,\n      item,\n      itemData: null,\n      groupedTempData: {},\n      groupKeys: [],\n      skipProcessing: true,\n      skipReason: \"Item not found\"\n    });\n    continue;\n  }\n\n  const isBatchManagedItem = itemData.item_batch_management === 1;\n\n  // Group temp_qty_data by location + batch combination\n  const groupedTempData = {};\n  for (const temp of tempQtyData) {\n    const groupKey = isBatchManagedItem && temp.batch_id\n      ? `${temp.location_id}|${temp.batch_id}`\n      : temp.location_id;\n\n    if (!groupedTempData[groupKey]) {\n      groupedTempData[groupKey] = {\n        location_id: temp.location_id,\n        batch_id: temp.batch_id || null,\n        totalQty: 0,\n      };\n    }\n\n    groupedTempData[groupKey].totalQty += parseFloat(\n      temp.gd_quantity || temp.to_quantity || temp.quantity || 0\n    );\n  }\n\n  const groupKeys = Object.keys(groupedTempData);\n\n  // Extract common fields from table item\n  const isPickingPlan = isGDPP === 1;\n  const material_uom = isPickingPlan\n    ? item.to_order_uom_id || item.picking_plan_uom_id\n    : item.gd_order_uom_id || item.good_delivery_uom_id;\n\n  const processedItem = {\n    tableIndex,\n    item,\n    itemData,\n    groupedTempData,\n    groupKeys,\n    skipProcessing: false,\n    // Pre-extracted fields for allocation processing\n    material_id: item.material_id,\n    material_uom,\n    parent_id: item.line_so_id || \"\",\n    parent_line_id: item.so_line_item_id || \"\",\n    doc_line_id: item.id || \"\",\n    remark: item.line_remark_1 || \"\",\n    picking_plan_line_id: item.pp_line_item_id || \"\",\n    line_pp_id: item.line_pp_id || \"\",\n    isBatchManagedItem,\n    // Additional fields for inventory movement records\n    line_so_no: item.line_so_no || item.so_no || \"\",\n    material_code: itemData.material_code || \"\",\n    material_name: itemData.material_name || \"\"\n  };\n\n  processedTableData.push(processedItem);\n\n  // Collect all group keys for stats\n  for (const gk of groupKeys) {\n    allGroupKeys.push({\n      tableIndex,\n      groupKey: gk,\n      ...groupedTempData[gk]\n    });\n  }\n}\n\n// Summary stats\nconst totalTableItems = tableData.length;\nconst itemsToProcess = processedTableData.filter(p => !p.skipProcessing).length;\nconst totalGroupKeys = allGroupKeys.length;\n\nreturn {\n  code: \"200\",\n  // Pre-fetched data as arrays (workflow platform requires arrays, not objects)\n  allItemsData,\n  allAllocatedData,\n  allPendingData,\n  // Pre-processed table data with groupings\n  processedTableData,\n  // Stats\n  totalTableItems,\n  itemsToProcess,\n  totalGroupKeys,\n  // Workflow params passed through\n  isGDPP,\n  docId,\n  docNo,\n  plantId,\n  organizationId,\n  saveAs,\n  docDate,\n  parentId,\n  parentNo,\n  pickingPlanId,\n  message: `Batch fetch complete: ${itemsToProcess}/${totalTableItems} items, ${totalGroupKeys} total group keys`\n};\n"
+      },
+      "response_json": [
+        {
+          "key": "cwvvjv9w",
+          "name": "allItemsData",
+          "title": "allItemsData",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+        },
+        {
+          "key": "igqi5sb5",
+          "name": "allAllocatedData",
+          "title": "allAllocatedData",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+            {
+              "key": "1nrlkstq",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+            }
+          ]
+        },
+        {
+          "key": "rn5zb2wm",
+          "name": "allPendingData",
+          "title": "allPendingData",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+            {
+              "key": "jmljgygb",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+            }
+          ]
+        },
+        {
+          "key": "rhf4vpsf",
+          "name": "processedTableData",
+          "title": "processedTableData",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+            {
+              "key": "iw0es6zg",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+            }
+          ]
+        },
+        {
+          "key": "3r8fipz6",
+          "name": "totalTableItems",
+          "title": "totalTableItems",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+        },
+        {
+          "key": "4h7n78k9",
+          "name": "itemsToProcess",
+          "title": "itemsToProcess",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+        },
+        {
+          "key": "d49deorf",
+          "name": "totalGroupKeys",
+          "title": "totalGroupKeys",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+        },
+        {
+          "key": "0fhv6ivh",
+          "name": "isGDPP",
+          "title": "isGDPP",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+        },
+        {
+          "key": "mmsy580g",
+          "name": "docId",
+          "title": "docId",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+        },
+        {
+          "key": "s0pnae4i",
+          "name": "docNo",
+          "title": "docNo",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+        },
+        {
+          "key": "ztwr6rfm",
+          "name": "plantId",
+          "title": "plantId",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+        },
+        {
+          "key": "60wl3h4d",
+          "name": "organizationId",
+          "title": "organizationId",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+        },
+        {
+          "key": "k8vcq2sa",
+          "name": "saveAs",
+          "title": "saveAs",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+        },
+        {
+          "key": "bhgk5ran",
+          "name": "docDate",
+          "title": "docDate",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+        },
+        {
+          "key": "m8s4h318",
+          "name": "parentId",
+          "title": "parentId",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+        },
+        {
+          "key": "gc4i2bdf",
+          "name": "parentNo",
+          "title": "parentNo",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+        },
+        {
+          "key": "yiff607b",
+          "name": "pickingPlanId",
+          "title": "pickingPlanId",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+        }
+      ]
+    },
+    "blocks": []
+  },
+  {
+    "id": "code_node_iuqaVfYp",
+    "type": "code-node",
+    "data": {
+      "language": "javascript",
+      "code": "",
+      "timeout": 30000,
+      "title": "Batch Process",
+      "isValidator": true,
+      "nodeName": "Batch Process",
+      "name": "Batch Process",
+      "script": {
+        "type": "javascript",
+        "code": "/**\n * GDProcessTable_batchProcess.js\n *\n * PURPOSE: Process ALL allocations in a SINGLE code node execution\n * REPLACES: The nested loops + GLOBAL_RESERVED workflow calls\n *\n * This contains the same logic as:\n * - GDcreatedLogic.js (for saveAs === \"Created\")\n * - GDdeliveredLogic.js (for saveAs === \"Completed\")\n * - CleanupOrphanedAllocations.js (cleanup before processing)\n *\n * PERFORMANCE: Processes 100 items in ~1 second vs 60+ seconds with loops\n *\n * INPUT: Output from GDProcessTable_batchFetch.js\n * OUTPUT: All records to update/create and inventory movements\n */\n\n// Get pre-fetched data from batch fetch node\nconst batchData = {{node:code_node_eOMvMZOj.data}};\n\nconst {\n  allItemsData,\n  allAllocatedData,\n  allPendingData,\n  processedTableData,\n  isGDPP,\n  docId,\n  docNo,\n  plantId,\n  organizationId,\n  saveAs,\n  docDate,\n  parentId,\n  parentNo,\n  pickingPlanId\n} = batchData;\n\n// Create item lookup Map from array (workflow platform can't pass object maps)\nconst itemDataMap = {};\nfor (const item of allItemsData) {\n  itemDataMap[item.id] = item;\n}\n\n// Helper functions\nconst roundQty = (value) => parseFloat(parseFloat(value || 0).toFixed(3));\n\n// Filter itemData to only include fields needed by inventory workflow\nconst filterItemData = (itemData) => {\n  if (!itemData) return null;\n  return {\n    stock_control: itemData.stock_control,\n    based_uom: itemData.based_uom,\n    table_uom_conversion: itemData.table_uom_conversion,\n    material_costing_method: itemData.material_costing_method,\n    purchase_unit_price: itemData.purchase_unit_price,\n    item_batch_management: itemData.item_batch_management,\n    material_code: itemData.material_code,\n    material_name: itemData.material_name,\n    material_desc: itemData.material_desc,\n  };\n};\n\n// Priority order for allocation and release\nconst releaseOrderPriority = {\n  \"Good Delivery\": 1,\n  \"Picking Plan\": 1,\n  \"Sales Order\": 2,\n  \"Production\": 3,\n};\n\nconst allocateOrderPriority = {\n  \"Production\": 1,\n  \"Sales Order\": 2,\n  \"Good Delivery\": 3,\n  \"Picking Plan\": 3,\n};\n\n// ============ STEP 1: CLEANUP ORPHANED ALLOCATIONS ============\nconst cleanupOrphanedAllocations = () => {\n  if (!allAllocatedData || allAllocatedData.length === 0) {\n    return { recordsToUpdate: [], inventoryMovements: [] };\n  }\n\n  // Build current temp data keys from ALL table items\n  const currentTempDataKeys = [];\n  for (const processed of processedTableData) {\n    if (processed.skipProcessing) continue;\n\n    for (const groupKey of processed.groupKeys) {\n      const group = processed.groupedTempData[groupKey];\n      currentTempDataKeys.push({\n        doc_line_id: processed.doc_line_id,\n        material_id: processed.material_id,\n        batch_id: group.batch_id,\n        bin_location: group.location_id,\n      });\n    }\n  }\n\n  // Find orphaned records (allocated but not in current temp data)\n  const orphanedRecords = allAllocatedData.filter(\n    (allocated) =>\n      !currentTempDataKeys.some(\n        (current) =>\n          String(allocated.doc_line_id) === String(current.doc_line_id) &&\n          String(allocated.material_id) === String(current.material_id) &&\n          String(allocated.batch_id || \"\") === String(current.batch_id || \"\") &&\n          String(allocated.bin_location || \"\") === String(current.bin_location || \"\")\n      )\n  );\n\n  if (orphanedRecords.length === 0) {\n    return { recordsToUpdate: [], inventoryMovements: [] };\n  }\n\n  const sortedOrphanedRecords = [...orphanedRecords].sort(\n    (a, b) =>\n      (releaseOrderPriority[a.doc_type] || 99) -\n      (releaseOrderPriority[b.doc_type] || 99)\n  );\n\n  const findExistingPendingToMerge = (docType, parentLineId, materialId, batchId, binLocation) => {\n    return allPendingData.find(\n      (record) =>\n        record.status === \"Pending\" &&\n        record.doc_type === docType &&\n        String(record.parent_line_id) === String(parentLineId) &&\n        String(record.material_id) === String(materialId) &&\n        String(record.batch_id || \"\") === String(batchId || \"\") &&\n        String(record.bin_location || \"\") === String(binLocation || \"\")\n    );\n  };\n\n  const pendingMergeAccumulator = new Map();\n  const recordsToUpdate = [];\n  const inventoryMovementMap = new Map();\n\n  for (const orphanedRecord of sortedOrphanedRecords) {\n    const releaseQty = orphanedRecord.reserved_qty || 0;\n\n    if (orphanedRecord.doc_type === \"Good Delivery\" || orphanedRecord.doc_type === \"Picking Plan\") {\n      recordsToUpdate.push({\n        id: orphanedRecord.id,\n        reserved_qty: orphanedRecord.reserved_qty,\n        open_qty: 0,\n        status: \"Cancelled\",\n        target_gd_id: null,\n      });\n\n      const invKey = `${orphanedRecord.material_id}|${orphanedRecord.batch_id || \"\"}|${orphanedRecord.bin_location || \"\"}|${orphanedRecord.doc_line_id || \"\"}`;\n      const existingMovement = inventoryMovementMap.get(invKey);\n      if (existingMovement) {\n        existingMovement.quantity += releaseQty;\n      } else {\n        inventoryMovementMap.set(invKey, {\n          material_id: orphanedRecord.material_id,\n          material_code: orphanedRecord.item_code || \"\",\n          material_name: orphanedRecord.item_name || \"\",\n          material_uom: orphanedRecord.item_uom,\n          batch_id: orphanedRecord.batch_id,\n          bin_location: orphanedRecord.bin_location,\n          quantity: releaseQty,\n          movement_type: \"RESERVED_TO_UNRESTRICTED\",\n          line_so_no: orphanedRecord.parent_no || \"\",\n          doc_line_id: orphanedRecord.doc_line_id || \"\",\n        });\n      }\n    } else {\n      const existingPending = findExistingPendingToMerge(\n        orphanedRecord.doc_type,\n        orphanedRecord.parent_line_id,\n        orphanedRecord.material_id,\n        orphanedRecord.batch_id,\n        orphanedRecord.bin_location\n      );\n\n      if (existingPending) {\n        const accumulatedQty = pendingMergeAccumulator.get(existingPending.id) || 0;\n        pendingMergeAccumulator.set(existingPending.id, accumulatedQty + releaseQty);\n\n        recordsToUpdate.push({\n          id: orphanedRecord.id,\n          reserved_qty: orphanedRecord.reserved_qty,\n          open_qty: 0,\n          status: \"Cancelled\",\n          target_gd_id: null,\n        });\n      } else {\n        recordsToUpdate.push({\n          ...orphanedRecord,\n          doc_id: \"\",\n          doc_no: \"\",\n          doc_line_id: \"\",\n          status: \"Pending\",\n          target_gd_id: null,\n        });\n      }\n    }\n  }\n\n  // Apply accumulated pending merges\n  for (const [pendingId, accumulatedQty] of pendingMergeAccumulator.entries()) {\n    const existingPending = allPendingData.find((r) => String(r.id) === String(pendingId));\n    if (existingPending) {\n      recordsToUpdate.push({\n        id: pendingId,\n        reserved_qty: existingPending.reserved_qty + accumulatedQty,\n        open_qty: existingPending.open_qty + accumulatedQty,\n        status: \"Pending\",\n      });\n    }\n  }\n\n  return {\n    recordsToUpdate,\n    inventoryMovements: Array.from(inventoryMovementMap.values()),\n  };\n};\n\n// ============ STEP 2: PROCESS CREATED ALLOCATIONS ============\nconst processCreatedAllocation = (params) => {\n  const {\n    quantity,\n    parentId,\n    parentLineId,\n    docLineId,\n    materialId,\n    itemData,\n    batchId,\n    locationId,\n    materialUom,\n    index,\n    remark,\n    isPP,\n    lineSoNo,\n    materialCode,\n    materialName,\n  } = params;\n\n  const allocDocType = isPP ? \"Picking Plan\" : \"Good Delivery\";\n\n  // Find matched allocated records for this specific item/location/batch\n  const matchedOldRecords = allAllocatedData.filter(\n    (record) =>\n      String(record.doc_line_id) === String(docLineId) &&\n      String(record.material_id) === String(materialId) &&\n      String(record.batch_id || \"\") === String(batchId || \"\") &&\n      String(record.bin_location || \"\") === String(locationId || \"\") &&\n      record.status === \"Allocated\" &&\n      String(record.target_gd_id) === String(docId)\n  );\n\n  // Find relevant pending records for this material/location/batch\n  const relevantPendingData = allPendingData.filter(\n    (record) =>\n      String(record.material_id) === String(materialId) &&\n      String(record.batch_id || \"\") === String(batchId || \"\") &&\n      String(record.bin_location || \"\") === String(locationId || \"\") &&\n      record.status === \"Pending\"\n  );\n\n  // If we have existing allocated records, handle updates\n  if (matchedOldRecords.length > 0) {\n    const oldQty = matchedOldRecords.reduce((sum, r) => sum + (r.reserved_qty || 0), 0);\n    const netChange = quantity - oldQty;\n\n    if (netChange === 0) {\n      return {\n        recordsToUpdate: [],\n        recordToCreate: null,\n        inventoryMovements: [],\n      };\n    }\n\n    if (netChange < 0) {\n      // Quantity decreased - release allocation\n      const qtyToRelease = Math.abs(netChange);\n      let remainingQtyToRelease = qtyToRelease;\n      const recordsToUpdate = [];\n      let recordToCreate = null;\n      let unrestrictedQtyToAdd = 0;\n\n      const sortedRecordsForRelease = [...matchedOldRecords].sort(\n        (a, b) =>\n          (releaseOrderPriority[a.doc_type] || 99) -\n          (releaseOrderPriority[b.doc_type] || 99)\n      );\n\n      const findExistingPendingToMerge = (docType) => {\n        return relevantPendingData.find(\n          (record) =>\n            record.status === \"Pending\" &&\n            record.doc_type === docType &&\n            String(record.parent_line_id) === String(parentLineId)\n        );\n      };\n\n      for (const oldRecord of sortedRecordsForRelease) {\n        if (remainingQtyToRelease <= 0) break;\n\n        const releaseFromThisRecord = Math.min(oldRecord.reserved_qty, remainingQtyToRelease);\n        const isFromUnrestricted = oldRecord.doc_type === \"Good Delivery\" || oldRecord.doc_type === \"Picking Plan\";\n\n        if (releaseFromThisRecord === oldRecord.reserved_qty) {\n          if (isFromUnrestricted) {\n            recordsToUpdate.push({\n              ...oldRecord,\n              reserved_qty: oldRecord.reserved_qty,\n              open_qty: 0,\n              status: \"Cancelled\",\n              target_gd_id: null,\n            });\n            unrestrictedQtyToAdd += releaseFromThisRecord;\n          } else {\n            const existingPending = findExistingPendingToMerge(oldRecord.doc_type);\n            if (existingPending) {\n              recordsToUpdate.push({\n                ...existingPending,\n                reserved_qty: existingPending.reserved_qty + releaseFromThisRecord,\n                open_qty: existingPending.open_qty + releaseFromThisRecord,\n                status: \"Pending\",\n              });\n              recordsToUpdate.push({\n                ...oldRecord,\n                reserved_qty: oldRecord.reserved_qty,\n                open_qty: 0,\n                status: \"Cancelled\",\n                target_gd_id: null,\n              });\n            } else {\n              recordsToUpdate.push({\n                ...oldRecord,\n                doc_id: \"\",\n                doc_no: \"\",\n                doc_line_id: \"\",\n                reserved_qty: oldRecord.reserved_qty,\n                open_qty: oldRecord.reserved_qty,\n                status: \"Pending\",\n                target_gd_id: null,\n              });\n            }\n          }\n        } else {\n          recordsToUpdate.push({\n            ...oldRecord,\n            reserved_qty: oldRecord.reserved_qty - releaseFromThisRecord,\n            open_qty: oldRecord.reserved_qty - releaseFromThisRecord,\n            status: \"Allocated\",\n            target_gd_id: docId,\n          });\n\n          if (isFromUnrestricted) {\n            const { _id, id, ...recordWithoutId } = oldRecord;\n            recordToCreate = {\n              ...recordWithoutId,\n              reserved_qty: releaseFromThisRecord,\n              open_qty: 0,\n              status: \"Cancelled\",\n              source_reserved_id: oldRecord.id,\n              target_gd_id: null,\n            };\n            unrestrictedQtyToAdd += releaseFromThisRecord;\n          } else {\n            const existingPending = findExistingPendingToMerge(oldRecord.doc_type);\n            if (existingPending) {\n              recordsToUpdate.push({\n                ...existingPending,\n                reserved_qty: existingPending.reserved_qty + releaseFromThisRecord,\n                open_qty: existingPending.open_qty + releaseFromThisRecord,\n                status: \"Pending\",\n              });\n            } else {\n              const { _id, id, ...recordWithoutId } = oldRecord;\n              recordToCreate = {\n                ...recordWithoutId,\n                doc_id: \"\",\n                doc_no: \"\",\n                doc_line_id: \"\",\n                reserved_qty: releaseFromThisRecord,\n                open_qty: releaseFromThisRecord,\n                status: \"Pending\",\n                source_reserved_id: oldRecord.id,\n                target_gd_id: null,\n              };\n            }\n          }\n        }\n\n        remainingQtyToRelease -= releaseFromThisRecord;\n      }\n\n      const inventoryMovements = [];\n      if (unrestrictedQtyToAdd > 0) {\n        inventoryMovements.push({\n          material_id: materialId,\n          material_code: materialCode,\n          material_name: materialName,\n          material_uom: materialUom,\n          batch_id: batchId,\n          bin_location: locationId,\n          quantity: unrestrictedQtyToAdd,\n          movement_type: \"RESERVED_TO_UNRESTRICTED\",\n          line_so_no: lineSoNo,\n          doc_line_id: docLineId,\n          itemData: filterItemData(itemData),\n        });\n      }\n\n      return { recordsToUpdate, recordToCreate, inventoryMovements };\n    }\n\n    if (netChange > 0) {\n      // Quantity increased - allocate more\n      const additionalQty = netChange;\n      return allocateFromPending(additionalQty, relevantPendingData, params, allocDocType);\n    }\n  }\n\n  // No existing allocated records - fresh allocation\n  return allocateFromPending(quantity, relevantPendingData, params, allocDocType);\n};\n\n// Helper: Allocate from pending records following priority\nconst allocateFromPending = (qtyToAllocate, pendingData, params, allocDocType) => {\n  const {\n    parentId: lineParentId,\n    parentLineId,\n    docLineId,\n    materialId,\n    itemData,\n    batchId,\n    locationId,\n    materialUom,\n    index,\n    remark,\n    lineSoNo,\n    materialCode,\n    materialName,\n  } = params;\n\n  const pendingSOData = pendingData.filter((item) => item.doc_type === \"Sales Order\");\n  const pendingProdData = pendingData.filter((item) => item.doc_type === \"Production\");\n\n  let remainingQtyToAllocate = qtyToAllocate;\n  const recordsToUpdate = [];\n  let recordToCreate = null;\n\n  // Allocate from Production first (priority 1)\n  if (pendingProdData.length > 0 && remainingQtyToAllocate > 0) {\n    const prodRecord = pendingProdData[0];\n    const allocateQty = Math.min(prodRecord.open_qty, remainingQtyToAllocate);\n\n    if (allocateQty === prodRecord.open_qty) {\n      recordsToUpdate.push({\n        ...prodRecord,\n        doc_id: docId,\n        doc_no: docNo,\n        doc_line_id: docLineId,\n        status: \"Allocated\",\n        target_gd_id: docId,\n      });\n    } else {\n      recordsToUpdate.push({\n        ...prodRecord,\n        doc_id: docId,\n        doc_no: docNo,\n        doc_line_id: docLineId,\n        reserved_qty: allocateQty,\n        open_qty: allocateQty,\n        status: \"Allocated\",\n        target_gd_id: docId,\n      });\n\n      const { _id, id, ...prodWithoutId } = prodRecord;\n      recordToCreate = {\n        ...prodWithoutId,\n        doc_id: \"\",\n        doc_no: \"\",\n        doc_line_id: \"\",\n        reserved_qty: prodRecord.open_qty - allocateQty,\n        open_qty: prodRecord.open_qty - allocateQty,\n        status: \"Pending\",\n        source_reserved_id: prodRecord.source_reserved_id || prodRecord.id,\n        target_gd_id: null,\n      };\n    }\n    remainingQtyToAllocate -= allocateQty;\n  }\n\n  // Allocate from Sales Order (priority 2)\n  if (pendingSOData.length > 0 && remainingQtyToAllocate > 0) {\n    const soRecord = pendingSOData[0];\n    const allocateQty = Math.min(soRecord.open_qty, remainingQtyToAllocate);\n\n    if (allocateQty === soRecord.open_qty) {\n      recordsToUpdate.push({\n        ...soRecord,\n        doc_id: docId,\n        doc_no: docNo,\n        doc_line_id: docLineId,\n        status: \"Allocated\",\n        target_gd_id: docId,\n      });\n    } else {\n      recordsToUpdate.push({\n        ...soRecord,\n        doc_id: docId,\n        doc_no: docNo,\n        doc_line_id: docLineId,\n        reserved_qty: allocateQty,\n        open_qty: allocateQty,\n        status: \"Allocated\",\n        target_gd_id: docId,\n      });\n\n      const { _id, id, ...soWithoutId } = soRecord;\n      recordToCreate = {\n        ...soWithoutId,\n        doc_id: \"\",\n        doc_no: \"\",\n        doc_line_id: \"\",\n        reserved_qty: soRecord.open_qty - allocateQty,\n        open_qty: soRecord.open_qty - allocateQty,\n        status: \"Pending\",\n        source_reserved_id: soRecord.source_reserved_id || soRecord.id,\n        target_gd_id: null,\n      };\n    }\n    remainingQtyToAllocate -= allocateQty;\n  }\n\n  // Allocate from unrestricted (priority 3) - create new GD record\n  const inventoryMovements = [];\n  if (remainingQtyToAllocate > 0) {\n    recordToCreate = {\n      doc_type: allocDocType,\n      status: \"Allocated\",\n      source_reserved_id: null,\n      parent_id: lineParentId,\n      parent_line_id: parentLineId,\n      parent_no: lineSoNo,\n      doc_no: docNo,\n      doc_id: docId,\n      doc_line_id: docLineId,\n      material_id: materialId,\n      item_code: itemData?.material_code || \"\",\n      item_name: itemData?.material_name || \"\",\n      item_desc: itemData?.material_desc || \"\",\n      batch_id: batchId,\n      bin_location: locationId,\n      item_uom: materialUom,\n      reserved_qty: remainingQtyToAllocate,\n      delivered_qty: 0,\n      open_qty: remainingQtyToAllocate,\n      reserved_date: docDate,\n      line_no: index,\n      plant_id: plantId,\n      organization_id: organizationId,\n      remark: remark,\n      target_gd_id: docId,\n    };\n\n    inventoryMovements.push({\n      material_id: materialId,\n      material_code: materialCode,\n      material_name: materialName,\n      material_uom: materialUom,\n      batch_id: batchId,\n      bin_location: locationId,\n      quantity: remainingQtyToAllocate,\n      movement_type: \"UNRESTRICTED_TO_RESERVED\",\n      line_so_no: lineSoNo,\n      doc_line_id: docLineId,\n      itemData: filterItemData(itemData),\n    });\n  }\n\n  return { recordsToUpdate, recordToCreate, inventoryMovements };\n};\n\n// ============ STEP 3: PROCESS COMPLETED/DELIVERED ALLOCATIONS ============\nconst processDeliveredAllocation = (params) => {\n  const {\n    quantity,\n    parentId: lineParentId,\n    parentLineId,\n    docLineId,\n    materialId,\n    itemData,\n    batchId,\n    locationId,\n    materialUom,\n    index,\n    remark,\n    isPP,\n    pickingPlanLineId,\n    lineSoNo,\n    materialCode,\n    materialName,\n  } = params;\n\n  // Match allocated records based on isGDPP\n  let matchedAllocatedRecords;\n  if (isGDPP === 1) {\n    matchedAllocatedRecords = allAllocatedData.filter(\n      (record) =>\n        String(record.doc_line_id) === String(pickingPlanLineId) &&\n        String(record.material_id) === String(materialId) &&\n        String(record.batch_id || \"\") === String(batchId || \"\") &&\n        String(record.bin_location || \"\") === String(locationId || \"\") &&\n        record.status === \"Allocated\" &&\n        String(record.target_gd_id) === String(pickingPlanId)\n    );\n  } else {\n    matchedAllocatedRecords = allAllocatedData.filter(\n      (record) =>\n        String(record.doc_line_id) === String(docLineId) &&\n        String(record.material_id) === String(materialId) &&\n        String(record.batch_id || \"\") === String(batchId || \"\") &&\n        String(record.bin_location || \"\") === String(locationId || \"\") &&\n        record.status === \"Allocated\" &&\n        String(record.target_gd_id) === String(docId)\n    );\n  }\n\n  const relevantPendingData = allPendingData.filter(\n    (record) =>\n      String(record.material_id) === String(materialId) &&\n      String(record.batch_id || \"\") === String(batchId || \"\") &&\n      String(record.bin_location || \"\") === String(locationId || \"\") &&\n      record.status === \"Pending\"\n  );\n\n  const recordsToUpdate = [];\n  let recordToCreate = null;\n  const inventoryMovements = [];\n  let reservedQtyToSubtract = 0;\n\n  if (matchedAllocatedRecords.length > 0) {\n    const totalAllocatedQty = matchedAllocatedRecords.reduce(\n      (sum, r) => sum + (r.open_qty || 0),\n      0\n    );\n\n    if (quantity <= totalAllocatedQty) {\n      // Delivery from allocated - may need to release excess\n      let remainingQtyToDeliver = quantity;\n      let remainingQtyToRelease = totalAllocatedQty - quantity;\n      let unrestrictedQtyToAdd = 0;\n\n      const sortedAllocatedRecords = [...matchedAllocatedRecords].sort(\n        (a, b) =>\n          (releaseOrderPriority[a.doc_type] || 99) -\n          (releaseOrderPriority[b.doc_type] || 99)\n      );\n\n      const findExistingPendingToMerge = (docType, recordParentLineId) => {\n        return relevantPendingData.find(\n          (record) =>\n            record.status === \"Pending\" &&\n            record.doc_type === docType &&\n            String(record.parent_line_id) === String(recordParentLineId)\n        );\n      };\n\n      for (const allocatedRecord of sortedAllocatedRecords) {\n        if (remainingQtyToDeliver <= 0 && remainingQtyToRelease <= 0) break;\n\n        const recordQty = allocatedRecord.open_qty || 0;\n        const isFromUnrestricted = allocatedRecord.doc_type === \"Good Delivery\";\n        const isFromPP = allocatedRecord.doc_type === \"Picking Plan\";\n\n        if (remainingQtyToDeliver > 0) {\n          const deliverFromThisRecord = Math.min(recordQty, remainingQtyToDeliver);\n\n          if (deliverFromThisRecord === recordQty) {\n            recordsToUpdate.push({\n              ...allocatedRecord,\n              reserved_qty: allocatedRecord.reserved_qty,\n              open_qty: 0,\n              delivered_qty: (allocatedRecord.delivered_qty || 0) + deliverFromThisRecord,\n              status: \"Delivered\",\n              doc_id: isFromPP ? docId : allocatedRecord.doc_id,\n              doc_no: isFromPP ? docNo : allocatedRecord.doc_no,\n              doc_line_id: isFromPP ? docLineId : allocatedRecord.doc_line_id,\n              doc_type: isFromPP ? \"Good Delivery\" : allocatedRecord.doc_type,\n              target_gd_id: isFromPP ? docId : allocatedRecord.target_gd_id,\n            });\n          } else {\n            recordsToUpdate.push({\n              ...allocatedRecord,\n              reserved_qty: deliverFromThisRecord,\n              open_qty: 0,\n              delivered_qty: deliverFromThisRecord,\n              status: \"Delivered\",\n              doc_id: isFromPP ? docId : allocatedRecord.doc_id,\n              doc_no: isFromPP ? docNo : allocatedRecord.doc_no,\n              doc_line_id: isFromPP ? docLineId : allocatedRecord.doc_line_id,\n              doc_type: isFromPP ? \"Good Delivery\" : allocatedRecord.doc_type,\n              target_gd_id: isFromPP ? docId : allocatedRecord.target_gd_id,\n            });\n\n            const remainderQty = recordQty - deliverFromThisRecord;\n            if (isFromPP) {\n              const { _id, id, ...recordWithoutId } = allocatedRecord;\n              recordToCreate = {\n                ...recordWithoutId,\n                reserved_qty: remainderQty,\n                open_qty: remainderQty,\n                delivered_qty: 0,\n                status: \"Allocated\",\n                source_reserved_id: allocatedRecord.id,\n              };\n            } else if (isFromUnrestricted) {\n              const { _id, id, ...recordWithoutId } = allocatedRecord;\n              recordToCreate = {\n                ...recordWithoutId,\n                reserved_qty: remainderQty,\n                open_qty: 0,\n                delivered_qty: 0,\n                status: \"Cancelled\",\n                source_reserved_id: allocatedRecord.id,\n                target_gd_id: null,\n              };\n              unrestrictedQtyToAdd += remainderQty;\n            } else {\n              const existingPending = findExistingPendingToMerge(\n                allocatedRecord.doc_type,\n                allocatedRecord.parent_line_id\n              );\n              if (existingPending) {\n                recordsToUpdate.push({\n                  ...existingPending,\n                  reserved_qty: existingPending.reserved_qty + remainderQty,\n                  open_qty: existingPending.open_qty + remainderQty,\n                  status: \"Pending\",\n                });\n              } else {\n                const { _id, id, ...recordWithoutId } = allocatedRecord;\n                recordToCreate = {\n                  ...recordWithoutId,\n                  doc_id: \"\",\n                  doc_no: \"\",\n                  doc_line_id: \"\",\n                  reserved_qty: remainderQty,\n                  open_qty: remainderQty,\n                  delivered_qty: 0,\n                  status: \"Pending\",\n                  source_reserved_id: allocatedRecord.source_reserved_id || allocatedRecord.id,\n                  target_gd_id: null,\n                };\n              }\n            }\n          }\n\n          remainingQtyToDeliver -= deliverFromThisRecord;\n          reservedQtyToSubtract += deliverFromThisRecord;\n        } else if (remainingQtyToRelease > 0) {\n          // Release excess allocation\n          const releaseFromThisRecord = Math.min(recordQty, remainingQtyToRelease);\n\n          if (releaseFromThisRecord === recordQty) {\n            if (isFromPP) {\n              recordsToUpdate.push({\n                ...allocatedRecord,\n                status: \"Allocated\",\n              });\n            } else if (isFromUnrestricted) {\n              recordsToUpdate.push({\n                ...allocatedRecord,\n                open_qty: 0,\n                status: \"Cancelled\",\n                target_gd_id: null,\n              });\n              unrestrictedQtyToAdd += releaseFromThisRecord;\n            } else {\n              const existingPending = findExistingPendingToMerge(\n                allocatedRecord.doc_type,\n                allocatedRecord.parent_line_id\n              );\n              if (existingPending) {\n                recordsToUpdate.push({\n                  ...existingPending,\n                  reserved_qty: existingPending.reserved_qty + releaseFromThisRecord,\n                  open_qty: existingPending.open_qty + releaseFromThisRecord,\n                  status: \"Pending\",\n                });\n                recordsToUpdate.push({\n                  ...allocatedRecord,\n                  open_qty: 0,\n                  status: \"Cancelled\",\n                  target_gd_id: null,\n                });\n              } else {\n                recordsToUpdate.push({\n                  ...allocatedRecord,\n                  doc_id: \"\",\n                  doc_no: \"\",\n                  doc_line_id: \"\",\n                  status: \"Pending\",\n                  target_gd_id: null,\n                });\n              }\n            }\n          }\n          remainingQtyToRelease -= releaseFromThisRecord;\n        }\n      }\n\n      if (reservedQtyToSubtract > 0) {\n        inventoryMovements.push({\n          material_id: materialId,\n          material_code: materialCode,\n          material_name: materialName,\n          material_uom: materialUom,\n          batch_id: batchId,\n          bin_location: locationId,\n          source: \"Reserved\",\n          quantity: reservedQtyToSubtract,\n          operation: \"subtract\",\n          movement_type: \"DELIVERY\",\n          line_so_no: lineSoNo,\n          doc_line_id: docLineId,\n          itemData: filterItemData(itemData),\n        });\n      }\n\n      if (unrestrictedQtyToAdd > 0) {\n        inventoryMovements.push({\n          material_id: materialId,\n          material_code: materialCode,\n          material_name: materialName,\n          material_uom: materialUom,\n          batch_id: batchId,\n          bin_location: locationId,\n          quantity: unrestrictedQtyToAdd,\n          movement_type: \"RESERVED_TO_UNRESTRICTED\",\n          line_so_no: lineSoNo,\n          doc_line_id: docLineId,\n          itemData: filterItemData(itemData),\n        });\n      }\n\n      return { recordsToUpdate, recordToCreate, inventoryMovements };\n    }\n\n    // quantity > totalAllocatedQty - need to deliver all allocated + get more\n    for (const allocatedRecord of matchedAllocatedRecords) {\n      const isFromPP = allocatedRecord.doc_type === \"Picking Plan\";\n      recordsToUpdate.push({\n        ...allocatedRecord,\n        open_qty: 0,\n        delivered_qty: (allocatedRecord.delivered_qty || 0) + allocatedRecord.open_qty,\n        status: \"Delivered\",\n        doc_id: isFromPP ? docId : allocatedRecord.doc_id,\n        doc_no: isFromPP ? docNo : allocatedRecord.doc_no,\n        doc_line_id: isFromPP ? docLineId : allocatedRecord.doc_line_id,\n        doc_type: isFromPP ? \"Good Delivery\" : allocatedRecord.doc_type,\n        target_gd_id: isFromPP ? docId : allocatedRecord.target_gd_id,\n      });\n    }\n    reservedQtyToSubtract = totalAllocatedQty;\n\n    // Allocate additional from pending\n    let additionalQtyNeeded = quantity - totalAllocatedQty;\n    const pendingProdData = relevantPendingData.filter((item) => item.doc_type === \"Production\");\n    const pendingSOData = relevantPendingData.filter((item) => item.doc_type === \"Sales Order\");\n\n    if (pendingProdData.length > 0 && additionalQtyNeeded > 0) {\n      const prodRecord = pendingProdData[0];\n      const deliverQty = Math.min(prodRecord.open_qty, additionalQtyNeeded);\n\n      if (deliverQty === prodRecord.open_qty) {\n        recordsToUpdate.push({\n          ...prodRecord,\n          open_qty: 0,\n          delivered_qty: deliverQty,\n          status: \"Delivered\",\n          target_gd_id: docId,\n        });\n      } else {\n        recordsToUpdate.push({\n          ...prodRecord,\n          reserved_qty: deliverQty,\n          open_qty: 0,\n          delivered_qty: deliverQty,\n          status: \"Delivered\",\n          target_gd_id: docId,\n        });\n\n        const { _id, id, ...prodWithoutId } = prodRecord;\n        recordToCreate = {\n          ...prodWithoutId,\n          doc_id: \"\",\n          doc_no: \"\",\n          doc_line_id: \"\",\n          reserved_qty: prodRecord.open_qty - deliverQty,\n          open_qty: prodRecord.open_qty - deliverQty,\n          delivered_qty: 0,\n          status: \"Pending\",\n          source_reserved_id: prodRecord.source_reserved_id || prodRecord.id,\n          target_gd_id: null,\n        };\n      }\n      reservedQtyToSubtract += deliverQty;\n      additionalQtyNeeded -= deliverQty;\n    }\n\n    if (pendingSOData.length > 0 && additionalQtyNeeded > 0) {\n      const soRecord = pendingSOData[0];\n      const deliverQty = Math.min(soRecord.open_qty, additionalQtyNeeded);\n\n      if (deliverQty === soRecord.open_qty) {\n        recordsToUpdate.push({\n          ...soRecord,\n          open_qty: 0,\n          delivered_qty: deliverQty,\n          status: \"Delivered\",\n          target_gd_id: docId,\n        });\n      } else {\n        recordsToUpdate.push({\n          ...soRecord,\n          reserved_qty: deliverQty,\n          open_qty: 0,\n          delivered_qty: deliverQty,\n          status: \"Delivered\",\n          target_gd_id: docId,\n        });\n\n        const { _id, id, ...soWithoutId } = soRecord;\n        recordToCreate = {\n          ...soWithoutId,\n          doc_id: \"\",\n          doc_no: \"\",\n          doc_line_id: \"\",\n          reserved_qty: soRecord.open_qty - deliverQty,\n          open_qty: soRecord.open_qty - deliverQty,\n          delivered_qty: 0,\n          status: \"Pending\",\n          source_reserved_id: soRecord.source_reserved_id || soRecord.id,\n          target_gd_id: null,\n        };\n      }\n      reservedQtyToSubtract += deliverQty;\n      additionalQtyNeeded -= deliverQty;\n    }\n\n    // Allocate from unrestricted for remaining\n    let unrestrictedQtyToAllocate = 0;\n    if (additionalQtyNeeded > 0) {\n      unrestrictedQtyToAllocate = additionalQtyNeeded;\n      recordToCreate = {\n        plant_id: plantId,\n        organization_id: organizationId,\n        material_id: materialId,\n        item_code: itemData?.material_code || \"\",\n        item_name: itemData?.material_name || \"\",\n        item_desc: itemData?.material_desc || \"\",\n        batch_id: batchId,\n        bin_location: locationId,\n        item_uom: materialUom,\n        doc_type: \"Good Delivery\",\n        parent_id: lineParentId,\n        parent_no: lineSoNo,\n        parent_line_id: parentLineId,\n        target_gd_id: docId,\n        doc_no: docNo,\n        doc_line_id: docLineId,\n        reserved_qty: unrestrictedQtyToAllocate,\n        open_qty: 0,\n        delivered_qty: unrestrictedQtyToAllocate,\n        status: \"Delivered\",\n        remark: remark,\n        reserved_date: docDate,\n      };\n    }\n\n    if (unrestrictedQtyToAllocate > 0) {\n      inventoryMovements.push({\n        material_id: materialId,\n        material_code: materialCode,\n        material_name: materialName,\n        material_uom: materialUom,\n        batch_id: batchId,\n        bin_location: locationId,\n        quantity: unrestrictedQtyToAllocate,\n        movement_type: \"UNRESTRICTED_TO_RESERVED\",\n        line_so_no: lineSoNo,\n        doc_line_id: docLineId,\n        itemData: filterItemData(itemData),\n      });\n    }\n\n    const totalDeliveryQty = reservedQtyToSubtract + unrestrictedQtyToAllocate;\n    if (totalDeliveryQty > 0) {\n      inventoryMovements.push({\n        material_id: materialId,\n        material_code: materialCode,\n        material_name: materialName,\n        material_uom: materialUom,\n        batch_id: batchId,\n        bin_location: locationId,\n        source: \"Reserved\",\n        quantity: totalDeliveryQty,\n        operation: \"subtract\",\n        movement_type: \"DELIVERY\",\n        line_so_no: lineSoNo,\n        doc_line_id: docLineId,\n        itemData: filterItemData(itemData),\n      });\n    }\n\n    return { recordsToUpdate, recordToCreate, inventoryMovements };\n  }\n\n  // No existing allocated records - direct delivery from pending/unrestricted\n  const pendingSOData = relevantPendingData.filter((item) => item.doc_type === \"Sales Order\");\n  const pendingProdData = relevantPendingData.filter((item) => item.doc_type === \"Production\");\n\n  let remainingQtyToDeliver = quantity;\n  let reservedQty = 0;\n\n  if (pendingProdData.length > 0 && remainingQtyToDeliver > 0) {\n    const prodRecord = pendingProdData[0];\n    const deliverQty = Math.min(prodRecord.open_qty, remainingQtyToDeliver);\n\n    if (deliverQty === prodRecord.open_qty) {\n      recordsToUpdate.push({\n        ...prodRecord,\n        open_qty: 0,\n        delivered_qty: deliverQty,\n        status: \"Delivered\",\n        target_gd_id: docId,\n      });\n    } else {\n      recordsToUpdate.push({\n        ...prodRecord,\n        reserved_qty: deliverQty,\n        open_qty: 0,\n        delivered_qty: deliverQty,\n        status: \"Delivered\",\n        target_gd_id: docId,\n      });\n\n      const { _id, id, ...prodWithoutId } = prodRecord;\n      recordToCreate = {\n        ...prodWithoutId,\n        doc_id: \"\",\n        doc_no: \"\",\n        doc_line_id: \"\",\n        reserved_qty: prodRecord.open_qty - deliverQty,\n        open_qty: prodRecord.open_qty - deliverQty,\n        delivered_qty: 0,\n        status: \"Pending\",\n        source_reserved_id: prodRecord.source_reserved_id || prodRecord.id,\n        target_gd_id: null,\n      };\n    }\n    reservedQty += deliverQty;\n    remainingQtyToDeliver -= deliverQty;\n  }\n\n  if (pendingSOData.length > 0 && remainingQtyToDeliver > 0) {\n    const soRecord = pendingSOData[0];\n    const deliverQty = Math.min(soRecord.open_qty, remainingQtyToDeliver);\n\n    if (deliverQty === soRecord.open_qty) {\n      recordsToUpdate.push({\n        ...soRecord,\n        open_qty: 0,\n        delivered_qty: deliverQty,\n        status: \"Delivered\",\n        target_gd_id: docId,\n      });\n    } else {\n      recordsToUpdate.push({\n        ...soRecord,\n        reserved_qty: deliverQty,\n        open_qty: 0,\n        delivered_qty: deliverQty,\n        status: \"Delivered\",\n        target_gd_id: docId,\n      });\n\n      const { _id, id, ...soWithoutId } = soRecord;\n      recordToCreate = {\n        ...soWithoutId,\n        doc_id: \"\",\n        doc_no: \"\",\n        doc_line_id: \"\",\n        reserved_qty: soRecord.open_qty - deliverQty,\n        open_qty: soRecord.open_qty - deliverQty,\n        delivered_qty: 0,\n        status: \"Pending\",\n        source_reserved_id: soRecord.source_reserved_id || soRecord.id,\n        target_gd_id: null,\n      };\n    }\n    reservedQty += deliverQty;\n    remainingQtyToDeliver -= deliverQty;\n  }\n\n  let unrestrictedQtyToAllocate = 0;\n  if (remainingQtyToDeliver > 0) {\n    unrestrictedQtyToAllocate = remainingQtyToDeliver;\n    recordToCreate = {\n      plant_id: plantId,\n      organization_id: organizationId,\n      material_id: materialId,\n      item_code: itemData?.material_code || \"\",\n      item_name: itemData?.material_name || \"\",\n      item_desc: itemData?.material_desc || \"\",\n      batch_id: batchId,\n      bin_location: locationId,\n      item_uom: materialUom,\n      doc_type: \"Good Delivery\",\n      parent_id: lineParentId,\n      parent_no: lineSoNo,\n      parent_line_id: parentLineId,\n      target_gd_id: docId,\n      doc_no: docNo,\n      doc_line_id: docLineId,\n      reserved_qty: unrestrictedQtyToAllocate,\n      open_qty: 0,\n      delivered_qty: unrestrictedQtyToAllocate,\n      status: \"Delivered\",\n      remark: remark,\n      reserved_date: docDate,\n    };\n  }\n\n  if (unrestrictedQtyToAllocate > 0) {\n    inventoryMovements.push({\n      material_id: materialId,\n      material_code: materialCode,\n      material_name: materialName,\n      material_uom: materialUom,\n      batch_id: batchId,\n      bin_location: locationId,\n      quantity: unrestrictedQtyToAllocate,\n      movement_type: \"UNRESTRICTED_TO_RESERVED\",\n      line_so_no: lineSoNo,\n      doc_line_id: docLineId,\n      itemData: filterItemData(itemData),\n    });\n  }\n\n  const totalDeliveryQty = reservedQty + unrestrictedQtyToAllocate;\n  if (totalDeliveryQty > 0) {\n    inventoryMovements.push({\n      material_id: materialId,\n      material_code: materialCode,\n      material_name: materialName,\n      material_uom: materialUom,\n      batch_id: batchId,\n      bin_location: locationId,\n      source: \"Reserved\",\n      quantity: totalDeliveryQty,\n      operation: \"subtract\",\n      movement_type: \"DELIVERY\",\n      line_so_no: lineSoNo,\n      doc_line_id: docLineId,\n      itemData: filterItemData(itemData),\n    });\n  }\n\n  return { recordsToUpdate, recordToCreate, inventoryMovements };\n};\n\n// ============ MAIN PROCESSING LOOP ============\n// Collect all results\nconst allRecordsToUpdate = [];\nconst allRecordsToCreate = [];\nconst allInventoryMovements = [];\n\n// Step 1: Cleanup orphaned allocations (if saveAs !== \"Cancelled\")\nif (saveAs !== \"Cancelled\") {\n  const cleanupResult = cleanupOrphanedAllocations();\n  allRecordsToUpdate.push(...cleanupResult.recordsToUpdate);\n  allInventoryMovements.push(...cleanupResult.inventoryMovements);\n}\n\n// Step 2: Process each table item and its groups\nfor (const processed of processedTableData) {\n  if (processed.skipProcessing) continue;\n\n  const { item, itemData, groupedTempData, groupKeys } = processed;\n  const isPP = isGDPP === 1;\n\n  for (const groupKey of groupKeys) {\n    const group = groupedTempData[groupKey];\n    const quantity = roundQty(group.totalQty);\n\n    const params = {\n      quantity,\n      parentId: processed.parent_id,\n      parentLineId: processed.parent_line_id,\n      docLineId: processed.doc_line_id,\n      materialId: processed.material_id,\n      itemData,\n      batchId: group.batch_id,\n      locationId: group.location_id,\n      materialUom: processed.material_uom,\n      index: processed.tableIndex,\n      remark: processed.remark,\n      isPP,\n      pickingPlanLineId: processed.picking_plan_line_id,\n      // Additional fields for inventory movement records\n      lineSoNo: processed.line_so_no,\n      materialCode: processed.material_code || itemData?.material_code || \"\",\n      materialName: processed.material_name || itemData?.material_name || \"\",\n    };\n\n    let result;\n    if (saveAs === \"Created\") {\n      result = processCreatedAllocation(params);\n    } else if (saveAs === \"Completed\") {\n      result = processDeliveredAllocation(params);\n    } else if (saveAs === \"Cancelled\") {\n      // For cancelled, use release logic (similar to decreasing qty to 0)\n      params.quantity = 0;\n      result = processCreatedAllocation(params);\n    } else {\n      continue;\n    }\n\n    if (result.recordsToUpdate) {\n      allRecordsToUpdate.push(...result.recordsToUpdate);\n    }\n    if (result.recordToCreate) {\n      allRecordsToCreate.push(result.recordToCreate);\n    }\n    if (result.inventoryMovements) {\n      allInventoryMovements.push(...result.inventoryMovements);\n    }\n  }\n}\n\n// Deduplicate records by ID (keep last update for each ID)\nconst recordUpdateMap = new Map();\nfor (const record of allRecordsToUpdate) {\n  if (record.id) {\n    recordUpdateMap.set(record.id, record);\n  }\n}\nconst deduplicatedRecordsToUpdate = Array.from(recordUpdateMap.values());\n\nreturn {\n  code: \"200\",\n  recordsToUpdate: deduplicatedRecordsToUpdate,\n  recordsToUpdateLength: deduplicatedRecordsToUpdate.length,\n  recordsToCreate: allRecordsToCreate,\n  recordsToCreateLength: allRecordsToCreate.length,\n  inventoryMovements: allInventoryMovements,\n  inventoryMovementsLength: allInventoryMovements.length,\n  message: `Batch processing complete: ${deduplicatedRecordsToUpdate.length} updates, ${allRecordsToCreate.length} creates, ${allInventoryMovements.length} movements`\n};\n"
+      },
+      "response_json": [
+        {
+          "key": "lopsf5wj",
+          "name": "recordsToUpdate",
+          "title": "recordsToUpdate",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+            {
+              "key": "lgv8wlco",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+            }
+          ]
+        },
+        {
+          "key": "4cnam9uu",
+          "name": "recordsToUpdateLength",
+          "title": "recordsToUpdateLength",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+        },
+        {
+          "key": "8lxz5g0b",
+          "name": "recordsToCreate",
+          "title": "recordsToCreate",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+            {
+              "key": "4o1zmm5p",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+            }
+          ]
+        },
+        {
+          "key": "92jy4lnu",
+          "name": "recordsToCreateLength",
+          "title": "recordsToCreateLength",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+        },
+        {
+          "key": "s659gpa9",
+          "name": "inventoryMovements",
+          "title": "inventoryMovements",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+            {
+              "key": "1yl78dyj",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "isArrayItem": true
+            }
+          ]
+        },
+        {
+          "key": "yixrdoms",
+          "name": "inventoryMovementsLength",
+          "title": "inventoryMovementsLength",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+        }
+      ]
+    },
+    "blocks": []
+  },
+  {
+    "id": "code_node_ylc78Jpw",
+    "type": "code-node",
+    "data": {
+      "language": "javascript",
+      "code": "",
+      "timeout": 30000,
+      "title": "Batch Execute",
+      "isValidator": true,
+      "nodeName": "Batch Execute",
+      "name": "Batch Execute",
+      "script": {
+        "type": "javascript",
+        "code": "/**\n * GDProcessTable_batchExecute.js\n *\n * PURPOSE: Prepare data for batch database operations\n * USAGE: This code node prepares data for workflow batch update/create nodes\n *\n * INPUT: Output from GDProcessTable_batchProcess.js\n * OUTPUT: Prepared data arrays for batch update/create workflow nodes\n */\n\nconst batchResult = {{node:code_node_b71wypDJ.data}};\n\nconst {\n  recordsToUpdate,\n  recordsToCreate,\n  inventoryMovements,\n  code,\n  message\n} = batchResult;\n\n// Check for error in processing\nif (code === \"400\") {\n  return {\n    code: \"400\",\n    message: message || \"Error in batch processing\",\n    hasUpdates: 0,\n    hasCreates: 0,\n    hasMovements: 0\n  };\n}\n\n// Separate updates by type for different batch operations\nconst reservedRecordUpdates = recordsToUpdate.filter(r => r.id);\nconst reservedRecordCreates = recordsToCreate.filter(r => !r.id).map((r, i) => ({ ...r, line_no: i + 1 }));\n\nreturn {\n  code: \"200\",\n  // For batch update node targeting on_reserved_gd collection\n  reservedRecordUpdates,\n  reservedRecordUpdatesCount: reservedRecordUpdates.length,\n\n  // For batch create node targeting on_reserved_gd collection\n  reservedRecordCreates,\n  reservedRecordCreatesCount: reservedRecordCreates.length,\n\n  // For inventory workflow loops - no aggregation, keep line-level detail\n  inventoryMovements,\n  inventoryMovementsCount: inventoryMovements.length,\n\n  // Flags for conditional workflow branches\n  hasUpdates: reservedRecordUpdates.length > 0 ? 1 : 0,\n  hasCreates: reservedRecordCreates.length > 0 ? 1 : 0,\n  hasMovements: inventoryMovements.length > 0 ? 1 : 0,\n\n  message: `Ready for batch execution: ${reservedRecordUpdates.length} updates, ${reservedRecordCreates.length} creates, ${inventoryMovements.length} movements`\n};\n"
+      },
+      "response_json": [
+        {
+          "key": "52vdlqw2",
+          "name": "reservedRecordUpdates",
+          "title": "reservedRecordUpdates",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+            {
+              "key": "kak6o2um",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+            }
+          ]
+        },
+        {
+          "key": "58m2vdsf",
+          "name": "reservedRecordUpdatesCount",
+          "title": "reservedRecordUpdatesCount",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+        },
+        {
+          "key": "clm1ha1c",
+          "name": "reservedRecordCreates",
+          "title": "reservedRecordCreates",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+            {
+              "key": "cbssusjs",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+            }
+          ]
+        },
+        {
+          "key": "ofqwhl1c",
+          "name": "reservedRecordCreatesCount",
+          "title": "reservedRecordCreatesCount",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+        },
+        {
+          "key": "j6o535w6",
+          "name": "inventoryMovements",
+          "title": "inventoryMovements",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+            {
+              "key": "0mk8mlq5",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+            }
+          ]
+        },
+        {
+          "key": "8o65a2mj",
+          "name": "hasUpdates",
+          "title": "hasUpdates",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+        },
+        {
+          "key": "dgszdu9a",
+          "name": "hasCreates",
+          "title": "hasCreates",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+        },
+        {
+          "key": "ireiea7k",
+          "name": "hasMovements",
+          "title": "hasMovements",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+        }
+      ]
+    },
+    "blocks": []
+  },
+  {
+    "id": "condition_all_node_tBEs2TBx",
+    "type": "condition-all-node",
+    "data": {
+      "title": "Parallel Branch",
+      "filter": { "list": [] },
+      "expression": { "code": "" },
+      "displayContent": "sdk.form.setCondition"
+    },
+    "blocks": [
+      {
+        "id": "condition_all_node_item_iXj0gemz",
+        "type": "condition-all-node-item",
+        "data": {
+          "title": "Branch 1",
+          "filter": {
+            "list": [
+              {
+                "id": 1773645928422,
+                "parentId": 1773645928421,
+                "isTop": true,
+                "prop": "node.code_node_QrF4F4Hx.data.hasUpdates",
+                "operator": "numberEqual",
+                "valueType": "value",
+                "value": 1,
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "hasUpdates",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          },
+          "expression": { "code": "" },
+          "displayContent": "sdk.form.setCondition",
+          "isValidator": true,
+          "nodeName": "Branch 1",
+          "name": "Branch 1",
+          "condition_type": "ConditionRule"
+        },
+        "blocks": [
+          {
+            "id": "update_node_7k2yYMLH",
+            "type": "update-node",
+            "data": {
+              "table_id": {
+                "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                "rules": {
+                  "collectionId": "1935880014687440897",
+                  "list": [
+                    {
+                      "id": 1769578248304,
+                      "parentId": 1769578248303,
+                      "isTop": true,
+                      "prop": "id",
+                      "operator": "in",
+                      "valueType": "field",
+                      "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordUpdates.id}}",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "主键ID",
+                      "valueLabel": "",
+                      "operatorLabel": "In"
+                    }
+                  ]
+                }
+              },
+              "fields": [],
+              "condition": {},
+              "title": "Update Reserved Table",
+              "isValidator": true,
+              "nodeName": "Update Reserved Table",
+              "name": "Update Reserved Table",
+              "props": {
+                "modelName": "",
+                "list": [
+                  {
+                    "prop": "id",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordUpdates.id}}",
+                    "operator": "",
+                    "valueLabel": "",
+                    "propLabel": "主键ID"
+                  },
+                  {
+                    "prop": "target_gd_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordUpdates.target_gd_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Target Goods Delivery ID"
+                  },
+                  {
+                    "prop": "status",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordUpdates.status}}",
+                    "valueLabel": "",
+                    "propLabel": "Status"
+                  },
+                  {
+                    "prop": "reserved_qty",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordUpdates.reserved_qty}}",
+                    "valueLabel": "",
+                    "propLabel": "Reserved Quantity"
+                  },
+                  {
+                    "prop": "open_qty",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordUpdates.open_qty}}",
+                    "valueLabel": "",
+                    "propLabel": "Open Quantity"
+                  },
+                  {
+                    "prop": "delivered_qty",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordUpdates.delivered_qty}}",
+                    "valueLabel": "",
+                    "propLabel": "Delivered Quantity"
+                  },
+                  {
+                    "prop": "doc_no",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordUpdates.doc_no}}",
+                    "valueLabel": "",
+                    "propLabel": "Document Number"
+                  },
+                  {
+                    "prop": "doc_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordUpdates.doc_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Document ID"
+                  },
+                  {
+                    "prop": "doc_line_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordUpdates.doc_line_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Document Line ID"
+                  },
+                  {
+                    "prop": "source_reserved_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordUpdates.source_reserved_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Source Reserved ID"
+                  }
+                ]
+              }
+            },
+            "blocks": []
+          }
+        ]
+      },
+      {
+        "id": "condition_all_node_item_WM8KOro4",
+        "type": "condition-all-node-item",
+        "data": {
+          "title": "Branch 2",
+          "filter": {
+            "list": [
+              {
+                "id": 1773645962060,
+                "parentId": 1773645962059,
+                "isTop": true,
+                "prop": "node.code_node_QrF4F4Hx.data.hasCreates",
+                "operator": "numberEqual",
+                "valueType": "value",
+                "value": 1,
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "hasCreates",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          },
+          "expression": { "code": "" },
+          "displayContent": "sdk.form.setCondition",
+          "isValidator": true,
+          "nodeName": "Branch 2",
+          "name": "Branch 2",
+          "condition_type": "ConditionRule"
+        },
+        "blocks": [
+          {
+            "id": "add_node_ojy0rTgC",
+            "type": "add-node",
+            "data": {
+              "table_id": {
+                "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                "rules": {
+                  "collectionId": "1935880014687440897",
+                  "list": [
+                    {
+                      "id": 1769566749982,
+                      "parentId": 1769566749981,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                }
+              },
+              "fields": [],
+              "title": "Add Reserved Table",
+              "isValidator": true,
+              "nodeName": "Add Reserved Table",
+              "name": "Add Reserved Table",
+              "props": {
+                "modelName": "",
+                "list": [
+                  {
+                    "prop": "doc_type",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.doc_type}}",
+                    "operator": "",
+                    "valueLabel": "",
+                    "propLabel": "Document Type"
+                  },
+                  {
+                    "prop": "status",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.status}}",
+                    "valueLabel": "",
+                    "propLabel": "Status"
+                  },
+                  {
+                    "prop": "parent_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.parent_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Parent ID"
+                  },
+                  {
+                    "prop": "parent_line_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.parent_line_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Parent Line ID"
+                  },
+                  {
+                    "prop": "parent_no",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.parent_no}}",
+                    "valueLabel": "",
+                    "propLabel": "Parent Number"
+                  },
+                  {
+                    "prop": "doc_no",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.doc_no}}",
+                    "valueLabel": "",
+                    "propLabel": "Document Number"
+                  },
+                  {
+                    "prop": "doc_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.target_gd_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Document ID"
+                  },
+                  {
+                    "prop": "doc_line_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.doc_line_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Document Line ID"
+                  },
+                  {
+                    "prop": "material_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.material_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Item ID"
+                  },
+                  {
+                    "prop": "item_code",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.item_code}}",
+                    "valueLabel": "",
+                    "propLabel": "Item Code"
+                  },
+                  {
+                    "prop": "item_name",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.item_name}}",
+                    "valueLabel": "",
+                    "propLabel": "Item Name"
+                  },
+                  {
+                    "prop": "item_desc",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.item_desc}}",
+                    "valueLabel": "",
+                    "propLabel": "Item Description"
+                  },
+                  {
+                    "prop": "batch_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.batch_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Batch ID"
+                  },
+                  {
+                    "prop": "bin_location",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.bin_location}}",
+                    "valueLabel": "",
+                    "propLabel": "Bin Location"
+                  },
+                  {
+                    "prop": "item_uom",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.item_uom}}",
+                    "valueLabel": "",
+                    "propLabel": "UOM"
+                  },
+                  {
+                    "prop": "reserved_qty",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.reserved_qty}}",
+                    "valueLabel": "",
+                    "propLabel": "Reserved Quantity"
+                  },
+                  {
+                    "prop": "delivered_qty",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.delivered_qty}}",
+                    "valueLabel": "",
+                    "propLabel": "Delivered Quantity"
+                  },
+                  {
+                    "prop": "open_qty",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.open_qty}}",
+                    "valueLabel": "",
+                    "propLabel": "Open Quantity"
+                  },
+                  {
+                    "prop": "reserved_date",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{workflowparams:doc_date}}",
+                    "valueLabel": "",
+                    "propLabel": "Reserved Date"
+                  },
+                  {
+                    "prop": "line_no",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.line_no}}",
+                    "valueLabel": "",
+                    "propLabel": "Line No"
+                  },
+                  {
+                    "prop": "plant_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{workflowparams:plant_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Plant ID"
+                  },
+                  {
+                    "prop": "organization_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{workflowparams:organization_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Organization ID"
+                  },
+                  {
+                    "prop": "remark",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.remark}}",
+                    "valueLabel": "",
+                    "propLabel": "Remark"
+                  },
+                  {
+                    "prop": "target_gd_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.target_gd_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Target Goods Delivery ID"
+                  },
+                  {
+                    "prop": "source_reserved_id",
+                    "operator": "",
+                    "valueType": "field",
+                    "value": "{{node:code_node_QrF4F4Hx.data.reservedRecordCreates.source_reserved_id}}",
+                    "valueLabel": "",
+                    "propLabel": "Source Reserved ID"
+                  }
+                ]
+              }
+            },
+            "blocks": []
+          }
+        ]
+      },
+      {
+        "id": "condition_all_item_38IwFfsY",
+        "type": "condition-all-node-item",
+        "data": {
+          "title": "Branch 3",
+          "filter": {
+            "list": [
+              {
+                "id": 1773645953729,
+                "parentId": 1773645953728,
+                "isTop": true,
+                "prop": "node.code_node_QrF4F4Hx.data.hasMovements",
+                "operator": "numberEqual",
+                "valueType": "value",
+                "value": 1,
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "hasMovements",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          },
+          "expression": { "code": "" },
+          "displayContent": "sdk.form.setCondition",
+          "__index": 3,
+          "isValidator": true,
+          "nodeName": "Branch 3",
+          "name": "Branch 3",
+          "condition_type": "ConditionRule"
+        },
+        "blocks": [
+          {
+            "id": "code_node_HFhAptI0",
+            "type": "code-node",
+            "data": {
+              "language": "javascript",
+              "code": "",
+              "timeout": 30000,
+              "title": "create cache key",
+              "isValidator": true,
+              "nodeName": "create cache key",
+              "name": "create cache key",
+              "script": {
+                "type": "javascript",
+                "code": "return {\n  cacheKey:{{system:uuid}}\n}"
+              },
+              "response_json": [
+                {
+                  "key": "odt2vsis",
+                  "name": "cacheKey",
+                  "title": "cacheKey",
+                  "description": "",
+                  "bsonType": "string",
+                  "isExpand": false
+                }
+              ]
+            },
+            "blocks": []
+          },
+          {
+            "id": "set_cache_node_zH5slVRU",
+            "type": "set-cache-node",
+            "data": {
+              "cache_key": "",
+              "cache_value": "",
+              "expire_time": 3600,
+              "title": "Set inventoryMovements Index",
+              "isValidator": true,
+              "nodeName": "Set inventoryMovements Index",
+              "name": "Set inventoryMovements Index",
+              "custom_wkbocgni": { "type": "javascript", "code": "0" },
+              "redis_key": "{{node:code_node_HFhAptI0.data.cacheKey}}"
+            },
+            "blocks": []
+          },
+          {
+            "id": "loop_88bcQyIz",
+            "type": "loop",
+            "data": {
+              "title": "Loop inventoryMovements",
+              "isValidator": true,
+              "nodeName": "Loop inventoryMovements",
+              "name": "Loop inventoryMovements",
+              "loopType": "Var",
+              "loopSeletVar": {
+                "type": "markdown",
+                "code": "{{node:code_node_QrF4F4Hx.data.inventoryMovements}}"
+              }
+            },
+            "blocks": [
+              {
+                "id": "get_cache_node_gw9AM0Ik",
+                "type": "get-cache-node",
+                "data": {
+                  "cache_key": "",
+                  "default_value": null,
+                  "title": "Get inventoryMovements Index",
+                  "isValidator": true,
+                  "nodeName": "Get inventoryMovements Index",
+                  "name": "Get inventoryMovements Index",
+                  "redis_key": "{{node:code_node_HFhAptI0.data.cacheKey}}"
+                },
+                "blocks": []
+              },
+              {
+                "id": "code_node_2SqoLlxd",
+                "type": "code-node",
+                "data": {
+                  "language": "javascript",
+                  "code": "",
+                  "timeout": 30000,
+                  "title": "inventoryMovements Preparation",
+                  "isValidator": true,
+                  "nodeName": "inventoryMovements Preparation",
+                  "name": "inventoryMovements Preparation",
+                  "script": {
+                    "type": "javascript",
+                    "code": "const inventoryMovements = {{node:code_node_QrF4F4Hx.data.inventoryMovements}};\nconst currentIndexRaw = {{node:get_cache_node_gw9AM0Ik.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst inventory = inventoryMovements[index];\nconst inventoryCategory = inventory.source || null;\nconst material_id = inventory.material_id;\nconst quantity = inventory.quantity;\nconst movement_type = inventory.movement_type;\nconst material_uom = inventory.material_uom || null;\nconst parent_no = inventory.line_so_no || null;\nconst location_id = inventory.bin_location;\nconst batch_id = inventory.batch_id || null;\nconst itemData = inventory.itemData || null;\n\nreturn {\n  inventoryCategory: inventoryCategory,\n  material_id: material_id,\n  quantity: quantity,\n  movement_type: movement_type,\n  material_uom: material_uom,\n  parent_no: parent_no,\n  location_id: location_id,\n  batch_id: batch_id,\n  itemData: itemData,\n  index: index,\n  nextIndex: index + 1\n}"
+                  },
+                  "response_json": [
+                    {
+                      "key": "4ogr6so9",
+                      "name": "inventoryCategory",
+                      "title": "inventoryCategory",
+                      "description": "",
+                      "bsonType": "string",
+                      "isExpand": false
+                    },
+                    {
+                      "key": "td3essy7",
+                      "name": "quantity",
+                      "title": "quantity",
+                      "description": "",
+                      "bsonType": "decimal",
+                      "isExpand": false,
+                      "children": []
+                    },
+                    {
+                      "key": "ccurdd1g",
+                      "name": "index",
+                      "title": "index",
+                      "description": "",
+                      "bsonType": "int",
+                      "isExpand": false,
+                      "children": []
+                    },
+                    {
+                      "key": "105u5ewr",
+                      "name": "nextIndex",
+                      "title": "nextIndex",
+                      "description": "",
+                      "bsonType": "int",
+                      "isExpand": false,
+                      "children": []
+                    },
+                    {
+                      "key": "v8lxi8b9",
+                      "name": "movement_type",
+                      "title": "movement_type",
+                      "description": "",
+                      "bsonType": "string",
+                      "isExpand": false
+                    },
+                    {
+                      "key": "yq2fuvwn",
+                      "name": "material_id",
+                      "title": "material_id",
+                      "description": "",
+                      "bsonType": "string",
+                      "isExpand": false
+                    },
+                    {
+                      "key": "n21jk0rw",
+                      "name": "material_uom",
+                      "title": "material_uom",
+                      "description": "",
+                      "bsonType": "string",
+                      "isExpand": false
+                    },
+                    {
+                      "key": "stznry27",
+                      "name": "location_id",
+                      "title": "location_id",
+                      "description": "",
+                      "bsonType": "string",
+                      "isExpand": false
+                    },
+                    {
+                      "key": "6pzfqrpb",
+                      "name": "batch_id",
+                      "title": "batch_id",
+                      "description": "",
+                      "bsonType": "string",
+                      "isExpand": false
+                    },
+                    {
+                      "key": "zpltyq6o",
+                      "name": "parent_no",
+                      "title": "parent_no",
+                      "description": "",
+                      "bsonType": "string",
+                      "isExpand": false
+                    },
+                    {
+                      "key": "7ahcijy4",
+                      "name": "itemData",
+                      "title": "itemData",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "children": []
+                    }
+                  ]
+                },
+                "blocks": []
+              },
+              {
+                "id": "condition_or_node_zvMyWcqT",
+                "type": "condition-or-node",
+                "data": {
+                  "title": "Movement Type",
+                  "filter": { "list": [] },
+                  "expression": { "code": "" },
+                  "displayContent": "sdk.form.setCondition"
+                },
+                "blocks": [
+                  {
+                    "id": "condition_or_node_item_XNy7Lw07",
+                    "type": "condition-or-node-item",
+                    "data": {
+                      "title": "DELIVERY",
+                      "filter": {
+                        "list": [
+                          {
+                            "id": 1769753752420,
+                            "parentId": 1769753752419,
+                            "isTop": true,
+                            "prop": "node.code_node_2SqoLlxd.data.movement_type",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "DELIVERY",
+                            "type": "leaf",
+                            "level": 1,
+                            "propLabel": "movement_type",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      },
+                      "expression": { "code": "" },
+                      "displayContent": "sdk.form.setCondition",
+                      "isValidator": true,
+                      "nodeName": "DELIVERY",
+                      "name": "DELIVERY",
+                      "condition_type": "ConditionRule"
+                    },
+                    "blocks": [
+                      {
+                        "id": "workflow_node_2TTLyQHx",
+                        "type": "workflow-node",
+                        "data": {
+                          "workflow_id": "",
+                          "workflow_name": "",
+                          "input_params": {},
+                          "title": "Subtract Inventory Workflow",
+                          "isValidator": true,
+                          "nodeName": "Subtract Inventory Workflow",
+                          "name": "Subtract Inventory Workflow",
+                          "workflow": {
+                            "source": "SUBTRACT_INVENTORY_NEW:Workflow:2031973476128071681",
+                            "rules": {
+                              "collectionId": "2031973476128071681",
+                              "list": [
+                                {
+                                  "id": 1773716195384,
+                                  "parentId": 1773716195383,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            }
+                          },
+                          "remote": true,
+                          "remoteType": "innerdatasource",
+                          "body_params": {
+                            "list": [
+                              {
+                                "prop": "plant_id",
+                                "propLabel": "Plant ID",
+                                "operator": "",
+                                "operatorLabel": "",
+                                "valueType": "field",
+                                "valueTypeLabel": "",
+                                "value": "{{workflowparams:plant_id}}",
+                                "valueLabel": ""
+                              },
+                              {
+                                "prop": "organization_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:organization_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Organization ID"
+                              },
+                              {
+                                "prop": "material_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.material_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Material ID"
+                              },
+                              {
+                                "prop": "quantity",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.quantity}}",
+                                "valueLabel": "",
+                                "propLabel": "Quantity"
+                              },
+                              {
+                                "prop": "material_uom",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.material_uom}}",
+                                "valueLabel": "",
+                                "propLabel": "UOM"
+                              },
+                              {
+                                "prop": "transaction_type",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:transaction_type}}",
+                                "valueLabel": "",
+                                "propLabel": "Transaction Type"
+                              },
+                              {
+                                "prop": "trx_no",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:doc_no}}",
+                                "valueLabel": "",
+                                "propLabel": "Trx No"
+                              },
+                              {
+                                "prop": "inventory_category",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.inventoryCategory}}",
+                                "valueLabel": "",
+                                "propLabel": "Inventory Category"
+                              },
+                              {
+                                "prop": "location_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.location_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Location ID"
+                              },
+                              {
+                                "prop": "batch_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.batch_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Batch ID"
+                              },
+                              {
+                                "prop": "index",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.index}}",
+                                "valueLabel": "",
+                                "propLabel": "Index"
+                              },
+                              {
+                                "prop": "itemData",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.itemData}}",
+                                "valueLabel": "",
+                                "propLabel": "Item Data"
+                              },
+                              {
+                                "prop": "parent_trx_no",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.parent_no}}",
+                                "valueLabel": "",
+                                "propLabel": "Parent Trx No"
+                              },
+                              {
+                                "prop": "isMovingInv",
+                                "operator": "",
+                                "valueType": "value",
+                                "value": 0,
+                                "valueLabel": "",
+                                "propLabel": "Moving Inventory?"
+                              },
+                              {
+                                "prop": "doc_date",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:doc_date}}",
+                                "valueLabel": "",
+                                "propLabel": "Doc Date"
+                              }
+                            ]
+                          }
+                        },
+                        "blocks": []
+                      },
+                      {
+                        "id": "if_owDRzjxq",
+                        "type": "if",
+                        "data": {
+                          "title": "IF subtractInventory Failed",
+                          "isValidator": true,
+                          "nodeName": "IF subtractInventory Failed",
+                          "name": "IF subtractInventory Failed",
+                          "condition_type": "Expression",
+                          "filter": {
+                            "list": [
+                              {
+                                "id": 1736695973613,
+                                "parentId": 1736695973612,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          },
+                          "expression": {
+                            "type": "javascript",
+                            "code": "'{{node:workflow_node_2TTLyQHx.data.code}}' == '400'"
+                          }
+                        },
+                        "blocks": [
+                          {
+                            "id": "ifBlock_FH08Csmw",
+                            "type": "ifBlock",
+                            "data": { "title": "true" },
+                            "blocks": [
+                              {
+                                "id": "return_node_buoSCxHD",
+                                "type": "return-node",
+                                "data": {
+                                  "return_data": {},
+                                  "status_code": 200,
+                                  "title": "Return Data",
+                                  "isValidator": true,
+                                  "nodeName": "Return Data",
+                                  "name": "Return Data",
+                                  "response_value": {
+                                    "list": [
+                                      {
+                                        "prop": "code",
+                                        "propLabel": "code",
+                                        "operator": "",
+                                        "operatorLabel": "",
+                                        "valueType": "value",
+                                        "valueTypeLabel": "",
+                                        "value": "400",
+                                        "valueLabel": ""
+                                      },
+                                      {
+                                        "prop": "message",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:workflow_node_2TTLyQHx.data.errorMessage}}",
+                                        "valueLabel": "",
+                                        "propLabel": "message"
+                                      }
+                                    ]
+                                  },
+                                  "return_raw_data": 0
+                                },
+                                "blocks": []
+                              }
+                            ]
+                          },
+                          {
+                            "id": "ifBlock_uaGhGdzD",
+                            "type": "ifBlock",
+                            "data": { "title": "false" },
+                            "blocks": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "condition_or_node_item_FSXCDHiC",
+                    "type": "condition-or-node-item",
+                    "data": {
+                      "title": "UNRESTRICTED_TO_RESERVED",
+                      "filter": {
+                        "list": [
+                          {
+                            "id": 1770051627556,
+                            "parentId": 1770051627555,
+                            "isTop": true,
+                            "prop": "node.code_node_2SqoLlxd.data.movement_type",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "UNRESTRICTED_TO_RESERVED",
+                            "type": "leaf",
+                            "level": 1,
+                            "propLabel": "movement_type",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      },
+                      "expression": { "code": "" },
+                      "displayContent": "sdk.form.setCondition",
+                      "__index": 2,
+                      "isDefault": false,
+                      "isValidator": true,
+                      "nodeName": "UNRESTRICTED_TO_RESERVED",
+                      "name": "UNRESTRICTED_TO_RESERVED",
+                      "condition_type": "ConditionRule"
+                    },
+                    "blocks": [
+                      {
+                        "id": "workflow_node_HAjj58tI",
+                        "type": "workflow-node",
+                        "data": {
+                          "workflow_id": "",
+                          "workflow_name": "",
+                          "input_params": {},
+                          "title": "Subtract Inventory Workflow",
+                          "isValidator": true,
+                          "nodeName": "Subtract Inventory Workflow",
+                          "name": "Subtract Inventory Workflow",
+                          "workflow": {
+                            "source": "SUBTRACT_INVENTORY_NEW:Workflow:2031973476128071681",
+                            "rules": {
+                              "collectionId": "2031973476128071681",
+                              "list": [
+                                {
+                                  "id": 1773716201784,
+                                  "parentId": 1773716201783,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            }
+                          },
+                          "remote": true,
+                          "remoteType": "innerdatasource",
+                          "body_params": {
+                            "list": [
+                              {
+                                "prop": "plant_id",
+                                "propLabel": "Plant ID",
+                                "operator": "",
+                                "operatorLabel": "",
+                                "valueType": "field",
+                                "valueTypeLabel": "",
+                                "value": "{{workflowparams:plant_id}}",
+                                "valueLabel": ""
+                              },
+                              {
+                                "prop": "organization_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:organization_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Organization ID"
+                              },
+                              {
+                                "prop": "material_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.material_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Material ID"
+                              },
+                              {
+                                "prop": "quantity",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.quantity}}",
+                                "valueLabel": "",
+                                "propLabel": "Quantity"
+                              },
+                              {
+                                "prop": "material_uom",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.material_uom}}",
+                                "valueLabel": "",
+                                "propLabel": "UOM"
+                              },
+                              {
+                                "prop": "transaction_type",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:transaction_type}}",
+                                "valueLabel": "",
+                                "propLabel": "Transaction Type"
+                              },
+                              {
+                                "prop": "trx_no",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:doc_no}}",
+                                "valueLabel": "",
+                                "propLabel": "Trx No"
+                              },
+                              {
+                                "prop": "inventory_category",
+                                "operator": "",
+                                "valueType": "value",
+                                "value": "Unrestricted",
+                                "valueLabel": "",
+                                "propLabel": "Inventory Category"
+                              },
+                              {
+                                "prop": "location_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.location_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Location ID"
+                              },
+                              {
+                                "prop": "batch_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.batch_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Batch ID"
+                              },
+                              {
+                                "prop": "index",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.index}}",
+                                "valueLabel": "",
+                                "propLabel": "Index"
+                              },
+                              {
+                                "prop": "itemData",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.itemData}}",
+                                "valueLabel": "",
+                                "propLabel": "Item Data"
+                              },
+                              {
+                                "prop": "parent_trx_no",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.parent_no}}",
+                                "valueLabel": "",
+                                "propLabel": "Parent Trx No"
+                              },
+                              {
+                                "prop": "isMovingInv",
+                                "operator": "",
+                                "valueType": "value",
+                                "value": 1,
+                                "valueLabel": "",
+                                "propLabel": "Moving Inventory?"
+                              },
+                              {
+                                "prop": "doc_date",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:doc_date}}",
+                                "valueLabel": "",
+                                "propLabel": "Doc Date"
+                              }
+                            ]
+                          }
+                        },
+                        "blocks": []
+                      },
+                      {
+                        "id": "if_eqOpugKD",
+                        "type": "if",
+                        "data": {
+                          "title": "IF subtractInventory Failed",
+                          "isValidator": true,
+                          "nodeName": "IF subtractInventory Failed",
+                          "name": "IF subtractInventory Failed",
+                          "condition_type": "Expression",
+                          "filter": {
+                            "list": [
+                              {
+                                "id": 1736695973613,
+                                "parentId": 1736695973612,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          },
+                          "expression": {
+                            "type": "javascript",
+                            "code": "'{{node:workflow_node_HAjj58tI.data.code}}' == '400'"
+                          }
+                        },
+                        "blocks": [
+                          {
+                            "id": "ifBlock_Z6YhbHwV",
+                            "type": "ifBlock",
+                            "data": { "title": "true" },
+                            "blocks": [
+                              {
+                                "id": "return_node_eiYXmnWk",
+                                "type": "return-node",
+                                "data": {
+                                  "return_data": {},
+                                  "status_code": 200,
+                                  "title": "Return Data",
+                                  "isValidator": true,
+                                  "nodeName": "Return Data",
+                                  "name": "Return Data",
+                                  "response_value": {
+                                    "list": [
+                                      {
+                                        "prop": "code",
+                                        "propLabel": "code",
+                                        "operator": "",
+                                        "operatorLabel": "",
+                                        "valueType": "value",
+                                        "valueTypeLabel": "",
+                                        "value": "400",
+                                        "valueLabel": ""
+                                      },
+                                      {
+                                        "prop": "message",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:workflow_node_HAjj58tI.data.errorMessage}}",
+                                        "valueLabel": "",
+                                        "propLabel": "message"
+                                      }
+                                    ]
+                                  },
+                                  "return_raw_data": 0
+                                },
+                                "blocks": []
+                              }
+                            ]
+                          },
+                          {
+                            "id": "ifBlock_0O0Yf6W7",
+                            "type": "ifBlock",
+                            "data": { "title": "false" },
+                            "blocks": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "workflow_node_REo8MaTY",
+                        "type": "workflow-node",
+                        "data": {
+                          "workflow_id": "",
+                          "workflow_name": "",
+                          "input_params": {},
+                          "title": "Add Inventory Workflow",
+                          "isValidator": true,
+                          "nodeName": "Add Inventory Workflow",
+                          "name": "Add Inventory Workflow",
+                          "workflow": {
+                            "source": "ADD_INVENTORY_NEW:Workflow:2031995315136184322",
+                            "rules": {
+                              "collectionId": "2031995315136184322",
+                              "list": [
+                                {
+                                  "id": 1773716219264,
+                                  "parentId": 1773716219263,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            }
+                          },
+                          "remote": true,
+                          "remoteType": "innerdatasource",
+                          "body_params": {
+                            "list": [
+                              {
+                                "prop": "plant_id",
+                                "propLabel": "Plant ID",
+                                "operator": "",
+                                "operatorLabel": "",
+                                "valueType": "field",
+                                "valueTypeLabel": "",
+                                "value": "{{workflowparams:plant_id}}",
+                                "valueLabel": ""
+                              },
+                              {
+                                "prop": "organization_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:organization_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Organization ID"
+                              },
+                              {
+                                "prop": "material_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.material_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Material ID"
+                              },
+                              {
+                                "prop": "quantity",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.quantity}}",
+                                "valueLabel": "",
+                                "propLabel": "Quantity"
+                              },
+                              {
+                                "prop": "material_uom",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.material_uom}}",
+                                "valueLabel": "",
+                                "propLabel": "UOM"
+                              },
+                              {
+                                "prop": "unit_price",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:workflow_node_HAjj58tI.data.unit_price}}",
+                                "valueLabel": "",
+                                "propLabel": "Unit Price"
+                              },
+                              {
+                                "prop": "transaction_type",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:transaction_type}}",
+                                "valueLabel": "",
+                                "propLabel": "Transaction Type"
+                              },
+                              {
+                                "prop": "trx_no",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:doc_no}}",
+                                "valueLabel": "",
+                                "propLabel": "Trx No"
+                              },
+                              {
+                                "prop": "parent_trx_no",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.parent_no}}",
+                                "valueLabel": "",
+                                "propLabel": "Parent Trx No"
+                              },
+                              {
+                                "prop": "inventory_category",
+                                "operator": "",
+                                "valueType": "value",
+                                "value": "Reserved",
+                                "valueLabel": "",
+                                "propLabel": "Inventory Category"
+                              },
+                              {
+                                "prop": "location_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.location_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Location ID"
+                              },
+                              {
+                                "prop": "batch_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.batch_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Batch ID"
+                              },
+                              {
+                                "prop": "index",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.index}}",
+                                "valueLabel": "",
+                                "propLabel": "Index"
+                              },
+                              {
+                                "prop": "itemData",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.itemData}}",
+                                "valueLabel": "",
+                                "propLabel": "Item Data"
+                              },
+                              {
+                                "prop": "isMovingInv",
+                                "operator": "",
+                                "valueType": "value",
+                                "value": 1,
+                                "valueLabel": "",
+                                "propLabel": "Moving Inventory?"
+                              },
+                              {
+                                "prop": "doc_date",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:doc_date}}",
+                                "valueLabel": "",
+                                "propLabel": "Doc Date"
+                              },
+                              {
+                                "prop": "manufacturing_date",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:workflow_node_HAjj58tI.data.manufacturing_date}}",
+                                "valueLabel": "",
+                                "propLabel": "Manufacturing Date"
+                              },
+                              {
+                                "prop": "expired_date",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:workflow_node_HAjj58tI.data.expired_date}}",
+                                "valueLabel": "",
+                                "propLabel": "Expired Date"
+                              }
+                            ]
+                          }
+                        },
+                        "blocks": []
+                      },
+                      {
+                        "id": "if_58Qk6uz1",
+                        "type": "if",
+                        "data": {
+                          "title": "IF addInventory Failed",
+                          "isValidator": true,
+                          "nodeName": "IF addInventory Failed",
+                          "name": "IF addInventory Failed",
+                          "condition_type": "Expression",
+                          "expression": {
+                            "type": "javascript",
+                            "code": "'{{node:workflow_node_REo8MaTY.data.code}}' == '400'"
+                          },
+                          "filter": {
+                            "list": [
+                              {
+                                "id": 1736695973613,
+                                "parentId": 1736695973612,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "blocks": [
+                          {
+                            "id": "ifBlock_CpO4wrCi",
+                            "type": "ifBlock",
+                            "data": { "title": "true" },
+                            "blocks": [
+                              {
+                                "id": "return_node_MjNt5Lqc",
+                                "type": "return-node",
+                                "data": {
+                                  "return_data": {},
+                                  "status_code": 200,
+                                  "title": "Return Data",
+                                  "isValidator": true,
+                                  "nodeName": "Return Data",
+                                  "name": "Return Data",
+                                  "response_value": {
+                                    "list": [
+                                      {
+                                        "prop": "code",
+                                        "propLabel": "code",
+                                        "operator": "",
+                                        "operatorLabel": "",
+                                        "valueType": "value",
+                                        "valueTypeLabel": "",
+                                        "value": "400",
+                                        "valueLabel": ""
+                                      },
+                                      {
+                                        "prop": "message",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:workflow_node_REo8MaTY.data.errorMessage}}",
+                                        "valueLabel": "",
+                                        "propLabel": "message"
+                                      }
+                                    ]
+                                  },
+                                  "return_raw_data": 0
+                                },
+                                "blocks": []
+                              }
+                            ]
+                          },
+                          {
+                            "id": "ifBlock_ZjiLQW04",
+                            "type": "ifBlock",
+                            "data": { "title": "false" },
+                            "blocks": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "condition_or_node_item_xTo7Uyco",
+                    "type": "condition-or-node-item",
+                    "data": {
+                      "title": "RESERVED_TO_UNRESTRICTED",
+                      "isDefault": true,
+                      "filter": { "list": [] },
+                      "expression": { "code": "" },
+                      "displayContent": "sdk.form.otherCondition"
+                    },
+                    "blocks": [
+                      {
+                        "id": "workflow_node_a8ATdTVz",
+                        "type": "workflow-node",
+                        "data": {
+                          "workflow_id": "",
+                          "workflow_name": "",
+                          "input_params": {},
+                          "title": "Subtract Inventory Workflow",
+                          "isValidator": true,
+                          "nodeName": "Subtract Inventory Workflow",
+                          "name": "Subtract Inventory Workflow",
+                          "workflow": {
+                            "source": "SUBTRACT_INVENTORY_NEW:Workflow:2031973476128071681",
+                            "rules": {
+                              "collectionId": "2031973476128071681",
+                              "list": [
+                                {
+                                  "id": 1773716207024,
+                                  "parentId": 1773716207023,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            }
+                          },
+                          "remote": true,
+                          "remoteType": "innerdatasource",
+                          "body_params": {
+                            "list": [
+                              {
+                                "prop": "plant_id",
+                                "propLabel": "Plant ID",
+                                "operator": "",
+                                "operatorLabel": "",
+                                "valueType": "field",
+                                "valueTypeLabel": "",
+                                "value": "{{workflowparams:plant_id}}",
+                                "valueLabel": ""
+                              },
+                              {
+                                "prop": "organization_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:organization_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Organization ID"
+                              },
+                              {
+                                "prop": "material_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.material_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Material ID"
+                              },
+                              {
+                                "prop": "quantity",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.quantity}}",
+                                "valueLabel": "",
+                                "propLabel": "Quantity"
+                              },
+                              {
+                                "prop": "material_uom",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.material_uom}}",
+                                "valueLabel": "",
+                                "propLabel": "UOM"
+                              },
+                              {
+                                "prop": "transaction_type",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:transaction_type}}",
+                                "valueLabel": "",
+                                "propLabel": "Transaction Type"
+                              },
+                              {
+                                "prop": "trx_no",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:doc_no}}",
+                                "valueLabel": "",
+                                "propLabel": "Trx No"
+                              },
+                              {
+                                "prop": "inventory_category",
+                                "operator": "",
+                                "valueType": "value",
+                                "value": "Reserved",
+                                "valueLabel": "",
+                                "propLabel": "Inventory Category"
+                              },
+                              {
+                                "prop": "location_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.location_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Location ID"
+                              },
+                              {
+                                "prop": "batch_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.batch_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Batch ID"
+                              },
+                              {
+                                "prop": "index",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.index}}",
+                                "valueLabel": "",
+                                "propLabel": "Index"
+                              },
+                              {
+                                "prop": "itemData",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.itemData}}",
+                                "valueLabel": "",
+                                "propLabel": "Item Data"
+                              },
+                              {
+                                "prop": "parent_trx_no",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.parent_no}}",
+                                "valueLabel": "",
+                                "propLabel": "Parent Trx No"
+                              },
+                              {
+                                "prop": "isMovingInv",
+                                "operator": "",
+                                "valueType": "value",
+                                "value": 1,
+                                "valueLabel": "",
+                                "propLabel": "Moving Inventory?"
+                              },
+                              {
+                                "prop": "doc_date",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:doc_date}}",
+                                "valueLabel": "",
+                                "propLabel": "Doc Date"
+                              }
+                            ]
+                          }
+                        },
+                        "blocks": []
+                      },
+                      {
+                        "id": "if_rGjUhGMH",
+                        "type": "if",
+                        "data": {
+                          "title": "IF subtractInventory Failed",
+                          "isValidator": true,
+                          "nodeName": "IF subtractInventory Failed",
+                          "name": "IF subtractInventory Failed",
+                          "condition_type": "Expression",
+                          "filter": {
+                            "list": [
+                              {
+                                "id": 1736695973613,
+                                "parentId": 1736695973612,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          },
+                          "expression": {
+                            "type": "javascript",
+                            "code": "'{{node:workflow_node_a8ATdTVz.data.code}}' == '400'"
+                          }
+                        },
+                        "blocks": [
+                          {
+                            "id": "ifBlock_PUhJvZY1",
+                            "type": "ifBlock",
+                            "data": { "title": "true" },
+                            "blocks": [
+                              {
+                                "id": "return_node_lcFCBE9w",
+                                "type": "return-node",
+                                "data": {
+                                  "return_data": {},
+                                  "status_code": 200,
+                                  "title": "Return Data",
+                                  "isValidator": true,
+                                  "nodeName": "Return Data",
+                                  "name": "Return Data",
+                                  "response_value": {
+                                    "list": [
+                                      {
+                                        "prop": "code",
+                                        "propLabel": "code",
+                                        "operator": "",
+                                        "operatorLabel": "",
+                                        "valueType": "value",
+                                        "valueTypeLabel": "",
+                                        "value": "400",
+                                        "valueLabel": ""
+                                      },
+                                      {
+                                        "prop": "message",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:workflow_node_a8ATdTVz.data.errorMessage}}",
+                                        "valueLabel": "",
+                                        "propLabel": "message"
+                                      }
+                                    ]
+                                  },
+                                  "return_raw_data": 0
+                                },
+                                "blocks": []
+                              }
+                            ]
+                          },
+                          {
+                            "id": "ifBlock_oiIYiKXW",
+                            "type": "ifBlock",
+                            "data": { "title": "false" },
+                            "blocks": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "workflow_node_ERaEukF3",
+                        "type": "workflow-node",
+                        "data": {
+                          "workflow_id": "",
+                          "workflow_name": "",
+                          "input_params": {},
+                          "title": "Add Inventory Workflow",
+                          "isValidator": true,
+                          "nodeName": "Add Inventory Workflow",
+                          "name": "Add Inventory Workflow",
+                          "workflow": {
+                            "source": "ADD_INVENTORY_NEW:Workflow:2031995315136184322",
+                            "rules": {
+                              "collectionId": "2031995315136184322",
+                              "list": [
+                                {
+                                  "id": 1773716225386,
+                                  "parentId": 1773716225385,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            }
+                          },
+                          "remote": true,
+                          "remoteType": "innerdatasource",
+                          "body_params": {
+                            "list": [
+                              {
+                                "prop": "plant_id",
+                                "propLabel": "Plant ID",
+                                "operator": "",
+                                "operatorLabel": "",
+                                "valueType": "field",
+                                "valueTypeLabel": "",
+                                "value": "{{workflowparams:plant_id}}",
+                                "valueLabel": ""
+                              },
+                              {
+                                "prop": "organization_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:organization_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Organization ID"
+                              },
+                              {
+                                "prop": "material_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.material_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Material ID"
+                              },
+                              {
+                                "prop": "quantity",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.quantity}}",
+                                "valueLabel": "",
+                                "propLabel": "Quantity"
+                              },
+                              {
+                                "prop": "material_uom",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.material_uom}}",
+                                "valueLabel": "",
+                                "propLabel": "UOM"
+                              },
+                              {
+                                "prop": "unit_price",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:workflow_node_a8ATdTVz.data.unit_price}}",
+                                "valueLabel": "",
+                                "propLabel": "Unit Price"
+                              },
+                              {
+                                "prop": "transaction_type",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:transaction_type}}",
+                                "valueLabel": "",
+                                "propLabel": "Transaction Type"
+                              },
+                              {
+                                "prop": "trx_no",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:doc_no}}",
+                                "valueLabel": "",
+                                "propLabel": "Trx No"
+                              },
+                              {
+                                "prop": "parent_trx_no",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.parent_no}}",
+                                "valueLabel": "",
+                                "propLabel": "Parent Trx No"
+                              },
+                              {
+                                "prop": "inventory_category",
+                                "operator": "",
+                                "valueType": "value",
+                                "value": "Unrestricted",
+                                "valueLabel": "",
+                                "propLabel": "Inventory Category"
+                              },
+                              {
+                                "prop": "location_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.location_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Location ID"
+                              },
+                              {
+                                "prop": "batch_id",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.batch_id}}",
+                                "valueLabel": "",
+                                "propLabel": "Batch ID"
+                              },
+                              {
+                                "prop": "index",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.index}}",
+                                "valueLabel": "",
+                                "propLabel": "Index"
+                              },
+                              {
+                                "prop": "itemData",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:code_node_2SqoLlxd.data.itemData}}",
+                                "valueLabel": "",
+                                "propLabel": "Item Data"
+                              },
+                              {
+                                "prop": "isMovingInv",
+                                "operator": "",
+                                "valueType": "value",
+                                "value": 1,
+                                "valueLabel": "",
+                                "propLabel": "Moving Inventory?"
+                              },
+                              {
+                                "prop": "doc_date",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{workflowparams:doc_date}}",
+                                "valueLabel": "",
+                                "propLabel": "Doc Date"
+                              },
+                              {
+                                "prop": "manufacturing_date",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:workflow_node_a8ATdTVz.data.manufacturing_date}}",
+                                "valueLabel": "",
+                                "propLabel": "Manufacturing Date"
+                              },
+                              {
+                                "prop": "expired_date",
+                                "operator": "",
+                                "valueType": "field",
+                                "value": "{{node:workflow_node_a8ATdTVz.data.expired_date}}",
+                                "valueLabel": "",
+                                "propLabel": "Expired Date"
+                              }
+                            ]
+                          }
+                        },
+                        "blocks": []
+                      },
+                      {
+                        "id": "if_Tg9BHMGx",
+                        "type": "if",
+                        "data": {
+                          "title": "IF addInventory Failed",
+                          "isValidator": true,
+                          "nodeName": "IF addInventory Failed",
+                          "name": "IF addInventory Failed",
+                          "condition_type": "Expression",
+                          "expression": {
+                            "type": "javascript",
+                            "code": "'{{node:workflow_node_ERaEukF3.data.code}}' == '400'"
+                          },
+                          "filter": {
+                            "list": [
+                              {
+                                "id": 1736695973613,
+                                "parentId": 1736695973612,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "blocks": [
+                          {
+                            "id": "ifBlock_dh57Zd4W",
+                            "type": "ifBlock",
+                            "data": { "title": "true" },
+                            "blocks": [
+                              {
+                                "id": "return_node_pYdrZBBB",
+                                "type": "return-node",
+                                "data": {
+                                  "return_data": {},
+                                  "status_code": 200,
+                                  "title": "Return Data",
+                                  "isValidator": true,
+                                  "nodeName": "Return Data",
+                                  "name": "Return Data",
+                                  "response_value": {
+                                    "list": [
+                                      {
+                                        "prop": "code",
+                                        "propLabel": "code",
+                                        "operator": "",
+                                        "operatorLabel": "",
+                                        "valueType": "value",
+                                        "valueTypeLabel": "",
+                                        "value": "400",
+                                        "valueLabel": ""
+                                      },
+                                      {
+                                        "prop": "message",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:workflow_node_ERaEukF3.data.errorMessage}}",
+                                        "valueLabel": "",
+                                        "propLabel": "message"
+                                      }
+                                    ]
+                                  },
+                                  "return_raw_data": 0
+                                },
+                                "blocks": []
+                              }
+                            ]
+                          },
+                          {
+                            "id": "ifBlock_dU097ozi",
+                            "type": "ifBlock",
+                            "data": { "title": "false" },
+                            "blocks": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "set_cache_node_ykLpccU7",
+                "type": "set-cache-node",
+                "data": {
+                  "cache_key": "",
+                  "cache_value": "",
+                  "expire_time": 3600,
+                  "title": "Set inventoryMovements nextIndex",
+                  "isValidator": true,
+                  "nodeName": "Set inventoryMovements nextIndex",
+                  "name": "Set inventoryMovements nextIndex",
+                  "custom_wkbocgni": {
+                    "type": "javascript",
+                    "code": "{{node:code_node_2SqoLlxd.data.nextIndex}}"
+                  },
+                  "redis_key": "{{node:code_node_HFhAptI0.data.cacheKey}}"
+                },
+                "blocks": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "return_node_N967YzSm",
+    "type": "return-node",
+    "data": {
+      "return_data": {},
+      "status_code": 200,
+      "title": "Return Data",
+      "isValidator": true,
+      "nodeName": "Return Data",
+      "name": "Return Data",
+      "response_value": {
+        "list": [
+          {
+            "prop": "code",
+            "propLabel": "code",
+            "operator": "",
+            "operatorLabel": "",
+            "valueType": "value",
+            "valueTypeLabel": "",
+            "value": "200",
+            "valueLabel": ""
+          },
+          {
+            "prop": "message",
+            "operator": "",
+            "valueType": "value",
+            "value": "Table processed successfully",
+            "valueLabel": "",
+            "propLabel": "message"
+          }
+        ]
+      },
+      "return_raw_data": 0
+    },
+    "blocks": []
+  }
+]
