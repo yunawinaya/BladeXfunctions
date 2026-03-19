@@ -271,7 +271,9 @@ const PickingPlan = async () => {
     }
 
     const isLoadingBay = pickingSetup.data[0].is_loading_bay;
-    this.models["is_loading_bay"] = isLoadingBay;
+    await this.setData({
+      is_loading_bay: isLoadingBay,
+    });
     if (isLoadingBay) {
       await this.display([
         "table_picking_items.storage_location",

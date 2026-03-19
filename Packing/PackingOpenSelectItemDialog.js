@@ -37,6 +37,7 @@
     // Helper function to fetch balance_id for an item
     const fetchBalanceId = async (item) => {
       try {
+        console.log("Debug item", item);
         const materialId = item.item_code;
         let balanceResult;
 

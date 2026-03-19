@@ -240,6 +240,8 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
           ],
           true,
         );
+        if (!item.batch_no)
+          await this.disabled(`stock_movement.${index}.batch_no`, false);
       }
     }
   } else if (pageStatus === "View" || status === "Completed") {

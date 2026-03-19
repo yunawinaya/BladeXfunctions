@@ -343,6 +343,13 @@ if (materialId) {
             const filteredData = filterZeroQuantityRecords(finalData, itemData);
             console.log("Final filtered serialized data:", filteredData);
 
+            // Set default category to Unrestricted if not already set
+            filteredData.forEach((item) => {
+              if (!item.category) {
+                item.category = "Unrestricted";
+              }
+            });
+
             // For Stock Count, display negative sa_quantity for OUT movements
             if (adjustment_type === "Stock Count") {
               filteredData.forEach((item) => {
@@ -454,6 +461,13 @@ if (materialId) {
             const filteredData = filterZeroQuantityRecords(finalData, itemData);
             console.log("Final filtered batch data:", filteredData);
 
+            // Set default category to Unrestricted if not already set
+            filteredData.forEach((item) => {
+              if (!item.category) {
+                item.category = "Unrestricted";
+              }
+            });
+
             // For Stock Count, display negative sa_quantity for OUT movements
             if (adjustment_type === "Stock Count") {
               filteredData.forEach((item) => {
@@ -548,6 +562,13 @@ if (materialId) {
 
             const filteredData = filterZeroQuantityRecords(finalData, itemData);
             console.log("Final filtered regular data:", filteredData);
+
+            // Set default category to Unrestricted if not already set
+            filteredData.forEach((item) => {
+              if (!item.category) {
+                item.category = "Unrestricted";
+              }
+            });
 
             // For Stock Count, display negative sa_quantity for OUT movements
             if (adjustment_type === "Stock Count") {
