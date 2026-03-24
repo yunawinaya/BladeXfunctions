@@ -243,21 +243,3 @@ setTimeout(async () => {
     }, 500);
   }
 }, 500);
-
-setTimeout(async () => {
-  if (this.isAdd) {
-    await this.onDropdownVisible("table_hu.hu_no_type", true);
-    function getDefaultItem(arr) {
-      return arr?.find((item) => item?.item?.item?.is_default === 1);
-    }
-    setTimeout(() => {
-      const optionsData = this.getOptionData("table_hu.hu_no_type") || [];
-      const data = getDefaultItem(optionsData);
-      if (data) {
-        this.setData({
-          ["table_hu.hu_no_type"]: data.value,
-        });
-      }
-    }, 500);
-  }
-}, 500);
