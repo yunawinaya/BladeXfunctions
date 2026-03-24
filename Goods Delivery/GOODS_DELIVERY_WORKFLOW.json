@@ -1,6 +1,6 @@
 [
   {
-    "id": "code_node_dIlQDXKR",
+    "id": "code_node_nDcQp3WD",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -28,7 +28,7 @@
     "blocks": []
   },
   {
-    "id": "code_node_jxNsjdNJ",
+    "id": "code_node_dihIewRA",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -73,7 +73,7 @@
     "blocks": []
   },
   {
-    "id": "if_lCknlVLw",
+    "id": "if_sJSsqrwH",
     "type": "if",
     "data": {
       "title": "IF Zero Qty",
@@ -208,7 +208,7 @@
     ]
   },
   {
-    "id": "get_node_WNJ2GRiG",
+    "id": "get_node_Sgu5IBVV",
     "type": "get-node",
     "data": {
       "table_id": {
@@ -269,7 +269,7 @@
     "blocks": []
   },
   {
-    "id": "if_xBl0rC27",
+    "id": "if_sn8sthbt",
     "type": "if",
     "data": {
       "title": "IF Auto PickingMode",
@@ -1434,7 +1434,7 @@
     ]
   },
   {
-    "id": "if_YG9Bm7qV",
+    "id": "if_SIOtEAK1",
     "type": "if",
     "data": {
       "title": "IF Created",
@@ -1667,7 +1667,7 @@
     ]
   },
   {
-    "id": "code_node_NjSAwhU8",
+    "id": "code_node_pXBk5Ig5",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -1679,7 +1679,7 @@
       "name": "fillbackHeaderFields",
       "script": {
         "type": "javascript",
-        "code": "let allData = {{workflowparams:allData}};\nconst updatedGD = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst isForceComplete = {{workflowparams:isForceComplete}};\nconst pickingSetup = {{node:get_node_iFPuvJX2.data.data}};\nconst pageStatus = {{workflowparams:pageStatus}}\n\n// Track invalid rows for reporting\nconst skippedRows = [];\n\nif (pickingSetup?.picking_mode === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableGD = {{node:code_node_ymugKpln.data.tableGD}}\n  if (tableGD?.length > 0) {\n    allData.table_gd = tableGD\n  }\n}\n\nfor (const [index, gdLineItem] of allData.table_gd.entries()) {\n  // Compare using parseFloat since values are now strings\n  if (!gdLineItem.gd_qty || parseFloat(gdLineItem.gd_qty) === 0) {\n    continue;\n  }\n\n  // ============================================================================\n  // PRECAUTION: Skip if gd_qty > 0 but temp_qty_data is empty\n  // This prevents invalid state where quantity exists without allocation\n  // ============================================================================\n  const tempQtyData = gdLineItem.temp_qty_data;\n  const isEmpty =\n    !tempQtyData ||\n    tempQtyData === \"\" ||\n    tempQtyData === \"[]\" ||\n    tempQtyData === null;\n\n  if (isEmpty) {\n    skippedRows.push({\n      index: index,\n      material_code: gdLineItem.material_code || \"Unknown\",\n      material_name: gdLineItem.material_name || \"Unknown\",\n      gd_qty: gdLineItem.gd_qty,\n      so_no: gdLineItem.so_no || \"\",\n    });\n    continue;\n  }\n\n  gdLineItem.customer_id = allData.customer_name || null;\n  gdLineItem.organization_id = allData.organization_id;\n  gdLineItem.plant_id = allData.plant_id || null;\n  gdLineItem.billing_state_id = allData.billing_address_state || null;\n  gdLineItem.billing_country_id = allData.billing_address_country || null;\n  gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n  gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n  gdLineItem.assigned_to = allData.assigned_to || null;\n  gdLineItem.line_index = index + 1;\n\n  if (isForceComplete === \"Yes\") {\n    gdLineItem.picking_status = \"Completed\";\n  } else if (saveAs === \"Cancelled\") {\n    gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n  }\n\n  if (\n    pickingSetup &&\n    (!allData.picking_status || allData.picking_status === \"\") &&\n    saveAs === \"Created\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      gdLineItem.picking_status = \"Created\";\n    } else {\n      gdLineItem.picking_status = \"Not Created\";\n    }\n  }\n\n  updatedGD.push(gdLineItem);\n}\n\nallData.table_gd = updatedGD;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gd_status = \"Draft\";\n}\n\nif (\n  pickingSetup &&\n  (!allData.picking_status || allData.picking_status === \"\") &&\n  saveAs === \"Created\" &&\n  pickingSetup.picking_required === 1\n) {\n  if (pickingSetup.auto_trigger_to === 1) {\n    allData.picking_status = \"Created\";\n  } else {\n    allData.picking_status = \"Not Created\";\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\")\n    ) {\n      allData.delivery_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\" ||\n        allData.gd_status === \"Draft\")\n    ) {\n      allData.delivery_no = \"issued\";\n    }\n  }\n}\n\nlet needCL;\n\nif (allData.acc_integration_type !== \"No Accounting\" && {{workflowparams:needCL}} === \"required\") {\n  needCL = \"required\";\n} else {\n  needCL = \"not required\";\n}\n\nif (isForceComplete === \"Yes\") {\n  allData.picking_status = \"Completed\"\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n}\n\nlet needSOCleanUp = 0\n\nif (allData.gd_status === \"Created\") {\n  const originalGD = {{node:get_node_xTRvHWB8.data.data}};\n\n  // Match by so_line_item_id instead of index\n  allData.table_gd.forEach((item) => {\n    const originalItem = originalGD.table_gd?.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  if (allData.table_gd.length !== originalGD.table_gd.length) {\n    needSOCleanUp = 1\n  }\n}\n\n// Build validation report\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.index + 1}: ${row.material_code} (${row.material_name}) - qty: ${row.gd_qty}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"}`\n  ).join(\"\\n\");\n  \n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to missing allocation data (gd_qty > 0 but temp_qty_data empty):\\n\\n${rowDetails}\\n\\nThese rows may need manual allocation or the allocation workflow may have failed.`;\n}\n\nreturn {\n  allData: allData,\n  gd_status: allData.gd_status,\n  needCL: needCL,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage\n};"
+        "code": "let allData = {{workflowparams:allData}};\nconst updatedGD = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst isForceComplete = {{workflowparams:isForceComplete}};\nconst pickingSetup = {{node:get_node_iFPuvJX2.data.data}};\nconst pageStatus = {{workflowparams:pageStatus}}\n\n// Track invalid rows for reporting\nconst skippedRows = [];\n\nif (pickingSetup?.picking_mode === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableGD = {{node:code_node_ymugKpln.data.tableGD}}\n  if (tableGD?.length > 0) {\n    allData.table_gd = tableGD\n  }\n}\n\nfor (const [index, gdLineItem] of allData.table_gd.entries()) {\n  // Compare using parseFloat since values are now strings\n  if (!gdLineItem.gd_qty || parseFloat(gdLineItem.gd_qty) === 0) {\n    continue;\n  }\n\n  // ============================================================================\n  // PRECAUTION: Skip if gd_qty > 0 but temp_qty_data is empty\n  // This prevents invalid state where quantity exists without allocation\n  // ============================================================================\n  const tempQtyData = gdLineItem.temp_qty_data;\n  const isEmpty =\n    !tempQtyData ||\n    tempQtyData === \"\" ||\n    tempQtyData === \"[]\" ||\n    tempQtyData === null;\n\n  if (isEmpty) {\n    skippedRows.push({\n      index: index,\n      material_code: gdLineItem.material_code || \"Unknown\",\n      material_name: gdLineItem.material_name || \"Unknown\",\n      gd_qty: gdLineItem.gd_qty,\n      so_no: gdLineItem.so_no || \"\",\n    });\n    continue;\n  }\n\n  gdLineItem.customer_id = allData.customer_name || null;\n  gdLineItem.organization_id = allData.organization_id;\n  gdLineItem.plant_id = allData.plant_id || null;\n  gdLineItem.billing_state_id = allData.billing_address_state || null;\n  gdLineItem.billing_country_id = allData.billing_address_country || null;\n  gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n  gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n  gdLineItem.assigned_to = allData.assigned_to || null;\n  gdLineItem.area_id = allData.gd_area_id || null;\n  gdLineItem.line_index = index + 1;\n\n  if (isForceComplete === \"Yes\") {\n    gdLineItem.picking_status = \"Completed\";\n  } else if (saveAs === \"Cancelled\") {\n    gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n  }\n\n  if (\n    pickingSetup &&\n    (!allData.picking_status || allData.picking_status === \"\") &&\n    saveAs === \"Created\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      gdLineItem.picking_status = \"Created\";\n    } else {\n      gdLineItem.picking_status = \"Not Created\";\n    }\n  }\n\n  updatedGD.push(gdLineItem);\n}\n\nallData.table_gd = updatedGD;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gd_status = \"Draft\";\n}\n\nif (\n  pickingSetup &&\n  (!allData.picking_status || allData.picking_status === \"\") &&\n  saveAs === \"Created\" &&\n  pickingSetup.picking_required === 1\n) {\n  if (pickingSetup.auto_trigger_to === 1) {\n    allData.picking_status = \"Created\";\n  } else {\n    allData.picking_status = \"Not Created\";\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\")\n    ) {\n      allData.delivery_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\" ||\n        allData.gd_status === \"Draft\")\n    ) {\n      allData.delivery_no = \"issued\";\n    }\n  }\n}\n\nlet needCL;\n\nif (allData.acc_integration_type !== \"No Accounting\" && {{workflowparams:needCL}} === \"required\") {\n  needCL = \"required\";\n} else {\n  needCL = \"not required\";\n}\n\nif (isForceComplete === \"Yes\") {\n  allData.picking_status = \"Completed\"\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n}\n\nlet needSOCleanUp = 0\n\nif (allData.gd_status === \"Created\") {\n  const originalGD = {{node:get_node_xTRvHWB8.data.data}};\n\n  // Match by so_line_item_id instead of index\n  allData.table_gd.forEach((item) => {\n    const originalItem = originalGD.table_gd?.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  if (allData.table_gd.length !== originalGD.table_gd.length) {\n    needSOCleanUp = 1\n  }\n}\n\n// Build validation report\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.index + 1}: ${row.material_code} (${row.material_name}) - qty: ${row.gd_qty}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"}`\n  ).join(\"\\n\");\n  \n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to missing allocation data (gd_qty > 0 but temp_qty_data empty):\\n\\n${rowDetails}\\n\\nThese rows may need manual allocation or the allocation workflow may have failed.`;\n}\n\nreturn {\n  allData: allData,\n  gd_status: allData.gd_status,\n  needCL: needCL,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage\n};"
       },
       "response_json": [
         {
@@ -1754,7 +1754,7 @@
     "blocks": []
   },
   {
-    "id": "if_WE1x9tF5",
+    "id": "if_JXtAeMSD",
     "type": "if",
     "data": {
       "title": "IF invalidData",
@@ -1835,7 +1835,7 @@
     ]
   },
   {
-    "id": "code_node_8GGSdZEA",
+    "id": "code_node_PZXtBXDH",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -1871,7 +1871,7 @@
     "blocks": []
   },
   {
-    "id": "workflow_node_hlHx4POx",
+    "id": "workflow_node_FIV2xDur",
     "type": "workflow-node",
     "data": {
       "workflow_id": "",
@@ -1928,7 +1928,7 @@
     "blocks": []
   },
   {
-    "id": "if_5LUTNE9J",
+    "id": "if_4KExb7xf",
     "type": "if",
     "data": {
       "title": "IF Validation Failed",
@@ -2009,7 +2009,7 @@
     ]
   },
   {
-    "id": "code_node_ktaI2fLj",
+    "id": "code_node_41NK08ii",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -2046,7 +2046,7 @@
     "blocks": []
   },
   {
-    "id": "if_VihDTQgr",
+    "id": "if_VWnPIm23",
     "type": "if",
     "data": {
       "title": "IF Completed",
@@ -3001,7 +3001,7 @@
     ]
   },
   {
-    "id": "if_rPtSaUwA",
+    "id": "if_iSNRv4gO",
     "type": "if",
     "data": {
       "title": "IF !Draft",
@@ -4341,7 +4341,7 @@
     ]
   },
   {
-    "id": "code_node_soy8iIk3",
+    "id": "code_node_tgRpcb2j",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -4370,7 +4370,7 @@
     "blocks": []
   },
   {
-    "id": "if_pLLz3xev",
+    "id": "if_CTqqSUFG",
     "type": "if",
     "data": {
       "title": "IF !Draft",
@@ -5252,6 +5252,14 @@
                                     "value": "{{node:code_node_IyJHrBst.data.allData.sp_vehicle_no}}",
                                     "valueLabel": "",
                                     "propLabel": "Vehicle Number"
+                                  },
+                                  {
+                                    "prop": "gd_area_id",
+                                    "operator": "",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_IyJHrBst.data.allData.gd_area_id}}",
+                                    "valueLabel": "",
+                                    "propLabel": "Area"
                                   }
                                 ]
                               }
@@ -6059,6 +6067,14 @@
                                     "value": "{{node:code_node_IyJHrBst.data.allData.sp_vehicle_no}}",
                                     "valueLabel": "",
                                     "propLabel": "Vehicle Number"
+                                  },
+                                  {
+                                    "prop": "gd_area_id",
+                                    "operator": "",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_IyJHrBst.data.allData.gd_area_id}}",
+                                    "valueLabel": "",
+                                    "propLabel": "Area"
                                   }
                                 ]
                               }
@@ -6900,6 +6916,14 @@
                             "value": "{{node:code_node_IyJHrBst.data.allData.sp_vehicle_no}}",
                             "valueLabel": "",
                             "propLabel": "Vehicle Number"
+                          },
+                          {
+                            "prop": "gd_area_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_IyJHrBst.data.allData.gd_area_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Area"
                           }
                         ]
                       }
@@ -7016,11 +7040,11 @@
               "name": "Run GD Process Table",
               "workflow": {
                 "rules": {
-                  "collectionId": "2032273338771128322",
+                  "collectionId": "2016718099272978433",
                   "list": [
                     {
-                      "id": 1773738511925,
-                      "parentId": 1773738511924,
+                      "id": 1773902335519,
+                      "parentId": 1773902335518,
                       "isTop": true,
                       "prop": "",
                       "operator": "",
@@ -7031,7 +7055,7 @@
                     }
                   ]
                 },
-                "source": "GD_UNUSED_FN_NEW:Workflow:2032273338771128322"
+                "source": "GD_PROCESS_TABLE:Workflow:2016718099272978433"
               },
               "remote": true,
               "remoteType": "innerdatasource",
@@ -7142,14 +7166,6 @@
                     "value": "{{node:code_node_Pgtw6zFL.data.picking_plan_id}}",
                     "valueLabel": "",
                     "propLabel": "PP ID"
-                  },
-                  {
-                    "prop": "transaction_type",
-                    "operator": "",
-                    "valueType": "value",
-                    "value": "GDL",
-                    "valueLabel": "",
-                    "propLabel": "Trx Type"
                   }
                 ]
               }
@@ -9989,6 +10005,14 @@
                             "value": "{{node:code_node_IyJHrBst.data.allData.sp_vehicle_no}}",
                             "valueLabel": "",
                             "propLabel": "Vehicle Number"
+                          },
+                          {
+                            "prop": "gd_area_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_IyJHrBst.data.allData.gd_area_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Area"
                           }
                         ]
                       }
@@ -10768,6 +10792,14 @@
                             "value": "{{node:code_node_IyJHrBst.data.allData.sp_vehicle_no}}",
                             "valueLabel": "",
                             "propLabel": "Vehicle Number"
+                          },
+                          {
+                            "prop": "gd_area_id",
+                            "operator": "",
+                            "valueType": "field",
+                            "value": "{{node:code_node_IyJHrBst.data.allData.gd_area_id}}",
+                            "valueLabel": "",
+                            "propLabel": "Area"
                           }
                         ]
                       }
@@ -10783,7 +10815,7 @@
     ]
   },
   {
-    "id": "code_node_9tqmlO5L",
+    "id": "code_node_D5ZHYRsA",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -10823,7 +10855,7 @@
     "blocks": []
   },
   {
-    "id": "update_node_YZ6spfvw",
+    "id": "update_node_bi2tv7v5",
     "type": "update-node",
     "data": {
       "table_id": {
@@ -10879,7 +10911,7 @@
     "blocks": []
   },
   {
-    "id": "code_node_evKr65Q6",
+    "id": "code_node_Wkzce4VD",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -10907,7 +10939,7 @@
     "blocks": []
   },
   {
-    "id": "return_node_D2p9d2Ox",
+    "id": "return_node_bu6Eee6B",
     "type": "return-node",
     "data": {
       "return_data": {},
