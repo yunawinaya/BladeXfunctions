@@ -257,6 +257,9 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
             po_line_item_id: poItem.id,
             item_category_id: itemData?.item_category || null,
             uom_conversion: 0,
+            is_split: "No",
+            parent_or_child: "Parent",
+            parent_index: 0,
           };
 
           const isAltUOM = itemData?.table_uom_conversion?.find(
@@ -383,6 +386,9 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
           po_line_item_id: poItem.purchase_order_line_id,
           item_category_id: poItem.item?.item_category || null,
           uom_conversion: 0,
+          is_split: "No",
+          parent_or_child: "Parent",
+          parent_index: 0,
         };
 
         console.log("poItem.item", poItem.item);
@@ -480,6 +486,13 @@ const convertAltToBase = (altQty, uomConversionTable, altUOM) => {
   );
 
   const latestTableGR = [...existingGR, ...tableGR];
+
+  // Update parent_index for all Parent items to reflect their actual position
+  for (let i = 0; i < latestTableGR.length; i++) {
+    if (latestTableGR[i].parent_or_child === "Parent") {
+      latestTableGR[i].parent_index = i;
+    }
+  }
 
   poId = [...new Set(latestTableGR.map((gr) => gr.line_po_id))];
   purchaseOrderNumber = [...new Set(latestTableGR.map((gr) => gr.line_po_no))];

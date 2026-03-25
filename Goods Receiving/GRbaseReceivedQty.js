@@ -20,6 +20,13 @@ const roundQty = (value) => {
       return;
     }
 
+    // Skip calculation for split parent rows (their to_received_qty is managed by split logic)
+    const isSplit = this.getValue(`table_gr.${rowIndex}.is_split`);
+    const parentOrChild = this.getValue(`table_gr.${rowIndex}.parent_or_child`);
+    if (isSplit === "Yes" && parentOrChild === "Parent") {
+      return;
+    }
+
     // Get table values
     const orderedQty = this.getValue(`table_gr.${rowIndex}.ordered_qty`) || 0;
     const baseOrderedQty =
@@ -41,11 +48,13 @@ const roundQty = (value) => {
     // quantity is base_received_qty, divide by uomConversion to get received_qty (alt UOM)
     // Apply rounding to avoid floating-point precision issues
     const receivedQty = roundQty(
-      uomConversion > 0 ? quantity / uomConversion : quantity
+      uomConversion > 0 ? quantity / uomConversion : quantity,
     );
 
     // Calculate remaining qty in alt UOM (orderedQty, receivedQty, initialReceivedQty are all in alt UOM)
-    const toReceivedQty = roundQty(orderedQty - receivedQty - initialReceivedQty);
+    const toReceivedQty = roundQty(
+      orderedQty - receivedQty - initialReceivedQty,
+    );
 
     await this.setData({
       [`table_gr.${rowIndex}.received_qty`]: receivedQty,

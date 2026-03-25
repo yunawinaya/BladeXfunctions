@@ -20,6 +20,13 @@ const roundQty = (value) => {
       return;
     }
 
+    // Skip calculation for split parent rows (their to_received_qty is managed by split logic)
+    const isSplit = this.getValue(`table_gr.${rowIndex}.is_split`);
+    const parentOrChild = this.getValue(`table_gr.${rowIndex}.parent_or_child`);
+    if (isSplit === "Yes" && parentOrChild === "Parent") {
+      return;
+    }
+
     // Get table values
     const orderedQty = this.getValue(`table_gr.${rowIndex}.ordered_qty`) || 0;
     const baseOrderedQty =
@@ -45,7 +52,7 @@ const roundQty = (value) => {
     if (quantity >= 0 && uomConversion === 0) {
       if (quantity > toReceivedQty) {
         console.warn(
-          `Quantity (${quantity}) exceeds remaining quantity (${toReceivedQty})`
+          `Quantity (${quantity}) exceeds remaining quantity (${toReceivedQty})`,
         );
 
         await this.setData({
@@ -56,7 +63,7 @@ const roundQty = (value) => {
 
         // Show warning message
         this.$message.warning(
-          `Received quantity exceeds remaining quantity. Remaining set to 0.`
+          `Received quantity exceeds remaining quantity. Remaining set to 0.`,
         );
         return;
       } else {
@@ -70,7 +77,7 @@ const roundQty = (value) => {
         });
 
         console.log(
-          `Updated quantities - Received: ${quantity}, Remaining: ${remainingQty}`
+          `Updated quantities - Received: ${quantity}, Remaining: ${remainingQty}`,
         );
       }
     }
@@ -79,30 +86,32 @@ const roundQty = (value) => {
     if (uomConversion > 0 && quantity >= 0) {
       // Calculate base quantities using conversion (with rounding to avoid floating-point issues)
       const baseReceivedQty = roundQty(quantity * uomConversion);
-      const baseInitialReceivedQty = roundQty(initialReceivedQty * uomConversion);
+      const baseInitialReceivedQty = roundQty(
+        initialReceivedQty * uomConversion,
+      );
 
       // Validate that we don't exceed base ordered quantity
       if (roundQty(baseReceivedQty + baseInitialReceivedQty) > baseOrderedQty) {
         console.warn(
-          `Base received quantity (${
-            roundQty(baseReceivedQty + baseInitialReceivedQty)
-          }) exceeds base ordered quantity (${baseOrderedQty})`
+          `Base received quantity (${roundQty(
+            baseReceivedQty + baseInitialReceivedQty,
+          )}) exceeds base ordered quantity (${baseOrderedQty})`,
         );
 
         const maxAllowedQty = roundQty(
-          (baseOrderedQty - baseInitialReceivedQty) / uomConversion
+          (baseOrderedQty - baseInitialReceivedQty) / uomConversion,
         );
 
         await this.setData({
           [`table_gr.${rowIndex}.received_qty`]: maxAllowedQty,
           [`table_gr.${rowIndex}.base_received_qty`]: roundQty(
-            baseOrderedQty - baseInitialReceivedQty
+            baseOrderedQty - baseInitialReceivedQty,
           ),
           [`table_gr.${rowIndex}.to_received_qty`]: "0,000",
         });
 
         this.$message.warning(
-          `Received quantity adjusted to maximum allowed: ${maxAllowedQty}`
+          `Received quantity adjusted to maximum allowed: ${maxAllowedQty}`,
         );
         return;
       }
@@ -145,7 +154,7 @@ const roundQty = (value) => {
     }
 
     this.$message.error(
-      "An error occurred while calculating quantities. Please try again."
+      "An error occurred while calculating quantities. Please try again.",
     );
   }
 })();

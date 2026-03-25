@@ -5,6 +5,8 @@ const index = fieldParts[1];
 const materialId = table_gr[index].item_id;
 const initialReceivedQty = table_gr[index].initial_received_qty;
 const orderQty = table_gr[index].ordered_qty;
+const isSplit = table_gr[index].is_split;
+const parentOrChild = table_gr[index].parent_or_child;
 
 const remainingQty = orderQty - initialReceivedQty;
 
@@ -19,6 +21,22 @@ const parsedValue = parseFloat(value);
 (async () => {
   console.log("materialid", materialId);
 
+  // Skip validation for split parent rows (quantities managed by split logic)
+  if (isSplit === "Yes" && parentOrChild === "Parent") {
+    console.log("Split parent row - skipping validation");
+    window.validationState[index] = true;
+    callback();
+    return;
+  }
+
+  // Skip validation for child rows (quantities managed by split dialog)
+  if (parentOrChild === "Child") {
+    console.log("Child row - skipping validation");
+    window.validationState[index] = true;
+    callback();
+    return;
+  }
+
   // Get GR status - skip validation for Created GRs (allow over-commitment)
   const grStatus = this.getValue("gr_status");
 
@@ -32,7 +50,7 @@ const parsedValue = parseFloat(value);
     return;
   }
 
-  // For Draft/Received GRs, validate normally
+  // For Draft/Received GRs, validate normally (only for non-split parent rows)
   if (materialId) {
     const { data } = await db
       .collection("Item")
