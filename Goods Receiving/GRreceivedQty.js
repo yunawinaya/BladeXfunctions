@@ -20,10 +20,124 @@ const roundQty = (value) => {
       return;
     }
 
-    // Skip calculation for split parent rows (their to_received_qty is managed by split logic)
+    // Check if line has HU data - if quantity changed, confirm reset
+    const tempHuDataStr = this.getValue(`table_gr.${rowIndex}.temp_hu_data`);
+
+    if (tempHuDataStr && tempHuDataStr !== "[]") {
+      const tempHuData = JSON.parse(tempHuDataStr);
+      const totalStoreInQty = tempHuData.reduce(
+        (sum, hu) => sum + (parseFloat(hu.store_in_quantity) || 0),
+        0
+      );
+
+      // If new quantity differs from HU total, warn user
+      if (quantity !== totalStoreInQty) {
+        try {
+          await this.$confirm(
+            "Changing the received quantity will reset the selected Handling Units. Do you want to continue?",
+            "Warning",
+            {
+              confirmButtonText: "Yes",
+              cancelButtonText: "No",
+              type: "warning",
+            }
+          );
+
+          // User confirmed - clear temp_hu_data and view_hu
+          await this.setData({
+            [`table_gr.${rowIndex}.temp_hu_data`]: "[]",
+            [`table_gr.${rowIndex}.view_hu`]: "",
+          });
+        } catch {
+          // User cancelled - revert to HU total
+          await this.setData({
+            [`table_gr.${rowIndex}.received_qty`]: totalStoreInQty,
+          });
+          return;
+        }
+      }
+    }
+
+    // Skip calculation for split parent rows (their quantities are managed by split logic)
     const isSplit = this.getValue(`table_gr.${rowIndex}.is_split`);
     const parentOrChild = this.getValue(`table_gr.${rowIndex}.parent_or_child`);
     if (isSplit === "Yes" && parentOrChild === "Parent") {
+      return;
+    }
+
+    // For child rows: validate total children qty against parent's ordered qty
+    if (parentOrChild === "Child") {
+      const parentIndex = this.getValue(`table_gr.${rowIndex}.parent_index`);
+      const tableGR = this.getValue("table_gr");
+
+      // Find parent row to get ordered_qty
+      const parentRow = tableGR.find(
+        (row) =>
+          row.is_split === "Yes" &&
+          row.parent_or_child === "Parent" &&
+          row.parent_index === parentIndex
+      );
+
+      if (parentRow) {
+        const parentOrderedQty = parseFloat(parentRow.ordered_qty) || 0;
+        const parentInitialReceivedQty =
+          parseFloat(parentRow.initial_received_qty) || 0;
+        const parentRemainingQty = parentOrderedQty - parentInitialReceivedQty;
+
+        // Get all sibling children (excluding current row, we'll add the new value)
+        const siblingChildren = tableGR.filter(
+          (row, idx) =>
+            row.parent_or_child === "Child" &&
+            row.parent_index === parentIndex &&
+            idx !== rowIndex
+        );
+
+        // Sum siblings' received_qty
+        const siblingsTotal = siblingChildren.reduce(
+          (sum, child) => sum + (parseFloat(child.received_qty) || 0),
+          0
+        );
+
+        // Total with new value
+        const totalChildrenQty = roundQty(siblingsTotal + quantity);
+
+        // Get tolerance from item
+        const itemId = this.getValue(`table_gr.${rowIndex}.item_id`);
+        let overReceiveTolerance = 0;
+
+        if (itemId) {
+          const { data: itemData } = await db
+            .collection("Item")
+            .where({ id: itemId })
+            .get();
+          if (itemData && itemData.length > 0) {
+            overReceiveTolerance = itemData[0].over_receive_tolerance || 0;
+          }
+        }
+
+        // Calculate max allowed with tolerance
+        const maxAllowedQty = roundQty(
+          (parentRemainingQty * (100 + overReceiveTolerance)) / 100
+        );
+
+        // Validate
+        if (totalChildrenQty > maxAllowedQty) {
+          this.$message.warning(
+            `Total split quantity (${totalChildrenQty}) exceeds maximum allowed (${maxAllowedQty}).`
+          );
+        }
+      }
+
+      // Update the child's quantities
+      const uomConversion =
+        this.getValue(`table_gr.${rowIndex}.uom_conversion`) || 0;
+      const baseReceivedQty =
+        uomConversion > 0 ? roundQty(quantity * uomConversion) : quantity;
+
+      await this.setData({
+        [`table_gr.${rowIndex}.received_qty`]: quantity,
+        [`table_gr.${rowIndex}.base_received_qty`]: baseReceivedQty,
+      });
       return;
     }
 

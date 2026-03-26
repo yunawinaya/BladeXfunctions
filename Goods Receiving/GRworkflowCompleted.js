@@ -236,13 +236,67 @@ const processRow = async (item, organizationId) => {
     }
 
     // Process each row for batch number generation
+    // For split items: only parent generates batch, children inherit from parent
     const processedTableGR = [];
+
     for (const [index, item] of data.table_gr.entries()) {
       await this.validate(`table_gr.${index}.item_batch_no`);
-      const processedItem = await processRow(item, organizationId);
-      processedTableGR.push(processedItem);
+
+      // For split parent: generate batch normally
+      if (item.is_split === "Yes" && item.parent_or_child === "Parent") {
+        const processedItem = await processRow(item, organizationId);
+        processedTableGR.push(processedItem);
+      }
+      // For child: use parent's batch number and dates (don't generate new)
+      else if (item.parent_or_child === "Child") {
+        // Find parent's batch and dates from already-processed rows
+        const parentRow = processedTableGR.find(
+          (row) =>
+            row.is_split === "Yes" &&
+            row.parent_or_child === "Parent" &&
+            row.parent_index === item.parent_index,
+        );
+        if (parentRow) {
+          item.item_batch_no = parentRow.item_batch_no;
+          item.manufacturing_date = parentRow.manufacturing_date;
+          item.expired_date = parentRow.expired_date;
+        }
+        processedTableGR.push(item);
+      }
+      // For regular non-split row: generate batch as normal
+      else {
+        const processedItem = await processRow(item, organizationId);
+        processedTableGR.push(processedItem);
+      }
     }
     data.table_gr = processedTableGR;
+
+    // Recalculate split parent's received_qty from children
+    // (User can edit child quantities after splitting, so parent may be out of sync)
+    for (const item of data.table_gr) {
+      if (item.is_split === "Yes" && item.parent_or_child === "Parent") {
+        // Find all children belonging to this parent
+        const children = data.table_gr.filter(
+          (row) =>
+            row.parent_or_child === "Child" &&
+            row.parent_index === item.parent_index
+        );
+
+        // Sum children's quantities
+        const totalChildQty = children.reduce(
+          (sum, child) => sum + (parseFloat(child.received_qty) || 0),
+          0
+        );
+        const totalChildBaseQty = children.reduce(
+          (sum, child) => sum + (parseFloat(child.base_received_qty) || 0),
+          0
+        );
+
+        // Update parent with actual totals
+        item.received_qty = parseFloat(totalChildQty.toFixed(3));
+        item.base_received_qty = parseFloat(totalChildBaseQty.toFixed(3));
+      }
+    }
 
     const workflowResult = await runGRWorkflow(data, "");
     await handleWorkflowResult(workflowResult, data);

@@ -205,7 +205,11 @@ const setGrItemData = async (
 
     for (const [index, grItem] of updatedTableGR.entries()) {
       if (grItem.is_split === "Yes" && grItem.parent_or_child === "Parent") {
-        // Disable all editable fields for split parent
+        // Disable most fields for split parent, but keep editable:
+        // - item_batch_no (if manually entered)
+        // - manufacturing_date
+        // - expired_date
+        // (user fills these on parent, children inherit them)
         this.disabled(
           [
             `table_gr.${index}.received_qty`,
@@ -217,9 +221,6 @@ const setGrItemData = async (
             `table_gr.${index}.line_remark_3`,
             `table_gr.${index}.select_serial_number`,
             `table_gr.${index}.inv_category`,
-            `table_gr.${index}.item_batch_no`,
-            `table_gr.${index}.manufacturing_date`,
-            `table_gr.${index}.expired_date`,
           ],
           true
         );
@@ -232,6 +233,16 @@ const setGrItemData = async (
       } else if (grItem.parent_or_child === "Child") {
         // Disable split button for children
         this.disabled([`table_gr.${index}.button_split`], true);
+
+        // Disable batch and date fields for children (inherited from parent)
+        this.disabled(
+          [
+            `table_gr.${index}.item_batch_no`,
+            `table_gr.${index}.manufacturing_date`,
+            `table_gr.${index}.expired_date`,
+          ],
+          true
+        );
 
         // Handle serialized items
         if (grItem.is_serialized_item === 1) {

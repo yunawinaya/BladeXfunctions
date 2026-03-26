@@ -9,12 +9,32 @@
   const grItem = data.table_gr[rowIndex];
 
   // Calculate to_received_qty as ordered_qty - initial_received_qty
-  const toReceivedQty = (grItem.ordered_qty || 0) - (grItem.initial_received_qty || 0);
+  const toReceivedQty =
+    (grItem.ordered_qty || 0) - (grItem.initial_received_qty || 0);
 
   // Validate before allowing split
   if (toReceivedQty <= 0) {
     this.$message.error("Cannot split when quantity to receive is 0 or less.");
     return;
+  }
+
+  // Check if row has HU data - warn and reset before splitting
+  const tempHuDataStr = grItem.temp_hu_data;
+  if (tempHuDataStr && tempHuDataStr !== "[]") {
+    await this.$alert(
+      "Splitting this row will reset the selected Handling Units.",
+      "Warning",
+      {
+        confirmButtonText: "OK",
+        type: "warning",
+      }
+    );
+
+    // Clear temp_hu_data and view_hu
+    await this.setData({
+      [`table_gr.${rowIndex}.temp_hu_data`]: "[]",
+      [`table_gr.${rowIndex}.view_hu`]: "",
+    });
   }
 
   if (isSplit && isSplit === "Yes") {
