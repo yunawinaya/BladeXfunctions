@@ -1,6 +1,6 @@
 [
   {
-    "id": "code_node_oELR66jt",
+    "id": "code_node_JlJcHifb",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -28,7 +28,7 @@
     "blocks": []
   },
   {
-    "id": "code_node_giamfgWY",
+    "id": "code_node_afuoQEUd",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -65,7 +65,7 @@
     "blocks": []
   },
   {
-    "id": "if_SWRz6uzN",
+    "id": "if_RdojwfqQ",
     "type": "if",
     "data": {
       "title": "IF Zero Qty",
@@ -173,7 +173,7 @@
     ]
   },
   {
-    "id": "get_node_eLgnDLDb",
+    "id": "get_node_zXLNnUXS",
     "type": "get-node",
     "data": {
       "table_id": {
@@ -207,7 +207,7 @@
     "blocks": []
   },
   {
-    "id": "code_node_40SYh8Lo",
+    "id": "code_node_ZTzy9pja",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -219,7 +219,7 @@
       "name": "fillbackHeaderFields",
       "script": {
         "type": "javascript",
-        "code": "let allData = {{workflowparams:allData}}\nconst updatedGR = []\nlet saveAs = {{workflowparams:saveAs}}\nconst putawaySetup = {{node:get_node_QBrFrLs9.data.data}} || null;\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nfor (const [index, grLineItem] of allData.table_gr.entries()) {\n  // Format qty and price fields\n  grLineItem.ordered_qty = formatNumber(grLineItem.ordered_qty);\n  grLineItem.base_ordered_qty = formatNumber(grLineItem.base_ordered_qty);\n  grLineItem.to_received_qty = formatNumber(grLineItem.to_received_qty);\n  grLineItem.received_qty = formatNumber(grLineItem.received_qty);\n  grLineItem.base_received_qty = formatNumber(grLineItem.base_received_qty);\n  grLineItem.initial_received_qty = formatNumber(grLineItem.initial_received_qty);\n  grLineItem.unit_price = formatNumber(grLineItem.unit_price);\n  grLineItem.total_price = formatNumber(grLineItem.total_price);\n  grLineItem.uom_conversion = formatNumber(grLineItem.uom_conversion);\n\n  grLineItem.supplier_id = allData.supplier_name || null;\n  grLineItem.organization_id = allData.organization_id;\n  grLineItem.plant_id = allData.plant_id || null;\n  grLineItem.billing_state_id = allData.billing_address_state || null;\n  grLineItem.billing_country_id = allData.billing_address_country || null;\n  grLineItem.shipping_state_id = allData.shipping_address_state || null;\n  grLineItem.shipping_country_id = allData.shipping_address_country || null;\n  grLineItem.assigned_to = allData.assigned_to || null;\n  grLineItem.line_index = index + 1;\n\n  updatedGR.push(grLineItem)\n}\n\nallData.table_gr = updatedGR;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gr_status = \"Draft\";\n}\n\nif (saveAs === \"Draft\") {\n  if (\n    allData.gr_no_type !== -9999 &&\n    (!allData.gr_no ||\n      allData.gr_no === null ||\n      allData.gr_no === \"\")\n  ) {\n    allData.gr_no = \"draft\";\n  }\n} else {\n  if (\n    allData.gr_no_type !== -9999 &&\n    (!allData.gr_no ||\n      allData.gr_no === null ||\n      allData.gr_no === \"\" ||\n      allData.previous_status === \"Draft\")\n  ) {\n    allData.gr_no = \"issued\";\n  }\n}\n\nallData.table_gr = allData.table_gr.filter((item) => item.received_qty > 0);\n\n// Determine saveAs status based on item categories and putaway setup\nif (saveAs === \"Completed\") {\n  // Check if all items are noQI (none have \"Quality Inspection\" category)\n  const allNoQICategory = allData.table_gr.length > 0 && allData.table_gr.every(item => {\n    return item.inv_category !== \"Quality Inspection\"\n  })\n  \n  const noPutawayRequired = !putawaySetup || putawaySetup.putaway_required === 0\n  \n  if (allNoQICategory && noPutawayRequired) {\n    saveAs = \"Completed\"\n  } else {\n    saveAs = \"Received\"\n  }\n}\n\nlet poID = [];\nlet purchaseOrderNumber = [];\n\nfor (const gr of allData.table_gr) {\n  poID.push(gr.line_po_id);\n  purchaseOrderNumber.push(gr.line_po_no);\n}\n\npoID = [...new Set(poID)];\npurchaseOrderNumber = [...new Set(purchaseOrderNumber)];\n\nallData.po_id = poID;\nallData.po_no_display = purchaseOrderNumber.join(\", \");\n\nlet invalidMessage\n\nif (allData.table_gr.length === 0) {\n  invalidMessage = \"All Received Quantity must not be 0. Please add at lease one item with received quantity > 0.\"\n}\n\nconst poIds = Array.isArray(allData.po_id) ? allData.po_id : [allData.po_id];\n\nreturn {\n  allData,\n  saveAs,\n  gr_status: allData.gr_status,\n  poIds,\n  invalidMessage,\n};\n"
+        "code": "let allData = {{workflowparams:allData}}\nconst updatedGR = []\nlet saveAs = {{workflowparams:saveAs}}\nconst putawaySetup = {{node:get_node_QBrFrLs9.data.data}} || null;\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nfor (const [index, grLineItem] of allData.table_gr.entries()) {\n  // Format qty and price fields\n  grLineItem.ordered_qty = formatNumber(grLineItem.ordered_qty);\n  grLineItem.base_ordered_qty = formatNumber(grLineItem.base_ordered_qty);\n  grLineItem.to_received_qty = formatNumber(grLineItem.to_received_qty);\n  grLineItem.received_qty = formatNumber(grLineItem.received_qty);\n  grLineItem.base_received_qty = formatNumber(grLineItem.base_received_qty);\n  grLineItem.initial_received_qty = formatNumber(grLineItem.initial_received_qty);\n  grLineItem.unit_price = formatNumber(grLineItem.unit_price);\n  grLineItem.total_price = formatNumber(grLineItem.total_price);\n  grLineItem.uom_conversion = formatNumber(grLineItem.uom_conversion);\n\n  grLineItem.supplier_id = allData.supplier_name || null;\n  grLineItem.organization_id = allData.organization_id;\n  grLineItem.plant_id = allData.plant_id || null;\n  grLineItem.billing_state_id = allData.billing_address_state || null;\n  grLineItem.billing_country_id = allData.billing_address_country || null;\n  grLineItem.shipping_state_id = allData.shipping_address_state || null;\n  grLineItem.shipping_country_id = allData.shipping_address_country || null;\n  grLineItem.assigned_to = allData.assigned_to || null;\n  grLineItem.line_index = index + 1;\n\n  updatedGR.push(grLineItem)\n}\n\nallData.table_gr = updatedGR;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gr_status = \"Draft\";\n}\n\nif (saveAs === \"Draft\") {\n  if (\n    allData.gr_no_type !== -9999 &&\n    (!allData.gr_no ||\n      allData.gr_no === null ||\n      allData.gr_no === \"\")\n  ) {\n    allData.gr_no = \"draft\";\n  }\n} else {\n  if (\n    allData.gr_no_type !== -9999 &&\n    (!allData.gr_no ||\n      allData.gr_no === null ||\n      allData.gr_no === \"\" ||\n      allData.previous_status === \"Draft\")\n  ) {\n    allData.gr_no = \"issued\";\n  }\n}\n\nallData.table_gr = allData.table_gr.filter((item) => item.received_qty > 0);\n\n// Determine saveAs status based on item categories and putaway setup\nif (saveAs === \"Completed\") {\n  // Check if all items are noQI (none have \"Quality Inspection\" category)\n  const allNoQICategory = allData.table_gr.length > 0 && allData.table_gr.every(item => {\n    return item.inv_category !== \"Quality Inspection\"\n  })\n  \n  const noPutawayRequired = !putawaySetup || putawaySetup.putaway_required === 0 || putawaySetup === {}\n  \n  if (allNoQICategory && noPutawayRequired) {\n    saveAs = \"Completed\"\n  } else {\n    saveAs = \"Received\"\n  }\n}\n\nlet poID = [];\nlet purchaseOrderNumber = [];\n\nfor (const gr of allData.table_gr) {\n  poID.push(gr.line_po_id);\n  purchaseOrderNumber.push(gr.line_po_no);\n}\n\npoID = [...new Set(poID)];\npurchaseOrderNumber = [...new Set(purchaseOrderNumber)];\n\nallData.po_id = poID;\nallData.po_no_display = purchaseOrderNumber.join(\", \");\n\nlet invalidMessage\n\nif (allData.table_gr.length === 0) {\n  invalidMessage = \"All Received Quantity must not be 0. Please add at lease one item with received quantity > 0.\"\n}\n\nconst poIds = Array.isArray(allData.po_id) ? allData.po_id : [allData.po_id];\n\nreturn {\n  allData,\n  saveAs,\n  gr_status: allData.gr_status,\n  poIds,\n  invalidMessage,\n};\n"
       },
       "response_json": [
         {
@@ -281,7 +281,7 @@
     "blocks": []
   },
   {
-    "id": "if_njLVGuwI",
+    "id": "if_QY5KlSa6",
     "type": "if",
     "data": {
       "title": "IF invalidMessage",
@@ -361,7 +361,7 @@
     ]
   },
   {
-    "id": "code_node_VsIFwbSY",
+    "id": "code_node_Tt4p0KPe",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -397,7 +397,7 @@
     "blocks": []
   },
   {
-    "id": "workflow_node_i8BIE50l",
+    "id": "workflow_node_K3xtfMoc",
     "type": "workflow-node",
     "data": {
       "workflow_id": "",
@@ -454,7 +454,7 @@
     "blocks": []
   },
   {
-    "id": "if_mfIDc1M0",
+    "id": "if_UyENn7dU",
     "type": "if",
     "data": {
       "title": "IF Validation Failed",
@@ -535,7 +535,7 @@
     ]
   },
   {
-    "id": "if_KET50rfz",
+    "id": "if_jGhJ5e1N",
     "type": "if",
     "data": {
       "title": "IF !Draft",
@@ -1068,7 +1068,7 @@
     ]
   },
   {
-    "id": "if_LiQOPf7n",
+    "id": "if_HGyQiNMm",
     "type": "if",
     "data": {
       "title": "IF !Draft",
@@ -6115,7 +6115,7 @@
                               "name": "Notification Preparation",
                               "script": {
                                 "type": "javascript",
-                                "code": "const grNo = {{node:code_node_jo9g6Ldx.data.putawayData.receiving_no}} || \"\";\nconst assignedTo = {{node:code_node_jo9g6Ldx.data.putawayData.assigned_to}} || [];\nconst putawayData = {{node:add_node_RTuMAGp5.data}};\nconst toNo = putawayData[0].to_id || \"\";\n\nconst notificationParam = {\n  title: \"New Putaway Assignment\",\n  body: `You have been assigned a putaway task for Goods Receiving: ${data.gr_no}. Transfer Order: ${toNo}`,\n  userId: assignedTo,\n  data: {\n    docId: toNo,\n    deepLink: `sudumobileexpo://putaway/batch/${toNo}`,\n  },\n};\n\nreturn {\n  notificationParam\n}"
+                                "code": "const grNo = {{node:code_node_jo9g6Ldx.data.putawayData.receiving_no}} || \"\";\nconst assignedTo = {{node:code_node_jo9g6Ldx.data.putawayData.assigned_to}} || [];\nconst putawayData = {{node:add_node_RTuMAGp5.data}};\nconst toNo = putawayData[0].to_id || \"\";\n\nconst notificationParam = {\n  title: \"New Putaway Assignment\",\n  body: `You have been assigned a putaway task for Goods Receiving: ${grNo}. Transfer Order: ${toNo}`,\n  userId: assignedTo,\n  data: {\n    docId: toNo,\n    deepLink: `sudumobileexpo://putaway/batch/${toNo}`,\n  },\n};\n\nreturn {\n  notificationParam\n}"
                               },
                               "response_json": [
                                 {
@@ -7271,7 +7271,7 @@
     ]
   },
   {
-    "id": "code_node_O2vPInoy",
+    "id": "code_node_Q0auwdMK",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -7311,7 +7311,7 @@
     "blocks": []
   },
   {
-    "id": "update_node_KUBCw3lp",
+    "id": "update_node_XGIBJ0J7",
     "type": "update-node",
     "data": {
       "table_id": {
@@ -7367,7 +7367,7 @@
     "blocks": []
   },
   {
-    "id": "return_node_CBTJSccW",
+    "id": "return_node_AfEFN1ha",
     "type": "return-node",
     "data": {
       "return_data": {},
