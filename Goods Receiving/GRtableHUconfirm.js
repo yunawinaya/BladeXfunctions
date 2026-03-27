@@ -14,7 +14,7 @@
       if (!huArray || huArray.length === 0) return "";
 
       const hu = huArray[0]; // Each row has exactly 1 HU
-      const huName = hu.hu_no || hu.handling_unit_id || "New HU";
+      const huName = hu.handling_no || hu.handling_unit_id || "New HU";
       const qty = hu.store_in_quantity || 0;
 
       // Fetch material code if hu_material_id exists
@@ -91,7 +91,7 @@
             confirmButtonText: "Yes",
             cancelButtonText: "No",
             type: "warning",
-          }
+          },
         );
       } catch {
         // User cancelled - don't proceed
@@ -107,7 +107,7 @@
         // Scenario: Child row - add sibling children for each HU
         const existingChildren = tableGR.filter(
           (row) =>
-            row.parent_or_child === "Child" && row.parent_index === parentIndex
+            row.parent_or_child === "Child" && row.parent_index === parentIndex,
         );
         let nextChildNum = existingChildren.length + 1;
 

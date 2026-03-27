@@ -10,7 +10,7 @@ const setGrItemData = async (
   isSplit,
   parentOrChild,
   parentIndex,
-  selectSerialNumber = []
+  selectSerialNumber = [],
 ) => {
   return {
     // Line identification
@@ -25,7 +25,8 @@ const setGrItemData = async (
     // Quantity fields
     ordered_qty: parentOrChild === "Parent" ? itemData.ordered_qty : 0,
     ordered_qty_uom: itemData.ordered_qty_uom,
-    base_ordered_qty: parentOrChild === "Parent" ? itemData.base_ordered_qty : 0,
+    base_ordered_qty:
+      parentOrChild === "Parent" ? itemData.base_ordered_qty : 0,
     base_ordered_qty_uom: itemData.base_ordered_qty_uom,
     to_received_qty:
       parentOrChild === "Parent"
@@ -100,12 +101,13 @@ const setGrItemData = async (
     const splitDialogData = data.split_dialog;
     const tableSplit = splitDialogData.table_split;
     const rowIndex = splitDialogData.rowIndex;
+    const isParentSplit = splitDialogData.is_parent_split;
 
     // Validate total split quantity with over_receive_tolerance
     const totalSplitQty = parseFloat(
       tableSplit
         .reduce((sum, item) => sum + (parseFloat(item.received_qty) || 0), 0)
-        .toFixed(3)
+        .toFixed(3),
     );
 
     const toReceivedQty = splitDialogData.to_received_qty;
@@ -126,7 +128,7 @@ const setGrItemData = async (
 
     // Calculate maximum allowed quantity with tolerance
     const maxAllowedQty = parseFloat(
-      ((toReceivedQty * (100 + overReceiveTolerance)) / 100).toFixed(3)
+      ((toReceivedQty * (100 + overReceiveTolerance)) / 100).toFixed(3),
     );
 
     if (totalSplitQty <= 0) {
@@ -135,7 +137,7 @@ const setGrItemData = async (
 
     if (totalSplitQty > maxAllowedQty) {
       throw new Error(
-        `Total split quantity (${totalSplitQty}) exceeds maximum allowed quantity (${maxAllowedQty}) based on tolerance.`
+        `Total split quantity (${totalSplitQty}) exceeds maximum allowed quantity (${maxAllowedQty}) based on tolerance.`,
       );
     }
 
@@ -156,7 +158,7 @@ const setGrItemData = async (
           "Yes", // is_split
           "Parent",
           index,
-          grItem.select_serial_number
+          grItem.select_serial_number,
         );
         latestTableGR.push(parentItem);
 
@@ -174,7 +176,7 @@ const setGrItemData = async (
             "No", // is_split
             "Child",
             index,
-            dialogItem.select_serial_number || []
+            dialogItem.select_serial_number || [],
           );
           latestTableGR.push(childItem);
         }
@@ -192,7 +194,7 @@ const setGrItemData = async (
           grItem.is_split,
           grItem.parent_or_child,
           grItem.parent_index,
-          grItem.select_serial_number
+          grItem.select_serial_number,
         );
         latestTableGR.push(preservedItem);
       }
@@ -222,7 +224,7 @@ const setGrItemData = async (
             `table_gr.${index}.select_serial_number`,
             `table_gr.${index}.inv_category`,
           ],
-          true
+          true,
         );
 
         // Clear location fields display for parent
@@ -241,7 +243,7 @@ const setGrItemData = async (
             `table_gr.${index}.manufacturing_date`,
             `table_gr.${index}.expired_date`,
           ],
-          true
+          true,
         );
 
         // Handle serialized items
@@ -251,7 +253,7 @@ const setGrItemData = async (
               `table_gr.${index}.select_serial_number`,
               `table_gr.${index}.received_qty`,
             ],
-            true
+            true,
           );
         }
       } else {
@@ -264,7 +266,7 @@ const setGrItemData = async (
               `table_gr.${index}.select_serial_number`,
               `table_gr.${index}.received_qty`,
             ],
-            false
+            false,
           );
         }
       }
