@@ -18,6 +18,12 @@ const plantId = {{workflowparams:plant_id}};
 const organizationId = {{workflowparams:organization_id}};
 const remark = {{workflowparams:remark}};
 
+// Helper function to fix JavaScript floating-point precision issues
+const roundQty = (value, decimals = 3) => {
+  const factor = Math.pow(10, decimals);
+  return Math.round(value * factor) / factor;
+};
+
 const pickingPlanId = {{workflowparams:picking_plan_id}} || "";
 const pickingPlanLineId = {{workflowparams:picking_plan_line_id}} || "";
 
@@ -59,7 +65,7 @@ if (matchedAllocatedRecords.length > 0) {
 
   if (quantity <= totalAllocatedQty) {
     let remainingQtyToDeliver = quantity;
-    let remainingQtyToRelease = totalAllocatedQty - quantity;
+    let remainingQtyToRelease = roundQty(totalAllocatedQty - quantity);
     let unrestrictedQtyToAdd = 0;
     const releaseOrderPriority = {
       "Good Delivery": 1,
@@ -100,7 +106,7 @@ if (matchedAllocatedRecords.length > 0) {
             ...allocatedRecord,
             reserved_qty: allocatedRecord.reserved_qty,
             open_qty: 0,
-            delivered_qty: (allocatedRecord.delivered_qty || 0) + deliverFromThisRecord,
+            delivered_qty: roundQty((allocatedRecord.delivered_qty || 0) + deliverFromThisRecord),
             status: "Delivered",
             doc_id: isFromPP ? docId : allocatedRecord.doc_id,
             doc_no: isFromPP ? docNo : allocatedRecord.doc_no,
@@ -122,7 +128,7 @@ if (matchedAllocatedRecords.length > 0) {
             target_gd_id: isFromPP ? docId : allocatedRecord.target_gd_id,
           });
 
-          const remainderQty = recordQty - deliverFromThisRecord;
+          const remainderQty = roundQty(recordQty - deliverFromThisRecord);
 
           if (isFromPP) {
             const { _id, id, ...recordWithoutId } = allocatedRecord;
@@ -145,7 +151,7 @@ if (matchedAllocatedRecords.length > 0) {
               source_reserved_id: allocatedRecord.id,
               target_gd_id: null,
             };
-            unrestrictedQtyToAdd += remainderQty;
+            unrestrictedQtyToAdd = roundQty(unrestrictedQtyToAdd + remainderQty);
           } else {
             const existingPending = findExistingPendingToMerge(
               allocatedRecord.doc_type,
@@ -155,8 +161,8 @@ if (matchedAllocatedRecords.length > 0) {
             if (existingPending) {
               recordsToUpdate.push({
                 ...existingPending,
-                reserved_qty: existingPending.reserved_qty + remainderQty,
-                open_qty: existingPending.open_qty + remainderQty,
+                reserved_qty: roundQty(existingPending.reserved_qty + remainderQty),
+                open_qty: roundQty(existingPending.open_qty + remainderQty),
                 status: "Pending",
               });
             } else {
@@ -177,8 +183,8 @@ if (matchedAllocatedRecords.length > 0) {
           }
         }
 
-        remainingQtyToDeliver -= deliverFromThisRecord;
-        reservedQtyToSubtract += deliverFromThisRecord;
+        remainingQtyToDeliver = roundQty(remainingQtyToDeliver - deliverFromThisRecord);
+        reservedQtyToSubtract = roundQty(reservedQtyToSubtract + deliverFromThisRecord);
       } else if (remainingQtyToRelease > 0) {
         const releaseFromThisRecord = Math.min(recordQty, remainingQtyToRelease);
 
@@ -199,7 +205,7 @@ if (matchedAllocatedRecords.length > 0) {
               status: "Cancelled",
               target_gd_id: null,
             });
-            unrestrictedQtyToAdd += releaseFromThisRecord;
+            unrestrictedQtyToAdd = roundQty(unrestrictedQtyToAdd + releaseFromThisRecord);
           } else {
             const existingPending = findExistingPendingToMerge(
               allocatedRecord.doc_type,
@@ -209,8 +215,8 @@ if (matchedAllocatedRecords.length > 0) {
             if (existingPending) {
               recordsToUpdate.push({
                 ...existingPending,
-                reserved_qty: existingPending.reserved_qty + releaseFromThisRecord,
-                open_qty: existingPending.open_qty + releaseFromThisRecord,
+                reserved_qty: roundQty(existingPending.reserved_qty + releaseFromThisRecord),
+                open_qty: roundQty(existingPending.open_qty + releaseFromThisRecord),
                 status: "Pending",
               });
               recordsToUpdate.push({
@@ -239,8 +245,8 @@ if (matchedAllocatedRecords.length > 0) {
           } else if (isFromUnrestricted) {
             recordsToUpdate.push({
               ...allocatedRecord,
-              reserved_qty: recordQty - releaseFromThisRecord,
-              open_qty: recordQty - releaseFromThisRecord,
+              reserved_qty: roundQty(recordQty - releaseFromThisRecord),
+              open_qty: roundQty(recordQty - releaseFromThisRecord),
               status: "Allocated",
             });
 
@@ -254,13 +260,13 @@ if (matchedAllocatedRecords.length > 0) {
               source_reserved_id: allocatedRecord.id,
               target_gd_id: null,
             };
-            unrestrictedQtyToAdd += releaseFromThisRecord;
+            unrestrictedQtyToAdd = roundQty(unrestrictedQtyToAdd + releaseFromThisRecord);
           } else {
             // SO/PR: Reduce record and create pending
             recordsToUpdate.push({
               ...allocatedRecord,
-              reserved_qty: recordQty - releaseFromThisRecord,
-              open_qty: recordQty - releaseFromThisRecord,
+              reserved_qty: roundQty(recordQty - releaseFromThisRecord),
+              open_qty: roundQty(recordQty - releaseFromThisRecord),
               status: "Allocated",
             });
 
@@ -272,8 +278,8 @@ if (matchedAllocatedRecords.length > 0) {
             if (existingPending) {
               recordsToUpdate.push({
                 ...existingPending,
-                reserved_qty: existingPending.reserved_qty + releaseFromThisRecord,
-                open_qty: existingPending.open_qty + releaseFromThisRecord,
+                reserved_qty: roundQty(existingPending.reserved_qty + releaseFromThisRecord),
+                open_qty: roundQty(existingPending.open_qty + releaseFromThisRecord),
                 status: "Pending",
               });
             } else {
@@ -294,7 +300,7 @@ if (matchedAllocatedRecords.length > 0) {
           }
         }
 
-        remainingQtyToRelease -= releaseFromThisRecord;
+        remainingQtyToRelease = roundQty(remainingQtyToRelease - releaseFromThisRecord);
       }
     }
 
@@ -339,7 +345,7 @@ if (matchedAllocatedRecords.length > 0) {
         ...allocatedRecord,
         reserved_qty: allocatedRecord.reserved_qty,
         open_qty: 0,
-        delivered_qty: (allocatedRecord.delivered_qty || 0) + allocatedRecord.open_qty,
+        delivered_qty: roundQty((allocatedRecord.delivered_qty || 0) + allocatedRecord.open_qty),
         status: "Delivered",
         // Switch doc fields to GD if from PP
         doc_id: isFromPP ? docId : allocatedRecord.doc_id,
@@ -351,7 +357,7 @@ if (matchedAllocatedRecords.length > 0) {
     }
     reservedQtyToSubtract = totalAllocatedQty;
 
-    let additionalQtyNeeded = quantity - totalAllocatedQty;
+    let additionalQtyNeeded = roundQty(quantity - totalAllocatedQty);
 
     const matchedPendingRecords = existingPendingData.filter(
       (record) =>
@@ -410,8 +416,8 @@ if (matchedAllocatedRecords.length > 0) {
           doc_id: "",
           doc_no: "",
           doc_line_id: "",
-          reserved_qty: prodReceiptQty - deliverQty,
-          open_qty: prodReceiptQty - deliverQty,
+          reserved_qty: roundQty(prodReceiptQty - deliverQty),
+          open_qty: roundQty(prodReceiptQty - deliverQty),
           delivered_qty: 0,
           status: "Pending",
           source_reserved_id: pendingProdReceiptData[0].source_reserved_id || pendingProdReceiptData[0].id,
@@ -419,8 +425,8 @@ if (matchedAllocatedRecords.length > 0) {
         };
       }
 
-      reservedQtyToSubtract += deliverQty;
-      additionalQtyNeeded -= deliverQty;
+      reservedQtyToSubtract = roundQty(reservedQtyToSubtract + deliverQty);
+      additionalQtyNeeded = roundQty(additionalQtyNeeded - deliverQty);
     }
 
     if (pendingSOData.length > 0 && additionalQtyNeeded > 0) {
@@ -452,8 +458,8 @@ if (matchedAllocatedRecords.length > 0) {
           doc_id: "",
           doc_no: "",
           doc_line_id: "",
-          reserved_qty: soQty - deliverQty,
-          open_qty: soQty - deliverQty,
+          reserved_qty: roundQty(soQty - deliverQty),
+          open_qty: roundQty(soQty - deliverQty),
           delivered_qty: 0,
           status: "Pending",
           source_reserved_id: pendingSOData[0].source_reserved_id || pendingSOData[0].id,
@@ -461,8 +467,8 @@ if (matchedAllocatedRecords.length > 0) {
         };
       }
 
-      reservedQtyToSubtract += deliverQty;
-      additionalQtyNeeded -= deliverQty;
+      reservedQtyToSubtract = roundQty(reservedQtyToSubtract + deliverQty);
+      additionalQtyNeeded = roundQty(additionalQtyNeeded - deliverQty);
     }
 
     let unrestrictedQtyToAllocate = 0;
@@ -504,7 +510,7 @@ if (matchedAllocatedRecords.length > 0) {
       });
     }
 
-    const totalDeliveryQty = reservedQtyToSubtract + unrestrictedQtyToAllocate;
+    const totalDeliveryQty = roundQty(reservedQtyToSubtract + unrestrictedQtyToAllocate);
     if (totalDeliveryQty > 0) {
       inventoryMovements.push({
         source: "Reserved",
@@ -595,8 +601,8 @@ if (pendingProdReceiptData.length > 0 && remainingQtyToDeliver > 0) {
       doc_id: "",
       doc_no: "",
       doc_line_id: "",
-      reserved_qty: productionReceiptOpenQty - deliverQty,
-      open_qty: productionReceiptOpenQty - deliverQty,
+      reserved_qty: roundQty(productionReceiptOpenQty - deliverQty),
+      open_qty: roundQty(productionReceiptOpenQty - deliverQty),
       delivered_qty: 0,
       status: "Pending",
       source_reserved_id: pendingProdReceiptData[0].source_reserved_id || pendingProdReceiptData[0].id,
@@ -604,8 +610,8 @@ if (pendingProdReceiptData.length > 0 && remainingQtyToDeliver > 0) {
     };
   }
 
-  reservedQty += deliverQty;
-  remainingQtyToDeliver -= deliverQty;
+  reservedQty = roundQty(reservedQty + deliverQty);
+  remainingQtyToDeliver = roundQty(remainingQtyToDeliver - deliverQty);
 }
 
 if (pendingSOData.length > 0 && remainingQtyToDeliver > 0) {
@@ -636,8 +642,8 @@ if (pendingSOData.length > 0 && remainingQtyToDeliver > 0) {
       doc_id: "",
       doc_no: "",
       doc_line_id: "",
-      reserved_qty: salesOrderOpenQty - deliverQty,
-      open_qty: salesOrderOpenQty - deliverQty,
+      reserved_qty: roundQty(salesOrderOpenQty - deliverQty),
+      open_qty: roundQty(salesOrderOpenQty - deliverQty),
       delivered_qty: 0,
       status: "Pending",
       source_reserved_id: pendingSOData[0].source_reserved_id || pendingSOData[0].id,
@@ -645,8 +651,8 @@ if (pendingSOData.length > 0 && remainingQtyToDeliver > 0) {
     };
   }
 
-  reservedQty += deliverQty;
-  remainingQtyToDeliver -= deliverQty;
+  reservedQty = roundQty(reservedQty + deliverQty);
+  remainingQtyToDeliver = roundQty(remainingQtyToDeliver - deliverQty);
 }
 
 let unrestrictedQtyToAllocate = 0;
@@ -688,7 +694,7 @@ if (unrestrictedQtyToAllocate > 0) {
   });
 }
 
-const totalDeliveryQty = reservedQty + unrestrictedQtyToAllocate;
+const totalDeliveryQty = roundQty(reservedQty + unrestrictedQtyToAllocate);
 if (totalDeliveryQty > 0) {
   inventoryMovements.push({
     source: "Reserved",

@@ -2,6 +2,12 @@ const currentAllocatedRecords = {{node:search_node_ndtbikhX.data}};
 const existingPendingRecords = {{node:search_node_9I7tIzli.data}};
 const tableData = {{workflowparams:tableData}};
 
+// Helper function to fix JavaScript floating-point precision issues
+const roundQty = (value, decimals = 3) => {
+  const factor = Math.pow(10, decimals);
+  return Math.round(value * factor) / factor;
+};
+
 if (!currentAllocatedRecords.data || currentAllocatedRecords.data.length === 0) {
   return {
     code: "200",
@@ -93,7 +99,7 @@ for (const orphanedRecord of sortedOrphanedRecords) {
     const invKey = `${orphanedRecord.material_id}|${orphanedRecord.batch_id || ""}|${orphanedRecord.bin_location || ""}`;
     const existingMovement = inventoryMovementMap.get(invKey);
     if (existingMovement) {
-      existingMovement.quantity += releaseQty;
+      existingMovement.quantity = roundQty(existingMovement.quantity + releaseQty);
     } else {
       inventoryMovementMap.set(invKey, {
         material_id: orphanedRecord.material_id,
@@ -115,7 +121,7 @@ for (const orphanedRecord of sortedOrphanedRecords) {
 
     if (existingPending) {
       const accumulatedQty = pendingMergeAccumulator.get(existingPending.id) || 0;
-      const newAccumulatedQty = accumulatedQty + releaseQty;
+      const newAccumulatedQty = roundQty(accumulatedQty + releaseQty);
       pendingMergeAccumulator.set(existingPending.id, newAccumulatedQty);
 
       recordsToUpdate.push({
@@ -145,8 +151,8 @@ for (const [pendingId, accumulatedQty] of pendingMergeAccumulator.entries()) {
   if (existingPending) {
     recordsToUpdate.push({
       id: pendingId,
-      reserved_qty: existingPending.reserved_qty + accumulatedQty,
-      open_qty: existingPending.open_qty + accumulatedQty,
+      reserved_qty: roundQty(existingPending.reserved_qty + accumulatedQty),
+      open_qty: roundQty(existingPending.open_qty + accumulatedQty),
       status: "Pending",
     });
   }

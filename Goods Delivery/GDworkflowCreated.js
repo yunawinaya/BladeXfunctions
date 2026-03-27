@@ -30,7 +30,8 @@ const runGDWorkflow = async (data, continueZero) => {
 const handleWorkflowResult = async (workflowResult, data) => {
   if (!workflowResult || !workflowResult.data) {
     this.hideLoading();
-    this.$message.error("No response from workflow");
+    this.models["_data"] = { ...this.models["_data"], is_error: 1, is_processing: 0 };
+    this.$message.error("No response from workflow. Please contact support.");
     return;
   }
 
@@ -58,6 +59,7 @@ const handleWorkflowResult = async (workflowResult, data) => {
       await handleWorkflowResult(retryResult, data);
     } catch (e) {
       console.log("User clicked Cancel or closed the dialog");
+      this.models["_data"] = { ...this.models["_data"], is_processing: 0 };
       this.hideLoading();
     }
     return;
@@ -70,10 +72,11 @@ const handleWorkflowResult = async (workflowResult, data) => {
     workflowResult.data.success === false
   ) {
     this.hideLoading();
+    this.models["_data"] = { ...this.models["_data"], is_error: 1, is_processing: 0 };
     const errorMessage =
       workflowResult.data.msg ||
       workflowResult.data.message ||
-      "Failed to save Goods Delivery";
+      "Failed to save Goods Delivery. Please contact support.";
     this.$message.error(errorMessage);
     return;
   }
@@ -86,6 +89,7 @@ const handleWorkflowResult = async (workflowResult, data) => {
   ) {
     // Picking creation is now handled by the workflow itself
     this.hideLoading();
+    this.models["_data"] = { ...this.models["_data"], is_processing: 0 };
     const successMessage =
       workflowResult.data.message ||
       workflowResult.data.msg ||
@@ -94,23 +98,39 @@ const handleWorkflowResult = async (workflowResult, data) => {
     closeDialog();
   } else {
     this.hideLoading();
-    this.$message.error("Unknown workflow status");
+    this.models["_data"] = { ...this.models["_data"], is_error: 1, is_processing: 0 };
+    this.$message.error("Unknown workflow status. Please contact support.");
   }
 };
 
 (async () => {
   try {
-    this.showLoading("Saving Goods Delivery as Created...");
+    // Check if workflow is already processing - prevent duplicate submissions
+    if (this.models["_data"]?.is_processing === 1) {
+      this.$message.warning("Workflow is already in progress. Please wait.");
+      return;
+    }
+
+    // Check if previous workflow had an error - prevent repeated attempts
+    if (this.models["_data"]?.is_error === 1) {
+      this.$message.error("A workflow error occurred. Please contact support.");
+      return;
+    }
+
+    // Set processing flag
+    this.models["_data"] = { ...this.models["_data"], is_processing: 1 };
 
     const data = this.getValues();
+    this.showLoading("Saving Goods Delivery as Created...");
     console.log("data", data);
 
     const workflowResult = await runGDWorkflow(data, "");
     await handleWorkflowResult(workflowResult, data);
   } catch (error) {
     this.hideLoading();
+    this.models["_data"] = { ...this.models["_data"], is_error: 1, is_processing: 0 };
     console.error("Error:", error);
-    const errorMessage = error.message || "Failed to save Goods Delivery";
+    const errorMessage = error.message || "Failed to save Goods Delivery. Please contact support.";
     this.$message.error(errorMessage);
   }
 })();

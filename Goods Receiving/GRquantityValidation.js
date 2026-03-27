@@ -21,9 +21,9 @@ const parsedValue = parseFloat(value);
 (async () => {
   console.log("materialid", materialId);
 
-  // Skip validation for split parent rows (quantities managed by split logic)
+  // Skip validation for hierarchy split parent rows (quantities managed by split logic)
   if (isSplit === "Yes" && parentOrChild === "Parent") {
-    console.log("Split parent row - skipping validation");
+    console.log("Hierarchy split parent row - skipping validation");
     window.validationState[index] = true;
     callback();
     return;
@@ -36,6 +36,9 @@ const parsedValue = parseFloat(value);
     callback();
     return;
   }
+
+  // Note: Split-Parent rows fall through to normal validation
+  // They are independent and validated like regular rows
 
   // Get GR status - skip validation for Created GRs (allow over-commitment)
   const grStatus = this.getValue("gr_status");

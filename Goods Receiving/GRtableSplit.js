@@ -48,6 +48,7 @@
       [`split_dialog.item_name`]: grItem.item_name,
       [`split_dialog.to_received_qty`]: toReceivedQty,
       [`split_dialog.rowIndex`]: rowIndex,
+      [`split_dialog.is_parent_split`]: 0, // Default to hierarchy split (0), set to 1 for split-parent
     });
   }
 

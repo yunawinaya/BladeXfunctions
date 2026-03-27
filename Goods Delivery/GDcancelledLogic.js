@@ -8,6 +8,12 @@ const locationId = {{workflowparams:location_id}};
 const organizationId = {{workflowparams:organization_id}};
 const plantId = {{workflowparams:plant_id}};
 
+// Helper function to fix JavaScript floating-point precision issues
+const roundQty = (value, decimals = 3) => {
+  const factor = Math.pow(10, decimals);
+  return Math.round(value * factor) / factor;
+};
+
 const matchedAllocatedRecords = existingAllocatedData.filter(
   (record) =>
     String(record.doc_line_id) === String(docLineId) &&
@@ -74,7 +80,7 @@ for (const allocation of sortedAllocations) {
     const existingMovement = inventoryMovementMap.get(invKey);
 
     if (existingMovement) {
-      existingMovement.quantity += releaseQty;
+      existingMovement.quantity = roundQty(existingMovement.quantity + releaseQty);
     } else {
       inventoryMovementMap.set(invKey, {
         material_id: allocation.material_id,
@@ -93,7 +99,7 @@ for (const allocation of sortedAllocations) {
 
     if (existingPending) {
       const accumulatedQty = pendingMergeAccumulator.get(existingPending.id) || 0;
-      const newAccumulatedQty = accumulatedQty + releaseQty;
+      const newAccumulatedQty = roundQty(accumulatedQty + releaseQty);
       pendingMergeAccumulator.set(existingPending.id, newAccumulatedQty);
 
       recordsToUpdate.push({
@@ -124,8 +130,8 @@ for (const [pendingId, accumulatedQty] of pendingMergeAccumulator.entries()) {
   if (existingPending) {
     recordsToUpdate.push({
       id: pendingId,
-      reserved_qty: existingPending.reserved_qty + accumulatedQty,
-      open_qty: existingPending.open_qty + accumulatedQty,
+      reserved_qty: roundQty(existingPending.reserved_qty + accumulatedQty),
+      open_qty: roundQty(existingPending.open_qty + accumulatedQty),
       status: "Pending",
     });
   }

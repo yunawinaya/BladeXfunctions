@@ -236,14 +236,20 @@ const processRow = async (item, organizationId) => {
     }
 
     // Process each row for batch number generation
-    // For split items: only parent generates batch, children inherit from parent
+    // For hierarchy split: only parent generates batch, children inherit from parent
+    // For Split-Parent: each row generates its own batch independently
     const processedTableGR = [];
 
     for (const [index, item] of data.table_gr.entries()) {
       await this.validate(`table_gr.${index}.item_batch_no`);
 
-      // For split parent: generate batch normally
+      // For hierarchy split parent: generate batch normally
       if (item.is_split === "Yes" && item.parent_or_child === "Parent") {
+        const processedItem = await processRow(item, organizationId);
+        processedTableGR.push(processedItem);
+      }
+      // For Split-Parent: each row generates its own batch independently
+      else if (item.parent_or_child === "Split-Parent") {
         const processedItem = await processRow(item, organizationId);
         processedTableGR.push(processedItem);
       }
@@ -271,8 +277,9 @@ const processRow = async (item, organizationId) => {
     }
     data.table_gr = processedTableGR;
 
-    // Recalculate split parent's received_qty from children
+    // Recalculate hierarchy split parent's received_qty from children
     // (User can edit child quantities after splitting, so parent may be out of sync)
+    // Note: Split-Parent rows don't have children, so no recalculation needed for them
     for (const item of data.table_gr) {
       if (item.is_split === "Yes" && item.parent_or_child === "Parent") {
         // Find all children belonging to this parent
@@ -296,6 +303,7 @@ const processRow = async (item, organizationId) => {
         item.received_qty = parseFloat(totalChildQty.toFixed(3));
         item.base_received_qty = parseFloat(totalChildBaseQty.toFixed(3));
       }
+      // Split-Parent rows: no recalculation needed (they are independent)
     }
 
     const workflowResult = await runGRWorkflow(data, "");

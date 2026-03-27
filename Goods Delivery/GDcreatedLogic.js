@@ -18,6 +18,12 @@ const plantId = {{workflowparams:plant_id}};
 const organizationId = {{workflowparams:organization_id}};
 const remark = {{workflowparams:remark}};
 
+// Helper function to fix JavaScript floating-point precision issues
+const roundQty = (value, decimals = 3) => {
+  const factor = Math.pow(10, decimals);
+  return Math.round(value * factor) / factor;
+};
+
 const isPP = {{workflowparams:doc_type}} === "Picking Plan" ? true : false;
 const allocDocType = isPP ? "Picking Plan" : "Good Delivery";
 
@@ -37,7 +43,7 @@ if (matchedOldRecords.length > 0) {
     0,
   );
   const newQty = quantity;
-  const netChange = newQty - oldQty;
+  const netChange = roundQty(newQty - oldQty);
 
   if (netChange === 0) {
     return {
@@ -109,8 +115,8 @@ if (matchedOldRecords.length > 0) {
           if (existingPending) {
             recordsToUpdate.push({
               ...existingPending,
-              reserved_qty: existingPending.reserved_qty + releaseFromThisRecord,
-              open_qty: existingPending.open_qty + releaseFromThisRecord,
+              reserved_qty: roundQty(existingPending.reserved_qty + releaseFromThisRecord),
+              open_qty: roundQty(existingPending.open_qty + releaseFromThisRecord),
               status: "Pending",
             });
             recordsToUpdate.push({
@@ -136,8 +142,8 @@ if (matchedOldRecords.length > 0) {
       } else {
         recordsToUpdate.push({
           ...oldRecord,
-          reserved_qty: oldRecord.reserved_qty - releaseFromThisRecord,
-          open_qty: oldRecord.reserved_qty - releaseFromThisRecord,
+          reserved_qty: roundQty(oldRecord.reserved_qty - releaseFromThisRecord),
+          open_qty: roundQty(oldRecord.reserved_qty - releaseFromThisRecord),
           status: "Allocated",
           target_gd_id: docId,
         });
@@ -159,8 +165,8 @@ if (matchedOldRecords.length > 0) {
           if (existingPending) {
             recordsToUpdate.push({
               ...existingPending,
-              reserved_qty: existingPending.reserved_qty + releaseFromThisRecord,
-              open_qty: existingPending.open_qty + releaseFromThisRecord,
+              reserved_qty: roundQty(existingPending.reserved_qty + releaseFromThisRecord),
+              open_qty: roundQty(existingPending.open_qty + releaseFromThisRecord),
               status: "Pending",
             });
           } else {
@@ -180,7 +186,7 @@ if (matchedOldRecords.length > 0) {
         }
       }
 
-      remainingQtyToRelease -= releaseFromThisRecord;
+      remainingQtyToRelease = roundQty(remainingQtyToRelease - releaseFromThisRecord);
     }
 
     const inventoryMovements = [];
@@ -275,15 +281,15 @@ if (matchedOldRecords.length > 0) {
           doc_id: "",
           doc_no: "",
           doc_line_id: "",
-          reserved_qty: productionReceiptOpenQty - allocateQty,
-          open_qty: productionReceiptOpenQty - allocateQty,
+          reserved_qty: roundQty(productionReceiptOpenQty - allocateQty),
+          open_qty: roundQty(productionReceiptOpenQty - allocateQty),
           status: "Pending",
           source_reserved_id: pendingProdReceiptData[0].source_reserved_id || pendingProdReceiptData[0].id,
           target_gd_id: null,
         };
       }
 
-      remainingQtyToAllocate -= allocateQty;
+      remainingQtyToAllocate = roundQty(remainingQtyToAllocate - allocateQty);
     }
 
     if (pendingSOData.length > 0 && remainingQtyToAllocate > 0) {
@@ -316,15 +322,15 @@ if (matchedOldRecords.length > 0) {
           doc_id: "",
           doc_no: "",
           doc_line_id: "",
-          reserved_qty: salesOrderOpenQty - allocateQty,
-          open_qty: salesOrderOpenQty - allocateQty,
+          reserved_qty: roundQty(salesOrderOpenQty - allocateQty),
+          open_qty: roundQty(salesOrderOpenQty - allocateQty),
           status: "Pending",
           source_reserved_id: pendingSOData[0].source_reserved_id || pendingSOData[0].id,
           target_gd_id: null,
         };
       }
 
-      remainingQtyToAllocate -= allocateQty;
+      remainingQtyToAllocate = roundQty(remainingQtyToAllocate - allocateQty);
     }
 
     let shortfallQty = 0;
@@ -447,15 +453,15 @@ if (pendingProdReceiptData.length > 0 && remainingQtyToAllocate > 0) {
       doc_id: "",
       doc_no: "",
       doc_line_id: "",
-      reserved_qty: productionReceiptOpenQty - allocateQty,
-      open_qty: productionReceiptOpenQty - allocateQty,
+      reserved_qty: roundQty(productionReceiptOpenQty - allocateQty),
+      open_qty: roundQty(productionReceiptOpenQty - allocateQty),
       status: "Pending",
       source_reserved_id: pendingProdReceiptData[0].source_reserved_id || pendingProdReceiptData[0].id,
       target_gd_id: null,
     };
   }
 
-  remainingQtyToAllocate -= allocateQty;
+  remainingQtyToAllocate = roundQty(remainingQtyToAllocate - allocateQty);
 }
 
 if (pendingSOData.length > 0 && remainingQtyToAllocate > 0) {
@@ -488,15 +494,15 @@ if (pendingSOData.length > 0 && remainingQtyToAllocate > 0) {
       doc_id: "",
       doc_no: "",
       doc_line_id: "",
-      reserved_qty: salesOrderOpenQty - allocateQty,
-      open_qty: salesOrderOpenQty - allocateQty,
+      reserved_qty: roundQty(salesOrderOpenQty - allocateQty),
+      open_qty: roundQty(salesOrderOpenQty - allocateQty),
       status: "Pending",
       source_reserved_id: pendingSOData[0].source_reserved_id || pendingSOData[0].id,
       target_gd_id: null,
     };
   }
 
-  remainingQtyToAllocate -= allocateQty;
+  remainingQtyToAllocate = roundQty(remainingQtyToAllocate - allocateQty);
 }
 
 let shortfallQty = 0;

@@ -58,12 +58,16 @@ const roundQty = (value) => {
       }
     }
 
-    // Skip calculation for split parent rows (their quantities are managed by split logic)
+    // Skip calculation for hierarchy split parent rows (their quantities are managed by split logic)
+    // Note: Split-Parent rows are treated like regular rows (no skip)
     const isSplit = this.getValue(`table_gr.${rowIndex}.is_split`);
     const parentOrChild = this.getValue(`table_gr.${rowIndex}.parent_or_child`);
     if (isSplit === "Yes" && parentOrChild === "Parent") {
       return;
     }
+
+    // Split-Parent rows: treat like regular rows (fall through to regular logic)
+    // They are independent and can have their own quantities validated normally
 
     // For child rows: validate total children qty against parent's ordered qty
     if (parentOrChild === "Child") {
