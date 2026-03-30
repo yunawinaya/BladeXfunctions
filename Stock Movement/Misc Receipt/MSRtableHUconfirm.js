@@ -1,6 +1,6 @@
-// Helper to build a table_gr row with all fields explicitly assigned (no spread)
+// Helper to build a stock_movement row with all fields explicitly assigned (no spread)
 // This prevents shared reactive references between rows in the platform
-const buildGrRow = (
+const buildSmRow = (
   sourceItem,
   lineIndex,
   receivedQty,
@@ -11,80 +11,48 @@ const buildGrRow = (
   parentIndex,
   tempHuData,
   viewHu,
-  overrides = {},
 ) => {
-  const uomConversion = sourceItem.uom_conversion || 1;
-  const isParent = isSplit === "Yes" && parentOrChild === "Parent";
-  const isChild = parentOrChild === "Child";
-
   return {
-    // Line identification
     line_index: lineIndex,
 
     // Item information
-    item_id: sourceItem.item_id,
+    item_selection: sourceItem.item_selection,
     item_name: sourceItem.item_name,
     item_desc: sourceItem.item_desc,
-    more_desc: sourceItem.more_desc,
 
-    // Quantity fields
-    ordered_qty: isParent ? sourceItem.ordered_qty : isChild ? 0 : sourceItem.ordered_qty,
-    ordered_qty_uom: sourceItem.ordered_qty_uom,
-    base_ordered_qty: isParent ? sourceItem.base_ordered_qty : isChild ? 0 : sourceItem.base_ordered_qty,
-    base_ordered_qty_uom: sourceItem.base_ordered_qty_uom,
-    to_received_qty: isParent
-      ? (sourceItem.ordered_qty || 0) - (sourceItem.initial_received_qty || 0)
-      : receivedQty,
-    to_received_qty_uom: sourceItem.to_received_qty_uom,
-    received_qty: receivedQty,
-    base_received_qty: receivedQty * uomConversion,
-    base_received_qty_uom: sourceItem.base_received_qty_uom,
-    initial_received_qty: isChild ? 0 : sourceItem.initial_received_qty,
-    item_uom: sourceItem.item_uom,
-    base_item_uom: sourceItem.base_item_uom,
-    uom_conversion: uomConversion,
+    // Quantity
+    received_quantity: receivedQty,
+    received_quantity_uom: sourceItem.received_quantity_uom,
 
-    // Location fields
+    // Pricing
+    unit_price: sourceItem.unit_price || 0,
+    amount: receivedQty * (sourceItem.unit_price || 0),
+
+    // Location
     storage_location_id: storageLocationId,
     location_id: locationId,
 
-    // Batch and inspection
-    item_batch_no: sourceItem.item_batch_no,
+    // Batch
+    batch_id: sourceItem.batch_id,
     manufacturing_date: sourceItem.manufacturing_date,
     expired_date: sourceItem.expired_date,
-    inspection_required: sourceItem.inspection_required,
-    inv_category: sourceItem.inv_category,
 
-    // PO reference
-    line_po_no: sourceItem.line_po_no,
-    line_po_id: sourceItem.line_po_id,
-    po_line_item_id: sourceItem.po_line_item_id,
+    // Category
+    category: sourceItem.category,
 
-    // Pricing
-    unit_price: sourceItem.unit_price,
-    total_price: isParent
-      ? sourceItem.total_price
-      : receivedQty * (sourceItem.unit_price || 0),
-    item_costing_method: sourceItem.item_costing_method,
-    item_category_id: sourceItem.item_category_id,
-
-    // Serialization
+    // Serial number
     is_serialized_item: sourceItem.is_serialized_item,
-    serial_numbers: sourceItem.serial_numbers
-      ? [...sourceItem.serial_numbers]
-      : [],
     select_serial_number: sourceItem.select_serial_number
       ? [...sourceItem.select_serial_number]
       : [],
 
-    // Formula
-    has_formula: sourceItem.has_formula,
-    formula: sourceItem.formula,
+    // Stock
+    stock_summary: sourceItem.stock_summary || "",
+    balance_id: sourceItem.balance_id || "",
+    temp_qty_data: sourceItem.temp_qty_data || "",
 
-    // Remarks
-    line_remark_1: sourceItem.line_remark_1,
-    line_remark_2: sourceItem.line_remark_2,
-    line_remark_3: sourceItem.line_remark_3,
+    // UOM options (needed for dropdown)
+    uom_options: sourceItem.uom_options ? [...sourceItem.uom_options] : [],
 
     // HU data
     temp_hu_data: tempHuData,
@@ -94,10 +62,6 @@ const buildGrRow = (
     is_split: isSplit,
     parent_or_child: parentOrChild,
     parent_index: parentIndex,
-    split_source_index: sourceItem.split_source_index ?? null,
-
-    // Apply any additional overrides
-    ...overrides,
   };
 };
 
@@ -168,8 +132,8 @@ const buildGrRow = (
       return;
     }
 
-    const tableGR = data.table_gr;
-    const currentItem = tableGR[rowIndex];
+    const tableSM = data.stock_movement;
+    const currentItem = tableSM[rowIndex];
     const remainingQty = parseFloat((receivedQty - totalStoreInQty).toFixed(3));
     const parentIndex = currentItem.parent_index ?? rowIndex;
 
@@ -194,24 +158,24 @@ const buildGrRow = (
     }
 
     if (needsSplit && totalStoreInQty > 0) {
-      const latestTableGR = [];
+      const latestTableSM = [];
 
       if (currentItem.parent_or_child === "Child") {
         // Scenario: Child row - add sibling children for each HU
-        const existingChildren = tableGR.filter(
+        const existingChildren = tableSM.filter(
           (row) =>
             row.parent_or_child === "Child" && row.parent_index === parentIndex,
         );
         let nextChildNum = existingChildren.length + 1;
 
-        for (const [index, item] of tableGR.entries()) {
+        for (const [index, item] of tableSM.entries()) {
           if (index === rowIndex) {
             // First HU goes to current child row
             const firstHU = confirmedHUs[0];
             const firstHUQty = parseFloat(firstHU.store_in_quantity) || 0;
 
-            latestTableGR.push(
-              buildGrRow(
+            latestTableSM.push(
+              buildSmRow(
                 item,
                 item.line_index,
                 firstHUQty,
@@ -230,8 +194,8 @@ const buildGrRow = (
               const hu = confirmedHUs[i];
               const huQty = parseFloat(hu.store_in_quantity) || 0;
 
-              latestTableGR.push(
-                buildGrRow(
+              latestTableSM.push(
+                buildSmRow(
                   item,
                   `${parentIndex + 1} - ${nextChildNum}`,
                   huQty,
@@ -249,8 +213,8 @@ const buildGrRow = (
 
             // Sibling for remaining qty (no HU)
             if (remainingQty > 0) {
-              latestTableGR.push(
-                buildGrRow(
+              latestTableSM.push(
+                buildSmRow(
                   item,
                   `${parentIndex + 1} - ${nextChildNum}`,
                   remainingQty,
@@ -266,11 +230,11 @@ const buildGrRow = (
             }
           } else {
             // Preserve existing row (rebuild to avoid shared references)
-            latestTableGR.push(
-              buildGrRow(
+            latestTableSM.push(
+              buildSmRow(
                 item,
                 item.line_index,
-                item.received_qty,
+                item.received_quantity,
                 item.storage_location_id,
                 item.location_id,
                 item.is_split || "No",
@@ -284,11 +248,11 @@ const buildGrRow = (
         }
       } else {
         // Scenario: Regular row - create Parent + N Children + remaining
-        for (const [index, item] of tableGR.entries()) {
+        for (const [index, item] of tableSM.entries()) {
           if (index === rowIndex) {
             // Parent row (summary)
-            latestTableGR.push(
-              buildGrRow(
+            latestTableSM.push(
+              buildSmRow(
                 item,
                 parentIndex + 1,
                 receivedQty,
@@ -307,8 +271,8 @@ const buildGrRow = (
             for (const hu of confirmedHUs) {
               const huQty = parseFloat(hu.store_in_quantity) || 0;
 
-              latestTableGR.push(
-                buildGrRow(
+              latestTableSM.push(
+                buildSmRow(
                   item,
                   `${parentIndex + 1} - ${childNum}`,
                   huQty,
@@ -326,8 +290,8 @@ const buildGrRow = (
 
             // Child for remaining qty (no HU)
             if (remainingQty > 0) {
-              latestTableGR.push(
-                buildGrRow(
+              latestTableSM.push(
+                buildSmRow(
                   item,
                   `${parentIndex + 1} - ${childNum}`,
                   remainingQty,
@@ -343,11 +307,11 @@ const buildGrRow = (
             }
           } else {
             // Preserve existing row (rebuild to avoid shared references)
-            latestTableGR.push(
-              buildGrRow(
+            latestTableSM.push(
+              buildSmRow(
                 item,
                 item.line_index,
-                item.received_qty,
+                item.received_quantity,
                 item.storage_location_id,
                 item.location_id,
                 item.is_split || "No",
@@ -361,31 +325,29 @@ const buildGrRow = (
         }
       }
 
-      await this.setData({ table_gr: latestTableGR });
+      await this.setData({ stock_movement: latestTableSM });
 
       // Apply field states after split
-      const updatedTableGR = this.getValue("table_gr");
-      for (const [index, item] of updatedTableGR.entries()) {
+      const updatedTableSM = this.getValue("stock_movement");
+      for (const [index, item] of updatedTableSM.entries()) {
         if (item.is_split === "Yes" && item.parent_or_child === "Parent") {
           this.disabled(
             [
-              `table_gr.${index}.received_qty`,
-              `table_gr.${index}.base_received_qty`,
-              `table_gr.${index}.storage_location_id`,
-              `table_gr.${index}.location_id`,
-              `table_gr.${index}.select_serial_number`,
-              `table_gr.${index}.inv_category`,
-              `table_gr.${index}.button_hu`,
+              `stock_movement.${index}.received_quantity`,
+              `stock_movement.${index}.storage_location_id`,
+              `stock_movement.${index}.location_id`,
+              `stock_movement.${index}.select_serial_number`,
+              `stock_movement.${index}.category`,
+              `stock_movement.${index}.button_hu`,
             ],
             true,
           );
         } else if (item.parent_or_child === "Child") {
-          this.disabled([`table_gr.${index}.button_split`], true);
           this.disabled(
             [
-              `table_gr.${index}.item_batch_no`,
-              `table_gr.${index}.manufacturing_date`,
-              `table_gr.${index}.expired_date`,
+              `stock_movement.${index}.batch_id`,
+              `stock_movement.${index}.manufacturing_date`,
+              `stock_movement.${index}.expired_date`,
             ],
             true,
           );
@@ -405,8 +367,10 @@ const buildGrRow = (
     } else {
       // No split needed - single HU matches received qty
       await this.setData({
-        [`table_gr.${rowIndex}.temp_hu_data`]: JSON.stringify(confirmedHUs),
-        [`table_gr.${rowIndex}.view_hu`]: await formatViewHU(confirmedHUs),
+        [`stock_movement.${rowIndex}.temp_hu_data`]:
+          JSON.stringify(confirmedHUs),
+        [`stock_movement.${rowIndex}.view_hu`]:
+          await formatViewHU(confirmedHUs),
       });
 
       // Reset dialog table before closing

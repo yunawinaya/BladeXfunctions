@@ -134,6 +134,27 @@ const handleSerialNumberManagement = async (itemData, rowIndex) => {
 (async () => {
   const rowIndex = arguments[0].rowIndex;
 
+  // Check if line has HU data - if item changed, alert and reset
+  const tempHuDataStr = this.getValue(
+    `stock_movement.${rowIndex}.temp_hu_data`,
+  );
+
+  if (tempHuDataStr && tempHuDataStr !== "[]") {
+    await this.$alert(
+      "Item has been changed. The selected Handling Units have been reset.",
+      "Warning",
+      {
+        confirmButtonText: "OK",
+        type: "warning",
+      },
+    );
+
+    await this.setData({
+      [`stock_movement.${rowIndex}.temp_hu_data`]: "[]",
+      [`stock_movement.${rowIndex}.view_hu`]: "",
+    });
+  }
+
   if (arguments[0].value) {
     const allData = this.getValues();
     const defaultBin = allData.default_bin;
@@ -181,6 +202,8 @@ const handleSerialNumberManagement = async (itemData, rowIndex) => {
       [`stock_movement.${rowIndex}.stock_summary`]: "",
       [`stock_movement.${rowIndex}.balance_id`]: "",
       [`stock_movement.${rowIndex}.temp_qty_data`]: "",
+      [`stock_movement.${rowIndex}.temp_hu_data`]: "[]",
+      [`stock_movement.${rowIndex}.view_hu`]: "",
       [`stock_movement.${rowIndex}.item_name`]: "",
       [`stock_movement.${rowIndex}.item_desc`]: "",
     });
