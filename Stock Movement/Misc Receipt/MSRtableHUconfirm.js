@@ -46,6 +46,11 @@ const buildSmRow = (
       ? [...sourceItem.select_serial_number]
       : [],
 
+    // Remarks
+    item_remark: sourceItem.item_remark || "",
+    item_remark2: sourceItem.item_remark2 || "",
+    item_remark3: sourceItem.item_remark3 || "",
+
     // Stock
     stock_summary: sourceItem.stock_summary || "",
     balance_id: sourceItem.balance_id || "",

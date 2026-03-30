@@ -248,6 +248,72 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
   }
 };
 
+const applySplitFieldStates = (stockMovement) => {
+  for (const [index, item] of stockMovement.entries()) {
+    if (item.is_split === "Yes" && item.parent_or_child === "Parent") {
+      this.disabled(
+        [
+          `stock_movement.${index}.received_quantity`,
+          `stock_movement.${index}.storage_location_id`,
+          `stock_movement.${index}.location_id`,
+          `stock_movement.${index}.select_serial_number`,
+          `stock_movement.${index}.category`,
+          `stock_movement.${index}.button_hu`,
+          `stock_movement.${index}.item_remark`,
+          `stock_movement.${index}.item_remark2`,
+          `stock_movement.${index}.item_remark3`,
+        ],
+        true,
+      );
+    } else if (item.parent_or_child === "Split-Parent") {
+      this.disabled([`stock_movement.${index}.button_split`], true);
+      this.disabled(
+        [
+          `stock_movement.${index}.received_quantity`,
+          `stock_movement.${index}.storage_location_id`,
+          `stock_movement.${index}.location_id`,
+          `stock_movement.${index}.batch_id`,
+          `stock_movement.${index}.manufacturing_date`,
+          `stock_movement.${index}.expired_date`,
+          `stock_movement.${index}.category`,
+          `stock_movement.${index}.item_remark`,
+          `stock_movement.${index}.item_remark2`,
+          `stock_movement.${index}.item_remark3`,
+        ],
+        false,
+      );
+      if (item.is_serialized_item === 1) {
+        this.disabled(
+          [
+            `stock_movement.${index}.select_serial_number`,
+            `stock_movement.${index}.received_quantity`,
+          ],
+          false,
+        );
+      }
+    } else if (item.parent_or_child === "Child") {
+      this.disabled([`stock_movement.${index}.button_split`], true);
+      this.disabled(
+        [
+          `stock_movement.${index}.batch_id`,
+          `stock_movement.${index}.manufacturing_date`,
+          `stock_movement.${index}.expired_date`,
+        ],
+        true,
+      );
+      if (item.is_serialized_item === 1) {
+        this.disabled(
+          [
+            `stock_movement.${index}.select_serial_number`,
+            `stock_movement.${index}.received_quantity`,
+          ],
+          true,
+        );
+      }
+    }
+  }
+};
+
 const setPlant = (organizationId, pageStatus) => {
   const currentDept = this.getVarSystem("deptIds").split(",")[0];
   const isSameDept = currentDept === organizationId;
@@ -350,6 +416,7 @@ setTimeout(async () => {
         break;
 
       case "Edit":
+        this.setData({ page_status: pageStatus });
         this.hide(CONFIG.fields.hide);
         configureFields();
         configureButtons(pageStatus, data.stock_movement_status);
@@ -370,6 +437,7 @@ setTimeout(async () => {
           await filterInvCategory(data.stock_movement);
           await viewSerialNumber();
           await setStorageLocation(plantId);
+          applySplitFieldStates(data.stock_movement);
         }
 
         showStatusHTML(data.stock_movement_status);
@@ -402,19 +470,21 @@ setTimeout(async () => {
 }, 500);
 
 setTimeout(async () => {
-  if (this.isAdd) {
+  if (!this.isAdd) return;
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
     const op = await this.onDropdownVisible("stock_movement_no_type", true);
-    function getDefaultItem(arr) {
-      return arr?.find((item) => item?.item?.item?.is_default === 1);
-    }
-    setTimeout(() => {
-      const optionsData = this.getOptionData("stock_movement_no_type") || [];
-      const data = getDefaultItem(optionsData);
-      if (data) {
-        this.setData({
-          stock_movement_no_type: data.value,
-        });
-      }
-    }, 500);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+
+  const optionsData = this.getOptionData("stock_movement_no_type") || [];
+  const data = getDefaultItem(optionsData);
+  if (data) {
+    this.setData({ stock_movement_no_type: data.value });
   }
 }, 500);
