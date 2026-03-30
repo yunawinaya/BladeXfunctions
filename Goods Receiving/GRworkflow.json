@@ -1,6 +1,6 @@
 [
   {
-    "id": "code_node_JlJcHifb",
+    "id": "code_node_oHN9Xj9H",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -28,7 +28,7 @@
     "blocks": []
   },
   {
-    "id": "code_node_afuoQEUd",
+    "id": "code_node_2JIKJxkp",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -65,7 +65,7 @@
     "blocks": []
   },
   {
-    "id": "if_RdojwfqQ",
+    "id": "if_uj415jLR",
     "type": "if",
     "data": {
       "title": "IF Zero Qty",
@@ -173,7 +173,7 @@
     ]
   },
   {
-    "id": "get_node_zXLNnUXS",
+    "id": "get_node_kMJTN7fS",
     "type": "get-node",
     "data": {
       "table_id": {
@@ -207,7 +207,7 @@
     "blocks": []
   },
   {
-    "id": "code_node_ZTzy9pja",
+    "id": "code_node_I8yaKOAC",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -281,7 +281,7 @@
     "blocks": []
   },
   {
-    "id": "if_QY5KlSa6",
+    "id": "if_R288EqXF",
     "type": "if",
     "data": {
       "title": "IF invalidMessage",
@@ -361,7 +361,7 @@
     ]
   },
   {
-    "id": "code_node_Tt4p0KPe",
+    "id": "code_node_aQWBuin9",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -397,7 +397,7 @@
     "blocks": []
   },
   {
-    "id": "workflow_node_K3xtfMoc",
+    "id": "workflow_node_l57D2I0V",
     "type": "workflow-node",
     "data": {
       "workflow_id": "",
@@ -454,7 +454,7 @@
     "blocks": []
   },
   {
-    "id": "if_UyENn7dU",
+    "id": "if_JIFSXRPm",
     "type": "if",
     "data": {
       "title": "IF Validation Failed",
@@ -535,7 +535,7 @@
     ]
   },
   {
-    "id": "if_jGhJ5e1N",
+    "id": "if_BvN0G5uq",
     "type": "if",
     "data": {
       "title": "IF !Draft",
@@ -1068,7 +1068,7 @@
     ]
   },
   {
-    "id": "if_HGyQiNMm",
+    "id": "if_ywideIYE",
     "type": "if",
     "data": {
       "title": "IF !Draft",
@@ -2197,7 +2197,7 @@
                   "name": "Subform Preparation",
                   "script": {
                     "type": "javascript",
-                    "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\nconst page_status = {{workflowparams:pageStatus}};\nconst gr_status = {{node:code_node_4r2Fv9G5.data.gr_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_nGMSu41b.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_UeM3HpzR.data.data}};\n} else {\n  allData = {{node:code_node_4r2Fv9G5.data.allData}};\n}\n\nconst subformData = allData.table_gr;\nconst currentIndexRaw = {{node:get_cache_node_5vPHf6xv.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.plant_id;\nconst organization_id = allData.organization_id;\nconst gr_no = allData.gr_no;\nconst doc_date = allData.gr_date;\n\nconst item = subformData[index];\nconst material_id = item.item_id;\nconst material_uom = item.item_uom || item.ordered_uom;\nconst quantity = item.received_qty;\nconst unit_price = item.unit_price;\nconst location_id = item.location_id;\nconst batch_no = item.item_batch_no || null;\nconst remark = item.line_remark_1 || null;\nconst remark2 = item.line_remark_2 || null;\nconst remark3 = item.line_remark_3 || null;\nconst inventory_category = item.inv_category || \"Unrestricted\";\nconst manufacturing_date = item.manufacturing_date || null;\nconst expired_date = item.expired_date || null;\nconst po_no = item.line_po_no || \"\";\nconst po_id = item.line_po_id || \"\";\nconst po_line_id = item.po_line_item_id || \"\";\nconst onOrderQty = roundQty(item.base_received_qty) || roundQty(item.received_qty) || 0;\n\n// === NEW: Split detection fields ===\nconst is_split = item.is_split || \"No\";\nconst parent_or_child = item.parent_or_child || \"Parent\";\nconst parent_index = item.parent_index;\n\n// === UPDATED: skipInventory logic ===\n// Skip if: no material_id OR split parent row\nconst isSplitParent = is_split === \"Yes\" && parent_or_child === \"Parent\";\nconst skipInventory = (!material_id || isSplitParent) ? 1 : 0;\n\n// === NEW: isChild flag for easier branching ===\nconst isChild = parent_or_child === \"Child\" ? 1 : 0;\n\nreturn {\n  skipInventory: skipInventory,\n  plant_id: plant_id,\n  organization_id: organization_id,\n  gr_no: gr_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  quantity: quantity,\n  unit_price: unit_price,\n  location_id: location_id,\n  batch_no: batch_no,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  index: index,\n  nextIndex: index + 1,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  po_no: po_no,\n  po_id: po_id,\n  po_line_id: po_line_id,\n  onOrderQty: onOrderQty,\n  grData: allData,\n  grItem: item,\n  is_split: is_split,\n  parent_or_child: parent_or_child,\n  parent_index: parent_index,\n  isChild: isChild,\n  isSplitParent: isSplitParent ? 1 : 0,\n};"
+                    "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\nconst page_status = {{workflowparams:pageStatus}};\nconst gr_status = {{node:code_node_4r2Fv9G5.data.gr_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_nGMSu41b.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_UeM3HpzR.data.data}};\n} else {\n  allData = {{node:code_node_4r2Fv9G5.data.allData}};\n}\n\nconst subformData = allData.table_gr;\nconst currentIndexRaw = {{node:get_cache_node_5vPHf6xv.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.plant_id;\nconst organization_id = allData.organization_id;\nconst gr_no = allData.gr_no;\nconst doc_date = allData.gr_date;\n\nconst item = subformData[index];\nconst material_id = item.item_id;\nconst material_uom = item.item_uom || item.ordered_uom;\nconst quantity = item.received_qty;\nconst unit_price = item.unit_price;\nconst storage_location_id = item.storage_location_id;\nconst location_id = item.location_id;\nconst batch_no = item.item_batch_no || null;\nconst remark = item.line_remark_1 || null;\nconst remark2 = item.line_remark_2 || null;\nconst remark3 = item.line_remark_3 || null;\nconst inventory_category = item.inv_category || \"Unrestricted\";\nconst manufacturing_date = item.manufacturing_date || null;\nconst expired_date = item.expired_date || null;\nconst po_no = item.line_po_no || \"\";\nconst po_id = item.line_po_id || \"\";\nconst po_line_id = item.po_line_item_id || \"\";\nconst onOrderQty = roundQty(item.base_received_qty) || roundQty(item.received_qty) || 0;\n\n// === NEW: Split detection fields ===\nconst is_split = item.is_split || \"No\";\nconst parent_or_child = item.parent_or_child || \"Parent\";\nconst parent_index = item.parent_index;\n\n// === UPDATED: skipInventory logic ===\n// Skip if: no material_id OR split parent row\nconst isSplitParent = is_split === \"Yes\" && parent_or_child === \"Parent\";\nconst skipInventory = (!material_id || isSplitParent) ? 1 : 0;\n\n// === NEW: isChild flag for easier branching ===\nconst isChild = parent_or_child === \"Child\" ? 1 : 0;\n\nreturn {\n  skipInventory: skipInventory,\n  plant_id: plant_id,\n  organization_id: organization_id,\n  gr_no: gr_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  quantity: quantity,\n  unit_price: unit_price,\n  storage_location_id: storage_location_id,\n  location_id: location_id,\n  batch_no: batch_no,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  index: index,\n  nextIndex: index + 1,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  po_no: po_no,\n  po_id: po_id,\n  po_line_id: po_line_id,\n  onOrderQty: onOrderQty,\n  grData: allData,\n  grItem: item,\n  is_split: is_split,\n  parent_or_child: parent_or_child,\n  parent_index: parent_index,\n  isChild: isChild,\n  isSplitParent: isSplitParent ? 1 : 0,\n};"
                   },
                   "response_json": [
                     {
@@ -2474,6 +2474,14 @@
                       "bsonType": "int",
                       "isExpand": false,
                       "children": []
+                    },
+                    {
+                      "key": "9w9ulshe",
+                      "name": "storage_location_id",
+                      "title": "storage_location_id",
+                      "description": "",
+                      "bsonType": "string",
+                      "isExpand": false
                     }
                   ]
                 },
@@ -3530,6 +3538,293 @@
                           },
                           {
                             "id": "ifBlock_6u7qjPp2",
+                            "type": "ifBlock",
+                            "data": { "title": "false" },
+                            "blocks": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "code_node_ngFX3hcL",
+                        "type": "code-node",
+                        "data": {
+                          "language": "javascript",
+                          "code": "",
+                          "timeout": 30000,
+                          "title": "HU Preparation",
+                          "isValidator": true,
+                          "nodeName": "HU Preparation",
+                          "name": "HU Preparation",
+                          "script": {
+                            "type": "javascript",
+                            "code": "const item = {{node:code_node_D9IbUV8t.data.grItem}};\n\nconst tempHuDataStr = item.temp_hu_data || \"[]\";\nlet tempHuData = [];\nlet hasHuData = 0;\nlet huItem = null;\n\ntempHuData = JSON.parse(tempHuDataStr);\nif (Array.isArray(tempHuData) && tempHuData.length > 0) {\n  hasHuData = 1;\n  huItem = tempHuData[0];\n} else {\n  tempHuData = [];\n  hasHuData = 0;\n}\n\nconst table_hu_items = hasHuData\n  ? [\n      {\n        material_id: item.item_id,\n        material_name: item.item_name,\n        material_desc: item.item_desc,\n        location_id: item.location_id,\n        batch_id: {{node:workflow_node_bThL52BP.data.batchId}} || null,\n        material_uom: item.base_item_uom || item.item_uom,\n        quantity: item.base_received_qty || huItem?.store_in_quantity || 0,\n        balance_id: {{node:workflow_node_bThL52BP.data.balanceId}} || \"\",\n      },\n    ]\n  : [];\n\nreturn {\n  table_hu_items,\n  hasHuData,\n  handling_unit_id: huItem?.handling_unit_id || \"\",\n  handling_no: huItem?.handling_no || \"\",\n  hu_material_id: huItem?.hu_material_id || \"\",\n  hu_type: huItem?.hu_type || \"\",\n  hu_uom: huItem?.hu_uom || \"\",\n  remark: huItem?.remark || \"\",\n}"
+                          },
+                          "response_json": [
+                            {
+                              "key": "l67fu7mr",
+                              "name": "table_hu_items",
+                              "title": "table_hu_items",
+                              "description": "",
+                              "bsonType": "array",
+                              "isExpand": true,
+                              "children": [
+                                {
+                                  "key": "59m0exgc",
+                                  "name": "items",
+                                  "title": "",
+                                  "description": "",
+                                  "bsonType": "any",
+                                  "isExpand": false,
+                                  "isArrayItem": true,
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "key": "tygvr9mn",
+                              "name": "hasHuData",
+                              "title": "hasHuData",
+                              "description": "",
+                              "bsonType": "int",
+                              "isExpand": false,
+                              "children": []
+                            },
+                            {
+                              "key": "bm2b1rej",
+                              "name": "handling_unit_id",
+                              "title": "handling_unit_id",
+                              "description": "",
+                              "bsonType": "string",
+                              "isExpand": false
+                            },
+                            {
+                              "key": "r2sjz1ie",
+                              "name": "handling_no",
+                              "title": "handling_no",
+                              "description": "",
+                              "bsonType": "string",
+                              "isExpand": false
+                            },
+                            {
+                              "key": "l7x3bc0e",
+                              "name": "hu_material_id",
+                              "title": "hu_material_id",
+                              "description": "",
+                              "bsonType": "string",
+                              "isExpand": false
+                            },
+                            {
+                              "key": "8z8839h5",
+                              "name": "hu_type",
+                              "title": "hu_type",
+                              "description": "",
+                              "bsonType": "string",
+                              "isExpand": false
+                            },
+                            {
+                              "key": "s8roo7v4",
+                              "name": "hu_uom",
+                              "title": "hu_uom",
+                              "description": "",
+                              "bsonType": "string",
+                              "isExpand": false
+                            },
+                            {
+                              "key": "sen382aw",
+                              "name": "remark",
+                              "title": "remark",
+                              "description": "",
+                              "bsonType": "string",
+                              "isExpand": false
+                            }
+                          ]
+                        },
+                        "blocks": []
+                      },
+                      {
+                        "id": "if_q01ggsd6",
+                        "type": "if",
+                        "data": {
+                          "title": "IF hasHuData",
+                          "isValidator": true,
+                          "nodeName": "IF hasHuData",
+                          "name": "IF hasHuData",
+                          "condition_type": "ConditionRule",
+                          "expression": { "type": "javascript", "code": "" },
+                          "filter": {
+                            "list": [
+                              {
+                                "id": 1736695973613,
+                                "parentId": 1736695973612,
+                                "isTop": true,
+                                "prop": "node.code_node_ngFX3hcL.data.hasHuData",
+                                "operator": "numberEqual",
+                                "valueType": "value",
+                                "value": 1,
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "hasHuData",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              }
+                            ]
+                          }
+                        },
+                        "blocks": [
+                          {
+                            "id": "if_block_mYSKb7vC",
+                            "type": "ifBlock",
+                            "data": { "title": "true" },
+                            "blocks": [
+                              {
+                                "id": "workflow_node_2GqNmp7t",
+                                "type": "workflow-node",
+                                "data": {
+                                  "workflow_id": "",
+                                  "workflow_name": "",
+                                  "input_params": {},
+                                  "title": "Handling Unit Workflow",
+                                  "isValidator": true,
+                                  "nodeName": "Handling Unit Workflow",
+                                  "name": "Handling Unit Workflow",
+                                  "workflow": {
+                                    "source": "HANDLING_UNIT:Workflow:2037062451509002241",
+                                    "rules": {
+                                      "collectionId": "2037062451509002241",
+                                      "list": [
+                                        {
+                                          "id": 1723795236686,
+                                          "parentId": 1723795236685,
+                                          "isTop": true,
+                                          "prop": "",
+                                          "operator": "",
+                                          "valueType": "",
+                                          "value": "",
+                                          "type": "leaf",
+                                          "level": 1
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "remote": true,
+                                  "remoteType": "innerdatasource",
+                                  "body_params": {
+                                    "list": [
+                                      {
+                                        "prop": "handling_unit_id",
+                                        "propLabel": "handling_unit_id",
+                                        "operator": "",
+                                        "operatorLabel": "",
+                                        "valueType": "field",
+                                        "valueTypeLabel": "",
+                                        "value": "{{node:code_node_ngFX3hcL.data.handling_unit_id}}",
+                                        "valueLabel": ""
+                                      },
+                                      {
+                                        "prop": "handling_no",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_ngFX3hcL.data.handling_no}}",
+                                        "valueLabel": "",
+                                        "propLabel": "handling_no"
+                                      },
+                                      {
+                                        "prop": "plant_id",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_D9IbUV8t.data.plant_id}}",
+                                        "valueLabel": "",
+                                        "propLabel": "plant_id"
+                                      },
+                                      {
+                                        "prop": "organization_id",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_D9IbUV8t.data.organization_id}}",
+                                        "valueLabel": "",
+                                        "propLabel": "organization_id"
+                                      },
+                                      {
+                                        "prop": "hu_material_id",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_ngFX3hcL.data.hu_material_id}}",
+                                        "valueLabel": "",
+                                        "propLabel": "hu_material_id"
+                                      },
+                                      {
+                                        "prop": "hu_type",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_ngFX3hcL.data.hu_type}}",
+                                        "valueLabel": "",
+                                        "propLabel": "hu_type"
+                                      },
+                                      {
+                                        "prop": "hu_quantity",
+                                        "operator": "",
+                                        "valueType": "value",
+                                        "value": 1,
+                                        "valueLabel": "",
+                                        "propLabel": "hu_quantity"
+                                      },
+                                      {
+                                        "prop": "hu_uom",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_ngFX3hcL.data.hu_uom}}",
+                                        "valueLabel": "",
+                                        "propLabel": "hu_uom"
+                                      },
+                                      {
+                                        "prop": "storage_location_id",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_D9IbUV8t.data.storage_location_id}}",
+                                        "valueLabel": "",
+                                        "propLabel": "storage_location_id"
+                                      },
+                                      {
+                                        "prop": "location_id",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_D9IbUV8t.data.location_id}}",
+                                        "valueLabel": "",
+                                        "propLabel": "location_id"
+                                      },
+                                      {
+                                        "prop": "remark",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_ngFX3hcL.data.remark}}",
+                                        "valueLabel": "",
+                                        "propLabel": "remark"
+                                      },
+                                      {
+                                        "prop": "table_hu_items",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_ngFX3hcL.data.table_hu_items}}",
+                                        "valueLabel": "",
+                                        "propLabel": "table_hu_items"
+                                      },
+                                      {
+                                        "prop": "parent_trx_no",
+                                        "operator": "",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_D9IbUV8t.data.gr_no}}",
+                                        "valueLabel": "",
+                                        "propLabel": "parent_trx_no"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "blocks": []
+                              }
+                            ]
+                          },
+                          {
+                            "id": "if_block_KPaFvALE",
                             "type": "ifBlock",
                             "data": { "title": "false" },
                             "blocks": []
@@ -4764,6 +5059,296 @@
                                   },
                                   {
                                     "id": "if_block_6J-jHTGY",
+                                    "type": "ifBlock",
+                                    "data": { "title": "false" },
+                                    "blocks": []
+                                  }
+                                ]
+                              },
+                              {
+                                "id": "code_node_laVWxR1M",
+                                "type": "code-node",
+                                "data": {
+                                  "language": "javascript",
+                                  "code": "",
+                                  "timeout": 30000,
+                                  "title": "HU Preparation",
+                                  "isValidator": true,
+                                  "nodeName": "HU Preparation",
+                                  "name": "HU Preparation",
+                                  "script": {
+                                    "type": "javascript",
+                                    "code": "const item = {{node:code_node_D9IbUV8t.data.grItem}};\n\nconst tempHuDataStr = item.temp_hu_data || \"[]\";\nlet tempHuData = [];\nlet hasHuData = 0;\nlet huItem = null;\n\ntempHuData = JSON.parse(tempHuDataStr);\nif (Array.isArray(tempHuData) && tempHuData.length > 0) {\n  hasHuData = 1;\n  huItem = tempHuData[0];\n} else {\n  tempHuData = [];\n  hasHuData = 0;\n}\n\nconst table_hu_items = hasHuData\n  ? [\n      {\n        material_id: item.item_id,\n        material_name: item.item_name,\n        material_desc: item.item_desc,\n        location_id: item.location_id,\n        batch_id: {{node:workflow_node_7Ojf9JlE.data.batchId}} || null,\n        material_uom: item.base_item_uom || item.item_uom,\n        quantity: item.base_received_qty || huItem?.store_in_quantity || 0,\n        balance_id: {{node:workflow_node_7Ojf9JlE.data.balanceId}} || \"\",\n      },\n    ]\n  : [];\n\nreturn {\n  table_hu_items,\n  hasHuData,\n  handling_unit_id: huItem?.handling_unit_id || \"\",\n  handling_no: huItem?.handling_no || \"\",\n  hu_material_id: huItem?.hu_material_id || \"\",\n  hu_type: huItem?.hu_type || \"\",\n  hu_uom: huItem?.hu_uom || \"\",\n  remark: huItem?.remark || \"\",\n}"
+                                  },
+                                  "response_json": [
+                                    {
+                                      "key": "l67fu7mr",
+                                      "name": "table_hu_items",
+                                      "title": "table_hu_items",
+                                      "description": "",
+                                      "bsonType": "array",
+                                      "isExpand": true,
+                                      "children": [
+                                        {
+                                          "key": "59m0exgc",
+                                          "name": "items",
+                                          "title": "",
+                                          "description": "",
+                                          "bsonType": "any",
+                                          "isExpand": false,
+                                          "isArrayItem": true,
+                                          "children": []
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "key": "tygvr9mn",
+                                      "name": "hasHuData",
+                                      "title": "hasHuData",
+                                      "description": "",
+                                      "bsonType": "int",
+                                      "isExpand": false,
+                                      "children": []
+                                    },
+                                    {
+                                      "key": "bm2b1rej",
+                                      "name": "handling_unit_id",
+                                      "title": "handling_unit_id",
+                                      "description": "",
+                                      "bsonType": "string",
+                                      "isExpand": false
+                                    },
+                                    {
+                                      "key": "r2sjz1ie",
+                                      "name": "handling_no",
+                                      "title": "handling_no",
+                                      "description": "",
+                                      "bsonType": "string",
+                                      "isExpand": false
+                                    },
+                                    {
+                                      "key": "l7x3bc0e",
+                                      "name": "hu_material_id",
+                                      "title": "hu_material_id",
+                                      "description": "",
+                                      "bsonType": "string",
+                                      "isExpand": false
+                                    },
+                                    {
+                                      "key": "8z8839h5",
+                                      "name": "hu_type",
+                                      "title": "hu_type",
+                                      "description": "",
+                                      "bsonType": "string",
+                                      "isExpand": false
+                                    },
+                                    {
+                                      "key": "s8roo7v4",
+                                      "name": "hu_uom",
+                                      "title": "hu_uom",
+                                      "description": "",
+                                      "bsonType": "string",
+                                      "isExpand": false
+                                    },
+                                    {
+                                      "key": "sen382aw",
+                                      "name": "remark",
+                                      "title": "remark",
+                                      "description": "",
+                                      "bsonType": "string",
+                                      "isExpand": false
+                                    }
+                                  ]
+                                },
+                                "blocks": []
+                              },
+                              {
+                                "id": "if_pkwyR2cQ",
+                                "type": "if",
+                                "data": {
+                                  "title": "IF hasHuData",
+                                  "isValidator": true,
+                                  "nodeName": "IF hasHuData",
+                                  "name": "IF hasHuData",
+                                  "condition_type": "ConditionRule",
+                                  "expression": {
+                                    "type": "javascript",
+                                    "code": ""
+                                  },
+                                  "filter": {
+                                    "list": [
+                                      {
+                                        "id": 1736695973613,
+                                        "parentId": 1736695973612,
+                                        "isTop": true,
+                                        "prop": "node.code_node_laVWxR1M.data.hasHuData",
+                                        "operator": "numberEqual",
+                                        "valueType": "value",
+                                        "value": 1,
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "hasHuData",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "blocks": [
+                                  {
+                                    "id": "ifBlock_CjFF8004",
+                                    "type": "ifBlock",
+                                    "data": { "title": "true" },
+                                    "blocks": [
+                                      {
+                                        "id": "workflow_node_PjAMkFj0",
+                                        "type": "workflow-node",
+                                        "data": {
+                                          "workflow_id": "",
+                                          "workflow_name": "",
+                                          "input_params": {},
+                                          "title": "Handling Unit Workflow",
+                                          "isValidator": true,
+                                          "nodeName": "Handling Unit Workflow",
+                                          "name": "Handling Unit Workflow",
+                                          "workflow": {
+                                            "source": "HANDLING_UNIT:Workflow:2037062451509002241",
+                                            "rules": {
+                                              "collectionId": "2037062451509002241",
+                                              "list": [
+                                                {
+                                                  "id": 1723795236686,
+                                                  "parentId": 1723795236685,
+                                                  "isTop": true,
+                                                  "prop": "",
+                                                  "operator": "",
+                                                  "valueType": "",
+                                                  "value": "",
+                                                  "type": "leaf",
+                                                  "level": 1
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "remote": true,
+                                          "remoteType": "innerdatasource",
+                                          "body_params": {
+                                            "list": [
+                                              {
+                                                "prop": "handling_unit_id",
+                                                "propLabel": "handling_unit_id",
+                                                "operator": "",
+                                                "operatorLabel": "",
+                                                "valueType": "field",
+                                                "valueTypeLabel": "",
+                                                "value": "{{node:code_node_laVWxR1M.data.handling_unit_id}}",
+                                                "valueLabel": ""
+                                              },
+                                              {
+                                                "prop": "handling_no",
+                                                "operator": "",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_laVWxR1M.data.handling_no}}",
+                                                "valueLabel": "",
+                                                "propLabel": "handling_no"
+                                              },
+                                              {
+                                                "prop": "plant_id",
+                                                "operator": "",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_D9IbUV8t.data.plant_id}}",
+                                                "valueLabel": "",
+                                                "propLabel": "plant_id"
+                                              },
+                                              {
+                                                "prop": "organization_id",
+                                                "operator": "",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_D9IbUV8t.data.organization_id}}",
+                                                "valueLabel": "",
+                                                "propLabel": "organization_id"
+                                              },
+                                              {
+                                                "prop": "hu_material_id",
+                                                "operator": "",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_laVWxR1M.data.hu_material_id}}",
+                                                "valueLabel": "",
+                                                "propLabel": "hu_material_id"
+                                              },
+                                              {
+                                                "prop": "hu_type",
+                                                "operator": "",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_laVWxR1M.data.hu_type}}",
+                                                "valueLabel": "",
+                                                "propLabel": "hu_type"
+                                              },
+                                              {
+                                                "prop": "hu_quantity",
+                                                "operator": "",
+                                                "valueType": "value",
+                                                "value": 1,
+                                                "valueLabel": "",
+                                                "propLabel": "hu_quantity"
+                                              },
+                                              {
+                                                "prop": "hu_uom",
+                                                "operator": "",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_laVWxR1M.data.hu_uom}}",
+                                                "valueLabel": "",
+                                                "propLabel": "hu_uom"
+                                              },
+                                              {
+                                                "prop": "storage_location_id",
+                                                "operator": "",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_D9IbUV8t.data.storage_location_id}}",
+                                                "valueLabel": "",
+                                                "propLabel": "storage_location_id"
+                                              },
+                                              {
+                                                "prop": "location_id",
+                                                "operator": "",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_D9IbUV8t.data.location_id}}",
+                                                "valueLabel": "",
+                                                "propLabel": "location_id"
+                                              },
+                                              {
+                                                "prop": "remark",
+                                                "operator": "",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_laVWxR1M.data.remark}}",
+                                                "valueLabel": "",
+                                                "propLabel": "remark"
+                                              },
+                                              {
+                                                "prop": "table_hu_items",
+                                                "operator": "",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_laVWxR1M.data.table_hu_items}}",
+                                                "valueLabel": "",
+                                                "propLabel": "table_hu_items"
+                                              },
+                                              {
+                                                "prop": "parent_trx_no",
+                                                "operator": "",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_D9IbUV8t.data.gr_no}}",
+                                                "valueLabel": "",
+                                                "propLabel": "parent_trx_no"
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "blocks": []
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "id": "ifBlock_22MCNJrf",
                                     "type": "ifBlock",
                                     "data": { "title": "false" },
                                     "blocks": []
@@ -7271,7 +7856,7 @@
     ]
   },
   {
-    "id": "code_node_Q0auwdMK",
+    "id": "code_node_YhLyjGR0",
     "type": "code-node",
     "data": {
       "language": "javascript",
@@ -7311,7 +7896,7 @@
     "blocks": []
   },
   {
-    "id": "update_node_XGIBJ0J7",
+    "id": "update_node_y7JJzk96",
     "type": "update-node",
     "data": {
       "table_id": {
@@ -7367,7 +7952,7 @@
     "blocks": []
   },
   {
-    "id": "return_node_AfEFN1ha",
+    "id": "return_node_UtY1S0am",
     "type": "return-node",
     "data": {
       "return_data": {},
