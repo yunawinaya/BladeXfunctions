@@ -454,7 +454,8 @@ const displayPlanQty = async (data) => {
         const gd_status = this.getValue("gd_status");
         if (
           fromConvert === "Yes" &&
-          (gd_status !== "Completed" || gd_status !== "Created")
+          gd_status !== "Completed" &&
+          gd_status !== "Created"
         ) {
           let allItem = this.getValue("all_item");
           if (allItem !== "") {

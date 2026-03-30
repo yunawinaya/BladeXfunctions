@@ -33,10 +33,11 @@ const createTableGdWithBaseUOM = async (allItems) => {
       const tempDataArray = JSON.parse(tempQtyDataString);
 
       // Add gd_quantity to each item in temp_qty_data
-      // For GDPP, gd_quantity should match to_quantity from PP (the picked quantity per location)
+      // Preserve existing gd_quantity (e.g. remainingQty from partial delivery), only default to to_quantity if not set
       const updatedTempData = tempDataArray.map((item) => ({
         ...item,
-        gd_quantity: item.to_quantity || 0, // Initialize gd_quantity with to_quantity from PP
+        gd_quantity:
+          item.gd_quantity != null ? item.gd_quantity : item.to_quantity || 0,
       }));
 
       return JSON.stringify(updatedTempData);
