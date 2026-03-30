@@ -16,58 +16,20 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Stock Adjustment",
-      is_deleted: 0,
-      organization_id: organizationId,
-      is_active: 1,
-    })
-    .get();
-
-  const prefixData = await prefixEntry.data[0];
-
-  return prefixData;
-};
-
-const generateDraftPrefix = async (organizationId) => {
-  try {
-    const prefixData = await getPrefixData(organizationId);
-    if (prefixData.length !== 0) {
-      const currDraftNum = parseInt(prefixData.draft_number) + 1;
-      const newPrefix = "DRAFT-SA-" + currDraftNum;
-
-      db.collection("prefix_configuration")
-        .where({
-          document_types: "Stock Adjustment",
-          organization_id: organizationId,
-          is_deleted: 0,
-        })
-        .update({ draft_number: currDraftNum });
-
-      return newPrefix;
-    }
-  } catch (error) {
-    this.$message.error(error);
-  }
-};
-
 const createDraftStockAdjustment = async (
   entry,
   organizationId,
-  stockCountId
+  stockCountId,
 ) => {
   try {
     // Filter items with variance (variance_qty !== 0)
     const itemsWithVariance = entry.table_stock_count.filter(
-      (item) => item.variance_qty !== 0 && item.line_status === "Approved"
+      (item) => item.variance_qty !== 0 && item.line_status === "Approved",
     );
 
     if (itemsWithVariance.length === 0) {
       console.log("No items with variance - no stock adjustment needed");
-      return;
+      return null;
     }
 
     // Group items by material_id
@@ -95,11 +57,14 @@ const createDraftStockAdjustment = async (
       for (const item of items) {
         // Use adjusted_qty if different from variance_qty, otherwise use variance_qty
         let varianceToUse = item.variance_qty;
-        if (item.adjusted_qty !== undefined && item.adjusted_qty !== null &&
-            item.adjusted_qty !== item.variance_qty) {
+        if (
+          item.adjusted_qty !== undefined &&
+          item.adjusted_qty !== null &&
+          item.adjusted_qty !== item.variance_qty
+        ) {
           varianceToUse = item.adjusted_qty;
           console.log(
-            `Using adjusted_qty (${item.adjusted_qty}) instead of variance_qty (${item.variance_qty}) for item ${item.material_id}`
+            `Using adjusted_qty (${item.adjusted_qty}) instead of variance_qty (${item.variance_qty}) for item ${item.material_id}`,
           );
         }
 
@@ -108,7 +73,7 @@ const createDraftStockAdjustment = async (
 
         if (item.uom_id !== item.base_uom_id) {
           console.log(
-            `Converting variance_qty from ${item.uom_id} to base UOM ${item.base_uom_id}`
+            `Converting variance_qty from ${item.uom_id} to base UOM ${item.base_uom_id}`,
           );
 
           // Check if table_uom_conversion is already stored (from UOM change)
@@ -117,7 +82,7 @@ const createDraftStockAdjustment = async (
           // If not available, fetch from Item collection
           if (!tableUOMConversion) {
             console.log(
-              `table_uom_conversion not found in item data, fetching from database for item ${item.material_id}`
+              `table_uom_conversion not found in item data, fetching from database for item ${item.material_id}`,
             );
             const itemData = await db
               .collection("Item")
@@ -129,7 +94,7 @@ const createDraftStockAdjustment = async (
               console.log("Fetched table_uom_conversion from database");
             } else {
               console.warn(
-                `Could not fetch item data for ${item.material_id}, using original value`
+                `Could not fetch item data for ${item.material_id}, using original value`,
               );
             }
           }
@@ -143,7 +108,7 @@ const createDraftStockAdjustment = async (
             } catch (e) {
               console.warn(
                 "❌ Failed to parse table_uom_conversion as JSON:",
-                e
+                e,
               );
               tableUOMConversion = null;
             }
@@ -157,12 +122,12 @@ const createDraftStockAdjustment = async (
 
           if (tableUOMConversion && Array.isArray(tableUOMConversion)) {
             console.log(
-              `Searching for conversion: alt_uom_id === ${item.uom_id}`
+              `Searching for conversion: alt_uom_id === ${item.uom_id}`,
             );
 
             // Find the conversion for current UOM
             const currentUOMConversion = tableUOMConversion.find(
-              (conv) => conv.alt_uom_id === item.uom_id
+              (conv) => conv.alt_uom_id === item.uom_id,
             );
 
             console.log("Found conversion:", currentUOMConversion);
@@ -172,20 +137,20 @@ const createDraftStockAdjustment = async (
               varianceQtyInBaseUOM =
                 varianceToUse * currentUOMConversion.base_qty;
               console.log(
-                `✅ Converted variance: ${varianceToUse} × ${currentUOMConversion.base_qty} = ${varianceQtyInBaseUOM}`
+                `✅ Converted variance: ${varianceToUse} × ${currentUOMConversion.base_qty} = ${varianceQtyInBaseUOM}`,
               );
             } else {
               console.warn(
-                `⚠️ No conversion found for UOM ${item.uom_id}, using original value`
+                `⚠️ No conversion found for UOM ${item.uom_id}, using original value`,
               );
               console.log(
                 "Available conversions:",
-                tableUOMConversion.map((c) => c.alt_uom_id)
+                tableUOMConversion.map((c) => c.alt_uom_id),
               );
             }
           } else {
             console.warn(
-              `⚠️ No valid table_uom_conversion data available, using original value`
+              `⚠️ No valid table_uom_conversion data available, using original value`,
             );
           }
         }
@@ -300,7 +265,7 @@ const createDraftStockAdjustment = async (
         .collection("Item")
         .where({ id: materialId })
         .get();
-      const materialName = materialResult.data?.[0]?.material_code || "";
+      const materialName = materialResult.data?.[0]?.material_name || "";
 
       // Create stock adjustment entry (always use base UOM)
       stockAdjustmentTable.push({
@@ -317,13 +282,21 @@ const createDraftStockAdjustment = async (
     }
 
     // Generate draft prefix
-    const newPrefix = await generateDraftPrefix(organizationId);
+    const saPrefixID = await db
+      .collection("su_code_serial_no_rule")
+      .where({
+        department_id: organizationId,
+        business_type: "Stock Adjustment",
+        is_default: 1,
+      })
+      .get();
 
     // Create stock adjustment document
     const stockAdjustmentDoc = {
       stock_adjustment_status: "Draft",
       organization_id: organizationId,
-      adjustment_no: newPrefix,
+      adjustment_no: "issued",
+      adjustment_no_type: saPrefixID?.data[0]?.id || null,
       stock_count_id: stockCountId,
       adjustment_date: new Date().toISOString().split("T")[0],
       adjustment_type: "Stock Count",
@@ -342,7 +315,7 @@ const createDraftStockAdjustment = async (
 
     console.log("Stock Adjustment Created:", stockAdjustmentDoc);
     this.$message.success(
-      `Draft Stock Adjustment created: ${newPrefix} with ${stockAdjustmentTable.length} item(s)`
+      `Draft Stock Adjustment created: ${stockAdjustmentResult.data[0].adjustment_no} with ${stockAdjustmentTable.length} item(s)`,
     );
 
     return stockAdjustmentResult.data[0];
@@ -382,20 +355,20 @@ const updateEntry = async (entry, stockCountId) => {
 
       // Filter out canceled items
       data.table_stock_count = data.table_stock_count.filter(
-        (item) => item.line_status !== "Cancel"
+        (item) => item.line_status !== "Cancel",
       );
 
       // Calculate total_counted: locked items / total items
       const totalItems = data.table_stock_count.length;
       const lockedItems = data.table_stock_count.filter(
-        (item) => item.is_counted === 1
+        (item) => item.is_counted === 1,
       ).length;
       const total_counted = `${lockedItems} / ${totalItems}`;
 
       // Calculate total_variance using adjusted_qty when available, otherwise variance_qty
       const totalSystemQty = data.table_stock_count.reduce(
         (sum, item) => sum + (parseFloat(item.system_qty) || 0),
-        0
+        0,
       );
 
       // Sum up the actual variance to be used (adjusted_qty if different, otherwise variance_qty)
@@ -404,11 +377,12 @@ const updateEntry = async (entry, stockCountId) => {
         const adjustedQty = parseFloat(item.adjusted_qty);
 
         // Use adjusted_qty if it's defined and different from variance_qty
-        const actualVariance = (adjustedQty !== undefined &&
-                                adjustedQty !== null &&
-                                adjustedQty !== varianceQty)
-          ? adjustedQty
-          : varianceQty;
+        const actualVariance =
+          adjustedQty !== undefined &&
+          adjustedQty !== null &&
+          adjustedQty !== varianceQty
+            ? adjustedQty
+            : varianceQty;
 
         return sum + actualVariance;
       }, 0);
@@ -451,7 +425,7 @@ const updateEntry = async (entry, stockCountId) => {
       // Check again after filtering cancelled items
       if (entry.table_stock_count.length === 0) {
         this.$message.error(
-          "No valid stock count items (all items are cancelled)"
+          "No valid stock count items (all items are cancelled)",
         );
         this.hideLoading();
         return;
@@ -459,19 +433,19 @@ const updateEntry = async (entry, stockCountId) => {
 
       // Check if any item has line_status = Recount
       const hasRecountItems = entry.table_stock_count.some(
-        (item) => item.line_status === "Recount"
+        (item) => item.line_status === "Recount",
       );
 
       // Check if all items are approved or adjusted (considered completed)
       const allApproved = entry.table_stock_count.every(
         (item) =>
-          item.line_status === "Approved" || item.line_status === "Adjusted"
+          item.line_status === "Approved" || item.line_status === "Adjusted",
       );
 
       // Determine review status based on item statuses
       if (hasRecountItems) {
         const recountCount = entry.table_stock_count.filter(
-          (item) => item.line_status === "Recount"
+          (item) => item.line_status === "Recount",
         ).length;
 
         const result = await this.$confirm(
@@ -482,7 +456,7 @@ const updateEntry = async (entry, stockCountId) => {
             cancelButtonText: "Cancel",
             type: "warning",
             dangerouslyUseHTMLString: true,
-          }
+          },
         ).catch(() => {
           this.hideLoading();
           return null;
@@ -504,7 +478,7 @@ const updateEntry = async (entry, stockCountId) => {
           (item) =>
             item.line_status !== "Approved" &&
             item.line_status !== "Adjusted" &&
-            item.line_status !== "Recount"
+            item.line_status !== "Recount",
         ).length;
 
         const result = await this.$confirm(
@@ -515,7 +489,7 @@ const updateEntry = async (entry, stockCountId) => {
             cancelButtonText: "Cancel",
             type: "warning",
             dangerouslyUseHTMLString: true,
-          }
+          },
         ).catch(() => {
           this.hideLoading();
           return null;
@@ -531,7 +505,7 @@ const updateEntry = async (entry, stockCountId) => {
       // Check if there are approved items that can be adjusted
       const approvedItems = entry.table_stock_count.filter(
         (item) =>
-          item.review_status === "Approved" && item.line_status !== "Adjusted"
+          item.review_status === "Approved" && item.line_status !== "Adjusted",
       );
 
       // Only show confirmation for partial adjustments (not fully approved)
@@ -544,7 +518,7 @@ const updateEntry = async (entry, stockCountId) => {
             cancelButtonText: "No, Skip",
             type: "info",
             dangerouslyUseHTMLString: true,
-          }
+          },
         ).catch(() => {
           return null;
         });
@@ -559,16 +533,18 @@ const updateEntry = async (entry, stockCountId) => {
           const stockAdjustmentResult = await createDraftStockAdjustment(
             approvedEntry,
             organizationId,
-            stockCountId
+            stockCountId,
           );
 
-          console.log("stockAdjustmentResult", stockAdjustmentResult);
-          console.log("stockAdjustmentId", stockAdjustmentResult.id);
+          if (stockAdjustmentResult) {
+            console.log("stockAdjustmentResult", stockAdjustmentResult);
+            console.log("stockAdjustmentId", stockAdjustmentResult.id);
 
-          this.triggerEvent("SCtriggerSAcompleted", {
-            data: stockAdjustmentResult,
-            stockAdjustmentId: stockAdjustmentResult.id,
-          });
+            this.triggerEvent("SCtriggerSAcompleted", {
+              data: stockAdjustmentResult,
+              stockAdjustmentId: stockAdjustmentResult.id,
+            });
+          }
 
           // Mark approved items as "Adjusted"
           entry.table_stock_count = entry.table_stock_count.map((item) => {
@@ -586,7 +562,7 @@ const updateEntry = async (entry, stockCountId) => {
 
           // Check if all items are now adjusted
           const allAdjusted = entry.table_stock_count.every(
-            (item) => item.line_status === "Adjusted"
+            (item) => item.line_status === "Adjusted",
           );
 
           if (allAdjusted) {
@@ -605,16 +581,18 @@ const updateEntry = async (entry, stockCountId) => {
         const stockAdjustmentResult = await createDraftStockAdjustment(
           approvedEntry,
           organizationId,
-          stockCountId
+          stockCountId,
         );
 
-        console.log("stockAdjustmentResult", stockAdjustmentResult);
-        console.log("stockAdjustmentId", stockAdjustmentResult.id);
+        if (stockAdjustmentResult) {
+          console.log("stockAdjustmentResult", stockAdjustmentResult);
+          console.log("stockAdjustmentId", stockAdjustmentResult.id);
 
-        this.triggerEvent("SCtriggerSAcompleted", {
-          data: stockAdjustmentResult,
-          stockAdjustmentId: stockAdjustmentResult.id,
-        });
+          this.triggerEvent("SCtriggerSAcompleted", {
+            data: stockAdjustmentResult,
+            stockAdjustmentId: stockAdjustmentResult.id,
+          });
+        }
 
         // Mark all items as "Adjusted"
         entry.table_stock_count = entry.table_stock_count.map((item) => {

@@ -143,13 +143,57 @@ const processRow = async (item, organizationId) => {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
-    // Process each row for batch number generation
+    // Process each row for batch number generation (split-aware)
     const processedTableSM = [];
     for (const [index, item] of data.stock_movement.entries()) {
       await this.validate(`stock_movement.${index}.batch_id`);
-      const processedItem = await processRow(item, organizationId);
-      processedTableSM.push(processedItem);
+
+      if (item.is_split === "Yes" && item.parent_or_child === "Parent") {
+        // Hierarchy parent: generate batch normally
+        const processedItem = await processRow(item, organizationId);
+        processedTableSM.push(processedItem);
+      } else if (item.parent_or_child === "Split-Parent") {
+        // Split-Parent: each row generates its own batch independently
+        const processedItem = await processRow(item, organizationId);
+        processedTableSM.push(processedItem);
+      } else if (item.parent_or_child === "Child") {
+        // Child: inherit batch and dates from already-processed parent
+        const parentRow = processedTableSM.find(
+          (row) =>
+            row.is_split === "Yes" &&
+            row.parent_or_child === "Parent" &&
+            row.parent_index === item.parent_index,
+        );
+        if (parentRow) {
+          item.batch_id = parentRow.batch_id;
+          item.manufacturing_date = parentRow.manufacturing_date;
+          item.expired_date = parentRow.expired_date;
+        }
+        processedTableSM.push(item);
+      } else {
+        // Regular non-split row: generate batch as normal
+        const processedItem = await processRow(item, organizationId);
+        processedTableSM.push(processedItem);
+      }
     }
+
+    // Recalculate hierarchy parent's received_quantity from children
+    for (const item of processedTableSM) {
+      if (item.is_split === "Yes" && item.parent_or_child === "Parent") {
+        const children = processedTableSM.filter(
+          (row) =>
+            row.parent_or_child === "Child" &&
+            row.parent_index === item.parent_index,
+        );
+        const totalChildQty = children.reduce(
+          (sum, child) => sum + (parseFloat(child.received_quantity) || 0),
+          0,
+        );
+        item.received_quantity = parseFloat(totalChildQty.toFixed(3));
+        item.amount = item.received_quantity * (item.unit_price || 0);
+      }
+    }
+
     data.stock_movement = processedTableSM;
 
     let workflowResult;
