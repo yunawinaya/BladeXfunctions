@@ -351,7 +351,8 @@ const totalAvailable = availableBalances.reduce(
   0
 );
 
-if (totalAvailable < quantity) {
+// For MR, enforce strict insufficient stock check
+if (allocationType === "MR" && totalAvailable < quantity) {
   return {
     code: "400",
     message: `Insufficient stock. Available: ${totalAvailable}, Requested: ${quantity}`,
@@ -398,7 +399,8 @@ const totalAllocated = allAllocations.reduce(
   0
 );
 
-if (totalAllocated < quantity) {
+// For MR, enforce strict post-allocation check
+if (allocationType === "MR" && totalAllocated < quantity) {
   return {
     code: "400",
     message: `Insufficient stock. Available: ${totalAllocated}, Requested: ${quantity}`,
@@ -408,8 +410,11 @@ if (totalAllocated < quantity) {
 }
 
 return {
-  code: "200",
-  message: "Allocation successful",
+  code: totalAllocated >= quantity ? "200" : "206",
+  message:
+    totalAllocated >= quantity
+      ? "Allocation successful"
+      : `Partial allocation. Available: ${totalAllocated}, Requested: ${quantity}`,
   allocationData: allAllocations,
   totalAllocated: totalAllocated,
 };
