@@ -21,35 +21,38 @@
         return;
       }
 
-      // Filter out pickings where GD has been delivered (gd_status is on the picking record)
+      // Filter out pickings where Delivery has been delivered (delivery_status is on the picking record)
       const deliveredPickings = completedPickings.filter(
         (item) =>
-          item.gd_status === "Fully Delivered" ||
-          item.gd_status === "Partially Delivered",
+          item.delivery_status === "Fully Delivered" ||
+          item.delivery_status === "Partially Delivered",
       );
 
       if (deliveredPickings.length > 0) {
         const deliveredList = deliveredPickings
-          .map((item) => `${item.to_id} (GD Status: ${item.gd_status})`)
-          .join("<br>");
+          .map(
+            (item) =>
+              `${item.to_id} (Delivery Status: ${item.delivery_status})`,
+          )
+          .join(", ");
 
         if (deliveredPickings.length === completedPickings.length) {
           this.$message.error(
-            `Cannot revert the following picking(s) because the associated Goods Delivery has already been delivered:<br>${deliveredList}`,
+            `Cannot revert: Goods Delivery already delivered for ${deliveredList}`,
           );
           this.hideLoading();
           return;
         }
 
         this.$message.warning(
-          `The following picking(s) will be skipped because the associated Goods Delivery has already been delivered:<br>${deliveredList}`,
+          `Skipping delivered pickings: ${deliveredList}`,
         );
       }
 
       const validPickings = completedPickings.filter(
         (item) =>
-          item.gd_status !== "Fully Delivered" &&
-          item.gd_status !== "Partially Delivered",
+          item.delivery_status !== "Fully Delivered" &&
+          item.delivery_status !== "Partially Delivered",
       );
 
       const pickingNumbers = validPickings.map((item) => item.to_id);
@@ -116,8 +119,7 @@
             ...new Set(
               pickingItems
                 .filter(
-                  (item) =>
-                    item.to_line_id && item.line_status !== "Cancelled",
+                  (item) => item.to_line_id && item.line_status !== "Cancelled",
                 )
                 .map((item) => item.to_line_id),
             ),
@@ -136,7 +138,8 @@
                 const ppLine = ppLineResult.data[0];
 
                 // Restore temp_qty_data from prev_temp_qty_data
-                const prevTempQtyData = ppLine.prev_temp_qty_data || ppLine.temp_qty_data;
+                const prevTempQtyData =
+                  ppLine.prev_temp_qty_data || ppLine.temp_qty_data;
 
                 // Parse to regenerate view_stock
                 let tempQtyDataArray = [];
@@ -255,10 +258,7 @@
             success: true,
           });
         } catch (error) {
-          console.error(
-            `Error reverting picking ${pickingItem.to_id}:`,
-            error,
-          );
+          console.error(`Error reverting picking ${pickingItem.to_id}:`, error);
           results.push({
             to_id: pickingItem.to_id,
             success: false,
@@ -275,9 +275,9 @@
         const failedItems = results
           .filter((r) => !r.success)
           .map((r) => `${r.to_id}: ${r.error}`)
-          .join("<br>");
+          .join(", ");
         this.$message.error(
-          `${successCount} succeeded, ${failCount} failed:<br>${failedItems}`,
+          `${successCount} succeeded, ${failCount} failed: ${failedItems}`,
         );
       } else {
         this.$message.success(
