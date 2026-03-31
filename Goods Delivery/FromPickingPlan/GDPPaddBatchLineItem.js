@@ -227,15 +227,15 @@ const createTableGdWithBaseUOM = async (allItems) => {
     existingGD = [];
   }
 
+  const parseCustomerId = (id) => {
+    if (Array.isArray(id)) return id[0];
+    if (typeof id === "string" && id.startsWith("[") && id.endsWith("]"))
+      return id.slice(1, -1);
+    return id;
+  };
+
   const uniqueCustomer = new Set(
-    currentItemArray.map(
-      (item) =>
-        referenceType === "Document"
-          ? Array.isArray(item.customer_id)
-            ? item.customer_id[0]
-            : item.customer_id
-          : item.customer_id, // Item mode: customer_id is direct value
-    ),
+    currentItemArray.map((item) => parseCustomerId(item.customer_id)),
   );
   const allSameCustomer = uniqueCustomer.size === 1;
 
@@ -616,7 +616,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
             pp_line_id: pickingItem.pp_line_id,
             picking_id: pickingItem.picking_data?.id,
             picking_no: pickingItem.picking_data?.to_id,
-            customer_id: pickingItem.customer_id,
+            customer_id: parseCustomerId(pickingItem.customer_id),
             tempEntries: [tempEntry],
             locationBatchInfo: [
               {
@@ -755,10 +755,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
       referenceType === "Document"
         ? currentItemArray[0].so_currency?.[0] || null
         : null,
-    customer_name:
-      referenceType === "Document"
-        ? currentItemArray[0].customer_id[0]
-        : currentItemArray[0].customer_id, // Item mode: customer_id is direct value
+    customer_name: parseCustomerId(currentItemArray[0].customer_id),
     table_gd: latestTableGD,
     so_no: salesOrderNumber.join(", "),
     to_no: pickingNumber.join(", "),
