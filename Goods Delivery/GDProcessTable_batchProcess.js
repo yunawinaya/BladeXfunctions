@@ -937,6 +937,9 @@ const processDeliveredAllocation = (params) => {
           ...prodRecord,
           open_qty: 0,
           delivered_qty: deliverQty,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
           status: "Delivered",
           target_gd_id: docId,
         });
@@ -946,6 +949,9 @@ const processDeliveredAllocation = (params) => {
           reserved_qty: deliverQty,
           open_qty: 0,
           delivered_qty: deliverQty,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
           status: "Delivered",
           target_gd_id: docId,
         });
@@ -977,6 +983,9 @@ const processDeliveredAllocation = (params) => {
           ...soRecord,
           open_qty: 0,
           delivered_qty: deliverQty,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
           status: "Delivered",
           target_gd_id: docId,
         });
@@ -986,6 +995,9 @@ const processDeliveredAllocation = (params) => {
           reserved_qty: deliverQty,
           open_qty: 0,
           delivered_qty: deliverQty,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
           status: "Delivered",
           target_gd_id: docId,
         });
@@ -1093,6 +1105,9 @@ const processDeliveredAllocation = (params) => {
         ...prodRecord,
         open_qty: 0,
         delivered_qty: deliverQty,
+        doc_id: docId,
+        doc_no: docNo,
+        doc_line_id: docLineId,
         status: "Delivered",
         target_gd_id: docId,
       });
@@ -1102,6 +1117,9 @@ const processDeliveredAllocation = (params) => {
         reserved_qty: deliverQty,
         open_qty: 0,
         delivered_qty: deliverQty,
+        doc_id: docId,
+        doc_no: docNo,
+        doc_line_id: docLineId,
         status: "Delivered",
         target_gd_id: docId,
       });
@@ -1133,6 +1151,9 @@ const processDeliveredAllocation = (params) => {
         ...soRecord,
         open_qty: 0,
         delivered_qty: deliverQty,
+        doc_id: docId,
+        doc_no: docNo,
+        doc_line_id: docLineId,
         status: "Delivered",
         target_gd_id: docId,
       });
@@ -1142,6 +1163,9 @@ const processDeliveredAllocation = (params) => {
         reserved_qty: deliverQty,
         open_qty: 0,
         delivered_qty: deliverQty,
+        doc_id: docId,
+        doc_no: docNo,
+        doc_line_id: docLineId,
         status: "Delivered",
         target_gd_id: docId,
       });

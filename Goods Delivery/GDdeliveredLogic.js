@@ -397,6 +397,9 @@ if (matchedAllocatedRecords.length > 0) {
           reserved_qty: pendingProdReceiptData[0].reserved_qty,
           open_qty: 0,
           delivered_qty: deliverQty,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
           status: "Delivered",
           target_gd_id: docId,
         });
@@ -406,6 +409,9 @@ if (matchedAllocatedRecords.length > 0) {
           reserved_qty: deliverQty,
           open_qty: 0,
           delivered_qty: deliverQty,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
           status: "Delivered",
           target_gd_id: docId,
         });
@@ -439,6 +445,9 @@ if (matchedAllocatedRecords.length > 0) {
           reserved_qty: pendingSOData[0].reserved_qty,
           open_qty: 0,
           delivered_qty: deliverQty,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
           status: "Delivered",
           target_gd_id: docId,
         });
@@ -448,6 +457,9 @@ if (matchedAllocatedRecords.length > 0) {
           reserved_qty: deliverQty,
           open_qty: 0,
           delivered_qty: deliverQty,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
           status: "Delivered",
           target_gd_id: docId,
         });
@@ -582,6 +594,9 @@ if (pendingProdReceiptData.length > 0 && remainingQtyToDeliver > 0) {
       reserved_qty: pendingProdReceiptData[0].reserved_qty,
       open_qty: 0,
       delivered_qty: deliverQty,
+      doc_id: docId,
+      doc_no: docNo,
+      doc_line_id: docLineId,
       status: "Delivered",
       target_gd_id: docId,
     });
@@ -591,6 +606,9 @@ if (pendingProdReceiptData.length > 0 && remainingQtyToDeliver > 0) {
       reserved_qty: deliverQty,
       open_qty: 0,
       delivered_qty: deliverQty,
+      doc_id: docId,
+      doc_no: docNo,
+      doc_line_id: docLineId,
       status: "Delivered",
       target_gd_id: docId,
     });
@@ -623,6 +641,9 @@ if (pendingSOData.length > 0 && remainingQtyToDeliver > 0) {
       reserved_qty: pendingSOData[0].reserved_qty,
       open_qty: 0,
       delivered_qty: deliverQty,
+      doc_id: docId,
+      doc_no: docNo,
+      doc_line_id: docLineId,
       status: "Delivered",
       target_gd_id: docId,
     });
@@ -632,6 +653,9 @@ if (pendingSOData.length > 0 && remainingQtyToDeliver > 0) {
       reserved_qty: deliverQty,
       open_qty: 0,
       delivered_qty: deliverQty,
+      doc_id: docId,
+      doc_no: docNo,
+      doc_line_id: docLineId,
       status: "Delivered",
       target_gd_id: docId,
     });
