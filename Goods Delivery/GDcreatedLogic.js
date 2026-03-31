@@ -108,7 +108,7 @@ if (matchedOldRecords.length > 0) {
             status: "Cancelled",
             target_gd_id: null,
           });
-          unrestrictedQtyToAdd += releaseFromThisRecord;
+          unrestrictedQtyToAdd = roundQty(unrestrictedQtyToAdd + releaseFromThisRecord);
         } else {
           const existingPending = findExistingPendingToMerge(oldRecord.doc_type);
 
@@ -158,7 +158,7 @@ if (matchedOldRecords.length > 0) {
             source_reserved_id: oldRecord.id,
             target_gd_id: null,
           };
-          unrestrictedQtyToAdd += releaseFromThisRecord;
+          unrestrictedQtyToAdd = roundQty(unrestrictedQtyToAdd + releaseFromThisRecord);
         } else {
           const existingPending = findExistingPendingToMerge(oldRecord.doc_type);
 
