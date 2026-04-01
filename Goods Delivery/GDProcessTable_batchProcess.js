@@ -438,8 +438,22 @@ const allocateFromPending = (qtyToAllocate, pendingData, params, allocDocType) =
     materialName,
   } = params;
 
-  const pendingSOData = pendingData.filter((item) => item.doc_type === "Sales Order");
-  const pendingProdData = pendingData.filter((item) => item.doc_type === "Production");
+  // When GD line is linked to a specific SO (parentLineId is set), only consume
+  // that SO's pending record - prevents cross-SO contamination
+  const pendingSOData = pendingData.filter((item) => {
+    if (item.doc_type !== "Sales Order") return false;
+    if (parentLineId) {
+      return String(item.parent_line_id) === String(parentLineId);
+    }
+    return true;
+  });
+  const pendingProdData = pendingData.filter((item) => {
+    if (item.doc_type !== "Production") return false;
+    if (parentLineId) {
+      return String(item.parent_line_id) === String(parentLineId);
+    }
+    return true;
+  });
 
   let remainingQtyToAllocate = qtyToAllocate;
   const recordsToUpdate = [];
