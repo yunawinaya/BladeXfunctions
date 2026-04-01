@@ -939,8 +939,20 @@ const processDeliveredAllocation = (params) => {
 
     // Allocate additional from pending
     let additionalQtyNeeded = roundQty(quantity - totalAllocatedQty);
-    const pendingProdData = relevantPendingData.filter((item) => item.doc_type === "Production");
-    const pendingSOData = relevantPendingData.filter((item) => item.doc_type === "Sales Order");
+    const pendingProdData = relevantPendingData.filter((item) => {
+      if (item.doc_type !== "Production") return false;
+      if (parentLineId) {
+        return String(item.parent_line_id) === String(parentLineId);
+      }
+      return true;
+    });
+    const pendingSOData = relevantPendingData.filter((item) => {
+      if (item.doc_type !== "Sales Order") return false;
+      if (parentLineId) {
+        return String(item.parent_line_id) === String(parentLineId);
+      }
+      return true;
+    });
 
     if (pendingProdData.length > 0 && additionalQtyNeeded > 0) {
       const prodRecord = pendingProdData[0];
@@ -1104,8 +1116,20 @@ const processDeliveredAllocation = (params) => {
   }
 
   // No existing allocated records - direct delivery from pending/unrestricted
-  const pendingSOData = relevantPendingData.filter((item) => item.doc_type === "Sales Order");
-  const pendingProdData = relevantPendingData.filter((item) => item.doc_type === "Production");
+  const pendingSOData = relevantPendingData.filter((item) => {
+    if (item.doc_type !== "Sales Order") return false;
+    if (parentLineId) {
+      return String(item.parent_line_id) === String(parentLineId);
+    }
+    return true;
+  });
+  const pendingProdData = relevantPendingData.filter((item) => {
+    if (item.doc_type !== "Production") return false;
+    if (parentLineId) {
+      return String(item.parent_line_id) === String(parentLineId);
+    }
+    return true;
+  });
 
   let remainingQtyToDeliver = quantity;
   let reservedQty = 0;
