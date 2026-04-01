@@ -320,6 +320,7 @@
       requestedQty,
       batchDataArray = [],
       soLineItemId = null,
+      existingAllocations = [],
     ) => {
       console.log("Starting auto allocation via global workflow");
 
@@ -358,7 +359,7 @@
         allocationStrategy: allocationStrategy,
         isPending: isPending,
         parent_line_id: soLineItemId || "",
-        existingAllocationData: [],
+        existingAllocationData: existingAllocations,
       };
 
       console.log(
@@ -534,6 +535,7 @@
       requestedQty = 0,
       batchDataArray = [],
       soLineItemId = null,
+      existingAllocations = [],
     ) => {
       try {
         const response = await db
@@ -573,6 +575,7 @@
             requestedQty,
             batchDataArray,
             soLineItemId,
+            existingAllocations,
           );
         }
 
@@ -601,6 +604,42 @@
     const baseUOM = itemData.based_uom;
     const organizationId = data.organization_id;
     const requestedQty = parseFloat(lineItemData.gd_qty) || 0;
+
+    // Collect existing allocations from other line items with the same material
+    // so the workflow can deduct them from available balances (prevent double-allocation)
+    const existingAllocationData = [];
+    if (data.table_gd) {
+      data.table_gd.forEach((line, idx) => {
+        if (idx === rowIndex) return;
+        if (line.material_id !== materialId) return;
+
+        const tempData = line.temp_qty_data;
+        if (!tempData || tempData === "[]" || tempData.trim() === "") return;
+
+        try {
+          const parsed = JSON.parse(tempData);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((alloc) => {
+              if (alloc.gd_quantity > 0) {
+                existingAllocationData.push({
+                  location_id: alloc.location_id,
+                  batch_id: alloc.batch_id || null,
+                  quantity: alloc.gd_quantity,
+                });
+              }
+            });
+          }
+        } catch (e) {
+          console.warn(`Failed to parse temp_qty_data for row ${idx}`);
+        }
+      });
+    }
+
+    if (existingAllocationData.length > 0) {
+      console.log(
+        `Found ${existingAllocationData.length} existing allocations from other line items`,
+      );
+    }
 
     // Fetch batch data if batch-managed (for FIFO sorting in auto allocation)
     let batchDataArray = [];
@@ -695,6 +734,7 @@
           requestedQty,
           batchDataArray,
           lineItemData.so_line_item_id,
+          existingAllocationData,
         );
       }
     } else if (itemData.item_batch_management === 1) {
@@ -724,6 +764,7 @@
           requestedQty,
           batchDataArray,
           lineItemData.so_line_item_id,
+          existingAllocationData,
         );
       }
     } else {
@@ -753,6 +794,7 @@
           requestedQty,
           batchDataArray,
           lineItemData.so_line_item_id,
+          existingAllocationData,
         );
       }
     }
