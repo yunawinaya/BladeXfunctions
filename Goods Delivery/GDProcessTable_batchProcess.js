@@ -89,7 +89,7 @@ const cleanupOrphanedAllocations = () => {
     for (const groupKey of processed.groupKeys) {
       const group = processed.groupedTempData[groupKey];
       currentTempDataKeys.push({
-        doc_line_id: processed.doc_line_id,
+        doc_line_id: isGDPP === 1 ? (processed.picking_plan_line_id || processed.doc_line_id) : processed.doc_line_id,
         material_id: processed.material_id,
         batch_id: group.batch_id,
         bin_location: group.location_id,
@@ -608,6 +608,7 @@ const processDeliveredAllocation = (params) => {
     remark,
     isPP,
     pickingPlanLineId,
+    linePpId,
     lineSoNo,
     materialCode,
     materialName,
@@ -623,7 +624,7 @@ const processDeliveredAllocation = (params) => {
         String(record.batch_id || "") === String(batchId || "") &&
         String(record.bin_location || "") === String(locationId || "") &&
         record.status === "Allocated" &&
-        String(record.target_gd_id) === String(pickingPlanId)
+        String(record.target_gd_id) === String(linePpId)
     );
   } else {
     matchedAllocatedRecords = allAllocatedData.filter(
@@ -1332,6 +1333,7 @@ for (const processed of processedTableData) {
       remark: processed.remark,
       isPP,
       pickingPlanLineId: processed.picking_plan_line_id,
+      linePpId: processed.line_pp_id,
       // Additional fields for inventory movement records
       lineSoNo: processed.line_so_no,
       materialCode: processed.material_code || itemData?.material_code || "",
