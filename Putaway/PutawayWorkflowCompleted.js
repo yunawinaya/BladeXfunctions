@@ -12,6 +12,20 @@ const closeDialog = (data) => {
     const data = this.getValues();
     console.log("data", data);
 
+    // Validate: items with HU data must be fully putaway (no partial)
+    const tablePutawayItem = data.table_putaway_item || [];
+    for (const item of tablePutawayItem) {
+      if (item.hu_data && item.hu_data !== "") {
+        if (parseFloat(item.putaway_qty || 0) !== parseFloat(item.qty_to_putaway || 0)) {
+          this.hideLoading();
+          this.$message.error(
+            `Item "${item.item_name}" has handling unit data and must be fully putaway. Partial putaway is not allowed.`
+          );
+          return;
+        }
+      }
+    }
+
     // Ensure data is an array
     const arrayData = Array.isArray(data) ? data : [data];
 

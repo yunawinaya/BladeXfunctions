@@ -51,6 +51,16 @@ const getPlantDefaultBin = async (plantId) => {
 
     if (status === "Created" || status === "In Progress") {
       if (plantId) {
+        // For non-Add: skip strategy if item already has storage_location & target_location
+        const allHaveLocations = tablePutaway.every(
+          (item) => item.storage_location && item.target_location,
+        );
+
+        if (allHaveLocations) {
+          console.log("All putaway items already have storage_location and target_location, skipping strategy.");
+          return;
+        }
+
         const resPutawaySetup = await db
           .collection("putaway_setup")
           .where({ plant_id: plantId, is_deleted: 0 })
@@ -70,6 +80,9 @@ const getPlantDefaultBin = async (plantId) => {
               putawaySetupData.default_strategy_id === "FIXED BIN"
             ) {
               for (const [index, item] of tablePutaway.entries()) {
+                // Skip items that already have both locations
+                if (item.storage_location && item.target_location) continue;
+
                 const itemId = item.item_code;
                 const resItem = await db
                   .collection("Item")
@@ -81,9 +94,12 @@ const getPlantDefaultBin = async (plantId) => {
                 const itemData = resItem.data[0];
 
                 // find plant default bin from item table
-                if (itemData.table_default_bin && itemData.table_default_bin.length > 0) {
+                if (
+                  itemData.table_default_bin &&
+                  itemData.table_default_bin.length > 0
+                ) {
                   const matchingBin = itemData.table_default_bin.find(
-                    (bin) => bin.plant_id === plantId
+                    (bin) => bin.plant_id === plantId,
                   );
 
                   if (matchingBin) {
@@ -132,6 +148,9 @@ const getPlantDefaultBin = async (plantId) => {
                 await getPlantDefaultBin(plantId);
 
               for (let i = 0; i < updatedTablePutaway.length; i++) {
+                // Skip items that already have both locations
+                if (updatedTablePutaway[i].storage_location && updatedTablePutaway[i].target_location) continue;
+
                 updatedTablePutaway[i] = {
                   ...updatedTablePutaway[i],
                   target_location: defaultBinLocation,
@@ -147,6 +166,17 @@ const getPlantDefaultBin = async (plantId) => {
       }
     } else if (pageStatus === "Add") {
       if (plantId) {
+        // Skip strategy if all items already have storage_location & target_location
+        // (already populated by PutawayOnChangeGR via loading bay logic)
+        const allHaveLocations = tablePutaway.every(
+          (item) => item.storage_location && item.target_location,
+        );
+
+        if (allHaveLocations) {
+          console.log("All putaway items already have storage_location and target_location, skipping strategy.");
+          return;
+        }
+
         const resPutawaySetup = await db
           .collection("putaway_setup")
           .where({ plant_id: plantId, is_deleted: 0 })
@@ -155,15 +185,15 @@ const getPlantDefaultBin = async (plantId) => {
         if (resPutawaySetup && resPutawaySetup.data.length > 0) {
           const putawaySetupData = resPutawaySetup.data[0];
 
-          console.log("arguments[0]", arguments[0]);
           // if putaway mode is Auto
           if (putawaySetupData.putaway_mode === "Auto") {
-            // Build updated table without looping setData
             const updatedTablePutaway = [...tablePutaway];
 
-            for (const [rowIndex, putawayLine] of tablePutaway.entries()) {
-              const itemId = putawayLine.item_code;
+            for (const [rowIndex, putawayLine] of updatedTablePutaway.entries()) {
+              // Skip items that already have both locations
+              if (putawayLine.storage_location && putawayLine.target_location) continue;
 
+              const itemId = putawayLine.item_code;
               if (!itemId) continue;
 
               // if putaway default strategy is Fixed Bin
@@ -181,9 +211,12 @@ const getPlantDefaultBin = async (plantId) => {
                 const itemData = resItem.data[0];
 
                 // find plant default bin from item table
-                if (itemData.table_default_bin && itemData.table_default_bin.length > 0) {
+                if (
+                  itemData.table_default_bin &&
+                  itemData.table_default_bin.length > 0
+                ) {
                   const matchingBin = itemData.table_default_bin.find(
-                    (bin) => bin.plant_id === plantId
+                    (bin) => bin.plant_id === plantId,
                   );
 
                   if (matchingBin) {

@@ -78,7 +78,7 @@
             if (putaway.is_serialized_item === 1) {
               console.log(
                 `Processing serialized item at index ${index}:`,
-                putaway.item_code || putaway.id
+                putaway.item_code || putaway.id,
               );
 
               // Check if serial_numbers exists and is not empty
@@ -90,7 +90,7 @@
                 putaway.serial_numbers.trim() === ""
               ) {
                 console.warn(
-                  `No valid serial numbers found for item at index ${index}`
+                  `No valid serial numbers found for item at index ${index}`,
                 );
                 continue;
               }
@@ -103,20 +103,20 @@
 
               if (serialNumbers.length === 0) {
                 console.warn(
-                  `No valid serial numbers after processing for item at index ${index}`
+                  `No valid serial numbers after processing for item at index ${index}`,
                 );
                 continue;
               }
 
               console.log(
                 `Setting ${serialNumbers.length} serial numbers for item at index ${index}:`,
-                serialNumbers
+                serialNumbers,
               );
 
               // Set option data for select dropdown
               await this.setOptionData(
                 [`table_putaway_item.${index}.select_serial_number`],
-                serialNumbers
+                serialNumbers,
               );
 
               // Set the actual data
@@ -128,17 +128,17 @@
               // Disable putaway_qty field for serialized items
               await this.disabled(
                 [`table_putaway_item.${index}.putaway_qty`],
-                true
+                true,
               );
 
               console.log(
-                `Successfully set serial numbers for item at index ${index}`
+                `Successfully set serial numbers for item at index ${index}`,
               );
             }
           } catch (itemError) {
             console.error(
               `Error processing item at index ${index}:`,
-              itemError
+              itemError,
             );
             // Continue with next item instead of breaking the entire function
             continue;
@@ -182,11 +182,30 @@
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
+    // Fetch putaway setup for loading bay logic
+    const resPutawaySetup = await db
+      .collection("putaway_setup")
+      .where({ plant_id: plantId, is_deleted: 0, movement_type: "Good Receiving" })
+      .get();
+    const putawaySetup = resPutawaySetup?.data?.[0] || {};
+
+    let sourceBin = "";
+    if (putawaySetup.is_loading_bay === 1 && putawaySetup.default_loading_bay && putawaySetup.default_loading_bay !== "") {
+      sourceBin = putawaySetup.default_loading_bay;
+    }
+
     for (const [index, item] of grData.table_gr.entries()) {
       try {
         // Skip items without item_id
         if (!item.item_id) {
           console.log(`Skipping item at index ${index} - no item_id`);
+          continue;
+        }
+
+        // Skip split parent rows
+        const isSplitParent = (item.is_split || "No") === "Yes" && (item.parent_or_child || "Parent") === "Parent";
+        if (isSplitParent) {
+          console.log(`Skipping split parent item at index ${index}`);
           continue;
         }
 
@@ -221,9 +240,51 @@
             } catch (batchError) {
               console.warn(
                 `Error fetching batch ${item.item_batch_no}:`,
-                batchError
+                batchError,
               );
             }
+          }
+
+          // Process HU data
+          let huData = "";
+          const tempHuDataStr = item.temp_hu_data || "[]";
+          let tempHuData = [];
+          let huItem = null;
+
+          try {
+            tempHuData = JSON.parse(tempHuDataStr);
+          } catch (e) {
+            tempHuData = [];
+          }
+
+          const hasHuData = Array.isArray(tempHuData) && tempHuData.length > 0 ? 1 : 0;
+
+          if (hasHuData === 1) {
+            huItem = tempHuData[0];
+
+            const huInfo = {
+              table_hu_items: [
+                {
+                  material_id: item.item_id,
+                  material_name: item.item_name || "",
+                  material_desc: item.item_desc || "",
+                  location_id: item.location_id || "",
+                  batch_id: batchNo?.id || null,
+                  material_uom: item.base_item_uom || item.item_uom || "",
+                  quantity: item.base_received_qty || huItem?.store_in_quantity || 0,
+                  balance_id: "",
+                },
+              ],
+              hasHuData: 1,
+              handling_unit_id: huItem?.handling_unit_id || "",
+              handling_no: huItem?.handling_no || "",
+              hu_material_id: huItem?.hu_material_id || "",
+              hu_type: huItem?.hu_type || "",
+              hu_uom: huItem?.hu_uom || "",
+              remark: huItem?.remark || "",
+            };
+
+            huData = JSON.stringify(huInfo);
           }
 
           tablePutawayItem.push({
@@ -236,11 +297,12 @@
             target_inv_category: "Unrestricted",
             received_qty: item.received_qty || 0,
             item_uom: item.item_uom || "",
-            source_bin: item.location_id || "",
+            source_bin: sourceBin || item.location_id || "",
             qty_to_putaway: item.received_qty || 0,
             pending_process_qty: item.received_qty || 0,
             putaway_qty: 0,
-            target_location: "",
+            storage_location: sourceBin ? item.storage_location_id || "" : "",
+            target_location: sourceBin ? item.location_id || "" : "",
             remark: "",
             qi_no: null,
             line_status: "Open",
@@ -251,6 +313,8 @@
             unit_price: item.unit_price || 0,
             total_price: (item.unit_price || 0) * (item.received_qty || 0),
             is_serialized_item: item.is_serialized_item || 0,
+            gr_line_id: item.id || "",
+            hu_data: huData,
           });
         }
       } catch (itemError) {
@@ -269,8 +333,15 @@
     });
 
     console.log(
-      `Successfully created putaway with ${tablePutawayItem.length} items from GR ${grData.gr_no}`
+      `Successfully created putaway with ${tablePutawayItem.length} items from GR ${grData.gr_no}`,
     );
+
+    // Disable split button for items with HU data
+    for (const [index, item] of tablePutawayItem.entries()) {
+      if (item.hu_data && item.hu_data !== "") {
+        this.disabled([`table_putaway_item.${index}.button_split`], true);
+      }
+    }
 
     // Wait for setData to complete (if needed by the platform)
     // Then process serial numbers in proper sequence

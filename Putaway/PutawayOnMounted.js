@@ -231,6 +231,17 @@ const setSerialNumber = async () => {
   }
 };
 
+const disableSplitForHUItems = async () => {
+  const tablePutawayItem = this.getValue("table_putaway_item");
+  if (!Array.isArray(tablePutawayItem) || tablePutawayItem.length === 0) return;
+
+  for (const [index, item] of tablePutawayItem.entries()) {
+    if (item.hu_data && item.hu_data !== "") {
+      this.disabled([`table_putaway_item.${index}.button_split`], true);
+    }
+  }
+};
+
 const setDocType = async (plantId) => {
   if (plantId) {
     await this.disabled(["ref_doc_type", "gr_no"], false);
@@ -290,6 +301,7 @@ const setDocType = async (plantId) => {
         await showStatusHTML(status);
         await showQINo();
         await viewSerialNumber();
+        await disableSplitForHUItems();
         setTimeout(() => {
           setSerialNumber();
         }, 300);
@@ -306,6 +318,7 @@ const setDocType = async (plantId) => {
         ]);
         await showQINo();
         await viewSerialNumber();
+        await disableSplitForHUItems();
         break;
     }
   } catch (error) {
@@ -315,19 +328,21 @@ const setDocType = async (plantId) => {
 })();
 
 setTimeout(async () => {
-  if (this.isAdd) {
+  if (!this.isAdd) return;
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
     const op = await this.onDropdownVisible("to_id_type", true);
-    function getDefaultItem(arr) {
-      return arr?.find((item) => item?.item?.item?.is_default === 1);
-    }
-    setTimeout(() => {
-      const optionsData = this.getOptionData("to_id_type") || [];
-      const data = getDefaultItem(optionsData);
-      if (data) {
-        this.setData({
-          to_id_type: data.value,
-        });
-      }
-    }, 500);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+
+  const optionsData = this.getOptionData("to_id_type") || [];
+  const data = getDefaultItem(optionsData);
+  if (data) {
+    this.setData({ to_id_type: data.value });
   }
 }, 500);
