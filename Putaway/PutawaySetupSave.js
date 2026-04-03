@@ -17,6 +17,7 @@ const {
   fallback_strategy_id,
   auto_completed_gr,
   is_loading_bay,
+  storage_location_id,
   default_loading_bay,
   bin_validation_scope,
   require_bin_scan,
@@ -25,6 +26,16 @@ const {
   organization_id,
   require_item_scan,
 } = data;
+
+if (
+  is_loading_bay === 1 &&
+  (!default_loading_bay || default_loading_bay === "")
+) {
+  this.$message.error(
+    "Please select a loading bay or create a loading bay before saving.",
+  );
+  return;
+}
 
 const entry = {
   movement_type,
@@ -35,6 +46,7 @@ const entry = {
   fallback_strategy_id,
   auto_completed_gr,
   is_loading_bay,
+  storage_location_id,
   default_loading_bay,
   bin_validation_scope,
   require_bin_scan,

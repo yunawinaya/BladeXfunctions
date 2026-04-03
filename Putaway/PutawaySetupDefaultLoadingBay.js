@@ -16,6 +16,7 @@
     value === 0
   ) {
     this.setData({
+      storage_location_id: "",
       default_loading_bay: "",
     });
     return;
@@ -23,11 +24,17 @@
 
   console.log("resStorageLocation", resStorageLocation);
 
-  const defaultLoadingBay = resStorageLocation.data[0].table_bin_location.find(
-    (bin) => bin.is_default_bin === 1,
-  ).bin_location_id;
-
-  this.setData({
-    default_loading_bay: defaultLoadingBay,
+  await this.setData({
+    storage_location_id: resStorageLocation.data[0].id,
   });
+
+  const defaultLoadingBay = resStorageLocation.data[0].table_bin_location?.find(
+    (bin) => bin.is_default_bin === 1,
+  )?.bin_location_id;
+
+  if (defaultLoadingBay) {
+    this.setData({
+      default_loading_bay: defaultLoadingBay,
+    });
+  }
 })();
