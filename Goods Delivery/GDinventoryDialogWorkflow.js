@@ -1,11 +1,14 @@
 (async () => {
   try {
+    this.showLoading("Loading inventory data...");
+
     const data = this.getValues();
     const lineItemData = arguments[0]?.row;
     const rowIndex = arguments[0]?.rowIndex;
 
     if (!lineItemData) {
       console.error("Missing line item data");
+      this.hideLoading();
       return;
     }
 
@@ -14,6 +17,7 @@
     const altUOM = lineItemData.gd_order_uom_id;
     const plantId = data.plant_id;
     const tempQtyData = lineItemData.temp_qty_data;
+    const tempHuData = lineItemData.temp_hu_data;
 
     console.log("lineItemData", lineItemData);
 
@@ -312,44 +316,22 @@
       });
     };
 
+    // Auto allocation via global workflow (handles both HU + loose in one call)
     const applyAutoAllocation = async (
+      huTableData,
       balanceData,
       itemData,
       plantId,
       organizationId,
       requestedQty,
-      batchDataArray = [],
-      soLineItemId = null,
-      existingAllocations = [],
+      allocationStrategy,
+      existingAllocations,
+      soLineItemId,
+      huPriority,
     ) => {
-      console.log("Starting auto allocation via global workflow");
-
-      // Fetch picking setup to determine mode and strategy
-      const pickingSetupRes = await db
-        .collection("picking_setup")
-        .where({
-          organization_id: organizationId,
-          is_deleted: 0,
-        })
-        .get();
-
-      if (!pickingSetupRes.data || pickingSetupRes.data.length === 0) {
-        console.log("No picking setup found, skipping auto allocation");
-        return balanceData;
-      }
-
-      const pickingSetup = pickingSetupRes.data[0];
-
-      if (pickingSetup.picking_mode !== "Auto") {
-        console.log("Manual picking mode, skipping auto allocation");
-        return balanceData;
-      }
-
-      const allocationStrategy = pickingSetup.default_strategy_id || "RANDOM";
-      const isPending = soLineItemId ? 1 : 0;
       const isBatchManaged = itemData.item_batch_management === 1;
+      const isPending = soLineItemId ? 1 : 0;
 
-      // Build workflow parameters
       const workflowParams = {
         material_id: itemData.id,
         quantity: requestedQty,
@@ -360,14 +342,18 @@
         isPending: isPending,
         parent_line_id: soLineItemId || "",
         existingAllocationData: existingAllocations,
+        // Pass base UOM quantities to workflow (un-deducted) — workflow deducts via huReservedMap
+        huData: huTableData.map((row) =>
+          row.row_type === "item" && row.item_quantity_base != null
+            ? { ...row, item_quantity: row.item_quantity_base }
+            : row,
+        ),
+        huPriority: huPriority,
+        currentDocId: data.id || "",
       };
 
-      console.log(
-        "Calling auto allocation workflow with params:",
-        workflowParams,
-      );
+      console.log("Calling auto allocation workflow with params:", workflowParams);
 
-      // Call global auto allocation workflow
       let workflowResult;
       try {
         workflowResult = await new Promise((resolve, reject) => {
@@ -380,30 +366,26 @@
         });
       } catch (err) {
         console.error("Auto allocation workflow failed:", err);
-        return balanceData;
+        return;
       }
 
       console.log("Workflow result:", workflowResult);
 
-      // Extract allocation result from workflow response (nested inside data)
       const allocationResult = workflowResult?.data || workflowResult;
 
-      // Handle no allocation result — return balanceData with zero for manual adjustment
       if (
         !allocationResult ||
         !allocationResult.allocationData ||
         allocationResult.allocationData.length === 0
       ) {
-        console.log(
-          "Workflow returned no allocation:",
-          allocationResult?.message,
-        );
-        return balanceData.map((b) => ({ ...b, gd_quantity: 0 }));
+        console.log("Workflow returned no allocation:", allocationResult?.message);
+        balanceData.forEach((b) => (b.gd_quantity = 0));
+        return;
       }
 
       const allocationData = allocationResult.allocationData;
 
-      // Build allocation map: key (location+batch) -> total allocated qty
+      // Split results: HU allocations vs loose allocations
       const generateKey = (locationId, batchId) => {
         if (isBatchManaged) {
           return `${locationId}-${batchId || "no_batch"}`;
@@ -411,37 +393,55 @@
         return `${locationId}`;
       };
 
-      const allocationMap = new Map();
+      // Apply HU allocations back to huTableData
       for (const alloc of allocationData) {
+        if (alloc.source === "hu" && alloc.handling_unit_id) {
+          const huItem = huTableData.find(
+            (row) =>
+              row.row_type === "item" &&
+              row.handling_unit_id === alloc.handling_unit_id &&
+              row.material_id === (alloc.material_id || "") &&
+              (row.batch_id || "") === (alloc.batch_id || ""),
+          );
+          if (huItem) {
+            huItem.deliver_quantity = alloc.gd_quantity || 0;
+          }
+        }
+      }
+
+      // Apply loose allocations back to balanceData
+      const looseAllocations = allocationData.filter((a) => a.source !== "hu");
+      const allocationMap = new Map();
+      for (const alloc of looseAllocations) {
         const key = generateKey(alloc.location_id, alloc.batch_id);
         const existing = allocationMap.get(key) || 0;
         allocationMap.set(key, existing + (alloc.gd_quantity || 0));
       }
 
-      // Distribute allocation across balance records by available unrestricted_qty.
-      // Multiple records can share the same location/batch key, so we decrement
-      // remaining allocation as we assign to each record.
       const remainingAllocation = new Map(allocationMap);
-      const finalData = balanceData.map((balance) => {
+      for (const balance of balanceData) {
         const key = generateKey(balance.location_id, balance.batch_id);
         const remaining = remainingAllocation.get(key) || 0;
 
         if (remaining > 0) {
           const allocQty = Math.min(remaining, balance.unrestricted_qty || 0);
           remainingAllocation.set(key, remaining - allocQty);
-          return { ...balance, gd_quantity: allocQty };
+          balance.gd_quantity = allocQty;
+        } else {
+          balance.gd_quantity = 0;
         }
-        return { ...balance, gd_quantity: 0 };
-      });
+      }
 
-      const totalAllocated = allocationData.reduce(
-        (sum, a) => sum + (a.gd_quantity || 0),
+      const totalHu = huTableData
+        .filter((r) => r.row_type === "item")
+        .reduce((sum, r) => sum + (r.deliver_quantity || 0), 0);
+      const totalLoose = balanceData.reduce(
+        (sum, r) => sum + (r.gd_quantity || 0),
         0,
       );
       console.log(
-        `Auto allocation completed: ${totalAllocated} allocated via workflow`,
+        `Auto allocation complete (${allocationStrategy}): HU=${totalHu}, Loose=${totalLoose}`,
       );
-      return finalData;
     };
 
     const parseTempQtyData = (tempQtyData) => {
@@ -455,6 +455,119 @@
         return Array.isArray(parsed) ? parsed : [];
       } catch (error) {
         console.error("Error parsing temp_qty_data:", error);
+        return [];
+      }
+    };
+
+    const fetchHandlingUnits = async (
+      plantId,
+      organizationId,
+      materialId,
+      tempHuDataStr,
+      itemData,
+      altUOM,
+      otherLinesHuAllocations,
+    ) => {
+      try {
+        // Single query: fetch all HUs for this plant/org, filter items by material in JS
+        const responseHU = await db
+          .collection("handling_unit")
+          .where({
+            plant_id: plantId,
+            organization_id: organizationId,
+            is_deleted: 0,
+          })
+          .get();
+
+        const allHUs = responseHU.data || [];
+        const huTableData = [];
+
+        for (const hu of allHUs) {
+          const matchingItems = (hu.table_hu_items || []).filter(
+            (item) =>
+              item.material_id === materialId && item.is_deleted !== 1,
+          );
+          if (matchingItems.length === 0) continue;
+
+          // Header row — convert total_quantity to alt UOM for display
+          const headerQty = parseFloat(hu.total_quantity) || 0;
+          huTableData.push({
+            row_type: "header",
+            handling_unit_id: hu.id,
+            handling_no: hu.handling_no,
+            material_id: "",
+            material_name: "",
+            storage_location_id: hu.storage_location_id,
+            location_id: hu.location_id,
+            batch_id: null,
+            item_quantity: convertBaseToAlt(headerQty, itemData, altUOM),
+            deliver_quantity: 0,
+            remark: hu.remark || "",
+            balance_id: "",
+          });
+
+          // Item rows — convert quantity to alt UOM for display
+          for (const huItem of matchingItems) {
+            const baseQty = parseFloat(huItem.quantity) || 0;
+            let displayQty = convertBaseToAlt(baseQty, itemData, altUOM);
+
+            // Deduct other lines' HU allocations for same HU item (Fix 4)
+            const otherLineAlloc = otherLinesHuAllocations.find(
+              (a) =>
+                a.handling_unit_id === hu.id &&
+                a.material_id === huItem.material_id &&
+                (a.batch_id || "") === (huItem.batch_id || ""),
+            );
+            if (otherLineAlloc) {
+              displayQty = Math.max(
+                0,
+                displayQty - (otherLineAlloc.deliver_quantity || 0),
+              );
+            }
+
+            huTableData.push({
+              row_type: "item",
+              handling_unit_id: hu.id,
+              handling_no: "",
+              material_id: huItem.material_id,
+              material_name: huItem.material_name,
+              storage_location_id: hu.storage_location_id,
+              location_id: huItem.location_id || hu.location_id,
+              batch_id: huItem.batch_id || null,
+              item_quantity: displayQty,
+              item_quantity_base: baseQty,
+              deliver_quantity: 0,
+              remark: "",
+              balance_id: huItem.balance_id || "",
+              expired_date: huItem.expired_date || null,
+              manufacturing_date: huItem.manufacturing_date || null,
+              create_time: huItem.create_time || hu.create_time,
+            });
+          }
+        }
+
+        // Merge with existing temp_hu_data (restore deliver_quantity on re-open)
+        const parsedTempHu = parseTempQtyData(tempHuDataStr);
+        for (const tempItem of parsedTempHu) {
+          if (tempItem.row_type !== "item") continue;
+          const match = huTableData.find(
+            (row) =>
+              row.row_type === "item" &&
+              row.handling_unit_id === tempItem.handling_unit_id &&
+              row.material_id === tempItem.material_id &&
+              (row.batch_id || "") === (tempItem.batch_id || ""),
+          );
+          if (match) {
+            match.deliver_quantity = tempItem.deliver_quantity || 0;
+          }
+        }
+
+        console.log(
+          `Found ${huTableData.length} HU rows for material ${materialId}`,
+        );
+        return huTableData;
+      } catch (error) {
+        console.error("Error fetching handling units:", error);
         return [];
       }
     };
@@ -531,11 +644,6 @@
       altUOM,
       baseUOM,
       includeRawData = false,
-      organizationId = null,
-      requestedQty = 0,
-      batchDataArray = [],
-      soLineItemId = null,
-      existingAllocations = [],
     ) => {
       try {
         const response = await db
@@ -556,28 +664,15 @@
           baseUOM,
         );
         const tempDataArray = parseTempQtyData(tempQtyData);
+        // Filter out HU records — they are handled separately via table_hu
+        const balanceTempData = tempDataArray.filter(
+          (item) => !item.handling_unit_id,
+        );
         let finalData = mergeWithTempData(
           processedFreshData,
-          tempDataArray,
+          balanceTempData,
           itemData,
         );
-
-        // Apply auto allocation if no existing temp_qty_data
-        const hasExistingAllocation = tempDataArray && tempDataArray.length > 0;
-
-        if (!hasExistingAllocation && requestedQty > 0 && organizationId) {
-          console.log(`Applying auto allocation for qty: ${requestedQty}`);
-          finalData = await applyAutoAllocation(
-            finalData,
-            itemData,
-            plantId,
-            organizationId,
-            requestedQty,
-            batchDataArray,
-            soLineItemId,
-            existingAllocations,
-          );
-        }
 
         const filteredData = filterZeroQuantityRecords(finalData, itemData);
 
@@ -624,6 +719,7 @@
                 existingAllocationData.push({
                   location_id: alloc.location_id,
                   batch_id: alloc.batch_id || null,
+                  handling_unit_id: alloc.handling_unit_id || null,
                   quantity: alloc.gd_quantity,
                 });
               }
@@ -639,21 +735,6 @@
       console.log(
         `Found ${existingAllocationData.length} existing allocations from other line items`,
       );
-    }
-
-    // Fetch batch data if batch-managed (for FIFO sorting in auto allocation)
-    let batchDataArray = [];
-    if (itemData.item_batch_management === 1) {
-      const batchRes = await db
-        .collection("batch")
-        .where({
-          material_id: materialId,
-          plant_id: plantId,
-          organization_id: organizationId,
-          is_deleted: 0,
-        })
-        .get();
-      batchDataArray = batchRes.data || [];
     }
 
     const defaultStorageLocation = await fetchDefaultStorageLocation(itemData);
@@ -685,6 +766,7 @@
 
     this.setData({
       [`gd_item_balance.table_item_balance`]: [],
+      [`gd_item_balance.table_hu`]: [],
     });
 
     if (itemData.serial_number_management === 1) {
@@ -730,11 +812,6 @@
           altUOM,
           baseUOM,
           true,
-          organizationId,
-          requestedQty,
-          batchDataArray,
-          lineItemData.so_line_item_id,
-          existingAllocationData,
         );
       }
     } else if (itemData.item_batch_management === 1) {
@@ -760,11 +837,6 @@
           altUOM,
           baseUOM,
           false,
-          organizationId,
-          requestedQty,
-          batchDataArray,
-          lineItemData.so_line_item_id,
-          existingAllocationData,
         );
       }
     } else {
@@ -790,13 +862,151 @@
           altUOM,
           baseUOM,
           false,
-          organizationId,
-          requestedQty,
-          batchDataArray,
-          lineItemData.so_line_item_id,
-          existingAllocationData,
         );
       }
+    }
+
+    // Tab helpers for hiding/showing HU tab
+    const hideTab = (tabName) => {
+      const tab = document.querySelector(`.el-tabs__item#tab-${tabName}`);
+      if (tab) {
+        tab.style.display = "none";
+      }
+    };
+
+    const showTab = (tabName) => {
+      const tab = document.querySelector(`.el-tabs__item#tab-${tabName}`);
+      if (tab) {
+        tab.style.display = "flex";
+        tab.setAttribute("aria-disabled", "false");
+        tab.classList.remove("is-disabled");
+      }
+    };
+
+    const activateTab = (tabName) => {
+      const tab = document.querySelector(`.el-tabs__item#tab-${tabName}`);
+      if (tab) {
+        tab.click();
+      }
+    };
+
+    // Collect other lines' HU allocations for the same material (prevent double HU allocation)
+    const otherLinesHuAllocations = [];
+    if (data.table_gd) {
+      data.table_gd.forEach((line, idx) => {
+        if (idx === rowIndex) return;
+        if (line.material_id !== materialId) return;
+
+        const huStr = line.temp_hu_data;
+        if (!huStr || huStr === "[]" || huStr.trim() === "") return;
+
+        try {
+          const parsed = JSON.parse(huStr);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((alloc) => {
+              if (
+                alloc.row_type === "item" &&
+                parseFloat(alloc.deliver_quantity) > 0
+              ) {
+                otherLinesHuAllocations.push(alloc);
+              }
+            });
+          }
+        } catch (e) {
+          console.warn(`Failed to parse temp_hu_data for row ${idx}`);
+        }
+      });
+    }
+
+    // Fetch and populate HU table (skip in GDPP mode)
+    if (!isSelectPicking) {
+      const huTableData = await fetchHandlingUnits(
+        plantId,
+        organizationId,
+        materialId,
+        tempHuData,
+        itemData,
+        altUOM,
+        otherLinesHuAllocations,
+      );
+
+      // ================================================================
+      // AUTO ALLOCATION (runs for both HU + loose, or loose-only)
+      // ================================================================
+      const tempDataArray = parseTempQtyData(tempQtyData);
+      const balanceTempData = tempDataArray.filter(
+        (item) => !item.handling_unit_id,
+      );
+      const huTempData = parseTempQtyData(tempHuData);
+      const hasExistingAllocation =
+        (balanceTempData && balanceTempData.length > 0) ||
+        (huTempData && huTempData.length > 0);
+
+      if (!hasExistingAllocation && requestedQty > 0 && organizationId) {
+        const pickingSetupRes = await db
+          .collection("picking_setup")
+          .where({ organization_id: organizationId, is_deleted: 0 })
+          .get();
+
+        const pickingSetup = pickingSetupRes.data?.[0];
+
+        if (pickingSetup && pickingSetup.picking_mode === "Auto") {
+          const allocationStrategy =
+            pickingSetup.default_strategy_id || "RANDOM";
+          const huPriorityConfig =
+            pickingSetup.hu_priority || "HU First";
+
+          const currentData = this.getValues();
+          const balanceData =
+            currentData.gd_item_balance?.table_item_balance || [];
+
+          await applyAutoAllocation(
+            huTableData,
+            balanceData,
+            itemData,
+            plantId,
+            organizationId,
+            requestedQty,
+            allocationStrategy,
+            existingAllocationData,
+            lineItemData.so_line_item_id || "",
+            huPriorityConfig,
+          );
+
+          // Update loose table with allocation results
+          await this.setData({
+            [`gd_item_balance.table_item_balance`]: balanceData.map(
+              (r) => ({ ...r }),
+            ),
+          });
+        }
+      }
+
+      // ================================================================
+      // SET HU TABLE DATA + TAB VISIBILITY
+      // ================================================================
+      if (huTableData.length > 0) {
+        showTab("handling_unit");
+
+        // Set HU table data once (with allocation results already applied)
+        await this.setData({ [`gd_item_balance.table_hu`]: huTableData });
+
+        // Disable deliver_quantity on header rows
+        huTableData.forEach((row, idx) => {
+          if (row.row_type === "header") {
+            this.disabled(
+              [`gd_item_balance.table_hu.${idx}.deliver_quantity`],
+              true,
+            );
+          }
+        });
+      } else {
+        hideTab("handling_unit");
+        activateTab("loose");
+      }
+    } else {
+      hideTab("handling_unit");
+      activateTab("loose");
     }
 
     window.validationState = window.validationState || {};
@@ -812,7 +1022,10 @@
 
       console.log(`Initialized validation state for ${rowCount} rows`);
     }, 100);
+
+    this.hideLoading();
   } catch (error) {
     console.error("Error in GD inventory dialog:", error);
+    this.hideLoading();
   }
 })();

@@ -4,6 +4,7 @@
 
   const data = this.getValues();
   const temporaryData = data.gd_item_balance.table_item_balance;
+  const huData = data.gd_item_balance.table_hu || [];
   const rowIndex = data.gd_item_balance.row_index;
   const selectedUOM = data.gd_item_balance.material_uom;
   const materialId = data.table_gd[rowIndex].material_id;
@@ -91,15 +92,28 @@
   }
 
   // Calculate total quantity from all rows with gd_quantity > 0
-  const totalDialogQuantity = roundQty(temporaryData.reduce((sum, item) => {
+  const balanceTotal = roundQty(temporaryData.reduce((sum, item) => {
     return sum + (item.gd_quantity > 0 ? parseFloat(item.gd_quantity || 0) : 0);
   }, 0));
 
+  // Filter HU item rows with deliver_quantity > 0
+  const filteredHuData = huData.filter(
+    (item) => item.row_type === "item" && parseFloat(item.deliver_quantity) > 0,
+  );
+
+  const totalHuQuantity = roundQty(filteredHuData.reduce(
+    (sum, item) => sum + parseFloat(item.deliver_quantity || 0),
+    0,
+  ));
+
+  const totalDialogQuantity = roundQty(balanceTotal + totalHuQuantity);
   const totalDeliveredQty = roundQty(initialDeliveredQty + totalDialogQuantity);
 
   console.log("Re-validation check:");
   console.log("Order limit with tolerance:", orderLimit);
   console.log("Initial delivered quantity:", initialDeliveredQty);
+  console.log("Balance total:", balanceTotal);
+  console.log("HU total:", totalHuQuantity);
   console.log("Total dialog quantity:", totalDialogQuantity);
   console.log("Total delivered quantity:", totalDeliveredQty);
 
@@ -321,6 +335,28 @@
     console.log(`Row ${idx} validation: passed`);
   }
 
+  // Validate HU item rows
+  for (const huItem of filteredHuData) {
+    const deliverQty = parseFloat(huItem.deliver_quantity || 0);
+    const availableQty = parseFloat(huItem.item_quantity || 0);
+
+    if (deliverQty > availableQty) {
+      const huHeader = huData.find(
+        (row) =>
+          row.row_type === "header" &&
+          row.handling_unit_id === huItem.handling_unit_id,
+      );
+      const huName = huHeader?.handling_no || huItem.handling_unit_id;
+      console.log(
+        `HU validation failed: ${huName} deliver quantity ${deliverQty} exceeds available ${availableQty}`,
+      );
+      alert(
+        `HU ${huName}: Deliver quantity (${deliverQty}) exceeds available quantity (${availableQty})`,
+      );
+      return;
+    }
+  }
+
   // Check total delivery limit
   if (orderLimit > 0 && orderLimit < totalDeliveredQty) {
     console.log("Validation failed: Total quantity exceeds delivery limit");
@@ -498,13 +534,11 @@
       0,
     ));
 
-    let summary = `Total: ${totalQty} ${gdUOM}\n\nDETAILS:\n`;
-
-    // 🐛 ADD DEBUGGING HERE
-    console.log("=== DEBUGGING SERIAL DISPLAY ===");
-    console.log("isSerializedItem:", isSerializedItem);
-    console.log("isBatchManagedItem:", isBatchManagedItem);
-    console.log("filteredData:", filteredData);
+    const hasHuAllocation = filteredHuData && filteredHuData.length > 0;
+    const sectionLabel = hasHuAllocation ? "LOOSE STOCK" : "DETAILS";
+    let summary = hasHuAllocation
+      ? `${sectionLabel}:\n`
+      : `Total: ${totalQty} ${gdUOM}\n\n${sectionLabel}:\n`;
 
     const details = filteredData
       .map((item, index) => {
@@ -513,15 +547,6 @@
 
         let itemDetail = `${index + 1}. ${locationName}: ${qty} ${gdUOM}`;
 
-        // 🐛 ADD MORE DEBUGGING
-        console.log(`Item ${index}:`, {
-          serial_number: item.serial_number,
-          batch_id: item.batch_id,
-          isSerializedItem: isSerializedItem,
-          hasSerial: !!item.serial_number,
-        });
-
-        // 🔧 IMPROVED SERIAL DISPLAY LOGIC
         if (isSerializedItem) {
           if (item.serial_number && item.serial_number.trim() !== "") {
             itemDetail += ` [Serial: ${item.serial_number.trim()}]`;
@@ -549,30 +574,84 @@
       })
       .join("\n");
 
-    console.log("=== END DEBUGGING ===");
     return summary + details;
   };
 
-  const formattedString = await formatFilteredData(filteredData);
-  console.log("📋 Formatted string:", formattedString);
+  const balanceSummary = await formatFilteredData(filteredData);
 
-  const textareaContent = JSON.stringify(filteredData);
+  let formattedString = "";
+
+  if (filteredHuData.length > 0) {
+    // Grand total at top when both loose stock and HU exist
+    const grandTotal = roundQty(balanceTotal + totalHuQuantity);
+    formattedString += `Total: ${grandTotal} ${gdUOM}\n\n`;
+
+    // Loose stock section (only if there are balance allocations)
+    if (filteredData.length > 0) {
+      formattedString += balanceSummary;
+    }
+
+    // HU section
+    formattedString += `\n\nHANDLING UNIT:\n`;
+    const huDetails = filteredHuData
+      .map((item, index) => {
+        const huHeader = huData.find(
+          (row) =>
+            row.row_type === "header" &&
+            row.handling_unit_id === item.handling_unit_id,
+        );
+        const huName = huHeader?.handling_no || item.handling_unit_id;
+        let detail = `${index + 1}. ${huName}: ${item.deliver_quantity} ${gdUOM}`;
+        if (item.batch_id) {
+          detail += `\n   [Batch: ${item.batch_id}]`;
+        }
+        return detail;
+      })
+      .join("\n");
+    formattedString += huDetails;
+  } else {
+    formattedString = balanceSummary;
+  }
+
+  console.log("Formatted string:", formattedString);
+
+  // Convert HU items to same shape as balance data for combined temp_qty_data
+  const huAsBalanceData = filteredHuData.map((huItem) => ({
+    material_id: huItem.material_id,
+    location_id: huItem.location_id,
+    batch_id: huItem.batch_id || null,
+    balance_id: huItem.balance_id || "",
+    gd_quantity: parseFloat(huItem.deliver_quantity) || 0,
+    handling_unit_id: huItem.handling_unit_id,
+    plant_id: data.plant_id,
+    organization_id: data.organization_id,
+    is_deleted: 0,
+  }));
+
+  // Combine balance allocations + HU items into single temp_qty_data
+  const combinedQtyData = [...filteredData, ...huAsBalanceData];
+  const textareaContent = JSON.stringify(combinedQtyData);
 
   this.setData({
     [`table_gd.${rowIndex}.temp_qty_data`]: textareaContent,
+    [`table_gd.${rowIndex}.temp_hu_data`]: JSON.stringify(filteredHuData),
     [`table_gd.${rowIndex}.view_stock`]: formattedString,
     [`gd_item_balance.table_item_balance`]: [],
+    [`gd_item_balance.table_hu`]: [],
   });
 
   console.log("Input data (filtered):", filteredData);
   console.log("Row index:", rowIndex);
 
-  // Sum up all gd_quantity values from filtered data
-  const totalGdQuantity = roundQty(filteredData.reduce(
-    (sum, item) => sum + (item.gd_quantity || 0),
-    0,
-  ));
-  console.log("Total GD quantity:", totalGdQuantity);
+  // Sum up all gd_quantity values from filtered data + HU deliver quantities
+  const totalGdQuantity = roundQty(
+    filteredData.reduce((sum, item) => sum + (item.gd_quantity || 0), 0) +
+      filteredHuData.reduce(
+        (sum, item) => sum + parseFloat(item.deliver_quantity || 0),
+        0,
+      ),
+  );
+  console.log("Total GD quantity (balance + HU):", totalGdQuantity);
 
   // Get the initial delivered quantity from the table_gd
   const initialDeliveredQty2 =

@@ -381,13 +381,34 @@ const checkInventoryWithDuplicates = async (
   console.log(`🚀 Fetching data for ${materialIds.length} unique materials...`);
   const fetchStart = Date.now();
 
-  const [itemDataMap, balanceDataMaps, pickingSetup, batchDataMap, pendingReservedMap] =
+  // Fetch HU sub-items to check which materials have handling units
+  const fetchHUData = async () => {
+    const huResults = await Promise.all(
+      materialIds.map((id) =>
+        db
+          .collection("handling_unit_atu7sreg_sub")
+          .where({ material_id: id, is_deleted: 0 })
+          .get(),
+      ),
+    );
+
+    const huMaterialSet = new Set();
+    huResults.forEach((res, idx) => {
+      if (res.data && res.data.length > 0) {
+        huMaterialSet.add(materialIds[idx]);
+      }
+    });
+    return huMaterialSet;
+  };
+
+  const [itemDataMap, balanceDataMaps, pickingSetup, batchDataMap, pendingReservedMap, huMaterialSet] =
     await Promise.all([
       batchFetchItems(materialIds),
       batchFetchBalanceData(materialIds, plantId),
       fetchPickingSetup(plantId),
       batchFetchBatchData(materialIds, plantId),
       batchFetchPendingReserved(allSoLineItemIds, plantId),
+      fetchHUData(),
     ]);
 
   console.log(
@@ -590,7 +611,9 @@ const checkInventoryWithDuplicates = async (
     );
 
     // Handle UI controls based on balance data length
-    if (balanceData.length === 1) {
+    // Skip auto-enabling gd_qty if HUs exist for this material (user must use inventory dialog)
+    const materialHasHU = huMaterialSet.has(materialId);
+    if (balanceData.length === 1 && !materialHasHU) {
       items.forEach((item) => {
         fieldsToDisable.push(`table_gd.${item.originalIndex}.gd_delivery_qty`);
         fieldsToEnable.push(`table_gd.${item.originalIndex}.gd_qty`);

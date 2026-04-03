@@ -266,7 +266,30 @@
     const itemData = itemResult.data[0];
     const uomName = await getUOMData(uomId);
 
-    // 🔧 NEW: Check if item is serialized
+    // Check if HUs exist for this material — if so, skip auto allocation
+    // and let the user use the inventory dialog instead
+    const huCheckResult = await db
+      .collection("handling_unit_atu7sreg_sub")
+      .where({
+        material_id: itemCode,
+        is_deleted: 0,
+      })
+      .get();
+
+    const hasHU = huCheckResult.data && huCheckResult.data.length > 0;
+
+    if (hasHU) {
+      console.log(
+        `Row ${rowIndex}: HU exists for material ${itemCode}, skipping auto allocation`,
+      );
+      this.setData({
+        [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
+        [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+          roundQty(orderedQty - totalDeliveredQty),
+      });
+      return;
+    }
+
     const isSerializedItem = itemData.serial_number_management === 1;
     const isBatchManagedItem = itemData.item_batch_management === 1;
 
