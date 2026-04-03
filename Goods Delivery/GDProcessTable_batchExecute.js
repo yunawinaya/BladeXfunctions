@@ -47,10 +47,15 @@ return {
   inventoryMovements,
   inventoryMovementsCount: inventoryMovements.length,
 
+  // HU updates for handling unit quantity reduction at Completed
+  huUpdates: batchResult.huUpdates || [],
+  huUpdatesCount: (batchResult.huUpdates || []).length,
+
   // Flags for conditional workflow branches
   hasUpdates: reservedRecordUpdates.length > 0 ? 1 : 0,
   hasCreates: reservedRecordCreates.length > 0 ? 1 : 0,
   hasMovements: inventoryMovements.length > 0 ? 1 : 0,
+  hasHuUpdates: (batchResult.huUpdates || []).length > 0 ? 1 : 0,
 
-  message: `Ready for batch execution: ${reservedRecordUpdates.length} updates, ${reservedRecordCreates.length} creates, ${inventoryMovements.length} movements`
+  message: `Ready for batch execution: ${reservedRecordUpdates.length} updates, ${reservedRecordCreates.length} creates, ${inventoryMovements.length} movements, ${(batchResult.huUpdates || []).length} HU updates`
 };

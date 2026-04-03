@@ -93,6 +93,7 @@ const cleanupOrphanedAllocations = () => {
         material_id: processed.material_id,
         batch_id: group.batch_id,
         bin_location: group.location_id,
+        handling_unit_id: group.handling_unit_id || null,
       });
     }
   }
@@ -105,7 +106,8 @@ const cleanupOrphanedAllocations = () => {
           String(allocated.doc_line_id) === String(current.doc_line_id) &&
           String(allocated.material_id) === String(current.material_id) &&
           String(allocated.batch_id || "") === String(current.batch_id || "") &&
-          String(allocated.bin_location || "") === String(current.bin_location || "")
+          String(allocated.bin_location || "") === String(current.bin_location || "") &&
+          String(allocated.handling_unit_id || "") === String(current.handling_unit_id || "")
       )
   );
 
@@ -239,13 +241,15 @@ const processCreatedAllocation = (params) => {
 
   const allocDocType = isPP ? "Picking Plan" : "Good Delivery";
 
-  // Find matched allocated records for this specific item/location/batch
+  // Find matched allocated records for this specific item/location/batch/HU
+  const handlingUnitId = params.handlingUnitId || null;
   const matchedOldRecords = allAllocatedData.filter(
     (record) =>
       String(record.doc_line_id) === String(docLineId) &&
       String(record.material_id) === String(materialId) &&
       String(record.batch_id || "") === String(batchId || "") &&
       String(record.bin_location || "") === String(locationId || "") &&
+      String(record.handling_unit_id || "") === String(handlingUnitId || "") &&
       record.status === "Allocated" &&
       String(record.target_gd_id) === String(docId)
   );
@@ -562,6 +566,7 @@ const allocateFromPending = (qtyToAllocate, pendingData, params, allocDocType) =
       item_desc: itemData?.material_desc || "",
       batch_id: batchId,
       bin_location: locationId,
+      handling_unit_id: params.handlingUnitId || null,
       item_uom: materialUom,
       reserved_qty: remainingQtyToAllocate,
       delivered_qty: 0,
@@ -615,6 +620,7 @@ const processDeliveredAllocation = (params) => {
   } = params;
 
   // Match allocated records based on isGDPP
+  const handlingUnitId = params.handlingUnitId || null;
   let matchedAllocatedRecords;
   if (isGDPP === 1) {
     matchedAllocatedRecords = allAllocatedData.filter(
@@ -623,6 +629,7 @@ const processDeliveredAllocation = (params) => {
         String(record.material_id) === String(materialId) &&
         String(record.batch_id || "") === String(batchId || "") &&
         String(record.bin_location || "") === String(locationId || "") &&
+        String(record.handling_unit_id || "") === String(handlingUnitId || "") &&
         record.status === "Allocated" &&
         String(record.target_gd_id) === String(linePpId)
     );
@@ -633,6 +640,7 @@ const processDeliveredAllocation = (params) => {
         String(record.material_id) === String(materialId) &&
         String(record.batch_id || "") === String(batchId || "") &&
         String(record.bin_location || "") === String(locationId || "") &&
+        String(record.handling_unit_id || "") === String(handlingUnitId || "") &&
         record.status === "Allocated" &&
         String(record.target_gd_id) === String(docId)
     );
@@ -1060,6 +1068,7 @@ const processDeliveredAllocation = (params) => {
         item_desc: itemData?.material_desc || "",
         batch_id: batchId,
         bin_location: locationId,
+        handling_unit_id: params.handlingUnitId || null,
         item_uom: materialUom,
         doc_type: "Good Delivery",
         parent_id: lineParentId,
@@ -1239,6 +1248,7 @@ const processDeliveredAllocation = (params) => {
       item_desc: itemData?.material_desc || "",
       batch_id: batchId,
       bin_location: locationId,
+      handling_unit_id: params.handlingUnitId || null,
       item_uom: materialUom,
       doc_type: "Good Delivery",
       parent_id: lineParentId,
@@ -1300,6 +1310,7 @@ const processDeliveredAllocation = (params) => {
 const allRecordsToUpdate = [];
 const allRecordsToCreate = [];
 const allInventoryMovements = [];
+const allHuUpdates = [];
 
 // Step 1: Cleanup orphaned allocations (if saveAs !== "Cancelled")
 if (saveAs !== "Cancelled") {
@@ -1328,6 +1339,7 @@ for (const processed of processedTableData) {
       itemData,
       batchId: group.batch_id,
       locationId: group.location_id,
+      handlingUnitId: group.handling_unit_id || null,
       materialUom: processed.material_uom,
       index: processed.tableIndex,
       remark: processed.remark,
@@ -1362,6 +1374,15 @@ for (const processed of processedTableData) {
     if (result.inventoryMovements) {
       allInventoryMovements.push(...result.inventoryMovements);
     }
+    // Collect HU updates for Completed status
+    if (saveAs === "Completed" && params.handlingUnitId && quantity > 0) {
+      allHuUpdates.push({
+        handling_unit_id: params.handlingUnitId,
+        material_id: params.materialId,
+        batch_id: params.batchId || null,
+        deliver_quantity: quantity,
+      });
+    }
   }
 }
 
@@ -1382,5 +1403,7 @@ return {
   recordsToCreateLength: allRecordsToCreate.length,
   inventoryMovements: allInventoryMovements,
   inventoryMovementsLength: allInventoryMovements.length,
-  message: `Batch processing complete: ${deduplicatedRecordsToUpdate.length} updates, ${allRecordsToCreate.length} creates, ${allInventoryMovements.length} movements`
+  huUpdates: allHuUpdates,
+  huUpdatesLength: allHuUpdates.length,
+  message: `Batch processing complete: ${deduplicatedRecordsToUpdate.length} updates, ${allRecordsToCreate.length} creates, ${allInventoryMovements.length} movements, ${allHuUpdates.length} HU updates`
 };

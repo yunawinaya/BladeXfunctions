@@ -352,7 +352,10 @@
         currentDocId: data.id || "",
       };
 
-      console.log("Calling auto allocation workflow with params:", workflowParams);
+      console.log(
+        "Calling auto allocation workflow with params:",
+        workflowParams,
+      );
 
       let workflowResult;
       try {
@@ -378,7 +381,10 @@
         !allocationResult.allocationData ||
         allocationResult.allocationData.length === 0
       ) {
-        console.log("Workflow returned no allocation:", allocationResult?.message);
+        console.log(
+          "Workflow returned no allocation:",
+          allocationResult?.message,
+        );
         balanceData.forEach((b) => (b.gd_quantity = 0));
         return;
       }
@@ -482,10 +488,29 @@
         const allHUs = responseHU.data || [];
         const huTableData = [];
 
+        // Fetch cross-GD HU reservations for display deduction
+        const huReservationRes = await db
+          .collection("on_reserved_gd")
+          .where({
+            plant_id: plantId,
+            organization_id: organizationId,
+            material_id: materialId,
+            status: "Allocated",
+            is_deleted: 0,
+          })
+          .get();
+
+        const currentDocId = data.id || "";
+        const huReservations = (huReservationRes.data || []).filter(
+          (r) =>
+            r.handling_unit_id &&
+            parseFloat(r.open_qty) > 0 &&
+            (!currentDocId || r.doc_id !== currentDocId),
+        );
+
         for (const hu of allHUs) {
           const matchingItems = (hu.table_hu_items || []).filter(
-            (item) =>
-              item.material_id === materialId && item.is_deleted !== 1,
+            (item) => item.material_id === materialId && item.is_deleted !== 1,
           );
           if (matchingItems.length === 0) continue;
 
@@ -511,7 +536,7 @@
             const baseQty = parseFloat(huItem.quantity) || 0;
             let displayQty = convertBaseToAlt(baseQty, itemData, altUOM);
 
-            // Deduct other lines' HU allocations for same HU item (Fix 4)
+            // Deduct other lines' HU allocations for same HU item
             const otherLineAlloc = otherLinesHuAllocations.find(
               (a) =>
                 a.handling_unit_id === hu.id &&
@@ -524,6 +549,23 @@
                 displayQty - (otherLineAlloc.deliver_quantity || 0),
               );
             }
+
+            // Deduct cross-GD HU reservations from on_reserved_gd
+            const crossGdReserved = huReservations
+              .filter(
+                (r) =>
+                  r.handling_unit_id === hu.id &&
+                  String(r.material_id || "") ===
+                    String(huItem.material_id || "") &&
+                  (r.batch_id || "") === (huItem.batch_id || ""),
+              )
+              .reduce((sum, r) => sum + parseFloat(r.open_qty || 0), 0);
+            if (crossGdReserved > 0) {
+              displayQty = Math.max(0, displayQty - crossGdReserved);
+            }
+
+            // Skip items with zero available quantity
+            if (displayQty <= 0) continue;
 
             huTableData.push({
               row_type: "item",
@@ -545,6 +587,19 @@
             });
           }
         }
+
+        // Remove header rows that have no item rows (fully reserved HU)
+        const huIdsWithItems = new Set(
+          huTableData
+            .filter((r) => r.row_type === "item")
+            .map((r) => r.handling_unit_id),
+        );
+        const filteredHuTableData = huTableData.filter(
+          (r) =>
+            r.row_type === "item" || huIdsWithItems.has(r.handling_unit_id),
+        );
+        huTableData.length = 0;
+        huTableData.push(...filteredHuTableData);
 
         // Merge with existing temp_hu_data (restore deliver_quantity on re-open)
         const parsedTempHu = parseTempQtyData(tempHuDataStr);
@@ -953,8 +1008,7 @@
         if (pickingSetup && pickingSetup.picking_mode === "Auto") {
           const allocationStrategy =
             pickingSetup.default_strategy_id || "RANDOM";
-          const huPriorityConfig =
-            pickingSetup.hu_priority || "HU First";
+          const huPriorityConfig = pickingSetup.hu_priority || "HU First";
 
           const currentData = this.getValues();
           const balanceData =
@@ -975,9 +1029,9 @@
 
           // Update loose table with allocation results
           await this.setData({
-            [`gd_item_balance.table_item_balance`]: balanceData.map(
-              (r) => ({ ...r }),
-            ),
+            [`gd_item_balance.table_item_balance`]: balanceData.map((r) => ({
+              ...r,
+            })),
           });
         }
       }

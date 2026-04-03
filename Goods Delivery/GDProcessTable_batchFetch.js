@@ -35,8 +35,8 @@ const pickingPlanId = {{workflowparams:picking_plan_id}} || "";
 
 // Data from batch search nodes (these need to be added to workflow)
 const allItemsData = {{node:search_node_muUXSBRg.data.data}} || [];
-const allAllocatedData = isGDPP === 0 ? {{node:search_node_u5O1b4bl.data.data}} : {{node:search_node_FDYYipDU.data.data}} || [];
-const allPendingData = {{node:search_node_GWy9RUa7.data.data}} || [];
+const allAllocatedData = isGDPP === 0 ? {{node:search_node_r3NiR6B7.data.data}} : {{node:search_node_NxFJeRXS.data.data}} || [];
+const allPendingData = {{node:search_node_QdY1FLLA.data.data}} || [];
 
 // Helper function to safely parse JSON
 const parseJsonSafely = (jsonString, defaultValue = []) => {
@@ -93,17 +93,23 @@ for (let tableIndex = 0; tableIndex < tableData.length; tableIndex++) {
 
   const isBatchManagedItem = itemData.item_batch_management === 1;
 
-  // Group temp_qty_data by location + batch combination
+  // Group temp_qty_data by location + batch + handling_unit combination
   const groupedTempData = {};
   for (const temp of tempQtyData) {
-    const groupKey = isBatchManagedItem && temp.batch_id
+    let groupKey = isBatchManagedItem && temp.batch_id
       ? `${temp.location_id}|${temp.batch_id}`
       : temp.location_id;
+
+    // Include handling_unit_id in key to keep HU and loose separate
+    if (temp.handling_unit_id) {
+      groupKey += `|hu-${temp.handling_unit_id}`;
+    }
 
     if (!groupedTempData[groupKey]) {
       groupedTempData[groupKey] = {
         location_id: temp.location_id,
         batch_id: temp.batch_id || null,
+        handling_unit_id: temp.handling_unit_id || null,
         totalQty: 0,
       };
     }
