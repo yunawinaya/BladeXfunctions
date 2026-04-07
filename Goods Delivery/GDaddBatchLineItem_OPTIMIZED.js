@@ -401,15 +401,21 @@ const checkInventoryWithDuplicates = async (
     return huMaterialSet;
   };
 
-  const [itemDataMap, balanceDataMaps, pickingSetup, batchDataMap, pendingReservedMap, huMaterialSet] =
-    await Promise.all([
-      batchFetchItems(materialIds),
-      batchFetchBalanceData(materialIds, plantId),
-      fetchPickingSetup(plantId),
-      batchFetchBatchData(materialIds, plantId),
-      batchFetchPendingReserved(allSoLineItemIds, plantId),
-      fetchHUData(),
-    ]);
+  const [
+    itemDataMap,
+    balanceDataMaps,
+    pickingSetup,
+    batchDataMap,
+    pendingReservedMap,
+    huMaterialSet,
+  ] = await Promise.all([
+    batchFetchItems(materialIds),
+    batchFetchBalanceData(materialIds, plantId),
+    fetchPickingSetup(plantId),
+    batchFetchBatchData(materialIds, plantId),
+    batchFetchPendingReserved(allSoLineItemIds, plantId),
+    fetchHUData(),
+  ]);
 
   console.log(
     `✅ All data fetched in ${
@@ -603,7 +609,9 @@ const checkInventoryWithDuplicates = async (
     // Available = unrestricted + reserved (for this SO) - previous allocations
     const availableStockAfterAllocations = Math.max(
       0,
-      totalUnrestrictedQtyBase + totalPendingReservedQtyBase - totalPreviousAllocations,
+      totalUnrestrictedQtyBase +
+        totalPendingReservedQtyBase -
+        totalPreviousAllocations,
     );
 
     console.log(
@@ -623,7 +631,10 @@ const checkInventoryWithDuplicates = async (
     // Calculate total demand
     let totalDemandBase = 0;
     items.forEach((item) => {
-      const undeliveredQty = roundQty((parseFloat(item.orderedQty) || 0) - (parseFloat(item.deliveredQtyFromSource) || 0));
+      const undeliveredQty = roundQty(
+        (parseFloat(item.orderedQty) || 0) -
+          (parseFloat(item.deliveredQtyFromSource) || 0),
+      );
       let undeliveredQtyBase = undeliveredQty;
       if (item.altUOM !== itemData.based_uom) {
         const uomConversion = itemData.table_uom_conversion?.find(
@@ -681,21 +692,15 @@ const checkInventoryWithDuplicates = async (
           const deliveredQty = parseFloat(item.deliveredQtyFromSource) || 0;
           const undeliveredQty = roundQty(orderedQty - deliveredQty);
 
-          const orderedQtyBase = roundQty(convertToBaseUOM(
-            orderedQty,
-            item.altUOM,
-            itemData,
-          ));
-          const deliveredQtyBase = roundQty(convertToBaseUOM(
-            deliveredQty,
-            item.altUOM,
-            itemData,
-          ));
-          const undeliveredQtyBase = roundQty(convertToBaseUOM(
-            undeliveredQty,
-            item.altUOM,
-            itemData,
-          ));
+          const orderedQtyBase = roundQty(
+            convertToBaseUOM(orderedQty, item.altUOM, itemData),
+          );
+          const deliveredQtyBase = roundQty(
+            convertToBaseUOM(deliveredQty, item.altUOM, itemData),
+          );
+          const undeliveredQtyBase = roundQty(
+            convertToBaseUOM(undeliveredQty, item.altUOM, itemData),
+          );
 
           let availableQtyBase = 0;
           if (remainingSerialCount > 0 && undeliveredQtyBase > 0) {
@@ -765,7 +770,7 @@ const checkInventoryWithDuplicates = async (
             availableQtyAlt = roundQty(
               item.altUOM !== itemData.based_uom
                 ? allocatedBase / (uomConversion?.base_qty || 1)
-                : allocatedBase
+                : allocatedBase,
             );
 
             remainingStockBase -= allocatedBase;
@@ -806,7 +811,8 @@ const checkInventoryWithDuplicates = async (
         const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
 
         // 🔧 Use cached pending reserved data instead of new DB query
-        const pendingReservedData = pendingReservedMap.get(item.so_line_item_id) || [];
+        const pendingReservedData =
+          pendingReservedMap.get(item.so_line_item_id) || [];
         const pendingTotal = pendingReservedData.reduce(
           (total, doc) => total + parseFloat(doc.open_qty || 0),
           0,
@@ -814,7 +820,11 @@ const checkInventoryWithDuplicates = async (
         const undeliveredQty = roundQty(orderedQty - deliveredQty);
         const suggestedQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
         // Cap by pending reserved qty (if any reservations exist)
-        const finalQty = roundQty(pendingTotal > 0 ? Math.min(suggestedQty, pendingTotal) : suggestedQty);
+        const finalQty = roundQty(
+          pendingTotal > 0
+            ? Math.min(suggestedQty, pendingTotal)
+            : suggestedQty,
+        );
 
         if (finalQty <= 0) {
           fieldsToDisable.push(
@@ -825,21 +835,15 @@ const checkInventoryWithDuplicates = async (
         } else {
           if (itemData.serial_number_management === 1) {
             // Serialized - use base UOM
-            const orderedQtyBase = roundQty(convertToBaseUOM(
-              orderedQty,
-              item.altUOM,
-              itemData,
-            ));
-            const deliveredQtyBase = roundQty(convertToBaseUOM(
-              deliveredQty,
-              item.altUOM,
-              itemData,
-            ));
-            const finalQtyBase = roundQty(convertToBaseUOM(
-              finalQty,
-              item.altUOM,
-              itemData,
-            ));
+            const orderedQtyBase = roundQty(
+              convertToBaseUOM(orderedQty, item.altUOM, itemData),
+            );
+            const deliveredQtyBase = roundQty(
+              convertToBaseUOM(deliveredQty, item.altUOM, itemData),
+            );
+            const finalQtyBase = roundQty(
+              convertToBaseUOM(finalQty, item.altUOM, itemData),
+            );
 
             tableGdArray[index] = {
               ...tableGdArray[index],
@@ -982,9 +986,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
         gd_order_quantity: item.orderedQty,
         gd_delivered_qty: item.deliveredQtyFromSource,
         gd_undelivered_qty:
-          Math.round(
-            (item.orderedQty - item.sourceItem.delivered_qty) * 1000,
-          ) / 1000,
+          Math.round((item.orderedQty - item.sourceItem.delivered_qty) * 1000) /
+          1000,
         gd_order_uom_id: item.altUOM,
         good_delivery_uom_id: item.altUOM,
         unit_price: item.sourceItem.so_item_price || 0,
