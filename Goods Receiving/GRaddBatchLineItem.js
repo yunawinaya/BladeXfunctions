@@ -28,6 +28,9 @@ const processData = async (
     );
 
     // set inventory category option and default value
+    const putawayCategory =
+      putawaySetupData?.category || "In Transit";
+
     if (gr.inspection_required === "No") {
       if (!putawaySetupData || putawaySetupData.putaway_required === 0) {
         const invCategoryOption = invCategoryData.filter(
@@ -41,12 +44,12 @@ const processData = async (
         });
       } else if (putawaySetupData && putawaySetupData.putaway_required === 1) {
         const invCategoryOption = invCategoryData.filter(
-          (cat) => cat.dict_key === "In Transit",
+          (cat) => cat.dict_key === putawayCategory,
         );
         this.setOptionData(`table_gr.${index}.inv_category`, invCategoryOption);
 
         this.setData({
-          [`table_gr.${index}.inv_category`]: "In Transit",
+          [`table_gr.${index}.inv_category`]: putawayCategory,
         });
 
         this.display("assigned_to");
@@ -63,7 +66,7 @@ const processData = async (
       } else if (putawaySetupData && putawaySetupData.putaway_required === 1) {
         const invCategoryOption = invCategoryData.filter(
           (cat) =>
-            cat.dict_key === "In Transit" ||
+            cat.dict_key === putawayCategory ||
             cat.dict_key === "Quality Inspection",
         );
         this.setOptionData(`table_gr.${index}.inv_category`, invCategoryOption);
