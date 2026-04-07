@@ -631,7 +631,10 @@ const checkInventoryWithDuplicates = async (
     // Calculate total demand
     let totalDemandBase = 0;
     items.forEach((item) => {
-      const undeliveredQty = roundQty((parseFloat(item.orderedQty) || 0) - (parseFloat(item.deliveredQtyFromSource) || 0));
+      const undeliveredQty = roundQty(
+        (parseFloat(item.orderedQty) || 0) -
+          (parseFloat(item.deliveredQtyFromSource) || 0),
+      );
       let undeliveredQtyBase = undeliveredQty;
       if (item.altUOM !== itemData.based_uom) {
         const uomConversion = itemData.table_uom_conversion?.find(
@@ -689,21 +692,15 @@ const checkInventoryWithDuplicates = async (
           const deliveredQty = parseFloat(item.deliveredQtyFromSource) || 0;
           const undeliveredQty = roundQty(orderedQty - deliveredQty);
 
-          const orderedQtyBase = roundQty(convertToBaseUOM(
-            orderedQty,
-            item.altUOM,
-            itemData,
-          ));
-          const deliveredQtyBase = roundQty(convertToBaseUOM(
-            deliveredQty,
-            item.altUOM,
-            itemData,
-          ));
-          const undeliveredQtyBase = roundQty(convertToBaseUOM(
-            undeliveredQty,
-            item.altUOM,
-            itemData,
-          ));
+          const orderedQtyBase = roundQty(
+            convertToBaseUOM(orderedQty, item.altUOM, itemData),
+          );
+          const deliveredQtyBase = roundQty(
+            convertToBaseUOM(deliveredQty, item.altUOM, itemData),
+          );
+          const undeliveredQtyBase = roundQty(
+            convertToBaseUOM(undeliveredQty, item.altUOM, itemData),
+          );
 
           let availableQtyBase = 0;
           if (remainingSerialCount > 0 && undeliveredQtyBase > 0) {
@@ -773,7 +770,7 @@ const checkInventoryWithDuplicates = async (
             availableQtyAlt = roundQty(
               item.altUOM !== itemData.based_uom
                 ? allocatedBase / (uomConversion?.base_qty || 1)
-                : allocatedBase
+                : allocatedBase,
             );
 
             remainingStockBase -= allocatedBase;
@@ -826,7 +823,7 @@ const checkInventoryWithDuplicates = async (
         const finalQty = roundQty(
           pendingTotal > 0
             ? Math.min(suggestedQty, pendingTotal)
-            : suggestedQty
+            : suggestedQty,
         );
 
         if (finalQty <= 0) {
@@ -838,21 +835,15 @@ const checkInventoryWithDuplicates = async (
         } else {
           if (itemData.serial_number_management === 1) {
             // Serialized - use base UOM
-            const orderedQtyBase = roundQty(convertToBaseUOM(
-              orderedQty,
-              item.altUOM,
-              itemData,
-            ));
-            const deliveredQtyBase = roundQty(convertToBaseUOM(
-              deliveredQty,
-              item.altUOM,
-              itemData,
-            ));
-            const finalQtyBase = roundQty(convertToBaseUOM(
-              finalQty,
-              item.altUOM,
-              itemData,
-            ));
+            const orderedQtyBase = roundQty(
+              convertToBaseUOM(orderedQty, item.altUOM, itemData),
+            );
+            const deliveredQtyBase = roundQty(
+              convertToBaseUOM(deliveredQty, item.altUOM, itemData),
+            );
+            const finalQtyBase = roundQty(
+              convertToBaseUOM(finalQty, item.altUOM, itemData),
+            );
 
             tableGdArray[index] = {
               ...tableGdArray[index],
