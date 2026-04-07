@@ -810,21 +810,11 @@ const checkInventoryWithDuplicates = async (
         const deliveredQty = parseFloat(item.deliveredQtyFromSource) || 0;
         const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
 
-        // 🔧 Use cached pending reserved data instead of new DB query
-        const pendingReservedData =
-          pendingReservedMap.get(item.so_line_item_id) || [];
-        const pendingTotal = pendingReservedData.reduce(
-          (total, doc) => total + parseFloat(doc.open_qty || 0),
-          0,
-        );
         const undeliveredQty = roundQty(orderedQty - deliveredQty);
         const suggestedQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
-        // Cap by pending reserved qty (if any reservations exist)
-        const finalQty = roundQty(
-          pendingTotal > 0
-            ? Math.min(suggestedQty, pendingTotal)
-            : suggestedQty,
-        );
+        // Use suggested qty directly - allocation logic handles sourcing from
+        // pending reserved + unrestricted stock during save workflow
+        const finalQty = suggestedQty;
 
         if (finalQty <= 0) {
           fieldsToDisable.push(
