@@ -6,7 +6,6 @@
   const tempHUdata = JSON.parse(msrItem.temp_hu_data || "[]");
 
   let receivedQty = msrItem.received_quantity || 0;
-  const locationId = msrItem.location_id;
 
   if (receivedQty <= 0) {
     receivedQty = msrItem.received_quantity || 0;
@@ -22,10 +21,46 @@
     return;
   }
 
-  if (!locationId || locationId === "") {
-    this.$message.error(
-      "Please select bin location before selecting handling unit.",
+  // Determine loading bay location for HU filtering
+  let loadingBayLocationId = "";
+
+  const resStorageLocation = await db
+    .collection("storage_location")
+    .where({
+      plant_id: data.plant_id,
+      storage_status: 1,
+      location_type: "Loading Bay",
+      is_default: 1,
+    })
+    .get();
+
+  if (resStorageLocation?.data?.length > 0) {
+    const defaultBin = resStorageLocation.data[0].table_bin_location?.find(
+      (bin) => bin.is_default_bin === 1,
     );
+    if (defaultBin) {
+      loadingBayLocationId = defaultBin.bin_location_id;
+    }
+  }
+
+  // Step 3: If still no loading bay, skip HU fetch
+  if (!loadingBayLocationId) {
+    await this.openDialog("hu_dialog");
+
+    const combinedHUdata = tempHUdata.length > 0 ? tempHUdata : [];
+
+    if (combinedHUdata.length > 0) {
+      this.setData({ [`hu_dialog.table_hu`]: combinedHUdata });
+    }
+
+    this.setData({
+      [`hu_dialog.item_id`]: msrItem.item_selection,
+      [`hu_dialog.item_name`]: msrItem.item_name,
+      [`hu_dialog.received_qty`]: receivedQty,
+      [`hu_dialog.storage_location_id`]: msrItem.storage_location_id,
+      [`hu_dialog.location_id`]: msrItem.location_id,
+      [`hu_dialog.rowIndex`]: rowIndex,
+    });
     return;
   }
 
@@ -36,7 +71,7 @@
     .where({
       plant_id: data.plant_id,
       organization_id: data.organization_id,
-      location_id: locationId,
+      location_id: loadingBayLocationId,
     })
     .get();
 
@@ -94,7 +129,7 @@
     [`hu_dialog.item_name`]: msrItem.item_name,
     [`hu_dialog.received_qty`]: receivedQty,
     [`hu_dialog.storage_location_id`]: msrItem.storage_location_id,
-    [`hu_dialog.location_id`]: locationId,
+    [`hu_dialog.location_id`]: msrItem.location_id,
     [`hu_dialog.rowIndex`]: rowIndex,
   });
 })();
