@@ -226,12 +226,14 @@ const allocateFromPending = (pendingRecords, balances, requestedQty) => {
     if (pendingQty <= 0) continue;
 
     // Find matching balance (pending uses bin_location, balance uses location_id)
+    // Only match loose balances (no HU) since SO/Production pending doesn't reserve at HU level
     const matchingBalance = balances.find((b) => {
       const locationMatch = b.location_id === pending.bin_location;
+      const huMatch = !b.handling_unit_id;
       if (isBatchManaged) {
-        return locationMatch && b.batch_id === pending.batch_id;
+        return locationMatch && b.batch_id === pending.batch_id && huMatch;
       }
-      return locationMatch;
+      return locationMatch && huMatch;
     });
 
     if (matchingBalance) {

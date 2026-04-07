@@ -254,12 +254,15 @@ const processCreatedAllocation = (params) => {
       String(record.target_gd_id) === String(docId)
   );
 
-  // Find relevant pending records for this material/location/batch
+  // Find relevant pending records for this material/location/batch/HU
+  // HU must match: SO pending (HU=null) only matches loose picks (HU=null),
+  // HU picks go to unrestricted since SO doesn't reserve at HU level
   const relevantPendingData = allPendingData.filter(
     (record) =>
       String(record.material_id) === String(materialId) &&
       String(record.batch_id || "") === String(batchId || "") &&
       String(record.bin_location || "") === String(locationId || "") &&
+      String(record.handling_unit_id || "") === String(handlingUnitId || "") &&
       record.status === "Pending"
   );
 
@@ -271,7 +274,7 @@ const processCreatedAllocation = (params) => {
     if (netChange === 0) {
       return {
         recordsToUpdate: [],
-        recordToCreate: null,
+        recordsToCreate: [],
         inventoryMovements: [],
       };
     }
@@ -281,7 +284,7 @@ const processCreatedAllocation = (params) => {
       const qtyToRelease = Math.abs(netChange);
       let remainingQtyToRelease = qtyToRelease;
       const recordsToUpdate = [];
-      let recordToCreate = null;
+      const recordsToCreate = [];
       let unrestrictedQtyToAdd = 0;
 
       const sortedRecordsForRelease = [...matchedOldRecords].sort(
@@ -355,14 +358,14 @@ const processCreatedAllocation = (params) => {
 
           if (isFromUnrestricted) {
             const { _id, id, ...recordWithoutId } = oldRecord;
-            recordToCreate = {
+            recordsToCreate.push({
               ...recordWithoutId,
               reserved_qty: releaseFromThisRecord,
               open_qty: 0,
               status: "Cancelled",
               source_reserved_id: oldRecord.id,
               target_gd_id: null,
-            };
+            });
             unrestrictedQtyToAdd = roundQty(unrestrictedQtyToAdd + releaseFromThisRecord);
           } else {
             const existingPending = findExistingPendingToMerge(oldRecord.doc_type);
@@ -375,7 +378,7 @@ const processCreatedAllocation = (params) => {
               });
             } else {
               const { _id, id, ...recordWithoutId } = oldRecord;
-              recordToCreate = {
+              recordsToCreate.push({
                 ...recordWithoutId,
                 doc_id: "",
                 doc_no: "",
@@ -385,7 +388,7 @@ const processCreatedAllocation = (params) => {
                 status: "Pending",
                 source_reserved_id: oldRecord.id,
                 target_gd_id: null,
-              };
+              });
             }
           }
         }
@@ -410,7 +413,7 @@ const processCreatedAllocation = (params) => {
         });
       }
 
-      return { recordsToUpdate, recordToCreate, inventoryMovements };
+      return { recordsToUpdate, recordsToCreate, inventoryMovements };
     }
 
     if (netChange > 0) {
@@ -461,96 +464,95 @@ const allocateFromPending = (qtyToAllocate, pendingData, params, allocDocType) =
 
   let remainingQtyToAllocate = qtyToAllocate;
   const recordsToUpdate = [];
-  let recordToCreate = null;
+  const recordsToCreate = [];
 
   // Allocate from Production first (priority 1)
   if (pendingProdData.length > 0 && remainingQtyToAllocate > 0) {
     const prodRecord = pendingProdData[0];
-    const allocateQty = Math.min(prodRecord.open_qty, remainingQtyToAllocate);
+    const availableQty = getPendingAvailableQty(prodRecord);
+    if (availableQty > 0) {
+      const allocateQty = Math.min(availableQty, remainingQtyToAllocate);
+      const isFirstConsumer = (pendingConsumed.get(prodRecord.id) || 0) === 0;
+      markPendingConsumed(prodRecord.id, allocateQty);
 
-    if (allocateQty === prodRecord.open_qty) {
-      recordsToUpdate.push({
-        ...prodRecord,
-        doc_id: docId,
-        doc_no: docNo,
-        doc_line_id: docLineId,
-        status: "Allocated",
-        target_gd_id: docId,
-      });
-    } else {
-      recordsToUpdate.push({
-        ...prodRecord,
-        doc_id: docId,
-        doc_no: docNo,
-        doc_line_id: docLineId,
-        reserved_qty: allocateQty,
-        open_qty: allocateQty,
-        status: "Allocated",
-        target_gd_id: docId,
-      });
-
-      const { _id, id, ...prodWithoutId } = prodRecord;
-      recordToCreate = {
-        ...prodWithoutId,
-        doc_id: "",
-        doc_no: "",
-        doc_line_id: "",
-        reserved_qty: roundQty(prodRecord.open_qty - allocateQty),
-        open_qty: roundQty(prodRecord.open_qty - allocateQty),
-        status: "Pending",
-        source_reserved_id: prodRecord.source_reserved_id || prodRecord.id,
-        target_gd_id: null,
-      };
+      if (isFirstConsumer) {
+        // First consumer: update original record in-place
+        recordsToUpdate.push({
+          ...prodRecord,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
+          handling_unit_id: params.handlingUnitId || null,
+          reserved_qty: allocateQty,
+          open_qty: allocateQty,
+          status: "Allocated",
+          target_gd_id: docId,
+        });
+      } else {
+        // Subsequent consumer: create new record (original already taken by first consumer)
+        const { _id, id, ...prodWithoutId } = prodRecord;
+        recordsToCreate.push({
+          ...prodWithoutId,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
+          handling_unit_id: params.handlingUnitId || null,
+          reserved_qty: allocateQty,
+          open_qty: allocateQty,
+          status: "Allocated",
+          source_reserved_id: prodRecord.source_reserved_id || prodRecord.id,
+          target_gd_id: docId,
+        });
+      }
+      // Remainder is handled post-loop via pendingConsumed map
+      remainingQtyToAllocate = roundQty(remainingQtyToAllocate - allocateQty);
     }
-    remainingQtyToAllocate = roundQty(remainingQtyToAllocate - allocateQty);
   }
 
   // Allocate from Sales Order (priority 2)
   if (pendingSOData.length > 0 && remainingQtyToAllocate > 0) {
     const soRecord = pendingSOData[0];
-    const allocateQty = Math.min(soRecord.open_qty, remainingQtyToAllocate);
+    const availableQty = getPendingAvailableQty(soRecord);
+    if (availableQty > 0) {
+      const allocateQty = Math.min(availableQty, remainingQtyToAllocate);
+      const isFirstConsumer = (pendingConsumed.get(soRecord.id) || 0) === 0;
+      markPendingConsumed(soRecord.id, allocateQty);
 
-    if (allocateQty === soRecord.open_qty) {
-      recordsToUpdate.push({
-        ...soRecord,
-        doc_id: docId,
-        doc_no: docNo,
-        doc_line_id: docLineId,
-        status: "Allocated",
-        target_gd_id: docId,
-      });
-    } else {
-      recordsToUpdate.push({
-        ...soRecord,
-        doc_id: docId,
-        doc_no: docNo,
-        doc_line_id: docLineId,
-        reserved_qty: allocateQty,
-        open_qty: allocateQty,
-        status: "Allocated",
-        target_gd_id: docId,
-      });
-
-      const { _id, id, ...soWithoutId } = soRecord;
-      recordToCreate = {
-        ...soWithoutId,
-        doc_id: "",
-        doc_no: "",
-        doc_line_id: "",
-        reserved_qty: roundQty(soRecord.open_qty - allocateQty),
-        open_qty: roundQty(soRecord.open_qty - allocateQty),
-        status: "Pending",
-        source_reserved_id: soRecord.source_reserved_id || soRecord.id,
-        target_gd_id: null,
-      };
+      if (isFirstConsumer) {
+        recordsToUpdate.push({
+          ...soRecord,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
+          handling_unit_id: params.handlingUnitId || null,
+          reserved_qty: allocateQty,
+          open_qty: allocateQty,
+          status: "Allocated",
+          target_gd_id: docId,
+        });
+      } else {
+        const { _id, id, ...soWithoutId } = soRecord;
+        recordsToCreate.push({
+          ...soWithoutId,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
+          handling_unit_id: params.handlingUnitId || null,
+          reserved_qty: allocateQty,
+          open_qty: allocateQty,
+          status: "Allocated",
+          source_reserved_id: soRecord.source_reserved_id || soRecord.id,
+          target_gd_id: docId,
+        });
+      }
+      remainingQtyToAllocate = roundQty(remainingQtyToAllocate - allocateQty);
     }
-    remainingQtyToAllocate = roundQty(remainingQtyToAllocate - allocateQty);
   }
 
   // Allocate from unrestricted (priority 3) - create new GD record
   const inventoryMovements = [];
   if (remainingQtyToAllocate > 0) {
-    recordToCreate = {
+    recordsToCreate.push({
       doc_type: allocDocType,
       status: "Allocated",
       source_reserved_id: null,
@@ -577,7 +579,7 @@ const allocateFromPending = (qtyToAllocate, pendingData, params, allocDocType) =
       organization_id: organizationId,
       remark: remark,
       target_gd_id: docId,
-    };
+    });
 
     inventoryMovements.push({
       material_id: materialId,
@@ -594,7 +596,7 @@ const allocateFromPending = (qtyToAllocate, pendingData, params, allocDocType) =
     });
   }
 
-  return { recordsToUpdate, recordToCreate, inventoryMovements };
+  return { recordsToUpdate, recordsToCreate, inventoryMovements };
 };
 
 // ============ STEP 3: PROCESS COMPLETED/DELIVERED ALLOCATIONS ============
@@ -651,11 +653,12 @@ const processDeliveredAllocation = (params) => {
       String(record.material_id) === String(materialId) &&
       String(record.batch_id || "") === String(batchId || "") &&
       String(record.bin_location || "") === String(locationId || "") &&
+      String(record.handling_unit_id || "") === String(handlingUnitId || "") &&
       record.status === "Pending"
   );
 
   const recordsToUpdate = [];
-  let recordToCreate = null;
+  const recordsToCreate = [];
   const inventoryMovements = [];
   let reservedQtyToSubtract = 0;
 
@@ -726,17 +729,17 @@ const processDeliveredAllocation = (params) => {
             const remainderQty = roundQty(recordQty - deliverFromThisRecord);
             if (isFromPP) {
               const { _id, id, ...recordWithoutId } = allocatedRecord;
-              recordToCreate = {
+              recordsToCreate.push({
                 ...recordWithoutId,
                 reserved_qty: remainderQty,
                 open_qty: remainderQty,
                 delivered_qty: 0,
                 status: "Allocated",
                 source_reserved_id: allocatedRecord.id,
-              };
+              });
             } else if (isFromUnrestricted) {
               const { _id, id, ...recordWithoutId } = allocatedRecord;
-              recordToCreate = {
+              recordsToCreate.push({
                 ...recordWithoutId,
                 reserved_qty: remainderQty,
                 open_qty: 0,
@@ -744,7 +747,7 @@ const processDeliveredAllocation = (params) => {
                 status: "Cancelled",
                 source_reserved_id: allocatedRecord.id,
                 target_gd_id: null,
-              };
+              });
               unrestrictedQtyToAdd = roundQty(unrestrictedQtyToAdd + remainderQty);
             } else {
               const existingPending = findExistingPendingToMerge(
@@ -760,7 +763,7 @@ const processDeliveredAllocation = (params) => {
                 });
               } else {
                 const { _id, id, ...recordWithoutId } = allocatedRecord;
-                recordToCreate = {
+                recordsToCreate.push({
                   ...recordWithoutId,
                   doc_id: "",
                   doc_no: "",
@@ -771,7 +774,7 @@ const processDeliveredAllocation = (params) => {
                   status: "Pending",
                   source_reserved_id: allocatedRecord.source_reserved_id || allocatedRecord.id,
                   target_gd_id: null,
-                };
+                });
               }
             }
           }
@@ -840,7 +843,7 @@ const processDeliveredAllocation = (params) => {
               });
 
               const { _id, id, ...recordWithoutId } = allocatedRecord;
-              recordToCreate = {
+              recordsToCreate.push({
                 ...recordWithoutId,
                 reserved_qty: releaseFromThisRecord,
                 open_qty: 0,
@@ -848,7 +851,7 @@ const processDeliveredAllocation = (params) => {
                 status: "Cancelled",
                 source_reserved_id: allocatedRecord.id,
                 target_gd_id: null,
-              };
+              });
               unrestrictedQtyToAdd = roundQty(unrestrictedQtyToAdd + releaseFromThisRecord);
             } else {
               // SO/Production: Reduce record and create pending
@@ -873,7 +876,7 @@ const processDeliveredAllocation = (params) => {
                 });
               } else {
                 const { _id, id, ...recordWithoutId } = allocatedRecord;
-                recordToCreate = {
+                recordsToCreate.push({
                   ...recordWithoutId,
                   doc_id: "",
                   doc_no: "",
@@ -884,7 +887,7 @@ const processDeliveredAllocation = (params) => {
                   status: "Pending",
                   source_reserved_id: allocatedRecord.source_reserved_id || allocatedRecord.id,
                   target_gd_id: null,
-                };
+                });
               }
             }
           }
@@ -926,7 +929,7 @@ const processDeliveredAllocation = (params) => {
         });
       }
 
-      return { recordsToUpdate, recordToCreate, inventoryMovements };
+      return { recordsToUpdate, recordsToCreate, inventoryMovements };
     }
 
     // quantity > totalAllocatedQty - need to deliver all allocated + get more
@@ -965,101 +968,93 @@ const processDeliveredAllocation = (params) => {
 
     if (pendingProdData.length > 0 && additionalQtyNeeded > 0) {
       const prodRecord = pendingProdData[0];
-      const deliverQty = Math.min(prodRecord.open_qty, additionalQtyNeeded);
+      const availableQty = getPendingAvailableQty(prodRecord);
+      if (availableQty > 0) {
+        const deliverQty = Math.min(availableQty, additionalQtyNeeded);
+        const isFirstConsumer = (pendingConsumed.get(prodRecord.id) || 0) === 0;
+        markPendingConsumed(prodRecord.id, deliverQty);
 
-      if (deliverQty === prodRecord.open_qty) {
-        recordsToUpdate.push({
-          ...prodRecord,
-          open_qty: 0,
-          delivered_qty: deliverQty,
-          doc_id: docId,
-          doc_no: docNo,
-          doc_line_id: docLineId,
-          status: "Delivered",
-          target_gd_id: docId,
-        });
-      } else {
-        recordsToUpdate.push({
-          ...prodRecord,
-          reserved_qty: deliverQty,
-          open_qty: 0,
-          delivered_qty: deliverQty,
-          doc_id: docId,
-          doc_no: docNo,
-          doc_line_id: docLineId,
-          status: "Delivered",
-          target_gd_id: docId,
-        });
-
-        const { _id, id, ...prodWithoutId } = prodRecord;
-        recordToCreate = {
-          ...prodWithoutId,
-          doc_id: "",
-          doc_no: "",
-          doc_line_id: "",
-          reserved_qty: roundQty(prodRecord.open_qty - deliverQty),
-          open_qty: roundQty(prodRecord.open_qty - deliverQty),
-          delivered_qty: 0,
-          status: "Pending",
-          source_reserved_id: prodRecord.source_reserved_id || prodRecord.id,
-          target_gd_id: null,
-        };
+        if (isFirstConsumer) {
+          recordsToUpdate.push({
+            ...prodRecord,
+            reserved_qty: deliverQty,
+            open_qty: 0,
+            delivered_qty: deliverQty,
+            doc_id: docId,
+            doc_no: docNo,
+            doc_line_id: docLineId,
+            handling_unit_id: params.handlingUnitId || null,
+            status: "Delivered",
+            target_gd_id: docId,
+          });
+        } else {
+          const { _id, id, ...prodWithoutId } = prodRecord;
+          recordsToCreate.push({
+            ...prodWithoutId,
+            reserved_qty: deliverQty,
+            open_qty: 0,
+            delivered_qty: deliverQty,
+            doc_id: docId,
+            doc_no: docNo,
+            doc_line_id: docLineId,
+            handling_unit_id: params.handlingUnitId || null,
+            status: "Delivered",
+            source_reserved_id: prodRecord.source_reserved_id || prodRecord.id,
+            target_gd_id: docId,
+          });
+        }
+        reservedQtyToSubtract = roundQty(reservedQtyToSubtract + deliverQty);
+        additionalQtyNeeded = roundQty(additionalQtyNeeded - deliverQty);
       }
-      reservedQtyToSubtract = roundQty(reservedQtyToSubtract + deliverQty);
-      additionalQtyNeeded = roundQty(additionalQtyNeeded - deliverQty);
     }
 
     if (pendingSOData.length > 0 && additionalQtyNeeded > 0) {
       const soRecord = pendingSOData[0];
-      const deliverQty = Math.min(soRecord.open_qty, additionalQtyNeeded);
+      const availableQty = getPendingAvailableQty(soRecord);
+      if (availableQty > 0) {
+        const deliverQty = Math.min(availableQty, additionalQtyNeeded);
+        const isFirstConsumer = (pendingConsumed.get(soRecord.id) || 0) === 0;
+        markPendingConsumed(soRecord.id, deliverQty);
 
-      if (deliverQty === soRecord.open_qty) {
-        recordsToUpdate.push({
-          ...soRecord,
-          open_qty: 0,
-          delivered_qty: deliverQty,
-          doc_id: docId,
-          doc_no: docNo,
-          doc_line_id: docLineId,
-          status: "Delivered",
-          target_gd_id: docId,
-        });
-      } else {
-        recordsToUpdate.push({
-          ...soRecord,
-          reserved_qty: deliverQty,
-          open_qty: 0,
-          delivered_qty: deliverQty,
-          doc_id: docId,
-          doc_no: docNo,
-          doc_line_id: docLineId,
-          status: "Delivered",
-          target_gd_id: docId,
-        });
-
-        const { _id, id, ...soWithoutId } = soRecord;
-        recordToCreate = {
-          ...soWithoutId,
-          doc_id: "",
-          doc_no: "",
-          doc_line_id: "",
-          reserved_qty: roundQty(soRecord.open_qty - deliverQty),
-          open_qty: roundQty(soRecord.open_qty - deliverQty),
-          delivered_qty: 0,
-          status: "Pending",
-          source_reserved_id: soRecord.source_reserved_id || soRecord.id,
-          target_gd_id: null,
-        };
+        if (isFirstConsumer) {
+          recordsToUpdate.push({
+            ...soRecord,
+            reserved_qty: deliverQty,
+            open_qty: 0,
+            delivered_qty: deliverQty,
+            doc_id: docId,
+            doc_no: docNo,
+            doc_line_id: docLineId,
+            handling_unit_id: params.handlingUnitId || null,
+            status: "Delivered",
+            target_gd_id: docId,
+          });
+        } else {
+          const { _id, id, ...soWithoutId } = soRecord;
+          recordsToCreate.push({
+            ...soWithoutId,
+            reserved_qty: deliverQty,
+            open_qty: 0,
+            delivered_qty: deliverQty,
+            doc_id: docId,
+            doc_no: docNo,
+            doc_line_id: docLineId,
+            handling_unit_id: params.handlingUnitId || null,
+            status: "Delivered",
+            source_reserved_id: soRecord.source_reserved_id || soRecord.id,
+            target_gd_id: docId,
+          });
+        }
+        reservedQtyToSubtract = roundQty(reservedQtyToSubtract + deliverQty);
+        additionalQtyNeeded = roundQty(additionalQtyNeeded - deliverQty);
       }
-      reservedQtyToSubtract = roundQty(reservedQtyToSubtract + deliverQty);
-      additionalQtyNeeded = roundQty(additionalQtyNeeded - deliverQty);
     }
 
     // Allocate from unrestricted for remaining
     let unrestrictedQtyToAllocate = 0;
     if (additionalQtyNeeded > 0) {
       unrestrictedQtyToAllocate = additionalQtyNeeded;
-      recordToCreate = {
+      recordsToCreate.push({
         plant_id: plantId,
         organization_id: organizationId,
         material_id: materialId,
@@ -1084,7 +1079,7 @@ const processDeliveredAllocation = (params) => {
         status: "Delivered",
         remark: remark,
         reserved_date: docDate,
-      };
+      });
     }
 
     if (unrestrictedQtyToAllocate > 0) {
@@ -1122,7 +1117,7 @@ const processDeliveredAllocation = (params) => {
       });
     }
 
-    return { recordsToUpdate, recordToCreate, inventoryMovements };
+    return { recordsToUpdate, recordsToCreate, inventoryMovements };
   }
 
   // No existing allocated records - direct delivery from pending/unrestricted
@@ -1146,100 +1141,92 @@ const processDeliveredAllocation = (params) => {
 
   if (pendingProdData.length > 0 && remainingQtyToDeliver > 0) {
     const prodRecord = pendingProdData[0];
-    const deliverQty = Math.min(prodRecord.open_qty, remainingQtyToDeliver);
+    const availableQty = getPendingAvailableQty(prodRecord);
+    if (availableQty > 0) {
+      const deliverQty = Math.min(availableQty, remainingQtyToDeliver);
+      const isFirstConsumer = (pendingConsumed.get(prodRecord.id) || 0) === 0;
+      markPendingConsumed(prodRecord.id, deliverQty);
 
-    if (deliverQty === prodRecord.open_qty) {
-      recordsToUpdate.push({
-        ...prodRecord,
-        open_qty: 0,
-        delivered_qty: deliverQty,
-        doc_id: docId,
-        doc_no: docNo,
-        doc_line_id: docLineId,
-        status: "Delivered",
-        target_gd_id: docId,
-      });
-    } else {
-      recordsToUpdate.push({
-        ...prodRecord,
-        reserved_qty: deliverQty,
-        open_qty: 0,
-        delivered_qty: deliverQty,
-        doc_id: docId,
-        doc_no: docNo,
-        doc_line_id: docLineId,
-        status: "Delivered",
-        target_gd_id: docId,
-      });
-
-      const { _id, id, ...prodWithoutId } = prodRecord;
-      recordToCreate = {
-        ...prodWithoutId,
-        doc_id: "",
-        doc_no: "",
-        doc_line_id: "",
-        reserved_qty: roundQty(prodRecord.open_qty - deliverQty),
-        open_qty: roundQty(prodRecord.open_qty - deliverQty),
-        delivered_qty: 0,
-        status: "Pending",
-        source_reserved_id: prodRecord.source_reserved_id || prodRecord.id,
-        target_gd_id: null,
-      };
+      if (isFirstConsumer) {
+        recordsToUpdate.push({
+          ...prodRecord,
+          reserved_qty: deliverQty,
+          open_qty: 0,
+          delivered_qty: deliverQty,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
+          handling_unit_id: params.handlingUnitId || null,
+          status: "Delivered",
+          target_gd_id: docId,
+        });
+      } else {
+        const { _id, id, ...prodWithoutId } = prodRecord;
+        recordsToCreate.push({
+          ...prodWithoutId,
+          reserved_qty: deliverQty,
+          open_qty: 0,
+          delivered_qty: deliverQty,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
+          handling_unit_id: params.handlingUnitId || null,
+          status: "Delivered",
+          source_reserved_id: prodRecord.source_reserved_id || prodRecord.id,
+          target_gd_id: docId,
+        });
+      }
+      reservedQty = roundQty(reservedQty + deliverQty);
+      remainingQtyToDeliver = roundQty(remainingQtyToDeliver - deliverQty);
     }
-    reservedQty = roundQty(reservedQty + deliverQty);
-    remainingQtyToDeliver = roundQty(remainingQtyToDeliver - deliverQty);
   }
 
   if (pendingSOData.length > 0 && remainingQtyToDeliver > 0) {
     const soRecord = pendingSOData[0];
-    const deliverQty = Math.min(soRecord.open_qty, remainingQtyToDeliver);
+    const availableQty = getPendingAvailableQty(soRecord);
+    if (availableQty > 0) {
+      const deliverQty = Math.min(availableQty, remainingQtyToDeliver);
+      const isFirstConsumer = (pendingConsumed.get(soRecord.id) || 0) === 0;
+      markPendingConsumed(soRecord.id, deliverQty);
 
-    if (deliverQty === soRecord.open_qty) {
-      recordsToUpdate.push({
-        ...soRecord,
-        open_qty: 0,
-        delivered_qty: deliverQty,
-        doc_id: docId,
-        doc_no: docNo,
-        doc_line_id: docLineId,
-        status: "Delivered",
-        target_gd_id: docId,
-      });
-    } else {
-      recordsToUpdate.push({
-        ...soRecord,
-        reserved_qty: deliverQty,
-        open_qty: 0,
-        delivered_qty: deliverQty,
-        doc_id: docId,
-        doc_no: docNo,
-        doc_line_id: docLineId,
-        status: "Delivered",
-        target_gd_id: docId,
-      });
-
-      const { _id, id, ...soWithoutId } = soRecord;
-      recordToCreate = {
-        ...soWithoutId,
-        doc_id: "",
-        doc_no: "",
-        doc_line_id: "",
-        reserved_qty: roundQty(soRecord.open_qty - deliverQty),
-        open_qty: roundQty(soRecord.open_qty - deliverQty),
-        delivered_qty: 0,
-        status: "Pending",
-        source_reserved_id: soRecord.source_reserved_id || soRecord.id,
-        target_gd_id: null,
-      };
+      if (isFirstConsumer) {
+        recordsToUpdate.push({
+          ...soRecord,
+          reserved_qty: deliverQty,
+          open_qty: 0,
+          delivered_qty: deliverQty,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
+          handling_unit_id: params.handlingUnitId || null,
+          status: "Delivered",
+          target_gd_id: docId,
+        });
+      } else {
+        const { _id, id, ...soWithoutId } = soRecord;
+        recordsToCreate.push({
+          ...soWithoutId,
+          reserved_qty: deliverQty,
+          open_qty: 0,
+          delivered_qty: deliverQty,
+          doc_id: docId,
+          doc_no: docNo,
+          doc_line_id: docLineId,
+          handling_unit_id: params.handlingUnitId || null,
+          status: "Delivered",
+          source_reserved_id: soRecord.source_reserved_id || soRecord.id,
+          target_gd_id: docId,
+        });
+      }
+      reservedQty = roundQty(reservedQty + deliverQty);
+      remainingQtyToDeliver = roundQty(remainingQtyToDeliver - deliverQty);
     }
-    reservedQty = roundQty(reservedQty + deliverQty);
-    remainingQtyToDeliver = roundQty(remainingQtyToDeliver - deliverQty);
   }
 
   let unrestrictedQtyToAllocate = 0;
   if (remainingQtyToDeliver > 0) {
     unrestrictedQtyToAllocate = remainingQtyToDeliver;
-    recordToCreate = {
+    recordsToCreate.push({
       plant_id: plantId,
       organization_id: organizationId,
       material_id: materialId,
@@ -1264,7 +1251,7 @@ const processDeliveredAllocation = (params) => {
       status: "Delivered",
       remark: remark,
       reserved_date: docDate,
-    };
+    });
   }
 
   if (unrestrictedQtyToAllocate > 0) {
@@ -1302,10 +1289,24 @@ const processDeliveredAllocation = (params) => {
     });
   }
 
-  return { recordsToUpdate, recordToCreate, inventoryMovements };
+  return { recordsToUpdate, recordsToCreate, inventoryMovements };
 };
 
 // ============ MAIN PROCESSING LOOP ============
+// Track how much qty has been consumed from each pending record across groups
+// This prevents stale allPendingData from being double-consumed
+const pendingConsumed = new Map(); // pendingId -> qty consumed so far
+
+const getPendingAvailableQty = (pendingRecord) => {
+  const consumed = pendingConsumed.get(pendingRecord.id) || 0;
+  return roundQty(pendingRecord.open_qty - consumed);
+};
+
+const markPendingConsumed = (pendingId, qty) => {
+  const prev = pendingConsumed.get(pendingId) || 0;
+  pendingConsumed.set(pendingId, roundQty(prev + qty));
+};
+
 // Collect all results
 const allRecordsToUpdate = [];
 const allRecordsToCreate = [];
@@ -1368,8 +1369,8 @@ for (const processed of processedTableData) {
     if (result.recordsToUpdate) {
       allRecordsToUpdate.push(...result.recordsToUpdate);
     }
-    if (result.recordToCreate) {
-      allRecordsToCreate.push(result.recordToCreate);
+    if (result.recordsToCreate && result.recordsToCreate.length > 0) {
+      allRecordsToCreate.push(...result.recordsToCreate);
     }
     if (result.inventoryMovements) {
       allInventoryMovements.push(...result.inventoryMovements);
@@ -1383,6 +1384,29 @@ for (const processed of processedTableData) {
         deliver_quantity: quantity,
       });
     }
+  }
+}
+
+// Create remainder records for partially consumed pending records
+for (const [pendingId, consumedQty] of pendingConsumed.entries()) {
+  const originalPending = allPendingData.find((r) => String(r.id) === String(pendingId));
+  if (!originalPending) continue;
+
+  const remainderQty = roundQty(originalPending.open_qty - consumedQty);
+  if (remainderQty > 0) {
+    const { _id, id, ...withoutId } = originalPending;
+    allRecordsToCreate.push({
+      ...withoutId,
+      doc_id: "",
+      doc_no: "",
+      doc_line_id: "",
+      reserved_qty: remainderQty,
+      open_qty: remainderQty,
+      delivered_qty: 0,
+      status: "Pending",
+      source_reserved_id: originalPending.source_reserved_id || originalPending.id,
+      target_gd_id: null,
+    });
   }
 }
 
