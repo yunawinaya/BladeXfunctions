@@ -11,6 +11,21 @@ const allocationType = {{workflowparams:allocationType}} || ""
 const huData = {{workflowparams:huData}} || [];
 const huPriority = {{workflowparams:huPriority}} || "HU First";
 const currentDocId = {{workflowparams:currentDocId}} || "";
+const enforceStockCheck = {{workflowparams:enforceStockCheck}} || 0;
+const includeReservedQty = {{workflowparams:includeReservedQty}} || 0;
+const orderUomId = {{workflowparams:orderUomId}} || "";
+
+// UOM conversion: convert requested quantity to base UOM for comparison against balances
+let conversionFactor = 1;
+if (orderUomId && Array.isArray(itemData.table_uom_conversion)) {
+  const uomConversion = itemData.table_uom_conversion.find(
+    (conv) => conv.alt_uom_id === orderUomId
+  );
+  if (uomConversion && uomConversion.base_qty) {
+    conversionFactor = parseFloat(uomConversion.base_qty);
+  }
+}
+const baseQuantity = parseFloat((quantity * conversionFactor).toFixed(3));
 
 let balanceData;
 if (itemData.item_batch_management === 1) {
@@ -67,6 +82,20 @@ if (isPending === 1) {
   pendingData = {{node:search_node_BOywHct7.data.data}} || [];
 }
 
+// Include reserved_qty in available stock when:
+// 1. Explicitly requested (gd_status=Created or isGDPP), OR
+// 2. Pending reserved data exists (reserved stock backs those pending records)
+if (includeReservedQty === 1 || (isPending === 1 && pendingData.length > 0)) {
+  for (let i = 0; i < balanceData.length; i++) {
+    if (balanceData[i].source === "hu") continue;
+    const reservedQty = parseFloat(balanceData[i].reserved_qty) || 0;
+    if (reservedQty > 0) {
+      balanceData[i].unrestricted_qty =
+        (parseFloat(balanceData[i].unrestricted_qty) || 0) + reservedQty;
+    }
+  }
+}
+
 const isBatchManaged = itemData.item_batch_management === 1;
 
 // FIELD MAPPING BY ALLOCATION TYPE
@@ -105,8 +134,9 @@ const buildExistingAllocationMap = (existingData) => {
   if (Array.isArray(existingData)) {
     for (const existing of existingData) {
       const key = generateKey(existing.location_id, existing.batch_id, existing.handling_unit_id);
-      const qty = parseFloat(existing.quantity) || 0;
-      map[key] = (map[key] || 0) + qty;
+      // Convert existing allocation qty to base UOM for correct deduction against base UOM balances
+      const qty = parseFloat((parseFloat(existing.quantity) || 0) * conversionFactor).toFixed(3);
+      map[key] = (map[key] || 0) + parseFloat(qty);
     }
   }
   return map;
@@ -344,18 +374,22 @@ const totalAvailable = availableBalances.reduce(
   0
 );
 
-// For MR, enforce strict insufficient stock check
-if (allocationType === "MR" && totalAvailable < quantity) {
+// Enforce strict insufficient stock check when required
+const shouldEnforceStock =
+  allocationType === "MR" ||
+  (enforceStockCheck === 1 && itemData.stock_control !== 0);
+
+if (shouldEnforceStock && totalAvailable < baseQuantity) {
   return {
     code: "400",
-    message: `Insufficient stock. Available: ${totalAvailable}, Requested: ${quantity}`,
+    message: `Insufficient stock for item ${itemData.material_code || material_id}. Available: ${totalAvailable}, Requested: ${baseQuantity}`,
     allocationData: [],
     totalAllocated: 0,
   };
 }
 
 let allAllocations = [];
-let remainingQty = quantity;
+let remainingQty = baseQuantity;
 
 // Step 1: If isPending, allocate from pending data first
 if (isPending === 1 && pendingData.length > 0) {
@@ -421,22 +455,35 @@ const totalAllocated = allAllocations.reduce(
   0
 );
 
-// For MR, enforce strict post-allocation check
-if (allocationType === "MR" && totalAllocated < quantity) {
+// Enforce strict post-allocation check
+if (shouldEnforceStock && totalAllocated < baseQuantity) {
   return {
     code: "400",
-    message: `Insufficient stock. Available: ${totalAllocated}, Requested: ${quantity}`,
+    message: `Insufficient stock for item ${itemData.material_code || material_id}. Available: ${totalAllocated}, Requested: ${baseQuantity}`,
     allocationData: [],
     totalAllocated: 0,
   };
 }
 
+// Convert allocated quantities back from base UOM to order UOM for the consumer
+if (conversionFactor !== 1) {
+  const reverseFactor = 1 / conversionFactor;
+  for (const alloc of allAllocations) {
+    alloc[qtyField] = parseFloat((alloc[qtyField] * reverseFactor).toFixed(3));
+  }
+}
+
+const totalAllocatedFinal = allAllocations.reduce(
+  (sum, a) => sum + (a[qtyField] || 0),
+  0
+);
+
 return {
-  code: totalAllocated >= quantity ? "200" : "206",
+  code: totalAllocated >= baseQuantity ? "200" : "206",
   message:
-    totalAllocated >= quantity
+    totalAllocated >= baseQuantity
       ? "Allocation successful"
-      : `Partial allocation. Available: ${totalAllocated}, Requested: ${quantity}`,
+      : `Partial allocation. Available: ${totalAllocated}, Requested: ${baseQuantity}`,
   allocationData: allAllocations,
-  totalAllocated: totalAllocated,
+  totalAllocated: totalAllocatedFinal,
 };

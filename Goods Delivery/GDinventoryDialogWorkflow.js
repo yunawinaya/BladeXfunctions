@@ -350,6 +350,7 @@
         ),
         huPriority: huPriority,
         currentDocId: data.id || "",
+        orderUomId: altUOM || "",
       };
 
       console.log(
