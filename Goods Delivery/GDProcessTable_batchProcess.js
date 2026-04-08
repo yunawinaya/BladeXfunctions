@@ -1345,6 +1345,212 @@ for (const processed of processedTableData) {
       });
     }
   }
+
+  // Release excess quantities at GD Completed (whole-HU picks where HU qty > GD line need)
+  if (saveAs === "Completed") {
+    const tempExcessStr = processed.temp_excess_data;
+    if (tempExcessStr && tempExcessStr !== "[]" && tempExcessStr.trim() !== "") {
+      try {
+        const excessData = JSON.parse(tempExcessStr);
+        for (const excess of excessData) {
+          const excessQty = roundQty(parseFloat(excess.quantity));
+          if (excessQty <= 0) continue;
+
+          const excessHandlingUnitId = excess.handling_unit_id || null;
+          const excessMaterialId = excess.material_id;
+          const excessBatchId = excess.batch_id || null;
+          const excessLocationId = excess.location_id;
+
+          // Find the allocated record for this excess (matched by HU + material + batch + location)
+          const matchedExcessRecords = allAllocatedData.filter(
+            (record) =>
+              String(record.material_id) === String(excessMaterialId) &&
+              String(record.batch_id || "") === String(excessBatchId || "") &&
+              String(record.bin_location || "") === String(excessLocationId || "") &&
+              String(record.handling_unit_id || "") === String(excessHandlingUnitId || "") &&
+              record.status === "Allocated" &&
+              (String(record.target_gd_id) === String(docId) ||
+                (isGDPP === 1 && String(record.target_gd_id) === String(processed.line_pp_id)))
+          );
+
+          if (matchedExcessRecords.length > 0) {
+            // Release excess from existing allocated records
+            let remainingExcess = excessQty;
+            for (const allocRecord of matchedExcessRecords) {
+              if (remainingExcess <= 0) break;
+              const releaseFromThis = Math.min(allocRecord.open_qty || 0, remainingExcess);
+              if (releaseFromThis <= 0) continue;
+
+              const isFromUnrestricted = allocRecord.doc_type === "Good Delivery" || allocRecord.doc_type === "Picking Plan";
+
+              if (isFromUnrestricted) {
+                // Cancel the excess portion - release back to unrestricted
+                if (releaseFromThis === (allocRecord.open_qty || 0)) {
+                  allRecordsToUpdate.push({
+                    ...allocRecord,
+                    open_qty: 0,
+                    status: "Cancelled",
+                    target_gd_id: null,
+                  });
+                } else {
+                  allRecordsToUpdate.push({
+                    ...allocRecord,
+                    reserved_qty: roundQty(allocRecord.reserved_qty - releaseFromThis),
+                    open_qty: roundQty((allocRecord.open_qty || 0) - releaseFromThis),
+                    status: "Allocated",
+                  });
+                  const { _id, id, ...recordWithoutId } = allocRecord;
+                  allRecordsToCreate.push({
+                    ...recordWithoutId,
+                    reserved_qty: releaseFromThis,
+                    open_qty: 0,
+                    status: "Cancelled",
+                    source_reserved_id: allocRecord.id,
+                    target_gd_id: null,
+                  });
+                }
+              } else {
+                // SO/Production: release back to Pending
+                const existingPending = allPendingData.find(
+                  (record) =>
+                    record.status === "Pending" &&
+                    record.doc_type === allocRecord.doc_type &&
+                    String(record.parent_line_id) === String(allocRecord.parent_line_id) &&
+                    String(record.material_id) === String(excessMaterialId) &&
+                    String(record.batch_id || "") === String(excessBatchId || "") &&
+                    String(record.bin_location || "") === String(excessLocationId || "")
+                );
+
+                if (releaseFromThis === (allocRecord.open_qty || 0)) {
+                  if (existingPending) {
+                    allRecordsToUpdate.push({
+                      ...existingPending,
+                      reserved_qty: roundQty(existingPending.reserved_qty + releaseFromThis),
+                      open_qty: roundQty(existingPending.open_qty + releaseFromThis),
+                      status: "Pending",
+                    });
+                    allRecordsToUpdate.push({
+                      ...allocRecord,
+                      open_qty: 0,
+                      status: "Cancelled",
+                      target_gd_id: null,
+                    });
+                  } else {
+                    allRecordsToUpdate.push({
+                      ...allocRecord,
+                      doc_id: "",
+                      doc_no: "",
+                      doc_line_id: "",
+                      status: "Pending",
+                      target_gd_id: null,
+                    });
+                  }
+                } else {
+                  allRecordsToUpdate.push({
+                    ...allocRecord,
+                    reserved_qty: roundQty(allocRecord.reserved_qty - releaseFromThis),
+                    open_qty: roundQty((allocRecord.open_qty || 0) - releaseFromThis),
+                    status: "Allocated",
+                  });
+                  if (existingPending) {
+                    allRecordsToUpdate.push({
+                      ...existingPending,
+                      reserved_qty: roundQty(existingPending.reserved_qty + releaseFromThis),
+                      open_qty: roundQty(existingPending.open_qty + releaseFromThis),
+                      status: "Pending",
+                    });
+                  } else {
+                    const { _id, id, ...recordWithoutId } = allocRecord;
+                    allRecordsToCreate.push({
+                      ...recordWithoutId,
+                      doc_id: "",
+                      doc_no: "",
+                      doc_line_id: "",
+                      reserved_qty: releaseFromThis,
+                      open_qty: releaseFromThis,
+                      delivered_qty: 0,
+                      status: "Pending",
+                      source_reserved_id: allocRecord.source_reserved_id || allocRecord.id,
+                      target_gd_id: null,
+                    });
+                  }
+                }
+              }
+
+              // Add inventory movement to release excess back to unrestricted
+              if (isFromUnrestricted) {
+                allInventoryMovements.push({
+                  material_id: excessMaterialId,
+                  material_code: excess.material_name || "",
+                  material_name: excess.material_name || "",
+                  material_uom: processed.material_uom,
+                  batch_id: excessBatchId,
+                  bin_location: excessLocationId,
+                  handling_unit_id: excessHandlingUnitId,
+                  quantity: releaseFromThis,
+                  movement_type: "RESERVED_TO_UNRESTRICTED",
+                  line_so_no: processed.line_so_no,
+                  doc_line_id: processed.doc_line_id,
+                  itemData: filterItemData(itemDataMap[excessMaterialId] || processed.itemData),
+                });
+              }
+
+              remainingExcess = roundQty(remainingExcess - releaseFromThis);
+            }
+          } else {
+            // No allocated record found - the excess was reserved from unrestricted during Created
+            // Create a cancellation record and release back to unrestricted
+            const allocDocType = isPP ? "Picking Plan" : "Good Delivery";
+            allRecordsToCreate.push({
+              doc_type: allocDocType,
+              status: "Cancelled",
+              source_reserved_id: null,
+              parent_id: processed.parent_id,
+              parent_line_id: processed.parent_line_id,
+              parent_no: processed.line_so_no,
+              doc_no: docNo,
+              doc_id: docId,
+              doc_line_id: processed.doc_line_id,
+              material_id: excessMaterialId,
+              item_code: excess.material_name || "",
+              item_name: excess.material_name || "",
+              item_desc: "",
+              batch_id: excessBatchId,
+              bin_location: excessLocationId,
+              handling_unit_id: excessHandlingUnitId,
+              item_uom: processed.material_uom,
+              reserved_qty: excessQty,
+              delivered_qty: 0,
+              open_qty: 0,
+              reserved_date: docDate,
+              line_no: processed.tableIndex,
+              plant_id: plantId,
+              organization_id: organizationId,
+              remark: "Auto-released excess from whole-HU pick",
+              target_gd_id: null,
+            });
+
+            allInventoryMovements.push({
+              material_id: excessMaterialId,
+              material_code: excess.material_name || "",
+              material_name: excess.material_name || "",
+              material_uom: processed.material_uom,
+              batch_id: excessBatchId,
+              bin_location: excessLocationId,
+              handling_unit_id: excessHandlingUnitId,
+              quantity: excessQty,
+              movement_type: "RESERVED_TO_UNRESTRICTED",
+              line_so_no: processed.line_so_no,
+              doc_line_id: processed.doc_line_id,
+              itemData: filterItemData(itemDataMap[excessMaterialId] || processed.itemData),
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Error processing excess data for line " + processed.tableIndex + ":", e);
+      }
+    }
+  }
 }
 
 // Create remainder records for partially consumed pending records

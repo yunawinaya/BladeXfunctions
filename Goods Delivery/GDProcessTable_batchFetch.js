@@ -147,7 +147,9 @@ for (let tableIndex = 0; tableIndex < tableData.length; tableIndex++) {
     // Additional fields for inventory movement records
     line_so_no: item.line_so_no || item.so_no || "",
     material_code: itemData.material_code || "",
-    material_name: itemData.material_name || ""
+    material_name: itemData.material_name || "",
+    // Excess data for whole-HU picks (FULL_HU_PICK/NO_SPLIT)
+    temp_excess_data: item.temp_excess_data || "[]"
   };
 
   processedTableData.push(processedItem);
