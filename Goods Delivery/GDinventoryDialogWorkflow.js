@@ -529,7 +529,7 @@
           const headerQty = parseFloat(hu.total_quantity) || 0;
           huTableData.push({
             row_type: "header",
-            hu_select: false,
+            hu_select: 0,
             handling_unit_id: hu.id,
             handling_no: hu.handling_no,
             material_id: "",
@@ -1098,7 +1098,7 @@
 
         for (const row of huTableData) {
           if (disabledHuIds.has(row.handling_unit_id)) {
-            row.hu_disabled = true;
+            row.hu_disabled = 1;
             row.hu_disabled_reason = "Contains items not in this delivery";
           }
         }
@@ -1108,7 +1108,7 @@
       if (splitPolicy !== "ALLOW_SPLIT") {
         for (const row of huTableData) {
           if (allocatedHuIds.has(row.handling_unit_id)) {
-            row.hu_disabled = true;
+            row.hu_disabled = 1;
             row.hu_disabled_reason = "Already allocated";
           }
         }
