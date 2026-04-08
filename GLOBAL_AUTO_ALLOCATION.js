@@ -15,7 +15,7 @@ const enforceStockCheck = {{workflowparams:enforceStockCheck}} || 0;
 const includeReservedQty = {{workflowparams:includeReservedQty}} || 0;
 const orderUomId = {{workflowparams:orderUomId}} || "";
 const splitPolicy = {{workflowparams:splitPolicy}} || "ALLOW_SPLIT";
-const gdLineMaterials = {{workflowparams:gdLineMaterials}} || [];
+const lineMaterials = {{workflowparams:lineMaterials}} || [];
 
 // UOM conversion: convert requested quantity to base UOM for comparison against balances
 let conversionFactor = 1;
@@ -39,14 +39,16 @@ if (itemData.item_batch_management === 1) {
 // Fetch HU reserved data from search node (on_reserved_gd with handling_unit_id)
 const huReservedData = {{node:search_node_WGl1NGSu.data.data}} || [];
 
-// Build HU reservation map: handling_unit_id|batch_id -> total reserved open_qty
+// Build HU reservation map: handling_unit_id|batch_id -> total reserved open_qty (in base UOM)
 // Exclude current GD's own records to avoid double deduction with existingAllocationData
 const huReservedMap = {};
 for (const r of huReservedData) {
   if (!r.handling_unit_id || parseFloat(r.open_qty) <= 0) continue;
   if (currentDocId && r.doc_id === currentDocId) continue;
+
+  // Convert open_qty from order UOM to base UOM (GD follows SO UOM)
   const key = `${r.handling_unit_id}|${r.batch_id || ""}`;
-  huReservedMap[key] = (huReservedMap[key] || 0) + parseFloat(r.open_qty);
+  huReservedMap[key] = (huReservedMap[key] || 0) + parseFloat(r.open_qty) * conversionFactor;
 }
 
 // Inject HU items into balance pool as virtual balance records
@@ -80,8 +82,8 @@ if (Array.isArray(huData) && huData.length > 0) {
 }
 
 // For NO_SPLIT: filter out HU balances from HUs with foreign items
-if (splitPolicy === "NO_SPLIT" && gdLineMaterials.length > 0) {
-  const gdMaterialSet = new Set(gdLineMaterials);
+if (splitPolicy === "NO_SPLIT" && lineMaterials.length > 0) {
+  const gdMaterialSet = new Set(lineMaterials);
 
   // Group HU balance records by handling_unit_id
   const huItemsMap = {};
@@ -310,8 +312,10 @@ const allocateFromPending = (pendingRecords, balances, requestedQty) => {
   for (const pending of sortedPending) {
     if (remainingQty <= 0) break;
 
-    const pendingQty = parseFloat(pending.open_qty) || 0;
-    if (pendingQty <= 0) continue;
+    // Convert pending open_qty from order UOM to base UOM (all reserved records follow SO UOM)
+    const pendingQtyRaw = parseFloat(pending.open_qty) || 0;
+    if (pendingQtyRaw <= 0) continue;
+    const pendingQty = parseFloat((pendingQtyRaw * conversionFactor).toFixed(3));
 
     // Find matching balance (pending uses bin_location, balance uses location_id)
     // Only match loose balances (no HU) since SO/Production pending doesn't reserve at HU level

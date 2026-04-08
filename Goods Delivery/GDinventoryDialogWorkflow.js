@@ -329,6 +329,8 @@
       existingAllocations,
       soLineItemId,
       huPriority,
+      splitPolicy,
+      lineMaterials,
     ) => {
       const isBatchManaged = itemData.item_batch_management === 1;
       const isPending = soLineItemId ? 1 : 0;
@@ -352,6 +354,8 @@
         huPriority: huPriority,
         currentDocId: data.id || "",
         orderUomId: altUOM || "",
+        splitPolicy: splitPolicy || "ALLOW_SPLIT",
+        lineMaterials: lineMaterials || [],
       };
 
       console.log(
@@ -1049,6 +1053,11 @@
           const balanceData =
             currentData.gd_item_balance?.table_item_balance || [];
 
+          // Build GD line material IDs for NO_SPLIT filtering
+          const lineMaterials = (currentData.table_gd || [])
+            .map((line) => line.material_id)
+            .filter(Boolean);
+
           await applyAutoAllocation(
             huTableData,
             balanceData,
@@ -1060,6 +1069,8 @@
             existingAllocationData,
             lineItemData.so_line_item_id || "",
             huPriorityConfig,
+            splitPolicy,
+            lineMaterials,
           );
 
           // Update loose table with allocation results
@@ -1122,6 +1133,13 @@
 
         // Set HU table data once (with allocation results already applied)
         await this.setData({ [`gd_item_balance.table_hu`]: huTableData });
+
+        // Show/hide hu_select checkbox based on policy
+        if (splitPolicy === "ALLOW_SPLIT") {
+          this.hide("gd_item_balance.table_hu.hu_select");
+        } else {
+          this.display("gd_item_balance.table_hu.hu_select");
+        }
 
         // Disable fields based on split policy
         huTableData.forEach((row, idx) => {
