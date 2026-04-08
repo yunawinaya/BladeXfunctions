@@ -10,6 +10,7 @@
   const materialId = data.table_gd[rowIndex].material_id;
   const goodDeliveryUOM = data.table_gd[rowIndex].gd_order_uom_id;
   const isSelectPicking = data.is_select_picking;
+  const splitPolicy = data.split_policy || "ALLOW_SPLIT";
 
   const gdUOM = await db
     .collection("unit_of_measurement")
@@ -108,6 +109,20 @@
 
   const totalDialogQuantity = roundQty(balanceTotal + totalHuQuantity);
   const totalDeliveredQty = roundQty(initialDeliveredQty + totalDialogQuantity);
+
+  // For whole-HU policies, validate total picked against item's over-delivery tolerance
+  if (splitPolicy !== "ALLOW_SPLIT" && materialId) {
+    const tolerance = itemData?.over_delivery_tolerance || 0;
+    const maxAllowed = roundQty(gd_order_quantity * (1 + tolerance / 100));
+
+    if (totalDialogQuantity > maxAllowed) {
+      alert(
+        `Total picked quantity (${totalDialogQuantity}) exceeds delivery limit (${maxAllowed}). ` +
+          `Order: ${gd_order_quantity}, Tolerance: ${tolerance}%`,
+      );
+      return;
+    }
+  }
 
   console.log("Re-validation check:");
   console.log("Order limit with tolerance:", orderLimit);
@@ -632,9 +647,206 @@
   const combinedQtyData = [...filteredData, ...huAsBalanceData];
   const textareaContent = JSON.stringify(combinedQtyData);
 
+  // Build temp_excess_data for FULL_HU_PICK/NO_SPLIT policies
+  const tempExcessData = [];
+
+  if (splitPolicy !== "ALLOW_SPLIT") {
+    const gdQty = parseFloat(data.table_gd[rowIndex].gd_qty || 0);
+
+    // 1. Over-pick excess: current material picked more than GD line needs
+    const currentMaterialHuTotal = roundQty(
+      filteredHuData
+        .filter((item) => item.material_id === materialId)
+        .reduce(
+          (sum, item) => sum + parseFloat(item.deliver_quantity || 0),
+          0,
+        ),
+    );
+
+    if (currentMaterialHuTotal > gdQty && gdQty > 0) {
+      const excessQty = roundQty(currentMaterialHuTotal - gdQty);
+      // Get the HU info for the excess record
+      const huItems = filteredHuData.filter(
+        (item) => item.material_id === materialId,
+      );
+      if (huItems.length > 0) {
+        tempExcessData.push({
+          handling_unit_id: huItems[0].handling_unit_id,
+          handling_no: huItems[0].handling_no || "",
+          material_id: materialId,
+          material_name: huItems[0].material_name || "",
+          quantity: excessQty,
+          batch_id: huItems[0].batch_id || null,
+          location_id: huItems[0].location_id,
+          reason: "over_pick",
+        });
+      }
+    }
+
+    // 2. Foreign item excess (FULL_HU_PICK only): items not in any GD line
+    if (splitPolicy === "FULL_HU_PICK") {
+      const gdMaterialIds = new Set(
+        (data.table_gd || [])
+          .map((line) => line.material_id)
+          .filter(Boolean),
+      );
+
+      filteredHuData
+        .filter((item) => !gdMaterialIds.has(item.material_id))
+        .forEach((item) => {
+          tempExcessData.push({
+            handling_unit_id: item.handling_unit_id,
+            handling_no: item.handling_no || "",
+            material_id: item.material_id,
+            material_name: item.material_name || "",
+            quantity: parseFloat(item.deliver_quantity || 0),
+            batch_id: item.batch_id || null,
+            location_id: item.location_id,
+            reason: "no_gd_line",
+          });
+        });
+    }
+  }
+
+  // Cross-line distribution for FULL_HU_PICK/NO_SPLIT policies
+  if (splitPolicy !== "ALLOW_SPLIT") {
+    const tableGd = data.table_gd || [];
+
+    // Build map: material_id -> [{ lineIndex, remainingNeed }]
+    const gdMaterialMap = {};
+    tableGd.forEach((line, idx) => {
+      if (idx === rowIndex) return; // skip current line
+      if (!line.material_id) return;
+
+      // Calculate how much this line still needs
+      let existingAllocated = 0;
+      if (
+        line.temp_qty_data &&
+        line.temp_qty_data !== "[]" &&
+        line.temp_qty_data.trim() !== ""
+      ) {
+        try {
+          const existing = JSON.parse(line.temp_qty_data);
+          existingAllocated = existing.reduce(
+            (sum, t) => sum + parseFloat(t.gd_quantity || 0),
+            0,
+          );
+        } catch (e) {
+          /* ignore */
+        }
+      }
+      const lineNeed = parseFloat(line.gd_qty || 0) - existingAllocated;
+
+      if (lineNeed > 0) {
+        if (!gdMaterialMap[line.material_id])
+          gdMaterialMap[line.material_id] = [];
+        gdMaterialMap[line.material_id].push({
+          lineIndex: idx,
+          remainingNeed: lineNeed,
+        });
+      }
+    });
+
+    // Distribute HU items to matching lines
+    for (const huItem of filteredHuData) {
+      if (huItem.material_id === materialId) continue; // current line — handled by normal flow
+
+      const matchingLines = gdMaterialMap[huItem.material_id];
+      if (!matchingLines || matchingLines.length === 0) continue; // foreign item — already in tempExcessData
+
+      let remainingHuQty = parseFloat(huItem.deliver_quantity || 0);
+
+      for (const lineInfo of matchingLines) {
+        if (remainingHuQty <= 0) break;
+
+        const allocQty = roundQty(
+          Math.min(remainingHuQty, lineInfo.remainingNeed),
+        );
+        if (allocQty <= 0) continue;
+
+        // Parse existing temp data for target line
+        let existingTemp = [];
+        let existingHuTemp = [];
+        try {
+          if (
+            tableGd[lineInfo.lineIndex].temp_qty_data &&
+            tableGd[lineInfo.lineIndex].temp_qty_data !== "[]"
+          ) {
+            existingTemp = JSON.parse(
+              tableGd[lineInfo.lineIndex].temp_qty_data,
+            );
+          }
+          if (
+            tableGd[lineInfo.lineIndex].temp_hu_data &&
+            tableGd[lineInfo.lineIndex].temp_hu_data !== "[]"
+          ) {
+            existingHuTemp = JSON.parse(
+              tableGd[lineInfo.lineIndex].temp_hu_data,
+            );
+          }
+        } catch (e) {
+          /* ignore */
+        }
+
+        existingTemp.push({
+          material_id: huItem.material_id,
+          location_id: huItem.location_id,
+          batch_id: huItem.batch_id || null,
+          balance_id: huItem.balance_id || "",
+          gd_quantity: allocQty,
+          handling_unit_id: huItem.handling_unit_id,
+          plant_id: data.plant_id,
+          organization_id: data.organization_id,
+          is_deleted: 0,
+        });
+
+        existingHuTemp.push({
+          row_type: "item",
+          handling_unit_id: huItem.handling_unit_id,
+          material_id: huItem.material_id,
+          location_id: huItem.location_id,
+          batch_id: huItem.batch_id || null,
+          balance_id: huItem.balance_id || "",
+          deliver_quantity: allocQty,
+          item_quantity: parseFloat(huItem.item_quantity || 0),
+        });
+
+        // Update the other line
+        this.setData({
+          [`table_gd.${lineInfo.lineIndex}.temp_qty_data`]: JSON.stringify(
+            existingTemp,
+          ),
+          [`table_gd.${lineInfo.lineIndex}.temp_hu_data`]: JSON.stringify(
+            existingHuTemp,
+          ),
+        });
+
+        remainingHuQty -= allocQty;
+        lineInfo.remainingNeed -= allocQty;
+      }
+
+      // Any remaining after distributing = excess (over-pick for this material)
+      if (remainingHuQty > 0) {
+        tempExcessData.push({
+          handling_unit_id: huItem.handling_unit_id,
+          handling_no: huItem.handling_no || "",
+          material_id: huItem.material_id,
+          material_name: huItem.material_name || "",
+          quantity: roundQty(remainingHuQty),
+          batch_id: huItem.batch_id || null,
+          location_id: huItem.location_id,
+          reason: "over_pick",
+        });
+      }
+    }
+  }
+
   this.setData({
     [`table_gd.${rowIndex}.temp_qty_data`]: textareaContent,
     [`table_gd.${rowIndex}.temp_hu_data`]: JSON.stringify(filteredHuData),
+    [`table_gd.${rowIndex}.temp_excess_data`]: JSON.stringify(
+      tempExcessData || [],
+    ),
     [`table_gd.${rowIndex}.view_stock`]: formattedString,
     [`gd_item_balance.table_item_balance`]: [],
     [`gd_item_balance.table_hu`]: [],
