@@ -529,6 +529,7 @@
           const headerQty = parseFloat(hu.total_quantity) || 0;
           huTableData.push({
             row_type: "header",
+            hu_select: false,
             handling_unit_id: hu.id,
             handling_no: hu.handling_no,
             material_id: "",
@@ -576,7 +577,11 @@
             }
 
             // Skip items with zero available quantity
-            if (displayQty <= 0) continue;
+            if (displayQty <= 0) {
+              if (splitPolicy === "ALLOW_SPLIT") continue;
+              // For FULL_HU_PICK/NO_SPLIT: keep the row with 0 qty so all items are visible
+              displayQty = 0;
+            }
 
             huTableData.push({
               row_type: "item",
