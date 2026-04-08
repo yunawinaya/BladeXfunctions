@@ -303,6 +303,26 @@
       `Row ${rowIndex}: Has existing allocation: ${hasExistingAllocation}`,
     );
 
+    // Guard: preserve whole-HU allocation data set by inventory dialog
+    if (hasExistingAllocation) {
+      try {
+        const tempArray = JSON.parse(existingTempData);
+        const hasHuAllocation = tempArray.some((t) => t.handling_unit_id);
+        if (hasHuAllocation) {
+          console.log(
+            `Row ${rowIndex}: Preserving whole-HU allocation data from inventory dialog`,
+          );
+          this.setData({
+            [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
+            [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(orderedQty - totalDeliveredQty),
+          });
+          return;
+        }
+      } catch (e) {
+        /* ignore parse error, proceed normally */
+      }
+    }
+
     let balanceData = null;
     let binLocation = null;
     let batchData = null;
