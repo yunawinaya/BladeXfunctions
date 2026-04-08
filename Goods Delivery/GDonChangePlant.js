@@ -4,6 +4,7 @@ const resetFormData = () => {
     customer_name: "",
     currency_code: "",
     so_no: "",
+    gd_area_id: "",
 
     gd_billing_name: "",
     gd_billing_cp: "",
@@ -15,6 +16,9 @@ const resetFormData = () => {
     email_address: "",
 
     gd_delivery_method: "",
+    select_vehicle_id: "",
+    select_driver_id: "",
+
     document_description: "",
     so_docref: "",
     gd_dockey: "",
@@ -30,7 +34,7 @@ const resetFormData = () => {
     driver_name: "",
     driver_contact_no: "",
     ic_no: "",
-    vehicle_no: "",
+    sp_vehicle_no: "",
     est_delivery_date: "",
     delivery_cost: "",
 
@@ -93,10 +97,20 @@ const resetFormData = () => {
         "gd_ref_doc",
         "table_gd",
         "gd_delivery_method",
+        "gd_area_id",
+        "select_vehicle_id",
+        "select_driver_id",
         "document_description",
+        "order_tnc",
+        "order_payment_details",
+        "order_delivery_term",
         "order_remark",
+        "order_remark2",
+        "order_remark3",
+        "order_remark4",
+        "order_remark5",
       ],
-      false
+      false,
     );
 
     const pickingSetupResponse = await db
@@ -112,11 +126,13 @@ const resetFormData = () => {
         this.display("assigned_to");
       } else if (pickingSetupResponse.data[0].picking_after === "Sales Order") {
         this.setData({ is_select_picking: 1 });
+        this.display("to_no");
         this.hide("button_save_as_created");
       }
 
       // Store split_policy for inventory dialog use
-      const splitPolicy = pickingSetupResponse.data[0].split_policy || "ALLOW_SPLIT";
+      const splitPolicy =
+        pickingSetupResponse.data[0].split_policy || "ALLOW_SPLIT";
       this.setData({ split_policy: splitPolicy });
     }
   }

@@ -111,6 +111,7 @@ const disabledField = async (status, pickingStatus) => {
         "gd_ref_doc",
         "gd_delivery_method",
         "document_description",
+        "gd_area_id",
         "order_tnc",
         "order_payment_details",
         "order_delivery_term",
@@ -333,7 +334,8 @@ const setPickingSetup = async (data) => {
     }
 
     // Store split_policy for inventory dialog use
-    const splitPolicy = pickingSetupResponse.data[0].split_policy || "ALLOW_SPLIT";
+    const splitPolicy =
+      pickingSetupResponse.data[0].split_policy || "ALLOW_SPLIT";
     this.setData({ split_policy: splitPolicy });
   }
 };
@@ -520,19 +522,21 @@ const displayPlanQty = async (data) => {
 })();
 
 setTimeout(async () => {
-  if (this.isAdd) {
+  if (!this.isAdd) return;
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
     const op = await this.onDropdownVisible("delivery_no_type", true);
-    function getDefaultItem(arr) {
-      return arr?.find((item) => item?.item?.item?.is_default === 1);
-    }
-    setTimeout(() => {
-      const optionsData = this.getOptionData("delivery_no_type") || [];
-      const data = getDefaultItem(optionsData);
-      if (data) {
-        this.setData({
-          delivery_no_type: data.value,
-        });
-      }
-    }, 500);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+
+  const optionsData = this.getOptionData("delivery_no_type") || [];
+  const data = getDefaultItem(optionsData);
+  if (data) {
+    this.setData({ delivery_no_type: data.value });
   }
 }, 500);
