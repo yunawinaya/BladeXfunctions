@@ -486,47 +486,24 @@ if (matchedAllocatedRecords.length > 0) {
     let unrestrictedQtyToAllocate = 0;
     if (additionalQtyNeeded > 0) {
       unrestrictedQtyToAllocate = additionalQtyNeeded;
-
-      recordToCreate = {
-        plant_id: plantId,
-        organization_id: organizationId,
-        material_id: materialId,
-        batch_id: batchId,
-        bin_location: locationId,
-        item_uom: materialUom,
-        doc_type: "Good Delivery",
-        parent_id: parentId,
-        parent_no: parentNo,
-        parent_line_id: parentLineId,
-        doc_id: docId,
-        target_gd_id: docId,
-        doc_no: docNo,
-        doc_line_id: docLineId,
-        reserved_qty: unrestrictedQtyToAllocate,
-        open_qty: 0,
-        delivered_qty: unrestrictedQtyToAllocate,
-        status: "Delivered",
-        remark: remark,
-        reserved_date: docDate,
-      };
-
       additionalQtyNeeded = 0;
     }
 
     const inventoryMovements = [];
 
-    if (unrestrictedQtyToAllocate > 0) {
+    if (reservedQtyToSubtract > 0) {
       inventoryMovements.push({
-        quantity: unrestrictedQtyToAllocate,
-        movement_type: "UNRESTRICTED_TO_RESERVED",
+        source: "Reserved",
+        quantity: reservedQtyToSubtract,
+        operation: "subtract",
+        movement_type: "DELIVERY",
       });
     }
 
-    const totalDeliveryQty = roundQty(reservedQtyToSubtract + unrestrictedQtyToAllocate);
-    if (totalDeliveryQty > 0) {
+    if (unrestrictedQtyToAllocate > 0) {
       inventoryMovements.push({
-        source: "Reserved",
-        quantity: totalDeliveryQty,
+        source: "Unrestricted",
+        quantity: unrestrictedQtyToAllocate,
         operation: "subtract",
         movement_type: "DELIVERY",
       });
@@ -682,47 +659,24 @@ if (pendingSOData.length > 0 && remainingQtyToDeliver > 0) {
 let unrestrictedQtyToAllocate = 0;
 if (remainingQtyToDeliver > 0) {
   unrestrictedQtyToAllocate = remainingQtyToDeliver;
-
-  recordToCreate = {
-    plant_id: plantId,
-    organization_id: organizationId,
-    material_id: materialId,
-    batch_id: batchId,
-    bin_location: locationId,
-    item_uom: materialUom,
-    doc_type: "Good Delivery",
-    parent_id: parentId,
-    parent_no: parentNo,
-    parent_line_id: parentLineId,
-    doc_id: docId,
-    target_gd_id: docId,
-    doc_no: docNo,
-    doc_line_id: docLineId,
-    reserved_qty: unrestrictedQtyToAllocate,
-    open_qty: 0,
-    delivered_qty: unrestrictedQtyToAllocate,
-    status: "Delivered",
-    remark: remark,
-    reserved_date: docDate,
-  };
-
   remainingQtyToDeliver = 0;
 }
 
 const inventoryMovements = [];
 
-if (unrestrictedQtyToAllocate > 0) {
+if (reservedQty > 0) {
   inventoryMovements.push({
-    quantity: unrestrictedQtyToAllocate,
-    movement_type: "UNRESTRICTED_TO_RESERVED",
+    source: "Reserved",
+    quantity: reservedQty,
+    operation: "subtract",
+    movement_type: "DELIVERY",
   });
 }
 
-const totalDeliveryQty = roundQty(reservedQty + unrestrictedQtyToAllocate);
-if (totalDeliveryQty > 0) {
+if (unrestrictedQtyToAllocate > 0) {
   inventoryMovements.push({
-    source: "Reserved",
-    quantity: totalDeliveryQty,
+    source: "Unrestricted",
+    quantity: unrestrictedQtyToAllocate,
     operation: "subtract",
     movement_type: "DELIVERY",
   });
