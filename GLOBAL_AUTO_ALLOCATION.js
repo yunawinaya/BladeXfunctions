@@ -14,6 +14,8 @@ const currentDocId = {{workflowparams:currentDocId}} || "";
 const enforceStockCheck = {{workflowparams:enforceStockCheck}} || 0;
 const includeReservedQty = {{workflowparams:includeReservedQty}} || 0;
 const orderUomId = {{workflowparams:orderUomId}} || "";
+const splitPolicy = {{workflowparams:splitPolicy}} || "ALLOW_SPLIT";
+const gdLineMaterials = {{workflowparams:gdLineMaterials}} || [];
 
 // UOM conversion: convert requested quantity to base UOM for comparison against balances
 let conversionFactor = 1;
@@ -74,6 +76,33 @@ if (Array.isArray(huData) && huData.length > 0) {
       handling_unit_id: huItem.handling_unit_id,
       source: "hu",
     });
+  }
+}
+
+// For NO_SPLIT: filter out HU balances from HUs with foreign items
+if (splitPolicy === "NO_SPLIT" && gdLineMaterials.length > 0) {
+  const gdMaterialSet = new Set(gdLineMaterials);
+
+  // Group HU balance records by handling_unit_id
+  const huItemsMap = {};
+  for (const b of balanceData) {
+    if (b.source !== "hu") continue;
+    if (!huItemsMap[b.handling_unit_id]) huItemsMap[b.handling_unit_id] = [];
+    huItemsMap[b.handling_unit_id].push(b);
+  }
+
+  // Find ineligible HUs (ones with items not in any GD line)
+  const ineligibleHuIds = new Set();
+  for (const [huId, items] of Object.entries(huItemsMap)) {
+    const hasForeignItem = items.some((item) => !gdMaterialSet.has(item.material_id));
+    if (hasForeignItem) ineligibleHuIds.add(huId);
+  }
+
+  // Remove ineligible HU balances
+  if (ineligibleHuIds.size > 0) {
+    balanceData = balanceData.filter(
+      (b) => b.source !== "hu" || !ineligibleHuIds.has(b.handling_unit_id),
+    );
   }
 }
 
@@ -231,6 +260,35 @@ const allocateFromBalances = (balanceList, remainingQty) => {
   }
 
   return { allocated, remainingQty: remaining };
+};
+
+// Whole-HU allocation: takes full item_quantity from each HU balance, never partial
+const allocateWholeHU = (balanceList, remainingQty) => {
+  const allocated = [];
+  let remaining = remainingQty;
+
+  for (const balance of balanceList) {
+    if (balance.source !== "hu") continue;
+
+    const availableQty = balance.unrestricted_qty || 0;
+    if (availableQty <= 0) continue;
+
+    // Take the FULL quantity — no Math.min with remaining
+    const allocationRecord = {
+      ...balance,
+      [qtyField]: availableQty,
+      unrestricted_qty: balance.original_unrestricted_qty || balance.unrestricted_qty,
+    };
+
+    if (allocationType === "MR") {
+      allocationRecord.bin_location_id = balance.location_id;
+    }
+
+    allocated.push(allocationRecord);
+    remaining -= availableQty; // Can go negative (excess)
+  }
+
+  return { allocated, remainingQty: Math.max(0, remaining) };
 };
 
 const filterAvailableBalances = (balances) => {
@@ -407,47 +465,75 @@ if (remainingQty > 0) {
   const huBalances = remainingBalances.filter((b) => b.source === "hu");
   const looseBalances = remainingBalances.filter((b) => b.source !== "hu");
 
-  let strategyResult;
+  if (splitPolicy !== "ALLOW_SPLIT" && huBalances.length > 0) {
+    // Whole-HU allocation: take full qty from each matching HU
+    const sortedHu = sortByExpiry(huBalances, 1);
+    const huResult = allocateWholeHU(sortedHu, remainingQty);
+    allAllocations.push(...huResult.allocated);
+    remainingQty = huResult.remainingQty;
 
-  // Determine allocation order based on HU priority
-  const hasPriority =
-    (huPriority === "HU First" && huBalances.length > 0) ||
-    (huPriority === "Loose First" && looseBalances.length > 0);
-
-  if (hasPriority) {
-    // Allocate from primary group first, then secondary for remainder
-    const primaryBalances = huPriority === "HU First" ? huBalances : looseBalances;
-    const secondaryBalances = huPriority === "HU First" ? looseBalances : huBalances;
-
-    const primaryResult = strategyFn(primaryBalances, remainingQty);
-    allAllocations.push(...primaryResult.allocated);
-    remainingQty = primaryResult.remainingQty;
-
+    // Fall back to loose stock for remaining (partial allowed for loose)
     if (remainingQty > 0) {
-      strategyResult = strategyFn(secondaryBalances, remainingQty);
-    } else {
-      strategyResult = { allocated: [], remainingQty: 0 };
+      const looseStrategyFn = STRATEGIES[allocationStrategy] || STRATEGIES["RANDOM"];
+      const looseResult = looseStrategyFn(looseBalances, remainingQty);
+
+      for (const strategyAlloc of looseResult.allocated) {
+        const key = generateKey(strategyAlloc.location_id, strategyAlloc.batch_id, strategyAlloc.handling_unit_id);
+        const existingIdx = allAllocations.findIndex((a) =>
+          generateKey(a.location_id, a.batch_id, a.handling_unit_id) === key
+        );
+        if (existingIdx >= 0) {
+          allAllocations[existingIdx][qtyField] += strategyAlloc[qtyField];
+        } else {
+          allAllocations.push(strategyAlloc);
+        }
+      }
+      remainingQty = looseResult.remainingQty;
     }
   } else {
-    // "Strategy" mode or no HU: pure strategy sorting across all
-    strategyResult = strategyFn(remainingBalances, remainingQty);
-  }
+    // ALLOW_SPLIT: existing priority-based allocation logic
+    let strategyResult;
 
-  // Merge strategy allocations with pending allocations
-  for (const strategyAlloc of strategyResult.allocated) {
-    const key = generateKey(strategyAlloc.location_id, strategyAlloc.batch_id, strategyAlloc.handling_unit_id);
-    const existingIdx = allAllocations.findIndex((a) => {
-      return generateKey(a.location_id, a.batch_id, a.handling_unit_id) === key;
-    });
+    // Determine allocation order based on HU priority
+    const hasPriority =
+      (huPriority === "HU First" && huBalances.length > 0) ||
+      (huPriority === "Loose First" && looseBalances.length > 0);
 
-    if (existingIdx >= 0) {
-      allAllocations[existingIdx][qtyField] += strategyAlloc[qtyField];
+    if (hasPriority) {
+      // Allocate from primary group first, then secondary for remainder
+      const primaryBalances = huPriority === "HU First" ? huBalances : looseBalances;
+      const secondaryBalances = huPriority === "HU First" ? looseBalances : huBalances;
+
+      const primaryResult = strategyFn(primaryBalances, remainingQty);
+      allAllocations.push(...primaryResult.allocated);
+      remainingQty = primaryResult.remainingQty;
+
+      if (remainingQty > 0) {
+        strategyResult = strategyFn(secondaryBalances, remainingQty);
+      } else {
+        strategyResult = { allocated: [], remainingQty: 0 };
+      }
     } else {
-      allAllocations.push(strategyAlloc);
+      // "Strategy" mode or no HU: pure strategy sorting across all
+      strategyResult = strategyFn(remainingBalances, remainingQty);
     }
-  }
 
-  remainingQty = strategyResult.remainingQty;
+    // Merge strategy allocations with pending allocations
+    for (const strategyAlloc of strategyResult.allocated) {
+      const key = generateKey(strategyAlloc.location_id, strategyAlloc.batch_id, strategyAlloc.handling_unit_id);
+      const existingIdx = allAllocations.findIndex((a) => {
+        return generateKey(a.location_id, a.batch_id, a.handling_unit_id) === key;
+      });
+
+      if (existingIdx >= 0) {
+        allAllocations[existingIdx][qtyField] += strategyAlloc[qtyField];
+      } else {
+        allAllocations.push(strategyAlloc);
+      }
+    }
+
+    remainingQty = strategyResult.remainingQty;
+  }
 }
 
 const totalAllocated = allAllocations.reduce(
