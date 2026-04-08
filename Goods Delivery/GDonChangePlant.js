@@ -114,6 +114,10 @@ const resetFormData = () => {
         this.setData({ is_select_picking: 1 });
         this.hide("button_save_as_created");
       }
+
+      // Store split_policy for inventory dialog use
+      const splitPolicy = pickingSetupResponse.data[0].split_policy || "ALLOW_SPLIT";
+      this.setData({ split_policy: splitPolicy });
     }
   }
 })();

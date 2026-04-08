@@ -346,6 +346,7 @@
 
       const defaultStrategy = pickingSetup.default_strategy_id;
       const fallbackStrategy = pickingSetup.fallback_strategy_id;
+      const splitPolicy = pickingSetup.split_policy || "ALLOW_SPLIT";
 
       // Get default bin for this item
       const getDefaultBin = () => {

@@ -1010,6 +1010,7 @@
           const allocationStrategy =
             pickingSetup.default_strategy_id || "RANDOM";
           const huPriorityConfig = pickingSetup.hu_priority || "HU First";
+          const splitPolicy = pickingSetup.split_policy || "ALLOW_SPLIT";
 
           const currentData = this.getValues();
           const balanceData =

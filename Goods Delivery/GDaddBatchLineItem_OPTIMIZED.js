@@ -173,6 +173,7 @@ const fetchPickingSetup = async (plantId) => {
         pickingMode: "Manual",
         defaultStrategy: "RANDOM",
         fallbackStrategy: "RANDOM",
+        splitPolicy: "ALLOW_SPLIT",
       };
     }
 
@@ -181,6 +182,7 @@ const fetchPickingSetup = async (plantId) => {
       pickingMode: setup.picking_mode || "Manual",
       defaultStrategy: setup.default_strategy_id || "RANDOM",
       fallbackStrategy: setup.fallback_strategy_id || "RANDOM",
+      splitPolicy: setup.split_policy || "ALLOW_SPLIT",
     };
   } catch (error) {
     console.error("Error fetching picking setup:", error);
@@ -188,6 +190,7 @@ const fetchPickingSetup = async (plantId) => {
       pickingMode: "Manual",
       defaultStrategy: "RANDOM",
       fallbackStrategy: "RANDOM",
+      splitPolicy: "ALLOW_SPLIT",
     };
   }
 };
