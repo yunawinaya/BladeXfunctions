@@ -747,12 +747,15 @@
       }
     });
 
+    // Accumulate cross-line updates to avoid stale snapshot re-reads
+    const crossLineAccum = {}; // lineIndex -> { tempQty: [], tempHu: [] }
+
     // Distribute HU items to matching lines
     for (const huItem of filteredHuData) {
       if (huItem.material_id === materialId) continue; // current line — handled by normal flow
 
       const matchingLines = gdMaterialMap[huItem.material_id];
-      if (!matchingLines || matchingLines.length === 0) continue; // foreign item — already in tempExcessData
+      if (!matchingLines || matchingLines.length === 0) continue; // FULL_HU_PICK: foreign item handled in tempExcessData above; NO_SPLIT: can't reach here (disabled HUs)
 
       let remainingHuQty = parseFloat(huItem.deliver_quantity || 0);
 
@@ -764,31 +767,38 @@
         );
         if (allocQty <= 0) continue;
 
-        // Parse existing temp data for target line
-        let existingTemp = [];
-        let existingHuTemp = [];
-        try {
-          if (
-            tableGd[lineInfo.lineIndex].temp_qty_data &&
-            tableGd[lineInfo.lineIndex].temp_qty_data !== "[]"
-          ) {
-            existingTemp = JSON.parse(
-              tableGd[lineInfo.lineIndex].temp_qty_data,
-            );
+        // Initialize accumulator from original snapshot on first access
+        if (!crossLineAccum[lineInfo.lineIndex]) {
+          let existingTemp = [];
+          let existingHuTemp = [];
+          try {
+            if (
+              tableGd[lineInfo.lineIndex].temp_qty_data &&
+              tableGd[lineInfo.lineIndex].temp_qty_data !== "[]"
+            ) {
+              existingTemp = JSON.parse(
+                tableGd[lineInfo.lineIndex].temp_qty_data,
+              );
+            }
+            if (
+              tableGd[lineInfo.lineIndex].temp_hu_data &&
+              tableGd[lineInfo.lineIndex].temp_hu_data !== "[]"
+            ) {
+              existingHuTemp = JSON.parse(
+                tableGd[lineInfo.lineIndex].temp_hu_data,
+              );
+            }
+          } catch (e) {
+            /* ignore */
           }
-          if (
-            tableGd[lineInfo.lineIndex].temp_hu_data &&
-            tableGd[lineInfo.lineIndex].temp_hu_data !== "[]"
-          ) {
-            existingHuTemp = JSON.parse(
-              tableGd[lineInfo.lineIndex].temp_hu_data,
-            );
-          }
-        } catch (e) {
-          /* ignore */
+          crossLineAccum[lineInfo.lineIndex] = {
+            tempQty: existingTemp,
+            tempHu: existingHuTemp,
+          };
         }
 
-        existingTemp.push({
+        // Push to accumulator
+        crossLineAccum[lineInfo.lineIndex].tempQty.push({
           material_id: huItem.material_id,
           location_id: huItem.location_id,
           batch_id: huItem.batch_id || null,
@@ -800,7 +810,7 @@
           is_deleted: 0,
         });
 
-        existingHuTemp.push({
+        crossLineAccum[lineInfo.lineIndex].tempHu.push({
           row_type: "item",
           handling_unit_id: huItem.handling_unit_id,
           material_id: huItem.material_id,
@@ -809,16 +819,6 @@
           balance_id: huItem.balance_id || "",
           deliver_quantity: allocQty,
           item_quantity: parseFloat(huItem.item_quantity || 0),
-        });
-
-        // Update the other line
-        this.setData({
-          [`table_gd.${lineInfo.lineIndex}.temp_qty_data`]: JSON.stringify(
-            existingTemp,
-          ),
-          [`table_gd.${lineInfo.lineIndex}.temp_hu_data`]: JSON.stringify(
-            existingHuTemp,
-          ),
         });
 
         remainingHuQty -= allocQty;
@@ -838,6 +838,14 @@
           reason: "over_pick",
         });
       }
+    }
+
+    // Write all accumulated cross-line data at once
+    for (const [idx, accum] of Object.entries(crossLineAccum)) {
+      this.setData({
+        [`table_gd.${idx}.temp_qty_data`]: JSON.stringify(accum.tempQty),
+        [`table_gd.${idx}.temp_hu_data`]: JSON.stringify(accum.tempHu),
+      });
     }
   }
 
