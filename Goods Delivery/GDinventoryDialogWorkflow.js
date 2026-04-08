@@ -13,6 +13,7 @@
     }
 
     const isSelectPicking = data.is_select_picking === 1;
+    const splitPolicy = data.split_policy || "ALLOW_SPLIT";
     const materialId = lineItemData.material_id;
     const altUOM = lineItemData.gd_order_uom_id;
     const plantId = data.plant_id;
@@ -474,6 +475,7 @@
       itemData,
       altUOM,
       otherLinesHuAllocations,
+      splitPolicy,
     ) => {
       try {
         // Single query: fetch all HUs for this plant/org, filter items by material in JS
@@ -510,10 +512,18 @@
         );
 
         for (const hu of allHUs) {
-          const matchingItems = (hu.table_hu_items || []).filter(
-            (item) => item.material_id === materialId && item.is_deleted !== 1,
+          const allActiveItems = (hu.table_hu_items || []).filter(
+            (item) => item.is_deleted !== 1,
           );
-          if (matchingItems.length === 0) continue;
+          const hasCurrentMaterial = allActiveItems.some(
+            (item) => item.material_id === materialId,
+          );
+          if (!hasCurrentMaterial) continue;
+
+          const itemsToShow =
+            splitPolicy === "ALLOW_SPLIT"
+              ? allActiveItems.filter((item) => item.material_id === materialId)
+              : allActiveItems;
 
           // Header row — convert total_quantity to alt UOM for display
           const headerQty = parseFloat(hu.total_quantity) || 0;
@@ -533,7 +543,7 @@
           });
 
           // Item rows — convert quantity to alt UOM for display
-          for (const huItem of matchingItems) {
+          for (const huItem of itemsToShow) {
             const baseQty = parseFloat(huItem.quantity) || 0;
             let displayQty = convertBaseToAlt(baseQty, itemData, altUOM);
 
@@ -946,6 +956,23 @@
       }
     };
 
+    // Collect already-allocated HU IDs from other GD lines (for FULL_HU_PICK / NO_SPLIT)
+    const allocatedHuIds = new Set();
+    if (splitPolicy !== "ALLOW_SPLIT") {
+      const tableGd = data.table_gd || [];
+      tableGd.forEach((line, idx) => {
+        if (idx === rowIndex) return;
+        if (line.temp_hu_data && line.temp_hu_data !== "[]") {
+          try {
+            const lineHuData = JSON.parse(line.temp_hu_data);
+            lineHuData.forEach((hu) => {
+              if (hu.handling_unit_id) allocatedHuIds.add(hu.handling_unit_id);
+            });
+          } catch (e) { /* ignore */ }
+        }
+      });
+    }
+
     // Collect other lines' HU allocations for the same material (prevent double HU allocation)
     const otherLinesHuAllocations = [];
     if (data.table_gd) {
@@ -984,6 +1011,7 @@
         itemData,
         altUOM,
         otherLinesHuAllocations,
+        splitPolicy,
       );
 
       // ================================================================
@@ -1039,6 +1067,49 @@
       }
 
       // ================================================================
+      // SPLIT POLICY: Mark disabled HUs (NO_SPLIT + already-allocated)
+      // ================================================================
+      if (splitPolicy === "NO_SPLIT") {
+        const gdMaterialIds = new Set(
+          (data.table_gd || []).map((line) => line.material_id).filter(Boolean),
+        );
+
+        const huItemsByHu = {};
+        for (const row of huTableData) {
+          if (row.row_type === "item") {
+            if (!huItemsByHu[row.handling_unit_id])
+              huItemsByHu[row.handling_unit_id] = [];
+            huItemsByHu[row.handling_unit_id].push(row);
+          }
+        }
+
+        const disabledHuIds = new Set();
+        for (const [huId, items] of Object.entries(huItemsByHu)) {
+          const hasForeignItem = items.some(
+            (item) => !gdMaterialIds.has(item.material_id),
+          );
+          if (hasForeignItem) disabledHuIds.add(huId);
+        }
+
+        for (const row of huTableData) {
+          if (disabledHuIds.has(row.handling_unit_id)) {
+            row.hu_disabled = true;
+            row.hu_disabled_reason = "Contains items not in this delivery";
+          }
+        }
+      }
+
+      // Mark HUs already allocated by other GD lines as disabled (FULL_HU_PICK / NO_SPLIT)
+      if (splitPolicy !== "ALLOW_SPLIT") {
+        for (const row of huTableData) {
+          if (allocatedHuIds.has(row.handling_unit_id)) {
+            row.hu_disabled = true;
+            row.hu_disabled_reason = "Already allocated";
+          }
+        }
+      }
+
+      // ================================================================
       // SET HU TABLE DATA + TAB VISIBILITY
       // ================================================================
       if (huTableData.length > 0) {
@@ -1047,15 +1118,40 @@
         // Set HU table data once (with allocation results already applied)
         await this.setData({ [`gd_item_balance.table_hu`]: huTableData });
 
-        // Disable deliver_quantity on header rows
+        // Disable fields based on split policy
         huTableData.forEach((row, idx) => {
-          if (row.row_type === "header") {
+          if (splitPolicy === "ALLOW_SPLIT") {
+            // Existing behavior: disable header deliver_quantity only
+            if (row.row_type === "header") {
+              this.disabled(
+                [`gd_item_balance.table_hu.${idx}.deliver_quantity`],
+                true,
+              );
+            }
+          } else {
+            // FULL_HU_PICK or NO_SPLIT: disable ALL deliver_quantity fields (qty is auto-set via checkbox)
             this.disabled(
               [`gd_item_balance.table_hu.${idx}.deliver_quantity`],
               true,
             );
+
+            // For header rows of disabled HUs: also disable the checkbox
+            // NOTE: hu_select checkbox field requires platform-side form configuration on table_hu component
+            if (row.row_type === "header" && row.hu_disabled) {
+              this.disabled(
+                [`gd_item_balance.table_hu.${idx}.hu_select`],
+                true,
+              );
+            }
           }
         });
+
+        // FULL_HU_PICK / NO_SPLIT checkbox behavior (requires platform-side event handler):
+        // When hu_select checkbox is checked on a header row:
+        //   - Set deliver_quantity = item_quantity for all item rows in this HU
+        // When hu_select checkbox is unchecked:
+        //   - Set deliver_quantity = 0 for all item rows in this HU
+        // This is a preview only — cross-line distribution happens on Confirm (GDconfirmDialog.js)
       } else {
         hideTab("handling_unit");
         activateTab("loose");
