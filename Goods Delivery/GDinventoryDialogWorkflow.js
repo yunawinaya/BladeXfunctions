@@ -494,9 +494,8 @@
               ? allActiveItems.filter((item) => item.material_id === materialId)
               : allActiveItems;
 
-          // Header row — convert total_quantity to alt UOM for display
-          const headerQty = parseFloat(hu.total_quantity) || 0;
-          huTableData.push({
+          // Header row placeholder — item_quantity updated after processing items
+          const headerRow = {
             row_type: "header",
             hu_select: 0,
             handling_unit_id: hu.id,
@@ -506,16 +505,20 @@
             storage_location_id: hu.storage_location_id,
             location_id: hu.location_id,
             batch_id: null,
-            item_quantity: convertBaseToAlt(headerQty, itemData, altUOM),
+            item_quantity: 0,
             deliver_quantity: 0,
             remark: hu.remark || "",
             balance_id: "",
-          });
+          };
+          huTableData.push(headerRow);
 
           // Item rows — convert quantity to alt UOM for display
+          let headerItemTotal = 0;
           for (const huItem of itemsToShow) {
             const baseQty = parseFloat(huItem.quantity) || 0;
-            let displayQty = convertBaseToAlt(baseQty, itemData, altUOM);
+            const isForeignItem = huItem.material_id !== materialId;
+            // For foreign items: show raw base qty (UOM conversion is for current material only)
+            let displayQty = isForeignItem ? baseQty : convertBaseToAlt(baseQty, itemData, altUOM);
 
             // Deduct other lines' HU allocations for same HU item
             const otherLineAlloc = otherLinesHuAllocations.find(
@@ -545,13 +548,10 @@
               displayQty = Math.max(0, displayQty - crossGdReserved);
             }
 
-            // Skip items with zero available quantity
-            if (displayQty <= 0) {
-              if (splitPolicy === "ALLOW_SPLIT") continue;
-              // For FULL_HU_PICK/NO_SPLIT: keep the row with 0 qty so all items are visible
-              displayQty = 0;
-            }
+            // Skip items with zero available quantity (fully reserved elsewhere)
+            if (displayQty <= 0) continue;
 
+            headerItemTotal += displayQty;
             huTableData.push({
               row_type: "item",
               handling_unit_id: hu.id,
@@ -571,6 +571,9 @@
               create_time: huItem.create_time || hu.create_time,
             });
           }
+
+          // Update header with sum of visible item quantities (after deductions)
+          headerRow.item_quantity = Math.round(headerItemTotal * 1000) / 1000;
         }
 
         // Remove header rows that have no item rows (fully reserved HU)
@@ -588,6 +591,7 @@
 
         // Merge with existing temp_hu_data (restore deliver_quantity on re-open)
         const parsedTempHu = parseTempQtyData(tempHuDataStr);
+        const huIdsWithAllocation = new Set();
         for (const tempItem of parsedTempHu) {
           if (tempItem.row_type !== "item") continue;
           const match = huTableData.find(
@@ -599,6 +603,21 @@
           );
           if (match) {
             match.deliver_quantity = tempItem.deliver_quantity || 0;
+            if (tempItem.deliver_quantity > 0) {
+              huIdsWithAllocation.add(tempItem.handling_unit_id);
+            }
+          }
+        }
+
+        // For FULL_HU_PICK/NO_SPLIT: set hu_select = 1 on headers with existing allocations
+        if (splitPolicy !== "ALLOW_SPLIT" && huIdsWithAllocation.size > 0) {
+          for (const row of huTableData) {
+            if (
+              row.row_type === "header" &&
+              huIdsWithAllocation.has(row.handling_unit_id)
+            ) {
+              row.hu_select = 1;
+            }
           }
         }
 
@@ -955,29 +974,35 @@
         // Draft: only Pending (SO/Production reserved — user's own stock to use)
         // Created: Pending + this GD's own Allocated records (what system already reserved for this delivery)
         // Never include other GDs' Allocated records (those belong to other deliveries)
-        const soLineReservedData = (reservedRes.data || []).filter(
-          (r) => {
-            if (parseFloat(r.open_qty) <= 0) return false;
-            if (r.status === "Cancelled") return false;
-            if (r.status === "Pending") return true;
-            if (r.status === "Allocated") {
-              // Only include Allocated from THIS GD (current document)
-              return gdStatus === "Created" && currentDocId && r.doc_id === currentDocId;
-            }
-            return false;
-          },
-        );
+        const soLineReservedData = (reservedRes.data || []).filter((r) => {
+          if (parseFloat(r.open_qty) <= 0) return false;
+          if (r.status === "Cancelled") return false;
+          if (r.status === "Pending") return true;
+          if (r.status === "Allocated") {
+            // Only include Allocated from THIS GD (current document)
+            return (
+              gdStatus === "Created" &&
+              currentDocId &&
+              r.doc_id === currentDocId
+            );
+          }
+          return false;
+        });
 
         // Update balance table: replace total reserved_qty with SO-line-specific qty
         if (soLineReservedData.length > 0) {
           const currentData = this.getValues();
-          const balanceData = currentData.gd_item_balance?.table_item_balance || [];
+          const balanceData =
+            currentData.gd_item_balance?.table_item_balance || [];
 
           for (const balance of balanceData) {
             const matchingPending = soLineReservedData.filter((r) => {
               const locationMatch = r.bin_location === balance.location_id;
               if (itemData.item_batch_management === 1) {
-                return locationMatch && (r.batch_id || "") === (balance.batch_id || "");
+                return (
+                  locationMatch &&
+                  (r.batch_id || "") === (balance.batch_id || "")
+                );
               }
               return locationMatch;
             });
@@ -1006,7 +1031,8 @@
                   }
                 }
               }
-              balance.reserved_qty = Math.round(pendingQtyDisplay * 1000) / 1000;
+              balance.reserved_qty =
+                Math.round(pendingQtyDisplay * 1000) / 1000;
             } else {
               balance.reserved_qty = 0;
             }
@@ -1085,6 +1111,24 @@
               ...r,
             })),
           });
+
+          // For FULL_HU_PICK/NO_SPLIT: set hu_select = 1 on headers where auto-alloc assigned deliver_quantity
+          if (splitPolicy !== "ALLOW_SPLIT") {
+            const autoAllocatedHuIds = new Set();
+            for (const row of huTableData) {
+              if (row.row_type === "item" && row.deliver_quantity > 0) {
+                autoAllocatedHuIds.add(row.handling_unit_id);
+              }
+            }
+            for (const row of huTableData) {
+              if (
+                row.row_type === "header" &&
+                autoAllocatedHuIds.has(row.handling_unit_id)
+              ) {
+                row.hu_select = 1;
+              }
+            }
+          }
         }
       }
 
@@ -1138,6 +1182,7 @@
         showTab("handling_unit");
 
         // Set HU table data once (with allocation results already applied)
+        console.log("Final huTableData:", JSON.stringify(huTableData));
         await this.setData({ [`gd_item_balance.table_hu`]: huTableData });
 
         // Show/hide hu_select checkbox based on policy
@@ -1164,9 +1209,14 @@
               true,
             );
 
-            // For header rows of disabled HUs: also disable the checkbox
-            // NOTE: hu_select checkbox field requires platform-side form configuration on table_hu component
-            if (row.row_type === "header" && row.hu_disabled) {
+            if (row.row_type === "item") {
+              // Item rows: disable hu_select (only headers are clickable)
+              this.disabled(
+                [`gd_item_balance.table_hu.${idx}.hu_select`],
+                true,
+              );
+            } else if (row.row_type === "header" && row.hu_disabled) {
+              // Disabled HU headers: disable the checkbox
               this.disabled(
                 [`gd_item_balance.table_hu.${idx}.hu_select`],
                 true,
