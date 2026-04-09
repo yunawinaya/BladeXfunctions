@@ -47,8 +47,8 @@ if (isGDPP === 1) {
 
 let validationMessage = null;
 
-// Validate order limit (skip for FULL_HU_PICK/NO_SPLIT — whole-HU excess is expected)
-if (splitPolicy === "ALLOW_SPLIT" && totalCommitted > orderLimit && saveAs !== "Cancelled") {
+// Validate order limit (skip for FULL_HU_PICK only — NO_SPLIT enforces tolerance)
+if (splitPolicy !== "FULL_HU_PICK" && totalCommitted > orderLimit && saveAs !== "Cancelled") {
   validationMessage = `Row ${rowIndex} with Item ${itemData.material_code} validation failed: quantity is exceeding the maximum deliverable quantity.`;
 }
 

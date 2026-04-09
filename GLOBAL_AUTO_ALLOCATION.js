@@ -307,6 +307,42 @@ const allocateWholeHU = (balanceList, remainingQty) => {
   return { allocated, remainingQty: Math.max(0, remaining) };
 };
 
+// NO_SPLIT whole-HU allocation: takes full HU qty but SKIPS HUs that would exceed remaining need
+// Falls back to loose stock for the remainder
+const allocateWholeHUWithLimit = (balanceList, remainingQty) => {
+  const allocated = [];
+  let remaining = remainingQty;
+
+  for (const balance of balanceList) {
+    if (remaining <= 0) break;
+    if (balance.source !== "hu") continue;
+
+    const availableQty = balance.unrestricted_qty || 0;
+    if (availableQty <= 0) continue;
+
+    // Skip this HU if it would exceed remaining need (no over-pick for NO_SPLIT)
+    if (availableQty > remaining) continue;
+
+    const allocationRecord = {
+      ...balance,
+      [qtyField]: availableQty,
+      unrestricted_qty:
+        balance.real_unrestricted_qty != null
+          ? balance.real_unrestricted_qty
+          : balance.original_unrestricted_qty || balance.unrestricted_qty,
+    };
+
+    if (allocationType === "MR") {
+      allocationRecord.bin_location_id = balance.location_id;
+    }
+
+    allocated.push(allocationRecord);
+    remaining -= availableQty;
+  }
+
+  return { allocated, remainingQty: Math.max(0, remaining) };
+};
+
 const filterAvailableBalances = (balances) => {
   return balances.filter((b) => (b.unrestricted_qty || 0) > 0);
 };
@@ -485,14 +521,39 @@ if (remainingQty > 0) {
   const huBalances = remainingBalances.filter((b) => b.source === "hu");
   const looseBalances = remainingBalances.filter((b) => b.source !== "hu");
 
-  if (splitPolicy !== "ALLOW_SPLIT" && huBalances.length > 0) {
-    // Whole-HU allocation: take full qty from each matching HU
+  if (splitPolicy === "FULL_HU_PICK" && huBalances.length > 0) {
+    // FULL_HU_PICK: take full qty from each HU, excess allowed
     const sortedHu = sortByExpiry(huBalances, 1);
     const huResult = allocateWholeHU(sortedHu, remainingQty);
     allAllocations.push(...huResult.allocated);
     remainingQty = huResult.remainingQty;
 
     // Fall back to loose stock for remaining (partial allowed for loose)
+    if (remainingQty > 0) {
+      const looseStrategyFn = STRATEGIES[allocationStrategy] || STRATEGIES["RANDOM"];
+      const looseResult = looseStrategyFn(looseBalances, remainingQty);
+
+      for (const strategyAlloc of looseResult.allocated) {
+        const key = generateKey(strategyAlloc.location_id, strategyAlloc.batch_id, strategyAlloc.handling_unit_id);
+        const existingIdx = allAllocations.findIndex((a) =>
+          generateKey(a.location_id, a.batch_id, a.handling_unit_id) === key
+        );
+        if (existingIdx >= 0) {
+          allAllocations[existingIdx][qtyField] += strategyAlloc[qtyField];
+        } else {
+          allAllocations.push(strategyAlloc);
+        }
+      }
+      remainingQty = looseResult.remainingQty;
+    }
+  } else if (splitPolicy === "NO_SPLIT" && huBalances.length > 0) {
+    // NO_SPLIT: take whole HUs but only if they fit within remaining need (no over-pick)
+    const sortedHu = sortByExpiry(huBalances, 1);
+    const huResult = allocateWholeHUWithLimit(sortedHu, remainingQty);
+    allAllocations.push(...huResult.allocated);
+    remainingQty = huResult.remainingQty;
+
+    // Fall back to loose stock for remaining
     if (remainingQty > 0) {
       const looseStrategyFn = STRATEGIES[allocationStrategy] || STRATEGIES["RANDOM"];
       const looseResult = looseStrategyFn(looseBalances, remainingQty);

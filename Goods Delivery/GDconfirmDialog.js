@@ -125,8 +125,20 @@
   const totalDialogQuantity = roundQty(balanceTotal + totalHuQuantity);
   const totalDeliveredQty = roundQty(initialDeliveredQty + totalDialogQuantity);
 
-  // For FULL_HU_PICK and NO_SPLIT: skip tolerance — whole-HU excess is inherent,
-  // excess tracked in temp_excess_data and released at GD Completed
+  // For NO_SPLIT: validate tolerance — no over-pick allowed beyond delivery tolerance
+  // For FULL_HU_PICK: skip — whole-HU excess is inherent, tracked in temp_excess_data
+  if (splitPolicy === "NO_SPLIT" && materialId) {
+    const tolerance = itemData?.over_delivery_tolerance || 0;
+    const maxAllowed = roundQty(gd_order_quantity * (1 + tolerance / 100));
+
+    if (totalDialogQuantity > maxAllowed) {
+      alert(
+        `Total picked quantity (${totalDialogQuantity}) exceeds delivery limit (${maxAllowed}). ` +
+          `Order: ${gd_order_quantity}, Tolerance: ${tolerance}%`,
+      );
+      return;
+    }
+  }
 
   console.log("Re-validation check:");
   console.log("Order limit with tolerance:", orderLimit);
@@ -281,8 +293,8 @@
     }
   }
 
-  // Check total delivery limit (skip for FULL_HU_PICK/NO_SPLIT — whole-HU excess is tracked in temp_excess_data)
-  if (splitPolicy === "ALLOW_SPLIT" && orderLimit > 0 && orderLimit < totalDeliveredQty) {
+  // Check total delivery limit (skip for FULL_HU_PICK only — NO_SPLIT enforces tolerance)
+  if (splitPolicy !== "FULL_HU_PICK" && orderLimit > 0 && orderLimit < totalDeliveredQty) {
     console.log("Validation failed: Total quantity exceeds delivery limit");
     alert("Total quantity exceeds delivery limit");
     return;
