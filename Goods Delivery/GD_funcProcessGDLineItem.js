@@ -874,7 +874,10 @@ const checkInventoryWithDuplicates = async (
   console.log(
     "🚀 OPTIMIZATION: Applying all updates in single setData call...",
   );
-  await this.setData({ table_gd: tableGdArray });
+  await this.setData({
+    table_gd: tableGdArray,
+    split_policy: pickingSetup.splitPolicy || "ALLOW_SPLIT",
+  });
 
   // Apply insufficient dialog data if any
   if (insufficientDialogData.length > 0) {
