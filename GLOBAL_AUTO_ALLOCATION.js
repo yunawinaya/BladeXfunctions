@@ -274,11 +274,13 @@ const allocateFromBalances = (balanceList, remainingQty) => {
 };
 
 // Whole-HU allocation: takes full item_quantity from each HU balance, never partial
+// Stops picking once remaining need is fulfilled (don't over-allocate beyond what's needed)
 const allocateWholeHU = (balanceList, remainingQty) => {
   const allocated = [];
   let remaining = remainingQty;
 
   for (const balance of balanceList) {
+    if (remaining <= 0) break; // Need fulfilled — stop picking more HUs
     if (balance.source !== "hu") continue;
 
     const availableQty = balance.unrestricted_qty || 0;
