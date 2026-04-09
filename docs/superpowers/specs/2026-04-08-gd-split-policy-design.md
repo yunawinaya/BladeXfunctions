@@ -197,8 +197,7 @@ All items have matching GD lines → HU is ENABLED (selectable)
 - **GD_Backend_AutoAllocation_Workflow.json** (reference) — the backend workflow that orchestrates auto-allocation. Key nodes to modify:
   - `Global Allocation Params` (code_node_Htpcyp8t) — reads `pickingSetup`, builds huData per material. Needs to: (1) pass `splitPolicy` to GLOBAL_AUTO_ALLOCATION, (2) for FULL_HU_PICK, include ALL items in matching HUs (not just current material), (3) for NO_SPLIT, include all items but also pass GD line materials for eligibility filtering
   - `Run Global Allocation Workflow` (workflow_node_NwRLmxNW) — add `splitPolicy` to body_params
-  - `process Allocation Result` (code_node_hifFKzmo) — handle cross-line distribution: when FULL_HU_PICK/NO_SPLIT returns allocations for other materials, update those rows' temp_qty_data/temp_hu_data in tableGD. Handle temp_excess_data for foreign/over-pick items
-- **GDsaveWorkflowAllocationResult.js** — handle new `temp_excess_data` structure
+  - `process Allocation Result` (code_node_hifFKzmo, code saved as **GDsaveWorkflowAllocationResult.js**) — handle cross-line distribution: when FULL_HU_PICK/NO_SPLIT returns allocations for other materials, update those rows' temp_qty_data/temp_hu_data in tableGD. Handle temp_excess_data for foreign/over-pick items
 
 - **GDProcessTable_batchProcess.js** — auto-release excess `on_reserved_gd` records at Completed; pass split_policy to dialog/allocation workflows
 

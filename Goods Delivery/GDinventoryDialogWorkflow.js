@@ -47,43 +47,6 @@
       this.hide("gd_item_balance.table_item_balance.to_quantity");
     }
 
-    const fetchDefaultStorageLocation = async (itemData) => {
-      const defaultBin = itemData?.table_default_bin?.find(
-        (bin) => bin.plant_id === plantId,
-      );
-
-      const defaultStorageLocationId = defaultBin?.storage_location_id;
-
-      let defaultStorageLocation = null;
-
-      if (!defaultStorageLocationId || defaultStorageLocationId === "") {
-        defaultStorageLocation = await db
-          .collection("storage_location")
-          .where({
-            plant_id: plantId,
-            storage_status: 1,
-            location_type: "Common",
-            is_deleted: 0,
-            is_default: 1,
-          })
-          .get()
-          .then((res) => res.data[0]);
-      } else {
-        defaultStorageLocation = await db
-          .collection("storage_location")
-          .where({ id: defaultStorageLocationId })
-          .get()
-          .then((res) => res.data[0]);
-      }
-
-      if (!defaultStorageLocation) {
-        console.error("Default storage location not found");
-        return null;
-      }
-
-      return defaultStorageLocation;
-    };
-
     const fetchUomData = async (uomIds) => {
       if (!Array.isArray(uomIds) || uomIds.length === 0) {
         console.warn("No UOM IDs provided to fetchUomData");
@@ -436,9 +399,11 @@
         const remaining = remainingAllocation.get(key) || 0;
 
         if (remaining > 0) {
-          const allocQty = Math.min(remaining, balance.unrestricted_qty || 0);
-          remainingAllocation.set(key, remaining - allocQty);
-          balance.gd_quantity = allocQty;
+          // Trust the workflow's allocation amount — it already validated availability
+          // including reserved qty and UOM conversions. Don't cap against dialog's
+          // unrestricted_qty which may not include reserved stock.
+          balance.gd_quantity = remaining;
+          remainingAllocation.set(key, 0);
         } else {
           balance.gd_quantity = 0;
         }
@@ -651,33 +616,7 @@
       filteredData,
       includeRawData = false,
     ) => {
-      this.models["full_balance_data"] = filteredData;
-
-      const defaultStorageLocation = this.models["default_storage_location"];
-
-      let finalData = filteredData;
-
-      if (defaultStorageLocation) {
-        const binLocationList =
-          defaultStorageLocation.table_bin_location?.map(
-            (bin) => bin.bin_location_id,
-          ) || [];
-
-        console.log("binLocationList", binLocationList);
-
-        const matchedBalanceData = filteredData.filter((data) => {
-          const hasAllocation = (data.gd_quantity || 0) > 0;
-          const inStorageLocation = binLocationList.includes(data.location_id);
-
-          return hasAllocation || inStorageLocation;
-        });
-
-        console.log("matchedBalanceData", matchedBalanceData);
-
-        if (matchedBalanceData.length > 0) {
-          finalData = matchedBalanceData;
-        }
-      }
+      const finalData = filteredData;
 
       await this.setData({
         [`gd_item_balance.table_item_balance`]: finalData,
@@ -810,21 +749,6 @@
       console.log(
         `Found ${existingAllocationData.length} existing allocations from other line items`,
       );
-    }
-
-    const defaultStorageLocation = await fetchDefaultStorageLocation(itemData);
-
-    if (defaultStorageLocation) {
-      this.models["default_storage_location"] = defaultStorageLocation;
-      this.models["previous_storage_location_id"] = defaultStorageLocation.id;
-
-      const currentStorageLocationId = data.gd_item_balance?.storage_location;
-
-      if (currentStorageLocationId !== defaultStorageLocation.id) {
-        await this.setData({
-          [`gd_item_balance.storage_location`]: defaultStorageLocation.id,
-        });
-      }
     }
 
     const altUoms =
@@ -977,7 +901,9 @@
             lineHuData.forEach((hu) => {
               if (hu.handling_unit_id) allocatedHuIds.add(hu.handling_unit_id);
             });
-          } catch (e) { /* ignore */ }
+          } catch (e) {
+            /* ignore */
+          }
         }
       });
     }
@@ -1012,6 +938,77 @@
 
     // Fetch and populate HU table (skip in GDPP mode)
     if (!isSelectPicking) {
+      // Fetch SO-line reserved data (Pending + Allocated from loose) for accurate reserved_qty display
+      const soLineItemId = lineItemData.so_line_item_id || "";
+      const currentDocId = data.id || "";
+      if (soLineItemId) {
+        const reservedQuery = {
+          plant_id: plantId,
+          material_id: materialId,
+          parent_line_id: soLineItemId,
+        };
+        const reservedRes = await db
+          .collection("on_reserved_gd")
+          .where(reservedQuery)
+          .get();
+        // Include Pending + Allocated, exclude Cancelled and current GD's own records
+        const soLineReservedData = (reservedRes.data || []).filter(
+          (r) =>
+            parseFloat(r.open_qty) > 0 &&
+            r.status !== "Cancelled" &&
+            (!currentDocId || r.doc_id !== currentDocId),
+        );
+
+        // Update balance table: replace total reserved_qty with SO-line-specific qty
+        if (soLineReservedData.length > 0) {
+          const currentData = this.getValues();
+          const balanceData = currentData.gd_item_balance?.table_item_balance || [];
+
+          for (const balance of balanceData) {
+            const matchingPending = soLineReservedData.filter((r) => {
+              const locationMatch = r.bin_location === balance.location_id;
+              if (itemData.item_batch_management === 1) {
+                return locationMatch && (r.batch_id || "") === (balance.batch_id || "");
+              }
+              return locationMatch;
+            });
+
+            if (matchingPending.length > 0) {
+              // Sum and convert pending open_qty to dialog's display UOM
+              let pendingQtyDisplay = 0;
+              for (const pending of matchingPending) {
+                const qty = parseFloat(pending.open_qty || 0);
+                const pendingUom = pending.item_uom;
+                if (pendingUom === altUOM) {
+                  pendingQtyDisplay += qty;
+                } else {
+                  // Convert: pending UOM → base → alt UOM
+                  const pendingConv = itemData.table_uom_conversion?.find(
+                    (c) => c.alt_uom_id === pendingUom,
+                  );
+                  const altConv = itemData.table_uom_conversion?.find(
+                    (c) => c.alt_uom_id === altUOM,
+                  );
+                  if (pendingConv && altConv) {
+                    const baseQty = qty * pendingConv.base_qty;
+                    pendingQtyDisplay += baseQty / altConv.base_qty;
+                  } else {
+                    pendingQtyDisplay += qty;
+                  }
+                }
+              }
+              balance.reserved_qty = Math.round(pendingQtyDisplay * 1000) / 1000;
+            } else {
+              balance.reserved_qty = 0;
+            }
+          }
+
+          await this.setData({
+            [`gd_item_balance.table_item_balance`]: balanceData,
+          });
+        }
+      }
+
       const huTableData = await fetchHandlingUnits(
         plantId,
         organizationId,

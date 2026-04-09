@@ -113,6 +113,12 @@ if (isPending === 1) {
   pendingData = {{node:search_node_BOywHct7.data.data}} || [];
 }
 
+// Preserve the real unrestricted_qty before any inflation for display purposes
+for (let i = 0; i < balanceData.length; i++) {
+  if (balanceData[i].source === "hu") continue;
+  balanceData[i].real_unrestricted_qty = parseFloat(balanceData[i].unrestricted_qty) || 0;
+}
+
 // Include reserved_qty in available stock when:
 // 1. Explicitly requested (gd_status=Created or isGDPP), OR
 // 2. Pending reserved data exists (reserved stock backs those pending records)
@@ -248,8 +254,11 @@ const allocateFromBalances = (balanceList, remainingQty) => {
     const allocationRecord = {
       ...balance,
       [qtyField]: allocatedQty,
+      // Use real_unrestricted_qty (before reserved inflation) for display
       unrestricted_qty:
-        balance.original_unrestricted_qty || balance.unrestricted_qty,
+        balance.real_unrestricted_qty != null
+          ? balance.real_unrestricted_qty
+          : balance.original_unrestricted_qty || balance.unrestricted_qty,
     };
 
     // For MR, rename location_id to bin_location_id
@@ -279,7 +288,10 @@ const allocateWholeHU = (balanceList, remainingQty) => {
     const allocationRecord = {
       ...balance,
       [qtyField]: availableQty,
-      unrestricted_qty: balance.original_unrestricted_qty || balance.unrestricted_qty,
+      unrestricted_qty:
+        balance.real_unrestricted_qty != null
+          ? balance.real_unrestricted_qty
+          : balance.original_unrestricted_qty || balance.unrestricted_qty,
     };
 
     if (allocationType === "MR") {
@@ -347,7 +359,9 @@ const allocateFromPending = (pendingRecords, balances, requestedQty) => {
             ...matchingBalance,
             [qtyField]: allocatedQty,
             unrestricted_qty:
-              matchingBalance.original_unrestricted_qty || matchingBalance.unrestricted_qty,
+              matchingBalance.real_unrestricted_qty != null
+                ? matchingBalance.real_unrestricted_qty
+                : matchingBalance.original_unrestricted_qty || matchingBalance.unrestricted_qty,
           };
 
           // For MR, rename location_id to bin_location_id
