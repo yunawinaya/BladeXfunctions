@@ -938,9 +938,10 @@
 
     // Fetch and populate HU table (skip in GDPP mode)
     if (!isSelectPicking) {
-      // Fetch SO-line reserved data (Pending + Allocated from loose) for accurate reserved_qty display
+      // Fetch SO-line reserved data for accurate reserved_qty display
       const soLineItemId = lineItemData.so_line_item_id || "";
       const currentDocId = data.id || "";
+      const gdStatus = data.gd_status;
       if (soLineItemId) {
         const reservedQuery = {
           plant_id: plantId,
@@ -951,12 +952,20 @@
           .collection("on_reserved_gd")
           .where(reservedQuery)
           .get();
-        // Include Pending + Allocated, exclude Cancelled and current GD's own records
+        // Draft: only Pending (SO/Production reserved — user's own stock to use)
+        // Created: Pending + this GD's own Allocated records (what system already reserved for this delivery)
+        // Never include other GDs' Allocated records (those belong to other deliveries)
         const soLineReservedData = (reservedRes.data || []).filter(
-          (r) =>
-            parseFloat(r.open_qty) > 0 &&
-            r.status !== "Cancelled" &&
-            (!currentDocId || r.doc_id !== currentDocId),
+          (r) => {
+            if (parseFloat(r.open_qty) <= 0) return false;
+            if (r.status === "Cancelled") return false;
+            if (r.status === "Pending") return true;
+            if (r.status === "Allocated") {
+              // Only include Allocated from THIS GD (current document)
+              return gdStatus === "Created" && currentDocId && r.doc_id === currentDocId;
+            }
+            return false;
+          },
         );
 
         // Update balance table: replace total reserved_qty with SO-line-specific qty

@@ -74,22 +74,37 @@
 
   // Re-validate all rows with quantities > 0 before confirming
   const gdStatus = data.gd_status;
-  const gd_order_quantity = parseFloat(
-    data.table_gd[rowIndex].gd_order_quantity || 0,
-  );
-  const initialDeliveredQty = parseFloat(
-    data.table_gd[rowIndex].gd_initial_delivered_qty || 0,
-  );
+  const currentDialogUOM = data.gd_item_balance.current_table_uom || selectedUOM;
+
+  // Convert GD line quantities to current dialog UOM for accurate comparison
+  const convertGdToDialogUOM = (qty) => {
+    if (!qty || goodDeliveryUOM === currentDialogUOM) return qty;
+    if (!itemData || !itemData.table_uom_conversion) return qty;
+    const tableUOM = itemData.table_uom_conversion;
+    const baseUOM = itemData.based_uom;
+    // GD line UOM → base
+    let baseQty = qty;
+    if (goodDeliveryUOM !== baseUOM) {
+      const fromConv = tableUOM.find((c) => c.alt_uom_id === goodDeliveryUOM);
+      if (fromConv && fromConv.base_qty) baseQty = qty * fromConv.base_qty;
+    }
+    // base → dialog UOM
+    if (currentDialogUOM === baseUOM) return roundQty(baseQty);
+    const toConv = tableUOM.find((c) => c.alt_uom_id === currentDialogUOM);
+    if (toConv && toConv.base_qty) return roundQty(baseQty / toConv.base_qty);
+    return qty;
+  };
+
+  const rawOrderQty = parseFloat(data.table_gd[rowIndex].gd_order_quantity || 0);
+  const rawInitialDeliveredQty = parseFloat(data.table_gd[rowIndex].gd_initial_delivered_qty || 0);
+  const gd_order_quantity = convertGdToDialogUOM(rawOrderQty);
+  const initialDeliveredQty = convertGdToDialogUOM(rawInitialDeliveredQty);
 
   let orderLimit = 0;
   if (materialId) {
-    const resItem = await db.collection("Item").where({ id: materialId }).get();
-
-    if (resItem.data && resItem.data[0]) {
-      orderLimit =
-        (gd_order_quantity * (100 + resItem.data[0].over_delivery_tolerance)) /
-        100;
-    }
+    orderLimit =
+      (gd_order_quantity * (100 + (itemData?.over_delivery_tolerance || 0))) /
+      100;
   }
 
   // Calculate total quantity from all rows with gd_quantity > 0
@@ -212,137 +227,42 @@
           return;
         }
 
-        // Check unrestricted quantity for serialized items
+        // Check quantity for serialized items against displayed balance
         const unrestricted_field = item.unrestricted_qty;
-        if (gdStatus === "Created") {
-          // For Created status, allow more flexibility
-          if (unrestricted_field < quantity) {
-            console.log(
-              `Row ${idx} validation failed: Serial item not available`,
-            );
-            alert(
-              `Row ${idx + 1}: Serial number ${
-                item.serial_number
-              } is not available`,
-            );
-            return;
-          }
-        } else {
-          // For Draft status, check pending reserved for this SO line at this location
-          let pendingReservedQty = 0;
-          const locationId = item.location_id;
+        const reserved_field = item.reserved_qty || 0;
+        const availableQty = soLineItemId
+          ? roundQty(unrestricted_field + reserved_field)
+          : roundQty(unrestricted_field);
 
-          if (soLineItemId && locationId) {
-            const pendingQuery = {
-              plant_id: data.plant_id,
-              material_id: materialId,
-              parent_line_id: soLineItemId,
-              status: "Pending",
-              location_id: locationId,
-            };
-
-            const pendingReservedRes = await db
-              .collection("on_reserved_gd")
-              .where(pendingQuery)
-              .get();
-
-            if (pendingReservedRes?.data?.length > 0) {
-              pendingReservedQty = pendingReservedRes.data.reduce(
-                (total, reserved) => {
-                  const altQty = parseFloat(reserved.open_qty || 0);
-                  const altUOM = reserved.item_uom;
-                  // Convert to base UOM, then to selected UOM for comparison
-                  const baseQty = convertToBaseUOM(altQty, altUOM);
-                  const convertedQty = convertFromBaseUOM(baseQty, selectedUOM);
-                  return total + convertedQty;
-                },
-                0,
-              );
-            }
-
-            console.log(
-              `Row ${idx}: Pending reserved qty for SO line ${soLineItemId}:`,
-              pendingReservedQty,
-            );
-          }
-
-          const availableQty = roundQty(unrestricted_field + pendingReservedQty);
-          if (availableQty < quantity) {
-            console.log(
-              `Row ${idx} validation failed: Serial item unrestricted quantity insufficient`,
-            );
-            alert(
-              `Row ${idx + 1}: Serial number ${
-                item.serial_number
-              } unrestricted quantity is insufficient`,
-            );
-            return;
-          }
+        if (availableQty < quantity) {
+          console.log(
+            `Row ${idx} validation failed: Serial item quantity insufficient (available: ${availableQty}, requested: ${quantity})`,
+          );
+          alert(
+            `Row ${idx + 1}: Serial number ${
+              item.serial_number
+            } quantity is insufficient`,
+          );
+          return;
         }
       } else {
-        // For non-serialized items, use existing validation logic
+        // For non-serialized items: validate against displayed balance
+        // reserved_qty now shows SO-line-specific reserved (set by dialog workflow)
         const unrestricted_field = item.unrestricted_qty;
         const reserved_field = item.reserved_qty;
 
-        if (
-          gdStatus === "Created" &&
-          reserved_field + unrestricted_field < quantity
-        ) {
-          console.log(`Row ${idx} validation failed: Quantity is not enough`);
+        // With SO: reserved_qty is SO-specific, so unrestricted + reserved = total available
+        // Without SO: only check unrestricted (reserved belongs to other documents)
+        const availableQty = soLineItemId
+          ? roundQty(unrestricted_field + reserved_field)
+          : roundQty(unrestricted_field);
+
+        if (availableQty < quantity) {
+          console.log(
+            `Row ${idx} validation failed: Quantity is not enough (available: ${availableQty}, requested: ${quantity})`,
+          );
           alert(`Row ${idx + 1}: Quantity is not enough`);
           return;
-        } else if (gdStatus !== "Created") {
-          // For Draft status, check pending reserved for this SO line at this location
-          let pendingReservedQty = 0;
-          const locationId = item.location_id;
-          const batchId = item.batch_id;
-
-          if (soLineItemId && locationId) {
-            const pendingQuery = {
-              plant_id: data.plant_id,
-              material_id: materialId,
-              parent_line_id: soLineItemId,
-              status: "Pending",
-              location_id: locationId,
-            };
-
-            if (batchId) {
-              pendingQuery.batch_id = batchId;
-            }
-
-            const pendingReservedRes = await db
-              .collection("on_reserved_gd")
-              .where(pendingQuery)
-              .get();
-
-            if (pendingReservedRes?.data?.length > 0) {
-              pendingReservedQty = pendingReservedRes.data.reduce(
-                (total, reserved) => {
-                  const altQty = parseFloat(reserved.open_qty || 0);
-                  const altUOM = reserved.item_uom;
-                  // Convert to base UOM, then to selected UOM for comparison
-                  const baseQty = convertToBaseUOM(altQty, altUOM);
-                  const convertedQty = convertFromBaseUOM(baseQty, selectedUOM);
-                  return total + convertedQty;
-                },
-                0,
-              );
-            }
-
-            console.log(
-              `Row ${idx}: Pending reserved qty for SO line ${soLineItemId}:`,
-              pendingReservedQty,
-            );
-          }
-
-          const availableQty = roundQty(unrestricted_field + pendingReservedQty);
-          if (availableQty < quantity) {
-            console.log(
-              `Row ${idx} validation failed: Unrestricted quantity is not enough`,
-            );
-            alert(`Row ${idx + 1}: Unrestricted quantity is not enough`);
-            return;
-          }
         }
       }
     }
@@ -390,9 +310,7 @@
     );
     console.log("From UOM:", selectedUOM, "To UOM:", goodDeliveryUOM);
 
-    // Get item data for conversion
-    const resItem = await db.collection("Item").where({ id: materialId }).get();
-    const itemData = resItem.data[0];
+    // Use itemData already fetched at top of function (no redundant DB call)
     const tableUOMConversion = itemData.table_uom_conversion;
     const baseUOM = itemData.based_uom;
 

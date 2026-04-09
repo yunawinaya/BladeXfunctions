@@ -4,14 +4,19 @@
     const fieldParts = rule.field.split(".");
     const index = fieldParts[2];
     const rowIndex = data.gd_item_balance.row_index;
-    const gdStatus = data.gd_status;
     const isSelectPicking = data.is_select_picking;
 
     const materialId = data.table_gd[rowIndex].material_id;
-    const gd_order_quantity = parseFloat(
+    const gdLineUOM = data.table_gd[rowIndex].gd_order_uom_id;
+    const dialogUOM =
+      data.gd_item_balance.current_table_uom ||
+      data.gd_item_balance.material_uom ||
+      gdLineUOM;
+
+    const rawOrderQty = parseFloat(
       data.table_gd[rowIndex].gd_order_quantity || 0,
     );
-    const initialDeliveredQty = parseFloat(
+    const rawInitialDeliveredQty = parseFloat(
       data.table_gd[rowIndex].gd_initial_delivered_qty || 0,
     );
 
@@ -19,17 +24,14 @@
     let currentDialogTotal = 0;
     for (let i = 0; i < data.gd_item_balance.table_item_balance.length; i++) {
       if (i !== parseInt(index)) {
-        // Exclude current row
         currentDialogTotal += parseFloat(
           data.gd_item_balance.table_item_balance[i].gd_quantity || 0,
         );
       }
     }
 
-    // Add the new value being validated
     const parsedValue = parseFloat(value);
     const totalWithNewValue = currentDialogTotal + parsedValue;
-    const gd_delivered_qty = initialDeliveredQty + totalWithNewValue;
 
     const unrestricted_field =
       data.gd_item_balance.table_item_balance[index].unrestricted_qty;
@@ -37,9 +39,6 @@
       data.gd_item_balance.table_item_balance[index].reserved_qty;
     const to_quantity_field =
       data.gd_item_balance.table_item_balance[index].to_quantity;
-    const locationId =
-      data.gd_item_balance.table_item_balance[index].location_id;
-    const batchId = data.gd_item_balance.table_item_balance[index].batch_id;
 
     if (!window.validationState) {
       window.validationState = {};
@@ -60,10 +59,36 @@
 
       console.log("data", resItem.data);
       if (resItem.data && resItem.data[0]) {
+        const itemData = resItem.data[0];
+
+        // Convert GD line quantities to dialog UOM for accurate comparison
+        const convertQtyToDialogUOM = (qty) => {
+          if (!qty || gdLineUOM === dialogUOM) return qty;
+          const tableUOM = itemData.table_uom_conversion || [];
+          const baseUOM = itemData.based_uom;
+          // GD line UOM → base
+          let baseQty = qty;
+          if (gdLineUOM !== baseUOM) {
+            const fromConv = tableUOM.find((c) => c.alt_uom_id === gdLineUOM);
+            if (fromConv && fromConv.base_qty)
+              baseQty = qty * fromConv.base_qty;
+          }
+          // base → dialog UOM
+          if (dialogUOM === baseUOM) return Math.round(baseQty * 1000) / 1000;
+          const toConv = tableUOM.find((c) => c.alt_uom_id === dialogUOM);
+          if (toConv && toConv.base_qty)
+            return Math.round((baseQty / toConv.base_qty) * 1000) / 1000;
+          return qty;
+        };
+
+        const gd_order_quantity = convertQtyToDialogUOM(rawOrderQty);
+        const initialDeliveredQty = convertQtyToDialogUOM(
+          rawInitialDeliveredQty,
+        );
+        const gd_delivered_qty = initialDeliveredQty + totalWithNewValue;
+
         const orderLimit =
-          (gd_order_quantity *
-            (100 + resItem.data[0].over_delivery_tolerance)) /
-          100;
+          (gd_order_quantity * (100 + itemData.over_delivery_tolerance)) / 100;
 
         // GDPP mode: Validate against to_quantity (picked qty from PP)
         if (isSelectPicking === 1) {
@@ -78,56 +103,17 @@
           // Regular GD mode: Validate against balance quantities
           console.log("Regular GD mode validation - checking against balance");
 
-          if (
-            gdStatus === "Created" &&
-            reserved_field + unrestricted_field < parsedValue
-          ) {
+          const soLineItemId = data.table_gd[rowIndex].so_line_item_id;
+          // With SO: reserved_qty shows SO-line-specific reserved (unrestricted + reserved = total available)
+          // Without SO: only check unrestricted (reserved belongs to other documents)
+          const availableQty = soLineItemId
+            ? unrestricted_field + reserved_field
+            : unrestricted_field;
+
+          if (availableQty < parsedValue) {
             window.validationState[index] = false;
             callback("Quantity is not enough");
             return;
-          } else if (gdStatus !== "Created") {
-            // For Draft status, check if there's pending reserved for this SO line at this location
-            const soLineItemId = data.table_gd[rowIndex].so_line_item_id;
-            let pendingReservedQty = 0;
-
-            if (soLineItemId && locationId) {
-              const pendingQuery = {
-                plant_id: data.plant_id,
-                material_id: materialId,
-                parent_line_id: soLineItemId,
-                status: "Pending",
-                location_id: locationId,
-              };
-
-              if (batchId) {
-                pendingQuery.batch_id = batchId;
-              }
-
-              const pendingReservedRes = await db
-                .collection("on_reserved_gd")
-                .where(pendingQuery)
-                .get();
-
-              if (pendingReservedRes?.data?.length > 0) {
-                pendingReservedQty = pendingReservedRes.data.reduce(
-                  (total, reserved) =>
-                    total + parseFloat(reserved.open_qty || 0),
-                  0,
-                );
-              }
-
-              console.log(
-                `Pending reserved qty for SO line ${soLineItemId} at location ${locationId}:`,
-                pendingReservedQty,
-              );
-            }
-
-            const availableQty = unrestricted_field + pendingReservedQty;
-            if (availableQty < parsedValue) {
-              window.validationState[index] = false;
-              callback("Unrestricted quantity is not enough");
-              return;
-            }
           }
         }
 
