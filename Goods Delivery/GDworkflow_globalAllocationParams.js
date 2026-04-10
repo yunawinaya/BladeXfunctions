@@ -15,6 +15,7 @@ const rowsNeedingAllocation = {{node:code_node_kJx9p9Nh.data.rowsNeedingAllocati
 
 // Split policy from picking setup
 const splitPolicy = pickingSetup.split_policy || "ALLOW_SPLIT";
+const allowMixedItem = pickingSetup.allow_mixed_item ?? 1;
 
 let allocationTracker = {};
 if (rawTracker) {
@@ -131,5 +132,6 @@ return {
   includeReservedQty: (gd_status === "Created" || isGDPP === 1) ? 1 : 0,
   orderUomId: currentRow.uomId || "",
   splitPolicy: splitPolicy,
+  allowMixedItem: allowMixedItem,
   lineMaterials: rowsNeedingAllocation.map((r) => r.materialId),
 };

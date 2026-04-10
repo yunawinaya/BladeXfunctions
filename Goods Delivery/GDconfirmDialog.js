@@ -130,11 +130,12 @@
   if (splitPolicy === "NO_SPLIT" && materialId) {
     const tolerance = itemData?.over_delivery_tolerance || 0;
     const maxAllowed = roundQty(gd_order_quantity * (1 + tolerance / 100));
+    const remainingCapacity = roundQty(maxAllowed - initialDeliveredQty);
 
-    if (totalDialogQuantity > maxAllowed) {
+    if (totalDialogQuantity > remainingCapacity) {
       alert(
-        `Total picked quantity (${totalDialogQuantity}) exceeds delivery limit (${maxAllowed}). ` +
-          `Order: ${gd_order_quantity}, Tolerance: ${tolerance}%`,
+        `Total picked quantity (${totalDialogQuantity}) exceeds remaining delivery capacity (${remainingCapacity}). ` +
+          `Order: ${gd_order_quantity}, Already delivered: ${initialDeliveredQty}, Tolerance: ${tolerance}%`,
       );
       return;
     }

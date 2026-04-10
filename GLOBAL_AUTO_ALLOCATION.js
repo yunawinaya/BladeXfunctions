@@ -15,6 +15,7 @@ const enforceStockCheck = {{workflowparams:enforceStockCheck}} || 0;
 const includeReservedQty = {{workflowparams:includeReservedQty}} || 0;
 const orderUomId = {{workflowparams:orderUomId}} || "";
 const splitPolicy = {{workflowparams:splitPolicy}} || "ALLOW_SPLIT";
+const allowMixedItem = {{workflowparams:allowMixedItem}} ?? 1;
 const lineMaterials = {{workflowparams:lineMaterials}} || [];
 
 // UOM conversion: convert requested quantity to base UOM for comparison against balances
@@ -81,8 +82,12 @@ if (Array.isArray(huData) && huData.length > 0) {
   }
 }
 
-// For NO_SPLIT: filter out HU balances from HUs with foreign items
-if (splitPolicy === "NO_SPLIT" && lineMaterials.length > 0) {
+// Filter out HU balances from HUs with foreign items
+// NO_SPLIT: always filter | FULL_HU_PICK: only when allow_mixed_item=0
+const shouldFilterForeignHUs =
+  (splitPolicy === "NO_SPLIT" || (splitPolicy === "FULL_HU_PICK" && allowMixedItem === 0));
+
+if (shouldFilterForeignHUs && lineMaterials.length > 0) {
   const gdMaterialSet = new Set(lineMaterials);
 
   // Group HU balance records by handling_unit_id

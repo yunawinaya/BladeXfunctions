@@ -14,6 +14,7 @@
 
     const isSelectPicking = data.is_select_picking === 1;
     const splitPolicy = data.split_policy || "ALLOW_SPLIT";
+    let allowMixedItem = 1; // default: allow mixed items in HU
     const materialId = lineItemData.material_id;
     const altUOM = lineItemData.gd_order_uom_id;
     const plantId = data.plant_id;
@@ -318,6 +319,7 @@
         currentDocId: data.id || "",
         orderUomId: altUOM || "",
         splitPolicy: splitPolicy || "ALLOW_SPLIT",
+        allowMixedItem: allowMixedItem ?? 1,
         lineMaterials: lineMaterials || [],
       };
 
@@ -957,6 +959,17 @@
 
     // Fetch and populate HU table (skip in GDPP mode)
     if (!isSelectPicking) {
+      // Fetch allow_mixed_item from picking_setup for FULL_HU_PICK
+      if (splitPolicy === "FULL_HU_PICK") {
+        const pickingSetupForConfig = await db
+          .collection("picking_setup")
+          .where({ organization_id: data.organization_id, is_deleted: 0 })
+          .get();
+        if (pickingSetupForConfig.data?.[0]) {
+          allowMixedItem = pickingSetupForConfig.data[0].allow_mixed_item ?? 1;
+        }
+      }
+
       // Fetch SO-line reserved data for accurate reserved_qty display
       const soLineItemId = lineItemData.so_line_item_id || "";
       const currentDocId = data.id || "";
@@ -990,7 +1003,7 @@
         });
 
         // Update balance table: replace total reserved_qty with SO-line-specific qty
-        if (soLineReservedData.length > 0) {
+        {
           const currentData = this.getValues();
           const balanceData =
             currentData.gd_item_balance?.table_item_balance || [];
@@ -1133,9 +1146,15 @@
       }
 
       // ================================================================
-      // SPLIT POLICY: Mark disabled HUs (NO_SPLIT + already-allocated)
+      // SPLIT POLICY: Mark disabled HUs (foreign items + already-allocated)
+      // NO_SPLIT: always disable HUs with foreign items
+      // FULL_HU_PICK + allow_mixed_item=0: also disable HUs with foreign items
       // ================================================================
-      if (splitPolicy === "NO_SPLIT") {
+      const shouldDisableForeignHUs =
+        splitPolicy === "NO_SPLIT" ||
+        (splitPolicy === "FULL_HU_PICK" && allowMixedItem === 0);
+
+      if (shouldDisableForeignHUs) {
         const gdMaterialIds = new Set(
           (data.table_gd || []).map((line) => line.material_id).filter(Boolean),
         );
