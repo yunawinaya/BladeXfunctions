@@ -631,23 +631,25 @@ const checkInventoryWithDuplicates = async (
       });
     }
 
-    // Calculate total demand
+    // Calculate total demand (only unplanned portion needs stock)
     let totalDemandBase = 0;
     items.forEach((item) => {
       const undeliveredQty = roundQty(
         (parseFloat(item.orderedQty) || 0) -
           (parseFloat(item.deliveredQtyFromSource) || 0),
       );
-      let undeliveredQtyBase = undeliveredQty;
+      const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
+      const remainingDemandQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
+      let remainingDemandQtyBase = remainingDemandQty;
       if (item.altUOM !== itemData.based_uom) {
         const uomConversion = itemData.table_uom_conversion?.find(
           (conv) => conv.alt_uom_id === item.altUOM,
         );
         if (uomConversion && uomConversion.base_qty) {
-          undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
+          remainingDemandQtyBase = remainingDemandQty * uomConversion.base_qty;
         }
       }
-      totalDemandBase += undeliveredQtyBase;
+      totalDemandBase += remainingDemandQtyBase;
 
       // Set basic item data
       const index = item.originalIndex;
@@ -673,7 +675,7 @@ const checkInventoryWithDuplicates = async (
     });
 
     console.log(
-      `Material ${materialId}: Available=${availableStockAfterAllocations}, Total Demand=${totalDemandBase}`,
+      `Material ${materialId}: Available=${availableStockAfterAllocations}, Total Remaining Demand (after planned)=${totalDemandBase}`,
     );
 
     // Check if insufficient stock
@@ -693,7 +695,9 @@ const checkInventoryWithDuplicates = async (
           const index = item.originalIndex;
           const orderedQty = parseFloat(item.orderedQty) || 0;
           const deliveredQty = parseFloat(item.deliveredQtyFromSource) || 0;
+          const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
           const undeliveredQty = roundQty(orderedQty - deliveredQty);
+          const remainingDemandQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
 
           const orderedQtyBase = roundQty(
             convertToBaseUOM(orderedQty, item.altUOM, itemData),
@@ -704,10 +708,13 @@ const checkInventoryWithDuplicates = async (
           const undeliveredQtyBase = roundQty(
             convertToBaseUOM(undeliveredQty, item.altUOM, itemData),
           );
+          const remainingDemandQtyBase = roundQty(
+            convertToBaseUOM(remainingDemandQty, item.altUOM, itemData),
+          );
 
           let availableQtyBase = 0;
-          if (remainingSerialCount > 0 && undeliveredQtyBase > 0) {
-            const requiredUnitsBase = Math.floor(undeliveredQtyBase);
+          if (remainingSerialCount > 0 && remainingDemandQtyBase > 0) {
+            const requiredUnitsBase = Math.floor(remainingDemandQtyBase);
             availableQtyBase = Math.min(
               remainingSerialCount,
               requiredUnitsBase,
@@ -722,8 +729,9 @@ const checkInventoryWithDuplicates = async (
             material_uom: itemData.based_uom,
             order_quantity: orderedQtyBase,
             undelivered_qty: undeliveredQtyBase,
+            remaining_demand_qty: remainingDemandQtyBase,
             available_qty: availableQtyBase,
-            shortfall_qty: roundQty(undeliveredQtyBase - availableQtyBase),
+            shortfall_qty: roundQty(remainingDemandQtyBase - availableQtyBase),
             fm_key:
               Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
@@ -749,23 +757,25 @@ const checkInventoryWithDuplicates = async (
           const index = item.originalIndex;
           const orderedQty = parseFloat(item.orderedQty) || 0;
           const deliveredQty = parseFloat(item.deliveredQtyFromSource) || 0;
+          const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
           const undeliveredQty = roundQty(orderedQty - deliveredQty);
+          const remainingDemandQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
 
           let availableQtyAlt = 0;
-          if (remainingStockBase > 0 && undeliveredQty > 0) {
-            let undeliveredQtyBase = undeliveredQty;
+          if (remainingStockBase > 0 && remainingDemandQty > 0) {
+            let remainingDemandQtyBase = remainingDemandQty;
             if (item.altUOM !== itemData.based_uom) {
               const uomConversion = itemData.table_uom_conversion?.find(
                 (conv) => conv.alt_uom_id === item.altUOM,
               );
               if (uomConversion && uomConversion.base_qty) {
-                undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
+                remainingDemandQtyBase = remainingDemandQty * uomConversion.base_qty;
               }
             }
 
             const allocatedBase = Math.min(
               remainingStockBase,
-              undeliveredQtyBase,
+              remainingDemandQtyBase,
             );
             const uomConversion = itemData.table_uom_conversion?.find(
               (conv) => conv.alt_uom_id === item.altUOM,
@@ -786,8 +796,9 @@ const checkInventoryWithDuplicates = async (
             material_uom: item.altUOM,
             order_quantity: orderedQty,
             undelivered_qty: undeliveredQty,
+            remaining_demand_qty: remainingDemandQty,
             available_qty: availableQtyAlt,
-            shortfall_qty: roundQty(undeliveredQty - availableQtyAlt),
+            shortfall_qty: roundQty(remainingDemandQty - availableQtyAlt),
             fm_key:
               Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
