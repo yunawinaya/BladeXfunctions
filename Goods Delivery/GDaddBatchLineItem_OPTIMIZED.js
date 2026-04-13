@@ -639,7 +639,9 @@ const checkInventoryWithDuplicates = async (
           (parseFloat(item.deliveredQtyFromSource) || 0),
       );
       const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
-      const remainingDemandQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
+      const remainingDemandQty = roundQty(
+        Math.max(0, undeliveredQty - plannedQty),
+      );
       let remainingDemandQtyBase = remainingDemandQty;
       if (item.altUOM !== itemData.based_uom) {
         const uomConversion = itemData.table_uom_conversion?.find(
@@ -697,7 +699,9 @@ const checkInventoryWithDuplicates = async (
           const deliveredQty = parseFloat(item.deliveredQtyFromSource) || 0;
           const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
           const undeliveredQty = roundQty(orderedQty - deliveredQty);
-          const remainingDemandQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
+          const remainingDemandQty = roundQty(
+            Math.max(0, undeliveredQty - plannedQty),
+          );
 
           const orderedQtyBase = roundQty(
             convertToBaseUOM(orderedQty, item.altUOM, itemData),
@@ -759,7 +763,9 @@ const checkInventoryWithDuplicates = async (
           const deliveredQty = parseFloat(item.deliveredQtyFromSource) || 0;
           const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
           const undeliveredQty = roundQty(orderedQty - deliveredQty);
-          const remainingDemandQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
+          const remainingDemandQty = roundQty(
+            Math.max(0, undeliveredQty - plannedQty),
+          );
 
           let availableQtyAlt = 0;
           if (remainingStockBase > 0 && remainingDemandQty > 0) {
@@ -769,7 +775,8 @@ const checkInventoryWithDuplicates = async (
                 (conv) => conv.alt_uom_id === item.altUOM,
               );
               if (uomConversion && uomConversion.base_qty) {
-                remainingDemandQtyBase = remainingDemandQty * uomConversion.base_qty;
+                remainingDemandQtyBase =
+                  remainingDemandQty * uomConversion.base_qty;
               }
             }
 
