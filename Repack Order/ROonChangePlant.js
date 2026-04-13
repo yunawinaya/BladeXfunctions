@@ -13,6 +13,7 @@
       row &&
       (row.handling_unit_id ||
         row.target_hu_id ||
+        row.target_hu_no ||
         row.source_temp_data ||
         row.target_temp_data ||
         row.items_temp_data ||

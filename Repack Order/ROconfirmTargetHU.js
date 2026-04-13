@@ -55,6 +55,7 @@
     await this.setData({
       [`table_repack.${rowIndex}.target_temp_data`]: JSON.stringify(snapshot),
       [`table_repack.${rowIndex}.target_hu_id`]: snapshot.id,
+      [`table_repack.${rowIndex}.target_hu_no`]: snapshot.handling_no,
       [`table_repack.${rowIndex}.target_hu_location`]: snapshot.location_id,
     });
 

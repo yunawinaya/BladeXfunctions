@@ -12,7 +12,7 @@ const applyRepackTypeVisibility = async (repackType) => {
   ];
   const targetHuCols = [
     "table_repack.button_target_hu",
-    "table_repack.target_hu_id",
+    "table_repack.target_hu_no",
     "table_repack.target_hu_location",
   ];
 

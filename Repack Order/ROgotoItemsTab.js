@@ -157,6 +157,7 @@ const selectTab = (tabName) => {
       updates[`table_repack.${rowIndex}.item_details`] = "";
       updates[`table_repack.${rowIndex}.target_temp_data`] = "";
       updates[`table_repack.${rowIndex}.target_hu_id`] = "";
+      updates[`table_repack.${rowIndex}.target_hu_no`] = "";
       updates[`table_repack.${rowIndex}.target_hu_location`] = "";
     }
 

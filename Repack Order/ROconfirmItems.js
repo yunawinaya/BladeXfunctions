@@ -123,6 +123,7 @@ const buildItemDetails = async (selectedItems, handlingNo) => {
       [`table_repack.${rowIndex}.item_details`]: itemDetails,
       [`table_repack.${rowIndex}.target_temp_data`]: "",
       [`table_repack.${rowIndex}.target_hu_id`]: "",
+      [`table_repack.${rowIndex}.target_hu_no`]: "",
       [`table_repack.${rowIndex}.target_hu_location`]: "",
     });
 
