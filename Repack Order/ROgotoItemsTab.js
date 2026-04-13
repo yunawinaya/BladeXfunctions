@@ -1,3 +1,32 @@
+const fetchBalanceId = async (item, plantId, organizationId) => {
+  try {
+    const where = {
+      material_id: item.material_id,
+      plant_id: plantId,
+      organization_id: organizationId,
+      location_id: item.location_id,
+      is_deleted: 0,
+    };
+    let result;
+    if (item.batch_id) {
+      where.batch_id = item.batch_id;
+      result = await db.collection("item_batch_balance").where(where).get();
+    } else {
+      result = await db.collection("item_balance").where(where).get();
+    }
+    if (result?.data?.length > 0) {
+      return result.data[0].id;
+    }
+    console.warn(
+      `No balance_id found for material ${item.material_id} at location ${item.location_id}`,
+    );
+    return "";
+  } catch (e) {
+    console.error("Error fetching balance_id:", e);
+    return "";
+  }
+};
+
 const selectTab = (tabName) => {
   setTimeout(() => {
     const tabSelector = `.el-drawer[role="dialog"] .el-tabs__item.is-top#tab-${tabName}`;
@@ -18,6 +47,8 @@ const selectTab = (tabName) => {
 
 (async () => {
   try {
+    this.showLoading("Loading items...");
+
     const dialogData = this.getValue("dialog_repack");
     if (!dialogData) {
       throw new Error("Dialog data not available");
@@ -32,19 +63,38 @@ const selectTab = (tabName) => {
     const selected = tableSourceHU.find((r) => r.select_hu === 1);
 
     if (!selected) {
+      this.hideLoading();
       this.$message.error("Please select a handling unit");
       return;
     }
 
     if (!selected.hu_material_id) {
+      this.hideLoading();
       this.$message.error("Selected handling unit is missing handling unit material");
       return;
     }
 
     if (!selected.location_id) {
+      this.hideLoading();
       this.$message.error("Selected handling unit is missing location");
       return;
     }
+
+    const plantId = this.getValue("plant_id");
+    const organizationId = this.getValue("organization_id");
+    const tableRepack = this.getValue("table_repack") || [];
+    const currentRow = tableRepack[rowIndex] || {};
+
+    let oldSourceId = null;
+    if (currentRow.source_temp_data) {
+      try {
+        const parsed = JSON.parse(currentRow.source_temp_data);
+        oldSourceId = parsed?.id || null;
+      } catch (e) {
+        console.error("Error parsing source_temp_data:", e);
+      }
+    }
+    const huChanged = oldSourceId && oldSourceId !== selected.id;
 
     const activeHuItems = (selected.table_hu_items || []).filter(
       (it) => it.is_deleted !== 1 && (parseFloat(it.quantity) || 0) > 0,
@@ -84,14 +134,33 @@ const selectTab = (tabName) => {
       balance_id: it.balance_id || "",
     }));
 
-    await this.setData({
+    const balanceIds = await Promise.all(
+      tableItems.map((it) =>
+        it.balance_id ? it.balance_id : fetchBalanceId(it, plantId, organizationId),
+      ),
+    );
+    tableItems.forEach((it, i) => {
+      it.balance_id = balanceIds[i];
+    });
+
+    const updates = {
       [`table_repack.${rowIndex}.source_temp_data`]: JSON.stringify(snapshot),
       [`table_repack.${rowIndex}.handling_unit_id`]: snapshot.id,
       [`table_repack.${rowIndex}.total_hu_item_quantity`]: snapshot.total_quantity,
       [`table_repack.${rowIndex}.hu_storage_location`]: snapshot.storage_location_id,
       [`table_repack.${rowIndex}.hu_location`]: snapshot.location_id,
       "dialog_repack.table_items": tableItems,
-    });
+    };
+
+    if (huChanged) {
+      updates[`table_repack.${rowIndex}.items_temp_data`] = "";
+      updates[`table_repack.${rowIndex}.item_details`] = "";
+      updates[`table_repack.${rowIndex}.target_temp_data`] = "";
+      updates[`table_repack.${rowIndex}.target_hu_id`] = "";
+      updates[`table_repack.${rowIndex}.target_hu_location`] = "";
+    }
+
+    await this.setData(updates);
 
     selectTab("tab_items");
 
@@ -101,7 +170,10 @@ const selectTab = (tabName) => {
     } else {
       this.display("dialog_repack.button_target_hu");
     }
+
+    this.hideLoading();
   } catch (error) {
+    this.hideLoading();
     this.$message.error("Error in ROgotoItemsTab: " + error.message);
     console.error("Error in ROgotoItemsTab:", error);
   }

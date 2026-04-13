@@ -52,13 +52,36 @@
       table_hu_items: activeHuItems,
     };
 
-    await this.setData({
+    const tableRepack = this.getValue("table_repack") || [];
+    const currentRow = tableRepack[rowIndex] || {};
+    let oldSourceId = null;
+    if (currentRow.source_temp_data) {
+      try {
+        const parsed = JSON.parse(currentRow.source_temp_data);
+        oldSourceId = parsed?.id || null;
+      } catch (e) {
+        console.error("Error parsing source_temp_data:", e);
+      }
+    }
+    const huChanged = oldSourceId && oldSourceId !== selected.id;
+
+    const updates = {
       [`table_repack.${rowIndex}.source_temp_data`]: JSON.stringify(snapshot),
       [`table_repack.${rowIndex}.handling_unit_id`]: snapshot.id,
       [`table_repack.${rowIndex}.total_hu_item_quantity`]: snapshot.total_quantity,
       [`table_repack.${rowIndex}.hu_storage_location`]: snapshot.storage_location_id,
       [`table_repack.${rowIndex}.hu_location`]: snapshot.location_id,
-    });
+    };
+
+    if (huChanged) {
+      updates[`table_repack.${rowIndex}.items_temp_data`] = "";
+      updates[`table_repack.${rowIndex}.item_details`] = "";
+      updates[`table_repack.${rowIndex}.target_temp_data`] = "";
+      updates[`table_repack.${rowIndex}.target_hu_id`] = "";
+      updates[`table_repack.${rowIndex}.target_hu_location`] = "";
+    }
+
+    await this.setData(updates);
 
     await this.closeDialog("dialog_repack");
   } catch (error) {

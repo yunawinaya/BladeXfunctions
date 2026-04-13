@@ -138,7 +138,36 @@ const fetchInventoryItems = async (plantId, organizationId) => {
   return combined.map((it, index) => ({ ...it, line_index: index }));
 };
 
-const buildItemsFromHU = (sourceTempDataStr) => {
+const fetchBalanceId = async (item, plantId, organizationId) => {
+  try {
+    const where = {
+      material_id: item.material_id,
+      plant_id: plantId,
+      organization_id: organizationId,
+      location_id: item.location_id,
+      is_deleted: 0,
+    };
+    let result;
+    if (item.batch_id) {
+      where.batch_id = item.batch_id;
+      result = await db.collection("item_batch_balance").where(where).get();
+    } else {
+      result = await db.collection("item_balance").where(where).get();
+    }
+    if (result?.data?.length > 0) {
+      return result.data[0].id;
+    }
+    console.warn(
+      `No balance_id found for material ${item.material_id} at location ${item.location_id}`,
+    );
+    return "";
+  } catch (e) {
+    console.error("Error fetching balance_id:", e);
+    return "";
+  }
+};
+
+const buildItemsFromHU = async (sourceTempDataStr, plantId, organizationId) => {
   let parsed;
   try {
     parsed = JSON.parse(sourceTempDataStr);
@@ -148,7 +177,8 @@ const buildItemsFromHU = (sourceTempDataStr) => {
   const huItems = (parsed?.table_hu_items || []).filter(
     (it) => it.is_deleted !== 1 && (parseFloat(it.quantity) || 0) > 0,
   );
-  return huItems.map((it, index) => ({
+
+  const enriched = huItems.map((it, index) => ({
     material_id: it.material_id,
     material_name: it.material_name,
     material_desc: it.material_desc,
@@ -161,6 +191,17 @@ const buildItemsFromHU = (sourceTempDataStr) => {
     line_index: index,
     balance_id: it.balance_id || "",
   }));
+
+  const balanceIds = await Promise.all(
+    enriched.map((it) =>
+      it.balance_id ? it.balance_id : fetchBalanceId(it, plantId, organizationId),
+    ),
+  );
+  enriched.forEach((it, i) => {
+    it.balance_id = balanceIds[i];
+  });
+
+  return enriched;
 };
 
 (async () => {
@@ -191,7 +232,11 @@ const buildItemsFromHU = (sourceTempDataStr) => {
         this.$message.error("Please select a source handling unit first");
         return;
       }
-      tableItems = buildItemsFromHU(currentRow.source_temp_data);
+      tableItems = await buildItemsFromHU(
+        currentRow.source_temp_data,
+        plantId,
+        organizationId,
+      );
     } else {
       this.hideLoading();
       this.$message.error("Please select a repack type first");

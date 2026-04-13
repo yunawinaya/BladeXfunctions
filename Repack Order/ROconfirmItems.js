@@ -121,6 +121,9 @@ const buildItemDetails = async (selectedItems, handlingNo) => {
     await this.setData({
       [`table_repack.${rowIndex}.items_temp_data`]: JSON.stringify(itemsSnapshot),
       [`table_repack.${rowIndex}.item_details`]: itemDetails,
+      [`table_repack.${rowIndex}.target_temp_data`]: "",
+      [`table_repack.${rowIndex}.target_hu_id`]: "",
+      [`table_repack.${rowIndex}.target_hu_location`]: "",
     });
 
     await this.closeDialog("dialog_repack");
