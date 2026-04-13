@@ -36,6 +36,16 @@ const selectTab = (tabName) => {
       return;
     }
 
+    if (!selected.hu_material_id) {
+      this.$message.error("Selected handling unit is missing handling unit material");
+      return;
+    }
+
+    if (!selected.location_id) {
+      this.$message.error("Selected handling unit is missing location");
+      return;
+    }
+
     const activeHuItems = (selected.table_hu_items || []).filter(
       (it) => it.is_deleted !== 1,
     );

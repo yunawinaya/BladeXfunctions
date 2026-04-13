@@ -1,3 +1,56 @@
+const buildItemDetails = async (selectedItems, handlingNo) => {
+  const batchIds = [
+    ...new Set(selectedItems.map((it) => it.batch_id).filter(Boolean)),
+  ];
+  const uomIds = [
+    ...new Set(selectedItems.map((it) => it.material_uom).filter(Boolean)),
+  ];
+
+  const [batchRes, uomRes] = await Promise.all([
+    batchIds.length > 0
+      ? db
+          .collection("batch")
+          .filter([
+            {
+              type: "branch",
+              operator: "all",
+              children: [{ prop: "id", operator: "in", value: batchIds }],
+            },
+          ])
+          .get()
+      : Promise.resolve({ data: [] }),
+    uomIds.length > 0
+      ? db
+          .collection("unit_of_measurement")
+          .filter([
+            {
+              type: "branch",
+              operator: "all",
+              children: [{ prop: "id", operator: "in", value: uomIds }],
+            },
+          ])
+          .get()
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const batchMap = new Map();
+  (batchRes.data || []).forEach((b) => batchMap.set(b.id, b.batch_number));
+  const uomMap = new Map();
+  (uomRes.data || []).forEach((u) => uomMap.set(u.id, u.uom_name));
+
+  const prefix = handlingNo ? `[HU: ${handlingNo}] ` : "[Inventory] ";
+
+  return selectedItems
+    .map((it) => {
+      const name = it.material_name || it.material_id;
+      const batchName = it.batch_id ? batchMap.get(it.batch_id) || "" : "";
+      const uomName = it.material_uom ? uomMap.get(it.material_uom) || "" : "";
+      const batchPart = batchName ? ` [Batch: ${batchName}]` : "";
+      return `${prefix}${name}${batchPart} - ${it.unload_quantity} ${uomName}`.trim();
+    })
+    .join("\n");
+};
+
 const selectTab = (tabName) => {
   setTimeout(() => {
     const tabSelector = `.el-drawer[role="dialog"] .el-tabs__item.is-top#tab-${tabName}`;
@@ -61,14 +114,18 @@ const selectTab = (tabName) => {
     const currentRow = tableRepack[rowIndex] || {};
 
     let sourceHuId = null;
+    let handlingNo = "";
     if (currentRow.source_temp_data) {
       try {
         const parsed = JSON.parse(currentRow.source_temp_data);
         sourceHuId = parsed?.id || null;
+        handlingNo = parsed?.handling_no || "";
       } catch (e) {
         console.error("Error parsing source_temp_data:", e);
       }
     }
+
+    const itemDetails = await buildItemDetails(itemsSnapshot, handlingNo);
 
     const responseHU = await db
       .collection("handling_unit")
@@ -101,6 +158,7 @@ const selectTab = (tabName) => {
 
     await this.setData({
       [`table_repack.${rowIndex}.items_temp_data`]: JSON.stringify(itemsSnapshot),
+      [`table_repack.${rowIndex}.item_details`]: itemDetails,
       "dialog_repack.table_target_hu": tableTargetHU,
     });
 

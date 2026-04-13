@@ -10,11 +10,11 @@
       throw new Error("Row index missing on dialog");
     }
 
-    const tableSourceHU = dialogData.table_source_hu || [];
-    const selected = tableSourceHU.find((r) => r.select_hu === 1);
+    const tableTargetHU = dialogData.table_target_hu || [];
+    const selected = tableTargetHU.find((r) => r.select_hu === 1);
 
     if (!selected) {
-      this.$message.error("Please select a handling unit");
+      this.$message.error("Please select a target handling unit");
       return;
     }
 
@@ -53,16 +53,14 @@
     };
 
     await this.setData({
-      [`table_repack.${rowIndex}.source_temp_data`]: JSON.stringify(snapshot),
-      [`table_repack.${rowIndex}.handling_unit_id`]: snapshot.id,
-      [`table_repack.${rowIndex}.total_hu_item_quantity`]: snapshot.total_quantity,
-      [`table_repack.${rowIndex}.hu_storage_location`]: snapshot.storage_location_id,
-      [`table_repack.${rowIndex}.hu_location`]: snapshot.location_id,
+      [`table_repack.${rowIndex}.target_temp_data`]: JSON.stringify(snapshot),
+      [`table_repack.${rowIndex}.target_hu_id`]: snapshot.id,
+      [`table_repack.${rowIndex}.target_hu_location`]: snapshot.location_id,
     });
 
     await this.closeDialog("dialog_repack");
   } catch (error) {
-    this.$message.error("Error in ROconfirmSourceHU: " + error.message);
-    console.error("Error in ROconfirmSourceHU:", error);
+    this.$message.error("Error in ROconfirmTargetHU: " + error.message);
+    console.error("Error in ROconfirmTargetHU:", error);
   }
 })();
