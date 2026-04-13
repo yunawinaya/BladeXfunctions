@@ -1064,7 +1064,7 @@
                         "tableColumn": false,
                         "subform": false,
                         "ruleMode": "dynamic",
-                        "dynamicRuleField": "Stock Count",
+                        "dynamicRuleField": "Repack Order",
                         "select-card_n7ge7fmb": [],
                         "left": 3,
                         "right": 4,
@@ -1076,7 +1076,7 @@
                       "events": {
                         "onChange": "",
                         "onGenerate": "",
-                        "keyChange": "4nsvsr3g"
+                        "keyChange": "azcou7j9"
                       },
                       "type": "custom",
                       "key": "6nci6n1o",
@@ -1651,7 +1651,8 @@
                           "image": "",
                           "icon": "",
                           "cascade": "",
-                          "children": ""
+                          "children": "",
+                          "explain": ""
                         },
                         "remoteFunc": "func_88dsfd81",
                         "customClass": "",
@@ -1767,7 +1768,8 @@
                           "image": "",
                           "icon": "",
                           "cascade": "",
-                          "children": ""
+                          "children": "",
+                          "explain": ""
                         },
                         "remoteFunc": "func_6x4771rs",
                         "customClass": "",
@@ -1801,7 +1803,15 @@
                         "paging_enabled": 1,
                         "sorts": [],
                         "hideLabel": true,
-                        "page_size": 10
+                        "page_size": 10,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "auto_refresh": 0,
+                        "auto_refresh_debounce": 100
                       },
                       "events": {
                         "onReady": "",
@@ -2570,10 +2580,10 @@
                         "onFocus": "",
                         "onBlur": ""
                       },
-                      "name": "Temp HU Data",
+                      "name": "Source Temp Data",
                       "novalid": {},
                       "key": "vftctd6g",
-                      "model": "temp_hu_data",
+                      "model": "source_temp_data",
                       "rules": []
                     },
                     {
@@ -2617,7 +2627,7 @@
                       },
                       "events": {
                         "onMounted": "",
-                        "onClick": ""
+                        "onClick": "iwt9p559"
                       },
                       "name": "Select Items",
                       "novalid": {},
@@ -2692,7 +2702,7 @@
                       "options": {
                         "defaultValue": "",
                         "multiple": false,
-                        "disabled": "{{arguments[0].row.temp_items_data === ''}}",
+                        "disabled": "{{arguments[0].row.items_temp_data === ''}}",
                         "clearable": false,
                         "placeholder": "",
                         "required": false,
@@ -2991,10 +3001,10 @@
                         "onFocus": "",
                         "onBlur": ""
                       },
-                      "name": "Temp Items Data",
+                      "name": "items Temp Data",
                       "novalid": {},
                       "key": "p73fa1fr",
-                      "model": "temp_items_data",
+                      "model": "items_temp_data",
                       "rules": []
                     },
                     {
@@ -3008,7 +3018,7 @@
                       "enableScopes": ["Component", "Table", "Page"],
                       "options": {
                         "customClass": "",
-                        "disabled": false,
+                        "disabled": "{{arguments[0].row.items_temp_data === ''}}",
                         "labelWidth": 100,
                         "isLabelWidth": false,
                         "hideLabel": false,
@@ -3038,7 +3048,7 @@
                       },
                       "events": {
                         "onMounted": "",
-                        "onClick": ""
+                        "onClick": "7q1gjyyp"
                       },
                       "name": "Select Target HU",
                       "novalid": {},
@@ -3300,10 +3310,10 @@
                         "onFocus": "",
                         "onBlur": ""
                       },
-                      "name": "Final Temp Data",
+                      "name": "Target Temp Data",
                       "novalid": {},
                       "key": "vvrv4miv",
-                      "model": "final_temp_data",
+                      "model": "target_temp_data",
                       "rules": []
                     },
                     {
@@ -3373,7 +3383,7 @@
                         "customClass": "",
                         "labelWidth": 100,
                         "isLabelWidth": false,
-                        "hidden": false,
+                        "hidden": true,
                         "dataBind": true,
                         "customProps": {},
                         "tip": "",
@@ -3963,8 +3973,8 @@
                     "required": false,
                     "validatorCheck": false,
                     "validator": "",
-                    "paging": false,
-                    "pageSize": 5,
+                    "paging": true,
+                    "pageSize": 10,
                     "autoPaging": false,
                     "autoPageSize": 10,
                     "autoLoadDelay": 500,
@@ -4075,7 +4085,7 @@
                         "hideLabel": true
                       },
                       "events": {
-                        "onChange": ""
+                        "onChange": "wt0g8he5"
                       },
                       "name": "Switch",
                       "novalid": {},
@@ -4913,45 +4923,15 @@
                             "collectionId": "1986694920453566466",
                             "list": [
                               {
-                                "id": 1762929685012,
-                                "parentId": 1762929685013,
+                                "id": 1776051653384,
+                                "parentId": 1776051653383,
                                 "isTop": true,
                                 "prop": "",
-                                "operator": "all",
+                                "operator": "",
                                 "valueType": "",
                                 "value": "",
-                                "type": "branch",
-                                "level": 1,
-                                "children": [
-                                  {
-                                    "id": 1723795236686,
-                                    "parentId": 1762929685012,
-                                    "isTop": false,
-                                    "prop": "plant_id",
-                                    "operator": "numberEqual",
-                                    "valueType": "field",
-                                    "value": "{{value:issuing_operation_faci}}",
-                                    "type": "leaf",
-                                    "level": 2,
-                                    "propLabel": "Plant",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal"
-                                  },
-                                  {
-                                    "id": 1762929685014,
-                                    "parentId": 1762929685012,
-                                    "isTop": false,
-                                    "prop": "storage_status",
-                                    "operator": "numberEqual",
-                                    "valueType": "value",
-                                    "value": 1,
-                                    "type": "leaf",
-                                    "level": 2,
-                                    "propLabel": "Active",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal"
-                                  }
-                                ]
+                                "type": "leaf",
+                                "level": 1
                               }
                             ]
                           },
@@ -5045,59 +5025,15 @@
                             "collectionId": "1902282127538507778",
                             "list": [
                               {
-                                "id": 1762929889613,
-                                "parentId": 1762929889614,
+                                "id": 1776051649104,
+                                "parentId": 1776051649103,
                                 "isTop": true,
                                 "prop": "",
-                                "operator": "all",
+                                "operator": "",
                                 "valueType": "",
                                 "value": "",
-                                "type": "branch",
-                                "level": 1,
-                                "children": [
-                                  {
-                                    "id": 1723795236686,
-                                    "parentId": 1762929889613,
-                                    "isTop": false,
-                                    "prop": "plant_id",
-                                    "operator": "numberEqual",
-                                    "valueType": "field",
-                                    "value": "{{value:issuing_operation_faci}}",
-                                    "type": "leaf",
-                                    "level": 2,
-                                    "propLabel": "Plant",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal"
-                                  },
-                                  {
-                                    "id": 1762929889615,
-                                    "parentId": 1762929889613,
-                                    "isTop": false,
-                                    "prop": "bin_status",
-                                    "operator": "numberEqual",
-                                    "valueType": "value",
-                                    "value": 1,
-                                    "type": "leaf",
-                                    "level": 2,
-                                    "propLabel": "Active",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal"
-                                  },
-                                  {
-                                    "id": 1762929889616,
-                                    "parentId": 1762929889613,
-                                    "isTop": false,
-                                    "prop": "storage_location_id",
-                                    "operator": "numberEqual",
-                                    "valueType": "formula",
-                                    "value": "{{value:table_hu}}.map(item => item.storage_location_id)[arguments[0].rowIndex]",
-                                    "type": "leaf",
-                                    "level": 2,
-                                    "propLabel": "Storage Location",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal"
-                                  }
-                                ]
+                                "type": "leaf",
+                                "level": 1
                               }
                             ]
                           }
@@ -5617,7 +5553,7 @@
                       },
                       "events": {
                         "onMounted": "",
-                        "onClick": ""
+                        "onClick": "bem3xabs"
                       },
                       "name": "Cancel",
                       "key": "289p7hgp",
@@ -5666,7 +5602,7 @@
                       },
                       "events": {
                         "onMounted": "",
-                        "onClick": ""
+                        "onClick": "czs4dfmq"
                       },
                       "name": "Select Items",
                       "key": "wvwxwoit",
@@ -5715,7 +5651,7 @@
                       },
                       "events": {
                         "onMounted": "",
-                        "onClick": ""
+                        "onClick": "a8khiksl"
                       },
                       "name": "Confirm",
                       "key": "37fufxnq",
@@ -5760,8 +5696,8 @@
                     "required": false,
                     "validatorCheck": false,
                     "validator": "",
-                    "paging": false,
-                    "pageSize": 5,
+                    "paging": true,
+                    "pageSize": 10,
                     "isAdd": false,
                     "isDelete": false,
                     "showControl": true,
@@ -6785,7 +6721,7 @@
                       },
                       "events": {
                         "onMounted": "",
-                        "onClick": ""
+                        "onClick": "y6xajboi"
                       },
                       "name": "Cancel",
                       "key": "stufqfuc",
@@ -6834,7 +6770,7 @@
                       },
                       "events": {
                         "onMounted": "",
-                        "onClick": ""
+                        "onClick": "rqrldnnl"
                       },
                       "name": "Select Target HU",
                       "key": "hdbegf7x",
@@ -6883,7 +6819,7 @@
                       },
                       "events": {
                         "onMounted": "",
-                        "onClick": ""
+                        "onClick": "gluc3hmp"
                       },
                       "name": "Confirm",
                       "key": "hkw7qyyf",
@@ -6926,8 +6862,8 @@
                     "required": false,
                     "validatorCheck": false,
                     "validator": "",
-                    "paging": false,
-                    "pageSize": 5,
+                    "paging": true,
+                    "pageSize": 10,
                     "autoPaging": false,
                     "autoPageSize": 10,
                     "autoLoadDelay": 500,
@@ -7057,7 +6993,7 @@
                         "hideLabel": true
                       },
                       "events": {
-                        "onChange": ""
+                        "onChange": "7hgr0pi7"
                       },
                       "name": "Switch",
                       "novalid": {},
@@ -7541,7 +7477,9 @@
                         "desensitization_pattern": "",
                         "desensitization_replace": "",
                         "sorts": [],
-                        "paging_enabled": 0
+                        "paging_enabled": 0,
+                        "auto_refresh": 0,
+                        "auto_refresh_debounce": 100
                       },
                       "events": {
                         "onReady": "",
@@ -7926,7 +7864,7 @@
                                     "prop": "plant_id",
                                     "operator": "numberEqual",
                                     "valueType": "field",
-                                    "value": "{{value:issuing_operation_faci}}",
+                                    "value": "{{value:plant_id}}",
                                     "type": "leaf",
                                     "level": 2,
                                     "propLabel": "Plant",
@@ -8058,7 +7996,7 @@
                                     "prop": "plant_id",
                                     "operator": "numberEqual",
                                     "valueType": "field",
-                                    "value": "{{value:issuing_operation_faci}}",
+                                    "value": "{{value:plant_id}}",
                                     "type": "leaf",
                                     "level": 2,
                                     "propLabel": "Plant",
@@ -8086,7 +8024,7 @@
                                     "prop": "storage_location_id",
                                     "operator": "numberEqual",
                                     "valueType": "formula",
-                                    "value": "{{value:table_hu}}.map(item => item.storage_location_id)[arguments[0].rowIndex]",
+                                    "value": "{{value:dialog_repack.table_target_hu}}.map(item => item.storage_location_id)[arguments[0].rowIndex]",
                                     "type": "leaf",
                                     "level": 2,
                                     "propLabel": "Storage Location",
@@ -8613,7 +8551,7 @@
                       },
                       "events": {
                         "onMounted": "",
-                        "onClick": ""
+                        "onClick": "czc5mdqh"
                       },
                       "name": "Cancel",
                       "key": "ehm56jvp",
@@ -8662,7 +8600,7 @@
                       },
                       "events": {
                         "onMounted": "",
-                        "onClick": ""
+                        "onClick": "x3xhi0gc"
                       },
                       "name": "Confirm",
                       "key": "sm8mbcrd",
@@ -9199,7 +9137,7 @@
             "labelWidth": 100,
             "isLabelWidth": false,
             "hideLabel": true,
-            "hidden": true,
+            "hidden": false,
             "buttonSize": "default",
             "buttonType": "",
             "buttonPlain": false,
@@ -9252,7 +9190,7 @@
       {
         "key": "mounted",
         "name": "mounted",
-        "func": "const showStatusHTML = (status) => {\n  switch (status) {\n    case \"Draft\":\n      this.display([\n        \"draft_status\",\n        \"button_draft\",\n        \"button_created\",\n        \"button_completed\",\n      ]);\n      break;\n    case \"Created\":\n      this.display([\"created_status\", \"button_created\", \"button_completed\"]);\n      break;\n    case \"Completed\":\n      this.display([\"completed_status\"]);\n      break;\n    default:\n      break;\n  }\n};\n\nconst setPlant = async (organizationId) => {\n  try {\n    const deptId = await this.getVarSystem(\"deptIds\").split(\",\")[0];\n    let plantId = \"\";\n\n    if (deptId === organizationId) {\n      plantId = \"\";\n    } else {\n      plantId = deptId;\n      await this.disabled(\"plant_id\", true);\n    }\n\n    await this.setData({\n      organization_id: organizationId,\n      plant_id: plantId,\n    });\n  } catch (error) {\n    console.error(\"Error setting plant:\", error);\n  }\n};\n\n(async () => {\n  let pageStatus = \"\";\n\n  if (this.isAdd) pageStatus = \"Add\";\n  else if (this.isEdit) pageStatus = \"Edit\";\n  else if (this.isView) pageStatus = \"View\";\n  else throw new Error(\"Invalid page state\");\n\n  this.setData({ page_status: pageStatus });\n\n  console.log(\"pageStatus\", pageStatus);\n\n  const roStatus = (await this.getValue(\"repack_status\")) || \"Draft\";\n  const roType = await this.getValue(\"repack_type\");\n\n  switch (pageStatus) {\n    case \"Add\":\n      let organizationId = this.getVarGlobal(\"deptParentId\");\n      if (organizationId === \"0\") {\n        organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n      }\n      setPlant(organizationId);\n      showStatusHTML(roStatus);\n      break;\n    case \"Edit\":\n      await this.display([\"table_repack\"]);\n      showStatusHTML(roStatus);\n      break;\n    case \"View\":\n      await this.display([\"table_repack\"]);\n      showStatusHTML(roStatus);\n      break;\n  }\n})();\n\nsetTimeout(async () => {\n  if (!this.isAdd) return;\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"repack_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n\n  const optionsData = this.getOptionData(\"repack_no_type\") || [];\n  const data = getDefaultItem(optionsData);\n  if (data) {\n    this.setData({ repack_no_type: data.value });\n  }\n}, 500);\n",
+        "func": "const applyRepackTypeVisibility = async (repackType) => {\n  const sourceHuCols = [\n    \"table_repack.button_source_hu\",\n    \"table_repack.handling_unit_id\",\n    \"table_repack.total_hu_item_quantity\",\n    \"table_repack.hu_storage_location\",\n    \"table_repack.hu_location\",\n  ];\n  const targetWarehouseCols = [\n    \"table_repack.target_storage_location\",\n    \"table_repack.target_location\",\n  ];\n  const targetHuCols = [\n    \"table_repack.button_target_hu\",\n    \"table_repack.target_hu_id\",\n    \"table_repack.target_hu_location\",\n  ];\n\n  switch (repackType) {\n    case \"Load\":\n      await this.hide([...sourceHuCols, ...targetWarehouseCols]);\n      await this.display(targetHuCols);\n      break;\n    case \"Unload\":\n      await this.display([...sourceHuCols, ...targetWarehouseCols]);\n      await this.hide(targetHuCols);\n      break;\n    case \"Transfer\":\n      await this.display([\n        ...sourceHuCols,\n        ...targetWarehouseCols,\n        ...targetHuCols,\n      ]);\n      break;\n    default:\n      break;\n  }\n};\n\nconst showStatusHTML = (status) => {\n  switch (status) {\n    case \"Draft\":\n      this.display([\n        \"draft_status\",\n        \"button_draft\",\n        \"button_created\",\n        \"button_completed\",\n      ]);\n      break;\n    case \"Created\":\n      this.display([\"created_status\", \"button_created\", \"button_completed\"]);\n      break;\n    case \"Completed\":\n      this.display([\"completed_status\"]);\n      break;\n    default:\n      break;\n  }\n};\n\nconst setPlant = async (organizationId) => {\n  try {\n    const deptId = await this.getVarSystem(\"deptIds\").split(\",\")[0];\n    let plantId = \"\";\n\n    if (deptId === organizationId) {\n      plantId = \"\";\n    } else {\n      plantId = deptId;\n      await this.disabled(\"plant_id\", true);\n    }\n\n    await this.setData({\n      organization_id: organizationId,\n      plant_id: plantId,\n    });\n  } catch (error) {\n    console.error(\"Error setting plant:\", error);\n  }\n};\n\n(async () => {\n  let pageStatus = \"\";\n\n  if (this.isAdd) pageStatus = \"Add\";\n  else if (this.isEdit) pageStatus = \"Edit\";\n  else if (this.isView) pageStatus = \"View\";\n  else throw new Error(\"Invalid page state\");\n\n  this.setData({ page_status: pageStatus });\n\n  console.log(\"pageStatus\", pageStatus);\n\n  const roStatus = (await this.getValue(\"repack_status\")) || \"Draft\";\n  const roType = await this.getValue(\"repack_type\");\n\n  switch (pageStatus) {\n    case \"Add\":\n      let organizationId = this.getVarGlobal(\"deptParentId\");\n      if (organizationId === \"0\") {\n        organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n      }\n      setPlant(organizationId);\n      showStatusHTML(roStatus);\n      break;\n    case \"Edit\":\n      await this.display([\"table_repack\"]);\n      await applyRepackTypeVisibility(roType);\n      showStatusHTML(roStatus);\n      break;\n    case \"View\":\n      await this.display([\"table_repack\"]);\n      await applyRepackTypeVisibility(roType);\n      showStatusHTML(roStatus);\n      break;\n  }\n})();\n\nsetTimeout(async () => {\n  if (!this.isAdd) return;\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"repack_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n\n  const optionsData = this.getOptionData(\"repack_no_type\") || [];\n  const data = getDefaultItem(optionsData);\n  if (data) {\n    this.setData({ repack_no_type: data.value });\n  }\n}, 500);\n",
         "type": "js"
       },
       {
@@ -9293,7 +9231,7 @@
       {
         "key": "8ymllurp",
         "name": "onChange_plant",
-        "func": "(async () => {\n  const plantId = this.getValue(\"plant_id\");\n\n  if (plantId) {\n    this.disabled(\n      [\"count_type\", \"repack_type\", \"blind_count\", \"start_date\", \"end_date\"],\n      false\n    );\n\n    if (arguments[0].fieldModel) {\n      this.setData({\n        count_type: \"\",\n        repack_type: \"\",\n        blind_count: false,\n        start_date: \"\",\n        end_date: \"\",\n      });\n\n      this.hide([\n        \"item_item_balance\",\n        \"location\",\n        \"item_balance\",\n        \"batch_balance\",\n        \"item_batch_balance\",\n        \"flex_summary\",\n        \"button_stock_count\"\n      ]);\n    }\n  }\n})();\n",
+        "func": "(async () => {\n  const plantId = this.getValue(\"plant_id\");\n\n  if (!plantId) return;\n\n  this.disabled([\"repack_type\"], false);\n\n  if (!arguments[0].fieldModel) return;\n\n  const existingRepack = this.getValue(\"table_repack\") || [];\n  const hasData = existingRepack.some(\n    (row) =>\n      row &&\n      (row.handling_unit_id ||\n        row.target_hu_id ||\n        row.source_temp_data ||\n        row.target_temp_data ||\n        row.items_temp_data ||\n        row.item_details),\n  );\n\n  if (hasData) {\n    this.$alert(\n      \"Changing the plant has <strong>reset all repack lines</strong>.\",\n      \"Plant Changed\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"warning\",\n        dangerouslyUseHTMLString: true,\n      },\n    );\n  }\n\n  this.setData({\n    repack_type: \"\",\n    table_repack: [],\n    user_assignees: [],\n    work_group_assignees: \"\",\n  });\n})();\n",
         "type": "js"
       },
       {
@@ -9311,7 +9249,7 @@
       {
         "key": "6ig0cg3h",
         "name": "onTableHuRowAdd",
-        "func": "(async () => {\n  console.log(\"arguments\", arguments[0]);\n  console.log('selected', this.getComponent(`dialog_repack.table_target_hu`).getSelection())\n  const rowIndex = arguments[0].rowIndex;\n\n  await this.setData({\n    [`hu_dialog.table_hu.${rowIndex}.line_index`]: rowIndex,\n  });\n\n  await this.disabled(\n    [\n      `hu_dialog.table_hu.${rowIndex}.handling_no`,\n      `hu_dialog.table_hu.${rowIndex}.hu_material_id`,\n      `hu_dialog.table_hu.${rowIndex}.remark_1`,\n    ],\n    false,\n  );\n})();\n",
+        "func": "(async () => {\n  console.log(\"arguments\", arguments[0]);\n  console.log('selected', this.getComponent(`dialog_repack.table_target_hu`).getSelection())\n  const rowIndex = arguments[0].rowIndex;\n\n  await this.setData({\n    [`dialog_repack.table_target_hu.${rowIndex}.line_index`]: rowIndex,\n  });\n\n  await this.disabled(\n    [\n      `dialog_repack.table_target_hu.${rowIndex}.handling_no`,\n      `dialog_repack.table_target_hu.${rowIndex}.hu_material_id`,\n      `dialog_repack.table_target_hu.${rowIndex}.storage_location_id`,\n      `dialog_repack.table_target_hu.${rowIndex}.location_id`,\n      `dialog_repack.table_target_hu.${rowIndex}.remark`,\n    ],\n    false,\n  );\n})();\n",
         "type": "js"
       },
       {
@@ -9328,8 +9266,8 @@
       },
       {
         "key": "d7tocexq",
-        "name": "onChange_d7tocexq",
-        "func": "(async () => {\n  try {\n    const value = arguments[0]?.value || \"\";\n    const fieldModel = arguments[0]?.fieldModel || {};\n    const rowIndex = arguments[0]?.rowIndex || 0;\n    const { based_uom, item_properties } = fieldModel.item || {};\n\n    if (value && value !== \"\") {\n      await this.setData({\n        [`hu_dialog.table_hu.${rowIndex}.hu_type`]: item_properties,\n        [`hu_dialog.table_hu.${rowIndex}.hu_uom`]: based_uom,\n      });\n    } else {\n      await this.setData({\n        [`hu_dialog.table_hu.${rowIndex}.hu_type`]: \"\",\n        [`hu_dialog.table_hu.${rowIndex}.hu_uom`]: \"\",\n      });\n    }\n  } catch (error) {\n    this.$message.error(error);\n    console.log(error);\n  }\n})();\n",
+        "name": "onChangeTargetHUItems",
+        "func": "(async () => {\n  try {\n    const value = arguments[0]?.value || \"\";\n    const fieldModel = arguments[0]?.fieldModel || {};\n    const rowIndex = arguments[0]?.rowIndex || 0;\n    const { based_uom, item_properties } = fieldModel.item || {};\n\n    if (value && value !== \"\") {\n      await this.setData({\n        [`dialog_repack.table_target_hu.${rowIndex}.hu_type`]: item_properties,\n        [`dialog_repack.table_target_hu.${rowIndex}.hu_uom`]: based_uom,\n      });\n    } else {\n      await this.setData({\n        [`dialog_repack.table_target_hu.${rowIndex}.hu_type`]: \"\",\n        [`dialog_repack.table_target_hu.${rowIndex}.hu_uom`]: \"\",\n      });\n    }\n  } catch (error) {\n    this.$message.error(error);\n    console.log(error);\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -9341,8 +9279,8 @@
       {
         "key": "l6t9cfy9",
         "name": "onButtonSourceHuClick",
-        "func": "",
-        "type": "rule",
+        "func": "const waitForTab = (tabName, maxAttempts = 30) => {\n  return new Promise((resolve) => {\n    let attempts = 0;\n    const check = () => {\n      const tab = document.querySelector(`#tab-${tabName}`);\n      if (tab) {\n        resolve(tab);\n        return;\n      }\n      attempts++;\n      if (attempts >= maxAttempts) {\n        console.log(`Tab ${tabName} not found after ${maxAttempts} attempts`);\n        resolve(null);\n        return;\n      }\n      setTimeout(check, 50);\n    };\n    check();\n  });\n};\n\nconst hideTab = async (tabName) => {\n  const tab = await waitForTab(tabName);\n  if (tab) {\n    tab.style.display = \"none\";\n    tab.setAttribute(\"aria-disabled\", \"true\");\n    tab.classList.add(\"is-disabled\");\n  }\n};\n\nconst selectTab = async (tabName) => {\n  const tab = await waitForTab(tabName);\n  if (tab) {\n    tab.style.display = \"flex\";\n    tab.setAttribute(\"aria-selected\", \"true\");\n    tab.setAttribute(\"tabindex\", \"0\");\n    tab.classList.remove(\"is-disabled\");\n    tab.classList.add(\"is-active\");\n    tab.click();\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Loading handling units...\");\n\n    const rowIndex = arguments[0].rowIndex;\n    const plantId = this.getValue(\"plant_id\");\n    const organizationId = this.getValue(\"organization_id\");\n    const repackType = this.getValue(\"repack_type\");\n\n    if (repackType === \"Load\") {\n      this.hideLoading();\n      this.$message.error(\"Source Handling Unit is not applicable for Load type\");\n      return;\n    }\n\n    if (!plantId || !organizationId) {\n      this.hideLoading();\n      this.$message.error(\"Please set plant and organization first\");\n      return;\n    }\n\n    const tableRepack = this.getValue(\"table_repack\") || [];\n    const currentRow = tableRepack[rowIndex] || {};\n\n    const responseHU = await db\n      .collection(\"handling_unit\")\n      .where({\n        plant_id: plantId,\n        organization_id: organizationId,\n        is_deleted: 0,\n      })\n      .get();\n\n    const allHUs = (responseHU && responseHU.data) || [];\n\n    const availableHUs = allHUs.filter(\n      (hu) =>\n        (parseFloat(hu.item_count) || 0) > 0 &&\n        (parseFloat(hu.total_quantity) || 0) > 0,\n    );\n\n    let previouslySelectedId = null;\n    if (currentRow.source_temp_data) {\n      try {\n        const parsed = JSON.parse(currentRow.source_temp_data);\n        previouslySelectedId = parsed?.id || null;\n      } catch (e) {\n        console.error(\"Error parsing source_temp_data:\", e);\n      }\n    }\n\n    const tableSourceHU = availableHUs.map((hu, index) => ({\n      ...hu,\n      handling_unit_id: hu.id,\n      line_index: index,\n      select_hu: previouslySelectedId && hu.id === previouslySelectedId ? 1 : 0,\n    }));\n\n    await this.openDialog(\"dialog_repack\");\n\n    await this.setData({\n      dialog_repack: {\n        row_index: rowIndex,\n        table_source_hu: tableSourceHU,\n        table_items: [],\n        table_target_hu: [],\n      },\n    });\n\n    await selectTab(\"tab_source_hu\");\n    await hideTab(\"tab_items\");\n    await hideTab(\"tab_target_hu\");\n\n    this.hideLoading();\n  } catch (error) {\n    this.hideLoading();\n    this.$message.error(\"Error in ROopenSourceHUDialog: \" + error.message);\n    console.error(\"Error in ROopenSourceHUDialog:\", error);\n  }\n})();\n",
+        "type": "js",
         "rules": [
           {
             "key": "rwl7bfhz",
@@ -9358,7 +9296,118 @@
       {
         "key": "3og0losy",
         "name": "onRepackTypeChange",
-        "func": "(async () => {\n  const repackType = arguments[0]?.value ?? (await this.getValue(\"repack_type\"));\n\n  const sourceHuCols = [\n    \"table_repack.button_source_hu\",\n    \"table_repack.handling_unit_id\",\n    \"table_repack.total_hu_item_quantity\",\n    \"table_repack.hu_storage_location\",\n    \"table_repack.hu_location\",\n  ];\n\n  const targetWarehouseCols = [\n    \"table_repack.target_storage_location\",\n    \"table_repack.target_location\",\n  ];\n\n  const targetHuCols = [\n    \"table_repack.button_target_hu\",\n    \"table_repack.target_hu_id\",\n    \"table_repack.target_hu_location\",\n  ];\n\n  switch (repackType) {\n    case \"Load\":\n      await this.hide([...sourceHuCols, ...targetWarehouseCols]);\n      await this.display(targetHuCols);\n      break;\n    case \"Unload\":\n      await this.display([...sourceHuCols, ...targetWarehouseCols]);\n      await this.hide(targetHuCols);\n      break;\n    case \"Transfer\":\n      await this.display([\n        ...sourceHuCols,\n        ...targetWarehouseCols,\n        ...targetHuCols,\n      ]);\n      break;\n    default:\n      break;\n  }\n})();\n",
+        "func": "(async () => {\n  const repackType = arguments[0]?.value ?? (await this.getValue(\"repack_type\"));\n\n  const existingRepack = this.getValue(\"table_repack\") || [];\n  const hasData = existingRepack.some(\n    (row) =>\n      row &&\n      (row.handling_unit_id ||\n        row.target_hu_id ||\n        row.source_temp_data ||\n        row.target_temp_data ||\n        row.items_temp_data ||\n        row.item_details),\n  );\n\n  if (hasData) {\n    this.$alert(\n      \"Changing the repack type has <strong>reset all repack lines</strong>.\",\n      \"Repack Type Changed\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"warning\",\n        dangerouslyUseHTMLString: true,\n      },\n    );\n  }\n\n  await this.setData({ table_repack: [] });\n\n  const sourceHuCols = [\n    \"table_repack.button_source_hu\",\n    \"table_repack.handling_unit_id\",\n    \"table_repack.total_hu_item_quantity\",\n    \"table_repack.hu_storage_location\",\n    \"table_repack.hu_location\",\n  ];\n\n  const targetWarehouseCols = [\n    \"table_repack.target_storage_location\",\n    \"table_repack.target_location\",\n  ];\n\n  const targetHuCols = [\n    \"table_repack.button_target_hu\",\n    \"table_repack.target_hu_id\",\n    \"table_repack.target_hu_location\",\n  ];\n\n  switch (repackType) {\n    case \"Load\":\n      await this.hide([...sourceHuCols, ...targetWarehouseCols]);\n      await this.display(targetHuCols);\n      break;\n    case \"Unload\":\n      await this.display([...sourceHuCols, ...targetWarehouseCols]);\n      await this.hide(targetHuCols);\n      break;\n    case \"Transfer\":\n      await this.display([\n        ...sourceHuCols,\n        ...targetWarehouseCols,\n        ...targetHuCols,\n      ]);\n      break;\n    default:\n      break;\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "a8khiksl",
+        "name": "onButtonConfirmSourceClick",
+        "func": "(async () => {\n  try {\n    const dialogData = this.getValue(\"dialog_repack\");\n    if (!dialogData) {\n      throw new Error(\"Dialog data not available\");\n    }\n\n    const rowIndex = dialogData.row_index;\n    if (typeof rowIndex !== \"number\") {\n      throw new Error(\"Row index missing on dialog\");\n    }\n\n    const tableSourceHU = dialogData.table_source_hu || [];\n    const selected = tableSourceHU.find((r) => r.select_hu === 1);\n\n    if (!selected) {\n      this.$message.error(\"Please select a handling unit\");\n      return;\n    }\n\n    if (!selected.hu_material_id) {\n      this.$message.error(\"Selected handling unit is missing handling unit material\");\n      return;\n    }\n\n    if (!selected.location_id) {\n      this.$message.error(\"Selected handling unit is missing location\");\n      return;\n    }\n\n    const activeHuItems = (selected.table_hu_items || []).filter(\n      (it) => it.is_deleted !== 1,\n    );\n\n    const snapshot = {\n      id: selected.id,\n      handling_no: selected.handling_no,\n      hu_material_id: selected.hu_material_id,\n      hu_type: selected.hu_type,\n      hu_quantity: selected.hu_quantity,\n      hu_uom: selected.hu_uom,\n      item_count: selected.item_count,\n      total_quantity: selected.total_quantity,\n      gross_weight: selected.gross_weight,\n      net_weight: selected.net_weight,\n      net_volume: selected.net_volume,\n      storage_location_id: selected.storage_location_id,\n      location_id: selected.location_id,\n      hu_status: selected.hu_status,\n      parent_hu_id: selected.parent_hu_id,\n      packing_id: selected.packing_id,\n      table_hu_items: activeHuItems,\n    };\n\n    await this.setData({\n      [`table_repack.${rowIndex}.source_temp_data`]: JSON.stringify(snapshot),\n      [`table_repack.${rowIndex}.handling_unit_id`]: snapshot.id,\n      [`table_repack.${rowIndex}.total_hu_item_quantity`]: snapshot.total_quantity,\n      [`table_repack.${rowIndex}.hu_storage_location`]: snapshot.storage_location_id,\n      [`table_repack.${rowIndex}.hu_location`]: snapshot.location_id,\n    });\n\n    await this.closeDialog(\"dialog_repack\");\n  } catch (error) {\n    this.$message.error(\"Error in ROconfirmSourceHU: \" + error.message);\n    console.error(\"Error in ROconfirmSourceHU:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "czs4dfmq",
+        "name": "onButtonItemsClick",
+        "func": "const selectTab = (tabName) => {\n  setTimeout(() => {\n    const tabSelector = `.el-drawer[role=\"dialog\"] .el-tabs__item.is-top#tab-${tabName}`;\n    const tab = document.querySelector(tabSelector);\n    if (tab) {\n      tab.style.display = \"flex\";\n      tab.setAttribute(\"aria-selected\", \"true\");\n      tab.setAttribute(\"aria-disabled\", \"false\");\n      tab.setAttribute(\"tabindex\", \"0\");\n      tab.classList.remove(\"is-disabled\");\n      tab.classList.add(\"is-active\");\n      tab.click();\n    } else {\n      console.log(`Tab ${tabName} not found`);\n    }\n  }, 100);\n};\n\n(async () => {\n  try {\n    const dialogData = this.getValue(\"dialog_repack\");\n    if (!dialogData) {\n      throw new Error(\"Dialog data not available\");\n    }\n\n    const rowIndex = dialogData.row_index;\n    if (typeof rowIndex !== \"number\") {\n      throw new Error(\"Row index missing on dialog\");\n    }\n\n    const tableSourceHU = dialogData.table_source_hu || [];\n    const selected = tableSourceHU.find((r) => r.select_hu === 1);\n\n    if (!selected) {\n      this.$message.error(\"Please select a handling unit\");\n      return;\n    }\n\n    if (!selected.hu_material_id) {\n      this.$message.error(\"Selected handling unit is missing handling unit material\");\n      return;\n    }\n\n    if (!selected.location_id) {\n      this.$message.error(\"Selected handling unit is missing location\");\n      return;\n    }\n\n    const activeHuItems = (selected.table_hu_items || []).filter(\n      (it) => it.is_deleted !== 1 && (parseFloat(it.quantity) || 0) > 0,\n    );\n\n    const snapshot = {\n      id: selected.id,\n      handling_no: selected.handling_no,\n      hu_material_id: selected.hu_material_id,\n      hu_type: selected.hu_type,\n      hu_quantity: selected.hu_quantity,\n      hu_uom: selected.hu_uom,\n      item_count: selected.item_count,\n      total_quantity: selected.total_quantity,\n      gross_weight: selected.gross_weight,\n      net_weight: selected.net_weight,\n      net_volume: selected.net_volume,\n      storage_location_id: selected.storage_location_id,\n      location_id: selected.location_id,\n      hu_status: selected.hu_status,\n      parent_hu_id: selected.parent_hu_id,\n      packing_id: selected.packing_id,\n      table_hu_items: activeHuItems,\n    };\n\n    const tableItems = activeHuItems.map((it, index) => ({\n      material_id: it.material_id,\n      material_name: it.material_name,\n      material_desc: it.material_desc,\n      location_id: it.location_id || selected.location_id,\n      batch_id: it.batch_id || null,\n      material_uom: it.material_uom,\n      item_quantity: parseFloat(it.quantity) || 0,\n      unload_quantity: 0,\n      line_status: \"Open\",\n      line_index: index,\n      balance_id: it.balance_id || \"\",\n    }));\n\n    await this.setData({\n      [`table_repack.${rowIndex}.source_temp_data`]: JSON.stringify(snapshot),\n      [`table_repack.${rowIndex}.handling_unit_id`]: snapshot.id,\n      [`table_repack.${rowIndex}.total_hu_item_quantity`]: snapshot.total_quantity,\n      [`table_repack.${rowIndex}.hu_storage_location`]: snapshot.storage_location_id,\n      [`table_repack.${rowIndex}.hu_location`]: snapshot.location_id,\n      \"dialog_repack.table_items\": tableItems,\n    });\n\n    selectTab(\"tab_items\");\n\n    const repackType = this.getValue(\"repack_type\");\n    if (repackType === \"Unload\") {\n      this.hide(\"dialog_repack.button_target_hu\");\n    } else {\n      this.display(\"dialog_repack.button_target_hu\");\n    }\n  } catch (error) {\n    this.$message.error(\"Error in ROgotoItemsTab: \" + error.message);\n    console.error(\"Error in ROgotoItemsTab:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "bem3xabs",
+        "name": "onButtonCancelSourceClick",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "yhbxc1xl",
+            "action": "closeDialog",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "dialog_repack"
+            }
+          }
+        ]
+      },
+      {
+        "key": "wt0g8he5",
+        "name": "onSelectHuChange",
+        "func": "(async () => {\n  try {\n    const value = arguments[0].value;\n    const rowIndex = arguments[0].rowIndex;\n\n    if (value !== 1) return;\n\n    const tableSourceHU =\n      this.getValue(\"dialog_repack.table_source_hu\") || [];\n\n    const updates = {};\n    for (let i = 0; i < tableSourceHU.length; i++) {\n      if (i === rowIndex) continue;\n      if (tableSourceHU[i].select_hu === 1) {\n        updates[`dialog_repack.table_source_hu.${i}.select_hu`] = 0;\n      }\n    }\n\n    if (Object.keys(updates).length > 0) {\n      await this.setData(updates);\n    }\n  } catch (error) {\n    this.$message.error(\"Error in ROonChangeSelectSourceHU: \" + error.message);\n    console.error(\"Error in ROonChangeSelectSourceHU:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "iwt9p559",
+        "name": "onButtonSelectItemClick",
+        "func": "const hideTab = (tabName) => {\n  setTimeout(() => {\n    const tabSelector = `.el-drawer[role=\"dialog\"] .el-tabs__item.is-top#tab-${tabName}[tabindex=\"-1\"][aria-selected=\"false\"]`;\n    const tab = document.querySelector(tabSelector);\n\n    if (tab) {\n      tab.style.display = \"none\";\n    } else {\n      const fallbackTab = document.querySelector(\n        `.el-drawer[role=\"dialog\"] .el-tabs__item#tab-${tabName}`,\n      );\n      if (fallbackTab) {\n        fallbackTab.style.display = \"none\";\n      } else {\n        console.log(`Tab ${tabName} not found`);\n      }\n    }\n\n    const inactiveTabSelector = `.el-drawer[role=\"dialog\"] .el-tabs__item.is-top[tabindex=\"-1\"]:not(#tab-${tabName})`;\n    const inactiveTab = document.querySelector(inactiveTabSelector);\n    if (inactiveTab) {\n      inactiveTab.setAttribute(\"aria-disabled\", \"true\");\n      inactiveTab.classList.add(\"is-disabled\");\n    }\n  }, 10);\n};\n\nconst selectTab = (tabName) => {\n  setTimeout(() => {\n    const tabSelector = `.el-drawer[role=\"dialog\"] .el-tabs__item.is-top#tab-${tabName}`;\n    const tab = document.querySelector(tabSelector);\n\n    if (tab) {\n      tab.style.display = \"flex\";\n      tab.setAttribute(\"aria-selected\", \"true\");\n      tab.setAttribute(\"aria-disabled\", \"false\");\n      tab.setAttribute(\"tabindex\", \"0\");\n      tab.classList.remove(\"is-disabled\");\n      tab.classList.add(\"is-active\");\n      tab.click();\n    } else {\n      console.log(`Tab ${tabName} not found`);\n    }\n  }, 100);\n};\n\nconst fetchInventoryItems = async (plantId, organizationId) => {\n  const [itemBalanceRes, itemBatchBalanceRes] = await Promise.all([\n    db\n      .collection(\"item_balance\")\n      .where({\n        plant_id: plantId,\n        organization_id: organizationId,\n        is_deleted: 0,\n      })\n      .get(),\n    db\n      .collection(\"item_batch_balance\")\n      .where({\n        plant_id: plantId,\n        organization_id: organizationId,\n        is_deleted: 0,\n      })\n      .get(),\n  ]);\n\n  const itemBalanceRows = (itemBalanceRes.data || []).filter(\n    (r) => (parseFloat(r.unrestricted_qty) || 0) > 0,\n  );\n  const batchBalanceRows = (itemBatchBalanceRes.data || []).filter(\n    (r) => (parseFloat(r.unrestricted_qty) || 0) > 0,\n  );\n\n  const materialIds = [\n    ...new Set([\n      ...itemBalanceRows.map((r) => r.material_id),\n      ...batchBalanceRows.map((r) => r.material_id),\n    ]),\n  ].filter(Boolean);\n\n  let itemMap = new Map();\n  if (materialIds.length > 0) {\n    const itemRes = await db\n      .collection(\"item\")\n      .filter([\n        {\n          type: \"branch\",\n          operator: \"all\",\n          children: [\n            { prop: \"id\", operator: \"in\", value: materialIds },\n            { prop: \"is_deleted\", operator: \"equal\", value: 0 },\n          ],\n        },\n      ])\n      .get();\n    (itemRes.data || []).forEach((it) => itemMap.set(it.id, it));\n  }\n\n  const nonBatchBalances = itemBalanceRows.filter((r) => {\n    const item = itemMap.get(r.material_id);\n    return item && item.item_batch_management !== 1;\n  });\n\n  const combined = [];\n\n  nonBatchBalances.forEach((r) => {\n    const item = itemMap.get(r.material_id);\n    combined.push({\n      material_id: r.material_id,\n      material_name: item?.material_name || \"\",\n      material_desc: item?.material_desc || \"\",\n      location_id: r.location_id,\n      batch_id: null,\n      material_uom: item?.based_uom || \"\",\n      item_quantity: parseFloat(r.unrestricted_qty) || 0,\n      unload_quantity: 0,\n      line_status: \"Open\",\n      balance_id: r.id,\n    });\n  });\n\n  batchBalanceRows.forEach((r) => {\n    const item = itemMap.get(r.material_id);\n    combined.push({\n      material_id: r.material_id,\n      material_name: item?.material_name || \"\",\n      material_desc: item?.material_desc || \"\",\n      location_id: r.location_id,\n      batch_id: r.batch_id || null,\n      material_uom: item?.based_uom || \"\",\n      item_quantity: parseFloat(r.unrestricted_qty) || 0,\n      unload_quantity: 0,\n      line_status: \"Open\",\n      balance_id: r.id,\n    });\n  });\n\n  return combined.map((it, index) => ({ ...it, line_index: index }));\n};\n\nconst buildItemsFromHU = (sourceTempDataStr) => {\n  let parsed;\n  try {\n    parsed = JSON.parse(sourceTempDataStr);\n  } catch (e) {\n    return [];\n  }\n  const huItems = (parsed?.table_hu_items || []).filter(\n    (it) => it.is_deleted !== 1 && (parseFloat(it.quantity) || 0) > 0,\n  );\n  return huItems.map((it, index) => ({\n    material_id: it.material_id,\n    material_name: it.material_name,\n    material_desc: it.material_desc,\n    location_id: it.location_id || parsed.location_id,\n    batch_id: it.batch_id || null,\n    material_uom: it.material_uom,\n    item_quantity: parseFloat(it.quantity) || 0,\n    unload_quantity: 0,\n    line_status: \"Open\",\n    line_index: index,\n    balance_id: it.balance_id || \"\",\n  }));\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Loading items...\");\n\n    const rowIndex = arguments[0].rowIndex;\n    const plantId = this.getValue(\"plant_id\");\n    const organizationId = this.getValue(\"organization_id\");\n    const repackType = this.getValue(\"repack_type\");\n\n    if (!plantId || !organizationId) {\n      this.hideLoading();\n      this.$message.error(\"Please set plant and organization first\");\n      return;\n    }\n\n    const tableRepack = this.getValue(\"table_repack\") || [];\n    const currentRow = tableRepack[rowIndex] || {};\n\n    let tableItems = [];\n\n    if (repackType === \"Load\") {\n      tableItems = await fetchInventoryItems(plantId, organizationId);\n    } else if (repackType === \"Unload\" || repackType === \"Transfer\") {\n      if (!currentRow.source_temp_data) {\n        this.hideLoading();\n        this.$message.error(\"Please select a source handling unit first\");\n        return;\n      }\n      tableItems = buildItemsFromHU(currentRow.source_temp_data);\n    } else {\n      this.hideLoading();\n      this.$message.error(\"Please select a repack type first\");\n      return;\n    }\n\n    if (currentRow.items_temp_data) {\n      try {\n        const previousItems = JSON.parse(currentRow.items_temp_data);\n        if (Array.isArray(previousItems)) {\n          tableItems.forEach((it) => {\n            const match = previousItems.find(\n              (p) =>\n                p.material_id === it.material_id &&\n                (p.batch_id || null) === (it.batch_id || null) &&\n                (p.location_id || \"\") === (it.location_id || \"\"),\n            );\n            if (match) {\n              it.unload_quantity = parseFloat(match.unload_quantity) || 0;\n            }\n          });\n        }\n      } catch (e) {\n        console.error(\"Error parsing items_temp_data:\", e);\n      }\n    }\n\n    selectTab(\"tab_items\");\n    hideTab(\"tab_source_hu\");\n    hideTab(\"tab_target_hu\");\n\n    if (repackType === \"Unload\") {\n      this.hide(\"dialog_repack.button_target_hu\");\n    } else {\n      this.display(\"dialog_repack.button_target_hu\");\n    }\n\n    await this.openDialog(\"dialog_repack\");\n\n    await this.setData({\n      dialog_repack: {\n        row_index: rowIndex,\n        table_source_hu: [],\n        table_items: tableItems,\n        table_target_hu: [],\n      },\n    });\n\n    this.hideLoading();\n  } catch (error) {\n    this.hideLoading();\n    this.$message.error(\"Error in ROopenSelectItemDialog: \" + error.message);\n    console.error(\"Error in ROopenSelectItemDialog:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "rqrldnnl",
+        "name": "onButtonTargetHuClick",
+        "func": "const buildItemDetails = async (selectedItems, handlingNo) => {\n  const batchIds = [\n    ...new Set(selectedItems.map((it) => it.batch_id).filter(Boolean)),\n  ];\n  const uomIds = [\n    ...new Set(selectedItems.map((it) => it.material_uom).filter(Boolean)),\n  ];\n\n  const [batchRes, uomRes] = await Promise.all([\n    batchIds.length > 0\n      ? db\n          .collection(\"batch\")\n          .filter([\n            {\n              type: \"branch\",\n              operator: \"all\",\n              children: [{ prop: \"id\", operator: \"in\", value: batchIds }],\n            },\n          ])\n          .get()\n      : Promise.resolve({ data: [] }),\n    uomIds.length > 0\n      ? db\n          .collection(\"unit_of_measurement\")\n          .filter([\n            {\n              type: \"branch\",\n              operator: \"all\",\n              children: [{ prop: \"id\", operator: \"in\", value: uomIds }],\n            },\n          ])\n          .get()\n      : Promise.resolve({ data: [] }),\n  ]);\n\n  const batchMap = new Map();\n  (batchRes.data || []).forEach((b) => batchMap.set(b.id, b.batch_number));\n  const uomMap = new Map();\n  (uomRes.data || []).forEach((u) => uomMap.set(u.id, u.uom_name));\n\n  const sourceLabel = handlingNo ? `HU ${handlingNo}` : \"Inventory\";\n\n  const lines = selectedItems.map((it, index) => {\n    const name = it.material_name || it.material_id;\n    const batchName = it.batch_id ? batchMap.get(it.batch_id) || \"\" : \"\";\n    const uomName = it.material_uom ? uomMap.get(it.material_uom) || \"\" : \"\";\n    const qty = parseFloat(it.unload_quantity) || 0;\n    let line = `${index + 1}. ${name} — ${qty} ${uomName}`.trimEnd();\n    if (batchName) line += `\\n   Batch: ${batchName}`;\n    return line;\n  });\n\n  const totalsByUom = selectedItems.reduce((acc, it) => {\n    const uomName = it.material_uom ? uomMap.get(it.material_uom) || \"\" : \"\";\n    acc[uomName] = (acc[uomName] || 0) + (parseFloat(it.unload_quantity) || 0);\n    return acc;\n  }, {});\n  const totalLine = Object.entries(totalsByUom)\n    .map(([uom, qty]) => `${qty} ${uom}`.trim())\n    .join(\", \");\n\n  return [\n    `Source: ${sourceLabel}`,\n    `Total: ${totalLine}`,\n    \"\",\n    \"DETAILS:\",\n    ...lines,\n  ].join(\"\\n\");\n};\n\nconst selectTab = (tabName) => {\n  setTimeout(() => {\n    const tabSelector = `.el-drawer[role=\"dialog\"] .el-tabs__item.is-top#tab-${tabName}`;\n    const tab = document.querySelector(tabSelector);\n\n    if (tab) {\n      tab.style.display = \"flex\";\n      tab.setAttribute(\"aria-selected\", \"true\");\n      tab.setAttribute(\"aria-disabled\", \"false\");\n      tab.setAttribute(\"tabindex\", \"0\");\n      tab.classList.remove(\"is-disabled\");\n      tab.classList.add(\"is-active\");\n      tab.click();\n    } else {\n      console.log(`Tab ${tabName} not found`);\n    }\n  }, 100);\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Loading target handling units...\");\n\n    const dialogData = this.getValue(\"dialog_repack\");\n    if (!dialogData) {\n      throw new Error(\"Dialog data not available\");\n    }\n\n    const rowIndex = dialogData.row_index;\n    if (typeof rowIndex !== \"number\") {\n      throw new Error(\"Row index missing on dialog\");\n    }\n\n    const tableItems = dialogData.table_items || [];\n    const selectedItems = tableItems.filter(\n      (it) => (parseFloat(it.unload_quantity) || 0) > 0,\n    );\n\n    if (selectedItems.length === 0) {\n      this.hideLoading();\n      this.$message.error(\"Please enter quantity for at least one item\");\n      return;\n    }\n\n    const itemsSnapshot = selectedItems.map((it) => ({\n      material_id: it.material_id,\n      material_name: it.material_name,\n      material_desc: it.material_desc,\n      location_id: it.location_id,\n      batch_id: it.batch_id || null,\n      material_uom: it.material_uom,\n      item_quantity: parseFloat(it.item_quantity) || 0,\n      unload_quantity: parseFloat(it.unload_quantity) || 0,\n      balance_id: it.balance_id || \"\",\n      line_status: it.line_status || \"Open\",\n    }));\n\n    const plantId = this.getValue(\"plant_id\");\n    const organizationId = this.getValue(\"organization_id\");\n    const tableRepack = this.getValue(\"table_repack\") || [];\n    const currentRow = tableRepack[rowIndex] || {};\n\n    let sourceHuId = null;\n    let handlingNo = \"\";\n    if (currentRow.source_temp_data) {\n      try {\n        const parsed = JSON.parse(currentRow.source_temp_data);\n        sourceHuId = parsed?.id || null;\n        handlingNo = parsed?.handling_no || \"\";\n      } catch (e) {\n        console.error(\"Error parsing source_temp_data:\", e);\n      }\n    }\n\n    const itemDetails = await buildItemDetails(itemsSnapshot, handlingNo);\n\n    const responseHU = await db\n      .collection(\"handling_unit\")\n      .where({\n        plant_id: plantId,\n        organization_id: organizationId,\n        is_deleted: 0,\n      })\n      .get();\n\n    const allHUs = (responseHU && responseHU.data) || [];\n    const availableTargetHUs = allHUs.filter((hu) => hu.id !== sourceHuId);\n\n    let previouslySelectedId = null;\n    if (currentRow.target_temp_data) {\n      try {\n        const parsed = JSON.parse(currentRow.target_temp_data);\n        previouslySelectedId = parsed?.id || null;\n      } catch (e) {\n        console.error(\"Error parsing target_temp_data:\", e);\n      }\n    }\n\n    const tableTargetHU = availableTargetHUs.map((hu, index) => ({\n      ...hu,\n      handling_unit_id: hu.id,\n      line_index: index,\n      select_hu: previouslySelectedId && hu.id === previouslySelectedId ? 1 : 0,\n    }));\n\n    await this.setData({\n      [`table_repack.${rowIndex}.items_temp_data`]: JSON.stringify(itemsSnapshot),\n      [`table_repack.${rowIndex}.item_details`]: itemDetails,\n      \"dialog_repack.table_target_hu\": tableTargetHU,\n    });\n\n    selectTab(\"tab_target_hu\");\n\n    this.hideLoading();\n  } catch (error) {\n    this.hideLoading();\n    this.$message.error(\"Error in ROgotoTargetHUTab: \" + error.message);\n    console.error(\"Error in ROgotoTargetHUTab:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "gluc3hmp",
+        "name": "onButtonConfirmItemsClick",
+        "func": "const buildItemDetails = async (selectedItems, handlingNo) => {\n  const batchIds = [\n    ...new Set(selectedItems.map((it) => it.batch_id).filter(Boolean)),\n  ];\n  const uomIds = [\n    ...new Set(selectedItems.map((it) => it.material_uom).filter(Boolean)),\n  ];\n\n  const [batchRes, uomRes] = await Promise.all([\n    batchIds.length > 0\n      ? db\n          .collection(\"batch\")\n          .filter([\n            {\n              type: \"branch\",\n              operator: \"all\",\n              children: [{ prop: \"id\", operator: \"in\", value: batchIds }],\n            },\n          ])\n          .get()\n      : Promise.resolve({ data: [] }),\n    uomIds.length > 0\n      ? db\n          .collection(\"unit_of_measurement\")\n          .filter([\n            {\n              type: \"branch\",\n              operator: \"all\",\n              children: [{ prop: \"id\", operator: \"in\", value: uomIds }],\n            },\n          ])\n          .get()\n      : Promise.resolve({ data: [] }),\n  ]);\n\n  const batchMap = new Map();\n  (batchRes.data || []).forEach((b) => batchMap.set(b.id, b.batch_number));\n  const uomMap = new Map();\n  (uomRes.data || []).forEach((u) => uomMap.set(u.id, u.uom_name));\n\n  const sourceLabel = handlingNo ? `HU ${handlingNo}` : \"Inventory\";\n\n  const lines = selectedItems.map((it, index) => {\n    const name = it.material_name || it.material_id;\n    const batchName = it.batch_id ? batchMap.get(it.batch_id) || \"\" : \"\";\n    const uomName = it.material_uom ? uomMap.get(it.material_uom) || \"\" : \"\";\n    const qty = parseFloat(it.unload_quantity) || 0;\n    let line = `${index + 1}. ${name} — ${qty} ${uomName}`.trimEnd();\n    if (batchName) line += `\\n   Batch: ${batchName}`;\n    return line;\n  });\n\n  // Total per UOM (in case of mixed UOMs, show each)\n  const totalsByUom = selectedItems.reduce((acc, it) => {\n    const uomName = it.material_uom ? uomMap.get(it.material_uom) || \"\" : \"\";\n    acc[uomName] = (acc[uomName] || 0) + (parseFloat(it.unload_quantity) || 0);\n    return acc;\n  }, {});\n  const totalLine = Object.entries(totalsByUom)\n    .map(([uom, qty]) => `${qty} ${uom}`.trim())\n    .join(\", \");\n\n  return [\n    `Source: ${sourceLabel}`,\n    `Total: ${totalLine}`,\n    \"\",\n    \"DETAILS:\",\n    ...lines,\n  ].join(\"\\n\");\n};\n\n(async () => {\n  try {\n    const dialogData = this.getValue(\"dialog_repack\");\n    if (!dialogData) {\n      throw new Error(\"Dialog data not available\");\n    }\n\n    const rowIndex = dialogData.row_index;\n    if (typeof rowIndex !== \"number\") {\n      throw new Error(\"Row index missing on dialog\");\n    }\n\n    const tableItems = dialogData.table_items || [];\n    const selectedItems = tableItems.filter(\n      (it) => (parseFloat(it.unload_quantity) || 0) > 0,\n    );\n\n    if (selectedItems.length === 0) {\n      this.$message.error(\"Please enter quantity for at least one item\");\n      return;\n    }\n\n    const itemsSnapshot = selectedItems.map((it) => ({\n      material_id: it.material_id,\n      material_name: it.material_name,\n      material_desc: it.material_desc,\n      location_id: it.location_id,\n      batch_id: it.batch_id || null,\n      material_uom: it.material_uom,\n      item_quantity: parseFloat(it.item_quantity) || 0,\n      unload_quantity: parseFloat(it.unload_quantity) || 0,\n      balance_id: it.balance_id || \"\",\n      line_status: it.line_status || \"Open\",\n    }));\n\n    const tableRepack = this.getValue(\"table_repack\") || [];\n    const currentRow = tableRepack[rowIndex] || {};\n    let handlingNo = \"\";\n    if (currentRow.source_temp_data) {\n      try {\n        const parsed = JSON.parse(currentRow.source_temp_data);\n        handlingNo = parsed?.handling_no || \"\";\n      } catch (e) {\n        console.error(\"Error parsing source_temp_data:\", e);\n      }\n    }\n\n    const itemDetails = await buildItemDetails(itemsSnapshot, handlingNo);\n\n    await this.setData({\n      [`table_repack.${rowIndex}.items_temp_data`]: JSON.stringify(itemsSnapshot),\n      [`table_repack.${rowIndex}.item_details`]: itemDetails,\n    });\n\n    await this.closeDialog(\"dialog_repack\");\n  } catch (error) {\n    this.$message.error(\"Error in ROconfirmItems: \" + error.message);\n    console.error(\"Error in ROconfirmItems:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "7q1gjyyp",
+        "name": "onButtonTargetHuClickTableRepack",
+        "func": "const hideTab = (tabName) => {\n  setTimeout(() => {\n    const tabSelector = `.el-drawer[role=\"dialog\"] .el-tabs__item.is-top#tab-${tabName}[tabindex=\"-1\"][aria-selected=\"false\"]`;\n    const tab = document.querySelector(tabSelector);\n\n    if (tab) {\n      tab.style.display = \"none\";\n    } else {\n      const fallbackTab = document.querySelector(\n        `.el-drawer[role=\"dialog\"] .el-tabs__item#tab-${tabName}`,\n      );\n      if (fallbackTab) {\n        fallbackTab.style.display = \"none\";\n      } else {\n        console.log(`Tab ${tabName} not found`);\n      }\n    }\n\n    const inactiveTabSelector = `.el-drawer[role=\"dialog\"] .el-tabs__item.is-top[tabindex=\"-1\"]:not(#tab-${tabName})`;\n    const inactiveTab = document.querySelector(inactiveTabSelector);\n    if (inactiveTab) {\n      inactiveTab.setAttribute(\"aria-disabled\", \"true\");\n      inactiveTab.classList.add(\"is-disabled\");\n    }\n  }, 10);\n};\n\nconst selectTab = (tabName) => {\n  setTimeout(() => {\n    const tabSelector = `.el-drawer[role=\"dialog\"] .el-tabs__item.is-top#tab-${tabName}`;\n    const tab = document.querySelector(tabSelector);\n\n    if (tab) {\n      tab.style.display = \"flex\";\n      tab.setAttribute(\"aria-selected\", \"true\");\n      tab.setAttribute(\"aria-disabled\", \"false\");\n      tab.setAttribute(\"tabindex\", \"0\");\n      tab.classList.remove(\"is-disabled\");\n      tab.classList.add(\"is-active\");\n      tab.click();\n    } else {\n      console.log(`Tab ${tabName} not found`);\n    }\n  }, 100);\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Loading target handling units...\");\n\n    const rowIndex = arguments[0].rowIndex;\n    const plantId = this.getValue(\"plant_id\");\n    const organizationId = this.getValue(\"organization_id\");\n    const repackType = this.getValue(\"repack_type\");\n\n    if (repackType === \"Unload\") {\n      this.hideLoading();\n      this.$message.error(\"Target Handling Unit is not applicable for Unload type\");\n      return;\n    }\n\n    if (!plantId || !organizationId) {\n      this.hideLoading();\n      this.$message.error(\"Please set plant and organization first\");\n      return;\n    }\n\n    const tableRepack = this.getValue(\"table_repack\") || [];\n    const currentRow = tableRepack[rowIndex] || {};\n\n    let sourceHuId = null;\n    if (currentRow.source_temp_data) {\n      try {\n        const parsed = JSON.parse(currentRow.source_temp_data);\n        sourceHuId = parsed?.id || null;\n      } catch (e) {\n        console.error(\"Error parsing source_temp_data:\", e);\n      }\n    }\n\n    const responseHU = await db\n      .collection(\"handling_unit\")\n      .where({\n        plant_id: plantId,\n        organization_id: organizationId,\n        is_deleted: 0,\n      })\n      .get();\n\n    const allHUs = (responseHU && responseHU.data) || [];\n    const availableTargetHUs = allHUs.filter((hu) => hu.id !== sourceHuId);\n\n    let previouslySelectedId = null;\n    if (currentRow.target_temp_data) {\n      try {\n        const parsed = JSON.parse(currentRow.target_temp_data);\n        previouslySelectedId = parsed?.id || null;\n      } catch (e) {\n        console.error(\"Error parsing target_temp_data:\", e);\n      }\n    }\n\n    const tableTargetHU = availableTargetHUs.map((hu, index) => ({\n      ...hu,\n      handling_unit_id: hu.id,\n      line_index: index,\n      select_hu: previouslySelectedId && hu.id === previouslySelectedId ? 1 : 0,\n    }));\n\n    selectTab(\"tab_target_hu\");\n    hideTab(\"tab_items\");\n    hideTab(\"tab_source_hu\");\n\n    await this.openDialog(\"dialog_repack\");\n\n    await this.setData({\n      dialog_repack: {\n        row_index: rowIndex,\n        table_source_hu: [],\n        table_items: [],\n        table_target_hu: tableTargetHU,\n      },\n    });\n\n    this.hideLoading();\n  } catch (error) {\n    this.hideLoading();\n    this.$message.error(\"Error in ROopenTargetHUDialog: \" + error.message);\n    console.error(\"Error in ROopenTargetHUDialog:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "x3xhi0gc",
+        "name": "onButtonConfirmTargetClick",
+        "func": "(async () => {\n  try {\n    const dialogData = this.getValue(\"dialog_repack\");\n    if (!dialogData) {\n      throw new Error(\"Dialog data not available\");\n    }\n\n    const rowIndex = dialogData.row_index;\n    if (typeof rowIndex !== \"number\") {\n      throw new Error(\"Row index missing on dialog\");\n    }\n\n    const tableTargetHU = dialogData.table_target_hu || [];\n    const selected = tableTargetHU.find((r) => r.select_hu === 1);\n\n    if (!selected) {\n      this.$message.error(\"Please select a target handling unit\");\n      return;\n    }\n\n    if (!selected.hu_material_id) {\n      this.$message.error(\"Selected handling unit is missing handling unit material\");\n      return;\n    }\n\n    if (!selected.location_id) {\n      this.$message.error(\"Selected handling unit is missing location\");\n      return;\n    }\n\n    const activeHuItems = (selected.table_hu_items || []).filter(\n      (it) => it.is_deleted !== 1,\n    );\n\n    const snapshot = {\n      id: selected.id,\n      handling_no: selected.handling_no,\n      hu_material_id: selected.hu_material_id,\n      hu_type: selected.hu_type,\n      hu_quantity: selected.hu_quantity,\n      hu_uom: selected.hu_uom,\n      item_count: selected.item_count,\n      total_quantity: selected.total_quantity,\n      gross_weight: selected.gross_weight,\n      net_weight: selected.net_weight,\n      net_volume: selected.net_volume,\n      storage_location_id: selected.storage_location_id,\n      location_id: selected.location_id,\n      hu_status: selected.hu_status,\n      parent_hu_id: selected.parent_hu_id,\n      packing_id: selected.packing_id,\n      table_hu_items: activeHuItems,\n    };\n\n    await this.setData({\n      [`table_repack.${rowIndex}.target_temp_data`]: JSON.stringify(snapshot),\n      [`table_repack.${rowIndex}.target_hu_id`]: snapshot.id,\n      [`table_repack.${rowIndex}.target_hu_location`]: snapshot.location_id,\n    });\n\n    await this.closeDialog(\"dialog_repack\");\n  } catch (error) {\n    this.$message.error(\"Error in ROconfirmTargetHU: \" + error.message);\n    console.error(\"Error in ROconfirmTargetHU:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "czc5mdqh",
+        "name": "onButtonCancelTargetClick",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "n2oghv46",
+            "action": "closeDialog",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "dialog_repack"
+            }
+          }
+        ]
+      },
+      {
+        "key": "y6xajboi",
+        "name": "onButtonCancelItemsClick",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "gcf8z6na",
+            "action": "closeDialog",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "dialog_repack"
+            }
+          }
+        ]
+      },
+      {
+        "key": "7hgr0pi7",
+        "name": "onSelectHuChangeTargetHUTable",
+        "func": "(async () => {\n  try {\n    const value = arguments[0].value;\n    const rowIndex = arguments[0].rowIndex;\n\n    if (value !== 1) return;\n\n    const tableTargetHU =\n      this.getValue(\"dialog_repack.table_target_hu\") || [];\n\n    const updates = {};\n    for (let i = 0; i < tableTargetHU.length; i++) {\n      if (i === rowIndex) continue;\n      if (tableTargetHU[i].select_hu === 1) {\n        updates[`dialog_repack.table_target_hu.${i}.select_hu`] = 0;\n      }\n    }\n\n    if (Object.keys(updates).length > 0) {\n      await this.setData(updates);\n    }\n  } catch (error) {\n    this.$message.error(\"Error in ROonChangeSelectTargetHU: \" + error.message);\n    console.error(\"Error in ROonChangeSelectTargetHU:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "azcou7j9",
+        "name": "keychange",
+        "func": "const { setModelKey, newModel, oldModel } = arguments[0];\nconst oldData = oldModel+'_type';\nconst newData = newModel+'_type';\nsetModelKey(oldData, newData);",
         "type": "js"
       }
     ],
@@ -9386,6 +9435,38 @@
     "deps": {},
     "paramsDeps": {},
     "styleSheets": ".padding{\n  padding:20px\n}\n\n.max-width{\n  max-width:300px\n}\n\n.margin{\n  margin-left: 15px\n}\n\n.marginright{\n  margin-right: 20px;\n  margin-top : 3px;\n}\n\n.fixbutton{\n  position: fixed;\n  bottom: 0;\n  right: 0;\n}",
-    "indexs": []
+    "indexs": [
+      {
+        "name": "Document Number",
+        "fields": [
+          {
+            "title": "repack_no",
+            "name": "",
+            "sort_rule_type": "",
+            "sort_rule": "",
+            "operator_category_type": "",
+            "operator_category": "",
+            "length": null,
+            "sort": "ASC",
+            "nulls": "DEFAULT"
+          },
+          {
+            "title": "organization_id",
+            "name": "",
+            "sort_rule_type": "",
+            "sort_rule": "",
+            "operator_category_type": "",
+            "operator_category": "",
+            "length": null,
+            "sort": "ASC",
+            "nulls": "DEFAULT"
+          }
+        ],
+        "type": "UNIQUE",
+        "method": null,
+        "concurrency": 0,
+        "remark": ""
+      }
+    ]
   }
 }
