@@ -1,6 +1,6 @@
 (async () => {
   try {
-    const value = parseFloat(arguments[0].value) || 0;
+    const rawValue = arguments[0].value;
     const rowIndex = arguments[0].rowIndex;
 
     const tableItems = this.getValue("dialog_repack.table_items") || [];
@@ -8,6 +8,14 @@
     if (!row) return;
 
     const itemQuantity = parseFloat(row.item_quantity) || 0;
+    const value = parseFloat(rawValue);
+
+    if (Number.isNaN(value)) {
+      await this.setData({
+        [`dialog_repack.table_items.${rowIndex}.unload_quantity`]: 0,
+      });
+      return;
+    }
 
     if (value < 0) {
       await this.setData({
