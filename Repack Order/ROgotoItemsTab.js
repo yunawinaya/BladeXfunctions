@@ -47,7 +47,7 @@ const selectTab = (tabName) => {
     }
 
     const activeHuItems = (selected.table_hu_items || []).filter(
-      (it) => it.is_deleted !== 1,
+      (it) => it.is_deleted !== 1 && (parseFloat(it.quantity) || 0) > 0,
     );
 
     const snapshot = {

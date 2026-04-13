@@ -146,7 +146,7 @@ const buildItemsFromHU = (sourceTempDataStr) => {
     return [];
   }
   const huItems = (parsed?.table_hu_items || []).filter(
-    (it) => it.is_deleted !== 1,
+    (it) => it.is_deleted !== 1 && (parseFloat(it.quantity) || 0) > 0,
   );
   return huItems.map((it, index) => ({
     material_id: it.material_id,
