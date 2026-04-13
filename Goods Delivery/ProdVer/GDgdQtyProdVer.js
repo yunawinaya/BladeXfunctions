@@ -1,6 +1,7 @@
 (async () => {
   // FIX: Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
-  const roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;
+  const roundQty = (value) =>
+    Math.round((parseFloat(value) || 0) * 1000) / 1000;
 
   // Extract input parameters
   const data = this.getValues();
@@ -10,7 +11,8 @@
 
   // Retrieve values from context
   const orderedQty = parseFloat(data.table_gd[rowIndex].gd_order_quantity) || 0;
-  const initialDeliveredQty = parseFloat(data.table_gd[rowIndex].gd_initial_delivered_qty) || 0;
+  const initialDeliveredQty =
+    parseFloat(data.table_gd[rowIndex].gd_initial_delivered_qty) || 0;
   const uomId = data.table_gd[rowIndex].gd_order_uom_id;
   const itemCode = data.table_gd[rowIndex].material_id;
   const itemDesc = data.table_gd[rowIndex].gd_material_desc;
@@ -42,9 +44,11 @@
       const tempDataArray = JSON.parse(existingTempData);
 
       // Calculate total to_quantity (ceiling from PP)
-      const totalToQuantity = roundQty(tempDataArray.reduce((sum, item) => {
-        return sum + parseFloat(item.to_quantity || 0);
-      }, 0));
+      const totalToQuantity = roundQty(
+        tempDataArray.reduce((sum, item) => {
+          return sum + parseFloat(item.to_quantity || 0);
+        }, 0),
+      );
 
       // Validate: quantity cannot exceed total to_quantity
       if (quantity > totalToQuantity) {
@@ -167,8 +171,9 @@
       // Update GD row
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-        [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          roundQty(orderedQty - totalDeliveredQty),
+        [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
+          orderedQty - totalDeliveredQty,
+        ),
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify(updatedTempData),
       });
@@ -243,8 +248,9 @@
     const uomName = await getUOMData(uomId);
     this.setData({
       [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-      [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-        roundQty(orderedQty - totalDeliveredQty),
+      [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
+        orderedQty - totalDeliveredQty,
+      ),
       [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}`,
     });
     return;
@@ -275,33 +281,8 @@
       return conv?.base_qty || 1;
     };
     const baseQtyFactor = getBaseQtyFactor(uomId, itemData);
-    const baseQtyValue = roundQty(quantity * baseQtyFactor);
 
-    // Check if HUs exist for this material — if so, skip auto allocation
-    // and let the user use the inventory dialog instead
-    const huCheckResult = await db
-      .collection("handling_unit_atu7sreg_sub")
-      .where({
-        material_id: itemCode,
-        is_deleted: 0,
-      })
-      .get();
-
-    const hasHU = huCheckResult.data && huCheckResult.data.length > 0;
-
-    if (hasHU) {
-      console.log(
-        `Row ${rowIndex}: HU exists for material ${itemCode}, skipping auto allocation`,
-      );
-      this.setData({
-        [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-        [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          roundQty(orderedQty - totalDeliveredQty),
-        [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
-      });
-      return;
-    }
-
+    // 🔧 NEW: Check if item is serialized
     const isSerializedItem = itemData.serial_number_management === 1;
     const isBatchManagedItem = itemData.item_batch_management === 1;
 
@@ -314,27 +295,6 @@
     console.log(
       `Row ${rowIndex}: Has existing allocation: ${hasExistingAllocation}`,
     );
-
-    // Guard: preserve whole-HU allocation data set by inventory dialog
-    if (hasExistingAllocation) {
-      try {
-        const tempArray = JSON.parse(existingTempData);
-        const hasHuAllocation = tempArray.some((t) => t.handling_unit_id);
-        if (hasHuAllocation) {
-          console.log(
-            `Row ${rowIndex}: Preserving whole-HU allocation data from inventory dialog`,
-          );
-          this.setData({
-            [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-            [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(orderedQty - totalDeliveredQty),
-            [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
-          });
-          return;
-        }
-      } catch (e) {
-        /* ignore parse error, proceed normally */
-      }
-    }
 
     let balanceData = null;
     let binLocation = null;
@@ -419,19 +379,21 @@
         if (!hasExistingAllocation) {
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-            [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              roundQty(orderedQty - totalDeliveredQty),
+            [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
+              orderedQty - totalDeliveredQty,
+            ),
             [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog for serialized items with quantity > 1`,
             [`table_gd.${rowIndex}.temp_qty_data`]: "[]", // Clear any existing temp data
-            [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
+            [`table_gd.${rowIndex}.base_qty`]: roundQty(quantity * baseQtyFactor),
           });
         } else {
           // If there's existing allocation, just update delivery quantities
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-            [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              roundQty(orderedQty - totalDeliveredQty),
-            [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
+            [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
+              orderedQty - totalDeliveredQty,
+            ),
+            [`table_gd.${rowIndex}.base_qty`]: roundQty(quantity * baseQtyFactor),
           });
         }
         return;
@@ -445,18 +407,20 @@
         if (!hasExistingAllocation) {
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-            [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              roundQty(orderedQty - totalDeliveredQty),
+            [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
+              orderedQty - totalDeliveredQty,
+            ),
             [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog to select serial number`,
             [`table_gd.${rowIndex}.temp_qty_data`]: "[]",
-            [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
+            [`table_gd.${rowIndex}.base_qty`]: roundQty(quantity * baseQtyFactor),
           });
         } else {
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-            [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              roundQty(orderedQty - totalDeliveredQty),
-            [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
+            [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
+              orderedQty - totalDeliveredQty,
+            ),
+            [`table_gd.${rowIndex}.base_qty`]: roundQty(quantity * baseQtyFactor),
           });
         }
         return;
@@ -497,11 +461,12 @@
       // Update data
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-        [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          roundQty(orderedQty - totalDeliveredQty),
+        [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
+          orderedQty - totalDeliveredQty,
+        ),
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
-        [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
+        [`table_gd.${rowIndex}.base_qty`]: roundQty(quantity * baseQtyFactor),
       });
 
       console.log(
@@ -628,11 +593,12 @@
       // Update data
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-        [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          roundQty(orderedQty - totalDeliveredQty),
+        [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
+          orderedQty - totalDeliveredQty,
+        ),
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
-        [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
+        [`table_gd.${rowIndex}.base_qty`]: roundQty(quantity * baseQtyFactor),
       });
 
       console.log(`Row ${rowIndex}: Manual allocation completed successfully`);

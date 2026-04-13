@@ -94,6 +94,13 @@ const selectTab = (tabName) => {
     });
 
     selectTab("tab_items");
+
+    const repackType = this.getValue("repack_type");
+    if (repackType === "Unload") {
+      this.hide("dialog_repack.button_target_hu");
+    } else {
+      this.display("dialog_repack.button_target_hu");
+    }
   } catch (error) {
     this.$message.error("Error in ROgotoItemsTab: " + error.message);
     console.error("Error in ROgotoItemsTab:", error);

@@ -173,7 +173,6 @@ const fetchPickingSetup = async (plantId) => {
         pickingMode: "Manual",
         defaultStrategy: "RANDOM",
         fallbackStrategy: "RANDOM",
-        splitPolicy: "ALLOW_SPLIT",
       };
     }
 
@@ -182,7 +181,6 @@ const fetchPickingSetup = async (plantId) => {
       pickingMode: setup.picking_mode || "Manual",
       defaultStrategy: setup.default_strategy_id || "RANDOM",
       fallbackStrategy: setup.fallback_strategy_id || "RANDOM",
-      splitPolicy: setup.split_policy || "ALLOW_SPLIT",
     };
   } catch (error) {
     console.error("Error fetching picking setup:", error);
@@ -190,7 +188,6 @@ const fetchPickingSetup = async (plantId) => {
       pickingMode: "Manual",
       defaultStrategy: "RANDOM",
       fallbackStrategy: "RANDOM",
-      splitPolicy: "ALLOW_SPLIT",
     };
   }
 };
@@ -381,26 +378,6 @@ const checkInventoryWithDuplicates = async (
     });
   });
 
-  // Fetch HU sub-items to check which materials have handling units
-  const fetchHUData = async () => {
-    const huResults = await Promise.all(
-      materialIds.map((id) =>
-        db
-          .collection("handling_unit_atu7sreg_sub")
-          .where({ material_id: id, is_deleted: 0 })
-          .get(),
-      ),
-    );
-
-    const huMaterialSet = new Set();
-    huResults.forEach((res, idx) => {
-      if (res.data && res.data.length > 0) {
-        huMaterialSet.add(materialIds[idx]);
-      }
-    });
-    return huMaterialSet;
-  };
-
   console.log(`🚀 Fetching data for ${materialIds.length} unique materials...`);
   const fetchStart = Date.now();
 
@@ -410,14 +387,12 @@ const checkInventoryWithDuplicates = async (
     pickingSetup,
     batchDataMap,
     pendingReservedMap,
-    huMaterialSet,
   ] = await Promise.all([
     batchFetchItems(materialIds),
     batchFetchBalanceData(materialIds, plantId),
     fetchPickingSetup(plantId),
     batchFetchBatchData(materialIds, plantId),
     batchFetchPendingReserved(allSoLineItemIds, plantId),
-    fetchHUData(),
   ]);
 
   console.log(
@@ -626,34 +601,30 @@ const checkInventoryWithDuplicates = async (
     );
 
     // Handle UI controls based on balance data length
-    // Skip auto-enabling gd_qty if HUs exist for this material (user must use inventory dialog)
-    const materialHasHU = huMaterialSet.has(materialId);
-    if (balanceData.length === 1 && !materialHasHU) {
+    if (balanceData.length === 1) {
       items.forEach((item) => {
         fieldsToDisable.push(`table_gd.${item.originalIndex}.gd_delivery_qty`);
         fieldsToEnable.push(`table_gd.${item.originalIndex}.gd_qty`);
       });
     }
 
-    // Calculate total demand (only unplanned portion needs stock)
+    // Calculate total demand
     let totalDemandBase = 0;
     items.forEach((item) => {
       const undeliveredQty = roundQty(
         (parseFloat(item.orderedQty) || 0) -
           (parseFloat(item.deliveredQtyFromSource) || 0),
       );
-      const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
-      const remainingDemandQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
-      let remainingDemandQtyBase = remainingDemandQty;
+      let undeliveredQtyBase = undeliveredQty;
       if (item.altUOM !== itemData.based_uom) {
         const uomConversion = itemData.table_uom_conversion?.find(
           (conv) => conv.alt_uom_id === item.altUOM,
         );
         if (uomConversion && uomConversion.base_qty) {
-          remainingDemandQtyBase = remainingDemandQty * uomConversion.base_qty;
+          undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
         }
       }
-      totalDemandBase += remainingDemandQtyBase;
+      totalDemandBase += undeliveredQtyBase;
 
       // Set basic item data
       const index = item.originalIndex;
@@ -679,7 +650,7 @@ const checkInventoryWithDuplicates = async (
     });
 
     console.log(
-      `Material ${materialId}: Available=${availableStockAfterAllocations}, Total Remaining Demand (after planned)=${totalDemandBase}`,
+      `Material ${materialId}: Available=${availableStockAfterAllocations}, Total Demand=${totalDemandBase}`,
     );
 
     // Check if insufficient stock
@@ -699,9 +670,7 @@ const checkInventoryWithDuplicates = async (
           const index = item.originalIndex;
           const orderedQty = parseFloat(item.orderedQty) || 0;
           const deliveredQty = parseFloat(item.deliveredQtyFromSource) || 0;
-          const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
           const undeliveredQty = roundQty(orderedQty - deliveredQty);
-          const remainingDemandQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
 
           const orderedQtyBase = roundQty(
             convertToBaseUOM(orderedQty, item.altUOM, itemData),
@@ -712,13 +681,10 @@ const checkInventoryWithDuplicates = async (
           const undeliveredQtyBase = roundQty(
             convertToBaseUOM(undeliveredQty, item.altUOM, itemData),
           );
-          const remainingDemandQtyBase = roundQty(
-            convertToBaseUOM(remainingDemandQty, item.altUOM, itemData),
-          );
 
           let availableQtyBase = 0;
-          if (remainingSerialCount > 0 && remainingDemandQtyBase > 0) {
-            const requiredUnitsBase = Math.floor(remainingDemandQtyBase);
+          if (remainingSerialCount > 0 && undeliveredQtyBase > 0) {
+            const requiredUnitsBase = Math.floor(undeliveredQtyBase);
             availableQtyBase = Math.min(
               remainingSerialCount,
               requiredUnitsBase,
@@ -733,9 +699,8 @@ const checkInventoryWithDuplicates = async (
             material_uom: itemData.based_uom,
             order_quantity: orderedQtyBase,
             undelivered_qty: undeliveredQtyBase,
-            remaining_demand_qty: remainingDemandQtyBase,
             available_qty: availableQtyBase,
-            shortfall_qty: roundQty(remainingDemandQtyBase - availableQtyBase),
+            shortfall_qty: roundQty(undeliveredQtyBase - availableQtyBase),
             fm_key:
               Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
@@ -762,25 +727,23 @@ const checkInventoryWithDuplicates = async (
           const index = item.originalIndex;
           const orderedQty = parseFloat(item.orderedQty) || 0;
           const deliveredQty = parseFloat(item.deliveredQtyFromSource) || 0;
-          const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
           const undeliveredQty = roundQty(orderedQty - deliveredQty);
-          const remainingDemandQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
 
           let availableQtyAlt = 0;
-          if (remainingStockBase > 0 && remainingDemandQty > 0) {
-            let remainingDemandQtyBase = remainingDemandQty;
+          if (remainingStockBase > 0 && undeliveredQty > 0) {
+            let undeliveredQtyBase = undeliveredQty;
             if (item.altUOM !== itemData.based_uom) {
               const uomConversion = itemData.table_uom_conversion?.find(
                 (conv) => conv.alt_uom_id === item.altUOM,
               );
               if (uomConversion && uomConversion.base_qty) {
-                remainingDemandQtyBase = remainingDemandQty * uomConversion.base_qty;
+                undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
               }
             }
 
             const allocatedBase = Math.min(
               remainingStockBase,
-              remainingDemandQtyBase,
+              undeliveredQtyBase,
             );
             const uomConversion = itemData.table_uom_conversion?.find(
               (conv) => conv.alt_uom_id === item.altUOM,
@@ -801,9 +764,8 @@ const checkInventoryWithDuplicates = async (
             material_uom: item.altUOM,
             order_quantity: orderedQty,
             undelivered_qty: undeliveredQty,
-            remaining_demand_qty: remainingDemandQty,
             available_qty: availableQtyAlt,
-            shortfall_qty: roundQty(remainingDemandQty - availableQtyAlt),
+            shortfall_qty: roundQty(undeliveredQty - availableQtyAlt),
             fm_key:
               Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
@@ -830,11 +792,21 @@ const checkInventoryWithDuplicates = async (
         const deliveredQty = parseFloat(item.deliveredQtyFromSource) || 0;
         const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
 
+        // 🔧 Use cached pending reserved data instead of new DB query
+        const pendingReservedData =
+          pendingReservedMap.get(item.so_line_item_id) || [];
+        const pendingTotal = pendingReservedData.reduce(
+          (total, doc) => total + parseFloat(doc.open_qty || 0),
+          0,
+        );
         const undeliveredQty = roundQty(orderedQty - deliveredQty);
         const suggestedQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
-        // Use suggested qty directly - allocation logic handles sourcing from
-        // pending reserved + unrestricted stock during save workflow
-        const finalQty = suggestedQty;
+        // Cap by pending reserved qty (if any reservations exist)
+        const finalQty = roundQty(
+          pendingTotal > 0
+            ? Math.min(suggestedQty, pendingTotal)
+            : suggestedQty,
+        );
 
         if (finalQty <= 0) {
           fieldsToDisable.push(
@@ -901,10 +873,7 @@ const checkInventoryWithDuplicates = async (
   console.log(
     "🚀 OPTIMIZATION: Applying all updates in single setData call...",
   );
-  await this.setData({
-    table_gd: tableGdArray,
-    split_policy: pickingSetup.splitPolicy || "ALLOW_SPLIT",
-  });
+  await this.setData({ table_gd: tableGdArray });
 
   // Apply insufficient dialog data if any
   if (insufficientDialogData.length > 0) {

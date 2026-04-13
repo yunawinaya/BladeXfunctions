@@ -173,7 +173,6 @@ const fetchPickingSetup = async (plantId) => {
         pickingMode: "Manual",
         defaultStrategy: "RANDOM",
         fallbackStrategy: "RANDOM",
-        splitPolicy: "ALLOW_SPLIT",
       };
     }
 
@@ -182,7 +181,6 @@ const fetchPickingSetup = async (plantId) => {
       pickingMode: setup.picking_mode || "Manual",
       defaultStrategy: setup.default_strategy_id || "RANDOM",
       fallbackStrategy: setup.fallback_strategy_id || "RANDOM",
-      splitPolicy: setup.split_policy || "ALLOW_SPLIT",
     };
   } catch (error) {
     console.error("Error fetching picking setup:", error);
@@ -190,7 +188,6 @@ const fetchPickingSetup = async (plantId) => {
       pickingMode: "Manual",
       defaultStrategy: "RANDOM",
       fallbackStrategy: "RANDOM",
-      splitPolicy: "ALLOW_SPLIT",
     };
   }
 };
@@ -381,26 +378,6 @@ const checkInventoryWithDuplicates = async (
     });
   });
 
-  // Fetch HU sub-items to check which materials have handling units
-  const fetchHUData = async () => {
-    const huResults = await Promise.all(
-      materialIds.map((id) =>
-        db
-          .collection("handling_unit_atu7sreg_sub")
-          .where({ material_id: id, is_deleted: 0 })
-          .get(),
-      ),
-    );
-
-    const huMaterialSet = new Set();
-    huResults.forEach((res, idx) => {
-      if (res.data && res.data.length > 0) {
-        huMaterialSet.add(materialIds[idx]);
-      }
-    });
-    return huMaterialSet;
-  };
-
   console.log(`🚀 Fetching data for ${materialIds.length} unique materials...`);
   const fetchStart = Date.now();
 
@@ -410,14 +387,12 @@ const checkInventoryWithDuplicates = async (
     pickingSetup,
     batchDataMap,
     pendingReservedMap,
-    huMaterialSet,
   ] = await Promise.all([
     batchFetchItems(materialIds),
     batchFetchBalanceData(materialIds, plantId),
     fetchPickingSetup(plantId),
     batchFetchBatchData(materialIds, plantId),
     batchFetchPendingReserved(allSoLineItemIds, plantId),
-    fetchHUData(),
   ]);
 
   console.log(
@@ -481,22 +456,21 @@ const checkInventoryWithDuplicates = async (
           ...tableGdArray[index],
           material_id: "",
           material_name: item.itemName || "",
-          gd_material_desc: item.itemDesc || "",
+          gd_material_desc: item.sourceItem.so_desc || "",
           gd_order_quantity: orderedQty,
           gd_delivered_qty: deliveredQty,
           gd_initial_delivered_qty: deliveredQty,
           gd_order_uom_id: item.altUOM,
           good_delivery_uom_id: item.altUOM,
-          more_desc: item.moreDesc || "",
-          line_remark_1: item.lineRemark1 || "",
-          line_remark_2: item.lineRemark2 || "",
-          line_remark_3: item.lineRemark3 || "",
+          more_desc: item.sourceItem.more_desc || "",
+          line_remark_1: item.sourceItem.line_remark_1 || "",
+          line_remark_2: item.sourceItem.line_remark_2 || "",
+          line_remark_3: item.sourceItem.line_remark_3 || "",
           base_uom_id: "",
-          unit_price: item.unitPrice || 0,
-          total_price: item.soAmount || 0,
+          unit_price: item.sourceItem.so_item_price || 0,
+          total_price: item.sourceItem.so_amount || 0,
           item_costing_method: "",
           gd_qty: suggestedQty,
-          base_qty: suggestedQty, // no item data → no UOM conversion possible
         };
 
         fieldsToDisable.push(`table_gd.${index}.gd_delivery_qty`);
@@ -527,19 +501,19 @@ const checkInventoryWithDuplicates = async (
           ...tableGdArray[index],
           material_id: materialId,
           material_name: item.itemName,
-          gd_material_desc: item.itemDesc || "",
+          gd_material_desc: item.sourceItem.so_desc || "",
           gd_order_quantity: orderedQty,
           gd_delivered_qty: roundQty(deliveredQty + undeliveredQty),
           gd_initial_delivered_qty: deliveredQty,
           gd_order_uom_id: item.altUOM,
           good_delivery_uom_id: item.altUOM,
-          more_desc: item.moreDesc || "",
-          line_remark_1: item.lineRemark1 || "",
-          line_remark_2: item.lineRemark2 || "",
-          line_remark_3: item.lineRemark3 || "",
+          more_desc: item.sourceItem.more_desc || "",
+          line_remark_1: item.sourceItem.line_remark_1 || "",
+          line_remark_2: item.sourceItem.line_remark_2 || "",
+          line_remark_3: item.sourceItem.line_remark_3 || "",
           base_uom_id: itemData.based_uom || "",
-          unit_price: item.unitPrice || 0,
-          total_price: item.soAmount || 0,
+          unit_price: item.sourceItem.so_item_price || 0,
+          total_price: item.sourceItem.so_amount || 0,
           item_costing_method: itemData.material_costing_method,
           gd_qty: suggestedQty,
           base_qty: roundQty(
@@ -626,34 +600,30 @@ const checkInventoryWithDuplicates = async (
     );
 
     // Handle UI controls based on balance data length
-    // Skip auto-enabling gd_qty if HUs exist for this material (user must use inventory dialog)
-    const materialHasHU = huMaterialSet.has(materialId);
-    if (balanceData.length === 1 && !materialHasHU) {
+    if (balanceData.length === 1) {
       items.forEach((item) => {
         fieldsToDisable.push(`table_gd.${item.originalIndex}.gd_delivery_qty`);
         fieldsToEnable.push(`table_gd.${item.originalIndex}.gd_qty`);
       });
     }
 
-    // Calculate total demand (only unplanned portion needs stock)
+    // Calculate total demand
     let totalDemandBase = 0;
     items.forEach((item) => {
       const undeliveredQty = roundQty(
         (parseFloat(item.orderedQty) || 0) -
           (parseFloat(item.deliveredQtyFromSource) || 0),
       );
-      const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
-      const remainingDemandQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
-      let remainingDemandQtyBase = remainingDemandQty;
+      let undeliveredQtyBase = undeliveredQty;
       if (item.altUOM !== itemData.based_uom) {
         const uomConversion = itemData.table_uom_conversion?.find(
           (conv) => conv.alt_uom_id === item.altUOM,
         );
         if (uomConversion && uomConversion.base_qty) {
-          remainingDemandQtyBase = remainingDemandQty * uomConversion.base_qty;
+          undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
         }
       }
-      totalDemandBase += remainingDemandQtyBase;
+      totalDemandBase += undeliveredQtyBase;
 
       // Set basic item data
       const index = item.originalIndex;
@@ -661,25 +631,25 @@ const checkInventoryWithDuplicates = async (
         ...tableGdArray[index],
         material_id: materialId,
         material_name: item.itemName,
-        gd_material_desc: item.itemDesc || "",
+        gd_material_desc: item.sourceItem.so_desc || "",
         gd_order_quantity: item.orderedQty,
         gd_delivered_qty: item.deliveredQtyFromSource,
         gd_initial_delivered_qty: item.deliveredQtyFromSource,
         gd_order_uom_id: item.altUOM,
         good_delivery_uom_id: item.altUOM,
-        more_desc: item.moreDesc || "",
-        line_remark_1: item.lineRemark1 || "",
-        line_remark_2: item.lineRemark2 || "",
-        line_remark_3: item.lineRemark3 || "",
+        more_desc: item.sourceItem.more_desc || "",
+        line_remark_1: item.sourceItem.line_remark_1 || "",
+        line_remark_2: item.sourceItem.line_remark_2 || "",
+        line_remark_3: item.sourceItem.line_remark_3 || "",
         base_uom_id: itemData.based_uom || "",
-        unit_price: item.unitPrice || 0,
-        total_price: item.soAmount || 0,
+        unit_price: item.sourceItem.so_item_price || 0,
+        total_price: item.sourceItem.so_amount || 0,
         item_costing_method: itemData.material_costing_method,
       };
     });
 
     console.log(
-      `Material ${materialId}: Available=${availableStockAfterAllocations}, Total Remaining Demand (after planned)=${totalDemandBase}`,
+      `Material ${materialId}: Available=${availableStockAfterAllocations}, Total Demand=${totalDemandBase}`,
     );
 
     // Check if insufficient stock
@@ -699,9 +669,7 @@ const checkInventoryWithDuplicates = async (
           const index = item.originalIndex;
           const orderedQty = parseFloat(item.orderedQty) || 0;
           const deliveredQty = parseFloat(item.deliveredQtyFromSource) || 0;
-          const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
           const undeliveredQty = roundQty(orderedQty - deliveredQty);
-          const remainingDemandQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
 
           const orderedQtyBase = roundQty(
             convertToBaseUOM(orderedQty, item.altUOM, itemData),
@@ -712,13 +680,10 @@ const checkInventoryWithDuplicates = async (
           const undeliveredQtyBase = roundQty(
             convertToBaseUOM(undeliveredQty, item.altUOM, itemData),
           );
-          const remainingDemandQtyBase = roundQty(
-            convertToBaseUOM(remainingDemandQty, item.altUOM, itemData),
-          );
 
           let availableQtyBase = 0;
-          if (remainingSerialCount > 0 && remainingDemandQtyBase > 0) {
-            const requiredUnitsBase = Math.floor(remainingDemandQtyBase);
+          if (remainingSerialCount > 0 && undeliveredQtyBase > 0) {
+            const requiredUnitsBase = Math.floor(undeliveredQtyBase);
             availableQtyBase = Math.min(
               remainingSerialCount,
               requiredUnitsBase,
@@ -733,9 +698,8 @@ const checkInventoryWithDuplicates = async (
             material_uom: itemData.based_uom,
             order_quantity: orderedQtyBase,
             undelivered_qty: undeliveredQtyBase,
-            remaining_demand_qty: remainingDemandQtyBase,
             available_qty: availableQtyBase,
-            shortfall_qty: roundQty(remainingDemandQtyBase - availableQtyBase),
+            shortfall_qty: roundQty(undeliveredQtyBase - availableQtyBase),
             fm_key:
               Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
@@ -762,25 +726,23 @@ const checkInventoryWithDuplicates = async (
           const index = item.originalIndex;
           const orderedQty = parseFloat(item.orderedQty) || 0;
           const deliveredQty = parseFloat(item.deliveredQtyFromSource) || 0;
-          const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
           const undeliveredQty = roundQty(orderedQty - deliveredQty);
-          const remainingDemandQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
 
           let availableQtyAlt = 0;
-          if (remainingStockBase > 0 && remainingDemandQty > 0) {
-            let remainingDemandQtyBase = remainingDemandQty;
+          if (remainingStockBase > 0 && undeliveredQty > 0) {
+            let undeliveredQtyBase = undeliveredQty;
             if (item.altUOM !== itemData.based_uom) {
               const uomConversion = itemData.table_uom_conversion?.find(
                 (conv) => conv.alt_uom_id === item.altUOM,
               );
               if (uomConversion && uomConversion.base_qty) {
-                remainingDemandQtyBase = remainingDemandQty * uomConversion.base_qty;
+                undeliveredQtyBase = undeliveredQty * uomConversion.base_qty;
               }
             }
 
             const allocatedBase = Math.min(
               remainingStockBase,
-              remainingDemandQtyBase,
+              undeliveredQtyBase,
             );
             const uomConversion = itemData.table_uom_conversion?.find(
               (conv) => conv.alt_uom_id === item.altUOM,
@@ -801,9 +763,8 @@ const checkInventoryWithDuplicates = async (
             material_uom: item.altUOM,
             order_quantity: orderedQty,
             undelivered_qty: undeliveredQty,
-            remaining_demand_qty: remainingDemandQty,
             available_qty: availableQtyAlt,
-            shortfall_qty: roundQty(remainingDemandQty - availableQtyAlt),
+            shortfall_qty: roundQty(undeliveredQty - availableQtyAlt),
             fm_key:
               Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
@@ -830,11 +791,21 @@ const checkInventoryWithDuplicates = async (
         const deliveredQty = parseFloat(item.deliveredQtyFromSource) || 0;
         const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
 
+        // 🔧 Use cached pending reserved data instead of new DB query
+        const pendingReservedData =
+          pendingReservedMap.get(item.so_line_item_id) || [];
+        const pendingTotal = pendingReservedData.reduce(
+          (total, doc) => total + parseFloat(doc.open_qty || 0),
+          0,
+        );
         const undeliveredQty = roundQty(orderedQty - deliveredQty);
         const suggestedQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
-        // Use suggested qty directly - allocation logic handles sourcing from
-        // pending reserved + unrestricted stock during save workflow
-        const finalQty = suggestedQty;
+        // Cap by pending reserved qty (if any reservations exist)
+        const finalQty = roundQty(
+          pendingTotal > 0
+            ? Math.min(suggestedQty, pendingTotal)
+            : suggestedQty,
+        );
 
         if (finalQty <= 0) {
           fieldsToDisable.push(
@@ -901,10 +872,7 @@ const checkInventoryWithDuplicates = async (
   console.log(
     "🚀 OPTIMIZATION: Applying all updates in single setData call...",
   );
-  await this.setData({
-    table_gd: tableGdArray,
-    split_policy: pickingSetup.splitPolicy || "ALLOW_SPLIT",
-  });
+  await this.setData({ table_gd: tableGdArray });
 
   // Apply insufficient dialog data if any
   if (insufficientDialogData.length > 0) {
@@ -989,12 +957,12 @@ const createTableGdWithBaseUOM = async (allItems) => {
           Math.round((orderedQtyBase - deliveredQtyBase) * 1000) / 1000,
         gd_order_uom_id: itemData.based_uom,
         good_delivery_uom_id: itemData.based_uom,
-        unit_price: item.unitPrice || 0,
-        total_price: item.soAmount || 0,
-        more_desc: item.moreDesc || "",
-        line_remark_1: item.lineRemark1 || "",
-        line_remark_2: item.lineRemark2 || "",
-        line_remark_3: item.lineRemark3 || "",
+        unit_price: item.sourceItem.so_item_price || 0,
+        total_price: item.sourceItem.so_amount || 0,
+        more_desc: item.sourceItem.more_desc || "",
+        line_remark_1: item.sourceItem.line_remark_1 || "",
+        line_remark_2: item.sourceItem.line_remark_2 || "",
+        line_remark_3: item.sourceItem.line_remark_3 || "",
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
@@ -1009,16 +977,16 @@ const createTableGdWithBaseUOM = async (allItems) => {
         gd_order_quantity: item.orderedQty,
         gd_delivered_qty: item.deliveredQtyFromSource,
         gd_undelivered_qty:
-          Math.round((item.orderedQty - item.deliveredQtyFromSource) * 1000) /
+          Math.round((item.orderedQty - item.sourceItem.delivered_qty) * 1000) /
           1000,
         gd_order_uom_id: item.altUOM,
         good_delivery_uom_id: item.altUOM,
-        unit_price: item.unitPrice || 0,
-        total_price: item.soAmount || 0,
-        more_desc: item.moreDesc || "",
-        line_remark_1: item.lineRemark1 || "",
-        line_remark_2: item.lineRemark2 || "",
-        line_remark_3: item.lineRemark3 || "",
+        unit_price: item.sourceItem.so_item_price || 0,
+        total_price: item.sourceItem.so_amount || 0,
+        more_desc: item.sourceItem.more_desc || "",
+        line_remark_1: item.sourceItem.line_remark_1 || "",
+        line_remark_2: item.sourceItem.line_remark_2 || "",
+        line_remark_3: item.sourceItem.line_remark_3 || "",
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
@@ -1030,80 +998,186 @@ const createTableGdWithBaseUOM = async (allItems) => {
   return processedItems;
 };
 
+// ============================================================================
+// MAIN EXECUTION (Keep existing)
+// ============================================================================
+
 (async () => {
-  this.showLoading("Loading...");
-  let allItems = arguments[0].allItems;
+  const referenceType = this.getValue(`dialog_select_item.reference_type`);
+  const previousReferenceType = this.getValue("reference_type");
+  const currentItemArray = this.getValue(`dialog_select_item.item_array`);
   let existingGD = this.getValue("table_gd");
-  const plant = this.getValue("plant_id");
-
-  this.disabled(
-    [
-      "gd_ref_doc",
-      "table_gd",
-      "gd_delivery_method",
-      "document_description",
-      "order_remark",
-    ],
-    false,
-  );
-
-  const pickingSetupResponse = await db
-    .collection("picking_setup")
-    .where({
-      plant_id: plant,
-      picking_after: "Goods Delivery",
-      picking_required: 1,
-    })
-    .get();
-
-  if (pickingSetupResponse.data.length > 0) {
-    this.display("assigned_to");
-  }
+  const customerName = this.getValue("customer_name");
 
   if (!window.globalAllocationTracker) {
     window.globalAllocationTracker = new Map();
   } else if (!existingGD || existingGD.length === 0) {
-    // Clear tracker only when no existing GD data (fresh start)
     window.globalAllocationTracker.clear();
   }
 
-  console.log("allItems", allItems);
+  let allItems = [];
+  let salesOrderNumber = [];
+  let soId = [];
 
+  if (currentItemArray.length === 0) {
+    this.$alert("Please select at least one sales order / item.", "Error", {
+      confirmButtonText: "OK",
+      type: "error",
+    });
+    return;
+  }
+
+  if (previousReferenceType && previousReferenceType !== referenceType) {
+    await this.$confirm(
+      `You've selected a different reference type than previously used. <br><br>Current Reference Type: ${referenceType} <br>Previous Reference Type: ${previousReferenceType} <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,
+      "Different Reference Type Detected",
+      {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "error",
+        dangerouslyUseHTMLString: true,
+      },
+    ).catch(() => {
+      console.log("User clicked Cancel or closed the dialog");
+      throw new Error();
+    });
+
+    existingGD = [];
+  }
+
+  const uniqueCustomer = new Set(
+    currentItemArray.map((so) =>
+      referenceType === "Document" ? so.customer_id : so.customer_id.id,
+    ),
+  );
+  const allSameCustomer = uniqueCustomer.size === 1;
+
+  if (!allSameCustomer) {
+    this.$alert(
+      "Deliver item(s) to more than two different customers is not allowed.",
+      "Error",
+      {
+        confirmButtonText: "OK",
+        type: "error",
+      },
+    );
+    return;
+  }
+
+  if (customerName && customerName !== [...uniqueCustomer][0]) {
+    await this.$confirm(
+      `You've selected a different customer than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,
+      "Different Customer Detected",
+      {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "error",
+        dangerouslyUseHTMLString: true,
+      },
+    ).catch(() => {
+      console.log("User clicked Cancel or closed the dialog");
+      throw new Error();
+    });
+
+    existingGD = [];
+  }
+
+  this.closeDialog("dialog_select_item");
+  this.showLoading();
+
+  switch (referenceType) {
+    case "Document":
+      for (const so of currentItemArray) {
+        for (const soItem of so.table_so) {
+          allItems.push({
+            itemId: soItem.item_name,
+            itemName: soItem.item_id,
+            itemDesc: soItem.so_desc,
+            orderedQty: parseFloat(soItem.so_quantity || 0),
+            altUOM: soItem.so_item_uom || "",
+            sourceItem: soItem,
+            deliveredQtyFromSource: parseFloat(soItem.delivered_qty || 0),
+            plannedQtyFromSource: parseFloat(soItem.planned_qty || 0),
+            original_so_id: so.sales_order_id,
+            so_no: so.sales_order_number,
+            so_line_item_id: soItem.id,
+            item_category_id: soItem.item_category_id,
+          });
+        }
+      }
+      break;
+
+    case "Item":
+      for (const soItem of currentItemArray) {
+        allItems.push({
+          itemId: soItem.item.id,
+          itemName: soItem.item.material_name,
+          itemDesc: soItem.so_desc,
+          orderedQty: parseFloat(soItem.so_quantity || 0),
+          altUOM: soItem.so_item_uom || "",
+          sourceItem: soItem,
+          deliveredQtyFromSource: parseFloat(soItem.delivered_qty || 0),
+          plannedQtyFromSource: parseFloat(soItem.planned_qty || 0),
+          original_so_id: soItem.sales_order.id,
+          so_no: soItem.sales_order.so_no,
+          so_line_item_id: soItem.sales_order_line_id,
+          item_category_id: soItem.item.item_category,
+        });
+      }
+      break;
+  }
+
+  console.log("allItems", allItems);
   allItems = allItems.filter(
-    (gd) => gd.deliveredQtyFromSource !== gd.orderedQty,
+    (gd) =>
+      gd.deliveredQtyFromSource !== gd.orderedQty &&
+      !existingGD.find(
+        (gdItem) => gdItem.so_line_item_id === gd.so_line_item_id,
+      ),
   );
 
   console.log("allItems after filter", allItems);
 
-  allItems = allItems.map((item) => ({
-    ...item,
-    altUOM: item.altUOM.toString(),
-  }));
-
-  console.log("new all item", allItems);
   let newTableGd = await createTableGdWithBaseUOM(allItems);
 
-  // Update table_gd with empty insufficient dialog (will be populated by checkInventoryWithDuplicates)
-  this.setData({
-    table_gd: newTableGd,
+  const latestTableGD = [...existingGD, ...newTableGd];
+
+  soId = [...new Set(latestTableGD.map((gr) => gr.line_so_id))];
+  salesOrderNumber = [...new Set(latestTableGD.map((gr) => gr.line_so_no))];
+
+  await this.setData({
+    currency_code:
+      referenceType === "Document"
+        ? currentItemArray[0].currency
+        : currentItemArray[0].sales_order.so_currency,
+    customer_name:
+      referenceType === "Document"
+        ? currentItemArray[0].customer_id
+        : currentItemArray[0].customer_id.id,
+    table_gd: latestTableGD,
+    so_no: salesOrderNumber.join(", "),
+    so_id: soId,
+    reference_type: referenceType,
     dialog_insufficient: {
       table_insufficient: [], // Will be populated by checkInventoryWithDuplicates
     },
-  }).then(() => {
-    this.hideLoading();
   });
 
   setTimeout(async () => {
     try {
       const plantId = this.getValue("plant_id");
+      const newItems = allItems.filter((item) => {
+        return !existingGD.find(
+          (gdItem) => gdItem.so_line_item_id === item.so_line_item_id,
+        );
+      });
 
-      // Use the enhanced inventory checking function with serialized item support
       const insufficientItems = await checkInventoryWithDuplicates(
-        allItems,
+        newItems,
         plantId,
+        existingGD.length,
       );
 
-      // Show insufficient dialog if there are any shortfalls
       if (insufficientItems.length > 0) {
         console.log(
           "Materials with insufficient inventory:",
@@ -1112,11 +1186,11 @@ const createTableGdWithBaseUOM = async (allItems) => {
         this.openDialog("dialog_insufficient");
       }
 
-      console.log(
-        "Finished populating table_gd items with serialized item support",
-      );
+      console.log("Finished populating table_gd items");
     } catch (error) {
       console.error("Error in inventory check:", error);
     }
   }, 200);
+
+  this.hideLoading();
 })();

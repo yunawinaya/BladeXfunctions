@@ -220,10 +220,14 @@ const buildItemsFromHU = (sourceTempDataStr) => {
     }
 
     selectTab("tab_items");
-    if (repackType === "Load") {
-      hideTab("tab_source_hu");
-    }
+    hideTab("tab_source_hu");
     hideTab("tab_target_hu");
+
+    if (repackType === "Unload") {
+      this.hide("dialog_repack.button_target_hu");
+    } else {
+      this.display("dialog_repack.button_target_hu");
+    }
 
     await this.openDialog("dialog_repack");
 

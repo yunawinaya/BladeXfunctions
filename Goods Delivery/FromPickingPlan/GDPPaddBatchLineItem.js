@@ -107,6 +107,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         gd_order_uom_id: itemData.based_uom, // Base UOM
         good_delivery_uom_id: itemData.based_uom, // Base UOM
         base_uom_id: itemData.based_uom,
+        base_qty: remainingToDeliverBase, // gd_qty in base UOM
         unit_price: item.unit_price || 0,
         total_price: item.total_price || 0,
         line_so_no: item.so_no,
@@ -145,6 +146,9 @@ const createTableGdWithBaseUOM = async (allItems) => {
         gd_order_uom_id: item.altUOM,
         good_delivery_uom_id: item.altUOM,
         base_uom_id: item.baseUOM,
+        base_qty: roundQty(
+          convertToBaseUOM(remainingToDeliver, item.altUOM, itemData || {}),
+        ), // gd_qty in base UOM
         unit_price: item.unit_price || 0,
         total_price: item.total_price || 0,
         line_so_no: item.so_no,

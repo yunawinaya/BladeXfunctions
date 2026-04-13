@@ -108,9 +108,8 @@ const selectTab = (tabName) => {
     }));
 
     selectTab("tab_target_hu");
-    if (repackType === "Load") {
-      hideTab("tab_source_hu");
-    }
+    hideTab("tab_items");
+    hideTab("tab_source_hu");
 
     await this.openDialog("dialog_repack");
 

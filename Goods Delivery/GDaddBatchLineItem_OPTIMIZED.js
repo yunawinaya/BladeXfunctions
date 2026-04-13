@@ -496,6 +496,7 @@ const checkInventoryWithDuplicates = async (
           total_price: item.sourceItem.so_amount || 0,
           item_costing_method: "",
           gd_qty: suggestedQty,
+          base_qty: suggestedQty, // no item data → no UOM conversion possible
         };
 
         fieldsToDisable.push(`table_gd.${index}.gd_delivery_qty`);
@@ -541,6 +542,9 @@ const checkInventoryWithDuplicates = async (
           total_price: item.sourceItem.so_amount || 0,
           item_costing_method: itemData.material_costing_method,
           gd_qty: suggestedQty,
+          base_qty: roundQty(
+            convertToBaseUOM(suggestedQty, item.altUOM, itemData),
+          ),
           gd_undelivered_qty: 0,
         };
 
@@ -752,6 +756,7 @@ const checkInventoryWithDuplicates = async (
 
           // Insufficient stock - don't fill gd_qty
           tableGdArray[index].gd_qty = 0;
+          tableGdArray[index].base_qty = 0;
         });
       } else {
         // Non-serialized items
@@ -812,6 +817,7 @@ const checkInventoryWithDuplicates = async (
 
           // Insufficient stock - don't fill gd_qty
           tableGdArray[index].gd_qty = 0;
+          tableGdArray[index].base_qty = 0;
         });
       }
 
@@ -843,6 +849,7 @@ const checkInventoryWithDuplicates = async (
             `table_gd.${index}.gd_delivery_qty`,
           );
           tableGdArray[index].gd_qty = 0;
+          tableGdArray[index].base_qty = 0;
         } else {
           if (itemData.serial_number_management === 1) {
             // Serialized - use base UOM
@@ -872,6 +879,8 @@ const checkInventoryWithDuplicates = async (
             } else {
               tableGdArray[index].gd_qty = finalQtyBase;
             }
+            // Serialized: gd_qty already in base UOM
+            tableGdArray[index].base_qty = tableGdArray[index].gd_qty;
           } else {
             // Non-serialized - fill gd_qty only (allocation deferred to workflow)
             if (pickingMode === "Manual") {
@@ -880,6 +889,13 @@ const checkInventoryWithDuplicates = async (
             } else {
               tableGdArray[index].gd_qty = finalQty;
             }
+            tableGdArray[index].base_qty = roundQty(
+              convertToBaseUOM(
+                tableGdArray[index].gd_qty,
+                item.altUOM,
+                itemData,
+              ),
+            );
           }
         }
       });
