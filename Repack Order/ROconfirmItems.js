@@ -38,17 +38,35 @@ const buildItemDetails = async (selectedItems, handlingNo) => {
   const uomMap = new Map();
   (uomRes.data || []).forEach((u) => uomMap.set(u.id, u.uom_name));
 
-  const prefix = handlingNo ? `[HU: ${handlingNo}] ` : "[Inventory] ";
+  const sourceLabel = handlingNo ? `HU ${handlingNo}` : "Inventory";
 
-  return selectedItems
-    .map((it) => {
-      const name = it.material_name || it.material_id;
-      const batchName = it.batch_id ? batchMap.get(it.batch_id) || "" : "";
-      const uomName = it.material_uom ? uomMap.get(it.material_uom) || "" : "";
-      const batchPart = batchName ? ` [Batch: ${batchName}]` : "";
-      return `${prefix}${name}${batchPart} - ${it.unload_quantity} ${uomName}`.trim();
-    })
-    .join("\n");
+  const lines = selectedItems.map((it, index) => {
+    const name = it.material_name || it.material_id;
+    const batchName = it.batch_id ? batchMap.get(it.batch_id) || "" : "";
+    const uomName = it.material_uom ? uomMap.get(it.material_uom) || "" : "";
+    const qty = parseFloat(it.unload_quantity) || 0;
+    let line = `${index + 1}. ${name} — ${qty} ${uomName}`.trimEnd();
+    if (batchName) line += `\n   Batch: ${batchName}`;
+    return line;
+  });
+
+  // Total per UOM (in case of mixed UOMs, show each)
+  const totalsByUom = selectedItems.reduce((acc, it) => {
+    const uomName = it.material_uom ? uomMap.get(it.material_uom) || "" : "";
+    acc[uomName] = (acc[uomName] || 0) + (parseFloat(it.unload_quantity) || 0);
+    return acc;
+  }, {});
+  const totalLine = Object.entries(totalsByUom)
+    .map(([uom, qty]) => `${qty} ${uom}`.trim())
+    .join(", ");
+
+  return [
+    `Source: ${sourceLabel}`,
+    `Total: ${totalLine}`,
+    "",
+    "DETAILS:",
+    ...lines,
+  ].join("\n");
 };
 
 (async () => {

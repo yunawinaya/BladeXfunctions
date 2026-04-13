@@ -1,6 +1,32 @@
 (async () => {
   const repackType = arguments[0]?.value ?? (await this.getValue("repack_type"));
 
+  const existingRepack = this.getValue("table_repack") || [];
+  const hasData = existingRepack.some(
+    (row) =>
+      row &&
+      (row.handling_unit_id ||
+        row.target_hu_id ||
+        row.source_temp_data ||
+        row.target_temp_data ||
+        row.items_temp_data ||
+        row.item_details),
+  );
+
+  if (hasData) {
+    this.$alert(
+      "Changing the repack type has <strong>reset all repack lines</strong>.",
+      "Repack Type Changed",
+      {
+        confirmButtonText: "OK",
+        type: "warning",
+        dangerouslyUseHTMLString: true,
+      },
+    );
+  }
+
+  await this.setData({ table_repack: [] });
+
   const sourceHuCols = [
     "table_repack.button_source_hu",
     "table_repack.handling_unit_id",
