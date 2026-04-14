@@ -372,15 +372,15 @@
                                     "id": 1774515301634,
                                     "parentId": 1774515301632,
                                     "isTop": false,
-                                    "prop": "id",
-                                    "operator": "in",
+                                    "prop": "material_id",
+                                    "operator": "equal",
                                     "valueType": "field",
                                     "value": "{{workflowparams:hu_material_id}}",
                                     "type": "leaf",
                                     "level": 2,
-                                    "propLabel": "主键ID",
+                                    "propLabel": "Material",
                                     "valueLabel": "",
-                                    "operatorLabel": "In"
+                                    "operatorLabel": "Equal"
                                   },
                                   {
                                     "id": 1774515301636,
