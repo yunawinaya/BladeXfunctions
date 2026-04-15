@@ -249,6 +249,60 @@ const disabledPickedQtyField = async () => {
   }
 };
 
+const HU_HEADER_FIELDS = ["handling_unit_id", "hu_select"];
+
+const createHeaderRows = async () => {
+  const rows = this.getValue("table_picking_items") || [];
+  if (rows.length === 0) return;
+
+  if (rows.some((r) => r.row_type === "header")) return;
+
+  const newRows = [];
+  let lastHuId = null;
+
+  for (const row of rows) {
+    const huId = row.handling_unit_id;
+    if (huId && huId !== lastHuId) {
+      newRows.push({
+        row_type: "header",
+        handling_unit_id: huId,
+        hu_select: 0,
+      });
+      lastHuId = huId;
+    } else if (!huId) {
+      lastHuId = null;
+    }
+    newRows.push({ ...row, row_type: "item" });
+  }
+
+  if (newRows.length !== rows.length) {
+    await this.setData({ table_picking_items: newRows });
+  }
+};
+
+const applyHUVisibility = async () => {
+  const rows = this.getValue("table_picking_items") || [];
+  if (rows.length === 0) return;
+
+  const sampleItem = rows.find((r) => r.row_type !== "header");
+  if (!sampleItem) return;
+
+  const itemFields = Object.keys(sampleItem).filter(
+    (k) => !HU_HEADER_FIELDS.includes(k) && k !== "row_type",
+  );
+
+  for (const [i, row] of rows.entries()) {
+    if (row.row_type === "header") {
+      for (const f of HU_HEADER_FIELDS) {
+        await this.display(`table_picking_items.${i}.${f}`);
+      }
+      for (const f of itemFields) {
+        await this.hide(`table_picking_items.${i}.${f}`);
+      }
+    }
+  }
+};
+
 const PickingPlan = async () => {
   try {
     const pickingSetup = await db
@@ -327,6 +381,8 @@ const PickingPlan = async () => {
           await viewSerialNumber();
           await setSerialNumber();
         }
+        await createHeaderRows();
+        await applyHUVisibility();
         await PickingPlan();
         break;
 
@@ -347,6 +403,8 @@ const PickingPlan = async () => {
           "table_picking_item onMounted",
           this.getValue("table_picking_items"),
         );
+        await createHeaderRows();
+        await applyHUVisibility();
         await PickingPlan();
         break;
 
@@ -361,6 +419,8 @@ const PickingPlan = async () => {
           "button_completed",
         ]);
         await viewSerialNumber();
+        await createHeaderRows();
+        await applyHUVisibility();
         await PickingPlan();
         break;
     }

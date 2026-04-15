@@ -1,0 +1,401 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "开始节点",
+        "nodeName": "开始节点",
+        "name": "开始节点",
+        "run_filter": {
+          "list": [
+            {
+              "id": 1762397554389,
+              "parentId": 1762397554388,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_IUyBiDce",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Goods Delivery:Table:1902054888473481218",
+          "rules": {
+            "collectionId": "1902054888473481218",
+            "list": [
+              {
+                "id": 1762397778691,
+                "parentId": 1762397778690,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:gd_ids}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get GD Data",
+        "isValidator": true,
+        "nodeName": "Get GD Data",
+        "name": "Get GD Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_PYFZeGpr",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Picking Data",
+        "isValidator": true,
+        "nodeName": "Map Picking Data",
+        "name": "Map Picking Data",
+        "script": {
+          "type": "javascript",
+          "code": "const mapLineItem = (gdData) => {\n  let tablePickingItems = [];\n  const pickingItemGroups = new Map();\n\n  for (const item of gdData.table_gd) {\n    if (item.temp_qty_data && item.material_id) {\n      const tempData = JSON.parse(item.temp_qty_data);\n      for (const tempItem of tempData) {\n        const materialId = String(tempItem.material_id) || String(item.material_id);\n        const groupKey = `${item.id}_${materialId}_${\n          tempItem.batch_id || \"no-batch\"\n        }_${tempItem.location_id}`;\n\n        if (!pickingItemGroups.has(groupKey)) {\n          pickingItemGroups.set(groupKey, {\n            item_code: String(materialId),\n            item_name: item.material_name,\n            item_desc: item.gd_material_desc || \"\",\n            batch_no: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            qty_to_pick: 0,\n            item_uom: String(item.good_delivery_uom_id),\n            source_bin: String(tempItem.location_id),\n            pending_process_qty: 0,\n            line_status: \"Open\",\n            so_no: item.line_so_no,\n            gd_no: gdData.delivery_no,\n            so_id: String(item.line_so_id),\n            so_line_id: String(item.so_line_item_id),\n            gd_id: String(gdData.id),\n            gd_line_id: String(item.id),\n            serial_numbers: [],\n            is_serialized_item: 0,\n          });\n\n        }\n\n        const group = pickingItemGroups.get(groupKey);\n        group.qty_to_pick += parseFloat(tempItem.gd_quantity);\n        group.pending_process_qty += parseFloat(tempItem.gd_quantity);\n\n        if (tempItem.serial_number) {\n          group.serial_numbers.push(String(tempItem.serial_number));\n          group.is_serialized_item = 1;\n        }\n      }\n    }\n  }\n  \n  for (const group of pickingItemGroups.values()) {\n    if (group.serial_numbers.length > 0) {\n      group.serial_numbers = group.serial_numbers.join(\", \");\n    } else {\n      delete group.serial_numbers;\n    }\n\n    tablePickingItems.push({ ...group });\n  }\n\n  return tablePickingItems;\n};\n\nconst mapToPickingData = (\n  pickingLineItemPromises,\n  gdIDs,\n  gdNos,\n  soNos,\n  gdCustomers,\n  plantID\n) => {\n  return {\n    so_no: soNos,\n    delivery_no: gdNos,\n    gd_no: gdIDs,\n    ref_doc_type: \"Goods Delivery\",\n    table_picking_items: pickingLineItemPromises,\n    customer_id: gdCustomers,\n    plant_id: plantID,\n  };\n};\n\nlet gdData = {{node:search_node_IUyBiDce.data.data}};\ngdData = gdData.map((item) => ({\n  ...item,\n  table_gd: item.table_gd.filter((gdItem) => gdItem.picking_status === 'Not Created')\n}));\n\nconst gdIDs = gdData.map((gd) => String(gd.id));\nconst gdNos = gdData.map((gd) => gd.delivery_no).join(', ');\nconst soNos = [\n  ...new Set(gdData.flatMap((gd) => gd.so_no.split(', ')))\n].join(', ');\nconst gdCustomers = [ ...new Set(gdData.map((gd) => String(gd.customer_name)))];\nconst plantID = {{workflowparams:plant_id}};\nlet pickingLineItemPromises = [];\n\nfor(const gd of gdData) {\n  const lineItemPromise = mapLineItem(gd);\n  pickingLineItemPromises.push(...lineItemPromise);\n}\n\nconst pickingData = mapToPickingData(pickingLineItemPromises, gdIDs, gdNos, soNos, gdCustomers, plantID);\n\nreturn pickingData;"
+        },
+        "response_json": [
+          {
+            "key": "22jrgwnb",
+            "name": "so_no",
+            "title": "SO No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "vwpjoz6y",
+            "name": "delivery_no",
+            "title": "GD No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "l8wtscoz",
+            "name": "gd_no",
+            "title": "GD IDs",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "vwdnzlnr",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
+            ]
+          },
+          {
+            "key": "ksn3gbax",
+            "name": "customer_id",
+            "title": "Customer IDs",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "3f8qqiof",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
+            ]
+          },
+          {
+            "key": "5xjz9yfr",
+            "name": "plant_id",
+            "title": "Plant ID",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "430dg6wm",
+            "name": "table_picking_items",
+            "title": "Table Picking Item",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "969yem15",
+                "name": "items",
+                "title": "Items",
+                "description": "",
+                "bsonType": "object",
+                "isExpand": true,
+                "isArrayItem": true,
+                "children": [
+                  {
+                    "key": "788io7ro",
+                    "name": "item_code",
+                    "title": "Item Code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "x9ipl49o",
+                    "name": "item_name",
+                    "title": "Item Name",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "tyzhwp0k",
+                    "name": "item_desc",
+                    "title": "Item Desc",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "r713o15c",
+                    "name": "batch_no",
+                    "title": "Batch No",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "34bmw0bg",
+                    "name": "qty_to_pick",
+                    "title": "Qty to Pick",
+                    "description": "",
+                    "bsonType": "decimal",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "307qgcfk",
+                    "name": "item_uom",
+                    "title": "Item UOM",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "7bt74jua",
+                    "name": "source_bin",
+                    "title": "Source Bin",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "4yxvn7fe",
+                    "name": "pending_process_qty",
+                    "title": "Pending Process Qty",
+                    "description": "",
+                    "bsonType": "decimal",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "g4dcfe42",
+                    "name": "line_status",
+                    "title": "Line Status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "qy2md0sj",
+                    "name": "so_no",
+                    "title": "SO No",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "ru6ukt4u",
+                    "name": "gd_no",
+                    "title": "GD No",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "53yl259i",
+                    "name": "so_id",
+                    "title": "SO ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "yywh6azp",
+                    "name": "so_line_id",
+                    "title": "SO Line ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "2yv53t3l",
+                    "name": "gd_id",
+                    "title": "GD ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "34l0yauo",
+                    "name": "gd_line_id",
+                    "title": "GD Line ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "erdmi2vm",
+                    "name": "serial_numbers",
+                    "title": "Serial Numbers",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "8r8e1ogi",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "isArrayItem": true
+                      }
+                    ]
+                  },
+                  {
+                    "key": "xvyp7xnk",
+                    "name": "is_serialized_item",
+                    "title": "Is Serialized Item",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "swjmgfnc",
+            "name": "ref_doc_type",
+            "title": "ref_doc_type",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_yhvAaVn7",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+          "list": [
+            {
+              "prop": "data",
+              "propLabel": "Data",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_PYFZeGpr.data}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "结束节点" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "iejzaduc",
+      "name": "gd_ids",
+      "title": "GD IDs",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "c9lnj9q6",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "isArrayItem": true
+        }
+      ]
+    },
+    {
+      "key": "6hh7qrsn",
+      "name": "plant_id",
+      "title": "Plant ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "m63mnpxh",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}
