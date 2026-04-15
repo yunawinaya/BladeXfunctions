@@ -371,19 +371,21 @@ const PickingPlan = async () => {
 })();
 
 setTimeout(async () => {
-  if (this.isAdd) {
+  if (!this.isAdd) return;
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
     const op = await this.onDropdownVisible("to_id_type", true);
-    function getDefaultItem(arr) {
-      return arr?.find((item) => item?.item?.item?.is_default === 1);
-    }
-    setTimeout(() => {
-      const optionsData = this.getOptionData("to_id_type") || [];
-      const data = getDefaultItem(optionsData);
-      if (data) {
-        this.setData({
-          to_id_type: data.value,
-        });
-      }
-    }, 500);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+
+  const optionsData = this.getOptionData("to_id_type") || [];
+  const data = getDefaultItem(optionsData);
+  if (data) {
+    this.setData({ to_id_type: data.value });
   }
 }, 500);

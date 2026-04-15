@@ -48,7 +48,7 @@
             if (picking.is_serialized_item === 1) {
               console.log(
                 `Processing serialized item at index ${index}:`,
-                picking.item_code || picking.id
+                picking.item_code || picking.id,
               );
 
               // Check if serial_numbers exists and is not empty
@@ -60,7 +60,7 @@
                 picking.serial_numbers.trim() === ""
               ) {
                 console.warn(
-                  `No valid serial numbers found for item at index ${index}`
+                  `No valid serial numbers found for item at index ${index}`,
                 );
                 continue;
               }
@@ -75,20 +75,20 @@
 
               if (serialNumbers.length === 0) {
                 console.warn(
-                  `No valid serial numbers after processing for item at index ${index}`
+                  `No valid serial numbers after processing for item at index ${index}`,
                 );
                 continue;
               }
 
               console.log(
                 `Setting ${serialNumbers.length} serial numbers for item at index ${index}:`,
-                serialNumbers
+                serialNumbers,
               );
 
               // Set option data for select dropdown
               await this.setOptionData(
                 [`table_picking_items.${index}.select_serial_number`],
-                serialNumbers
+                serialNumbers,
               );
 
               // Set the actual data
@@ -100,17 +100,17 @@
               // Disable picked_qty field for serialized items
               await this.disabled(
                 [`table_picking_items.${index}.picked_qty`],
-                true
+                true,
               );
 
               console.log(
-                `Successfully set serial numbers for item at index ${index}`
+                `Successfully set serial numbers for item at index ${index}`,
               );
             }
           } catch (itemError) {
             console.error(
               `Error processing item at index ${index}:`,
-              itemError
+              itemError,
             );
             // Continue with next item instead of breaking the entire function
             continue;
@@ -193,7 +193,7 @@
             }
           } catch (error) {
             console.error(
-              `Error parsing temp_qty_data for picking: ${error.message}`
+              `Error parsing temp_qty_data for picking: ${error.message}`,
             );
           }
         }
