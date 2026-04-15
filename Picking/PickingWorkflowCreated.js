@@ -17,6 +17,14 @@ const closeDialog = (data) => {
     const data = this.getValues();
     console.log("data", data);
 
+    // Header rows in table_picking_items exist for display only — strip them
+    // before sending to the workflow.
+    if (Array.isArray(data.table_picking_items)) {
+      data.table_picking_items = data.table_picking_items.filter(
+        (row) => row.row_type !== "header",
+      );
+    }
+
     // Ensure data is an array
     const arrayData = Array.isArray(data) ? data : [data];
 

@@ -249,7 +249,23 @@ const disabledPickedQtyField = async () => {
   }
 };
 
-const HU_HEADER_FIELDS = ["handling_unit_id", "hu_select"];
+const HU_SELECT_ALLOWED_POLICIES = ["FULL_HU_PICK", "NO_SPLIT"];
+
+const fetchPickingSetup = async () => {
+  try {
+    const res = await db
+      .collection("picking_setup")
+      .where({
+        plant_id: this.getValue("plant_id"),
+        picking_required: 1,
+      })
+      .get();
+    return res.data && res.data.length > 0 ? res.data[0] : null;
+  } catch (error) {
+    console.error("fetchPickingSetup error:", error);
+    return null;
+  }
+};
 
 const createHeaderRows = async () => {
   const rows = this.getValue("table_picking_items") || [];
@@ -280,51 +296,74 @@ const createHeaderRows = async () => {
   }
 };
 
-const applyHUVisibility = async () => {
+const applyHUVisibility = async (pickingSetup) => {
   const rows = this.getValue("table_picking_items") || [];
   if (rows.length === 0) return;
 
+  const splitPolicy = pickingSetup ? pickingSetup.split_policy : null;
+  const huSelectEnabled = HU_SELECT_ALLOWED_POLICIES.includes(splitPolicy);
+
+  // Fields shown on header rows only. handling_unit_id always; hu_select only
+  // when split_policy permits it.
+  const headerFields = huSelectEnabled
+    ? ["handling_unit_id", "hu_select"]
+    : ["handling_unit_id"];
+
+  // Step 1: enable header columns table-wide so per-row visibility can take effect
+  for (const f of headerFields) {
+    await this.display(`table_picking_items.${f}`);
+  }
+
   const sampleItem = rows.find((r) => r.row_type !== "header");
-  if (!sampleItem) return;
+  const itemFields = sampleItem
+    ? Object.keys(sampleItem).filter(
+        (k) => !headerFields.includes(k) && k !== "row_type",
+      )
+    : [];
 
-  const itemFields = Object.keys(sampleItem).filter(
-    (k) => !HU_HEADER_FIELDS.includes(k) && k !== "row_type",
-  );
+  // picked_qty has a validator rule and remark accepts input — disable them
+  // on header rows so they don't trigger validation or accept input while hidden
+  const HEADER_DISABLE_FIELDS = ["picked_qty", "remark"];
 
+  // Step 2: per-row show/hide
   for (const [i, row] of rows.entries()) {
     if (row.row_type === "header") {
-      for (const f of HU_HEADER_FIELDS) {
-        await this.display(`table_picking_items.${i}.${f}`);
-      }
       for (const f of itemFields) {
+        await this.hide(`table_picking_items.${i}.${f}`);
+      }
+      for (const f of HEADER_DISABLE_FIELDS) {
+        await this.disabled(`table_picking_items.${i}.${f}`, true);
+      }
+    } else {
+      for (const f of headerFields) {
         await this.hide(`table_picking_items.${i}.${f}`);
       }
     }
   }
+
+  // Step 3: under whole-HU policies, users can only pick by toggling hu_select
+  // on the header, so picked_qty is disabled on every row.
+  if (huSelectEnabled) {
+    for (const [i] of rows.entries()) {
+      await this.disabled(`table_picking_items.${i}.picked_qty`, true);
+    }
+  }
 };
 
-const PickingPlan = async () => {
+const PickingPlan = async (pickingSetup) => {
   try {
-    const pickingSetup = await db
-      .collection("picking_setup")
-      .where({
-        plant_id: this.getValue("plant_id"),
-        picking_required: 1,
-      })
-      .get();
+    if (!pickingSetup) return;
 
-    if (pickingSetup.data && pickingSetup.data.length > 0) {
-      if (pickingSetup.data[0].picking_after === "Goods Delivery") {
-        await this.display(["button_completed"]);
-      } else if (pickingSetup.data[0].picking_after === "Sales Order") {
-        await this.display(["to_validity_period", "to_no"]);
-        await this.hide(["gd_no", "delivery_no"]);
-      } else {
-        await this.display(["button_completed"]);
-      }
+    if (pickingSetup.picking_after === "Goods Delivery") {
+      await this.display(["button_completed"]);
+    } else if (pickingSetup.picking_after === "Sales Order") {
+      await this.display(["to_validity_period", "to_no"]);
+      await this.hide(["gd_no", "delivery_no"]);
+    } else {
+      await this.display(["button_completed"]);
     }
 
-    const isLoadingBay = pickingSetup.data[0].is_loading_bay;
+    const isLoadingBay = pickingSetup.is_loading_bay;
     await this.setData({
       is_loading_bay: isLoadingBay,
     });
@@ -381,9 +420,12 @@ const PickingPlan = async () => {
           await viewSerialNumber();
           await setSerialNumber();
         }
-        await createHeaderRows();
-        await applyHUVisibility();
-        await PickingPlan();
+        {
+          const pickingSetup = await fetchPickingSetup();
+          await createHeaderRows();
+          await applyHUVisibility(pickingSetup);
+          await PickingPlan(pickingSetup);
+        }
         break;
 
       case "Edit":
@@ -403,9 +445,12 @@ const PickingPlan = async () => {
           "table_picking_item onMounted",
           this.getValue("table_picking_items"),
         );
-        await createHeaderRows();
-        await applyHUVisibility();
-        await PickingPlan();
+        {
+          const pickingSetup = await fetchPickingSetup();
+          await createHeaderRows();
+          await applyHUVisibility(pickingSetup);
+          await PickingPlan(pickingSetup);
+        }
         break;
 
       case "View":
@@ -419,9 +464,12 @@ const PickingPlan = async () => {
           "button_completed",
         ]);
         await viewSerialNumber();
-        await createHeaderRows();
-        await applyHUVisibility();
-        await PickingPlan();
+        {
+          const pickingSetup = await fetchPickingSetup();
+          await createHeaderRows();
+          await applyHUVisibility(pickingSetup);
+          await PickingPlan(pickingSetup);
+        }
         break;
     }
   } catch (error) {
