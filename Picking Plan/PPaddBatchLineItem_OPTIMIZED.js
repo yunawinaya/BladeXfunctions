@@ -597,6 +597,14 @@ const checkInventoryWithDuplicates = async (
       collectionUsed = "item_balance";
     }
 
+    // Filter out zero-stock balance rows so UI branching (single vs multi
+    // balance) and allocation only consider rows with usable stock.
+    balanceData = balanceData.filter(
+      (b) =>
+        (parseFloat(b.unrestricted_qty) || 0) > 0 &&
+        (parseFloat(b.balance_quantity) || 0) > 0,
+    );
+
     // Calculate total available stock (unrestricted + pending reserved for these SO lines)
     const totalUnrestrictedQtyBase = balanceData.reduce(
       (sum, balance) => sum + (balance.unrestricted_qty || 0),

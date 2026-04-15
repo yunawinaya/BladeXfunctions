@@ -303,21 +303,18 @@ const applyHUVisibility = async (pickingSetup) => {
   const splitPolicy = pickingSetup ? pickingSetup.split_policy : null;
   const huSelectEnabled = HU_SELECT_ALLOWED_POLICIES.includes(splitPolicy);
 
-  // Fields shown on header rows only. handling_unit_id always; hu_select only
-  // when split_policy permits it.
-  const headerFields = huSelectEnabled
-    ? ["handling_unit_id", "hu_select"]
-    : ["handling_unit_id"];
+  // handling_unit_id: enable column-wide so it can be shown on headers; we
+  // then per-row hide it on item rows.
+  // hu_select: stays hidden by JSON default; we per-row display it on header
+  // rows only (and only when split_policy permits). This avoids leaking it
+  // onto item rows.
+  await this.display("table_picking_items.handling_unit_id");
 
-  // Step 1: enable header columns table-wide so per-row visibility can take effect
-  for (const f of headerFields) {
-    await this.display(`table_picking_items.${f}`);
-  }
-
+  const HU_FIELDS = ["handling_unit_id", "hu_select"];
   const sampleItem = rows.find((r) => r.row_type !== "header");
   const itemFields = sampleItem
     ? Object.keys(sampleItem).filter(
-        (k) => !headerFields.includes(k) && k !== "row_type",
+        (k) => !HU_FIELDS.includes(k) && k !== "row_type",
       )
     : [];
 
@@ -325,27 +322,31 @@ const applyHUVisibility = async (pickingSetup) => {
   // on header rows so they don't trigger validation or accept input while hidden
   const HEADER_DISABLE_FIELDS = ["picked_qty", "remark"];
 
-  // Step 2: per-row show/hide
   for (const [i, row] of rows.entries()) {
     if (row.row_type === "header") {
       for (const f of itemFields) {
         await this.hide(`table_picking_items.${i}.${f}`);
       }
+      if (huSelectEnabled) {
+        await this.display(`table_picking_items.${i}.hu_select`);
+      }
       for (const f of HEADER_DISABLE_FIELDS) {
         await this.disabled(`table_picking_items.${i}.${f}`, true);
       }
     } else {
-      for (const f of headerFields) {
-        await this.hide(`table_picking_items.${i}.${f}`);
-      }
+      await this.hide(`table_picking_items.${i}.handling_unit_id`);
+      // hu_select stays hidden by JSON default on item rows — no per-row call needed
     }
   }
 
-  // Step 3: under whole-HU policies, users can only pick by toggling hu_select
-  // on the header, so picked_qty is disabled on every row.
+  // Under whole-HU policies, picked_qty on HU-allocated item rows is driven
+  // by the header's hu_select — disable manual entry. Loose item rows (no
+  // handling_unit_id) stay editable. Header rows were already disabled above.
   if (huSelectEnabled) {
-    for (const [i] of rows.entries()) {
-      await this.disabled(`table_picking_items.${i}.picked_qty`, true);
+    for (const [i, row] of rows.entries()) {
+      if (row.row_type !== "header" && row.handling_unit_id) {
+        await this.disabled(`table_picking_items.${i}.picked_qty`, true);
+      }
     }
   }
 };
