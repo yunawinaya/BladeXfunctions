@@ -98,6 +98,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         material_id: item.itemId || "",
         material_name: item.itemName || "",
         gd_material_desc: item.itemDesc || "",
+        more_desc: item.moreDesc || "",
         gd_order_quantity: soOrderedQtyBase, // Original SO qty in base UOM
         plan_qty: remainingToDeliverBase, // Remaining to deliver (to_qty - gd_delivered_qty)
         gd_qty: remainingToDeliverBase, // Auto-allocated to remaining qty
@@ -137,6 +138,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         material_id: item.itemId || "",
         material_name: item.itemName || "",
         gd_material_desc: item.itemDesc || "",
+        more_desc: item.moreDesc || "",
         gd_order_quantity: soOrderedQty, // Original SO qty
         plan_qty: remainingToDeliver, // Remaining to deliver (to_qty - gd_delivered_qty)
         gd_qty: remainingToDeliver, // Auto-allocated to remaining qty
@@ -490,6 +492,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
               itemId: record.item_code,
               itemName: record.item_name,
               itemDesc: record.item_desc,
+              moreDesc: record.more_desc || "",
               orderedQty: parseFloat(orderedQty),
               pickedQty: storeOutQty,
               deliveredQty: deliveredQty,
@@ -545,6 +548,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
           itemId: group.itemId,
           itemName: group.itemName,
           itemDesc: group.itemDesc,
+          moreDesc: group.moreDesc || "",
           orderedQty: group.orderedQty,
           pickedQty: group.pickedQty,
           deliveredQty: group.deliveredQty,
@@ -605,8 +609,9 @@ const createTableGdWithBaseUOM = async (allItems) => {
           console.log("pickingItem (first in group)", pickingItem);
           groupedItemsItem.set(groupKey, {
             itemId: itemId,
-            itemName: pickingItem.item?.material_code || "",
-            itemDesc: "",
+            itemName: pickingItem.item_name || "",
+            itemDesc: pickingItem.item_desc || "",
+            moreDesc: pickingItem.more_desc || "",
             orderedQty: parseFloat(orderedQty),
             pickedQty: storeOutQty,
             deliveredQty: deliveredQty,
@@ -661,6 +666,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
           itemId: group.itemId,
           itemName: group.itemName,
           itemDesc: group.itemDesc,
+          moreDesc: group.moreDesc || "",
           orderedQty: group.orderedQty,
           pickedQty: group.pickedQty,
           deliveredQty: group.deliveredQty,
