@@ -314,6 +314,30 @@ const applySplitFieldStates = (stockMovement) => {
   }
 };
 
+const displaySelectHU = async (plantId) => {
+  if (!plantId) {
+    this.hide(["stock_movement.select_hu", "stock_movement.view_hu"]);
+    return;
+  }
+
+  const resPutAwaySetup = await db
+    .collection("putaway_setup")
+    .where({ plant_id: plantId, is_deleted: 0 })
+    .get();
+
+  setTimeout(() => {
+    if (
+      resPutAwaySetup &&
+      resPutAwaySetup.data.length > 0 &&
+      resPutAwaySetup.data[0].show_hu === 1
+    ) {
+      this.display(["stock_movement.select_hu", "stock_movement.view_hu"]);
+    } else {
+      this.hide(["stock_movement.select_hu", "stock_movement.view_hu"]);
+    }
+  }, 30);
+};
+
 const setPlant = (organizationId, pageStatus) => {
   const currentDept = this.getVarSystem("deptIds").split(",")[0];
   const isSameDept = currentDept === organizationId;
@@ -413,6 +437,7 @@ setTimeout(async () => {
         await initMovementReason();
         await checkAccIntegrationType(organizationId);
         await setStorageLocation(plantID);
+        await displaySelectHU(plantID);
         break;
 
       case "Edit":
@@ -447,6 +472,7 @@ setTimeout(async () => {
           data.stock_movement_status,
           pageStatus,
         );
+        await displaySelectHU(plantId);
         break;
 
       case "View":
@@ -461,6 +487,7 @@ setTimeout(async () => {
           data.stock_movement_status,
           pageStatus,
         );
+        await displaySelectHU(data.issuing_operation_faci);
         break;
     }
   } catch (error) {

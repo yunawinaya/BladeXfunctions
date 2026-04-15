@@ -51,7 +51,7 @@ const resetFormData = () => {
       }
       this.disabled(
         ["reference_doc", "ref_no_1", "ref_no_2", "table_gr"],
-        false
+        false,
       );
 
       const [resStorageLocation, resPutAwaySetup, resCategory] =
@@ -116,6 +116,20 @@ const resetFormData = () => {
 
       this.setData({ predefined_data: predefinedData });
       console.log(predefinedData);
+
+      if (putawaySetup && putawaySetup.putaway_required === 1) {
+        this.display("assigned_to");
+      } else {
+        this.hide("assigned_to");
+      }
+
+      if (putawaySetup && putawaySetup.show_hu === 1) {
+        this.display(["table_gr.select_hu", "table_gr.view_hu"]);
+      } else {
+        this.hide(["table_gr.select_hu", "table_gr.view_hu"]);
+      }
+    } else {
+      this.hide(["table_gr.select_hu", "table_gr.view_hu"]);
     }
   }, 50);
 })();

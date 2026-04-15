@@ -57,11 +57,8 @@
       await this.hide(targetHuCols);
       break;
     case "Transfer":
-      await this.display([
-        ...sourceHuCols,
-        ...targetWarehouseCols,
-        ...targetHuCols,
-      ]);
+      await this.hide(targetWarehouseCols);
+      await this.display([...sourceHuCols, ...targetHuCols]);
       break;
     default:
       break;

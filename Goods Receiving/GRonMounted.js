@@ -1,79 +1,3 @@
-const generatePrefix = (runNumber, now, prefixData) => {
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0")
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0")
-  );
-  return generated;
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("goods_receiving")
-    .where({ gr_no: generatedPrefix, organization_id: organizationId })
-    .get();
-  return existingDoc.data[0] ? false : true;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Goods Receiving number after maximum attempts"
-    );
-  }
-  return { prefixToShow, runningNumber };
-};
-
-const setPrefix = async (organizationId) => {
-  const prefixData = await getPrefixData(organizationId);
-
-  const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
-
-  this.setData({ gr_no: prefixToShow });
-};
-
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Goods Receiving",
-      is_deleted: 0,
-      organization_id: organizationId,
-    })
-    .get();
-  const prefixData = await prefixEntry.data[0];
-
-  if (prefixData.is_active === 0) {
-    this.disabled(["gr_no"], false);
-  }
-
-  return prefixData;
-};
-
 const displayAddress = async () => {
   const data = this.getValues();
 
@@ -148,7 +72,7 @@ const disabledEditField = async (status) => {
         "supplier_email",
         "plant_id",
       ],
-      true
+      true,
     );
 
     // Allow editing these fields
@@ -183,7 +107,7 @@ const disabledEditField = async (status) => {
         "billing_address_country",
         "shipping_address_country",
       ],
-      false
+      false,
     );
 
     // Enable batch number editing where applicable
@@ -241,7 +165,7 @@ const disabledEditField = async (status) => {
         "ref_no_1",
         "ref_no_2",
       ],
-      true
+      true,
     );
 
     this.hide([
@@ -299,8 +223,8 @@ const fetchReceivedQuantity = async () => {
       db
         .collection("purchase_order_2ukyuanr_sub")
         .doc(item.po_line_item_id)
-        .get()
-    )
+        .get(),
+    ),
   );
 
   const poLineItemData = resPOLineData.map((response) => response.data[0]);
@@ -331,7 +255,7 @@ const fetchReceivedQuantity = async () => {
         initial_received_qty: initialReceivedQty,
         to_received_qty: toReceivedQty,
       };
-    })
+    }),
   );
 
   this.setData({ table_gr: updatedTableGR });
@@ -375,16 +299,26 @@ const displayAssignedTo = async () => {
       plant_id: plant,
       is_deleted: 0,
       movement_type: "Good Receiving",
-      putaway_required: 1,
     })
     .get();
 
+  const setup =
+    resPutAwaySetup && resPutAwaySetup.data.length > 0
+      ? resPutAwaySetup.data[0]
+      : null;
+
   setTimeout(() => {
-    if (resPutAwaySetup && resPutAwaySetup.data.length > 0) {
+    if (setup && setup.putaway_required === 1) {
       console.log("resPutaway", resPutAwaySetup.data);
       this.display("assigned_to");
     } else {
       this.hide("assigned_to");
+    }
+
+    if (setup && setup.show_hu === 1) {
+      this.display(["table_gr.select_hu", "table_gr.view_hu"]);
+    } else {
+      this.hide(["table_gr.select_hu", "table_gr.view_hu"]);
     }
   }, 30);
 };
@@ -401,7 +335,7 @@ const hideSerialNumberRecordTab = () => {
         tab.style.display = "none";
       } else {
         const fallbackTab = document.querySelector(
-          '.el-drawer[role="dialog"] .el-tabs__item#tab-serial_number_records'
+          '.el-drawer[role="dialog"] .el-tabs__item#tab-serial_number_records',
         );
         if (fallbackTab) {
           fallbackTab.style.display = "none";
@@ -437,7 +371,7 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
               `table_gr.${index}.manufacturing_date`,
               `table_gr.${index}.expired_date`,
             ],
-            false
+            false,
           );
         } else {
           await this.disabled(
@@ -445,7 +379,7 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
               `table_gr.${index}.manufacturing_date`,
               `table_gr.${index}.expired_date`,
             ],
-            true
+            true,
           );
         }
       }
@@ -492,12 +426,12 @@ const checkAccIntegrationType = async (organizationId) => {
     const pageStatus = this.isAdd
       ? "Add"
       : this.isEdit
-      ? "Edit"
-      : this.isView
-      ? "View"
-      : (() => {
-          throw new Error("Invalid page status");
-        })();
+        ? "Edit"
+        : this.isView
+          ? "View"
+          : (() => {
+              throw new Error("Invalid page status");
+            })();
 
     let organizationId = this.getVarGlobal("deptParentId");
     if (organizationId === "0") {
@@ -513,7 +447,7 @@ const checkAccIntegrationType = async (organizationId) => {
         this.hide("button_completed");
         await setPlant(organizationId);
         await checkAccIntegrationType(organizationId);
-        await setPrefix(organizationId);
+        await displayAssignedTo();
         await hideSerialNumberRecordTab();
         if (this.getValue("plant_id")) {
           this.disabled("reference_doc", false);
@@ -525,7 +459,6 @@ const checkAccIntegrationType = async (organizationId) => {
         break;
 
       case "Edit":
-        await getPrefixData(organizationId);
         await disabledEditField(status);
         await displayAddress();
         await showStatusHTML(status);
@@ -544,7 +477,7 @@ const checkAccIntegrationType = async (organizationId) => {
         }
 
         const fromConvert = this.getValue("from_convert");
-
+        this.setData({ previous_status: status });
         if (fromConvert === "Yes") {
           console.log("trigger func_processGRLineItem");
           await this.triggerEvent("func_processGRLineItem");
@@ -567,3 +500,23 @@ const checkAccIntegrationType = async (organizationId) => {
     console.error(error);
   }
 })();
+
+setTimeout(async () => {
+  if (!this.isAdd) return;
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
+    const op = await this.onDropdownVisible("gr_no_type", true);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+
+  const optionsData = this.getOptionData("gr_no_type") || [];
+  const data = getDefaultItem(optionsData);
+  if (data) {
+    this.setData({ gr_no_type: data.value });
+  }
+}, 500);
