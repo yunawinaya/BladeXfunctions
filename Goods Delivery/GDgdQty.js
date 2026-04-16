@@ -41,6 +41,21 @@
     try {
       const tempDataArray = JSON.parse(existingTempData);
 
+      // Fetch item data for UOM conversion factor
+      const itemResultGDPP = await db
+        .collection("Item")
+        .where({ id: itemCode, is_deleted: 0 })
+        .get();
+      const itemDataGDPP = itemResultGDPP?.data?.[0];
+      const getBaseQtyFactorGDPP = (altUOM, itm) => {
+        if (!itm || !altUOM || altUOM === itm.based_uom) return 1;
+        const conv = itm.table_uom_conversion?.find(
+          (c) => c.alt_uom_id === altUOM,
+        );
+        return conv?.base_qty || 1;
+      };
+      const baseQtyFactorGDPP = getBaseQtyFactorGDPP(uomId, itemDataGDPP);
+
       // Calculate total to_quantity (ceiling from PP)
       const totalToQuantity = roundQty(tempDataArray.reduce((sum, item) => {
         return sum + parseFloat(item.to_quantity || 0);
@@ -171,6 +186,7 @@
           roundQty(orderedQty - totalDeliveredQty),
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify(updatedTempData),
+        [`table_gd.${rowIndex}.base_qty`]: roundQty(quantity * baseQtyFactorGDPP),
       });
 
       console.log(
