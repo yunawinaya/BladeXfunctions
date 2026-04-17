@@ -154,6 +154,20 @@ const roundQty = (value) => {
     const uomConversion =
       this.getValue(`table_gr.${rowIndex}.uom_conversion`) || 0;
 
+    // Fetch over-receive tolerance from Item master
+    const itemId = this.getValue(`table_gr.${rowIndex}.item_id`);
+    let overReceiveTolerance = 0;
+
+    if (itemId) {
+      const { data: itemData } = await db
+        .collection("Item")
+        .where({ id: itemId })
+        .get();
+      if (itemData && itemData.length > 0) {
+        overReceiveTolerance = itemData[0].over_receive_tolerance || 0;
+      }
+    }
+
     console.log("Calculation inputs:", {
       quantity,
       rowIndex,
@@ -161,6 +175,7 @@ const roundQty = (value) => {
       baseOrderedQty,
       initialReceivedQty,
       uomConversion,
+      overReceiveTolerance,
     });
 
     // Calculate remaining quantity to receive
@@ -168,20 +183,24 @@ const roundQty = (value) => {
 
     // Handle case when UOM conversion is 0 or not applicable
     if (quantity >= 0 && uomConversion === 0) {
-      if (quantity > toReceivedQty) {
+      // Calculate max allowed with over-receive tolerance
+      const maxAllowedQty = roundQty(
+        (toReceivedQty * (100 + overReceiveTolerance)) / 100
+      );
+
+      if (quantity > maxAllowedQty) {
         console.warn(
-          `Quantity (${quantity}) exceeds remaining quantity (${toReceivedQty})`,
+          `Quantity (${quantity}) exceeds max allowed quantity (${maxAllowedQty}) with ${overReceiveTolerance}% tolerance`,
         );
 
         await this.setData({
-          [`table_gr.${rowIndex}.received_qty`]: quantity,
-          [`table_gr.${rowIndex}.base_received_qty`]: quantity,
+          [`table_gr.${rowIndex}.received_qty`]: maxAllowedQty,
+          [`table_gr.${rowIndex}.base_received_qty`]: maxAllowedQty,
           [`table_gr.${rowIndex}.to_received_qty`]: 0,
         });
 
-        // Show warning message
         this.$message.warning(
-          `Received quantity exceeds remaining quantity. Remaining set to 0.`,
+          `Received quantity adjusted to maximum allowed: ${maxAllowedQty} (${overReceiveTolerance}% over-receive tolerance).`,
         );
         return;
       } else {
@@ -191,11 +210,11 @@ const roundQty = (value) => {
         await this.setData({
           [`table_gr.${rowIndex}.received_qty`]: quantity,
           [`table_gr.${rowIndex}.base_received_qty`]: quantity,
-          [`table_gr.${rowIndex}.to_received_qty`]: remainingQty,
+          [`table_gr.${rowIndex}.to_received_qty`]: remainingQty < 0 ? 0 : remainingQty,
         });
 
         console.log(
-          `Updated quantities - Received: ${quantity}, Remaining: ${remainingQty}`,
+          `Updated quantities - Received: ${quantity}, Remaining: ${remainingQty < 0 ? 0 : remainingQty}`,
         );
       }
     }
@@ -208,28 +227,33 @@ const roundQty = (value) => {
         initialReceivedQty * uomConversion,
       );
 
-      // Validate that we don't exceed base ordered quantity
-      if (roundQty(baseReceivedQty + baseInitialReceivedQty) > baseOrderedQty) {
+      // Calculate max allowed base qty with over-receive tolerance
+      const maxAllowedBaseQty = roundQty(
+        (baseOrderedQty * (100 + overReceiveTolerance)) / 100
+      );
+
+      // Validate that we don't exceed max allowed base quantity (with tolerance)
+      if (roundQty(baseReceivedQty + baseInitialReceivedQty) > maxAllowedBaseQty) {
         console.warn(
           `Base received quantity (${roundQty(
             baseReceivedQty + baseInitialReceivedQty,
-          )}) exceeds base ordered quantity (${baseOrderedQty})`,
+          )}) exceeds max allowed base quantity (${maxAllowedBaseQty}) with ${overReceiveTolerance}% tolerance`,
         );
 
         const maxAllowedQty = roundQty(
-          (baseOrderedQty - baseInitialReceivedQty) / uomConversion,
+          (maxAllowedBaseQty - baseInitialReceivedQty) / uomConversion,
         );
 
         await this.setData({
           [`table_gr.${rowIndex}.received_qty`]: maxAllowedQty,
           [`table_gr.${rowIndex}.base_received_qty`]: roundQty(
-            baseOrderedQty - baseInitialReceivedQty,
+            maxAllowedBaseQty - baseInitialReceivedQty,
           ),
-          [`table_gr.${rowIndex}.to_received_qty`]: "0,000",
+          [`table_gr.${rowIndex}.to_received_qty`]: 0,
         });
 
         this.$message.warning(
-          `Received quantity adjusted to maximum allowed: ${maxAllowedQty}`,
+          `Received quantity adjusted to maximum allowed: ${maxAllowedQty} (${overReceiveTolerance}% over-receive tolerance).`,
         );
         return;
       }
@@ -241,14 +265,15 @@ const roundQty = (value) => {
       await this.setData({
         [`table_gr.${rowIndex}.received_qty`]: quantity,
         [`table_gr.${rowIndex}.base_received_qty`]: baseReceivedQty,
-        [`table_gr.${rowIndex}.to_received_qty`]: remainingQty,
+        [`table_gr.${rowIndex}.to_received_qty`]: remainingQty < 0 ? 0 : remainingQty,
       });
 
       console.log("UOM conversion calculation:", {
         receivedQty: quantity,
         baseReceivedQty,
-        toReceivedQty: remainingQty,
+        toReceivedQty: remainingQty < 0 ? 0 : remainingQty,
         conversionFactor: uomConversion,
+        overReceiveTolerance,
       });
     }
 
