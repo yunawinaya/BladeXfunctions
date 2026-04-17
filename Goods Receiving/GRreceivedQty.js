@@ -135,13 +135,18 @@ const roundQty = (value) => {
       // Update the child's quantities
       const uomConversion =
         this.getValue(`table_gr.${rowIndex}.uom_conversion`) || 0;
+      const currentChildBaseQty =
+        this.getValue(`table_gr.${rowIndex}.base_received_qty`) || 0;
       const baseReceivedQty =
         uomConversion > 0 ? roundQty(quantity * uomConversion) : quantity;
 
-      await this.setData({
+      const childUpdates = {
         [`table_gr.${rowIndex}.received_qty`]: quantity,
-        [`table_gr.${rowIndex}.base_received_qty`]: baseReceivedQty,
-      });
+      };
+      if (currentChildBaseQty !== baseReceivedQty) {
+        childUpdates[`table_gr.${rowIndex}.base_received_qty`] = baseReceivedQty;
+      }
+      await this.setData(childUpdates);
       return;
     }
 
@@ -153,6 +158,8 @@ const roundQty = (value) => {
       this.getValue(`table_gr.${rowIndex}.initial_received_qty`) || 0;
     const uomConversion =
       this.getValue(`table_gr.${rowIndex}.uom_conversion`) || 0;
+    const currentBaseQty =
+      this.getValue(`table_gr.${rowIndex}.base_received_qty`) || 0;
 
     // Fetch over-receive tolerance from Item master
     const itemId = this.getValue(`table_gr.${rowIndex}.item_id`);
@@ -207,11 +214,13 @@ const roundQty = (value) => {
         const totalReceivedQty = roundQty(quantity + initialReceivedQty);
         const remainingQty = roundQty(orderedQty - totalReceivedQty);
 
-        await this.setData({
-          [`table_gr.${rowIndex}.received_qty`]: quantity,
-          [`table_gr.${rowIndex}.base_received_qty`]: quantity,
+        const updates = {
           [`table_gr.${rowIndex}.to_received_qty`]: remainingQty < 0 ? 0 : remainingQty,
-        });
+        };
+        if (currentBaseQty !== quantity) {
+          updates[`table_gr.${rowIndex}.base_received_qty`] = quantity;
+        }
+        await this.setData(updates);
 
         console.log(
           `Updated quantities - Received: ${quantity}, Remaining: ${remainingQty < 0 ? 0 : remainingQty}`,
@@ -262,11 +271,13 @@ const roundQty = (value) => {
       const totalReceivedQty = roundQty(quantity + initialReceivedQty);
       const remainingQty = roundQty(orderedQty - totalReceivedQty);
 
-      await this.setData({
-        [`table_gr.${rowIndex}.received_qty`]: quantity,
-        [`table_gr.${rowIndex}.base_received_qty`]: baseReceivedQty,
+      const updates = {
         [`table_gr.${rowIndex}.to_received_qty`]: remainingQty < 0 ? 0 : remainingQty,
-      });
+      };
+      if (currentBaseQty !== baseReceivedQty) {
+        updates[`table_gr.${rowIndex}.base_received_qty`] = baseReceivedQty;
+      }
+      await this.setData(updates);
 
       console.log("UOM conversion calculation:", {
         receivedQty: quantity,

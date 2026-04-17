@@ -28,6 +28,8 @@ const roundQty = (value) => {
       this.getValue(`table_gr.${rowIndex}.initial_received_qty`) || 0;
     const uomConversion =
       this.getValue(`table_gr.${rowIndex}.uom_conversion`) || 0;
+    const currentReceivedQty =
+      this.getValue(`table_gr.${rowIndex}.received_qty`) || 0;
 
     // Fetch over-receive tolerance from Item master
     const itemId = this.getValue(`table_gr.${rowIndex}.item_id`);
@@ -107,10 +109,16 @@ const roundQty = (value) => {
       orderedQty - receivedQty - initialReceivedQty
     );
 
-    await this.setData({
-      [`table_gr.${rowIndex}.received_qty`]: receivedQty,
+    const updates = {
       [`table_gr.${rowIndex}.to_received_qty`]: toReceivedQty < 0 ? 0 : toReceivedQty,
-    });
+    };
+
+    // Only set received_qty if it actually changed to avoid triggering received handler loop
+    if (currentReceivedQty !== receivedQty) {
+      updates[`table_gr.${rowIndex}.received_qty`] = receivedQty;
+    }
+
+    await this.setData(updates);
   } catch (error) {
     console.error("Error in quantity calculation:", error);
 

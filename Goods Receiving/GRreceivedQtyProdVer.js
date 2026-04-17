@@ -28,6 +28,8 @@ const roundQty = (value) => {
       this.getValue(`table_gr.${rowIndex}.initial_received_qty`) || 0;
     const uomConversion =
       this.getValue(`table_gr.${rowIndex}.uom_conversion`) || 0;
+    const currentBaseQty =
+      this.getValue(`table_gr.${rowIndex}.base_received_qty`) || 0;
 
     // Fetch over-receive tolerance from Item master
     const itemId = this.getValue(`table_gr.${rowIndex}.item_id`);
@@ -56,6 +58,19 @@ const roundQty = (value) => {
     // Calculate remaining quantity to receive
     const toReceivedQty = orderedQty - initialReceivedQty;
 
+    // Handle negative quantity
+    if (quantity < 0) {
+      console.warn("Negative quantity entered");
+      this.$message.error("Quantity cannot be negative");
+
+      await this.setData({
+        [`table_gr.${rowIndex}.received_qty`]: 0,
+        [`table_gr.${rowIndex}.base_received_qty`]: 0,
+        [`table_gr.${rowIndex}.to_received_qty`]: toReceivedQty,
+      });
+      return;
+    }
+
     // Handle case when UOM conversion is 0 or not applicable
     if (quantity >= 0 && uomConversion === 0) {
       // Calculate max allowed with over-receive tolerance
@@ -82,11 +97,16 @@ const roundQty = (value) => {
         const totalReceivedQty = roundQty(quantity + initialReceivedQty);
         const remainingQty = roundQty(orderedQty - totalReceivedQty);
 
-        await this.setData({
-          [`table_gr.${rowIndex}.received_qty`]: quantity,
-          [`table_gr.${rowIndex}.base_received_qty`]: quantity,
+        const updates = {
           [`table_gr.${rowIndex}.to_received_qty`]: remainingQty < 0 ? 0 : remainingQty,
-        });
+        };
+
+        // Only set base_received_qty if it actually changed to avoid triggering base handler loop
+        if (currentBaseQty !== quantity) {
+          updates[`table_gr.${rowIndex}.base_received_qty`] = quantity;
+        }
+
+        await this.setData(updates);
 
         console.log(
           `Updated quantities - Received: ${quantity}, Remaining: ${remainingQty < 0 ? 0 : remainingQty}`,
@@ -137,11 +157,16 @@ const roundQty = (value) => {
       const totalReceivedQty = roundQty(quantity + initialReceivedQty);
       const remainingQty = roundQty(orderedQty - totalReceivedQty);
 
-      await this.setData({
-        [`table_gr.${rowIndex}.received_qty`]: quantity,
-        [`table_gr.${rowIndex}.base_received_qty`]: baseReceivedQty,
+      const updates = {
         [`table_gr.${rowIndex}.to_received_qty`]: remainingQty < 0 ? 0 : remainingQty,
-      });
+      };
+
+      // Only set base_received_qty if it actually changed to avoid triggering base handler loop
+      if (currentBaseQty !== baseReceivedQty) {
+        updates[`table_gr.${rowIndex}.base_received_qty`] = baseReceivedQty;
+      }
+
+      await this.setData(updates);
 
       console.log("UOM conversion calculation:", {
         receivedQty: quantity,
@@ -149,18 +174,6 @@ const roundQty = (value) => {
         toReceivedQty: remainingQty < 0 ? 0 : remainingQty,
         conversionFactor: uomConversion,
         overReceiveTolerance,
-      });
-    }
-
-    // Handle negative quantity
-    if (quantity < 0) {
-      console.warn("Negative quantity entered");
-      this.$message.error("Quantity cannot be negative");
-
-      await this.setData({
-        [`table_gr.${rowIndex}.received_qty`]: 0,
-        [`table_gr.${rowIndex}.base_received_qty`]: 0,
-        [`table_gr.${rowIndex}.to_received_qty`]: toReceivedQty,
       });
     }
   } catch (error) {
