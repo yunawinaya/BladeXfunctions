@@ -2851,7 +2851,7 @@
                         "hideLabel": true
                       },
                       "events": {
-                        "onChange": ""
+                        "onChange": "e9skheri"
                       },
                       "name": "Select",
                       "novalid": {},
@@ -11615,6 +11615,18 @@
         "key": "j6g72duk",
         "name": "PackingOnUnpackHU",
         "func": "console.log(this.getValues())",
+        "type": "js"
+      },
+      {
+        "key": "e9skheri",
+        "name": "onSelectHuChange",
+        "func": "console.log(this.getValues())",
+        "type": "js"
+      },
+      {
+        "key": "xbrc9xko",
+        "name": "PackingRecomputeSource",
+        "func": "// Recomputes table_item_source row state (picked_qty, remaining_qty,\n// qty_to_pick, line_status) as a projection of all table_hu[*].temp_data.\n//\n// Call after every pick, unpack, or onMounted via:\n//   await this.triggerEvent(\"PackingRecomputeSource\");\n//\n// This is the single source of truth for picked/remaining math — no\n// picked_qty counter is stored on the source row itself.\n\n(async () => {\n  try {\n    const tableHu = this.getValue(\"table_hu\") || [];\n    const tableItemSource = this.getValue(\"table_item_source\") || [];\n\n    const pickedByLine = {};\n    for (const hu of tableHu) {\n      const entries = JSON.parse(hu.temp_data || \"[]\");\n      for (const entry of entries) {\n        const key = entry.line_item_id;\n        if (!key) continue;\n        pickedByLine[key] =\n          (pickedByLine[key] || 0) + (Number(entry.total_quantity) || 0);\n      }\n    }\n\n    const updates = {};\n    for (let i = 0; i < tableItemSource.length; i++) {\n      const row = tableItemSource[i];\n      const total = Number(row.total_quantity) || 0;\n      const picked = pickedByLine[row.id] || 0;\n      const remaining = Math.max(0, total - picked);\n\n      const status =\n        picked === 0\n          ? \"Open\"\n          : picked < total\n            ? \"Partially Picked\"\n            : \"Fully Picked\";\n\n      const currentQtyToPick = Number(row.qty_to_pick);\n      const newQtyToPick =\n        Number.isFinite(currentQtyToPick) &&\n        currentQtyToPick > 0 &&\n        currentQtyToPick <= remaining\n          ? currentQtyToPick\n          : remaining;\n\n      updates[`table_item_source.${i}.picked_qty`] = picked;\n      updates[`table_item_source.${i}.remaining_qty`] = remaining;\n      updates[`table_item_source.${i}.qty_to_pick`] = newQtyToPick;\n      updates[`table_item_source.${i}.line_status`] = status;\n    }\n\n    if (Object.keys(updates).length > 0) {\n      await this.setData(updates);\n    }\n  } catch (error) {\n    console.error(\"PackingRecomputeSource error:\", error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
         "type": "js"
       }
     ],
