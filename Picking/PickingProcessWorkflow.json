@@ -3063,6 +3063,38 @@
                       "blocks": []
                     },
                     {
+                      "id": "search_node_mUPqqQph",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Handling Unit:Table:2036736671686529026",
+                          "rules": {
+                            "collectionId": "2036736671686529026",
+                            "list": [
+                              {
+                                "id": 1776681958407,
+                                "parentId": 1776681958406,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "Get HU Master",
+                        "isValidator": true,
+                        "nodeName": "Get HU Master",
+                        "name": "Get HU Master"
+                      },
+                      "blocks": []
+                    },
+                    {
                       "id": "search_node_i5v6z7Hu",
                       "type": "search-node",
                       "data": {
@@ -3121,6 +3153,34 @@
                             "bsonType": "any",
                             "isExpand": false,
                             "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_gudzrvMQ",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Enrich Packing List",
+                        "isValidator": true,
+                        "nodeName": "Enrich Packing List",
+                        "name": "Enrich Packing List",
+                        "script": {
+                          "type": "javascript",
+                          "code": "return{\n}"
+                        },
+                        "response_json": [
+                          {
+                            "key": "85sea6qh",
+                            "name": "test",
+                            "title": "test",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
                           }
                         ]
                       },
