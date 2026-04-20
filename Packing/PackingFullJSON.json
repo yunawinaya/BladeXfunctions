@@ -2713,7 +2713,7 @@
                     "autoPageSize": 10,
                     "autoLoadDelay": 500,
                     "isAdd": true,
-                    "isDelete": true,
+                    "isDelete": false,
                     "generateSubTable": true,
                     "showControl": true,
                     "virtualTable": true,
