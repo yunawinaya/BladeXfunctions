@@ -220,6 +220,8 @@ const setHUDefaultDocNo = async (organizationID) => {
         await setPackingMode();
         break;
     }
+
+    await this.triggerEvent("PackingRecomputeSource");
   } catch (error) {
     console.error(error);
     this.$message.error(error.message || "An error occurred");
