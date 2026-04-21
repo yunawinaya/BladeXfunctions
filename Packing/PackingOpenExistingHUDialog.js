@@ -18,11 +18,17 @@
       return;
     }
 
-    // Exclude HUs already in this Packing's table_hu
+    // Exclude HUs already in this Packing's table_hu, AND HUs that already
+    // exist in table_hu_source (upstream Picking context — user should pick
+    // those via Pick to HU / Pick to Parent HU, not the Select Existing dialog).
     const tableHu = data.table_hu || [];
-    const excludedIds = tableHu
-      .map((r) => r.handling_unit_id)
-      .filter(Boolean);
+    const huSource = data.table_hu_source || [];
+    const excludedIds = [
+      ...tableHu.map((r) => r.handling_unit_id),
+      ...huSource
+        .filter((r) => r.row_type === "header")
+        .map((r) => r.handling_unit_id),
+    ].filter(Boolean);
 
     // Query handling_unit: plant + org match, not deleted
     const res = await db
