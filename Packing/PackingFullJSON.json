@@ -3939,7 +3939,9 @@
                         "desensitization_pattern": "",
                         "desensitization_replace": "",
                         "paging_enabled": 0,
-                        "sorts": []
+                        "sorts": [],
+                        "auto_refresh": 0,
+                        "auto_refresh_debounce": 100
                       },
                       "events": {
                         "onReady": "",
@@ -3950,7 +3952,7 @@
                       "name": "Storage Location",
                       "novalid": {},
                       "key": "g11kh7ia",
-                      "model": "storage_location",
+                      "model": "storage_location_id",
                       "rules": []
                     },
                     {
@@ -4006,7 +4008,7 @@
                         "customClass": "",
                         "labelWidth": 100,
                         "isLabelWidth": false,
-                        "hidden": true,
+                        "hidden": false,
                         "dataBind": true,
                         "customProps": {},
                         "tip": "",

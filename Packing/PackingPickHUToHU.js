@@ -93,8 +93,8 @@
       hu_type: huMaster.hu_type || "",
       hu_uom: huMaster.hu_uom || "",
       storage_location:
-        huMaster.storage_location || headerRow.storage_location || "",
-      target_location: huMaster.location_id || "",
+        huMaster.storage_location_id || headerRow.storage_location || "",
+      location_id: huMaster.location_id || "",
       gross_weight: huMaster.gross_weight || 0,
       net_weight: huMaster.net_weight || 0,
       net_volume: huMaster.net_volume || 0,
