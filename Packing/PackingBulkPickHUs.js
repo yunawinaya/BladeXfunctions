@@ -34,9 +34,10 @@
       .filter(Boolean);
     let huById = {};
     if (huIds.length > 0) {
+      const huFilter = new Filter().in("id", huIds).build();
       const huRes = await db
         .collection("handling_unit")
-        .where({ id: { $in: huIds } })
+        .filter(huFilter)
         .get();
       const masters = (huRes && huRes.data) || [];
       for (const m of masters) huById[m.id] = m;
