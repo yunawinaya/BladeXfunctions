@@ -17,9 +17,9 @@
     const entries = JSON.parse(huRow.temp_data || "[]");
 
     // Map temp_data entries to table_view_items row shape. Flatten nested_hu
-    // entries so all items (direct + nested children) show as rows; prefix
-    // item_name with "via HU-<handling_no>" for children so users can see
-    // which HU each row belongs to.
+    // entries so all items (direct + nested children) show as rows. The
+    // `from_hu` column shows the parent HU's handling_no for nested children,
+    // empty for direct items.
     const viewItems = [];
     let seq = 0;
     const pushItem = (entry, fromHu) => {
@@ -28,15 +28,14 @@
         line_item_id: entry.line_item_id || "",
         balance_id: entry.balance_id || "",
         item_code: entry.item_code || "",
-        item_name: fromHu
-          ? `${entry.item_name || ""} (via HU ${fromHu})`
-          : entry.item_name || "",
+        item_name: entry.item_name || "",
         item_desc: entry.item_desc || "",
         item_uom: entry.item_uom || "",
         batch_no: entry.batch_no || "",
         source_bin_id: entry.bin_location || entry.source_bin_id || "",
         total_quantity: Number(entry.total_quantity) || 0,
         packed_qty: Number(entry.total_quantity) || 0,
+        from_hu: fromHu || "",
       });
     };
 
@@ -47,7 +46,7 @@
           pushItem(c, fromHu);
         }
       } else {
-        pushItem(entry, null);
+        pushItem(entry, "");
       }
     }
 
