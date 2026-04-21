@@ -91,7 +91,7 @@
         hu_material_id: dialogRow.hu_material_id || "",
         hu_type: dialogRow.hu_type || "",
         hu_uom: dialogRow.hu_uom || "",
-        storage_location: dialogRow.storage_location || "",
+        storage_location_id: dialogRow.storage_location_id || "",
         location_id: dialogRow.location_id || "",
         gross_weight: dialogRow.gross_weight || 0,
         net_weight: dialogRow.net_weight || 0,

@@ -67,7 +67,7 @@
       gross_weight: hu.gross_weight || 0,
       net_weight: hu.net_weight || 0,
       net_volume: hu.net_volume || 0,
-      storage_location: hu.storage_location_id || "",
+      storage_location_id: hu.storage_location_id || "",
       location_id: hu.location_id || "",
       hu_status: hu.hu_status || "",
       remark: hu.remark || "",

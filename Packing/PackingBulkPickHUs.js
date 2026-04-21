@@ -93,7 +93,7 @@
         hu_material_id: huMaster.hu_material_id || "",
         hu_type: huMaster.hu_type || "",
         hu_uom: huMaster.hu_uom || "",
-        storage_location:
+        storage_location_id:
           huMaster.storage_location_id || headerRow.storage_location || "",
         location_id: huMaster.location_id || "",
         gross_weight: huMaster.gross_weight || 0,
