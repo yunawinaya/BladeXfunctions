@@ -19,34 +19,42 @@ const showStatusHTML = async (status) => {
 };
 
 const disabledField = async (status) => {
+  // Fields sourced upstream (from GD / SO / Picking) — should stay immutable
+  // once the Packing has been created. User should not edit these on Created or Completed.
+  const upstreamFields = [
+    "plant_id",
+    "organization_id",
+    "packing_no",
+    "packing_no_type",
+    "gd_id",
+    "gd_no",
+    "so_id",
+    "so_no",
+    "to_id",
+    "customer_id",
+    "billing_address",
+    "shipping_address",
+  ];
+
   if (status === "Completed") {
     this.disabled(
       [
+        ...upstreamFields,
         "packing_status",
-        "plant_id",
-        "packing_no",
-        "gd_id",
-        "gd_no",
-        "so_id",
-        "so_no",
-        "customer_id",
-        "billing_address",
-        "shipping_address",
         "packing_mode",
-        "packing_location",
         "assigned_to",
         "created_by",
         "created_at",
-        "organization_id",
         "ref_doc",
         "table_hu",
-        "table_items",
         "remarks",
       ],
       true,
     );
-
     this.hide(["button_save_as_draft", "button_created", "button_completed"]);
+  } else if (status === "Created") {
+    this.disabled(upstreamFields, true);
+    this.disabled(["ref_doc"], false);
   } else {
     this.disabled(["ref_doc"], false);
   }
@@ -81,36 +89,14 @@ const setPlant = async (organizationId) => {
   });
 };
 
-const viewSerialNumber = async () => {
-  const table_items = this.getValue("table_items") || [];
-  if (table_items.length > 0) {
-    for (const picking of table_items) {
-      if (picking.is_serialized_item === 1) {
-        await this.display([
-          "table_items.select_serial_number",
-          "table_items.serial_numbers",
-        ]);
-      }
-    }
-  }
-};
-
 const setPackingMode = async () => {
   const packingMode = this.getValue("packing_mode");
   if (packingMode === "Basic") {
     this.display(["table_hu.hu_quantity"]);
-    this.hide([
-      "table_hu.select_items",
-      "table_hu.item_count",
-      "table_hu.total_quantity",
-    ]);
+    this.hide(["table_hu.item_count", "table_hu.total_quantity"]);
   } else {
     this.hide(["table_hu.hu_quantity"]);
-    this.display([
-      "table_hu.select_items",
-      "table_hu.item_count",
-      "table_hu.total_quantity",
-    ]);
+    this.display(["table_hu.item_count", "table_hu.total_quantity"]);
   }
 };
 
@@ -136,24 +122,6 @@ const fetchPickingSetup = async (organizationId) => {
     }
   } catch (error) {
     console.error(error);
-  }
-};
-
-const setHUDefaultDocNo = async (organizationID) => {
-  const defaultDocFormatFilter = new Filter("all")
-    .equal("organization_id", organizationID)
-    .equal("document_types", "Handling Unit")
-    .numberEqual("is_default", 1)
-    .build();
-  const resDefaultDocFormat = await db
-    .collection("document_number")
-    .filter(defaultDocFormatFilter)
-    .get();
-
-  if (resDefaultDocFormat && resDefaultDocFormat.data.length > 0) {
-    this.setData({
-      hu_doc_no_format: resDefaultDocFormat.data[0].id,
-    });
   }
 };
 
@@ -187,14 +155,8 @@ const setHUDefaultDocNo = async (organizationID) => {
 
         setPlant(organizationId);
 
-        const convertFromGD = this.getValue("plant_id");
-
-        if (convertFromGD) {
-          await viewSerialNumber();
-        }
         await setPackingMode();
         await fetchPickingSetup(organizationId);
-        await setHUDefaultDocNo(organizationId);
         break;
 
       case "Edit":
@@ -204,9 +166,7 @@ const setHUDefaultDocNo = async (organizationID) => {
         }
         await disabledField(status);
         await showStatusHTML(status);
-        await viewSerialNumber();
         await setPackingMode();
-        await setHUDefaultDocNo(organizationId);
         break;
 
       case "View":
@@ -216,7 +176,6 @@ const setHUDefaultDocNo = async (organizationID) => {
           "button_created",
           "button_completed",
         ]);
-        await viewSerialNumber();
         await setPackingMode();
         break;
     }
@@ -229,19 +188,21 @@ const setHUDefaultDocNo = async (organizationID) => {
 })();
 
 setTimeout(async () => {
-  if (this.isAdd) {
-    await this.onDropdownVisible("packing_no_type", true);
-    function getDefaultItem(arr) {
-      return arr?.find((item) => item?.item?.item?.is_default === 1);
-    }
-    setTimeout(() => {
-      const optionsData = this.getOptionData("packing_no_type") || [];
-      const data = getDefaultItem(optionsData);
-      if (data) {
-        this.setData({
-          packing_no_type: data.value,
-        });
-      }
-    }, 500);
+  if (!this.isAdd) return;
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
+    const op = await this.onDropdownVisible("packing_no_type", true);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+
+  const optionsData = this.getOptionData("packing_no_type") || [];
+  const data = getDefaultItem(optionsData);
+  if (data) {
+    this.setData({ packing_no_type: data.value });
   }
 }, 500);
