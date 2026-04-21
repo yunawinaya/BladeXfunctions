@@ -96,17 +96,17 @@
       total_quantity: totalQty,
     };
 
-    const updates = {
-      [`table_hu.${tableHu.length}`]: newRow,
-      [`table_hu_source.${rowIndex}.hu_status`]: "Picked",
-    };
-    for (let i = 0; i < huSource.length; i++) {
-      const r = huSource[i];
-      if (r.row_type === "item" && r.handling_unit_id === sourceHuId) {
-        updates[`table_hu_source.${i}.hu_status`] = "Picked";
-      }
-    }
-    await this.setData(updates);
+    const newTableHu = [...tableHu, newRow];
+    const newHuSource = huSource.map((r) =>
+      r.row_type && r.handling_unit_id === sourceHuId
+        ? { ...r, hu_status: "Picked" }
+        : r,
+    );
+
+    await this.setData({
+      table_hu: newTableHu,
+      table_hu_source: newHuSource,
+    });
 
     this.$message.success(
       `HU ${headerRow.handling_no || sourceHuId} added as locked row.`,
