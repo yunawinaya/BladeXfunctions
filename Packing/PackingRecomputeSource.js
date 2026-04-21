@@ -32,10 +32,12 @@
       const picked = pickedByLine[row.id] || 0;
       const remaining = Math.max(0, total - picked);
 
+      // Tolerance for float precision (e.g. 0.1 + 0.2 !== 0.3)
+      const EPS = 0.001;
       const status =
-        picked === 0
+        picked <= EPS
           ? "Open"
-          : picked < total
+          : total - picked > EPS
             ? "Partially Picked"
             : "Fully Picked";
 

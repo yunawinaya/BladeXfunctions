@@ -56,29 +56,39 @@
     }
 
     const existing = JSON.parse(targetHu.temp_data || "[]");
-    const entry = {
-      line_index: existing.length,
-      line_item_id: sourceRow.id,
-      balance_id: sourceRow.balance_id,
-      item_id: sourceRow.item_id,
-      item_code: sourceRow.item_code,
-      item_name: sourceRow.item_name,
-      item_desc: sourceRow.item_desc,
-      item_uom: sourceRow.item_uom,
-      batch_no: sourceRow.batch_no,
-      bin_location: sourceRow.bin_location,
-      total_quantity: qtyToPick,
-      so_id: sourceRow.so_id,
-      so_no: sourceRow.so_no,
-      so_line_id: sourceRow.so_line_id,
-      gd_id: sourceRow.gd_id,
-      gd_no: sourceRow.gd_no,
-      gd_line_id: sourceRow.gd_line_id,
-      to_id: sourceRow.to_id,
-      to_no: sourceRow.to_no,
-      to_line_id: sourceRow.to_line_id,
-    };
-    existing.push(entry);
+
+    // Merge with existing entry if the same source row was already picked into
+    // this HU — avoids duplicate lines in temp_data for the same item/batch/bin.
+    const existingIdx = existing.findIndex(
+      (e) => e.line_item_id === sourceRow.id,
+    );
+    if (existingIdx >= 0) {
+      existing[existingIdx].total_quantity =
+        (Number(existing[existingIdx].total_quantity) || 0) + qtyToPick;
+    } else {
+      existing.push({
+        line_index: existing.length,
+        line_item_id: sourceRow.id,
+        balance_id: sourceRow.balance_id,
+        item_id: sourceRow.item_id,
+        item_code: sourceRow.item_code,
+        item_name: sourceRow.item_name,
+        item_desc: sourceRow.item_desc,
+        item_uom: sourceRow.item_uom,
+        batch_no: sourceRow.batch_no,
+        bin_location: sourceRow.bin_location,
+        total_quantity: qtyToPick,
+        so_id: sourceRow.so_id,
+        so_no: sourceRow.so_no,
+        so_line_id: sourceRow.so_line_id,
+        gd_id: sourceRow.gd_id,
+        gd_no: sourceRow.gd_no,
+        gd_line_id: sourceRow.gd_line_id,
+        to_id: sourceRow.to_id,
+        to_no: sourceRow.to_no,
+        to_line_id: sourceRow.to_line_id,
+      });
+    }
 
     const distinctItemIds = new Set(existing.map((e) => e.item_id));
     const totalQty = existing.reduce(
