@@ -14,12 +14,17 @@
 
 (async () => {
   try {
-    const rowIndex = arguments[0].rowIndex;
+    const rowIndex =
+      arguments[0] && typeof arguments[0].index === "number"
+        ? arguments[0].index
+        : arguments[0] && arguments[0].rowIndex;
     const data = this.getValues();
     const tableHu = data.table_hu || [];
-    const removedRow = tableHu[rowIndex];
+    const removedRow =
+      (arguments[0] && arguments[0].row) ||
+      tableHu[rowIndex];
 
-    if (!removedRow) {
+    if (!removedRow || rowIndex === undefined || rowIndex === null) {
       this.$message.warning("Row not found.");
       return;
     }

@@ -2775,7 +2775,9 @@
                           "type": "addBtn",
                           "icon": "",
                           "events": [],
-                          "permission": ""
+                          "permission": "",
+                          "hidden": "",
+                          "disabled": ""
                         },
                         {
                           "title": "全屏",
@@ -5540,8 +5542,8 @@
                     "icon": "",
                     "events": [
                       {
-                        "key": "jn616df5",
-                        "name": "onTableHuSourcefunc"
+                        "key": "zlaoqil7",
+                        "name": "PackingPickHUtoHU"
                       }
                     ],
                     "hidden": "{{arguments[0].row.row_type !== 'header'}}",
@@ -5564,7 +5566,7 @@
                     "styleType": "Link",
                     "icon": "",
                     "events": [],
-                    "hidden": "",
+                    "hidden": true,
                     "disabled": ""
                   }
                 ],
@@ -5633,7 +5635,7 @@
                     "hideLabel": true
                   },
                   "events": {
-                    "onChange": "sfapqmwb"
+                    "onChange": ""
                   },
                   "name": "HU Select",
                   "novalid": {},
@@ -6872,7 +6874,8 @@
                       "cascade": "",
                       "children": "",
                       "image": "",
-                      "icon": ""
+                      "icon": "",
+                      "explain": ""
                     },
                     "remoteFunc": "func_fnmc4ypo",
                     "customClass": "",
@@ -6923,7 +6926,7 @@
                   "name": "SO ID",
                   "novalid": {},
                   "key": "a38bmnom",
-                  "model": "so_id_1",
+                  "model": "so_id",
                   "rules": []
                 },
                 {
@@ -7072,7 +7075,8 @@
                       "cascade": "",
                       "children": "",
                       "image": "",
-                      "icon": ""
+                      "icon": "",
+                      "explain": ""
                     },
                     "remoteFunc": "func_fnmc4ypo",
                     "customClass": "",
@@ -7123,7 +7127,7 @@
                   "name": "GD ID",
                   "novalid": {},
                   "key": "75ywgjpm",
-                  "model": "gd_id_1",
+                  "model": "gd_id",
                   "rules": []
                 },
                 {
@@ -7325,7 +7329,7 @@
                   "name": "PP ID",
                   "novalid": {},
                   "key": "p1bgca1e",
-                  "model": "to_id_1",
+                  "model": "to_id",
                   "rules": []
                 },
                 {
@@ -7532,14 +7536,14 @@
                     "events": [
                       {
                         "key": "wj4ch5p1",
-                        "name": "onTableItemSourcefunc"
+                        "name": "PackingPickItemToHU"
                       }
                     ],
                     "hidden": "",
                     "disabled": ""
                   }
                 ],
-                "collapse_all": 0,
+                "collapse_all": 1,
                 "rowSelectionType": "None",
                 "batchOperate": [],
                 "resizable": 0,
@@ -11536,13 +11540,13 @@
       {
         "key": "6ig0cg3h",
         "name": "onTableHuRowAdd",
-        "func": "// Initializes a newly-added table_hu row as a Generated HU.\n// Paste into the `onTableHuRowAdd` handler slot (key 6ig0cg3h).\n//\n// Field setup:\n//   hu_row_type   = \"generated\"   — distinguishes from Locked rows sourced from table_hu_source\n//   temp_data     = \"[]\"          — empty pack list (JSON string)\n//   item_count    = 0             — rollup\n//   total_quantity = 0            — rollup\n//   hu_status     = \"Unpacked\"    — initial pack status\n//   handling_no   — left blank; backend workflow fills on save (GR pattern).\n\n(async () => {\n  try {\n    const rowIndex = arguments[0].rowIndex;\n\n    await this.setData({\n      [`table_hu.${rowIndex}.hu_row_type`]: \"generated\",\n      [`table_hu.${rowIndex}.temp_data`]: \"[]\",\n      [`table_hu.${rowIndex}.item_count`]: 0,\n      [`table_hu.${rowIndex}.total_quantity`]: 0,\n      [`table_hu.${rowIndex}.hu_status`]: \"Unpacked\",\n    });\n  } catch (error) {\n    console.error(\"PackingOnTableHuRowAdd error:\", error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
+        "func": "// Initializes a newly-added table_hu row as a Generated HU.\n// Paste into the `onTableHuRowAdd` handler slot (key 6ig0cg3h).\n//\n// Field setup:\n//   hu_row_type   = \"generated\"   — distinguishes from Locked rows sourced from table_hu_source\n//   temp_data     = \"[]\"          — empty pack list (JSON string)\n//   item_count    = 0             — rollup\n//   total_quantity = 0            — rollup\n//   hu_status     = \"Unpacked\"    — initial pack status\n//   handling_no   — left blank; backend workflow fills on save (GR pattern).\n\n(async () => {\n  try {\n    console.log(\"argument\", arguments[0]);\n    const rowIndex = arguments[0].rowIndex;\n\n    await this.setData({\n      [`table_hu.${rowIndex}.handling_no`]: \"Auto-generated Number\",\n      [`table_hu.${rowIndex}.hu_row_type`]: \"generated\",\n      [`table_hu.${rowIndex}.temp_data`]: \"[]\",\n      [`table_hu.${rowIndex}.item_count`]: 0,\n      [`table_hu.${rowIndex}.total_quantity`]: 0,\n      [`table_hu.${rowIndex}.hu_status`]: \"Unpacked\",\n    });\n  } catch (error) {\n    console.error(\"PackingOnTableHuRowAdd error:\", error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
         "type": "js"
       },
       {
         "key": "wj4ch5p1",
-        "name": "onTableItemSourcefunc",
-        "func": "// Flow A: Pick to HU from table_item_source.\n// Paste into the `onTableItemSourcefunc` handler slot (key wj4ch5p1).\n//\n// Preconditions (soft — toast + no-op if violated):\n//   1. Exactly one target HU row in table_hu must be selected\n//      (selected_hu_index >= 0).\n//   2. The selected target must be hu_row_type === \"generated\".\n//   3. Source row's qty_to_pick must be > 0 and <= remaining_qty.\n//\n// Effect:\n//   - Append one entry to the selected target HU's temp_data.\n//   - Recompute target HU's item_count / total_quantity.\n//   - Trigger PackingRecomputeSource to update all source rows.\n\n(async () => {\n  try {\n    const rowIndex = arguments[0].rowIndex;\n    const data = this.getValues();\n    const sourceRow = (data.table_item_source || [])[rowIndex];\n    if (!sourceRow) {\n      this.$message.warning(\"Source row not found.\");\n      return;\n    }\n\n    const selectedHuIndex = Number(data.selected_hu_index);\n    if (!Number.isFinite(selectedHuIndex) || selectedHuIndex < 0) {\n      this.$message.warning(\n        \"Please select a target HU in the packing table first.\",\n      );\n      return;\n    }\n\n    const targetHu = (data.table_hu || [])[selectedHuIndex];\n    if (!targetHu) {\n      this.$message.warning(\"Selected target HU no longer exists.\");\n      return;\n    }\n    if (targetHu.hu_row_type !== \"generated\") {\n      this.$message.warning(\n        \"Cannot pick into a locked HU. Select a generated HU or add a new one.\",\n      );\n      return;\n    }\n\n    if (!sourceRow.id) {\n      this.$message.error(\n        \"Source row is missing a stable `id`. The data loader must assign one — picked entries can't be attributed back to the source without it.\",\n      );\n      return;\n    }\n\n    const qtyToPick = Number(sourceRow.qty_to_pick) || 0;\n    const remaining = Number(sourceRow.remaining_qty) || 0;\n    if (qtyToPick <= 0) {\n      this.$message.warning(\"Quantity to pick must be greater than zero.\");\n      return;\n    }\n    if (qtyToPick > remaining) {\n      this.$message.warning(\n        `Quantity (${qtyToPick}) exceeds remaining (${remaining}).`,\n      );\n      return;\n    }\n\n    const existing = JSON.parse(targetHu.temp_data || \"[]\");\n    const entry = {\n      line_index: existing.length,\n      line_item_id: sourceRow.id,\n      balance_id: sourceRow.balance_id,\n      item_id: sourceRow.item_id,\n      item_code: sourceRow.item_code,\n      item_name: sourceRow.item_name,\n      item_desc: sourceRow.item_desc,\n      item_uom: sourceRow.item_uom,\n      batch_no: sourceRow.batch_no,\n      source_bin_id: sourceRow.source_bin_id,\n      total_quantity: qtyToPick,\n      so_id: sourceRow.so_id,\n      so_no: sourceRow.so_no,\n      so_line_id: sourceRow.so_line_id,\n      gd_id: sourceRow.gd_id,\n      gd_no: sourceRow.gd_no,\n      gd_line_id: sourceRow.gd_line_id,\n      to_id: sourceRow.to_id,\n      to_no: sourceRow.to_no,\n      to_line_id: sourceRow.to_line_id,\n    };\n    existing.push(entry);\n\n    const distinctItemIds = new Set(existing.map((e) => e.item_id));\n    const totalQty = existing.reduce(\n      (s, e) => s + (Number(e.total_quantity) || 0),\n      0,\n    );\n\n    await this.setData({\n      [`table_hu.${selectedHuIndex}.temp_data`]: JSON.stringify(existing),\n      [`table_hu.${selectedHuIndex}.item_count`]: distinctItemIds.size,\n      [`table_hu.${selectedHuIndex}.total_quantity`]: totalQty,\n      [`table_hu.${selectedHuIndex}.hu_status`]: \"Packed\",\n    });\n\n    await this.triggerEvent(\"PackingRecomputeSource\");\n\n    this.$message.success(\n      `Picked ${qtyToPick} ${sourceRow.item_code || \"\"} to HU ${targetHu.handling_no || selectedHuIndex + 1}.`,\n    );\n  } catch (error) {\n    console.error(\"PackingPickItemToHU error:\", error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
+        "name": "PackingPickItemToHU",
+        "func": "// Flow A: Pick to HU from table_item_source.\n// Paste into the `onTableItemSourcefunc` handler slot (key wj4ch5p1).\n//\n// Preconditions (soft — toast + no-op if violated):\n//   1. Exactly one target HU row in table_hu must be selected\n//      (selected_hu_index >= 0).\n//   2. The selected target must be hu_row_type === \"generated\".\n//   3. Source row's qty_to_pick must be > 0 and <= remaining_qty.\n//\n// Effect:\n//   - Append one entry to the selected target HU's temp_data.\n//   - Recompute target HU's item_count / total_quantity.\n//   - Trigger PackingRecomputeSource to update all source rows.\n\n(async () => {\n  try {\n    const sourceRow = arguments[0] && arguments[0].row;\n    if (!sourceRow) {\n      this.$message.warning(\"Source row not found.\");\n      return;\n    }\n    const data = this.getValues();\n\n    const selectedHuIndex = Number(data.selected_hu_index);\n    if (!Number.isFinite(selectedHuIndex) || selectedHuIndex < 0) {\n      this.$message.warning(\n        \"Please select a target HU in the packing table first.\",\n      );\n      return;\n    }\n\n    const targetHu = (data.table_hu || [])[selectedHuIndex];\n    if (!targetHu) {\n      this.$message.warning(\"Selected target HU no longer exists.\");\n      return;\n    }\n    if (targetHu.hu_row_type !== \"generated\") {\n      this.$message.warning(\n        \"Cannot pick into a locked HU. Select a generated HU or add a new one.\",\n      );\n      return;\n    }\n\n    if (!sourceRow.id) {\n      this.$message.error(\n        \"Source row is missing a stable `id`. The data loader must assign one — picked entries can't be attributed back to the source without it.\",\n      );\n      return;\n    }\n\n    const qtyToPick = Number(sourceRow.qty_to_pick) || 0;\n    const remaining = Number(sourceRow.remaining_qty) || 0;\n    if (qtyToPick <= 0) {\n      this.$message.warning(\"Quantity to pick must be greater than zero.\");\n      return;\n    }\n    if (qtyToPick > remaining) {\n      this.$message.warning(\n        `Quantity (${qtyToPick}) exceeds remaining (${remaining}).`,\n      );\n      return;\n    }\n\n    const existing = JSON.parse(targetHu.temp_data || \"[]\");\n    const entry = {\n      line_index: existing.length,\n      line_item_id: sourceRow.id,\n      balance_id: sourceRow.balance_id,\n      item_id: sourceRow.item_id,\n      item_code: sourceRow.item_code,\n      item_name: sourceRow.item_name,\n      item_desc: sourceRow.item_desc,\n      item_uom: sourceRow.item_uom,\n      batch_no: sourceRow.batch_no,\n      bin_location: sourceRow.bin_location,\n      total_quantity: qtyToPick,\n      so_id: sourceRow.so_id,\n      so_no: sourceRow.so_no,\n      so_line_id: sourceRow.so_line_id,\n      gd_id: sourceRow.gd_id,\n      gd_no: sourceRow.gd_no,\n      gd_line_id: sourceRow.gd_line_id,\n      to_id: sourceRow.to_id,\n      to_no: sourceRow.to_no,\n      to_line_id: sourceRow.to_line_id,\n    };\n    existing.push(entry);\n\n    const distinctItemIds = new Set(existing.map((e) => e.item_id));\n    const totalQty = existing.reduce(\n      (s, e) => s + (Number(e.total_quantity) || 0),\n      0,\n    );\n\n    await this.setData({\n      [`table_hu.${selectedHuIndex}.temp_data`]: JSON.stringify(existing),\n      [`table_hu.${selectedHuIndex}.item_count`]: distinctItemIds.size,\n      [`table_hu.${selectedHuIndex}.total_quantity`]: totalQty,\n      [`table_hu.${selectedHuIndex}.hu_status`]: \"Packed\",\n    });\n\n    await this.triggerEvent(\"PackingRecomputeSource\");\n\n    this.$message.success(\n      `Picked ${qtyToPick} ${sourceRow.item_code || \"\"} to HU ${targetHu.handling_no || selectedHuIndex + 1}.`,\n    );\n  } catch (error) {\n    console.error(\"PackingPickItemToHU error:\", error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -11554,7 +11558,7 @@
       {
         "key": "j6g72duk",
         "name": "PackingOnUnpackHU",
-        "func": "// Unpack action on a table_hu row (custom row-action button, NOT the platform's\n// built-in row Delete). This handler must splice the row out itself.\n// Paste into the `PackingOnUnpackHU` handler slot (key j6g72duk).\n//\n// Behavior by row kind:\n//   Locked    → find source HU in table_hu_source by source_hu_id,\n//               flip hu_status back to \"Unpacked\" on header + all item rows.\n//   Generated → temp_data is dropped with the row; recompute catches up.\n//\n// After row removal:\n//   - Fix selected_hu_index: -1 if we removed the selected row, or\n//     shifted down by one if the deleted row was before the selected one.\n//   - Fire PackingRecomputeSource so table_item_source projects cleanly.\n\n(async () => {\n  try {\n    const rowIndex = arguments[0].rowIndex;\n    const data = this.getValues();\n    const tableHu = data.table_hu || [];\n    const removedRow = tableHu[rowIndex];\n\n    if (!removedRow) {\n      this.$message.warning(\"Row not found.\");\n      return;\n    }\n\n    const updates = {};\n\n    if (removedRow.hu_row_type === \"locked\") {\n      const sourceHuId = removedRow.source_hu_id;\n      if (sourceHuId) {\n        const huSource = data.table_hu_source || [];\n        for (let i = 0; i < huSource.length; i++) {\n          const r = huSource[i];\n          if (\n            r.handling_unit_id === sourceHuId &&\n            (r.row_type === \"header\" || r.row_type === \"item\")\n          ) {\n            updates[`table_hu_source.${i}.hu_status`] = \"Unpacked\";\n          }\n        }\n      }\n    }\n\n    const newTableHu = tableHu.filter((_, i) => i !== rowIndex);\n    updates.table_hu = newTableHu;\n\n    const selectedHuIndex = Number(this.getValue(\"selected_hu_index\"));\n    if (selectedHuIndex === rowIndex) {\n      updates.selected_hu_index = -1;\n    } else if (selectedHuIndex > rowIndex) {\n      updates.selected_hu_index = selectedHuIndex - 1;\n    }\n\n    await this.setData(updates);\n    await this.triggerEvent(\"PackingRecomputeSource\");\n\n    this.$message.success(\n      `HU ${removedRow.handling_no || rowIndex + 1} unpacked.`,\n    );\n  } catch (error) {\n    console.error(\"PackingOnUnpackHU error:\", error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
+        "func": "// Unpack action on a table_hu row (custom row-action button, NOT the platform's\n// built-in row Delete). This handler must splice the row out itself.\n// Paste into the `PackingOnUnpackHU` handler slot (key j6g72duk).\n//\n// Behavior by row kind:\n//   Locked    → find source HU in table_hu_source by source_hu_id,\n//               flip hu_status back to \"Unpacked\" on header + all item rows.\n//   Generated → temp_data is dropped with the row; recompute catches up.\n//\n// After row removal:\n//   - Fix selected_hu_index: -1 if we removed the selected row, or\n//     shifted down by one if the deleted row was before the selected one.\n//   - Fire PackingRecomputeSource so table_item_source projects cleanly.\n\n(async () => {\n  try {\n    const rowIndex =\n      arguments[0] && typeof arguments[0].index === \"number\"\n        ? arguments[0].index\n        : arguments[0] && arguments[0].rowIndex;\n    const data = this.getValues();\n    const tableHu = data.table_hu || [];\n    const removedRow =\n      (arguments[0] && arguments[0].row) ||\n      tableHu[rowIndex];\n\n    if (!removedRow || rowIndex === undefined || rowIndex === null) {\n      this.$message.warning(\"Row not found.\");\n      return;\n    }\n\n    const updates = {};\n\n    if (removedRow.hu_row_type === \"locked\") {\n      const sourceHuId = removedRow.source_hu_id;\n      if (sourceHuId) {\n        const huSource = data.table_hu_source || [];\n        for (let i = 0; i < huSource.length; i++) {\n          const r = huSource[i];\n          if (\n            r.handling_unit_id === sourceHuId &&\n            (r.row_type === \"header\" || r.row_type === \"item\")\n          ) {\n            updates[`table_hu_source.${i}.hu_status`] = \"Unpacked\";\n          }\n        }\n      }\n    }\n\n    const newTableHu = tableHu.filter((_, i) => i !== rowIndex);\n    updates.table_hu = newTableHu;\n\n    const selectedHuIndex = Number(this.getValue(\"selected_hu_index\"));\n    if (selectedHuIndex === rowIndex) {\n      updates.selected_hu_index = -1;\n    } else if (selectedHuIndex > rowIndex) {\n      updates.selected_hu_index = selectedHuIndex - 1;\n    }\n\n    await this.setData(updates);\n    await this.triggerEvent(\"PackingRecomputeSource\");\n\n    this.$message.success(\n      `HU ${removedRow.handling_no || rowIndex + 1} unpacked.`,\n    );\n  } catch (error) {\n    console.error(\"PackingOnUnpackHU error:\", error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -11567,6 +11571,12 @@
         "key": "xbrc9xko",
         "name": "PackingRecomputeSource",
         "func": "// Recomputes table_item_source row state (picked_qty, remaining_qty,\n// qty_to_pick, line_status) as a projection of all table_hu[*].temp_data.\n//\n// Call after every pick, unpack, or onMounted via:\n//   await this.triggerEvent(\"PackingRecomputeSource\");\n//\n// This is the single source of truth for picked/remaining math — no\n// picked_qty counter is stored on the source row itself.\n\n(async () => {\n  try {\n    const tableHu = this.getValue(\"table_hu\") || [];\n    const tableItemSource = this.getValue(\"table_item_source\") || [];\n\n    const pickedByLine = {};\n    for (const hu of tableHu) {\n      const entries = JSON.parse(hu.temp_data || \"[]\");\n      for (const entry of entries) {\n        const key = entry.line_item_id;\n        if (!key) continue;\n        pickedByLine[key] =\n          (pickedByLine[key] || 0) + (Number(entry.total_quantity) || 0);\n      }\n    }\n\n    const updates = {};\n    const missingIdIndexes = [];\n    for (let i = 0; i < tableItemSource.length; i++) {\n      const row = tableItemSource[i];\n      if (!row.id) missingIdIndexes.push(i);\n      const total = Number(row.total_quantity) || 0;\n      const picked = pickedByLine[row.id] || 0;\n      const remaining = Math.max(0, total - picked);\n\n      const status =\n        picked === 0\n          ? \"Open\"\n          : picked < total\n            ? \"Partially Picked\"\n            : \"Fully Picked\";\n\n      const currentQtyToPick = Number(row.qty_to_pick);\n      const newQtyToPick =\n        Number.isFinite(currentQtyToPick) &&\n        currentQtyToPick > 0 &&\n        currentQtyToPick <= remaining\n          ? currentQtyToPick\n          : remaining;\n\n      updates[`table_item_source.${i}.picked_qty`] = picked;\n      updates[`table_item_source.${i}.remaining_qty`] = remaining;\n      updates[`table_item_source.${i}.qty_to_pick`] = newQtyToPick;\n      updates[`table_item_source.${i}.line_status`] = status;\n    }\n\n    if (Object.keys(updates).length > 0) {\n      await this.setData(updates);\n    }\n\n    if (missingIdIndexes.length > 0) {\n      console.warn(\n        `PackingRecomputeSource: ${missingIdIndexes.length} table_item_source row(s) have no 'id' — picked qty cannot be attributed. Rows: ${missingIdIndexes.join(\", \")}. Fix the source data loader.`,\n      );\n    }\n  } catch (error) {\n    console.error(\"PackingRecomputeSource error:\", error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "zlaoqil7",
+        "name": "PackingPickHUtoHU",
+        "func": "// Flow B: Pick an existing HU (header) from table_hu_source into table_hu\n// as a Locked row (all fields disabled).\n// Paste into the `onTableHuSourcefunc` handler slot (key jn616df5).\n//\n// Assumptions about table_hu_source shape (follows the Picking module pattern):\n//   - Flat list; rows have row_type === \"header\" or \"item\".\n//   - Item rows are linked to their header via handling_unit_id.\n//   - Header rows carry HU-level fields (handling_no, hu_material_id, hu_type,\n//     hu_uom, weights, volume, storage_location).\n//   - Item rows carry item-level fields (item_id, item_code, batch_no,\n//     source_bin_id, total_quantity, so/gd/to doc refs).\n//\n// Behavior:\n//   - Clicked row must be a header; otherwise warn.\n//   - Header must not already be picked (hu_status !== \"Picked\").\n//   - Append a new Locked row to table_hu with source_hu_id for unpack lookup.\n//   - Serialize all matching item rows into the new row's temp_data.\n//   - Flip hu_status on header + its items to \"Picked\".\n\n(async () => {\n  try {\n    const headerRow = arguments[0] && arguments[0].row;\n    const rowIndex = arguments[0] && arguments[0].index;\n    if (!headerRow) {\n      this.$message.warning(\"Source row not found.\");\n      return;\n    }\n    const data = this.getValues();\n    const huSource = data.table_hu_source || [];\n    if (headerRow.row_type !== \"header\") {\n      this.$message.warning(\"Please click Pick to HU on an HU header row.\");\n      return;\n    }\n    if (headerRow.hu_status === \"Picked\") {\n      this.$message.warning(\"This HU has already been picked.\");\n      return;\n    }\n\n    const sourceHuId = headerRow.handling_unit_id;\n    if (!sourceHuId) {\n      this.$message.warning(\n        \"Source HU is missing handling_unit_id; cannot pick.\",\n      );\n      return;\n    }\n\n    const childItems = huSource.filter(\n      (r) => r.row_type === \"item\" && r.handling_unit_id === sourceHuId,\n    );\n\n    const tempDataEntries = childItems.map((child, idx) => ({\n      line_index: idx,\n      line_item_id: child.id,\n      balance_id: child.balance_id,\n      item_id: child.item_id,\n      item_code: child.item_code,\n      item_name: child.item_name,\n      item_desc: child.item_desc,\n      item_uom: child.item_uom,\n      batch_no: child.batch_no,\n      bin_location: child.bin_location,\n      total_quantity: Number(child.total_quantity) || 0,\n      so_id: child.so_id,\n      so_no: child.so_no,\n      so_line_id: child.so_line_id,\n      gd_id: child.gd_id,\n      gd_no: child.gd_no,\n      gd_line_id: child.gd_line_id,\n      to_id: child.to_id,\n      to_no: child.to_no,\n      to_line_id: child.to_line_id,\n    }));\n\n    const distinctItemIds = new Set(\n      tempDataEntries.map((e) => e.item_id).filter(Boolean),\n    );\n    const totalQty = tempDataEntries.reduce((s, e) => s + e.total_quantity, 0);\n\n    const tableHu = data.table_hu || [];\n    const newRow = {\n      hu_row_type: \"locked\",\n      source_hu_id: sourceHuId,\n      handling_unit_id: headerRow.handling_unit_id,\n      handling_no: headerRow.handling_no,\n      hu_material_id: headerRow.hu_material_id,\n      hu_type: headerRow.hu_type,\n      hu_uom: headerRow.hu_uom,\n      storage_location: headerRow.storage_location,\n      target_location: headerRow.target_location,\n      gross_weight: headerRow.gross_weight,\n      net_weight: headerRow.net_weight,\n      net_volume: headerRow.net_volume,\n      hu_status: \"Packed\",\n      temp_data: JSON.stringify(tempDataEntries),\n      item_count: distinctItemIds.size,\n      total_quantity: totalQty,\n    };\n\n    const updates = {\n      [`table_hu.${tableHu.length}`]: newRow,\n      [`table_hu_source.${rowIndex}.hu_status`]: \"Picked\",\n    };\n    for (let i = 0; i < huSource.length; i++) {\n      const r = huSource[i];\n      if (r.row_type === \"item\" && r.handling_unit_id === sourceHuId) {\n        updates[`table_hu_source.${i}.hu_status`] = \"Picked\";\n      }\n    }\n    await this.setData(updates);\n\n    this.$message.success(\n      `HU ${headerRow.handling_no || sourceHuId} added as locked row.`,\n    );\n  } catch (error) {\n    console.error(\"PackingPickHUToHU error:\", error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
         "type": "js"
       }
     ],

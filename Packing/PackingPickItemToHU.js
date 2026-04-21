@@ -14,13 +14,12 @@
 
 (async () => {
   try {
-    const rowIndex = arguments[0].rowIndex;
-    const data = this.getValues();
-    const sourceRow = (data.table_item_source || [])[rowIndex];
+    const sourceRow = arguments[0] && arguments[0].row;
     if (!sourceRow) {
       this.$message.warning("Source row not found.");
       return;
     }
+    const data = this.getValues();
 
     const selectedHuIndex = Number(data.selected_hu_index);
     if (!Number.isFinite(selectedHuIndex) || selectedHuIndex < 0) {
@@ -73,7 +72,7 @@
       item_desc: sourceRow.item_desc,
       item_uom: sourceRow.item_uom,
       batch_no: sourceRow.batch_no,
-      source_bin_id: sourceRow.source_bin_id,
+      bin_location: sourceRow.bin_location,
       total_quantity: qtyToPick,
       so_id: sourceRow.so_id,
       so_no: sourceRow.so_no,

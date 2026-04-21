@@ -19,15 +19,14 @@
 
 (async () => {
   try {
-    const rowIndex = arguments[0].rowIndex;
-    const data = this.getValues();
-    const huSource = data.table_hu_source || [];
-    const headerRow = huSource[rowIndex];
-
+    const headerRow = arguments[0] && arguments[0].row;
+    const rowIndex = arguments[0] && arguments[0].index;
     if (!headerRow) {
       this.$message.warning("Source row not found.");
       return;
     }
+    const data = this.getValues();
+    const huSource = data.table_hu_source || [];
     if (headerRow.row_type !== "header") {
       this.$message.warning("Please click Pick to HU on an HU header row.");
       return;
@@ -59,7 +58,7 @@
       item_desc: child.item_desc,
       item_uom: child.item_uom,
       batch_no: child.batch_no,
-      source_bin_id: child.source_bin_id || child.bin_location,
+      bin_location: child.bin_location,
       total_quantity: Number(child.total_quantity) || 0,
       so_id: child.so_id,
       so_no: child.so_no,
