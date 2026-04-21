@@ -82,7 +82,7 @@ const setPlant = async (organizationId) => {
 };
 
 const viewSerialNumber = async () => {
-  const table_items = this.getValue("table_items");
+  const table_items = this.getValue("table_items") || [];
   if (table_items.length > 0) {
     for (const picking of table_items) {
       if (picking.is_serialized_item === 1) {
