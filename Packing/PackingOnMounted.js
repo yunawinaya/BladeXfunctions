@@ -100,6 +100,20 @@ const setPackingMode = async () => {
   }
 };
 
+// table_hu_source columns `hu_select` and `handling_unit_id` are visible by
+// default in the form schema. This function walks each row and hides them
+// on non-header (item) rows so they only appear on HU headers.
+const applyHuSourceVisibility = async () => {
+  const rows = this.getValue("table_hu_source") || [];
+  if (rows.length === 0) return;
+
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].row_type !== "header") {
+      await this.hide(`table_hu_source.${i}.handling_unit_id`);
+    }
+  }
+};
+
 const fetchPickingSetup = async (organizationId) => {
   try {
     const resPickingSetup = await db
@@ -186,6 +200,13 @@ const fetchPickingSetup = async (organizationId) => {
     this.$message.error(error.message || "An error occurred");
   }
 })();
+
+// Per-row visibility for table_hu_source needs the table data to be loaded
+// before display/hide can target specific rows. Run after a delay.
+setTimeout(async () => {
+  if (this.isAdd) return;
+  await applyHuSourceVisibility();
+}, 500);
 
 setTimeout(async () => {
   if (!this.isAdd) return;
