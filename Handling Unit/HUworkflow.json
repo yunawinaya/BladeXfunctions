@@ -378,7 +378,7 @@
                                     "value": "{{workflowparams:hu_material_id}}",
                                     "type": "leaf",
                                     "level": 2,
-                                    "propLabel": "Material",
+                                    "propLabel": "Item Code",
                                     "valueLabel": "",
                                     "operatorLabel": "Equal"
                                   },
