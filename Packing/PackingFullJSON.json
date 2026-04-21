@@ -3856,13 +3856,14 @@
                           "image": "",
                           "icon": "",
                           "cascade": "",
-                          "children": ""
+                          "children": "",
+                          "explain": ""
                         },
                         "remoteFunc": "func_06154l0w",
                         "customClass": "",
                         "labelWidth": 100,
                         "isLabelWidth": false,
-                        "hidden": true,
+                        "hidden": false,
                         "dataBind": true,
                         "customProps": {},
                         "tip": "",
@@ -4091,10 +4092,10 @@
                         "onFocus": "",
                         "onBlur": ""
                       },
-                      "name": "Target Location",
+                      "name": "Bin Location",
                       "novalid": {},
                       "key": "icb28yfm",
-                      "model": "target_location",
+                      "model": "location_id",
                       "rules": []
                     },
                     {
@@ -12658,7 +12659,7 @@
                 "pad": "*",
                 "desensitization_pattern": "",
                 "desensitization_replace": "",
-                "fixedColumn": true,
+                "fixedColumn": false,
                 "fixedColumnPosition": "right"
               },
               "events": {
@@ -12718,7 +12719,7 @@
                 "pad": "*",
                 "desensitization_pattern": "",
                 "desensitization_replace": "",
-                "fixedColumn": true,
+                "fixedColumn": false,
                 "fixedColumnPosition": "right"
               },
               "events": {
