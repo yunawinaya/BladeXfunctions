@@ -31,12 +31,6 @@
       this.$message.warning("Selected target HU no longer exists.");
       return;
     }
-    if (targetHu.hu_row_type !== "generated") {
-      this.$message.warning(
-        "Cannot pick into a locked HU. Select a generated HU or add a new one.",
-      );
-      return;
-    }
 
     const existing = JSON.parse(targetHu.temp_data || "[]");
     const pickedIds = new Set();
