@@ -748,7 +748,7 @@
                 "pull": 0,
                 "xs": 24,
                 "sm": 12,
-                "md": 12,
+                "md": 10,
                 "lg": 12,
                 "xl": 12,
                 "customClass": ""
@@ -2682,7 +2682,7 @@
                 "pull": 0,
                 "xs": 24,
                 "sm": 12,
-                "md": 12,
+                "md": 14,
                 "lg": 12,
                 "xl": 12,
                 "customClass": ""
@@ -3229,7 +3229,7 @@
                         "pad": "*",
                         "desensitization_pattern": "",
                         "desensitization_replace": "",
-                        "fixedColumn": true,
+                        "fixedColumn": false,
                         "fixedColumnPosition": "right"
                       },
                       "events": {
