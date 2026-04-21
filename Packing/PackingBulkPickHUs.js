@@ -27,12 +27,28 @@
     const pickedHuIds = new Set();
     const skipped = [];
 
+    // Batch-fetch HU masters for all selected headers — table_hu_source doesn't
+    // carry the HU's display fields (handling_no, hu_material_id, weights, etc.)
+    const huIds = selectedHeaders
+      .map((h) => h.handling_unit_id)
+      .filter(Boolean);
+    let huById = {};
+    if (huIds.length > 0) {
+      const huRes = await db
+        .collection("handling_unit")
+        .where({ id: { $in: huIds } })
+        .get();
+      const masters = (huRes && huRes.data) || [];
+      for (const m of masters) huById[m.id] = m;
+    }
+
     for (const headerRow of selectedHeaders) {
       const sourceHuId = headerRow.handling_unit_id;
       if (!sourceHuId) {
         skipped.push(headerRow.handling_no || "(no handling_no)");
         continue;
       }
+      const huMaster = huById[sourceHuId] || {};
 
       const childItems = huSource.filter(
         (r) => r.row_type === "item" && r.handling_unit_id === sourceHuId,
@@ -71,16 +87,17 @@
       newRows.push({
         hu_row_type: "locked",
         source_hu_id: sourceHuId,
-        handling_unit_id: headerRow.handling_unit_id,
-        handling_no: headerRow.handling_no,
-        hu_material_id: headerRow.hu_material_id,
-        hu_type: headerRow.hu_type,
-        hu_uom: headerRow.hu_uom,
-        storage_location: headerRow.storage_location,
-        target_location: headerRow.target_location,
-        gross_weight: headerRow.gross_weight,
-        net_weight: headerRow.net_weight,
-        net_volume: headerRow.net_volume,
+        handling_unit_id: sourceHuId,
+        handling_no: huMaster.handling_no || "",
+        hu_material_id: huMaster.hu_material_id || "",
+        hu_type: huMaster.hu_type || "",
+        hu_uom: huMaster.hu_uom || "",
+        storage_location:
+          huMaster.storage_location || headerRow.storage_location || "",
+        target_location: huMaster.target_location || "",
+        gross_weight: huMaster.gross_weight || 0,
+        net_weight: huMaster.net_weight || 0,
+        net_volume: huMaster.net_volume || 0,
         hu_status: "Packed",
         temp_data: JSON.stringify(tempDataEntries),
         item_count: distinctItemIds.size,

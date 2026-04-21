@@ -44,6 +44,14 @@
       return;
     }
 
+    // Fetch HU master — table_hu_source headers don't carry the HU's display
+    // fields (handling_no, hu_material_id, hu_type, hu_uom, weights, volume).
+    const huRes = await db
+      .collection("handling_unit")
+      .where({ id: sourceHuId })
+      .get();
+    const huMaster = (huRes && huRes.data && huRes.data[0]) || {};
+
     const childItems = huSource.filter(
       (r) => r.row_type === "item" && r.handling_unit_id === sourceHuId,
     );
@@ -80,16 +88,17 @@
     const newRow = {
       hu_row_type: "locked",
       source_hu_id: sourceHuId,
-      handling_unit_id: headerRow.handling_unit_id,
-      handling_no: headerRow.handling_no,
-      hu_material_id: headerRow.hu_material_id,
-      hu_type: headerRow.hu_type,
-      hu_uom: headerRow.hu_uom,
-      storage_location: headerRow.storage_location,
-      target_location: headerRow.target_location,
-      gross_weight: headerRow.gross_weight,
-      net_weight: headerRow.net_weight,
-      net_volume: headerRow.net_volume,
+      handling_unit_id: sourceHuId,
+      handling_no: huMaster.handling_no || "",
+      hu_material_id: huMaster.hu_material_id || "",
+      hu_type: huMaster.hu_type || "",
+      hu_uom: huMaster.hu_uom || "",
+      storage_location:
+        huMaster.storage_location || headerRow.storage_location || "",
+      target_location: huMaster.target_location || "",
+      gross_weight: huMaster.gross_weight || 0,
+      net_weight: huMaster.net_weight || 0,
+      net_volume: huMaster.net_volume || 0,
       hu_status: "Packed",
       temp_data: JSON.stringify(tempDataEntries),
       item_count: distinctItemIds.size,
