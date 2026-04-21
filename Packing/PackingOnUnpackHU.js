@@ -50,18 +50,28 @@
 
     const updates = {};
 
-    if (removedRow.hu_row_type === "locked") {
-      const sourceHuId = removedRow.source_hu_id;
-      if (sourceHuId) {
-        const huSource = data.table_hu_source || [];
-        for (let i = 0; i < huSource.length; i++) {
-          const r = huSource[i];
-          if (
-            r.handling_unit_id === sourceHuId &&
-            (r.row_type === "header" || r.row_type === "item")
-          ) {
-            updates[`table_hu_source.${i}.hu_status`] = "Unpacked";
-          }
+    // Collect handling_unit_ids to revert to "Unpacked" in table_hu_source:
+    //   - Locked row: the Locked row's source_hu_id (Flow B / Select Existing)
+    //   - Nested HU entries in temp_data: each nested_hu_id (Pick to Parent HU)
+    const sourceHuIdsToRevert = new Set();
+    if (removedRow.hu_row_type === "locked" && removedRow.source_hu_id) {
+      sourceHuIdsToRevert.add(removedRow.source_hu_id);
+    }
+    for (const entry of existingEntries) {
+      if (entry.type === "nested_hu" && entry.nested_hu_id) {
+        sourceHuIdsToRevert.add(entry.nested_hu_id);
+      }
+    }
+
+    if (sourceHuIdsToRevert.size > 0) {
+      const huSource = data.table_hu_source || [];
+      for (let i = 0; i < huSource.length; i++) {
+        const r = huSource[i];
+        if (
+          sourceHuIdsToRevert.has(r.handling_unit_id) &&
+          (r.row_type === "header" || r.row_type === "item")
+        ) {
+          updates[`table_hu_source.${i}.hu_status`] = "Unpacked";
         }
       }
     }

@@ -90,11 +90,20 @@
       });
     }
 
-    const distinctItemIds = new Set(existing.map((e) => e.item_id));
-    const totalQty = existing.reduce(
-      (s, e) => s + (Number(e.total_quantity) || 0),
-      0,
-    );
+    // Aggregate rollup across direct items + nested_hu children
+    const distinctItemIds = new Set();
+    let totalQty = 0;
+    for (const e of existing) {
+      if (e.type === "nested_hu") {
+        for (const c of e.children || []) {
+          if (c.item_id) distinctItemIds.add(c.item_id);
+          totalQty += Number(c.total_quantity) || 0;
+        }
+      } else {
+        if (e.item_id) distinctItemIds.add(e.item_id);
+        totalQty += Number(e.total_quantity) || 0;
+      }
+    }
 
     await this.setData({
       [`table_hu.${selectedHuIndex}.temp_data`]: JSON.stringify(existing),
