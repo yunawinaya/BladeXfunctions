@@ -36,7 +36,7 @@ const disabledField = async (status) => {
     "shipping_address",
   ];
 
-  if (status === "Completed") {
+  if (status === "Completed" || status === "Cancelled") {
     this.disabled(
       [
         ...upstreamFields,

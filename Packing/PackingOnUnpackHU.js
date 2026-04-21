@@ -29,6 +29,25 @@
       return;
     }
 
+    // Guard against accidental data loss when the HU contains items.
+    const existingEntries = JSON.parse(removedRow.temp_data || "[]");
+    if (existingEntries.length > 0) {
+      try {
+        await this.$confirm(
+          `Unpack HU ${removedRow.handling_no || rowIndex + 1}? ${existingEntries.length} item(s) will be removed from this packing.`,
+          "Confirm Unpack",
+          {
+            confirmButtonText: "Unpack",
+            cancelButtonText: "Cancel",
+            type: "warning",
+          },
+        );
+      } catch {
+        // User cancelled
+        return;
+      }
+    }
+
     const updates = {};
 
     if (removedRow.hu_row_type === "locked") {

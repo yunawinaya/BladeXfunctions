@@ -20,7 +20,6 @@
 (async () => {
   try {
     const headerRow = arguments[0] && arguments[0].row;
-    const rowIndex = arguments[0] && arguments[0].index;
     if (!headerRow) {
       this.$message.warning("Source row not found.");
       return;
@@ -118,7 +117,7 @@
     });
 
     this.$message.success(
-      `HU ${headerRow.handling_no || sourceHuId} added as locked row.`,
+      `HU ${huMaster.handling_no || sourceHuId} added as locked row.`,
     );
   } catch (error) {
     console.error("PackingPickHUToHU error:", error);
