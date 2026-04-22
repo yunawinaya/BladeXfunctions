@@ -1477,6 +1477,72 @@
                                 }
                               },
                               "blocks": []
+                            },
+                            {
+                              "id": "if_6BaIrXu7",
+                              "type": "if",
+                              "data": {
+                                "title": "IF Error",
+                                "isValidator": true,
+                                "nodeName": "IF Error",
+                                "name": "IF Error",
+                                "condition_type": "Expression",
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "'{{node:workflow_node_tAWfF7CE.data.code}}' == '400'"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "if_block_Tj54u9js",
+                                  "type": "ifBlock",
+                                  "data": { "title": "true" },
+                                  "blocks": [
+                                    {
+                                      "id": "return_node_Xx3aE4Am",
+                                      "type": "return-node",
+                                      "data": {
+                                        "return_data": {},
+                                        "status_code": 200,
+                                        "title": "Return Data",
+                                        "isValidator": true,
+                                        "nodeName": "Return Data",
+                                        "name": "Return Data",
+                                        "response_value": {
+                                          "list": [
+                                            {
+                                              "prop": "errorStatus",
+                                              "propLabel": "Error Status",
+                                              "operator": "",
+                                              "operatorLabel": "",
+                                              "valueType": "value",
+                                              "valueTypeLabel": "",
+                                              "value": "400",
+                                              "valueLabel": ""
+                                            },
+                                            {
+                                              "prop": "message",
+                                              "operator": "",
+                                              "valueType": "field",
+                                              "value": "{{node:workflow_node_tAWfF7CE.data.message}}",
+                                              "valueLabel": "",
+                                              "propLabel": "Message"
+                                            }
+                                          ]
+                                        },
+                                        "return_raw_data": 0
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "if_block_iOLpZDxi",
+                                  "type": "ifBlock",
+                                  "data": { "title": "false" },
+                                  "blocks": []
+                                }
+                              ]
                             }
                           ]
                         },
