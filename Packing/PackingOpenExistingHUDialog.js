@@ -18,6 +18,48 @@
       return;
     }
 
+    // Determine loading bay location for HU filtering (same pattern as GRtableHU)
+    let loadingBayLocationId = "";
+
+    // Step 1: Check putaway_setup for default_loading_bay
+    const resPutawaySetup = await db
+      .collection("putaway_setup")
+      .where({ plant_id: plantId, is_deleted: 0 })
+      .get();
+
+    if (resPutawaySetup?.data?.length > 0) {
+      loadingBayLocationId = resPutawaySetup.data[0].default_loading_bay || "";
+    }
+
+    // Step 2: If still empty, fallback - find default Loading Bay storage location's default bin
+    if (!loadingBayLocationId) {
+      const resStorageLocation = await db
+        .collection("storage_location")
+        .where({
+          plant_id: plantId,
+          storage_status: 1,
+          location_type: "Loading Bay",
+          is_default: 1,
+        })
+        .get();
+
+      if (resStorageLocation?.data?.length > 0) {
+        const defaultBin = resStorageLocation.data[0].table_bin_location?.find(
+          (bin) => bin.is_default_bin === 1,
+        );
+        if (defaultBin) {
+          loadingBayLocationId = defaultBin.bin_location_id;
+        }
+      }
+    }
+
+    if (!loadingBayLocationId) {
+      this.$message.warning(
+        "No default loading bay configured for this plant. Cannot list handling units.",
+      );
+      return;
+    }
+
     // Exclude HUs already in this Packing's table_hu, AND HUs that already
     // exist in table_hu_source (upstream Picking context — user should pick
     // those via Pick to HU / Pick to Parent HU, not the Select Existing dialog).
@@ -30,12 +72,13 @@
         .map((r) => r.handling_unit_id),
     ].filter(Boolean);
 
-    // Query handling_unit: plant + org match, not deleted
+    // Query handling_unit: plant + org + loading bay location, not deleted
     const res = await db
       .collection("handling_unit")
       .where({
         plant_id: plantId,
         organization_id: organizationId,
+        location_id: loadingBayLocationId,
         is_deleted: 0,
       })
       .get();
