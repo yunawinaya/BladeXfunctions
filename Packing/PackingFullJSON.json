@@ -748,403 +748,908 @@
                 "pull": 0,
                 "xs": 24,
                 "sm": 12,
-                "md": 10,
+                "md": 9,
                 "lg": 12,
                 "xl": 12,
                 "customClass": ""
               },
               "list": [
                 {
-                  "type": "treeselect",
-                  "mainIcon": "树形选择",
-                  "typeIcon": "树形选择",
-                  "icon": "icon-shuxuanzeqi",
-                  "group": "Select",
-                  "groupSort": 4,
+                  "version": "1.0.0",
+                  "type": "collapse",
+                  "mainIcon": "折叠面板",
+                  "typeIcon": "折叠面板",
+                  "icon": "icon-zhediemianban",
+                  "group": "Layout",
+                  "groupSort": 3,
                   "enableScopes": ["Component", "Table", "Page"],
-                  "options": {
-                    "defaultValue": "",
-                    "width": "",
-                    "placeholder": "",
-                    "disabled": true,
-                    "clearable": false,
-                    "options": [
-                      {
-                        "value": "Option 1",
-                        "label": "Option 1",
-                        "children": [
-                          {
-                            "value": "Option 1 - children",
-                            "label": "Option 1 - children"
-                          }
-                        ]
-                      },
-                      {
-                        "value": "Option 2",
-                        "label": "Option 2",
-                        "children": [
-                          {
-                            "value": "Option 2 - children",
-                            "label": "Option 2 - children"
-                          }
-                        ]
-                      },
-                      {
-                        "value": "Option 3",
-                        "label": "Option 3"
-                      }
-                    ],
-                    "remote": true,
-                    "remoteType": "innerdatasource",
-                    "remoteOption": "option_htdssb33",
-                    "remoteOptions": [],
-                    "props": {
-                      "value": "id",
-                      "label": "dept_name",
-                      "children": "children",
-                      "cascade": "",
-                      "image": "",
-                      "icon": "",
-                      "explain": ""
-                    },
-                    "remoteFunc": "func_htdssb33",
-                    "customClass": "",
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": false,
-                    "dataBind": true,
-                    "required": true,
-                    "validatorCheck": false,
-                    "validator": "",
-                    "multiple": false,
-                    "filterable": false,
-                    "checkStrictly": false,
-                    "customProps": {},
-                    "tip": "",
-                    "tableColumn": false,
-                    "subform": false,
-                    "datasource": {
-                      "source": "组织机构(勿删勿改):Table:1789995126399348747",
-                      "rules": {
-                        "collectionId": "1789995126399348747",
-                        "list": [
-                          {
-                            "id": 1750308207766,
-                            "parentId": 1750308207767,
-                            "isTop": true,
-                            "type": "branch",
-                            "operator": "any",
-                            "prop": "",
-                            "valueType": "",
-                            "value": "",
-                            "level": 1,
-                            "children": [
+                  "tabs": [
+                    {
+                      "title": "Packing Information",
+                      "name": "collapse_1",
+                      "list": [
+                        {
+                          "type": "treeselect",
+                          "mainIcon": "树形选择",
+                          "typeIcon": "树形选择",
+                          "icon": "icon-shuxuanzeqi",
+                          "group": "Select",
+                          "groupSort": 4,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "defaultValue": "",
+                            "width": "",
+                            "placeholder": "",
+                            "disabled": true,
+                            "clearable": false,
+                            "options": [
                               {
-                                "id": 1750308207769,
-                                "isTop": false,
-                                "parentId": 1750308207766,
-                                "type": "branch",
-                                "operator": "all",
-                                "level": 2,
+                                "value": "Option 1",
+                                "label": "Option 1",
                                 "children": [
                                   {
-                                    "id": 1723795236686,
-                                    "parentId": 1750308207769,
-                                    "isTop": false,
-                                    "prop": "id",
-                                    "operator": "numberEqual",
-                                    "valueType": "field",
-                                    "value": "{{system:deptIds}}",
-                                    "type": "leaf",
-                                    "level": 3,
-                                    "propLabel": "主键ID",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal",
-                                    "valueTypeLabel": "值"
-                                  },
-                                  {
-                                    "id": 1750308207770,
-                                    "parentId": 1750308207769,
-                                    "isTop": false,
-                                    "prop": "parent_id",
-                                    "operator": "numberEqual",
-                                    "valueType": "field",
-                                    "value": "{{global:deptParentId}}",
-                                    "type": "leaf",
-                                    "level": 3,
-                                    "propLabel": "父主键",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal",
-                                    "valueTypeLabel": "值"
+                                    "value": "Option 1 - children",
+                                    "label": "Option 1 - children"
                                   }
                                 ]
                               },
                               {
-                                "id": 1750308207771,
-                                "isTop": false,
-                                "parentId": 1750308207766,
-                                "type": "branch",
-                                "operator": "all",
-                                "level": 2,
+                                "value": "Option 2",
+                                "label": "Option 2",
                                 "children": [
                                   {
-                                    "id": 1750308207768,
-                                    "parentId": 1750308207771,
-                                    "isTop": false,
-                                    "prop": "id",
-                                    "operator": "in",
-                                    "valueType": "formula",
-                                    "value": "{{global:deptIdList}}.split(',')",
-                                    "type": "leaf",
-                                    "level": 3,
-                                    "propLabel": "主键ID",
-                                    "valueLabel": "",
-                                    "operatorLabel": "In",
-                                    "valueTypeLabel": "值"
-                                  },
+                                    "value": "Option 2 - children",
+                                    "label": "Option 2 - children"
+                                  }
+                                ]
+                              },
+                              {
+                                "value": "Option 3",
+                                "label": "Option 3"
+                              }
+                            ],
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "remoteOption": "option_htdssb33",
+                            "remoteOptions": [],
+                            "props": {
+                              "value": "id",
+                              "label": "dept_name",
+                              "children": "children",
+                              "cascade": "",
+                              "image": "",
+                              "icon": "",
+                              "explain": ""
+                            },
+                            "remoteFunc": "func_htdssb33",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "required": true,
+                            "validatorCheck": false,
+                            "validator": "",
+                            "multiple": false,
+                            "filterable": false,
+                            "checkStrictly": false,
+                            "customProps": {},
+                            "tip": "",
+                            "tableColumn": false,
+                            "subform": false,
+                            "datasource": {
+                              "source": "组织机构(勿删勿改):Table:1789995126399348747",
+                              "rules": {
+                                "collectionId": "1789995126399348747",
+                                "list": [
                                   {
-                                    "id": 1750308207772,
-                                    "parentId": 1750308207771,
-                                    "isTop": false,
-                                    "prop": "parent_id",
-                                    "operator": "numberEqual",
-                                    "valueType": "field",
-                                    "value": "{{system:deptIds}}",
-                                    "type": "leaf",
-                                    "level": 3,
-                                    "propLabel": "父主键",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal",
-                                    "valueTypeLabel": "值"
+                                    "id": 1750308207766,
+                                    "parentId": 1750308207767,
+                                    "isTop": true,
+                                    "type": "branch",
+                                    "operator": "any",
+                                    "prop": "",
+                                    "valueType": "",
+                                    "value": "",
+                                    "level": 1,
+                                    "children": [
+                                      {
+                                        "id": 1750308207769,
+                                        "isTop": false,
+                                        "parentId": 1750308207766,
+                                        "type": "branch",
+                                        "operator": "all",
+                                        "level": 2,
+                                        "children": [
+                                          {
+                                            "id": 1723795236686,
+                                            "parentId": 1750308207769,
+                                            "isTop": false,
+                                            "prop": "id",
+                                            "operator": "numberEqual",
+                                            "valueType": "field",
+                                            "value": "{{system:deptIds}}",
+                                            "type": "leaf",
+                                            "level": 3,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal",
+                                            "valueTypeLabel": "值"
+                                          },
+                                          {
+                                            "id": 1750308207770,
+                                            "parentId": 1750308207769,
+                                            "isTop": false,
+                                            "prop": "parent_id",
+                                            "operator": "numberEqual",
+                                            "valueType": "field",
+                                            "value": "{{global:deptParentId}}",
+                                            "type": "leaf",
+                                            "level": 3,
+                                            "propLabel": "父主键",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal",
+                                            "valueTypeLabel": "值"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "id": 1750308207771,
+                                        "isTop": false,
+                                        "parentId": 1750308207766,
+                                        "type": "branch",
+                                        "operator": "all",
+                                        "level": 2,
+                                        "children": [
+                                          {
+                                            "id": 1750308207768,
+                                            "parentId": 1750308207771,
+                                            "isTop": false,
+                                            "prop": "id",
+                                            "operator": "in",
+                                            "valueType": "formula",
+                                            "value": "{{global:deptIdList}}.split(',')",
+                                            "type": "leaf",
+                                            "level": 3,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "In",
+                                            "valueTypeLabel": "值"
+                                          },
+                                          {
+                                            "id": 1750308207772,
+                                            "parentId": 1750308207771,
+                                            "isTop": false,
+                                            "prop": "parent_id",
+                                            "operator": "numberEqual",
+                                            "valueType": "field",
+                                            "value": "{{system:deptIds}}",
+                                            "type": "leaf",
+                                            "level": 3,
+                                            "propLabel": "父主键",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal",
+                                            "valueTypeLabel": "值"
+                                          }
+                                        ]
+                                      }
+                                    ]
                                   }
                                 ]
                               }
-                            ]
-                          }
-                        ]
-                      }
-                    },
-                    "more_fields": [],
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": "",
-                    "sorts": []
-                  },
-                  "events": {
-                    "onChange": "5k0oh5rs",
-                    "onFocus": "",
-                    "onBlur": ""
-                  },
-                  "name": "Plant",
-                  "novalid": {},
-                  "key": "htdssb33",
-                  "model": "plant_id",
-                  "rules": [
-                    {
-                      "required": true,
-                      "message": ""
-                    }
-                  ]
-                },
-                {
-                  "type": "flex",
-                  "el": "su-fm-flex",
-                  "mainIcon": "自动布局",
-                  "typeIcon": "自动布局",
-                  "icon": "icon-zhediemianban",
-                  "group": "Design",
-                  "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "options": {
-                    "dataBind": false,
-                    "pagingEnabled": true,
-                    "customClass": "",
-                    "hidden": false,
-                    "recursive": false,
-                    "recursiveStyleFx": "",
-                    "slotTarget": "",
-                    "defaultValue": "",
-                    "flexDirection": "row",
-                    "flexWrap": "nowrap",
-                    "alignItems": "",
-                    "justifyContent": "",
-                    "hGap": "",
-                    "vGap": "",
-                    "grid": {
-                      "row": {
-                        "value": "",
-                        "visible": true
-                      },
-                      "col": {
-                        "value": "",
-                        "visible": true
-                      },
-                      "use": false
-                    },
-                    "padding": ["", "", "", ""],
-                    "margin": ["", "", "", ""],
-                    "boxSizing": "border-box",
-                    "width": "",
-                    "height": "",
-                    "radius": ["", "", "", ""],
-                    "position": "relative",
-                    "positions": ["", "", "", ""],
-                    "zIndex": "",
-                    "flex": "",
-                    "flexGrow": "",
-                    "flexShrink": "",
-                    "fills": [],
-                    "borders": [],
-                    "effects": [],
-                    "states": [],
-                    "hoverClass": "",
-                    "overflow": "",
-                    "styleFx": "",
-                    "behave": "",
-                    "remoteFunc": "func_vdr7wety",
-                    "remoteOption": "option_vdr7wety",
-                    "tableColumn": false,
-                    "subform": false,
-                    "datasource": {
-                      "rules": {
-                        "collectionId": "",
-                        "list": [
-                          {
-                            "id": 1723795236686,
-                            "parentId": 1723795236685,
-                            "isTop": true,
-                            "prop": "",
-                            "operator": "",
-                            "valueType": "",
-                            "value": "",
-                            "type": "leaf",
-                            "level": 1
-                          }
-                        ]
-                      }
-                    },
-                    "options": [],
-                    "props": {
-                      "value": "",
-                      "label": "",
-                      "image": "",
-                      "icon": "",
-                      "explain": ""
-                    },
-                    "remote": false,
-                    "remoteType": "datasource",
-                    "auto_refresh": 0,
-                    "auto_refresh_debounce": 100,
-                    "paging_way": "Pagination",
-                    "page_size": 10
-                  },
-                  "list": [
-                    {
-                      "type": "flex",
-                      "el": "su-fm-flex",
-                      "mainIcon": "自动布局",
-                      "typeIcon": "自动布局",
-                      "icon": "icon-zhediemianban",
-                      "group": "Design",
-                      "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
-                      "options": {
-                        "dataBind": false,
-                        "pagingEnabled": true,
-                        "customClass": "",
-                        "hidden": false,
-                        "recursive": false,
-                        "recursiveStyleFx": "",
-                        "slotTarget": "",
-                        "defaultValue": "",
-                        "flexDirection": "column",
-                        "flexWrap": "",
-                        "alignItems": "",
-                        "justifyContent": "",
-                        "hGap": "",
-                        "vGap": "",
-                        "grid": {
-                          "row": {
-                            "value": "",
-                            "visible": true
+                            },
+                            "more_fields": [],
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "sorts": []
                           },
-                          "col": {
-                            "value": "",
-                            "visible": true
+                          "events": {
+                            "onChange": "5k0oh5rs",
+                            "onFocus": "",
+                            "onBlur": ""
                           },
-                          "use": false
+                          "name": "Plant",
+                          "novalid": {},
+                          "key": "htdssb33",
+                          "model": "plant_id",
+                          "rules": [
+                            {
+                              "required": true,
+                              "message": ""
+                            }
+                          ]
                         },
-                        "padding": ["", "", "", ""],
-                        "margin": ["", "", "", ""],
-                        "boxSizing": "border-box",
-                        "width": "80%",
-                        "height": "",
-                        "radius": ["", "", "", ""],
-                        "position": "relative",
-                        "positions": ["", "", "", ""],
-                        "zIndex": "",
-                        "flex": "",
-                        "flexGrow": "",
-                        "flexShrink": "",
-                        "fills": [],
-                        "borders": [],
-                        "effects": [],
-                        "states": [],
-                        "hoverClass": "",
-                        "overflow": "",
-                        "styleFx": "",
-                        "behave": "",
-                        "remoteFunc": "func_glpaghs4",
-                        "remoteOption": "option_glpaghs4",
-                        "tableColumn": false,
-                        "subform": false,
-                        "datasource": {
-                          "rules": {
-                            "collectionId": "",
-                            "list": [
-                              {
-                                "id": 1723795236686,
-                                "parentId": 1723795236685,
-                                "isTop": true,
-                                "prop": "",
-                                "operator": "",
-                                "valueType": "",
-                                "value": "",
-                                "type": "leaf",
-                                "level": 1
-                              }
-                            ]
-                          }
-                        },
-                        "options": [],
-                        "props": {
-                          "value": "",
-                          "label": "",
-                          "image": "",
-                          "icon": "",
-                          "explain": ""
-                        },
-                        "remote": false,
-                        "remoteType": "datasource",
-                        "auto_refresh": 0,
-                        "auto_refresh_debounce": 100,
-                        "paging_way": "Pagination",
-                        "page_size": 10
-                      },
-                      "list": [
                         {
-                          "name": "Packing No",
-                          "el": "su-fm-serial-number",
-                          "mainIcon": "流水号",
-                          "typeIcon": "流水号",
-                          "group": "Text",
-                          "groupSort": 5,
+                          "type": "flex",
+                          "el": "su-fm-flex",
+                          "mainIcon": "自动布局",
+                          "typeIcon": "自动布局",
+                          "icon": "icon-zhediemianban",
+                          "group": "Design",
+                          "groupSort": 1,
                           "enableScopes": ["Component", "Table", "Page"],
                           "options": {
+                            "dataBind": false,
+                            "pagingEnabled": true,
+                            "customClass": "",
+                            "hidden": false,
+                            "recursive": false,
+                            "recursiveStyleFx": "",
+                            "slotTarget": "",
                             "defaultValue": "",
+                            "flexDirection": "row",
+                            "flexWrap": "nowrap",
+                            "alignItems": "",
+                            "justifyContent": "",
+                            "hGap": "",
+                            "vGap": "",
+                            "grid": {
+                              "row": {
+                                "value": "",
+                                "visible": true
+                              },
+                              "col": {
+                                "value": "",
+                                "visible": true
+                              },
+                              "use": false
+                            },
+                            "padding": ["", "", "", ""],
+                            "margin": ["", "", "", ""],
+                            "boxSizing": "border-box",
+                            "width": "",
+                            "height": "",
+                            "radius": ["", "", "", ""],
+                            "position": "relative",
+                            "positions": ["", "", "", ""],
+                            "zIndex": "",
+                            "flex": "",
+                            "flexGrow": "",
+                            "flexShrink": "",
+                            "fills": [],
+                            "borders": [],
+                            "effects": [],
+                            "states": [],
+                            "hoverClass": "",
+                            "overflow": "",
+                            "styleFx": "",
+                            "behave": "",
+                            "remoteFunc": "func_vdr7wety",
+                            "remoteOption": "option_vdr7wety",
+                            "tableColumn": false,
+                            "subform": false,
+                            "datasource": {
+                              "rules": {
+                                "collectionId": "",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "",
+                                    "operator": "",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "leaf",
+                                    "level": 1
+                                  }
+                                ]
+                              }
+                            },
+                            "options": [],
+                            "props": {
+                              "value": "",
+                              "label": "",
+                              "image": "",
+                              "icon": "",
+                              "explain": ""
+                            },
+                            "remote": false,
+                            "remoteType": "datasource",
+                            "auto_refresh": 0,
+                            "auto_refresh_debounce": 100,
+                            "paging_way": "Pagination",
+                            "page_size": 10
+                          },
+                          "list": [
+                            {
+                              "type": "flex",
+                              "el": "su-fm-flex",
+                              "mainIcon": "自动布局",
+                              "typeIcon": "自动布局",
+                              "icon": "icon-zhediemianban",
+                              "group": "Design",
+                              "groupSort": 1,
+                              "enableScopes": ["Component", "Table", "Page"],
+                              "options": {
+                                "dataBind": false,
+                                "pagingEnabled": true,
+                                "customClass": "",
+                                "hidden": false,
+                                "recursive": false,
+                                "recursiveStyleFx": "",
+                                "slotTarget": "",
+                                "defaultValue": "",
+                                "flexDirection": "column",
+                                "flexWrap": "",
+                                "alignItems": "",
+                                "justifyContent": "",
+                                "hGap": "",
+                                "vGap": "",
+                                "grid": {
+                                  "row": {
+                                    "value": "",
+                                    "visible": true
+                                  },
+                                  "col": {
+                                    "value": "",
+                                    "visible": true
+                                  },
+                                  "use": false
+                                },
+                                "padding": ["", "", "", ""],
+                                "margin": ["", "", "", ""],
+                                "boxSizing": "border-box",
+                                "width": "80%",
+                                "height": "",
+                                "radius": ["", "", "", ""],
+                                "position": "relative",
+                                "positions": ["", "", "", ""],
+                                "zIndex": "",
+                                "flex": "",
+                                "flexGrow": "",
+                                "flexShrink": "",
+                                "fills": [],
+                                "borders": [],
+                                "effects": [],
+                                "states": [],
+                                "hoverClass": "",
+                                "overflow": "",
+                                "styleFx": "",
+                                "behave": "",
+                                "remoteFunc": "func_glpaghs4",
+                                "remoteOption": "option_glpaghs4",
+                                "tableColumn": false,
+                                "subform": false,
+                                "datasource": {
+                                  "rules": {
+                                    "collectionId": "",
+                                    "list": [
+                                      {
+                                        "id": 1723795236686,
+                                        "parentId": 1723795236685,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "options": [],
+                                "props": {
+                                  "value": "",
+                                  "label": "",
+                                  "image": "",
+                                  "icon": "",
+                                  "explain": ""
+                                },
+                                "remote": false,
+                                "remoteType": "datasource",
+                                "auto_refresh": 0,
+                                "auto_refresh_debounce": 100,
+                                "paging_way": "Pagination",
+                                "page_size": 10
+                              },
+                              "list": [
+                                {
+                                  "name": "Packing No",
+                                  "el": "su-fm-serial-number",
+                                  "mainIcon": "流水号",
+                                  "typeIcon": "流水号",
+                                  "group": "Text",
+                                  "groupSort": 5,
+                                  "enableScopes": [
+                                    "Component",
+                                    "Table",
+                                    "Page"
+                                  ],
+                                  "options": {
+                                    "defaultValue": "",
+                                    "customClass": "",
+                                    "labelWidth": 100,
+                                    "isLabelWidth": false,
+                                    "hidden": false,
+                                    "disabled": true,
+                                    "dataBind": true,
+                                    "required": false,
+                                    "validator": "",
+                                    "hideLabel": false,
+                                    "placeholder": "Auto-generated",
+                                    "readonly": false,
+                                    "rules": [
+                                      {
+                                        "id": 1,
+                                        "type": "fixedText",
+                                        "config": {
+                                          "text": "SN"
+                                        }
+                                      },
+                                      {
+                                        "id": 2,
+                                        "type": "submitDate",
+                                        "config": {
+                                          "format": "YYYYMMDD",
+                                          "timezone": "Asia/Shanghai"
+                                        }
+                                      },
+                                      {
+                                        "id": 3,
+                                        "type": "autoCounter",
+                                        "config": {
+                                          "digits": 4,
+                                          "fixedDigits": true,
+                                          "resetPeriod": "day",
+                                          "initialValue": 1
+                                        }
+                                      }
+                                    ],
+                                    "remoteFunc": "func_bba70crd",
+                                    "remoteOption": "option_bba70crd",
+                                    "tableColumn": false,
+                                    "subform": false,
+                                    "ruleMode": "dynamic",
+                                    "dynamicRuleField": "Packing",
+                                    "select-card_n7ge7fmb": [],
+                                    "left": 3,
+                                    "right": 4,
+                                    "pad": "*",
+                                    "desensitization_pattern": "",
+                                    "desensitization_replace": "",
+                                    "canManualInput": true
+                                  },
+                                  "events": {
+                                    "onChange": "",
+                                    "onGenerate": "",
+                                    "keyChange": "765nobkh"
+                                  },
+                                  "type": "custom",
+                                  "key": "zdtabutg",
+                                  "model": "packing_no",
+                                  "rules": []
+                                }
+                              ],
+                              "events": {
+                                "onClick": ""
+                              },
+                              "name": "自动布局",
+                              "key": "tr1i6ntt",
+                              "model": "ser_flex_wrp_lef_whlrtcbh",
+                              "rules": []
+                            },
+                            {
+                              "type": "flex",
+                              "el": "su-fm-flex",
+                              "mainIcon": "自动布局",
+                              "typeIcon": "自动布局",
+                              "icon": "icon-zhediemianban",
+                              "group": "Design",
+                              "groupSort": 1,
+                              "enableScopes": ["Component", "Table", "Page"],
+                              "options": {
+                                "dataBind": false,
+                                "pagingEnabled": true,
+                                "customClass": "",
+                                "hidden": false,
+                                "recursive": false,
+                                "recursiveStyleFx": "",
+                                "slotTarget": "",
+                                "defaultValue": "",
+                                "flexDirection": "column",
+                                "flexWrap": "",
+                                "alignItems": "",
+                                "justifyContent": "",
+                                "hGap": "",
+                                "vGap": "",
+                                "grid": {
+                                  "row": {
+                                    "value": "",
+                                    "visible": true
+                                  },
+                                  "col": {
+                                    "value": "",
+                                    "visible": true
+                                  },
+                                  "use": false
+                                },
+                                "padding": ["", "", "", "8px"],
+                                "margin": ["", "", "", ""],
+                                "boxSizing": "border-box",
+                                "width": "20%",
+                                "height": "",
+                                "radius": ["", "", "", ""],
+                                "position": "relative",
+                                "positions": ["", "", "", ""],
+                                "zIndex": "",
+                                "flex": "",
+                                "flexGrow": "",
+                                "flexShrink": "",
+                                "fills": [],
+                                "borders": [],
+                                "effects": [],
+                                "states": [],
+                                "hoverClass": "",
+                                "overflow": "",
+                                "styleFx": "",
+                                "behave": "",
+                                "remoteFunc": "func_7fvth9ha",
+                                "remoteOption": "option_7fvth9ha",
+                                "tableColumn": false,
+                                "subform": false,
+                                "datasource": {
+                                  "rules": {
+                                    "collectionId": "",
+                                    "list": [
+                                      {
+                                        "id": 1723795236686,
+                                        "parentId": 1723795236685,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "options": [],
+                                "props": {
+                                  "value": "",
+                                  "label": "",
+                                  "image": "",
+                                  "icon": "",
+                                  "explain": ""
+                                },
+                                "remote": false,
+                                "remoteType": "datasource",
+                                "auto_refresh": 0,
+                                "auto_refresh_debounce": 100,
+                                "paging_way": "Pagination",
+                                "page_size": 10
+                              },
+                              "list": [
+                                {
+                                  "type": "select",
+                                  "mainIcon": "下拉单选",
+                                  "typeIcon": "下拉单选",
+                                  "icon": "icon-select",
+                                  "group": "Select",
+                                  "groupSort": 2,
+                                  "enableScopes": [
+                                    "Component",
+                                    "Table",
+                                    "Page"
+                                  ],
+                                  "el": "fm-select",
+                                  "options": {
+                                    "defaultValue": "",
+                                    "multiple": false,
+                                    "disabled": "{{this.isEdit}}",
+                                    "clearable": false,
+                                    "placeholder": "",
+                                    "required": false,
+                                    "requiredMessage": "",
+                                    "validatorCheck": false,
+                                    "validator": "",
+                                    "width": "",
+                                    "options": [
+                                      {
+                                        "value": "Option 1",
+                                        "label": "Option 1"
+                                      },
+                                      {
+                                        "value": "Option 2",
+                                        "label": "Option 2"
+                                      },
+                                      {
+                                        "value": "Option 3",
+                                        "label": "Option 3"
+                                      }
+                                    ],
+                                    "remote": true,
+                                    "remoteType": "innerdatasource",
+                                    "remoteOption": "option_7nbymuo3",
+                                    "filterable": true,
+                                    "pagingEnabled": true,
+                                    "remoteOptions": [],
+                                    "props": {
+                                      "value": "id",
+                                      "label": "rule_name",
+                                      "image": "",
+                                      "icon": "",
+                                      "explain": "",
+                                      "cascade": "",
+                                      "children": ""
+                                    },
+                                    "remoteFunc": "func_7nbymuo3",
+                                    "customClass": "",
+                                    "labelWidth": 100,
+                                    "isLabelWidth": false,
+                                    "hidden": false,
+                                    "dataBind": true,
+                                    "customProps": {},
+                                    "tip": "",
+                                    "tableColumn": false,
+                                    "subform": false,
+                                    "select-card_n7ge7fmb": [],
+                                    "left": 3,
+                                    "right": 4,
+                                    "pad": "*",
+                                    "desensitization_pattern": "",
+                                    "desensitization_replace": "",
+                                    "datasource": {
+                                      "rules": {
+                                        "collectionId": "1994006139209117697",
+                                        "list": [
+                                          {
+                                            "id": 1764233028783,
+                                            "parentId": 1764233028784,
+                                            "isTop": true,
+                                            "prop": "",
+                                            "operator": "all",
+                                            "valueType": "",
+                                            "value": "",
+                                            "type": "branch",
+                                            "level": 1,
+                                            "children": [
+                                              {
+                                                "id": 1723795236686,
+                                                "parentId": 1764233028783,
+                                                "isTop": false,
+                                                "prop": "business_type",
+                                                "operator": "equal",
+                                                "valueType": "formula",
+                                                "value": "() => {\n  var params = this.getComponent('packing_no');\n  const { options } = params;\n  return options?.dynamicRuleField;\n}",
+                                                "type": "leaf",
+                                                "level": 2,
+                                                "propLabel": "Document Type",
+                                                "valueLabel": "",
+                                                "operatorLabel": "Equal"
+                                              },
+                                              {
+                                                "id": 1764233028785,
+                                                "parentId": 1764233028783,
+                                                "isTop": false,
+                                                "prop": "department_id",
+                                                "operator": "numberEqual",
+                                                "valueType": "field",
+                                                "value": "{{global:firstLvDeptId}}",
+                                                "type": "leaf",
+                                                "level": 2,
+                                                "propLabel": "部门ID",
+                                                "valueLabel": "",
+                                                "operatorLabel": "Equal"
+                                              },
+                                              {
+                                                "id": 1772182085010,
+                                                "parentId": 1764233028783,
+                                                "isTop": false,
+                                                "prop": "is_draft",
+                                                "operator": "numberEqual",
+                                                "valueType": "value",
+                                                "value": 0,
+                                                "type": "leaf",
+                                                "level": 2,
+                                                "propLabel": "Draft",
+                                                "valueLabel": "",
+                                                "operatorLabel": "Equal"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "source": "流水号规则表:Table:1994006139209117697"
+                                    },
+                                    "limit_count": null,
+                                    "hideLabel": true,
+                                    "sorts": [],
+                                    "paging_enabled": 0,
+                                    "auto_refresh": 0,
+                                    "auto_refresh_debounce": 100
+                                  },
+                                  "events": {
+                                    "onReady": "cx70zhoi",
+                                    "onChange": "skci27rk",
+                                    "onFocus": "",
+                                    "onBlur": ""
+                                  },
+                                  "name": "规则",
+                                  "key": "7rsk48uj",
+                                  "model": "packing_no_type",
+                                  "rules": []
+                                }
+                              ],
+                              "events": {
+                                "onClick": ""
+                              },
+                              "name": "自动布局",
+                              "key": "02ane2cn",
+                              "model": "ser_flex_wrp_rig_gpmm8pyv",
+                              "rules": []
+                            }
+                          ],
+                          "events": {
+                            "onClick": ""
+                          },
+                          "name": "自动布局",
+                          "key": "1hw8tipm",
+                          "model": "serial_flex_wrapper_8sg890al",
+                          "rules": []
+                        },
+                        {
+                          "name": "Sales Order No",
+                          "el": "su-fm-table-select",
+                          "mainIcon": "表格选择器",
+                          "typeIcon": "表格选择器",
+                          "group": "Select",
+                          "groupSort": 4,
+                          "generate": "part",
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "defaultValue": [],
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": true,
+                            "disabled": true,
+                            "dataBind": true,
+                            "required": false,
+                            "validator": "",
+                            "hideLabel": false,
+                            "pageSourceId": "1924395633309454338",
+                            "customProps": {},
+                            "pagingEnabled": true,
+                            "multiple": true,
+                            "placeholder": "",
+                            "lazyLoad": true,
+                            "props": {
+                              "value": "id",
+                              "label": "so_no",
+                              "cascade": "",
+                              "children": "",
+                              "image": "",
+                              "icon": "",
+                              "explain": ""
+                            },
+                            "datasource": {
+                              "source": "Sales Order:Table:1902773735979597826",
+                              "rules": {
+                                "collectionId": "1902773735979597826",
+                                "list": [
+                                  {
+                                    "id": 1764127781106,
+                                    "parentId": 1764295500919,
+                                    "isTop": true,
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{value:plant_id}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "prop": "plant_name",
+                                    "propLabel": "Plant",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            },
+                            "remoteFunc": "func_9xgkbgz9",
+                            "remoteOption": "option_9xgkbgz9",
+                            "tableColumn": false,
+                            "subform": false,
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "more_fields": [],
+                            "paging_enabled": 0,
+                            "columns": [],
+                            "pageId": "1924395633418506245",
+                            "options": [],
+                            "sorts": [],
+                            "auto_refresh": 1,
+                            "auto_refresh_debounce": 100,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onChange": ""
+                          },
+                          "type": "custom",
+                          "novalid": {},
+                          "key": "bqtsn77r",
+                          "model": "so_id",
+                          "rules": []
+                        },
+                        {
+                          "type": "input",
+                          "mainIcon": "单行文本",
+                          "typeIcon": "单行文本",
+                          "icon": "icon-input",
+                          "group": "Text",
+                          "groupSort": 1,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-input",
+                          "options": {
+                            "width": "",
+                            "defaultValue": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "dataType": "",
+                            "dataTypeCheck": false,
+                            "dataTypeMessage": "",
+                            "pattern": "",
+                            "patternCheck": false,
+                            "patternMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "placeholder": "",
+                            "customClass": "",
+                            "disabled": true,
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "showPassword": false,
+                            "clearable": false,
+                            "maxlength": "",
+                            "showWordLimit": false,
+                            "customProps": {},
+                            "tip": "",
+                            "remoteFunc": "func_ud2u75hd",
+                            "remoteOption": "option_ud2u75hd",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "Sales Order No",
+                          "novalid": {},
+                          "key": "jtcwdkag",
+                          "model": "so_no",
+                          "rules": []
+                        },
+                        {
+                          "name": "Goods Delivery No",
+                          "el": "su-fm-table-select",
+                          "mainIcon": "表格选择器",
+                          "typeIcon": "表格选择器",
+                          "group": "Select",
+                          "groupSort": 4,
+                          "generate": "part",
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "defaultValue": [],
                             "customClass": "",
                             "labelWidth": 100,
                             "isLabelWidth": false,
@@ -1154,157 +1659,126 @@
                             "required": false,
                             "validator": "",
                             "hideLabel": false,
-                            "placeholder": "Auto-generated",
-                            "readonly": false,
-                            "rules": [
+                            "pageSourceId": "1924395633309454338",
+                            "customProps": {},
+                            "pagingEnabled": true,
+                            "multiple": true,
+                            "placeholder": "",
+                            "lazyLoad": true,
+                            "props": {
+                              "value": "id",
+                              "label": "delivery_no",
+                              "cascade": "",
+                              "children": "",
+                              "image": "",
+                              "icon": "",
+                              "explain": ""
+                            },
+                            "datasource": {
+                              "source": "Goods Delivery:Table:1902054888473481218",
+                              "rules": {
+                                "collectionId": "1902054888473481218",
+                                "list": [
+                                  {
+                                    "id": 1760323137465,
+                                    "parentId": 1764300960615,
+                                    "isTop": true,
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{value:plant_id}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "Plant",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal",
+                                    "valueTypeLabel": "值",
+                                    "prop": "plant_id"
+                                  }
+                                ]
+                              }
+                            },
+                            "remoteFunc": "func_9xgkbgz9",
+                            "remoteOption": "option_9xgkbgz9",
+                            "tableColumn": false,
+                            "subform": false,
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "more_fields": [],
+                            "paging_enabled": 0,
+                            "columns": [
                               {
-                                "id": 1,
-                                "type": "fixedText",
-                                "config": {
-                                  "text": "SN"
+                                "value": "delivery_no",
+                                "label": "Goods Delivery Number",
+                                "item": {
+                                  "bsonType": "string",
+                                  "defaultValue": "",
+                                  "description": "Goods Delivery Number",
+                                  "encryptedKey": false,
+                                  "errorMessage": {
+                                    "format": "",
+                                    "pattern": "",
+                                    "required": ""
+                                  },
+                                  "format": "",
+                                  "historyKey": false,
+                                  "immutableKey": false,
+                                  "isRequired": true,
+                                  "key": "nfwpnnrg",
+                                  "name": "delivery_no",
+                                  "pattern": "",
+                                  "persistField": true,
+                                  "primaryKey": false,
+                                  "title": "Goods Delivery Number",
+                                  "validator": "const page_status = this.getParamsVariables('page_status');\n\nif (page_status === 'View' || !value) {\n    callback();\n    return;\n}\nlet organizationId = this.getVarGlobal('deptParentId');\n        if(organizationId === '0'){\n            organizationId = this.getVarSystem('deptIds').split(',')[0];\n        }\ndb.collection(\"goods_delivery\")\n    .where({ delivery_no: value , organization_id: organizationId})\n    .get()\n    .then(response => {\n        const matchingGoodsDelivery = response.data || [];\n\n        if (matchingGoodsDelivery.length === 0) {\n            callback();\n            return;\n        }\n\n        if (page_status === 'Edit') {\n            const currentDeliveryNo = this.getParamsVariables('goods_delivery_no');\n            const isSameDelivery = matchingGoodsDelivery.some(goods_delivery => goods_delivery.id === currentDeliveryNo);\n            callback(isSameDelivery ? undefined : 'Good delivery number already exists.');\n        } else {\n            callback('Good delivery number already exists.');\n        }\n    })\n    .catch(error => {\n        console.error(\"Error checking good delivery:\", error);\n        callback(\"Error validating good delivery number.\");\n    });  "
                                 }
                               },
                               {
-                                "id": 2,
-                                "type": "submitDate",
-                                "config": {
-                                  "format": "YYYYMMDD",
-                                  "timezone": "Asia/Shanghai"
-                                }
-                              },
-                              {
-                                "id": 3,
-                                "type": "autoCounter",
-                                "config": {
-                                  "digits": 4,
-                                  "fixedDigits": true,
-                                  "resetPeriod": "day",
-                                  "initialValue": 1
+                                "value": "so_no",
+                                "label": "Sales Order Number",
+                                "item": {
+                                  "bsonType": "string",
+                                  "defaultValue": "",
+                                  "description": "Sales Order Number",
+                                  "encryptedKey": false,
+                                  "errorMessage": {
+                                    "format": "",
+                                    "pattern": "",
+                                    "required": ""
+                                  },
+                                  "format": "",
+                                  "historyKey": false,
+                                  "immutableKey": false,
+                                  "isRequired": false,
+                                  "key": "7odm58ru",
+                                  "name": "so_no",
+                                  "pattern": "",
+                                  "persistField": true,
+                                  "primaryKey": false,
+                                  "title": "Sales Order Number"
                                 }
                               }
                             ],
-                            "remoteFunc": "func_bba70crd",
-                            "remoteOption": "option_bba70crd",
-                            "tableColumn": false,
-                            "subform": false,
-                            "ruleMode": "dynamic",
-                            "dynamicRuleField": "Packing",
+                            "pageId": "1924395633418506245",
+                            "options": [],
+                            "sorts": [],
+                            "auto_refresh": 1,
+                            "auto_refresh_debounce": 100,
                             "select-card_n7ge7fmb": [],
                             "left": 3,
                             "right": 4,
                             "pad": "*",
                             "desensitization_pattern": "",
-                            "desensitization_replace": "",
-                            "canManualInput": true
+                            "desensitization_replace": ""
                           },
                           "events": {
-                            "onChange": "",
-                            "onGenerate": "",
-                            "keyChange": "765nobkh"
+                            "onChange": ""
                           },
                           "type": "custom",
-                          "key": "zdtabutg",
-                          "model": "packing_no",
+                          "novalid": {},
+                          "key": "9xgkbgz9",
+                          "model": "gd_id",
                           "rules": []
-                        }
-                      ],
-                      "events": {
-                        "onClick": ""
-                      },
-                      "name": "自动布局",
-                      "key": "tr1i6ntt",
-                      "model": "ser_flex_wrp_lef_whlrtcbh",
-                      "rules": []
-                    },
-                    {
-                      "type": "flex",
-                      "el": "su-fm-flex",
-                      "mainIcon": "自动布局",
-                      "typeIcon": "自动布局",
-                      "icon": "icon-zhediemianban",
-                      "group": "Design",
-                      "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
-                      "options": {
-                        "dataBind": false,
-                        "pagingEnabled": true,
-                        "customClass": "",
-                        "hidden": false,
-                        "recursive": false,
-                        "recursiveStyleFx": "",
-                        "slotTarget": "",
-                        "defaultValue": "",
-                        "flexDirection": "column",
-                        "flexWrap": "",
-                        "alignItems": "",
-                        "justifyContent": "",
-                        "hGap": "",
-                        "vGap": "",
-                        "grid": {
-                          "row": {
-                            "value": "",
-                            "visible": true
-                          },
-                          "col": {
-                            "value": "",
-                            "visible": true
-                          },
-                          "use": false
                         },
-                        "padding": ["", "", "", "8px"],
-                        "margin": ["", "", "", ""],
-                        "boxSizing": "border-box",
-                        "width": "20%",
-                        "height": "",
-                        "radius": ["", "", "", ""],
-                        "position": "relative",
-                        "positions": ["", "", "", ""],
-                        "zIndex": "",
-                        "flex": "",
-                        "flexGrow": "",
-                        "flexShrink": "",
-                        "fills": [],
-                        "borders": [],
-                        "effects": [],
-                        "states": [],
-                        "hoverClass": "",
-                        "overflow": "",
-                        "styleFx": "",
-                        "behave": "",
-                        "remoteFunc": "func_7fvth9ha",
-                        "remoteOption": "option_7fvth9ha",
-                        "tableColumn": false,
-                        "subform": false,
-                        "datasource": {
-                          "rules": {
-                            "collectionId": "",
-                            "list": [
-                              {
-                                "id": 1723795236686,
-                                "parentId": 1723795236685,
-                                "isTop": true,
-                                "prop": "",
-                                "operator": "",
-                                "valueType": "",
-                                "value": "",
-                                "type": "leaf",
-                                "level": 1
-                              }
-                            ]
-                          }
-                        },
-                        "options": [],
-                        "props": {
-                          "value": "",
-                          "label": "",
-                          "image": "",
-                          "icon": "",
-                          "explain": ""
-                        },
-                        "remote": false,
-                        "remoteType": "datasource"
-                      },
-                      "list": [
                         {
                           "type": "select",
                           "mainIcon": "下拉单选",
@@ -1317,7 +1791,7 @@
                           "options": {
                             "defaultValue": "",
                             "multiple": false,
-                            "disabled": "{{this.isEdit}}",
+                            "disabled": true,
                             "clearable": false,
                             "placeholder": "",
                             "required": false,
@@ -1341,20 +1815,178 @@
                             ],
                             "remote": true,
                             "remoteType": "innerdatasource",
-                            "remoteOption": "option_7nbymuo3",
-                            "filterable": true,
+                            "remoteOption": "option_xoo8gyhl",
+                            "filterable": false,
                             "pagingEnabled": true,
                             "remoteOptions": [],
                             "props": {
                               "value": "id",
-                              "label": "rule_name",
+                              "label": "to_no",
                               "image": "",
                               "icon": "",
-                              "explain": "",
                               "cascade": "",
-                              "children": ""
+                              "children": "",
+                              "explain": ""
                             },
-                            "remoteFunc": "func_7nbymuo3",
+                            "remoteFunc": "func_xoo8gyhl",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": true,
+                            "dataBind": true,
+                            "customProps": {},
+                            "tip": "",
+                            "tableColumn": false,
+                            "subform": false,
+                            "datasource": {
+                              "rules": {
+                                "collectionId": "1982744224777474050",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "",
+                                    "operator": "",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "leaf",
+                                    "level": 1
+                                  }
+                                ]
+                              },
+                              "source": "Picking Plan:Table:1982744224777474050"
+                            },
+                            "auto_refresh": 1,
+                            "auto_refresh_debounce": 100,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "paging_enabled": 0,
+                            "sorts": []
+                          },
+                          "events": {
+                            "onReady": "",
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "PP ID",
+                          "novalid": {},
+                          "key": "xoo8gyhl",
+                          "model": "to_id",
+                          "rules": []
+                        },
+                        {
+                          "type": "input",
+                          "mainIcon": "单行文本",
+                          "typeIcon": "单行文本",
+                          "icon": "icon-input",
+                          "group": "Text",
+                          "groupSort": 1,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-input",
+                          "options": {
+                            "width": "",
+                            "defaultValue": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "dataType": "",
+                            "dataTypeCheck": false,
+                            "dataTypeMessage": "",
+                            "pattern": "",
+                            "patternCheck": false,
+                            "patternMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "placeholder": "",
+                            "customClass": "",
+                            "disabled": true,
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": true,
+                            "dataBind": true,
+                            "showPassword": false,
+                            "clearable": false,
+                            "maxlength": "",
+                            "showWordLimit": false,
+                            "customProps": {},
+                            "tip": "",
+                            "remoteFunc": "func_ud2u75hd",
+                            "remoteOption": "option_ud2u75hd",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "Goods Delivery No",
+                          "novalid": {},
+                          "key": "ud2u75hd",
+                          "model": "gd_no",
+                          "rules": []
+                        },
+                        {
+                          "type": "select",
+                          "mainIcon": "下拉单选",
+                          "typeIcon": "下拉单选",
+                          "icon": "icon-select",
+                          "group": "Select",
+                          "groupSort": 2,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-select",
+                          "options": {
+                            "defaultValue": [],
+                            "multiple": true,
+                            "disabled": true,
+                            "clearable": false,
+                            "placeholder": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "width": "",
+                            "options": [
+                              {
+                                "value": "Option 1",
+                                "label": "Option 1"
+                              },
+                              {
+                                "value": "Option 2",
+                                "label": "Option 2"
+                              },
+                              {
+                                "value": "Option 3",
+                                "label": "Option 3"
+                              }
+                            ],
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "remoteOption": "option_shpmeno4",
+                            "filterable": false,
+                            "pagingEnabled": true,
+                            "remoteOptions": [],
+                            "props": {
+                              "value": "id",
+                              "label": "customer_com_name",
+                              "cascade": "",
+                              "children": "",
+                              "image": "",
+                              "icon": "",
+                              "explain": ""
+                            },
+                            "remoteFunc": "func_shpmeno4",
                             "customClass": "",
                             "labelWidth": 100,
                             "isLabelWidth": false,
@@ -1364,1133 +1996,552 @@
                             "tip": "",
                             "tableColumn": false,
                             "subform": false,
+                            "datasource": {
+                              "source": "Customer:Table:1902779099617804290",
+                              "rules": {
+                                "collectionId": "1902779099617804290",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "",
+                                    "operator": "",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "leaf",
+                                    "level": 1
+                                  }
+                                ]
+                              }
+                            },
+                            "more_fields": [],
+                            "paging_enabled": 0,
+                            "sorts": [],
+                            "auto_refresh": 1,
+                            "auto_refresh_debounce": 100,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "Customer Name",
+                          "novalid": {},
+                          "key": "shpmeno4",
+                          "model": "customer_id",
+                          "rules": []
+                        },
+                        {
+                          "type": "radio",
+                          "mainIcon": "单选",
+                          "typeIcon": "单选项",
+                          "icon": "icon-radio-active",
+                          "group": "Select",
+                          "groupSort": 0,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "inline": true,
+                            "defaultValue": "Basic",
+                            "options": [
+                              {
+                                "value": "Basic",
+                                "label": "Basic"
+                              },
+                              {
+                                "value": "Detail",
+                                "label": "Detail"
+                              }
+                            ],
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "width": "",
+                            "remote": false,
+                            "remoteType": "datasource",
+                            "remoteOption": "option_l71l91rh",
+                            "remoteOptions": [],
+                            "props": {
+                              "value": "",
+                              "label": "",
+                              "image": "",
+                              "icon": "",
+                              "explain": ""
+                            },
+                            "remoteFunc": "func_l71l91rh",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": true,
+                            "dataBind": true,
+                            "disabled": false,
+                            "customProps": {},
+                            "tip": "",
+                            "tableColumn": false,
+                            "subform": false,
+                            "datasource": {
+                              "rules": {
+                                "collectionId": "",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "",
+                                    "operator": "",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "leaf",
+                                    "level": 1
+                                  }
+                                ]
+                              },
+                              "source": "static"
+                            },
+                            "limit_count": null,
                             "select-card_n7ge7fmb": [],
                             "left": 3,
                             "right": 4,
                             "pad": "*",
                             "desensitization_pattern": "",
                             "desensitization_replace": "",
-                            "datasource": {
-                              "rules": {
-                                "collectionId": "1994006139209117697",
-                                "list": [
-                                  {
-                                    "id": 1764233028783,
-                                    "parentId": 1764233028784,
-                                    "isTop": true,
-                                    "prop": "",
-                                    "operator": "all",
-                                    "valueType": "",
-                                    "value": "",
-                                    "type": "branch",
-                                    "level": 1,
-                                    "children": [
-                                      {
-                                        "id": 1723795236686,
-                                        "parentId": 1764233028783,
-                                        "isTop": false,
-                                        "prop": "business_type",
-                                        "operator": "equal",
-                                        "valueType": "formula",
-                                        "value": "() => {\n  var params = this.getComponent('packing_no');\n  const { options } = params;\n  return options?.dynamicRuleField;\n}",
-                                        "type": "leaf",
-                                        "level": 2,
-                                        "propLabel": "Document Type",
-                                        "valueLabel": "",
-                                        "operatorLabel": "Equal"
-                                      },
-                                      {
-                                        "id": 1764233028785,
-                                        "parentId": 1764233028783,
-                                        "isTop": false,
-                                        "prop": "department_id",
-                                        "operator": "numberEqual",
-                                        "valueType": "field",
-                                        "value": "{{global:firstLvDeptId}}",
-                                        "type": "leaf",
-                                        "level": 2,
-                                        "propLabel": "部门ID",
-                                        "valueLabel": "",
-                                        "operatorLabel": "Equal"
-                                      },
-                                      {
-                                        "id": 1772182085010,
-                                        "parentId": 1764233028783,
-                                        "isTop": false,
-                                        "prop": "is_draft",
-                                        "operator": "numberEqual",
-                                        "valueType": "value",
-                                        "value": 0,
-                                        "type": "leaf",
-                                        "level": 2,
-                                        "propLabel": "Draft",
-                                        "valueLabel": "",
-                                        "operatorLabel": "Equal"
-                                      }
-                                    ]
-                                  }
-                                ]
-                              },
-                              "source": "流水号规则表:Table:1994006139209117697"
-                            },
-                            "limit_count": null,
-                            "hideLabel": true,
-                            "sorts": [],
-                            "paging_enabled": 0,
                             "auto_refresh": 0,
                             "auto_refresh_debounce": 100
                           },
                           "events": {
-                            "onReady": "cx70zhoi",
-                            "onChange": "skci27rk",
+                            "onChange": "7gmdqb1r"
+                          },
+                          "name": "Packing Mode",
+                          "novalid": {},
+                          "key": "l71l91rh",
+                          "model": "packing_mode",
+                          "rules": []
+                        },
+                        {
+                          "type": "date",
+                          "mainIcon": "日期",
+                          "typeIcon": "日期",
+                          "icon": "icon-date",
+                          "group": "DateTime",
+                          "groupSort": 1,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "defaultValue": "",
+                            "readonly": false,
+                            "disabled": false,
+                            "editable": false,
+                            "clearable": true,
+                            "placeholder": "",
+                            "startPlaceholder": "",
+                            "endPlaceholder": "",
+                            "type": "timestamp",
+                            "timeStampType": "timestamp",
+                            "format": "YYYY-MM-DD",
+                            "timestamp": false,
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "width": "100%",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "customProps": {},
+                            "tip": "",
+                            "remoteFunc": "func_nqphns0m",
+                            "remoteOption": "option_nqphns0m",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onChange": "",
                             "onFocus": "",
                             "onBlur": ""
                           },
-                          "name": "规则",
-                          "key": "7rsk48uj",
-                          "model": "packing_no_type",
+                          "name": "Created At",
+                          "novalid": {},
+                          "key": "nqphns0m",
+                          "model": "created_at",
+                          "rules": []
+                        },
+                        {
+                          "type": "input",
+                          "mainIcon": "单行文本",
+                          "typeIcon": "单行文本",
+                          "icon": "icon-input",
+                          "group": "Text",
+                          "groupSort": 1,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-input",
+                          "options": {
+                            "width": "",
+                            "defaultValue": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "dataType": "",
+                            "dataTypeCheck": false,
+                            "dataTypeMessage": "",
+                            "pattern": "",
+                            "patternCheck": false,
+                            "patternMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "placeholder": "",
+                            "customClass": "",
+                            "disabled": true,
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "showPassword": false,
+                            "clearable": false,
+                            "maxlength": "",
+                            "showWordLimit": false,
+                            "customProps": {},
+                            "tip": "",
+                            "remoteFunc": "func_glzayexr",
+                            "remoteOption": "option_glzayexr",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "select-card_4c8m22dh": []
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "Created By",
+                          "key": "dv4zzzbe",
+                          "model": "created_by",
+                          "rules": [],
+                          "novalid": {}
+                        },
+                        {
+                          "type": "fileupload",
+                          "mainIcon": "文件上传",
+                          "typeIcon": "文件上传",
+                          "icon": "icon-wenjianshangchuan",
+                          "group": "Special",
+                          "groupSort": 0,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "defaultValue": [],
+                            "width": "",
+                            "tokenFunc": "funcGetToken",
+                            "token": "",
+                            "tokenType": "datasource",
+                            "disabled": false,
+                            "tip": "",
+                            "action": "/api/blade-resource/oss/endpoint/put-file",
+                            "customClass": "",
+                            "limit": 9,
+                            "multiple": true,
+                            "isQiniu": false,
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "headers": [],
+                            "required": false,
+                            "validatorCheck": false,
+                            "validator": "",
+                            "withCredentials": false,
+                            "remoteFunc": "func_5cmr2w4f",
+                            "remoteOption": "option_5cmr2w4f",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onSelect": "",
+                            "onUploadSuccess": "",
+                            "onUploadError": "",
+                            "onRemove": ""
+                          },
+                          "name": "Reference Document",
+                          "novalid": {},
+                          "key": "5cmr2w4f",
+                          "model": "ref_doc",
+                          "rules": []
+                        },
+                        {
+                          "type": "input",
+                          "mainIcon": "单行文本",
+                          "typeIcon": "单行文本",
+                          "icon": "icon-input",
+                          "group": "Text",
+                          "groupSort": 1,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-input",
+                          "options": {
+                            "width": "",
+                            "defaultValue": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "dataType": "",
+                            "dataTypeCheck": false,
+                            "dataTypeMessage": "",
+                            "pattern": "",
+                            "patternCheck": false,
+                            "patternMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "placeholder": "",
+                            "customClass": "",
+                            "disabled": false,
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": true,
+                            "dataBind": true,
+                            "showPassword": false,
+                            "clearable": false,
+                            "maxlength": "",
+                            "showWordLimit": false,
+                            "customProps": {},
+                            "tip": "",
+                            "remoteFunc": "func_glzayexr",
+                            "remoteOption": "option_glzayexr",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "select-card_4c8m22dh": []
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "Organization",
+                          "key": "stdrvkms",
+                          "model": "organization_id",
+                          "rules": [],
+                          "novalid": {}
+                        },
+                        {
+                          "type": "select",
+                          "mainIcon": "下拉单选",
+                          "typeIcon": "下拉单选",
+                          "icon": "icon-select",
+                          "group": "Select",
+                          "groupSort": 2,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-select",
+                          "options": {
+                            "defaultValue": [],
+                            "multiple": true,
+                            "disabled": false,
+                            "clearable": false,
+                            "placeholder": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "width": "",
+                            "options": [
+                              {
+                                "value": "Option 1",
+                                "label": "Option 1"
+                              },
+                              {
+                                "value": "Option 2",
+                                "label": "Option 2"
+                              },
+                              {
+                                "value": "Option 3",
+                                "label": "Option 3"
+                              }
+                            ],
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "remoteOption": "option_my0y7d4r",
+                            "filterable": false,
+                            "pagingEnabled": true,
+                            "remoteOptions": [],
+                            "props": {
+                              "value": "id",
+                              "label": "name",
+                              "image": "",
+                              "icon": "",
+                              "cascade": "",
+                              "children": "",
+                              "explain": ""
+                            },
+                            "remoteFunc": "func_my0y7d4r",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": true,
+                            "dataBind": true,
+                            "customProps": {},
+                            "tip": "",
+                            "tableColumn": false,
+                            "subform": false,
+                            "datasource": {
+                              "rules": {
+                                "collectionId": "1789995126399348746",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "",
+                                    "operator": "",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "leaf",
+                                    "level": 1
+                                  }
+                                ]
+                              },
+                              "source": "用户(勿删勿改):Table:1789995126399348746"
+                            },
+                            "paging_enabled": 0,
+                            "sorts": [],
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "auto_refresh": 0,
+                            "auto_refresh_debounce": 100
+                          },
+                          "events": {
+                            "onReady": "",
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "Assigned To",
+                          "novalid": {},
+                          "key": "my0y7d4r",
+                          "model": "assigned_to",
+                          "rules": []
+                        },
+                        {
+                          "version": "1.0.0",
+                          "name": "Selected HU Index",
+                          "el": "su-fm-enhanced-number-input",
+                          "mainIcon": "数字",
+                          "typeIcon": "数字",
+                          "group": "Number",
+                          "groupSort": 1,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "width": "",
+                            "defaultValue": -1,
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": true,
+                            "disabled": true,
+                            "dataBind": true,
+                            "required": false,
+                            "validator": "",
+                            "hideLabel": false,
+                            "placeholder": "",
+                            "min": null,
+                            "max": null,
+                            "controls": false,
+                            "step": 1,
+                            "precision": 0,
+                            "clearable": true,
+                            "readonly": false,
+                            "customProps": {
+                              "valueType": "int",
+                              "numberType": "number",
+                              "showPrefix": false,
+                              "prefixText": "",
+                              "showSuffix": false,
+                              "suffixText": "",
+                              "percentageType": "percent",
+                              "showPercentSymbol": true,
+                              "currency": "CNY",
+                              "customCurrencySymbol": "",
+                              "showThousandSeparator": true,
+                              "showCurrencySymbol": true,
+                              "showThousandSeparatorForNumber": false,
+                              "allowNegative": true,
+                              "autoFormat": true
+                            },
+                            "remoteFunc": "func_4z5993wm",
+                            "remoteOption": "option_4z5993wm",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "source": "system",
+                          "type": "custom",
+                          "novalid": {},
+                          "key": "4z5993wm",
+                          "model": "selected_hu_index",
                           "rules": []
                         }
                       ],
-                      "events": {
-                        "onClick": ""
-                      },
-                      "name": "自动布局",
-                      "key": "02ane2cn",
-                      "model": "ser_flex_wrp_rig_gpmm8pyv",
-                      "rules": []
+                      "key": "23c50n7j"
                     }
                   ],
-                  "events": {
-                    "onClick": ""
-                  },
-                  "name": "自动布局",
-                  "key": "1hw8tipm",
-                  "model": "serial_flex_wrapper_8sg890al",
-                  "rules": []
-                },
-                {
-                  "name": "Sales Order No",
-                  "el": "su-fm-table-select",
-                  "mainIcon": "表格选择器",
-                  "typeIcon": "表格选择器",
-                  "group": "Select",
-                  "groupSort": 4,
-                  "generate": "part",
-                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
-                    "defaultValue": [],
+                    "type": "",
+                    "accordion": false,
+                    "defaultCollapsed": false,
+                    "expandIconPosition": "right",
                     "customClass": "",
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": true,
-                    "disabled": true,
-                    "dataBind": true,
-                    "required": false,
-                    "validator": "",
-                    "hideLabel": false,
-                    "pageSourceId": "1924395633309454338",
-                    "customProps": {},
-                    "pagingEnabled": true,
-                    "multiple": true,
-                    "placeholder": "",
-                    "lazyLoad": true,
-                    "props": {
-                      "value": "id",
-                      "label": "so_no",
-                      "cascade": "",
-                      "children": "",
-                      "image": "",
-                      "icon": "",
-                      "explain": ""
-                    },
-                    "datasource": {
-                      "source": "Sales Order:Table:1902773735979597826",
-                      "rules": {
-                        "collectionId": "1902773735979597826",
-                        "list": [
-                          {
-                            "id": 1764127781106,
-                            "parentId": 1764295500919,
-                            "isTop": true,
-                            "operator": "numberEqual",
-                            "valueType": "field",
-                            "value": "{{value:plant_id}}",
-                            "type": "leaf",
-                            "level": 1,
-                            "prop": "plant_name",
-                            "propLabel": "Plant",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          }
-                        ]
-                      }
-                    },
-                    "remoteFunc": "func_9xgkbgz9",
-                    "remoteOption": "option_9xgkbgz9",
+                    "hidden": false,
+                    "remoteFunc": "func_3i3maao1",
+                    "remoteOption": "option_3i3maao1",
                     "tableColumn": false,
-                    "subform": false,
-                    "remote": true,
-                    "remoteType": "innerdatasource",
-                    "more_fields": [],
-                    "paging_enabled": 0,
-                    "columns": [],
-                    "pageId": "1924395633418506245",
-                    "options": [],
-                    "sorts": [],
-                    "auto_refresh": 1,
-                    "auto_refresh_debounce": 100,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": ""
+                    "subform": false
                   },
                   "events": {
                     "onChange": ""
                   },
-                  "type": "custom",
+                  "name": "Collapse",
                   "novalid": {},
-                  "key": "bqtsn77r",
-                  "model": "so_id",
-                  "rules": []
-                },
-                {
-                  "type": "input",
-                  "mainIcon": "单行文本",
-                  "typeIcon": "单行文本",
-                  "icon": "icon-input",
-                  "group": "Text",
-                  "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "el": "fm-input",
-                  "options": {
-                    "width": "",
-                    "defaultValue": "",
-                    "required": false,
-                    "requiredMessage": "",
-                    "dataType": "",
-                    "dataTypeCheck": false,
-                    "dataTypeMessage": "",
-                    "pattern": "",
-                    "patternCheck": false,
-                    "patternMessage": "",
-                    "validatorCheck": false,
-                    "validator": "",
-                    "placeholder": "",
-                    "customClass": "",
-                    "disabled": true,
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": false,
-                    "dataBind": true,
-                    "showPassword": false,
-                    "clearable": false,
-                    "maxlength": "",
-                    "showWordLimit": false,
-                    "customProps": {},
-                    "tip": "",
-                    "remoteFunc": "func_ud2u75hd",
-                    "remoteOption": "option_ud2u75hd",
-                    "tableColumn": false,
-                    "subform": false,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": ""
-                  },
-                  "events": {
-                    "onChange": "",
-                    "onFocus": "",
-                    "onBlur": ""
-                  },
-                  "name": "Sales Order No",
-                  "novalid": {},
-                  "key": "jtcwdkag",
-                  "model": "so_no",
-                  "rules": []
-                },
-                {
-                  "name": "Goods Delivery No",
-                  "el": "su-fm-table-select",
-                  "mainIcon": "表格选择器",
-                  "typeIcon": "表格选择器",
-                  "group": "Select",
-                  "groupSort": 4,
-                  "generate": "part",
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "options": {
-                    "defaultValue": [],
-                    "customClass": "",
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": false,
-                    "disabled": true,
-                    "dataBind": true,
-                    "required": false,
-                    "validator": "",
-                    "hideLabel": false,
-                    "pageSourceId": "1924395633309454338",
-                    "customProps": {},
-                    "pagingEnabled": true,
-                    "multiple": true,
-                    "placeholder": "",
-                    "lazyLoad": true,
-                    "props": {
-                      "value": "id",
-                      "label": "delivery_no",
-                      "cascade": "",
-                      "children": "",
-                      "image": "",
-                      "icon": "",
-                      "explain": ""
-                    },
-                    "datasource": {
-                      "source": "Goods Delivery:Table:1902054888473481218",
-                      "rules": {
-                        "collectionId": "1902054888473481218",
-                        "list": [
-                          {
-                            "id": 1760323137465,
-                            "parentId": 1764300960615,
-                            "isTop": true,
-                            "operator": "numberEqual",
-                            "valueType": "field",
-                            "value": "{{value:plant_id}}",
-                            "type": "leaf",
-                            "level": 1,
-                            "propLabel": "Plant",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal",
-                            "valueTypeLabel": "值",
-                            "prop": "plant_id"
-                          }
-                        ]
-                      }
-                    },
-                    "remoteFunc": "func_9xgkbgz9",
-                    "remoteOption": "option_9xgkbgz9",
-                    "tableColumn": false,
-                    "subform": false,
-                    "remote": true,
-                    "remoteType": "innerdatasource",
-                    "more_fields": [],
-                    "paging_enabled": 0,
-                    "columns": [
-                      {
-                        "value": "delivery_no",
-                        "label": "Goods Delivery Number",
-                        "item": {
-                          "bsonType": "string",
-                          "defaultValue": "",
-                          "description": "Goods Delivery Number",
-                          "encryptedKey": false,
-                          "errorMessage": {
-                            "format": "",
-                            "pattern": "",
-                            "required": ""
-                          },
-                          "format": "",
-                          "historyKey": false,
-                          "immutableKey": false,
-                          "isRequired": true,
-                          "key": "nfwpnnrg",
-                          "name": "delivery_no",
-                          "pattern": "",
-                          "persistField": true,
-                          "primaryKey": false,
-                          "title": "Goods Delivery Number",
-                          "validator": "const page_status = this.getParamsVariables('page_status');\n\nif (page_status === 'View' || !value) {\n    callback();\n    return;\n}\nlet organizationId = this.getVarGlobal('deptParentId');\n        if(organizationId === '0'){\n            organizationId = this.getVarSystem('deptIds').split(',')[0];\n        }\ndb.collection(\"goods_delivery\")\n    .where({ delivery_no: value , organization_id: organizationId})\n    .get()\n    .then(response => {\n        const matchingGoodsDelivery = response.data || [];\n\n        if (matchingGoodsDelivery.length === 0) {\n            callback();\n            return;\n        }\n\n        if (page_status === 'Edit') {\n            const currentDeliveryNo = this.getParamsVariables('goods_delivery_no');\n            const isSameDelivery = matchingGoodsDelivery.some(goods_delivery => goods_delivery.id === currentDeliveryNo);\n            callback(isSameDelivery ? undefined : 'Good delivery number already exists.');\n        } else {\n            callback('Good delivery number already exists.');\n        }\n    })\n    .catch(error => {\n        console.error(\"Error checking good delivery:\", error);\n        callback(\"Error validating good delivery number.\");\n    });  "
-                        }
-                      },
-                      {
-                        "value": "so_no",
-                        "label": "Sales Order Number",
-                        "item": {
-                          "bsonType": "string",
-                          "defaultValue": "",
-                          "description": "Sales Order Number",
-                          "encryptedKey": false,
-                          "errorMessage": {
-                            "format": "",
-                            "pattern": "",
-                            "required": ""
-                          },
-                          "format": "",
-                          "historyKey": false,
-                          "immutableKey": false,
-                          "isRequired": false,
-                          "key": "7odm58ru",
-                          "name": "so_no",
-                          "pattern": "",
-                          "persistField": true,
-                          "primaryKey": false,
-                          "title": "Sales Order Number"
-                        }
-                      }
-                    ],
-                    "pageId": "1924395633418506245",
-                    "options": [],
-                    "sorts": [],
-                    "auto_refresh": 1,
-                    "auto_refresh_debounce": 100,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": ""
-                  },
-                  "events": {
-                    "onChange": ""
-                  },
-                  "type": "custom",
-                  "novalid": {},
-                  "key": "9xgkbgz9",
-                  "model": "gd_id",
-                  "rules": []
-                },
-                {
-                  "type": "select",
-                  "mainIcon": "下拉单选",
-                  "typeIcon": "下拉单选",
-                  "icon": "icon-select",
-                  "group": "Select",
-                  "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "el": "fm-select",
-                  "options": {
-                    "defaultValue": "",
-                    "multiple": false,
-                    "disabled": true,
-                    "clearable": false,
-                    "placeholder": "",
-                    "required": false,
-                    "requiredMessage": "",
-                    "validatorCheck": false,
-                    "validator": "",
-                    "width": "",
-                    "options": [
-                      {
-                        "value": "Option 1",
-                        "label": "Option 1"
-                      },
-                      {
-                        "value": "Option 2",
-                        "label": "Option 2"
-                      },
-                      {
-                        "value": "Option 3",
-                        "label": "Option 3"
-                      }
-                    ],
-                    "remote": true,
-                    "remoteType": "innerdatasource",
-                    "remoteOption": "option_xoo8gyhl",
-                    "filterable": false,
-                    "pagingEnabled": true,
-                    "remoteOptions": [],
-                    "props": {
-                      "value": "id",
-                      "label": "to_no",
-                      "image": "",
-                      "icon": "",
-                      "cascade": "",
-                      "children": "",
-                      "explain": ""
-                    },
-                    "remoteFunc": "func_xoo8gyhl",
-                    "customClass": "",
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": true,
-                    "dataBind": true,
-                    "customProps": {},
-                    "tip": "",
-                    "tableColumn": false,
-                    "subform": false,
-                    "datasource": {
-                      "rules": {
-                        "collectionId": "1982744224777474050",
-                        "list": [
-                          {
-                            "id": 1723795236686,
-                            "parentId": 1723795236685,
-                            "isTop": true,
-                            "prop": "",
-                            "operator": "",
-                            "valueType": "",
-                            "value": "",
-                            "type": "leaf",
-                            "level": 1
-                          }
-                        ]
-                      },
-                      "source": "Picking Plan:Table:1982744224777474050"
-                    },
-                    "auto_refresh": 1,
-                    "auto_refresh_debounce": 100,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": "",
-                    "paging_enabled": 0,
-                    "sorts": []
-                  },
-                  "events": {
-                    "onReady": "",
-                    "onChange": "",
-                    "onFocus": "",
-                    "onBlur": ""
-                  },
-                  "name": "PP ID",
-                  "novalid": {},
-                  "key": "xoo8gyhl",
-                  "model": "to_id",
-                  "rules": []
-                },
-                {
-                  "type": "input",
-                  "mainIcon": "单行文本",
-                  "typeIcon": "单行文本",
-                  "icon": "icon-input",
-                  "group": "Text",
-                  "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "el": "fm-input",
-                  "options": {
-                    "width": "",
-                    "defaultValue": "",
-                    "required": false,
-                    "requiredMessage": "",
-                    "dataType": "",
-                    "dataTypeCheck": false,
-                    "dataTypeMessage": "",
-                    "pattern": "",
-                    "patternCheck": false,
-                    "patternMessage": "",
-                    "validatorCheck": false,
-                    "validator": "",
-                    "placeholder": "",
-                    "customClass": "",
-                    "disabled": true,
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": true,
-                    "dataBind": true,
-                    "showPassword": false,
-                    "clearable": false,
-                    "maxlength": "",
-                    "showWordLimit": false,
-                    "customProps": {},
-                    "tip": "",
-                    "remoteFunc": "func_ud2u75hd",
-                    "remoteOption": "option_ud2u75hd",
-                    "tableColumn": false,
-                    "subform": false,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": ""
-                  },
-                  "events": {
-                    "onChange": "",
-                    "onFocus": "",
-                    "onBlur": ""
-                  },
-                  "name": "Goods Delivery No",
-                  "novalid": {},
-                  "key": "ud2u75hd",
-                  "model": "gd_no",
-                  "rules": []
-                },
-                {
-                  "type": "select",
-                  "mainIcon": "下拉单选",
-                  "typeIcon": "下拉单选",
-                  "icon": "icon-select",
-                  "group": "Select",
-                  "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "el": "fm-select",
-                  "options": {
-                    "defaultValue": [],
-                    "multiple": true,
-                    "disabled": true,
-                    "clearable": false,
-                    "placeholder": "",
-                    "required": false,
-                    "requiredMessage": "",
-                    "validatorCheck": false,
-                    "validator": "",
-                    "width": "",
-                    "options": [
-                      {
-                        "value": "Option 1",
-                        "label": "Option 1"
-                      },
-                      {
-                        "value": "Option 2",
-                        "label": "Option 2"
-                      },
-                      {
-                        "value": "Option 3",
-                        "label": "Option 3"
-                      }
-                    ],
-                    "remote": true,
-                    "remoteType": "innerdatasource",
-                    "remoteOption": "option_shpmeno4",
-                    "filterable": false,
-                    "pagingEnabled": true,
-                    "remoteOptions": [],
-                    "props": {
-                      "value": "id",
-                      "label": "customer_com_name",
-                      "cascade": "",
-                      "children": "",
-                      "image": "",
-                      "icon": "",
-                      "explain": ""
-                    },
-                    "remoteFunc": "func_shpmeno4",
-                    "customClass": "",
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": false,
-                    "dataBind": true,
-                    "customProps": {},
-                    "tip": "",
-                    "tableColumn": false,
-                    "subform": false,
-                    "datasource": {
-                      "source": "Customer:Table:1902779099617804290",
-                      "rules": {
-                        "collectionId": "1902779099617804290",
-                        "list": [
-                          {
-                            "id": 1723795236686,
-                            "parentId": 1723795236685,
-                            "isTop": true,
-                            "prop": "",
-                            "operator": "",
-                            "valueType": "",
-                            "value": "",
-                            "type": "leaf",
-                            "level": 1
-                          }
-                        ]
-                      }
-                    },
-                    "more_fields": [],
-                    "paging_enabled": 0,
-                    "sorts": [],
-                    "auto_refresh": 1,
-                    "auto_refresh_debounce": 100,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": ""
-                  },
-                  "events": {
-                    "onChange": "",
-                    "onFocus": "",
-                    "onBlur": ""
-                  },
-                  "name": "Customer Name",
-                  "novalid": {},
-                  "key": "shpmeno4",
-                  "model": "customer_id",
-                  "rules": []
-                },
-                {
-                  "type": "radio",
-                  "mainIcon": "单选",
-                  "typeIcon": "单选项",
-                  "icon": "icon-radio-active",
-                  "group": "Select",
-                  "groupSort": 0,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "options": {
-                    "inline": true,
-                    "defaultValue": "Basic",
-                    "options": [
-                      {
-                        "value": "Basic",
-                        "label": "Basic"
-                      },
-                      {
-                        "value": "Detail",
-                        "label": "Detail"
-                      }
-                    ],
-                    "required": false,
-                    "requiredMessage": "",
-                    "validatorCheck": false,
-                    "validator": "",
-                    "width": "",
-                    "remote": false,
-                    "remoteType": "datasource",
-                    "remoteOption": "option_l71l91rh",
-                    "remoteOptions": [],
-                    "props": {
-                      "value": "",
-                      "label": "",
-                      "image": "",
-                      "icon": "",
-                      "explain": ""
-                    },
-                    "remoteFunc": "func_l71l91rh",
-                    "customClass": "",
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": false,
-                    "dataBind": true,
-                    "disabled": false,
-                    "customProps": {},
-                    "tip": "",
-                    "tableColumn": false,
-                    "subform": false,
-                    "datasource": {
-                      "rules": {
-                        "collectionId": "",
-                        "list": [
-                          {
-                            "id": 1723795236686,
-                            "parentId": 1723795236685,
-                            "isTop": true,
-                            "prop": "",
-                            "operator": "",
-                            "valueType": "",
-                            "value": "",
-                            "type": "leaf",
-                            "level": 1
-                          }
-                        ]
-                      },
-                      "source": "static"
-                    },
-                    "limit_count": null,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": "",
-                    "auto_refresh": 0,
-                    "auto_refresh_debounce": 100
-                  },
-                  "events": {
-                    "onChange": "7gmdqb1r"
-                  },
-                  "name": "Packing Mode",
-                  "novalid": {},
-                  "key": "l71l91rh",
-                  "model": "packing_mode",
-                  "rules": []
-                },
-                {
-                  "type": "date",
-                  "mainIcon": "日期",
-                  "typeIcon": "日期",
-                  "icon": "icon-date",
-                  "group": "DateTime",
-                  "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "options": {
-                    "defaultValue": "",
-                    "readonly": false,
-                    "disabled": false,
-                    "editable": false,
-                    "clearable": true,
-                    "placeholder": "",
-                    "startPlaceholder": "",
-                    "endPlaceholder": "",
-                    "type": "timestamp",
-                    "timeStampType": "timestamp",
-                    "format": "YYYY-MM-DD",
-                    "timestamp": false,
-                    "required": false,
-                    "requiredMessage": "",
-                    "validatorCheck": false,
-                    "validator": "",
-                    "width": "100%",
-                    "customClass": "",
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": false,
-                    "dataBind": true,
-                    "customProps": {},
-                    "tip": "",
-                    "remoteFunc": "func_nqphns0m",
-                    "remoteOption": "option_nqphns0m",
-                    "tableColumn": false,
-                    "subform": false,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": ""
-                  },
-                  "events": {
-                    "onChange": "",
-                    "onFocus": "",
-                    "onBlur": ""
-                  },
-                  "name": "Created At",
-                  "novalid": {},
-                  "key": "nqphns0m",
-                  "model": "created_at",
-                  "rules": []
-                },
-                {
-                  "type": "input",
-                  "mainIcon": "单行文本",
-                  "typeIcon": "单行文本",
-                  "icon": "icon-input",
-                  "group": "Text",
-                  "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "el": "fm-input",
-                  "options": {
-                    "width": "",
-                    "defaultValue": "",
-                    "required": false,
-                    "requiredMessage": "",
-                    "dataType": "",
-                    "dataTypeCheck": false,
-                    "dataTypeMessage": "",
-                    "pattern": "",
-                    "patternCheck": false,
-                    "patternMessage": "",
-                    "validatorCheck": false,
-                    "validator": "",
-                    "placeholder": "",
-                    "customClass": "",
-                    "disabled": true,
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": false,
-                    "dataBind": true,
-                    "showPassword": false,
-                    "clearable": false,
-                    "maxlength": "",
-                    "showWordLimit": false,
-                    "customProps": {},
-                    "tip": "",
-                    "remoteFunc": "func_glzayexr",
-                    "remoteOption": "option_glzayexr",
-                    "tableColumn": false,
-                    "subform": false,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": "",
-                    "select-card_4c8m22dh": []
-                  },
-                  "events": {
-                    "onChange": "",
-                    "onFocus": "",
-                    "onBlur": ""
-                  },
-                  "name": "Created By",
-                  "key": "dv4zzzbe",
-                  "model": "created_by",
-                  "rules": [],
-                  "novalid": {}
-                },
-                {
-                  "type": "fileupload",
-                  "mainIcon": "文件上传",
-                  "typeIcon": "文件上传",
-                  "icon": "icon-wenjianshangchuan",
-                  "group": "Special",
-                  "groupSort": 0,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "options": {
-                    "defaultValue": [],
-                    "width": "",
-                    "tokenFunc": "funcGetToken",
-                    "token": "",
-                    "tokenType": "datasource",
-                    "disabled": false,
-                    "tip": "",
-                    "action": "/api/blade-resource/oss/endpoint/put-file",
-                    "customClass": "",
-                    "limit": 9,
-                    "multiple": true,
-                    "isQiniu": false,
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": false,
-                    "dataBind": true,
-                    "headers": [],
-                    "required": false,
-                    "validatorCheck": false,
-                    "validator": "",
-                    "withCredentials": false,
-                    "remoteFunc": "func_5cmr2w4f",
-                    "remoteOption": "option_5cmr2w4f",
-                    "tableColumn": false,
-                    "subform": false,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": ""
-                  },
-                  "events": {
-                    "onChange": "",
-                    "onSelect": "",
-                    "onUploadSuccess": "",
-                    "onUploadError": "",
-                    "onRemove": ""
-                  },
-                  "name": "Reference Document",
-                  "novalid": {},
-                  "key": "5cmr2w4f",
-                  "model": "ref_doc",
-                  "rules": []
-                },
-                {
-                  "type": "input",
-                  "mainIcon": "单行文本",
-                  "typeIcon": "单行文本",
-                  "icon": "icon-input",
-                  "group": "Text",
-                  "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "el": "fm-input",
-                  "options": {
-                    "width": "",
-                    "defaultValue": "",
-                    "required": false,
-                    "requiredMessage": "",
-                    "dataType": "",
-                    "dataTypeCheck": false,
-                    "dataTypeMessage": "",
-                    "pattern": "",
-                    "patternCheck": false,
-                    "patternMessage": "",
-                    "validatorCheck": false,
-                    "validator": "",
-                    "placeholder": "",
-                    "customClass": "",
-                    "disabled": false,
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": true,
-                    "dataBind": true,
-                    "showPassword": false,
-                    "clearable": false,
-                    "maxlength": "",
-                    "showWordLimit": false,
-                    "customProps": {},
-                    "tip": "",
-                    "remoteFunc": "func_glzayexr",
-                    "remoteOption": "option_glzayexr",
-                    "tableColumn": false,
-                    "subform": false,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": "",
-                    "select-card_4c8m22dh": []
-                  },
-                  "events": {
-                    "onChange": "",
-                    "onFocus": "",
-                    "onBlur": ""
-                  },
-                  "name": "Organization",
-                  "key": "stdrvkms",
-                  "model": "organization_id",
-                  "rules": [],
-                  "novalid": {}
-                },
-                {
-                  "type": "select",
-                  "mainIcon": "下拉单选",
-                  "typeIcon": "下拉单选",
-                  "icon": "icon-select",
-                  "group": "Select",
-                  "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "el": "fm-select",
-                  "options": {
-                    "defaultValue": [],
-                    "multiple": true,
-                    "disabled": false,
-                    "clearable": false,
-                    "placeholder": "",
-                    "required": false,
-                    "requiredMessage": "",
-                    "validatorCheck": false,
-                    "validator": "",
-                    "width": "",
-                    "options": [
-                      {
-                        "value": "Option 1",
-                        "label": "Option 1"
-                      },
-                      {
-                        "value": "Option 2",
-                        "label": "Option 2"
-                      },
-                      {
-                        "value": "Option 3",
-                        "label": "Option 3"
-                      }
-                    ],
-                    "remote": true,
-                    "remoteType": "innerdatasource",
-                    "remoteOption": "option_my0y7d4r",
-                    "filterable": false,
-                    "pagingEnabled": true,
-                    "remoteOptions": [],
-                    "props": {
-                      "value": "id",
-                      "label": "name",
-                      "image": "",
-                      "icon": "",
-                      "cascade": "",
-                      "children": "",
-                      "explain": ""
-                    },
-                    "remoteFunc": "func_my0y7d4r",
-                    "customClass": "",
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": true,
-                    "dataBind": true,
-                    "customProps": {},
-                    "tip": "",
-                    "tableColumn": false,
-                    "subform": false,
-                    "datasource": {
-                      "rules": {
-                        "collectionId": "1789995126399348746",
-                        "list": [
-                          {
-                            "id": 1723795236686,
-                            "parentId": 1723795236685,
-                            "isTop": true,
-                            "prop": "",
-                            "operator": "",
-                            "valueType": "",
-                            "value": "",
-                            "type": "leaf",
-                            "level": 1
-                          }
-                        ]
-                      },
-                      "source": "用户(勿删勿改):Table:1789995126399348746"
-                    },
-                    "paging_enabled": 0,
-                    "sorts": [],
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": "",
-                    "auto_refresh": 0,
-                    "auto_refresh_debounce": 100
-                  },
-                  "events": {
-                    "onReady": "",
-                    "onChange": "",
-                    "onFocus": "",
-                    "onBlur": ""
-                  },
-                  "name": "Assigned To",
-                  "novalid": {},
-                  "key": "my0y7d4r",
-                  "model": "assigned_to",
-                  "rules": []
-                },
-                {
-                  "version": "1.0.0",
-                  "name": "Selected HU Index",
-                  "el": "su-fm-enhanced-number-input",
-                  "mainIcon": "数字",
-                  "typeIcon": "数字",
-                  "group": "Number",
-                  "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "options": {
-                    "width": "",
-                    "defaultValue": -1,
-                    "customClass": "",
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": true,
-                    "disabled": true,
-                    "dataBind": true,
-                    "required": false,
-                    "validator": "",
-                    "hideLabel": false,
-                    "placeholder": "",
-                    "min": null,
-                    "max": null,
-                    "controls": false,
-                    "step": 1,
-                    "precision": 0,
-                    "clearable": true,
-                    "readonly": false,
-                    "customProps": {
-                      "valueType": "int",
-                      "numberType": "number",
-                      "showPrefix": false,
-                      "prefixText": "",
-                      "showSuffix": false,
-                      "suffixText": "",
-                      "percentageType": "percent",
-                      "showPercentSymbol": true,
-                      "currency": "CNY",
-                      "customCurrencySymbol": "",
-                      "showThousandSeparator": true,
-                      "showCurrencySymbol": true,
-                      "showThousandSeparatorForNumber": false,
-                      "allowNegative": true,
-                      "autoFormat": true
-                    },
-                    "remoteFunc": "func_4z5993wm",
-                    "remoteOption": "option_4z5993wm",
-                    "tableColumn": false,
-                    "subform": false,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": ""
-                  },
-                  "events": {
-                    "onChange": "",
-                    "onFocus": "",
-                    "onBlur": ""
-                  },
-                  "source": "system",
-                  "type": "custom",
-                  "novalid": {},
-                  "key": "4z5993wm",
-                  "model": "selected_hu_index",
+                  "key": "3i3maao1",
+                  "model": "collapse_3i3maao1",
                   "rules": []
                 }
               ],
@@ -2506,7 +2557,7 @@
                 "pull": 0,
                 "xs": 24,
                 "sm": 12,
-                "md": 14,
+                "md": 15,
                 "lg": 12,
                 "xl": 12,
                 "customClass": ""
@@ -2604,6 +2655,21 @@
                           }
                         ],
                         "hidden": "{{arguments[0].row.temp_data === '[]'}}",
+                        "disabled": ""
+                      },
+                      {
+                        "title": "Delete",
+                        "permission": "",
+                        "type": "custom",
+                        "styleType": "Link",
+                        "icon": "",
+                        "events": [
+                          {
+                            "key": "eo5gaqob",
+                            "name": "TableHUDeleteRow"
+                          }
+                        ],
+                        "hidden": "{{arguments[0].row.hu_status !== 'Unpacked'}}",
                         "disabled": ""
                       }
                     ],
@@ -3937,7 +4003,9 @@
                         "pad": "*",
                         "desensitization_pattern": "",
                         "desensitization_replace": "",
-                        "select-card_4c8m22dh": []
+                        "select-card_4c8m22dh": [],
+                        "fixedColumn": true,
+                        "fixedColumnPosition": "right"
                       },
                       "events": {
                         "onChange": "",
@@ -8120,7 +8188,9 @@
                     "right": 4,
                     "pad": "*",
                     "desensitization_pattern": "",
-                    "desensitization_replace": ""
+                    "desensitization_replace": "",
+                    "fixedColumn": true,
+                    "fixedColumnPosition": "right"
                   },
                   "events": {
                     "onChange": "",
@@ -8192,7 +8262,7 @@
                 },
                 {
                   "type": "number",
-                  "name": "Qty To Pick",
+                  "name": "Qty To Pack",
                   "icon": "icon-number",
                   "mainIcon": "数字",
                   "typeIcon": "数字",
@@ -8236,7 +8306,9 @@
                     "right": 4,
                     "pad": "*",
                     "desensitization_pattern": "",
-                    "desensitization_replace": ""
+                    "desensitization_replace": "",
+                    "fixedColumn": true,
+                    "fixedColumnPosition": "right"
                   },
                   "events": {
                     "onChange": "ojlcjhuh",
@@ -12985,7 +13057,7 @@
       {
         "key": "6ig0cg3h",
         "name": "onTableHuRowAdd",
-        "func": "// Initializes a newly-added table_hu row as a Generated HU.\n// Paste into the `onTableHuRowAdd` handler slot (key 6ig0cg3h).\n//\n// Field setup:\n//   hu_row_type   = \"generated\"   — distinguishes from Locked rows sourced from table_hu_source\n//   temp_data     = \"[]\"          — empty pack list (JSON string)\n//   item_count    = 0             — rollup\n//   total_quantity = 0            — rollup\n//   hu_status     = \"Unpacked\"    — initial pack status\n//   handling_no   — left blank; backend workflow fills on save (GR pattern).\n\n(async () => {\n  try {\n    console.log(\"argument\", arguments[0]);\n    const rowIndex = arguments[0].rowIndex;\n\n    await this.setData({\n      [`table_hu.${rowIndex}.handling_no`]: \"Auto-generated Number\",\n      [`table_hu.${rowIndex}.hu_row_type`]: \"generated\",\n      [`table_hu.${rowIndex}.temp_data`]: \"[]\",\n      [`table_hu.${rowIndex}.item_count`]: 0,\n      [`table_hu.${rowIndex}.total_quantity`]: 0,\n      [`table_hu.${rowIndex}.hu_status`]: \"Unpacked\",\n    });\n  } catch (error) {\n    console.error(\"PackingOnTableHuRowAdd error:\", error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
+        "func": "// Initializes a newly-added table_hu row as a Generated HU.\n// Paste into the `onTableHuRowAdd` handler slot (key 6ig0cg3h).\n//\n// Field setup:\n//   hu_row_type   = \"generated\"   — distinguishes from Locked rows sourced from table_hu_source\n//   temp_data     = \"[]\"          — empty pack list (JSON string)\n//   item_count    = 0             — rollup\n//   total_quantity = 0            — rollup\n//   hu_status     = \"Unpacked\"    — initial pack status\n//   handling_no   — left blank; backend workflow fills on save (GR pattern).\n\n(async () => {\n  try {\n    console.log(\"argument\", arguments[0]);\n    const rowIndex = arguments[0].rowIndex;\n    const data = this.getValues();\n    const plantId = data.plant_id;\n\n    // Resolve default loading bay (same logic as PackingOpenExistingHUDialog)\n    let loadingBayLocationId = \"\";\n    let loadingBayStorageLocationId = \"\";\n\n    if (plantId) {\n      // Step 1: putaway_setup default_loading_bay\n      const resPutawaySetup = await db\n        .collection(\"putaway_setup\")\n        .where({ plant_id: plantId, is_deleted: 0 })\n        .get();\n\n      if (resPutawaySetup?.data?.length > 0) {\n        loadingBayLocationId =\n          resPutawaySetup.data[0].default_loading_bay || \"\";\n      }\n\n      // Resolve parent storage_location from bin\n      if (loadingBayLocationId) {\n        const resBin = await db\n          .collection(\"bin_location\")\n          .where({ id: loadingBayLocationId, is_deleted: 0 })\n          .get();\n        if (resBin?.data?.length > 0) {\n          loadingBayStorageLocationId =\n            resBin.data[0].storage_location_id || \"\";\n        }\n      }\n\n      // Step 2 fallback: default Loading Bay storage location's default bin\n      if (!loadingBayLocationId) {\n        const resStorageLocation = await db\n          .collection(\"storage_location\")\n          .where({\n            plant_id: plantId,\n            storage_status: 1,\n            location_type: \"Loading Bay\",\n            is_default: 1,\n          })\n          .get();\n\n        if (resStorageLocation?.data?.length > 0) {\n          loadingBayStorageLocationId = resStorageLocation.data[0].id;\n          const defaultBin =\n            resStorageLocation.data[0].table_bin_location?.find(\n              (bin) => bin.is_default_bin === 1,\n            );\n          if (defaultBin) {\n            loadingBayLocationId = defaultBin.bin_location_id;\n          }\n        }\n      }\n    }\n\n    await this.setData({\n      [`table_hu.${rowIndex}.handling_no`]: \"Auto-generated Number\",\n      [`table_hu.${rowIndex}.hu_row_type`]: \"generated\",\n      [`table_hu.${rowIndex}.temp_data`]: \"[]\",\n      [`table_hu.${rowIndex}.item_count`]: 0,\n      [`table_hu.${rowIndex}.total_quantity`]: 0,\n      [`table_hu.${rowIndex}.hu_status`]: \"Unpacked\",\n      [`table_hu.${rowIndex}.storage_location_id`]: loadingBayStorageLocationId,\n      [`table_hu.${rowIndex}.location_id`]: loadingBayLocationId,\n    });\n  } catch (error) {\n    console.error(\"PackingOnTableHuRowAdd error:\", error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -13068,7 +13140,7 @@
       {
         "key": "qpfei9l3",
         "name": "PackingOpenExistingHUDialog",
-        "func": "// Open the hu_dialog and populate table_select_hu with available\n// handling_unit records from the DB, scoped to the current Packing's plant\n// and organization, excluding HUs already present in table_hu.\n//\n// Paste into a new handler slot (e.g. \"PackingOpenExistingHUDialog\") and wire\n// to a toolbar button \"Select Existing HU\" near table_hu.\n\n(async () => {\n  try {\n    const data = this.getValues();\n    const plantId = data.plant_id;\n    const organizationId = data.organization_id;\n\n    if (!plantId || !organizationId) {\n      this.$message.warning(\n        \"Plant and organization must be set before selecting an HU.\",\n      );\n      return;\n    }\n\n    // Exclude HUs already in this Packing's table_hu, AND HUs that already\n    // exist in table_hu_source (upstream Picking context — user should pick\n    // those via Pick to HU / Pick to Parent HU, not the Select Existing dialog).\n    const tableHu = data.table_hu || [];\n    const huSource = data.table_hu_source || [];\n    const excludedIds = [\n      ...tableHu.map((r) => r.handling_unit_id),\n      ...huSource\n        .filter((r) => r.row_type === \"header\")\n        .map((r) => r.handling_unit_id),\n    ].filter(Boolean);\n\n    // Query handling_unit: plant + org match, not deleted\n    const res = await db\n      .collection(\"handling_unit\")\n      .where({\n        plant_id: plantId,\n        organization_id: organizationId,\n        is_deleted: 0,\n      })\n      .get();\n    const allHUs = (res && res.data) || [];\n\n    const available =\n      excludedIds.length > 0\n        ? allHUs.filter((hu) => !excludedIds.includes(hu.id))\n        : allHUs;\n\n    if (available.length === 0) {\n      this.$message.warning(\n        \"No available handling units found for this plant/organization.\",\n      );\n      return;\n    }\n\n    // Map HU records to table_select_hu row shape (column models match the form).\n    const rows = available.map((hu) => ({\n      hu_select: 0,\n      handling_unit_id: hu.id,\n      handling_no: hu.handling_no || \"\",\n      hu_material_id: hu.hu_material_id || \"\",\n      hu_type: hu.hu_type || \"\",\n      hu_quantity: hu.hu_quantity || 0,\n      hu_uom: hu.hu_uom || \"\",\n      item_count: hu.item_count || 0,\n      total_quantity: hu.total_quantity || 0,\n      gross_weight: hu.gross_weight || 0,\n      net_weight: hu.net_weight || 0,\n      net_volume: hu.net_volume || 0,\n      storage_location_id: hu.storage_location_id || \"\",\n      location_id: hu.location_id || \"\",\n      hu_status: hu.hu_status || \"\",\n      remark: hu.remark || \"\",\n      parent_hu_id: hu.parent_hu_id || \"\",\n      packing_id: hu.packing_id || \"\",\n      closed_by: hu.closed_by || \"\",\n    }));\n\n    await this.setData({\n      \"hu_dialog.table_select_hu\": rows,\n    });\n    await this.openDialog(\"hu_dialog\");\n  } catch (error) {\n    console.error(\"PackingOpenExistingHUDialog error:\", error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
+        "func": "// Open the hu_dialog and populate table_select_hu with available\n// handling_unit records from the DB, scoped to the current Packing's plant\n// and organization, excluding HUs already present in table_hu.\n//\n// Paste into a new handler slot (e.g. \"PackingOpenExistingHUDialog\") and wire\n// to a toolbar button \"Select Existing HU\" near table_hu.\n\n(async () => {\n  try {\n    const data = this.getValues();\n    const plantId = data.plant_id;\n    const organizationId = data.organization_id;\n\n    if (!plantId || !organizationId) {\n      this.$message.warning(\n        \"Plant and organization must be set before selecting an HU.\",\n      );\n      return;\n    }\n\n    // Determine loading bay location for HU filtering (same pattern as GRtableHU)\n    let loadingBayLocationId = \"\";\n\n    // Step 1: Check putaway_setup for default_loading_bay\n    const resPutawaySetup = await db\n      .collection(\"putaway_setup\")\n      .where({ plant_id: plantId, is_deleted: 0 })\n      .get();\n\n    if (resPutawaySetup?.data?.length > 0) {\n      loadingBayLocationId = resPutawaySetup.data[0].default_loading_bay || \"\";\n    }\n\n    // Step 2: If still empty, fallback - find default Loading Bay storage location's default bin\n    if (!loadingBayLocationId) {\n      const resStorageLocation = await db\n        .collection(\"storage_location\")\n        .where({\n          plant_id: plantId,\n          storage_status: 1,\n          location_type: \"Loading Bay\",\n          is_default: 1,\n        })\n        .get();\n\n      if (resStorageLocation?.data?.length > 0) {\n        const defaultBin = resStorageLocation.data[0].table_bin_location?.find(\n          (bin) => bin.is_default_bin === 1,\n        );\n        if (defaultBin) {\n          loadingBayLocationId = defaultBin.bin_location_id;\n        }\n      }\n    }\n\n    if (!loadingBayLocationId) {\n      this.$message.warning(\n        \"No default loading bay configured for this plant. Cannot list handling units.\",\n      );\n      return;\n    }\n\n    // Exclude HUs already in this Packing's table_hu, AND HUs that already\n    // exist in table_hu_source (upstream Picking context — user should pick\n    // those via Pick to HU / Pick to Parent HU, not the Select Existing dialog).\n    const tableHu = data.table_hu || [];\n    const huSource = data.table_hu_source || [];\n    const excludedIds = [\n      ...tableHu.map((r) => r.handling_unit_id),\n      ...huSource\n        .filter((r) => r.row_type === \"header\")\n        .map((r) => r.handling_unit_id),\n    ].filter(Boolean);\n\n    // Query handling_unit: plant + org + loading bay location, not deleted\n    const res = await db\n      .collection(\"handling_unit\")\n      .where({\n        plant_id: plantId,\n        organization_id: organizationId,\n        location_id: loadingBayLocationId,\n        is_deleted: 0,\n      })\n      .get();\n    const allHUs = (res && res.data) || [];\n\n    const available =\n      excludedIds.length > 0\n        ? allHUs.filter((hu) => !excludedIds.includes(hu.id))\n        : allHUs;\n\n    if (available.length === 0) {\n      this.$message.warning(\n        \"No available handling units found for this plant/organization.\",\n      );\n      return;\n    }\n\n    // Map HU records to table_select_hu row shape (column models match the form).\n    const rows = available.map((hu) => ({\n      hu_select: 0,\n      handling_unit_id: hu.id,\n      handling_no: hu.handling_no || \"\",\n      hu_material_id: hu.hu_material_id || \"\",\n      hu_type: hu.hu_type || \"\",\n      hu_quantity: hu.hu_quantity || 0,\n      hu_uom: hu.hu_uom || \"\",\n      item_count: hu.item_count || 0,\n      total_quantity: hu.total_quantity || 0,\n      gross_weight: hu.gross_weight || 0,\n      net_weight: hu.net_weight || 0,\n      net_volume: hu.net_volume || 0,\n      storage_location_id: hu.storage_location_id || \"\",\n      location_id: hu.location_id || \"\",\n      hu_status: hu.hu_status || \"\",\n      remark: hu.remark || \"\",\n      parent_hu_id: hu.parent_hu_id || \"\",\n      packing_id: hu.packing_id || \"\",\n      closed_by: hu.closed_by || \"\",\n    }));\n\n    await this.setData({\n      \"hu_dialog.table_select_hu\": rows,\n    });\n    await this.openDialog(\"hu_dialog\");\n  } catch (error) {\n    console.error(\"PackingOpenExistingHUDialog error:\", error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -13080,6 +13152,12 @@
       {
         "key": "j7xrn9c8",
         "name": "TableHUCompleted",
+        "func": "console.log(\"Row Data\", arguments[0].row)",
+        "type": "js"
+      },
+      {
+        "key": "eo5gaqob",
+        "name": "TableHUDeleteRow",
         "func": "[]",
         "type": "js"
       }
