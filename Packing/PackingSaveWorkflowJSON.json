@@ -410,10 +410,10 @@
                                 },
                                 "condition": {},
                                 "limit": 100,
-                                "title": "Get GDs",
+                                "title": "Get GD",
                                 "isValidator": true,
-                                "nodeName": "Get GDs",
-                                "name": "Get GDs"
+                                "nodeName": "Get GD",
+                                "name": "Get GD"
                               },
                               "blocks": []
                             },
@@ -944,41 +944,6 @@
                               "blocks": []
                             },
                             {
-                              "id": "workflow_node_uE20OyZq",
-                              "type": "workflow-node",
-                              "data": {
-                                "workflow_id": "",
-                                "workflow_name": "",
-                                "input_params": {},
-                                "title": "Run GD Workflow",
-                                "isValidator": true,
-                                "nodeName": "Run GD Workflow",
-                                "name": "Run GD Workflow",
-                                "workflow": {
-                                  "source": "GOODS_DELIVERY:Workflow:2017151544868491265",
-                                  "rules": {
-                                    "collectionId": "2017151544868491265",
-                                    "list": [
-                                      {
-                                        "id": 1723795236686,
-                                        "parentId": 1723795236685,
-                                        "isTop": true,
-                                        "prop": "",
-                                        "operator": "",
-                                        "valueType": "",
-                                        "value": "",
-                                        "type": "leaf",
-                                        "level": 1
-                                      }
-                                    ]
-                                  }
-                                },
-                                "remote": true,
-                                "remoteType": "innerdatasource"
-                              },
-                              "blocks": []
-                            },
-                            {
                               "id": "update_node_COibq7eg",
                               "type": "update-node",
                               "data": {
@@ -1303,6 +1268,199 @@
                               "blocks": []
                             }
                           ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "get_node_nqe6SJFz",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Goods Delivery:Table:1902054888473481218",
+                          "rules": {
+                            "collectionId": "1902054888473481218",
+                            "list": [
+                              {
+                                "id": 1776852814326,
+                                "parentId": 1776852814325,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{workflowparams:entry.gd_id}}",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Get GD",
+                        "isValidator": true,
+                        "nodeName": "Get GD",
+                        "name": "Get GD"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_GKPcKOcF",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Prepare GD Data",
+                        "isValidator": true,
+                        "nodeName": "Prepare GD Data",
+                        "name": "Prepare GD Data",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const entry = {{workflowparams:entry}};\nconst gdData = {{node:get_node_nqe6SJFz.data.data}} || null;\n\nreturn {\n  shouldCallGdWorkflow: (gdData && gdData.id) ? 1 : 0,\n  gdData,\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "ywtzeev3",
+                            "name": "shouldCallGdWorkflow",
+                            "title": "shouldCallGdWorkflow",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "6luyhcig",
+                            "name": "gdData",
+                            "title": "gdData",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_pREvKW2i",
+                      "type": "if",
+                      "data": {
+                        "title": "IF runWorkflow",
+                        "isValidator": true,
+                        "nodeName": "IF runWorkflow",
+                        "name": "IF runWorkflow",
+                        "condition_type": "Expression",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1,
+                              "parentId": 0,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "expression": {
+                          "code": "'{{node:code_node_GKPcKOcF.data.shouldCallGdWorkflow}}' == '1'",
+                          "type": "javascript"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_block_vsHEPUFN",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "workflow_node_tAWfF7CE",
+                              "type": "workflow-node",
+                              "data": {
+                                "workflow_id": "",
+                                "workflow_name": "",
+                                "input_params": {},
+                                "title": "Run GD Workflow",
+                                "isValidator": true,
+                                "nodeName": "Run GD Workflow",
+                                "name": "Run GD Workflow",
+                                "workflow": {
+                                  "source": "GOODS_DELIVERY:Workflow:2017151544868491265",
+                                  "rules": {
+                                    "collectionId": "2017151544868491265",
+                                    "list": [
+                                      {
+                                        "id": 1723795236686,
+                                        "parentId": 1723795236685,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "remote": true,
+                                "remoteType": "innerdatasource",
+                                "body_params": {
+                                  "list": [
+                                    {
+                                      "prop": "allData",
+                                      "propLabel": "allData",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GKPcKOcF.data.gdData}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "saveAs",
+                                      "propLabel": "saveAs",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "Created",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "pageStatus",
+                                      "propLabel": "pageStatus",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "Edit",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "isPicking",
+                                      "propLabel": "isPicking",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "Yes",
+                                      "valueLabel": ""
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_block_Sl2O0nZM",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
                         }
                       ]
                     },
