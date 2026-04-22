@@ -34,6 +34,12 @@
       this.$message.warning("Selected target HU no longer exists.");
       return;
     }
+    if (targetHu.hu_row_type === "locked") {
+      this.$message.warning(
+        "Cannot add items to a locked HU. Select a generated HU instead.",
+      );
+      return;
+    }
 
     if (!sourceRow.id) {
       this.$message.error(

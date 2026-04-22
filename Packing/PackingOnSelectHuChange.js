@@ -26,6 +26,20 @@
         await this.setData({ [`table_hu.${rowIndex}.select_hu`]: 0 });
         return;
       }
+      if (row.hu_status === "Completed") {
+        this.$message.warning(
+          "This HU is already completed and cannot be selected.",
+        );
+        await this.setData({ [`table_hu.${rowIndex}.select_hu`]: 0 });
+        return;
+      }
+      if (row.hu_row_type === "locked") {
+        this.$message.warning(
+          "Locked HUs cannot receive more items. Select a generated HU instead.",
+        );
+        await this.setData({ [`table_hu.${rowIndex}.select_hu`]: 0 });
+        return;
+      }
 
       const updates = { selected_hu_index: rowIndex };
       for (let i = 0; i < tableHu.length; i++) {

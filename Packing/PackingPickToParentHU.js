@@ -39,6 +39,12 @@
       this.$message.warning("Selected target HU no longer exists.");
       return;
     }
+    if (targetHu.hu_row_type === "locked") {
+      this.$message.warning(
+        "Cannot nest an HU inside a locked HU. Select a generated HU instead.",
+      );
+      return;
+    }
 
     const sourceHuId = sourceHeader.handling_unit_id;
     if (!sourceHuId) {
