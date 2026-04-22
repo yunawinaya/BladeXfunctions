@@ -1505,7 +1505,7 @@
                           "generate": "part",
                           "enableScopes": ["Component", "Table", "Page"],
                           "options": {
-                            "defaultValue": [],
+                            "defaultValue": null,
                             "customClass": "",
                             "labelWidth": 100,
                             "isLabelWidth": false,
@@ -1518,7 +1518,7 @@
                             "pageSourceId": "1924395633309454338",
                             "customProps": {},
                             "pagingEnabled": true,
-                            "multiple": true,
+                            "multiple": false,
                             "placeholder": "",
                             "lazyLoad": true,
                             "props": {
@@ -1561,7 +1561,6 @@
                             "more_fields": [],
                             "paging_enabled": 0,
                             "columns": [],
-                            "pageId": "1924395633418506245",
                             "options": [],
                             "sorts": [],
                             "auto_refresh": 1,
@@ -1649,7 +1648,7 @@
                           "generate": "part",
                           "enableScopes": ["Component", "Table", "Page"],
                           "options": {
-                            "defaultValue": [],
+                            "defaultValue": null,
                             "customClass": "",
                             "labelWidth": 100,
                             "isLabelWidth": false,
@@ -1662,7 +1661,7 @@
                             "pageSourceId": "1924395633309454338",
                             "customProps": {},
                             "pagingEnabled": true,
-                            "multiple": true,
+                            "multiple": false,
                             "placeholder": "",
                             "lazyLoad": true,
                             "props": {
