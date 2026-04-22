@@ -282,1127 +282,7 @@
                     "name": "Save As Completed",
                     "condition_type": "ConditionRule"
                   },
-                  "blocks": [
-                    {
-                      "id": "if_5PQF2UUQ",
-                      "type": "if",
-                      "data": {
-                        "title": "IF Detail Packing Mode",
-                        "isValidator": true,
-                        "nodeName": "IF Detail Packing Mode",
-                        "name": "IF Detail Packing Mode",
-                        "condition_type": "Expression",
-                        "expression": {
-                          "type": "javascript",
-                          "code": "'{{workflowparams:entry.packing_mode}}' == 'Detail'"
-                        },
-                        "filter": {
-                          "list": [
-                            {
-                              "id": 1736695973613,
-                              "parentId": 1736695973612,
-                              "isTop": true,
-                              "prop": "workflowparams.entry",
-                              "operator": "",
-                              "valueType": "value",
-                              "value": "",
-                              "type": "leaf",
-                              "level": 1,
-                              "valueLabel": "",
-                              "propLabel": "Entry"
-                            }
-                          ]
-                        }
-                      },
-                      "blocks": [
-                        {
-                          "id": "if_block_-b7Po52i",
-                          "type": "ifBlock",
-                          "data": { "title": "true" },
-                          "blocks": [
-                            {
-                              "id": "code_node_VUUfZasW",
-                              "type": "code-node",
-                              "data": {
-                                "language": "javascript",
-                                "code": "",
-                                "timeout": 30000,
-                                "title": "Validate Fully Packing",
-                                "isValidator": true,
-                                "nodeName": "Validate Fully Packing",
-                                "name": "Validate Fully Packing",
-                                "script": {
-                                  "type": "javascript",
-                                  "code": "const tableHU = {{workflowparams:entry.table_hu}} || [];\nconst tableItems = {{workflowparams:entry.table_items}} || [];\n\n// Validate input data exists\nif (tableHU.length === 0 || tableItems.length === 0) {\n  return {\n    fullyPacked: \"false\",\n    message: \"Missing HU or Item data. Please review and try again.\"\n  };\n}\n\n// Calculate totals\nconst huTotalItemQuantity = tableHU.reduce((total, hu) => {\n  return total + (hu.total_quantity || 0);\n}, 0);\n\nconst itemTotalQuantity = tableItems.reduce((total, item) => {\n  return total + (item.total_quantity || 0);\n}, 0);\n\n// Check if fully packed\nconst fullyPacked = huTotalItemQuantity === itemTotalQuantity;\n\nif (!fullyPacked) {\n  return {\n    fullyPacked: \"false\",\n    message: `Packing incomplete: HU total (${huTotalItemQuantity}) does not match item total (${itemTotalQuantity}). Please review and try again.`\n  };\n}\n\nreturn {\n  fullyPacked: \"true\"\n};\n"
-                                },
-                                "response_json": [
-                                  {
-                                    "key": "3bm11o0v",
-                                    "name": "fullyPacked",
-                                    "title": "fullyPacked",
-                                    "description": "",
-                                    "bsonType": "string",
-                                    "isExpand": false,
-                                    "children": []
-                                  },
-                                  {
-                                    "key": "6truxdjg",
-                                    "name": "message",
-                                    "title": "message",
-                                    "description": "",
-                                    "bsonType": "string",
-                                    "isExpand": false,
-                                    "children": []
-                                  }
-                                ]
-                              },
-                              "blocks": []
-                            },
-                            {
-                              "id": "if_YoSRRZIM",
-                              "type": "if",
-                              "data": {
-                                "title": "IF Not Fully Packed",
-                                "isValidator": true,
-                                "nodeName": "IF Not Fully Packed",
-                                "name": "IF Not Fully Packed",
-                                "condition_type": "ConditionRule",
-                                "expression": {
-                                  "type": "javascript",
-                                  "code": ""
-                                },
-                                "filter": {
-                                  "list": [
-                                    {
-                                      "id": 1766129694851,
-                                      "parentId": 1766129694850,
-                                      "isTop": true,
-                                      "operator": "equal",
-                                      "valueType": "value",
-                                      "value": "false",
-                                      "type": "leaf",
-                                      "level": 1,
-                                      "valueLabel": "",
-                                      "propLabel": "fullyPacked",
-                                      "prop": "node.code_node_VUUfZasW.data.fullyPacked",
-                                      "operatorLabel": "Equal"
-                                    }
-                                  ]
-                                }
-                              },
-                              "blocks": [
-                                {
-                                  "id": "if_block_AZ3QQ2of",
-                                  "type": "ifBlock",
-                                  "data": { "title": "true" },
-                                  "blocks": [
-                                    {
-                                      "id": "return_node_QuBxWqtX",
-                                      "type": "return-node",
-                                      "data": {
-                                        "return_data": {},
-                                        "status_code": 200,
-                                        "title": "Return Error",
-                                        "isValidator": true,
-                                        "nodeName": "Return Error",
-                                        "name": "Return Error",
-                                        "response_value": {
-                                          "list": [
-                                            {
-                                              "prop": "message",
-                                              "propLabel": "Message",
-                                              "operator": "",
-                                              "operatorLabel": "",
-                                              "valueType": "field",
-                                              "valueTypeLabel": "",
-                                              "value": "{{node:code_node_VUUfZasW.data.message}}",
-                                              "valueLabel": ""
-                                            },
-                                            {
-                                              "prop": "errorStatus",
-                                              "operator": "",
-                                              "valueType": "value",
-                                              "value": "\"fullyPacked\"",
-                                              "valueLabel": "",
-                                              "propLabel": "Error Status"
-                                            }
-                                          ]
-                                        },
-                                        "return_raw_data": 0
-                                      },
-                                      "blocks": []
-                                    }
-                                  ]
-                                },
-                                {
-                                  "id": "if_block_rvGOG2PR",
-                                  "type": "ifBlock",
-                                  "data": { "title": "false" },
-                                  "blocks": []
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "id": "if_block_7W4a64sH",
-                          "type": "ifBlock",
-                          "data": { "title": "false" },
-                          "blocks": []
-                        }
-                      ]
-                    },
-                    {
-                      "id": "condition_or_node_nGU2rCDw",
-                      "type": "condition-or-node",
-                      "data": {
-                        "title": "Condition",
-                        "filter": { "list": [] },
-                        "expression": { "code": "" },
-                        "displayContent": "sdk.form.setCondition"
-                      },
-                      "blocks": [
-                        {
-                          "id": "condition_or_node_item_8JKEsNo7",
-                          "type": "condition-or-node-item",
-                          "data": {
-                            "title": "Add",
-                            "filter": {
-                              "list": [
-                                {
-                                  "id": 1763024000785,
-                                  "parentId": 1763024000784,
-                                  "isTop": true,
-                                  "prop": "node.code_node_GPf3tw1z.data.page_status",
-                                  "operator": "equal",
-                                  "valueType": "value",
-                                  "value": "Add",
-                                  "type": "leaf",
-                                  "level": 1,
-                                  "propLabel": "Page Status",
-                                  "valueLabel": "",
-                                  "operatorLabel": "Equal"
-                                }
-                              ]
-                            },
-                            "expression": {
-                              "code": "'{{workflowparams:entry.page_status}}' == 'Add'",
-                              "type": "javascript"
-                            },
-                            "displayContent": "sdk.form.setCondition",
-                            "isValidator": true,
-                            "nodeName": "Add",
-                            "name": "Add",
-                            "condition_type": "Expression"
-                          },
-                          "blocks": [
-                            {
-                              "id": "add_node_PEwf0OYt",
-                              "type": "add-node",
-                              "data": {
-                                "table_id": {
-                                  "source": "Packing:Table:1993515601863524353",
-                                  "rules": {
-                                    "collectionId": "1993515601863524353",
-                                    "list": [
-                                      {
-                                        "id": 1773715035323,
-                                        "parentId": 1773715035322,
-                                        "isTop": true,
-                                        "prop": "",
-                                        "operator": "",
-                                        "valueType": "",
-                                        "value": "",
-                                        "type": "leaf",
-                                        "level": 1
-                                      }
-                                    ]
-                                  }
-                                },
-                                "fields": [],
-                                "title": "Add Packing Data",
-                                "isValidator": true,
-                                "nodeName": "Add Packing Data",
-                                "name": "Add Packing Data",
-                                "props": {
-                                  "modelName": "",
-                                  "list": [
-                                    {
-                                      "prop": "packing_status",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:saveAs}}",
-                                      "operator": "",
-                                      "valueLabel": "",
-                                      "propLabel": "Packing Status"
-                                    },
-                                    {
-                                      "prop": "plant_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.plant_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Plant"
-                                    },
-                                    {
-                                      "prop": "packing_no",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_7u6VSG8X.data.packing_no}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Packing No"
-                                    },
-                                    {
-                                      "prop": "packing_no_type",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.packing_no_type}}",
-                                      "valueLabel": "",
-                                      "propLabel": "规则"
-                                    },
-                                    {
-                                      "prop": "so_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.so_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Sales Order No"
-                                    },
-                                    {
-                                      "prop": "so_no",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.so_no}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Sales Order No"
-                                    },
-                                    {
-                                      "prop": "gd_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.gd_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Goods Delivery No"
-                                    },
-                                    {
-                                      "prop": "to_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.to_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "PP ID"
-                                    },
-                                    {
-                                      "prop": "gd_no",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.gd_no}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Goods Delivery No"
-                                    },
-                                    {
-                                      "prop": "customer_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.customer_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Customer Name"
-                                    },
-                                    {
-                                      "prop": "billing_address",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.billing_address}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Billing Address"
-                                    },
-                                    {
-                                      "prop": "shipping_address",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.shipping_address}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Shipping Address"
-                                    },
-                                    {
-                                      "prop": "organization_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.organization_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Organization"
-                                    },
-                                    {
-                                      "prop": "packing_mode",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.packing_mode}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Packing Mode"
-                                    },
-                                    {
-                                      "prop": "packing_location",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.packing_location}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Packing Location"
-                                    },
-                                    {
-                                      "prop": "assigned_to",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.assigned_to}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Assigned To"
-                                    },
-                                    {
-                                      "prop": "created_at",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.created_at}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Created At"
-                                    },
-                                    {
-                                      "prop": "created_by",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.created_by}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Created By"
-                                    },
-                                    {
-                                      "prop": "to_validity_period",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.to_validity_period}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Validity Period"
-                                    },
-                                    {
-                                      "prop": "ref_doc",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.ref_doc}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Reference Document"
-                                    },
-                                    {
-                                      "prop": "total_hu_count",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_hu_count}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Total Packing Count"
-                                    },
-                                    {
-                                      "prop": "total_item_count",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_count}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Total Item Count"
-                                    },
-                                    {
-                                      "prop": "total_item_qty",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_qty}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Total Item Quantity"
-                                    },
-                                    {
-                                      "prop": "table_hu",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_7u6VSG8X.data.table_hu}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Table HU"
-                                    },
-                                    {
-                                      "prop": "table_items",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.table_items}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Items"
-                                    },
-                                    {
-                                      "prop": "remarks",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.remarks}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Remarks"
-                                    }
-                                  ]
-                                }
-                              },
-                              "blocks": []
-                            },
-                            {
-                              "id": "code_node_I5BmRyhu",
-                              "type": "code-node",
-                              "data": {
-                                "language": "javascript",
-                                "code": "",
-                                "timeout": 30000,
-                                "title": "Packing Data",
-                                "isValidator": true,
-                                "nodeName": "Packing Data",
-                                "name": "Packing Data",
-                                "script": {
-                                  "type": "javascript",
-                                  "code": "const rawPackingData = {{node:add_node_PEwf0OYt.data}}\nconst packingData = rawPackingData[0]\n\nreturn {\n  packingData\n}"
-                                },
-                                "response_json": [
-                                  {
-                                    "key": "c63y1kqw",
-                                    "name": "packingData",
-                                    "title": "packingData",
-                                    "description": "",
-                                    "bsonType": "any",
-                                    "isExpand": false,
-                                    "children": []
-                                  }
-                                ]
-                              },
-                              "blocks": []
-                            },
-                            {
-                              "id": "workflow_node_dSkuA18J",
-                              "type": "workflow-node",
-                              "data": {
-                                "workflow_id": "",
-                                "workflow_name": "",
-                                "input_params": {},
-                                "title": "Run processBalance",
-                                "isValidator": true,
-                                "nodeName": "Run processBalance",
-                                "name": "Run processBalance",
-                                "workflow": {
-                                  "source": "PROCESS_HU_BALANCE:Workflow:1995409855552823297",
-                                  "rules": {
-                                    "collectionId": "1995409855552823297",
-                                    "list": [
-                                      {
-                                        "id": 1723795236686,
-                                        "parentId": 1723795236685,
-                                        "isTop": true,
-                                        "prop": "",
-                                        "operator": "",
-                                        "valueType": "",
-                                        "value": "",
-                                        "type": "leaf",
-                                        "level": 1
-                                      }
-                                    ]
-                                  }
-                                },
-                                "remote": true,
-                                "remoteType": "innerdatasource",
-                                "body_params": {
-                                  "list": [
-                                    {
-                                      "propLabel": "Packing Data",
-                                      "operator": "",
-                                      "operatorLabel": "",
-                                      "valueType": "field",
-                                      "valueTypeLabel": "",
-                                      "value": "{{node:code_node_I5BmRyhu.data.packingData}}",
-                                      "valueLabel": "",
-                                      "prop": "packingData"
-                                    }
-                                  ]
-                                }
-                              },
-                              "blocks": []
-                            },
-                            {
-                              "id": "workflow_node_HWZp3s2a",
-                              "type": "workflow-node",
-                              "data": {
-                                "workflow_id": "",
-                                "workflow_name": "",
-                                "input_params": {},
-                                "title": "Run Packing Status",
-                                "isValidator": true,
-                                "nodeName": "Run Packing Status",
-                                "name": "Run Packing Status",
-                                "workflow": {
-                                  "source": "PACKING_UPDATE_STATUS:Workflow:1996418384072871938",
-                                  "rules": {
-                                    "collectionId": "1996418384072871938",
-                                    "list": [
-                                      {
-                                        "id": 1723795236686,
-                                        "parentId": 1723795236685,
-                                        "isTop": true,
-                                        "prop": "",
-                                        "operator": "",
-                                        "valueType": "",
-                                        "value": "",
-                                        "type": "leaf",
-                                        "level": 1
-                                      }
-                                    ]
-                                  }
-                                },
-                                "remote": true,
-                                "remoteType": "innerdatasource",
-                                "body_params": {
-                                  "list": [
-                                    {
-                                      "prop": "entry",
-                                      "propLabel": "Entry",
-                                      "operator": "",
-                                      "operatorLabel": "",
-                                      "valueType": "field",
-                                      "valueTypeLabel": "",
-                                      "value": "{{node:code_node_I5BmRyhu.data.packingData}}",
-                                      "valueLabel": ""
-                                    }
-                                  ]
-                                }
-                              },
-                              "blocks": []
-                            },
-                            {
-                              "id": "return_node_AKAYeNmb",
-                              "type": "return-node",
-                              "data": {
-                                "return_data": {},
-                                "status_code": 200,
-                                "title": "Return Data",
-                                "isValidator": true,
-                                "nodeName": "Return Data",
-                                "name": "Return Data",
-                                "response_value": {
-                                  "list": [
-                                    {
-                                      "prop": "entry",
-                                      "propLabel": "Entry",
-                                      "operator": "",
-                                      "operatorLabel": "",
-                                      "valueType": "field",
-                                      "valueTypeLabel": "",
-                                      "value": "{{node:code_node_bWhuFTzI.data.entry}}",
-                                      "valueLabel": ""
-                                    },
-                                    {
-                                      "prop": "status",
-                                      "operator": "",
-                                      "valueType": "value",
-                                      "value": "\"Success\"",
-                                      "valueLabel": "",
-                                      "propLabel": "Status"
-                                    }
-                                  ]
-                                },
-                                "return_raw_data": 0
-                              },
-                              "blocks": []
-                            }
-                          ]
-                        },
-                        {
-                          "id": "condition_or_node_item_b3Q6lBsJ",
-                          "type": "condition-or-node-item",
-                          "data": {
-                            "title": "Edit",
-                            "filter": {
-                              "list": [
-                                {
-                                  "id": 1763024166245,
-                                  "parentId": 1763024166244,
-                                  "isTop": true,
-                                  "operator": "equal",
-                                  "valueType": "value",
-                                  "value": "Edit",
-                                  "type": "leaf",
-                                  "level": 1,
-                                  "propLabel": "Page Status",
-                                  "valueLabel": "",
-                                  "operatorLabel": "Equal",
-                                  "prop": "node.code_node_GPf3tw1z.data.page_status"
-                                }
-                              ]
-                            },
-                            "expression": {
-                              "code": "'{{workflowparams:entry.page_status}}' == \"Edit\"",
-                              "type": "javascript"
-                            },
-                            "displayContent": "sdk.form.setCondition",
-                            "__index": 2,
-                            "isDefault": false,
-                            "isValidator": true,
-                            "nodeName": "Edit",
-                            "name": "Edit",
-                            "condition_type": "Expression"
-                          },
-                          "blocks": [
-                            {
-                              "id": "update_node_8qYdsyKg",
-                              "type": "update-node",
-                              "data": {
-                                "table_id": {
-                                  "source": "Packing:Table:1993515601863524353",
-                                  "rules": {
-                                    "collectionId": "1993515601863524353",
-                                    "list": [
-                                      {
-                                        "id": 1773717532338,
-                                        "parentId": 1773717532337,
-                                        "isTop": true,
-                                        "prop": "id",
-                                        "operator": "in",
-                                        "valueType": "field",
-                                        "value": "{{workflowparams:entry.id}}",
-                                        "type": "leaf",
-                                        "level": 1,
-                                        "propLabel": "主键ID",
-                                        "valueLabel": "",
-                                        "operatorLabel": "In"
-                                      }
-                                    ]
-                                  }
-                                },
-                                "fields": [],
-                                "condition": {},
-                                "title": "Update Packing Data",
-                                "isValidator": true,
-                                "nodeName": "Update Packing Data",
-                                "name": "Update Packing Data",
-                                "props": {
-                                  "modelName": "",
-                                  "list": [
-                                    {
-                                      "prop": "packing_status",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:saveAs}}",
-                                      "operator": "",
-                                      "valueLabel": "",
-                                      "propLabel": "Packing Status"
-                                    },
-                                    {
-                                      "prop": "plant_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.plant_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Plant"
-                                    },
-                                    {
-                                      "prop": "packing_no",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_7u6VSG8X.data.packing_no}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Packing No"
-                                    },
-                                    {
-                                      "prop": "packing_no_type",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.packing_no_type}}",
-                                      "valueLabel": "",
-                                      "propLabel": "规则"
-                                    },
-                                    {
-                                      "prop": "so_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.so_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Sales Order No"
-                                    },
-                                    {
-                                      "prop": "so_no",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.so_no}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Sales Order No"
-                                    },
-                                    {
-                                      "prop": "gd_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.gd_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Goods Delivery No"
-                                    },
-                                    {
-                                      "prop": "to_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.to_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "PP ID"
-                                    },
-                                    {
-                                      "prop": "gd_no",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.gd_no}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Goods Delivery No"
-                                    },
-                                    {
-                                      "prop": "customer_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.customer_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Customer Name"
-                                    },
-                                    {
-                                      "prop": "billing_address",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.billing_address}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Billing Address"
-                                    },
-                                    {
-                                      "prop": "shipping_address",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.shipping_address}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Shipping Address"
-                                    },
-                                    {
-                                      "prop": "organization_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.organization_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Organization"
-                                    },
-                                    {
-                                      "prop": "packing_mode",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.packing_mode}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Packing Mode"
-                                    },
-                                    {
-                                      "prop": "packing_location",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.packing_location}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Packing Location"
-                                    },
-                                    {
-                                      "prop": "assigned_to",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.assigned_to}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Assigned To"
-                                    },
-                                    {
-                                      "prop": "created_at",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.created_at}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Created At"
-                                    },
-                                    {
-                                      "prop": "created_by",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.created_by}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Created By"
-                                    },
-                                    {
-                                      "prop": "to_validity_period",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.to_validity_period}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Validity Period"
-                                    },
-                                    {
-                                      "prop": "ref_doc",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.ref_doc}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Reference Document"
-                                    },
-                                    {
-                                      "prop": "total_hu_count",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_hu_count}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Total Packing Count"
-                                    },
-                                    {
-                                      "prop": "total_item_count",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_count}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Total Item Count"
-                                    },
-                                    {
-                                      "prop": "total_item_qty",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_qty}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Total Item Quantity"
-                                    },
-                                    {
-                                      "prop": "table_hu",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_7u6VSG8X.data.table_hu}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Table HU"
-                                    },
-                                    {
-                                      "prop": "table_items",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.table_items}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Items"
-                                    },
-                                    {
-                                      "prop": "remarks",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.remarks}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Remarks"
-                                    }
-                                  ]
-                                }
-                              },
-                              "blocks": []
-                            },
-                            {
-                              "id": "get_node_Jge3H7FY",
-                              "type": "get-node",
-                              "data": {
-                                "table_id": {
-                                  "source": "Packing:Table:1993515601863524353",
-                                  "rules": {
-                                    "collectionId": "1993515601863524353",
-                                    "list": [
-                                      {
-                                        "id": 1773726901739,
-                                        "parentId": 1773726901738,
-                                        "isTop": true,
-                                        "prop": "id",
-                                        "operator": "in",
-                                        "valueType": "field",
-                                        "value": "{{workflowparams:entry.id}}",
-                                        "type": "leaf",
-                                        "level": 1,
-                                        "propLabel": "主键ID",
-                                        "valueLabel": "",
-                                        "operatorLabel": "In"
-                                      }
-                                    ]
-                                  }
-                                },
-                                "condition": {},
-                                "title": "Get Packing Data",
-                                "isValidator": true,
-                                "nodeName": "Get Packing Data",
-                                "name": "Get Packing Data"
-                              },
-                              "blocks": []
-                            },
-                            {
-                              "id": "workflow_node_FVJ0DQyv",
-                              "type": "workflow-node",
-                              "data": {
-                                "workflow_id": "",
-                                "workflow_name": "",
-                                "input_params": {},
-                                "title": "Run processBalance",
-                                "isValidator": true,
-                                "nodeName": "Run processBalance",
-                                "name": "Run processBalance",
-                                "workflow": {
-                                  "source": "PROCESS_HU_BALANCE:Workflow:1995409855552823297",
-                                  "rules": {
-                                    "collectionId": "1995409855552823297",
-                                    "list": [
-                                      {
-                                        "id": 1723795236686,
-                                        "parentId": 1723795236685,
-                                        "isTop": true,
-                                        "prop": "",
-                                        "operator": "",
-                                        "valueType": "",
-                                        "value": "",
-                                        "type": "leaf",
-                                        "level": 1
-                                      }
-                                    ]
-                                  }
-                                },
-                                "remote": true,
-                                "remoteType": "innerdatasource",
-                                "body_params": {
-                                  "list": [
-                                    {
-                                      "propLabel": "Packing Data",
-                                      "operator": "",
-                                      "operatorLabel": "",
-                                      "valueType": "field",
-                                      "valueTypeLabel": "",
-                                      "value": "{{node:get_node_Jge3H7FY.data.data}}",
-                                      "valueLabel": "",
-                                      "prop": "packingData"
-                                    }
-                                  ]
-                                }
-                              },
-                              "blocks": []
-                            },
-                            {
-                              "id": "workflow_node_zSWg9gGQ",
-                              "type": "workflow-node",
-                              "data": {
-                                "workflow_id": "",
-                                "workflow_name": "",
-                                "input_params": {},
-                                "title": "Run Packing Status",
-                                "isValidator": true,
-                                "nodeName": "Run Packing Status",
-                                "name": "Run Packing Status",
-                                "workflow": {
-                                  "source": "PACKING_UPDATE_STATUS:Workflow:1996418384072871938",
-                                  "rules": {
-                                    "collectionId": "1996418384072871938",
-                                    "list": [
-                                      {
-                                        "id": 1723795236686,
-                                        "parentId": 1723795236685,
-                                        "isTop": true,
-                                        "prop": "",
-                                        "operator": "",
-                                        "valueType": "",
-                                        "value": "",
-                                        "type": "leaf",
-                                        "level": 1
-                                      }
-                                    ]
-                                  }
-                                },
-                                "remote": true,
-                                "remoteType": "innerdatasource",
-                                "body_params": {
-                                  "list": [
-                                    {
-                                      "prop": "entry",
-                                      "propLabel": "Entry",
-                                      "operator": "",
-                                      "operatorLabel": "",
-                                      "valueType": "field",
-                                      "valueTypeLabel": "",
-                                      "value": "{{node:get_node_Jge3H7FY.data.data}}",
-                                      "valueLabel": ""
-                                    }
-                                  ]
-                                }
-                              },
-                              "blocks": []
-                            },
-                            {
-                              "id": "return_node_qZ3xLdL4",
-                              "type": "return-node",
-                              "data": {
-                                "return_data": {},
-                                "status_code": 200,
-                                "title": "Return Data",
-                                "isValidator": true,
-                                "nodeName": "Return Data",
-                                "name": "Return Data",
-                                "response_value": {
-                                  "list": [
-                                    {
-                                      "prop": "entry",
-                                      "propLabel": "Entry",
-                                      "operator": "",
-                                      "operatorLabel": "",
-                                      "valueType": "field",
-                                      "valueTypeLabel": "",
-                                      "value": "{{node:code_node_rBJZ4VeM.data.entry}}",
-                                      "valueLabel": ""
-                                    },
-                                    {
-                                      "prop": "status",
-                                      "operator": "",
-                                      "valueType": "value",
-                                      "value": "\"Success\"",
-                                      "valueLabel": "",
-                                      "propLabel": "Status"
-                                    }
-                                  ]
-                                },
-                                "return_raw_data": 0
-                              },
-                              "blocks": []
-                            }
-                          ]
-                        },
-                        {
-                          "id": "condition_or_node_item_ZSRvJKQi",
-                          "type": "condition-or-node-item",
-                          "data": {
-                            "title": "Other",
-                            "isDefault": true,
-                            "filter": { "list": [] },
-                            "expression": { "code": "" },
-                            "displayContent": "sdk.form.otherCondition"
-                          },
-                          "blocks": [
-                            {
-                              "id": "return_node_jNLFPIOX",
-                              "type": "return-node",
-                              "data": {
-                                "return_data": {},
-                                "status_code": 200,
-                                "title": "Return Data",
-                                "isValidator": true,
-                                "nodeName": "Return Data",
-                                "name": "Return Data",
-                                "response_value": {
-                                  "list": [
-                                    {
-                                      "prop": "errorStatus",
-                                      "propLabel": "errorStatus",
-                                      "operator": "",
-                                      "operatorLabel": "",
-                                      "valueType": "value",
-                                      "valueTypeLabel": "",
-                                      "value": "\"pageStatus\"",
-                                      "valueLabel": ""
-                                    }
-                                  ]
-                                },
-                                "return_raw_data": 0
-                              },
-                              "blocks": []
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
+                  "blocks": []
                 },
                 {
                   "id": "condition_or_item_kVAQLN3z",
@@ -2191,22 +1071,6 @@
                                       "propLabel": "Customer Name"
                                     },
                                     {
-                                      "prop": "billing_address",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.billing_address}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Billing Address"
-                                    },
-                                    {
-                                      "prop": "shipping_address",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.shipping_address}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Shipping Address"
-                                    },
-                                    {
                                       "prop": "organization_id",
                                       "operator": "",
                                       "valueType": "field",
@@ -2221,14 +1085,6 @@
                                       "value": "{{workflowparams:entry.packing_mode}}",
                                       "valueLabel": "",
                                       "propLabel": "Packing Mode"
-                                    },
-                                    {
-                                      "prop": "packing_location",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.packing_location}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Packing Location"
                                     },
                                     {
                                       "prop": "assigned_to",
@@ -2303,12 +1159,20 @@
                                       "propLabel": "Table HU"
                                     },
                                     {
-                                      "prop": "table_items",
+                                      "prop": "table_hu_source",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.table_items}}",
+                                      "value": "{{workflowparams:entry.table_hu_source}}",
                                       "valueLabel": "",
-                                      "propLabel": "Items"
+                                      "propLabel": "Table HU Source"
+                                    },
+                                    {
+                                      "prop": "table_item_source",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.table_item_source}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Table Item Source"
                                     },
                                     {
                                       "prop": "remarks",
@@ -2503,22 +1367,6 @@
                                       "propLabel": "Customer Name"
                                     },
                                     {
-                                      "prop": "billing_address",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.billing_address}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Billing Address"
-                                    },
-                                    {
-                                      "prop": "shipping_address",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.shipping_address}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Shipping Address"
-                                    },
-                                    {
                                       "prop": "organization_id",
                                       "operator": "",
                                       "valueType": "field",
@@ -2533,14 +1381,6 @@
                                       "value": "{{workflowparams:entry.packing_mode}}",
                                       "valueLabel": "",
                                       "propLabel": "Packing Mode"
-                                    },
-                                    {
-                                      "prop": "packing_location",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.packing_location}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Packing Location"
                                     },
                                     {
                                       "prop": "assigned_to",
@@ -2615,12 +1455,20 @@
                                       "propLabel": "Table HU"
                                     },
                                     {
-                                      "prop": "table_items",
+                                      "prop": "table_hu_source",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.table_items}}",
+                                      "value": "{{workflowparams:entry.table_hu_source}}",
                                       "valueLabel": "",
-                                      "propLabel": "Items"
+                                      "propLabel": "Table HU Source"
+                                    },
+                                    {
+                                      "prop": "table_item_source",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.table_item_source}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Table Item Source"
                                     },
                                     {
                                       "prop": "remarks",
@@ -2897,22 +1745,6 @@
                                       "propLabel": "Customer Name"
                                     },
                                     {
-                                      "prop": "billing_address",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.billing_address}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Billing Address"
-                                    },
-                                    {
-                                      "prop": "shipping_address",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.shipping_address}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Shipping Address"
-                                    },
-                                    {
                                       "prop": "organization_id",
                                       "operator": "",
                                       "valueType": "field",
@@ -2927,14 +1759,6 @@
                                       "value": "{{workflowparams:entry.packing_mode}}",
                                       "valueLabel": "",
                                       "propLabel": "Packing Mode"
-                                    },
-                                    {
-                                      "prop": "packing_location",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.packing_location}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Packing Location"
                                     },
                                     {
                                       "prop": "assigned_to",
@@ -3009,12 +1833,20 @@
                                       "propLabel": "Table HU"
                                     },
                                     {
-                                      "prop": "table_items",
+                                      "prop": "table_hu_source",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.table_items}}",
+                                      "value": "{{workflowparams:entry.table_hu_source}}",
                                       "valueLabel": "",
-                                      "propLabel": "Items"
+                                      "propLabel": "Table HU Source"
+                                    },
+                                    {
+                                      "prop": "table_item_source",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.table_item_source}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Table Item Source"
                                     },
                                     {
                                       "prop": "remarks",
@@ -3209,22 +2041,6 @@
                                       "propLabel": "Customer Name"
                                     },
                                     {
-                                      "prop": "billing_address",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.billing_address}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Billing Address"
-                                    },
-                                    {
-                                      "prop": "shipping_address",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.shipping_address}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Shipping Address"
-                                    },
-                                    {
                                       "prop": "organization_id",
                                       "operator": "",
                                       "valueType": "field",
@@ -3239,14 +2055,6 @@
                                       "value": "{{workflowparams:entry.packing_mode}}",
                                       "valueLabel": "",
                                       "propLabel": "Packing Mode"
-                                    },
-                                    {
-                                      "prop": "packing_location",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{workflowparams:entry.packing_location}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Packing Location"
                                     },
                                     {
                                       "prop": "assigned_to",
@@ -3321,12 +2129,20 @@
                                       "propLabel": "Table HU"
                                     },
                                     {
-                                      "prop": "table_items",
+                                      "prop": "table_hu_source",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.table_items}}",
+                                      "value": "{{workflowparams:entry.table_hu_source}}",
                                       "valueLabel": "",
-                                      "propLabel": "Items"
+                                      "propLabel": "Table HU Source"
+                                    },
+                                    {
+                                      "prop": "table_item_source",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.table_item_source}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Table Item Source"
                                     },
                                     {
                                       "prop": "remarks",
