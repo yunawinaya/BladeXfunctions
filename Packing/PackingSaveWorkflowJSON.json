@@ -1019,10 +1019,10 @@
                                 },
                                 "fields": [],
                                 "condition": {},
-                                "title": "Update GD Line",
+                                "title": "Update GD Lines",
                                 "isValidator": true,
-                                "nodeName": "Update GD Line",
-                                "name": "Update GD Line",
+                                "nodeName": "Update GD Lines",
+                                "name": "Update GD Lines",
                                 "props": {
                                   "modelName": "",
                                   "list": [
@@ -1065,6 +1065,14 @@
                                       "value": "{{workflowparams:entry.id}}",
                                       "valueLabel": "",
                                       "propLabel": "Packing No"
+                                    },
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_nB1MhwgG.data.updatedGdLines.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
                                     }
                                   ]
                                 }
