@@ -1,0 +1,1042 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node",
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_3mHEuJow",
+      "type": "if",
+      "data": {
+        "title": "IF Data not Valid",
+        "isValidator": true,
+        "nodeName": "IF Data not Valid",
+        "name": "IF Data not Valid",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1773373053236,
+              "parentId": 1773373053237,
+              "isTop": true,
+              "prop": "",
+              "operator": "any",
+              "valueType": "",
+              "value": "",
+              "type": "branch",
+              "level": 1,
+              "children": [
+                {
+                  "id": 1736695973613,
+                  "parentId": 1773373053236,
+                  "isTop": false,
+                  "prop": "workflowparams.material_id",
+                  "operator": "isNull",
+                  "valueType": "value",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "material_id",
+                  "valueLabel": "",
+                  "operatorLabel": "Is Null"
+                },
+                {
+                  "id": 1773373053238,
+                  "parentId": 1773373053236,
+                  "isTop": false,
+                  "prop": "workflowparams.quantity",
+                  "operator": "lessThanInclusive",
+                  "valueType": "value",
+                  "value": 0,
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "quantity",
+                  "valueLabel": "",
+                  "operatorLabel": "Less Than Or Equal"
+                },
+                {
+                  "id": 1773373053239,
+                  "parentId": 1773373053236,
+                  "isTop": false,
+                  "prop": "workflowparams.plant_id",
+                  "operator": "isNull",
+                  "valueType": "value",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "plant_id",
+                  "valueLabel": "",
+                  "operatorLabel": "Is Null"
+                },
+                {
+                  "id": 1773373053240,
+                  "parentId": 1773373053236,
+                  "isTop": false,
+                  "prop": "workflowparams.organization_id",
+                  "operator": "isNull",
+                  "valueType": "value",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "organization_id",
+                  "valueLabel": "",
+                  "operatorLabel": "Is Null"
+                },
+                {
+                  "id": 1773385561229,
+                  "parentId": 1773373053236,
+                  "isTop": false,
+                  "prop": "workflowparams.allocationType",
+                  "operator": "isNull",
+                  "valueType": "value",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "allocationType",
+                  "valueLabel": "",
+                  "operatorLabel": "Is Null"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_n6o7pcGh",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_f4hAPru0",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "Data is incomplete",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    },
+                    {
+                      "prop": "allocationData",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "[]",
+                      "valueLabel": "",
+                      "propLabel": "allocationData"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_kV5kPJyM",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "get_node_xgWUnZRj",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Item:Table:1901546842240438273",
+          "rules": {
+            "collectionId": "1901546842240438273",
+            "list": [
+              {
+                "id": 1773373227152,
+                "parentId": 1773373227151,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:material_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get Item",
+        "isValidator": true,
+        "nodeName": "Get Item",
+        "name": "Get Item"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_TtxL5yA9",
+      "type": "if",
+      "data": {
+        "title": "IF Item not Found",
+        "isValidator": true,
+        "nodeName": "IF Item not Found",
+        "name": "IF Item not Found",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1736695973613,
+              "parentId": 1736695973612,
+              "isTop": true,
+              "prop": "node.get_node_xgWUnZRj.data.count",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 0,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "结果条数",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_-JCQUx0o",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_ClHo7ok7",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "Item not found or being deleted",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    },
+                    {
+                      "prop": "allocationData",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "[]",
+                      "valueLabel": "",
+                      "propLabel": "allocationData"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block__GXzVi7V",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_XPr9mVTE",
+      "type": "if",
+      "data": {
+        "title": "IF Batch Manage Item",
+        "isValidator": true,
+        "nodeName": "IF Batch Manage Item",
+        "name": "IF Batch Manage Item",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1736695973613,
+              "parentId": 1736695973612,
+              "isTop": true,
+              "prop": "node.get_node_xgWUnZRj.data.data.item_batch_management",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "Batch Management",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_eFPZBbi6",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "search_node_ARAmvXyd",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item Batch Balance:Table:1902718803880558594",
+                  "rules": {
+                    "collectionId": "1902718803880558594",
+                    "list": [
+                      {
+                        "id": 1773373339477,
+                        "parentId": 1773373339478,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1773373339479,
+                            "parentId": 1773373339477,
+                            "isTop": false,
+                            "prop": "material_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:material_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Item Code",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1773373339480,
+                            "parentId": 1773373339477,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:organization_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1773373339479,
+                            "parentId": 1773373339477,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:plant_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get Item Batch Balance",
+                "isValidator": true,
+                "nodeName": "Get Item Batch Balance",
+                "name": "Get Item Batch Balance"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_26xo7ItO",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": [
+            {
+              "id": "search_node_mb8Vv8fZ",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item Balance:Table:1902698977724317697",
+                  "rules": {
+                    "collectionId": "1902698977724317697",
+                    "list": [
+                      {
+                        "id": 1773373498535,
+                        "parentId": 1773373498536,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1773373534649,
+                            "parentId": 1773373498535,
+                            "isTop": false,
+                            "prop": "material_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:material_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Item Code",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1773373498537,
+                            "parentId": 1773373498535,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:plant_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1773373498538,
+                            "parentId": 1773373498535,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:organization_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get Item Balance",
+                "isValidator": true,
+                "nodeName": "Get Item Balance",
+                "name": "Get Item Balance"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "if_xWXCj_YZ",
+      "type": "if",
+      "data": {
+        "title": "IF isPending",
+        "isValidator": true,
+        "nodeName": "IF isPending",
+        "name": "IF isPending",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1736695973613,
+              "parentId": 1736695973612,
+              "isTop": true,
+              "prop": "workflowparams.isPending",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "isPending",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_MwKRVO0_",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "search_node_BOywHct7",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                  "rules": {
+                    "collectionId": "1935880014687440897",
+                    "list": [
+                      {
+                        "id": 1773384737251,
+                        "parentId": 1773384737252,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1773384737253,
+                            "parentId": 1773384737251,
+                            "isTop": false,
+                            "prop": "material_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:material_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Item ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1773384737254,
+                            "parentId": 1773384737251,
+                            "isTop": false,
+                            "prop": "parent_line_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:parent_line_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Parent Line ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1773384737253,
+                            "parentId": 1773384737251,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:plant_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get Pending Data",
+                "isValidator": true,
+                "nodeName": "Get Pending Data",
+                "name": "Get Pending Data"
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_node_WGl1NGSu",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                  "rules": {
+                    "collectionId": "1935880014687440897",
+                    "list": [
+                      {
+                        "id": 1773384737251,
+                        "parentId": 1773384737252,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1773384737253,
+                            "parentId": 1773384737251,
+                            "isTop": false,
+                            "prop": "material_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:material_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Item ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1775197207146,
+                            "parentId": 1773384737251,
+                            "isTop": false,
+                            "prop": "status",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Allocated",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Status",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1775196905134,
+                            "parentId": 1773384737251,
+                            "isTop": false,
+                            "prop": "handling_unit_id",
+                            "operator": "isNotNull",
+                            "valueType": "value",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Handling Unit ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Is Not Null"
+                          },
+                          {
+                            "id": 1773384737253,
+                            "parentId": 1773384737251,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:plant_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get Allocated HU Data",
+                "isValidator": true,
+                "nodeName": "Get Allocated HU Data",
+                "name": "Get Allocated HU Data"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_xVAZ1a9q",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_node_hDa6pSw5",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Execute Allocation",
+        "isValidator": true,
+        "nodeName": "Execute Allocation",
+        "name": "Execute Allocation",
+        "script": {
+          "type": "javascript",
+          "code": "// Global Auto Allocation Workflow\n\nconst existingAllocationData = {{workflowparams:existingAllocationData}} || [];\nconst material_id = {{workflowparams:material_id}};\nconst quantity = {{workflowparams:quantity}};\nconst plant_id = {{workflowparams:plant_id}};\nconst allocationStrategy = {{workflowparams:allocationStrategy}} || \"RANDOM\";\nconst isPending = {{workflowparams:isPending}} || 0;\nconst itemData = {{node:get_node_xgWUnZRj.data.data}};\nconst allocationType = {{workflowparams:allocationType}} || \"\"\nconst huData = {{workflowparams:huData}} || [];\nconst huPriority = {{workflowparams:huPriority}} || \"HU First\";\nconst currentDocId = {{workflowparams:currentDocId}} || \"\";\nconst enforceStockCheck = {{workflowparams:enforceStockCheck}} || 0;\nconst includeReservedQty = {{workflowparams:includeReservedQty}} || 0;\nconst orderUomId = {{workflowparams:orderUomId}} || \"\";\nconst splitPolicy = {{workflowparams:splitPolicy}} || \"ALLOW_SPLIT\";\nconst allowMixedItem = {{workflowparams:allowMixedItem}} ?? 1;\nconst lineMaterials = {{workflowparams:lineMaterials}} || [];\n\n// UOM conversion: convert requested quantity to base UOM for comparison against balances\nlet conversionFactor = 1;\nif (orderUomId && Array.isArray(itemData.table_uom_conversion)) {\n  const uomConversion = itemData.table_uom_conversion.find(\n    (conv) => conv.alt_uom_id === orderUomId\n  );\n  if (uomConversion && uomConversion.base_qty) {\n    conversionFactor = parseFloat(uomConversion.base_qty);\n  }\n}\nconst baseQuantity = parseFloat((quantity * conversionFactor).toFixed(3));\n\nlet balanceData;\nif (itemData.item_batch_management === 1) {\n  balanceData = {{node:search_node_ARAmvXyd.data.data}} || [];\n} else {\n  balanceData = {{node:search_node_mb8Vv8fZ.data.data}} || [];\n}\n\n// Fetch HU reserved data from search node (on_reserved_gd with handling_unit_id)\nconst huReservedData = {{node:search_node_WGl1NGSu.data.data}} || [];\n\n// Build HU reservation map: handling_unit_id|batch_id -> total reserved open_qty (in base UOM)\n// Exclude current GD's own records to avoid double deduction with existingAllocationData\nconst huReservedMap = {};\nfor (const r of huReservedData) {\n  if (!r.handling_unit_id || parseFloat(r.open_qty) <= 0) continue;\n  if (currentDocId && r.doc_id === currentDocId) continue;\n\n  // Convert open_qty from order UOM to base UOM (GD follows SO UOM)\n  const key = `${r.handling_unit_id}|${r.batch_id || \"\"}`;\n  huReservedMap[key] = (huReservedMap[key] || 0) + parseFloat(r.open_qty) * conversionFactor;\n}\n\n// Inject HU items into balance pool as virtual balance records\n// Deduct already-reserved quantities from on_reserved_gd\nif (Array.isArray(huData) && huData.length > 0) {\n  for (const huItem of huData) {\n    if (huItem.row_type !== \"item\") continue;\n    let available = parseFloat(huItem.item_quantity) || 0;\n\n    // Deduct existing HU reservations from other GDs\n    const reservedKey = `${huItem.handling_unit_id}|${huItem.batch_id || \"\"}`;\n    const reservedQty = huReservedMap[reservedKey] || 0;\n    if (reservedQty > 0) {\n      available = Math.max(0, available - reservedQty);\n    }\n\n    if (available <= 0) continue;\n    balanceData.push({\n      location_id: huItem.location_id,\n      batch_id: huItem.batch_id || null,\n      material_id: huItem.material_id,\n      unrestricted_qty: available,\n      expired_date: huItem.expired_date || null,\n      manufacturing_date: huItem.manufacturing_date || null,\n      create_time: huItem.create_time || null,\n      balance_id: huItem.balance_id || \"\",\n      handling_unit_id: huItem.handling_unit_id,\n      source: \"hu\",\n    });\n  }\n}\n\n// Filter out HU balances from HUs with foreign items\n// NO_SPLIT: always filter | FULL_HU_PICK: only when allow_mixed_item=0\nconst shouldFilterForeignHUs =\n  (splitPolicy === \"NO_SPLIT\" || (splitPolicy === \"FULL_HU_PICK\" && allowMixedItem === 0));\n\nif (shouldFilterForeignHUs && lineMaterials.length > 0) {\n  const gdMaterialSet = new Set(lineMaterials);\n\n  // Group HU balance records by handling_unit_id\n  const huItemsMap = {};\n  for (const b of balanceData) {\n    if (b.source !== \"hu\") continue;\n    if (!huItemsMap[b.handling_unit_id]) huItemsMap[b.handling_unit_id] = [];\n    huItemsMap[b.handling_unit_id].push(b);\n  }\n\n  // Find ineligible HUs (ones with items not in any GD line)\n  const ineligibleHuIds = new Set();\n  for (const [huId, items] of Object.entries(huItemsMap)) {\n    const hasForeignItem = items.some((item) => !gdMaterialSet.has(item.material_id));\n    if (hasForeignItem) ineligibleHuIds.add(huId);\n  }\n\n  // Remove ineligible HU balances\n  if (ineligibleHuIds.size > 0) {\n    balanceData = balanceData.filter(\n      (b) => b.source !== \"hu\" || !ineligibleHuIds.has(b.handling_unit_id),\n    );\n  }\n}\n\nlet pendingData = [];\nif (isPending === 1) {\n  pendingData = {{node:search_node_BOywHct7.data.data}} || [];\n}\n\n// Preserve the real unrestricted_qty before any inflation for display purposes\nfor (let i = 0; i < balanceData.length; i++) {\n  if (balanceData[i].source === \"hu\") continue;\n  balanceData[i].real_unrestricted_qty = parseFloat(balanceData[i].unrestricted_qty) || 0;\n}\n\n// Include reserved_qty in available stock when:\n// 1. Explicitly requested (gd_status=Created or isGDPP), OR\n// 2. Pending reserved data exists (reserved stock backs those pending records)\nif (includeReservedQty === 1 || (isPending === 1 && pendingData.length > 0)) {\n  for (let i = 0; i < balanceData.length; i++) {\n    if (balanceData[i].source === \"hu\") continue;\n    const reservedQty = parseFloat(balanceData[i].reserved_qty) || 0;\n    if (reservedQty > 0) {\n      balanceData[i].unrestricted_qty =\n        (parseFloat(balanceData[i].unrestricted_qty) || 0) + reservedQty;\n    }\n  }\n}\n\nconst isBatchManaged = itemData.item_batch_management === 1;\n\n// FIELD MAPPING BY ALLOCATION TYPE\nconst getFieldNames = () => {\n  switch (allocationType) {\n    case \"GD\":\n      return { qtyField: \"gd_quantity\", locationField: \"location_id\" };\n    case \"PP\":\n      return { qtyField: \"to_quantity\", locationField: \"location_id\" };\n    case \"MR\":\n      return { qtyField: \"issue_qty\", locationField: \"bin_location_id\" };\n    default:\n      return { qtyField: \"quantity\", locationField: \"location_id\" };\n  }\n};\n\nconst { qtyField, locationField } = getFieldNames();\n\n// HELPER FUNCTIONS\n\nconst generateKey = (locationId, batchId, handlingUnitId) => {\n  let key;\n  if (isBatchManaged) {\n    key = `${locationId}-${batchId || \"no_batch\"}`;\n  } else {\n    key = `${locationId}`;\n  }\n  if (handlingUnitId) {\n    key += `-hu-${handlingUnitId}`;\n  }\n  return key;\n};\n\nconst buildExistingAllocationMap = (existingData) => {\n  const map = {};\n  if (Array.isArray(existingData)) {\n    for (const existing of existingData) {\n      const key = generateKey(existing.location_id, existing.batch_id, existing.handling_unit_id);\n      // Convert existing allocation qty to base UOM for correct deduction against base UOM balances\n      const qty = parseFloat((parseFloat(existing.quantity) || 0) * conversionFactor).toFixed(3);\n      map[key] = (map[key] || 0) + parseFloat(qty);\n    }\n  }\n  return map;\n};\n\nconst adjustBalancesForExisting = (balances, existingMap) => {\n  return balances.map((balance) => {\n    const key = generateKey(balance.location_id, balance.batch_id, balance.handling_unit_id);\n    const existingQty = existingMap[key] || 0;\n    const originalQty = parseFloat(balance.unrestricted_qty) || 0;\n    const adjustedQty = Math.max(0, originalQty - existingQty);\n\n    return {\n      ...balance,\n      unrestricted_qty: adjustedQty,\n      original_unrestricted_qty: originalQty,\n    };\n  });\n};\n\n// SORTING FUNCTIONS\n\n// direction: 1 = ascending (first/earliest), -1 = descending (last/latest)\nconst sortByExpiry = (balanceArray, direction) => {\n  return [...balanceArray].sort((a, b) => {\n    if (isBatchManaged && a.expired_date && b.expired_date) {\n      return (new Date(a.expired_date) - new Date(b.expired_date)) * direction;\n    }\n    return (new Date(a.create_time) - new Date(b.create_time)) * direction;\n  });\n};\n\nconst sortByCreateTime = (balanceArray, direction) => {\n  return [...balanceArray].sort((a, b) => {\n    return (new Date(a.create_time) - new Date(b.create_time)) * direction;\n  });\n};\n\nconst sortByQty = (balanceArray, direction) => {\n  return [...balanceArray].sort((a, b) => {\n    return ((a.unrestricted_qty || 0) - (b.unrestricted_qty || 0)) * direction;\n  });\n};\n\nconst sortByClearBin = (balanceArray, requestedQty) => {\n  return [...balanceArray].sort((a, b) => {\n    const qtyA = a.unrestricted_qty || 0;\n    const qtyB = b.unrestricted_qty || 0;\n    const canClearA = qtyA <= requestedQty;\n    const canClearB = qtyB <= requestedQty;\n\n    if (canClearA && !canClearB) return -1;\n    if (!canClearA && canClearB) return 1;\n    return qtyA - qtyB;\n  });\n};\n\nconst getDefaultBin = () => {\n  if (!itemData.table_default_bin?.length) return null;\n  const entry = itemData.table_default_bin.find(\n    (bin) => bin.plant_id === plant_id\n  );\n  return entry?.bin_location || null;\n};\n\nconst allocateFromBalances = (balanceList, remainingQty) => {\n  const allocated = [];\n  let remaining = remainingQty;\n\n  for (const balance of balanceList) {\n    if (remaining <= 0) break;\n\n    const availableQty = balance.unrestricted_qty || 0;\n    if (availableQty <= 0) continue;\n\n    const allocatedQty = Math.min(remaining, availableQty);\n\n    const allocationRecord = {\n      ...balance,\n      [qtyField]: allocatedQty,\n      // Use real_unrestricted_qty (before reserved inflation) for display\n      unrestricted_qty:\n        balance.real_unrestricted_qty != null\n          ? balance.real_unrestricted_qty\n          : balance.original_unrestricted_qty || balance.unrestricted_qty,\n    };\n\n    // For MR, rename location_id to bin_location_id\n    if (allocationType === \"MR\") {\n      allocationRecord.bin_location_id = balance.location_id;\n    }\n\n    allocated.push(allocationRecord);\n    remaining -= allocatedQty;\n  }\n\n  return { allocated, remainingQty: remaining };\n};\n\n// Whole-HU allocation: takes full item_quantity from each HU balance, never partial\n// Stops picking once remaining need is fulfilled (don't over-allocate beyond what's needed)\nconst allocateWholeHU = (balanceList, remainingQty) => {\n  const allocated = [];\n  let remaining = remainingQty;\n\n  for (const balance of balanceList) {\n    if (remaining <= 0) break; // Need fulfilled — stop picking more HUs\n    if (balance.source !== \"hu\") continue;\n\n    const availableQty = balance.unrestricted_qty || 0;\n    if (availableQty <= 0) continue;\n\n    // Take the FULL quantity — no Math.min with remaining\n    const allocationRecord = {\n      ...balance,\n      [qtyField]: availableQty,\n      unrestricted_qty:\n        balance.real_unrestricted_qty != null\n          ? balance.real_unrestricted_qty\n          : balance.original_unrestricted_qty || balance.unrestricted_qty,\n    };\n\n    if (allocationType === \"MR\") {\n      allocationRecord.bin_location_id = balance.location_id;\n    }\n\n    allocated.push(allocationRecord);\n    remaining -= availableQty; // Can go negative (excess)\n  }\n\n  return { allocated, remainingQty: Math.max(0, remaining) };\n};\n\n// NO_SPLIT whole-HU allocation: takes full HU qty but SKIPS HUs that would exceed remaining need\n// Falls back to loose stock for the remainder\nconst allocateWholeHUWithLimit = (balanceList, remainingQty) => {\n  const allocated = [];\n  let remaining = remainingQty;\n\n  for (const balance of balanceList) {\n    if (remaining <= 0) break;\n    if (balance.source !== \"hu\") continue;\n\n    const availableQty = balance.unrestricted_qty || 0;\n    if (availableQty <= 0) continue;\n\n    // Skip this HU if it would exceed remaining need (no over-pick for NO_SPLIT)\n    if (availableQty > remaining) continue;\n\n    const allocationRecord = {\n      ...balance,\n      [qtyField]: availableQty,\n      unrestricted_qty:\n        balance.real_unrestricted_qty != null\n          ? balance.real_unrestricted_qty\n          : balance.original_unrestricted_qty || balance.unrestricted_qty,\n    };\n\n    if (allocationType === \"MR\") {\n      allocationRecord.bin_location_id = balance.location_id;\n    }\n\n    allocated.push(allocationRecord);\n    remaining -= availableQty;\n  }\n\n  return { allocated, remainingQty: Math.max(0, remaining) };\n};\n\nconst filterAvailableBalances = (balances) => {\n  return balances.filter((b) => (b.unrestricted_qty || 0) > 0);\n};\n\n// PENDING ALLOCATION FUNCTION\nconst allocateFromPending = (pendingRecords, balances, requestedQty) => {\n  const allAllocations = [];\n  let remainingQty = requestedQty;\n\n  // Sort pending: Production first, then Sales Order\n  const sortedPending = [...pendingRecords].sort((a, b) => {\n    if (a.doc_type === \"Production\" && b.doc_type !== \"Production\") return -1;\n    if (a.doc_type !== \"Production\" && b.doc_type === \"Production\") return 1;\n    return 0;\n  });\n\n  for (const pending of sortedPending) {\n    if (remainingQty <= 0) break;\n\n    // Convert pending open_qty from order UOM to base UOM (all reserved records follow SO UOM)\n    const pendingQtyRaw = parseFloat(pending.open_qty) || 0;\n    if (pendingQtyRaw <= 0) continue;\n    const pendingQty = parseFloat((pendingQtyRaw * conversionFactor).toFixed(3));\n\n    // Find matching balance (pending uses bin_location, balance uses location_id)\n    // Only match loose balances (no HU) since SO/Production pending doesn't reserve at HU level\n    const matchingBalance = balances.find((b) => {\n      const locationMatch = b.location_id === pending.bin_location;\n      const huMatch = !b.handling_unit_id;\n      if (isBatchManaged) {\n        return locationMatch && b.batch_id === pending.batch_id && huMatch;\n      }\n      return locationMatch && huMatch;\n    });\n\n    if (matchingBalance) {\n      const availableQty = matchingBalance.unrestricted_qty || 0;\n      const allocatedQty = Math.min(remainingQty, pendingQty, availableQty);\n\n      if (allocatedQty > 0) {\n        const key = generateKey(matchingBalance.location_id, matchingBalance.batch_id, matchingBalance.handling_unit_id);\n\n        // Check if already allocated to this location/batch\n        const existingIdx = allAllocations.findIndex((a) => {\n          return generateKey(a.location_id, a.batch_id, a.handling_unit_id) === key;\n        });\n\n        if (existingIdx >= 0) {\n          allAllocations[existingIdx][qtyField] += allocatedQty;\n        } else {\n          const allocationRecord = {\n            ...matchingBalance,\n            [qtyField]: allocatedQty,\n            unrestricted_qty:\n              matchingBalance.real_unrestricted_qty != null\n                ? matchingBalance.real_unrestricted_qty\n                : matchingBalance.original_unrestricted_qty || matchingBalance.unrestricted_qty,\n          };\n\n          // For MR, rename location_id to bin_location_id\n          if (allocationType === \"MR\") {\n            allocationRecord.bin_location_id = matchingBalance.location_id;\n          }\n\n          allAllocations.push(allocationRecord);\n        }\n\n        remainingQty -= allocatedQty;\n\n        // Reduce available qty for next iteration\n        matchingBalance.unrestricted_qty = Math.max(\n          0,\n          matchingBalance.unrestricted_qty - allocatedQty\n        );\n      }\n    }\n  }\n\n  return { allocated: allAllocations, remainingQty };\n};\n\n// ALLOCATION STRATEGIES\n\n// Simple strategies: sort then allocate\nconst sortAndAllocate = (sortFn) => (availableBalances, requestedQty) => {\n  return allocateFromBalances(sortFn(availableBalances), requestedQty);\n};\n\nconst strategyFixedBin = (availableBalances, requestedQty) => {\n  const defaultBin = getDefaultBin();\n  const allAllocations = [];\n  let remainingQty = requestedQty;\n\n  if (defaultBin) {\n    const defaultBinBalances = availableBalances.filter(\n      (b) => b.location_id === defaultBin\n    );\n    const result1 = allocateFromBalances(sortByExpiry(defaultBinBalances, 1), remainingQty);\n    allAllocations.push(...result1.allocated);\n    remainingQty = result1.remainingQty;\n  }\n\n  if (remainingQty > 0) {\n    const otherBalances = availableBalances.filter(\n      (b) => !defaultBin || b.location_id !== defaultBin\n    );\n    const result2 = allocateFromBalances(sortByExpiry(otherBalances, 1), remainingQty);\n    allAllocations.push(...result2.allocated);\n    remainingQty = result2.remainingQty;\n  }\n\n  return { allocated: allAllocations, remainingQty };\n};\n\n// STRATEGY REGISTRY\nconst STRATEGIES = {\n  RANDOM: sortAndAllocate((b) => sortByExpiry(b, 1)),\n  \"FIXED BIN\": strategyFixedBin,\n  FEFO: sortAndAllocate((b) => sortByExpiry(b, 1)),\n  FIFO: sortAndAllocate((b) => sortByCreateTime(b, 1)),\n  LIFO: sortAndAllocate((b) => sortByCreateTime(b, -1)),\n  LEFO: sortAndAllocate((b) => sortByExpiry(b, -1)),\n  \"LARGEST QTY\": sortAndAllocate((b) => sortByQty(b, -1)),\n  \"SMALLEST QTY\": sortAndAllocate((b) => sortByQty(b, 1)),\n  \"CLEAR BIN\": (availableBalances, requestedQty) => {\n    return allocateFromBalances(sortByClearBin(availableBalances, requestedQty), requestedQty);\n  },\n};\n\n// MAIN EXECUTION\n\nconst existingAllocationMap = buildExistingAllocationMap(existingAllocationData);\n\nconst adjustedBalances = adjustBalancesForExisting(\n  balanceData,\n  existingAllocationMap\n);\n\nconst availableBalances = filterAvailableBalances(adjustedBalances);\n\nconst totalAvailable = availableBalances.reduce(\n  (sum, b) => sum + (b.unrestricted_qty || 0),\n  0\n);\n\n// Enforce strict insufficient stock check when required\nconst shouldEnforceStock =\n  allocationType === \"MR\" ||\n  (enforceStockCheck === 1 && itemData.stock_control !== 0);\n\nif (shouldEnforceStock && totalAvailable < baseQuantity) {\n  return {\n    code: \"400\",\n    message: `Insufficient stock for item ${itemData.material_code || material_id}. Available: ${totalAvailable}, Requested: ${baseQuantity}`,\n    allocationData: [],\n    totalAllocated: 0,\n  };\n}\n\nlet allAllocations = [];\nlet remainingQty = baseQuantity;\n\n// Step 1: If isPending, allocate from pending data first\nif (isPending === 1 && pendingData.length > 0) {\n  const pendingResult = allocateFromPending(pendingData, availableBalances, remainingQty);\n  allAllocations.push(...pendingResult.allocated);\n  remainingQty = pendingResult.remainingQty;\n}\n\n// Step 2: Apply strategy for remaining quantity\nif (remainingQty > 0) {\n  const remainingBalances = filterAvailableBalances(availableBalances);\n  const strategyFn = STRATEGIES[allocationStrategy] || STRATEGIES[\"RANDOM\"];\n\n  // Separate HU and loose balances for priority-based allocation\n  const huBalances = remainingBalances.filter((b) => b.source === \"hu\");\n  const looseBalances = remainingBalances.filter((b) => b.source !== \"hu\");\n\n  if (splitPolicy === \"FULL_HU_PICK\" && huBalances.length > 0) {\n    // FULL_HU_PICK: take full qty from each HU, excess allowed\n    const sortedHu = sortByExpiry(huBalances, 1);\n    const huResult = allocateWholeHU(sortedHu, remainingQty);\n    allAllocations.push(...huResult.allocated);\n    remainingQty = huResult.remainingQty;\n\n    // Fall back to loose stock for remaining (partial allowed for loose)\n    if (remainingQty > 0) {\n      const looseStrategyFn = STRATEGIES[allocationStrategy] || STRATEGIES[\"RANDOM\"];\n      const looseResult = looseStrategyFn(looseBalances, remainingQty);\n\n      for (const strategyAlloc of looseResult.allocated) {\n        const key = generateKey(strategyAlloc.location_id, strategyAlloc.batch_id, strategyAlloc.handling_unit_id);\n        const existingIdx = allAllocations.findIndex((a) =>\n          generateKey(a.location_id, a.batch_id, a.handling_unit_id) === key\n        );\n        if (existingIdx >= 0) {\n          allAllocations[existingIdx][qtyField] += strategyAlloc[qtyField];\n        } else {\n          allAllocations.push(strategyAlloc);\n        }\n      }\n      remainingQty = looseResult.remainingQty;\n    }\n  } else if (splitPolicy === \"NO_SPLIT\" && huBalances.length > 0) {\n    // NO_SPLIT: take whole HUs but only if they fit within remaining need (no over-pick)\n    const sortedHu = sortByExpiry(huBalances, 1);\n    const huResult = allocateWholeHUWithLimit(sortedHu, remainingQty);\n    allAllocations.push(...huResult.allocated);\n    remainingQty = huResult.remainingQty;\n\n    // Fall back to loose stock for remaining\n    if (remainingQty > 0) {\n      const looseStrategyFn = STRATEGIES[allocationStrategy] || STRATEGIES[\"RANDOM\"];\n      const looseResult = looseStrategyFn(looseBalances, remainingQty);\n\n      for (const strategyAlloc of looseResult.allocated) {\n        const key = generateKey(strategyAlloc.location_id, strategyAlloc.batch_id, strategyAlloc.handling_unit_id);\n        const existingIdx = allAllocations.findIndex((a) =>\n          generateKey(a.location_id, a.batch_id, a.handling_unit_id) === key\n        );\n        if (existingIdx >= 0) {\n          allAllocations[existingIdx][qtyField] += strategyAlloc[qtyField];\n        } else {\n          allAllocations.push(strategyAlloc);\n        }\n      }\n      remainingQty = looseResult.remainingQty;\n    }\n  } else {\n    // ALLOW_SPLIT: existing priority-based allocation logic\n    let strategyResult;\n\n    // Determine allocation order based on HU priority\n    const hasPriority =\n      (huPriority === \"HU First\" && huBalances.length > 0) ||\n      (huPriority === \"Loose First\" && looseBalances.length > 0);\n\n    if (hasPriority) {\n      // Allocate from primary group first, then secondary for remainder\n      const primaryBalances = huPriority === \"HU First\" ? huBalances : looseBalances;\n      const secondaryBalances = huPriority === \"HU First\" ? looseBalances : huBalances;\n\n      const primaryResult = strategyFn(primaryBalances, remainingQty);\n      allAllocations.push(...primaryResult.allocated);\n      remainingQty = primaryResult.remainingQty;\n\n      if (remainingQty > 0) {\n        strategyResult = strategyFn(secondaryBalances, remainingQty);\n      } else {\n        strategyResult = { allocated: [], remainingQty: 0 };\n      }\n    } else {\n      // \"Strategy\" mode or no HU: pure strategy sorting across all\n      strategyResult = strategyFn(remainingBalances, remainingQty);\n    }\n\n    // Merge strategy allocations with pending allocations\n    for (const strategyAlloc of strategyResult.allocated) {\n      const key = generateKey(strategyAlloc.location_id, strategyAlloc.batch_id, strategyAlloc.handling_unit_id);\n      const existingIdx = allAllocations.findIndex((a) => {\n        return generateKey(a.location_id, a.batch_id, a.handling_unit_id) === key;\n      });\n\n      if (existingIdx >= 0) {\n        allAllocations[existingIdx][qtyField] += strategyAlloc[qtyField];\n      } else {\n        allAllocations.push(strategyAlloc);\n      }\n    }\n\n    remainingQty = strategyResult.remainingQty;\n  }\n}\n\nconst totalAllocated = allAllocations.reduce(\n  (sum, a) => sum + (a[qtyField] || 0),\n  0\n);\n\n// Enforce strict post-allocation check\nif (shouldEnforceStock && totalAllocated < baseQuantity) {\n  return {\n    code: \"400\",\n    message: `Insufficient stock for item ${itemData.material_code || material_id}. Available: ${totalAllocated}, Requested: ${baseQuantity}`,\n    allocationData: [],\n    totalAllocated: 0,\n  };\n}\n\n// Convert allocated quantities back from base UOM to order UOM for the consumer\nif (conversionFactor !== 1) {\n  const reverseFactor = 1 / conversionFactor;\n  for (const alloc of allAllocations) {\n    alloc[qtyField] = parseFloat((alloc[qtyField] * reverseFactor).toFixed(3));\n  }\n}\n\nconst totalAllocatedFinal = allAllocations.reduce(\n  (sum, a) => sum + (a[qtyField] || 0),\n  0\n);\n\nreturn {\n  code: totalAllocated >= baseQuantity ? \"200\" : \"206\",\n  message:\n    totalAllocated >= baseQuantity\n      ? \"Allocation successful\"\n      : `Partial allocation. Available: ${totalAllocated}, Requested: ${baseQuantity}`,\n  allocationData: allAllocations,\n  totalAllocated: totalAllocatedFinal,\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "09k2n5jd",
+            "name": "code",
+            "title": "code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "nano9z2r",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "s53fm8fo",
+            "name": "allocationData",
+            "title": "allocationData",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "017i8xvj",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "688pbiym",
+            "name": "totalAllocated",
+            "title": "totalAllocated",
+            "description": "",
+            "bsonType": "decimal",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_UwhI5ag5",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_hDa6pSw5.data.code}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hDa6pSw5.data.message}}",
+              "valueLabel": "",
+              "propLabel": "message"
+            },
+            {
+              "prop": "allocationData",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hDa6pSw5.data.allocationData}}",
+              "valueLabel": "",
+              "propLabel": "allocationData"
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "rf7gidmf",
+      "name": "material_id",
+      "title": "material_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "nyfdef7f",
+      "name": "quantity",
+      "title": "quantity",
+      "description": "",
+      "bsonType": "decimal",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "ocbn4uah",
+      "name": "plant_id",
+      "title": "plant_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "mrj7g6bb",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "4h1mda8l",
+      "name": "existingAllocationData",
+      "title": "existingAllocationData",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "03xsr97x",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "isArrayItem": true,
+          "children": []
+        }
+      ]
+    },
+    {
+      "key": "j66925gj",
+      "name": "allocationStrategy",
+      "title": "allocationStrategy",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "q1tce2lo",
+      "name": "isPending",
+      "title": "isPending",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "rn3uyvne",
+      "name": "parent_line_id",
+      "title": "parent_line_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "e380166i",
+      "name": "allocationType",
+      "title": "allocationType",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "vq4pqdtf",
+      "name": "huData",
+      "title": "huData",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "my95p1qe",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "isArrayItem": true,
+          "children": []
+        }
+      ]
+    },
+    {
+      "key": "8x9vpt3e",
+      "name": "huPriority",
+      "title": "huPriority",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "dm6aajqa",
+      "name": "currentDocId",
+      "title": "currentDocId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "2p8mq5rm",
+      "name": "enforceStockCheck",
+      "title": "enforceStockCheck",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "7z1vzitb",
+      "name": "includeReservedQty",
+      "title": "includeReservedQty",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "r1862me9",
+      "name": "orderUomId",
+      "title": "orderUomId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "j8ifmq5h",
+      "name": "splitPolicy",
+      "title": "splitPolicy",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "l6izzrpj",
+      "name": "lineMaterials",
+      "title": "lineMaterials",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "rx9mrjdt",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "isArrayItem": true,
+          "children": []
+        }
+      ]
+    },
+    {
+      "key": "of5by8d2",
+      "name": "allowMixedItem",
+      "title": "allowMixedItem",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "8hvjo15h",
+      "name": "allocationData",
+      "title": "allocationData",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "qde3gt3d",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "isArrayItem": true,
+          "children": []
+        }
+      ]
+    },
+    {
+      "key": "aul3orfc",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "251w07ep",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}
