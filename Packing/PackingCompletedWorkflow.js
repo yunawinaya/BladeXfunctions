@@ -109,19 +109,9 @@ const showErrors = (errors) => {
 
     let workflowResult;
 
-    // TODO: replace placeholder with the new PackingProcessWorkflow id once the
-    // workflow is created in the low-code editor. The new workflow handles
-    // validation + packing save + GD patching + GD rebalance trigger in one pass.
-    // Existing 1994279909883895810 stays in use for Draft / Created paths only.
-    const PACKING_PROCESS_WORKFLOW_ID = "PACKING_PROCESS_WORKFLOW_ID_TODO";
-
     await this.runWorkflow(
-      PACKING_PROCESS_WORKFLOW_ID,
-      {
-        allData: finalData,
-        confirmed_by: this.getVarGlobal("user_id") || "",
-        pageStatus: finalData.page_status || "Edit",
-      },
+      "1994279909883895810",
+      { entry: finalData, saveAs: "Completed" },
       async (res) => {
         console.log("Packing completed successfully:", res);
         workflowResult = res;
