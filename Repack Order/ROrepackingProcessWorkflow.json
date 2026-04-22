@@ -619,7 +619,7 @@
                       "prop": "parent_hu_id",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:code_node_CPgy5sGX.data.targetHu.parent_hu_id}}",
+                      "value": "{{node:code_node_CPgy5sGX.data.sourceHu.parent_hu_id}}",
                       "valueLabel": "",
                       "propLabel": "parent_hu_id"
                     },
@@ -627,7 +627,7 @@
                       "prop": "hu_status",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:code_node_CPgy5sGX.data.targetHu.hu_status}}",
+                      "value": "{{node:code_node_CPgy5sGX.data.sourceHu.hu_status}}",
                       "valueLabel": "",
                       "propLabel": "hu_status"
                     }
