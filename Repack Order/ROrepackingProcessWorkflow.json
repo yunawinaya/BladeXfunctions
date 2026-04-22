@@ -331,6 +331,22 @@
                       "value": "load",
                       "valueLabel": "",
                       "propLabel": "process_type"
+                    },
+                    {
+                      "prop": "parent_hu_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CPgy5sGX.data.targetHu.parent_hu_id}}",
+                      "valueLabel": "",
+                      "propLabel": "parent_hu_id"
+                    },
+                    {
+                      "prop": "hu_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CPgy5sGX.data.targetHu.hu_status}}",
+                      "valueLabel": "",
+                      "propLabel": "hu_status"
                     }
                   ]
                 }
@@ -598,6 +614,22 @@
                       "value": "unload",
                       "valueLabel": "",
                       "propLabel": "process_type"
+                    },
+                    {
+                      "prop": "parent_hu_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CPgy5sGX.data.targetHu.parent_hu_id}}",
+                      "valueLabel": "",
+                      "propLabel": "parent_hu_id"
+                    },
+                    {
+                      "prop": "hu_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CPgy5sGX.data.targetHu.hu_status}}",
+                      "valueLabel": "",
+                      "propLabel": "hu_status"
                     }
                   ]
                 }
@@ -874,7 +906,7 @@
             "name": "ItemMovement",
             "script": {
               "type": "javascript",
-              "code": "const ctx = {{node:code_node_CPgy5sGX.data}};\nconst resolvedTargetHuId = {{node:code_node_KA3mv0Kd.data.resolvedTargetHuId}} || \"\";\nconst item = {{node:loop_UsaBEWcU}};\nconst processType = ctx.processType;\nconst sourceHu = ctx.sourceHu;\n\nlet subtractLocationId = \"\";\nlet subtractHandlingUnitId = \"\";\nlet addLocationId = \"\";\nlet addHandlingUnitId = \"\";\n\nif (processType === \"Load\") {\n  subtractLocationId = item.location_id;\n  subtractHandlingUnitId = \"\";\n  addLocationId = ctx.targetHu?.location_id || \"\";\n  addHandlingUnitId = resolvedTargetHuId;\n} else if (processType === \"Unload\") {\n  subtractLocationId = item.location_id;\n  subtractHandlingUnitId = sourceHu?.id || \"\";\n  addLocationId = ctx.targetWarehouseLocationId;\n  addHandlingUnitId = \"\";\n} else if (processType === \"Transfer\") {\n  subtractLocationId = item.location_id;\n  subtractHandlingUnitId = sourceHu?.id || \"\";\n  addLocationId = ctx.targetHu?.location_id || \"\";\n  addHandlingUnitId = resolvedTargetHuId;\n}\n\nreturn {\n  material_id: item.material_id,\n  material_uom: item.material_uom,\n  quantity: parseFloat(item.quantity) || 0,\n  batch_id: item.batch_id || \"\",\n  subtractLocationId,\n  subtractHandlingUnitId,\n  addLocationId,\n  addHandlingUnitId,\n};\n"
+              "code": "const ctx = {{node:code_node_CPgy5sGX.data}};\nconst resolvedTargetHuId = {{node:code_node_KA3mv0Kd.data.resolvedTargetHuId}} || \"\";\nconst item = {{node:loop_UsaBEWcU}};\nconst processType = ctx.processType;\nconst sourceHu = ctx.sourceHu;\n\nlet subtractLocationId = \"\";\nlet subtractHandlingUnitId = \"\";\nlet addLocationId = \"\";\nlet addHandlingUnitId = \"\";\n\nif (processType === \"Load\") {\n  subtractLocationId = item.location_id;\n  subtractHandlingUnitId = \"\";\n  addLocationId = ctx.targetHu?.location_id || \"\";\n  addHandlingUnitId = resolvedTargetHuId;\n} else if (processType === \"Unload\") {\n  subtractLocationId = item.location_id;\n  subtractHandlingUnitId = sourceHu?.id || \"\";\n  addLocationId = ctx.targetWarehouseLocationId;\n  addHandlingUnitId = \"\";\n} else if (processType === \"Transfer\") {\n  subtractLocationId = item.location_id;\n  subtractHandlingUnitId = sourceHu?.id || \"\";\n  addLocationId = ctx.targetHu?.location_id || \"\";\n  addHandlingUnitId = resolvedTargetHuId;\n}\n\nreturn {\n  material_id: item.material_id,\n  material_uom: item.material_uom,\n  quantity: parseFloat(item.quantity) || 0,\n  batch_id: item.batch_id || null,\n  subtractLocationId,\n  subtractHandlingUnitId,\n  addLocationId,\n  addHandlingUnitId,\n};\n"
             },
             "response_json": [
               {
