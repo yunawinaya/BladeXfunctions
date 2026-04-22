@@ -115,7 +115,7 @@
     await this.triggerEvent("PackingRecomputeSource");
 
     this.$message.success(
-      `Picked ${qtyToPick} ${sourceRow.item_code || ""} to HU ${targetHu.handling_no || selectedHuIndex + 1}.`,
+      `Picked ${qtyToPick} ${sourceRow.item_name || ""} to HU ${targetHu.handling_no || selectedHuIndex + 1}.`,
     );
   } catch (error) {
     console.error("PackingPickItemToHU error:", error);

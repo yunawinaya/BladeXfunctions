@@ -15,6 +15,18 @@
     const tableHu = this.getValue("table_hu") || [];
 
     if (turnedOn) {
+      // Require hu_material_id to be set before the row can be selected as target.
+      // Without it, downstream handlers + save workflow have nothing to write to HU.
+      const row = tableHu[rowIndex];
+      if (!row || !row.hu_material_id) {
+        this.$message.warning(
+          "Please fill in the HU material before selecting this HU.",
+        );
+        // Revert the checkbox back to off
+        await this.setData({ [`table_hu.${rowIndex}.select_hu`]: 0 });
+        return;
+      }
+
       const updates = { selected_hu_index: rowIndex };
       for (let i = 0; i < tableHu.length; i++) {
         if (i !== rowIndex && tableHu[i].select_hu) {
