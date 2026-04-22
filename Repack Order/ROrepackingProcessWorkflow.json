@@ -1427,6 +1427,42 @@
       ]
     },
     {
+      "id": "code_node_EubxS7cO",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "huId & huNo",
+        "isValidator": true,
+        "nodeName": "huId & huNo",
+        "name": "huId & huNo",
+        "script": {
+          "type": "javascript",
+          "code": "let huId\nlet huNo\nconst unload = {{node:code_node_CPgy5sGX.data.needsSourceUnload}} || 0\nconst load = {{node:code_node_CPgy5sGX.data.needsTargetLoad}} || 0\n\nif (unload === 1 && load === 0) {\n  huId = {{node:workflow_node_sxd7zvXQ.data.huId}} || \"\";\n  huNo = {{node:workflow_node_sxd7zvXQ.data.huNo}} || \"\";\n}\n\nif (unload === 0 && load === 1) {\n  huId = {{node:workflow_node_5c85PxTg.data.huId}} || \"\";\n  huNo = {{node:workflow_node_5c85PxTg.data.huNo}} || \"\";\n}\n\nreturn {\n  huId,\n  huNo\n}"
+        },
+        "response_json": [
+          {
+            "key": "14huktwh",
+            "name": "huId",
+            "title": "huId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "sr7udhbe",
+            "name": "huNo",
+            "title": "huNo",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
       "id": "return_node_dAjqzGwu",
       "type": "return-node",
       "data": {
@@ -1455,6 +1491,22 @@
               "value": "Repacking processed",
               "valueLabel": "",
               "propLabel": "message"
+            },
+            {
+              "prop": "huId",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_EubxS7cO.data.huId}}",
+              "valueLabel": "",
+              "propLabel": "huId"
+            },
+            {
+              "prop": "huNo",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_EubxS7cO.data.huNo}}",
+              "valueLabel": "",
+              "propLabel": "huNo"
             }
           ]
         },
@@ -1595,6 +1647,22 @@
       "key": "gr7ffzb1",
       "name": "message",
       "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "xeremy4u",
+      "name": "huId",
+      "title": "huId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "vnvud1z6",
+      "name": "huNo",
+      "title": "huNo",
       "description": "",
       "bsonType": "string",
       "isExpand": false
