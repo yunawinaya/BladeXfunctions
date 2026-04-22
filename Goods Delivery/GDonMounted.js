@@ -105,6 +105,8 @@ const disabledField = async (status, pickingStatus) => {
       if (pickingStatus === "In Progress" || pickingStatus === "Completed") {
         this.hide(["button_save_as_created"]);
       }
+
+      this.disabled(["plant_id"], true);
     }
     this.disabled(
       [
