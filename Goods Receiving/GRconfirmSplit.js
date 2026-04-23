@@ -76,10 +76,23 @@ const setGrItemData = async (
     storage_location_id: storageLocationId,
     location_id: locationId,
 
-    // Batch and inspection - Split-Parent clears batch (each fills own)
-    item_batch_no: isSplitParent ? "" : itemData.item_batch_no,
-    manufacturing_date: isSplitParent ? null : itemData.manufacturing_date,
-    expired_date: isSplitParent ? null : itemData.expired_date,
+    // Batch and inspection - Split-Parent clears batch only for manual-entry
+    // batch items. "-" (non-batch) and "Auto-generated batch number" are
+    // sentinels that must be preserved.
+    item_batch_no: isSplitParent
+      ? itemData.item_batch_no === "-" ||
+        itemData.item_batch_no === "Auto-generated batch number"
+        ? itemData.item_batch_no
+        : ""
+      : itemData.item_batch_no,
+    manufacturing_date:
+      isSplitParent && itemData.item_batch_no !== "-"
+        ? null
+        : itemData.manufacturing_date,
+    expired_date:
+      isSplitParent && itemData.item_batch_no !== "-"
+        ? null
+        : itemData.expired_date,
     inspection_required: itemData.inspection_required,
     inv_category: itemData.inv_category,
 
@@ -288,26 +301,42 @@ const setGrItemData = async (
           [`table_gr.${index}.location_id`]: "",
         });
       } else if (grItem.parent_or_child === "Split-Parent") {
-        // Split-Parent rows: ALL fields enabled (like regular rows)
-        // Each Split-Parent row is independent - can have own location, batch, etc.
-        this.disabled([`table_gr.${index}.button_split`], true); // Disable re-splitting for now
+        // Split-Parent rows: behave like regular rows (independent location,
+        // batch, etc.) but re-splitting is disabled.
+        this.disabled([`table_gr.${index}.button_split`], true);
 
-        // Enable all editable fields
+        // Enable non-batch editable fields
         this.disabled(
           [
             `table_gr.${index}.received_qty`,
             `table_gr.${index}.base_received_qty`,
             `table_gr.${index}.storage_location_id`,
             `table_gr.${index}.location_id`,
-            `table_gr.${index}.item_batch_no`,
-            `table_gr.${index}.manufacturing_date`,
-            `table_gr.${index}.expired_date`,
             `table_gr.${index}.line_remark_1`,
             `table_gr.${index}.line_remark_2`,
             `table_gr.${index}.line_remark_3`,
             `table_gr.${index}.inv_category`,
           ],
           false,
+        );
+
+        // Batch field: enabled only for manual-entry batch items (""). "-"
+        // (non-batch) and "Auto-generated batch number" stay disabled.
+        const isManualBatch =
+          grItem.item_batch_no === "" && grItem.item_id;
+        this.disabled(
+          [`table_gr.${index}.item_batch_no`],
+          !isManualBatch,
+        );
+
+        // Manufacturing/expired dates: disabled for non-batch items
+        const isNonBatch = grItem.item_batch_no === "-";
+        this.disabled(
+          [
+            `table_gr.${index}.manufacturing_date`,
+            `table_gr.${index}.expired_date`,
+          ],
+          isNonBatch,
         );
 
         // Handle serialized items for Split-Parent
