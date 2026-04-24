@@ -192,14 +192,19 @@ const rowIndex =
       [`table_hu.${rowIndex}.hu_status`]: "Completed",
     });
 
-    // Lock source HU so pick-selection won't offer it again.
-    // (Individual items from table_item_source are already gated by
-    // remaining_qty === 0 / line_status === "Fully Picked".)
-    if (row.hu_row_type === "locked" && row.source_hu_id) {
+    // Flip table_hu_source rows (header + items) to Completed for each
+    // nested child HU. Without this, PackingCompletedWorkflow's post-check
+    // ("Source HU X is not completed") fails because Pick to Parent HU only
+    // moved them to "Picked".
+    const nestedSourceHuIds = new Set();
+    for (const nested of nestedHus) {
+      if (nested.nested_hu_id) nestedSourceHuIds.add(nested.nested_hu_id);
+    }
+    if (nestedSourceHuIds.size > 0) {
       const huSource = this.getValue("table_hu_source") || [];
       const huSourceUpdates = {};
       huSource.forEach((r, i) => {
-        if (r.handling_unit_id === row.source_hu_id) {
+        if (nestedSourceHuIds.has(r.handling_unit_id)) {
           huSourceUpdates[`table_hu_source.${i}.hu_status`] = "Completed";
         }
       });
