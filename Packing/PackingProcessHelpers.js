@@ -125,8 +125,11 @@ const buildGdTempQtyPatches = (completedRows) => {
         match: {
           gd_line_id: e.gd_line_id,
           material_id: e.item_id,
-          batch_id: e.batch_id || null,
-          bin_location: e.location_id,
+          // Packing temp_data uses bin_location / batch_no (form relation field
+          // names). Their stored values ARE the bin id / batch id — matches
+          // what GD.temp_qty_data has under location_id / batch_id.
+          batch_id: e.batch_no || null,
+          bin_location: e.bin_location,
         },
         patch: {
           handling_unit_id: huId,

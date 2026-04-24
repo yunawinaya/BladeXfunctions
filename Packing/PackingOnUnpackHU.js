@@ -156,14 +156,16 @@
 
       const items = [];
       for (const it of directItems) {
-        const isBatch = !!it.batch_id;
+        // Packing temp_data stores bin_location / batch_no (form-relation field
+        // names); their stored values are the bin id / batch id.
+        const isBatch = !!it.batch_no;
         const collection = isBatch ? "item_batch_balance" : "item_balance";
         const filter = {
           plant_id: plantId,
           material_id: it.item_id,
-          location_id: it.location_id,
+          location_id: it.bin_location,
         };
-        if (isBatch) filter.batch_id = it.batch_id;
+        if (isBatch) filter.batch_id = it.batch_no;
 
         const res = await db.collection(collection).where(filter).get();
         const balanceRow = (res && res.data && res.data[0]) || {};
@@ -171,8 +173,8 @@
         items.push({
           material_id: it.item_id,
           material_uom: it.item_uom,
-          location_id: it.location_id,
-          batch_id: it.batch_id || null,
+          location_id: it.bin_location,
+          batch_id: it.batch_no || null,
           balance_id: balanceRow.id || "",
           quantity: parseFloat(it.total_quantity) || 0,
         });

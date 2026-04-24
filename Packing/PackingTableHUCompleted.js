@@ -91,14 +91,17 @@ const rowIndex = arguments[0].rowIndex;
 
     const items = [];
     for (const it of directItems) {
-      const isBatch = !!it.batch_id;
+      // Packing temp_data stores bin_location (not location_id) and batch_no
+      // (not batch_id) — field names come from the form's relation selectors,
+      // but their stored values are the bin id / batch id.
+      const isBatch = !!it.batch_no;
       const collection = isBatch ? "item_batch_balance" : "item_balance";
       const filter = {
         plant_id: plantId,
         material_id: it.item_id,
-        location_id: it.location_id,
+        location_id: it.bin_location,
       };
-      if (isBatch) filter.batch_id = it.batch_id;
+      if (isBatch) filter.batch_id = it.batch_no;
 
       const res = await db.collection(collection).where(filter).get();
       const balanceRow = (res && res.data && res.data[0]) || {};
@@ -106,8 +109,8 @@ const rowIndex = arguments[0].rowIndex;
       items.push({
         material_id: it.item_id,
         material_uom: it.item_uom,
-        location_id: it.location_id,
-        batch_id: it.batch_id || null,
+        location_id: it.bin_location,
+        batch_id: it.batch_no || null,
         balance_id: balanceRow.id || "",
         quantity: parseFloat(it.total_quantity) || 0,
       });
