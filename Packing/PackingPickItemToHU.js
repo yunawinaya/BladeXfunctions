@@ -76,7 +76,7 @@
         line_index: existing.length,
         line_item_id: sourceRow.id,
         balance_id: sourceRow.balance_id,
-        item_id: sourceRow.item_id,
+        item_id: sourceRow.item_code,
         item_code: sourceRow.item_code,
         item_name: sourceRow.item_name,
         item_desc: sourceRow.item_desc,
