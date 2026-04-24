@@ -1,5 +1,8 @@
-const row = arguments[0].row;
-const rowIndex = arguments[0].rowIndex;
+const row = arguments[0] && arguments[0].row;
+const rowIndex =
+  arguments[0] && typeof arguments[0].index === "number"
+    ? arguments[0].index
+    : arguments[0] && arguments[0].rowIndex;
 
 (async () => {
   try {
@@ -38,11 +41,16 @@ const rowIndex = arguments[0].rowIndex;
           }
         }
 
-        // DB records only Completed rows (ledger). Filter the form's current
-        // table_hu to just the Completed ones, including this just-completed row.
-        const ledgerTableHu = (this.getValue("table_hu") || []).filter(
-          (r) => r.hu_status === "Completed",
-        );
+        // DB records only Completed rows (ledger). Build the ledger from the
+        // current table_hu with THIS row's update applied manually — avoids a
+        // race where setData hasn't propagated back to getValue yet.
+        const currentTableHu = this.getValue("table_hu") || [];
+        const ledgerTableHu = currentTableHu
+          .map((r, i) =>
+            i === rowIndex ? { ...r, hu_status: "Completed" } : r,
+          )
+          .filter((r) => r.hu_status === "Completed");
+
         await db
           .collection("packing")
           .doc(lockedPackingId)
@@ -199,12 +207,23 @@ const rowIndex = arguments[0].rowIndex;
       }
     }
 
-    // DB records only Completed rows (ledger). Filter the form's current
-    // table_hu to just the Completed ones (includes this just-completed row
-    // since setData above flipped its hu_status).
-    const ledgerTableHu = (this.getValue("table_hu") || []).filter(
-      (r) => r.hu_status === "Completed",
-    );
+    // DB records only Completed rows (ledger). Build the ledger from the
+    // current table_hu with THIS row's update applied manually — avoids a
+    // race where setData hasn't propagated back to getValue yet.
+    const currentTableHu = this.getValue("table_hu") || [];
+    const ledgerTableHu = currentTableHu
+      .map((r, i) =>
+        i === rowIndex
+          ? {
+              ...r,
+              handling_unit_id: huId,
+              handling_no: huNo,
+              hu_status: "Completed",
+            }
+          : r,
+      )
+      .filter((r) => r.hu_status === "Completed");
+
     await db
       .collection("packing")
       .doc(packingId)

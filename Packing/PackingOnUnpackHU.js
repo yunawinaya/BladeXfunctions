@@ -83,11 +83,14 @@
 
           const lockedPackingId = this.getValue("id");
 
-          // DB records only Completed rows (ledger). This row's hu_status was
-          // just reverted to "Packed" via setData above, so filtering drops it.
-          const ledgerTableHu = (this.getValue("table_hu") || []).filter(
-            (r) => r.hu_status === "Completed",
+          // DB records only Completed rows (ledger). Build the ledger from
+          // the current table_hu with THIS row manually excluded — avoids a
+          // race where setData hasn't propagated back to getValue yet.
+          const currentTableHu = this.getValue("table_hu") || [];
+          const ledgerTableHu = currentTableHu.filter(
+            (r, i) => i !== rowIndex && r.hu_status === "Completed",
           );
+
           await db
             .collection("packing")
             .doc(lockedPackingId)
@@ -275,11 +278,14 @@
       await this.setData(updates);
       await this.triggerEvent("PackingRecomputeSource");
 
-      // DB records only Completed rows (ledger). This row's hu_status was
-      // just flipped to "Unpacked" via setData above, so filtering drops it.
-      const ledgerTableHu = (this.getValue("table_hu") || []).filter(
-        (r) => r.hu_status === "Completed",
+      // DB records only Completed rows (ledger). Build the ledger from
+      // the current table_hu with THIS row manually excluded — avoids a
+      // race where setData hasn't propagated back to getValue yet.
+      const currentTableHu = this.getValue("table_hu") || [];
+      const ledgerTableHu = currentTableHu.filter(
+        (r, i) => i !== rowIndex && r.hu_status === "Completed",
       );
+
       await db
         .collection("packing")
         .doc(packingId)
