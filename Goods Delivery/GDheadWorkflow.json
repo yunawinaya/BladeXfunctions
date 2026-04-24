@@ -6733,6 +6733,14 @@
                       "value": "GDL",
                       "valueLabel": "",
                       "propLabel": "Trx Type"
+                    },
+                    {
+                      "prop": "isPacking",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:isPacking}}",
+                      "valueLabel": "",
+                      "propLabel": "isPacking"
                     }
                   ]
                 }
@@ -10627,6 +10635,15 @@
       "description": "",
       "bsonType": "string",
       "isExpand": false
+    },
+    {
+      "key": "ac5edx4s",
+      "name": "isPacking",
+      "title": "isPacking",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false,
+      "children": []
     }
   ],
   "response_json": [

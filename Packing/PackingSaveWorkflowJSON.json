@@ -169,7 +169,7 @@
                 "name": "fillbackHeaderFields",
                 "script": {
                   "type": "javascript",
-                  "code": "let entry = {{workflowparams:entry}};\nconst saveAs = {{workflowparams:saveAs}}\nlet updatedTableHU = [];\n\nfor (const [index, huLineItem] of entry.table_hu.entries()) {\n  huLineItem.plant_id = entry.plant_id || null;\n  huLineItem.customer_id = entry.customer_id || [];\n  huLineItem.organization_id = entry.organization_id;\n}\n\nif (saveAs === \"Draft\") {\n  if(entry.packing_no_type !== -9999 && (\n  !entry.packing_no || entry.packing_no === null || entry.packing_no === ''\n)) {\n  entry.packing_no = 'draft'\n  }\n} else {\n  if (\n  entry.packing_no_type !== -9999 &&\n  (!entry.packing_no ||\n    entry.packing_no === null ||\n    entry.packing_no === \"\")\n) {\n  entry.packing_no = 'issued'\n  }\n}\n\nreturn {\n  table_hu: updatedTableHU,\n  packing_no: entry.packing_no,\n};"
+                  "code": "let entry = {{workflowparams:entry}};\nconst saveAs = {{workflowparams:saveAs}};\n\nfor (const huLineItem of entry.table_hu || []) {\n  huLineItem.plant_id = entry.plant_id || null;\n  huLineItem.customer_id = entry.customer_id || [];\n  huLineItem.organization_id = entry.organization_id;\n}\n\nif (saveAs === \"Draft\") {\n  if (\n    entry.packing_no_type !== -9999 &&\n    (!entry.packing_no || entry.packing_no === null || entry.packing_no === \"\")\n  ) {\n    entry.packing_no = \"draft\";\n  }\n} else {\n  if (\n    entry.packing_no_type !== -9999 &&\n    (!entry.packing_no || entry.packing_no === null || entry.packing_no === \"\")\n  ) {\n    entry.packing_no = \"issued\";\n  }\n}\n\nreturn {\n  table_hu: entry.table_hu || [],\n  packing_no: entry.packing_no,\n};\n"
                 },
                 "response_json": [
                   {
@@ -337,7 +337,7 @@
                                 "name": "Process SO Status",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const data = {{node:code_node_CYy1gmHf.data.entry}};\nconst tableHU = data.table_hu || [];\nconst tableItemSource = data.table_item_source || [];\n\n// Walk table_hu temp_data (flatten nested_hu children) to collect distinct SO refs.\n// For Completed: 1 packing = 1 SO via entry.so_id — wrapped as array for update-node filter.\nconst uniqueSOLineIds = new Set();\nfor (const row of tableHU) {\n  let entries;\n  try { entries = JSON.parse(row.temp_data || \"[]\"); } catch (_) { entries = []; }\n  for (const e of entries) {\n    if (e && e.type === \"nested_hu\") {\n      for (const c of e.children || []) {\n        if (c.so_line_id) uniqueSOLineIds.add(c.so_line_id);\n      }\n    } else if (e && e.so_line_id) {\n      uniqueSOLineIds.add(e.so_line_id);\n    }\n  }\n}\n\n// Fallback: if table_hu was empty (no completed HU rows), pull so_line_ids\n// from table_item_source so the SO-line update still targets the right lines.\nif (uniqueSOLineIds.size === 0) {\n  for (const item of tableItemSource) {\n    if (item && item.so_line_id) uniqueSOLineIds.add(item.so_line_id);\n  }\n}\n\n// entry.so_id may be stored as array (legacy packings) or single value —\n// flatten either shape into a clean [id] array for the update-node filter.\nconst rawSoId = data.so_id;\nconst uniqueSOIds = (Array.isArray(rawSoId) ? rawSoId : [rawSoId]).filter(Boolean);\n\nreturn {\n  uniqueSOIds,\n  uniqueSOLineIds: Array.from(uniqueSOLineIds),\n};\n"
+                                  "code": "const data = {{node:code_node_CYy1gmHf.data.entry}};\nconst tableHU = data.table_hu || [];\n\n// Walk table_hu temp_data (flatten nested_hu children) to collect distinct SO refs.\n// For Completed: 1 packing = 1 SO via entry.so_id — wrapped as array for update-node filter.\nconst uniqueSOLineIds = new Set();\nfor (const row of tableHU) {\n  let entries;\n  try { entries = JSON.parse(row.temp_data || \"[]\"); } catch (_) { entries = []; }\n  for (const e of entries) {\n    if (e && e.type === \"nested_hu\") {\n      for (const c of e.children || []) {\n        if (c.so_line_id) uniqueSOLineIds.add(c.so_line_id);\n      }\n    } else if (e && e.so_line_id) {\n      uniqueSOLineIds.add(e.so_line_id);\n    }\n  }\n}\n\nreturn {\n  uniqueSOIds: [data.so_id].filter(Boolean),\n  uniqueSOLineIds: Array.from(uniqueSOLineIds),\n};\n"
                                 },
                                 "response_json": [
                                   {
@@ -638,7 +638,7 @@
                           },
                           "blocks": [
                             {
-                              "id": "code_node_qc37jZH1",
+                              "id": "code_node_BaPFkf1V",
                               "type": "code-node",
                               "data": {
                                 "language": "javascript",
@@ -650,28 +650,9 @@
                                 "name": "Process GD Status",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const data = {{node:code_node_CYy1gmHf.data.entry}};\n// 1 packing = 1 GD via entry.gd_id — just wrap in array for update-node filter.\n// Line-level filter is handled by the downstream buildUpdates node.\nreturn {\n  uniqueGDIds: [data.gd_id].filter(Boolean),\n};\n"
+                                  "code": "const data = {{node:code_node_CYy1gmHf.data.entry}};\nconst tableHU = data.table_hu || [];\n\n// Walk table_hu temp_data (flatten nested_hu children) to collect distinct GD refs.\n// For Completed: 1 packing = 1 GD via entry.gd_id — wrapped as array for update-node filter.\nconst uniqueGDLineIds = new Set();\nfor (const row of tableHU) {\n  let entries;\n  try { entries = JSON.parse(row.temp_data || \"[]\"); } catch (_) { entries = []; }\n  for (const e of entries) {\n    if (e && e.type === \"nested_hu\") {\n      for (const c of e.children || []) {\n        if (c.gd_line_id) uniqueGDLineIds.add(c.gd_line_id);\n      }\n    } else if (e && e.gd_line_id) {\n      uniqueGDLineIds.add(e.gd_line_id);\n    }\n  }\n}\n\nreturn {\n  uniqueGDLineIds: Array.from(uniqueGDLineIds),\n};\n"
                                 },
                                 "response_json": [
-                                  {
-                                    "key": "la3omkun",
-                                    "name": "uniqueGDIds",
-                                    "title": "",
-                                    "description": "",
-                                    "bsonType": "array",
-                                    "isExpand": true,
-                                    "children": [
-                                      {
-                                        "key": "khwmiohe",
-                                        "name": "items",
-                                        "title": "",
-                                        "description": "",
-                                        "bsonType": "string",
-                                        "isExpand": false,
-                                        "isArrayItem": true
-                                      }
-                                    ]
-                                  },
                                   {
                                     "key": "kemppoex",
                                     "name": "uniqueGDLineIds",
@@ -708,12 +689,15 @@
                                         "id": 1776851108866,
                                         "parentId": 1776851108865,
                                         "isTop": true,
-                                        "prop": "gd_id",
-                                        "operator": "equal",
+                                        "prop": "id",
+                                        "operator": "in",
                                         "valueType": "field",
-                                        "value": "{{workflowparams:entry.gd_id}}",
+                                        "value": "{{node:code_node_BaPFkf1V.data.uniqueGDLineIds}}",
                                         "type": "leaf",
-                                        "level": 1
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
                                       }
                                     ]
                                   }
@@ -825,7 +809,10 @@
                                         "valueType": "field",
                                         "value": "{{node:code_node_wYvZn1UF.data.locationIds}}",
                                         "type": "leaf",
-                                        "level": 1
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
                                       }
                                     ]
                                   }
@@ -959,7 +946,7 @@
                                         "prop": "id",
                                         "operator": "in",
                                         "valueType": "field",
-                                        "value": "{{node:code_node_qc37jZH1.data.uniqueGDIds}}",
+                                        "value": "{{workflowparams:entry.gd_id}}",
                                         "type": "leaf",
                                         "level": 1,
                                         "propLabel": "主键ID",
@@ -1472,6 +1459,14 @@
                                       "valueTypeLabel": "",
                                       "value": "Yes",
                                       "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "isPacking",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": 1,
+                                      "valueLabel": "",
+                                      "propLabel": "isPacking"
                                     }
                                   ]
                                 }
