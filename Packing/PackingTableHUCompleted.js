@@ -144,6 +144,7 @@ const rowIndex =
       target_location_id: row.location_id,
       remark: row.remark || "",
       transaction_type: "Packing",
+      isPacking: 1,
     };
 
     let workflowResult;

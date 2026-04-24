@@ -894,7 +894,7 @@
               "prop": "node.code_node_CPgy5sGX.data.isPacking",
               "operator": "numberEqual",
               "valueType": "value",
-              "value": 1,
+              "value": 0,
               "type": "leaf",
               "level": 1,
               "propLabel": "isPacking",
