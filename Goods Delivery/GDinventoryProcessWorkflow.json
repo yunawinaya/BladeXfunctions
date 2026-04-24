@@ -2690,7 +2690,7 @@
                                   "prop": "inventory_category",
                                   "operator": "",
                                   "valueType": "value",
-                                  "value": "Unrestricted",
+                                  "value": "Reserved",
                                   "valueLabel": "",
                                   "propLabel": "Inventory Category"
                                 },
@@ -2789,7 +2789,7 @@
                             },
                             "expression": {
                               "type": "javascript",
-                              "code": "'{{node:workflow_node_HAjj58tI.data.code}}' == '400'"
+                              "code": "'{{node:workflow_node_ZoW4REqy.data.code}}' == '400'"
                             }
                           },
                           "blocks": [
@@ -2824,7 +2824,7 @@
                                           "prop": "message",
                                           "operator": "",
                                           "valueType": "field",
-                                          "value": "{{node:workflow_node_HAjj58tI.data.errorMessage}}",
+                                          "value": "{{node:workflow_node_ZoW4REqy.data.errorMessage}}",
                                           "valueLabel": "",
                                           "propLabel": "message"
                                         }
@@ -2956,14 +2956,6 @@
                                   "propLabel": "UOM"
                                 },
                                 {
-                                  "prop": "unit_price",
-                                  "operator": "",
-                                  "valueType": "field",
-                                  "value": "{{node:workflow_node_HAjj58tI.data.unit_price}}",
-                                  "valueLabel": "",
-                                  "propLabel": "Unit Price"
-                                },
-                                {
                                   "prop": "transaction_type",
                                   "operator": "",
                                   "valueType": "field",
@@ -3044,22 +3036,6 @@
                                   "propLabel": "Doc Date"
                                 },
                                 {
-                                  "prop": "manufacturing_date",
-                                  "operator": "",
-                                  "valueType": "field",
-                                  "value": "{{node:workflow_node_HAjj58tI.data.manufacturing_date}}",
-                                  "valueLabel": "",
-                                  "propLabel": "Manufacturing Date"
-                                },
-                                {
-                                  "prop": "expired_date",
-                                  "operator": "",
-                                  "valueType": "field",
-                                  "value": "{{node:workflow_node_HAjj58tI.data.expired_date}}",
-                                  "valueLabel": "",
-                                  "propLabel": "Expired Date"
-                                },
-                                {
                                   "prop": "handling_unit_id",
                                   "operator": "",
                                   "valueType": "field",
@@ -3083,7 +3059,7 @@
                             "condition_type": "Expression",
                             "expression": {
                               "type": "javascript",
-                              "code": "'{{node:workflow_node_REo8MaTY.data.code}}' == '400'"
+                              "code": "'{{node:workflow_node_xYoIyC1J.data.code}}' == '400'"
                             },
                             "filter": {
                               "list": [
@@ -3133,7 +3109,7 @@
                                           "prop": "message",
                                           "operator": "",
                                           "valueType": "field",
-                                          "value": "{{node:workflow_node_REo8MaTY.data.errorMessage}}",
+                                          "value": "{{node:workflow_node_xYoIyC1J.data.errorMessage}}",
                                           "valueLabel": "",
                                           "propLabel": "message"
                                         }
