@@ -32,6 +32,7 @@ const docDate = {{workflowparams:doc_date}};
 const parentId = {{workflowparams:parent_id}};
 const parentNo = {{workflowparams:parent_no}};
 const pickingPlanId = {{workflowparams:picking_plan_id}} || "";
+const isPacking = {{workflowparams:isPacking}} || 0;
 
 // Data from batch search nodes (these need to be added to workflow)
 const allItemsData = {{node:search_node_muUXSBRg.data.data}} || [];
@@ -192,5 +193,6 @@ return {
   parentId,
   parentNo,
   pickingPlanId,
+  isPacking,
   message: `Batch fetch complete: ${itemsToProcess}/${totalTableItems} items, ${totalGroupKeys} total group keys`
 };

@@ -32,7 +32,8 @@ const {
   docDate,
   parentId,
   parentNo,
-  pickingPlanId
+  pickingPlanId,
+  isPacking
 } = batchData;
 
 // Create item lookup Map from array (workflow platform can't pass object maps)
@@ -218,6 +219,190 @@ const cleanupOrphanedAllocations = () => {
     recordsToUpdate,
     inventoryMovements: Array.from(inventoryMovementMap.values()),
   };
+};
+
+// ============ STEP 1.5: DETECT BIN+HU MIGRATIONS ============
+// When Packing (or a direct-edit that changes bin/HU) moves qty from one
+// (bin_location, handling_unit_id) to another for the same GD line, the old
+// on_reserved_gd record and the new temp_qty_data entry share the same
+// (doc_line_id, material_id, batch_id) triplet but differ on the 5-tuple.
+//
+// Without detection, cleanup releases Reserved at the old bin (underflow if
+// the Reserved qty was physically moved by Packing's repack) and the main
+// loop fresh-allocates at the new bin via UNRESTRICTED_TO_RESERVED (underflow
+// because there's no Unrestricted at the new bin either). Both paths collide
+// with the actual physical state.
+//
+// Detection emits a direct cross-bin Reserved shuttle (subtract at old,
+// add at new), mutates in-memory allAllocatedData to reflect the split so
+// downstream cleanup/processCreatedAllocation see the already-reconciled
+// state, and flags fully-consumed temp entries so the main loop skips them.
+const detectBinHuMigrations = () => {
+  const recordsToUpdate = [];
+  const recordsToCreate = [];
+  const inventoryMovements = [];
+
+  if (!allAllocatedData || allAllocatedData.length === 0) {
+    return { recordsToUpdate, recordsToCreate, inventoryMovements };
+  }
+
+  // Group existing Allocated records for THIS GD by (doc_line_id, material_id, batch_id).
+  const oldByTriplet = new Map();
+  for (const rec of allAllocatedData) {
+    if (rec.status !== "Allocated") continue;
+    if (String(rec.target_gd_id) !== String(docId)) continue;
+    const k = `${rec.doc_line_id}|${rec.material_id}|${rec.batch_id || ""}`;
+    if (!oldByTriplet.has(k)) oldByTriplet.set(k, []);
+    oldByTriplet.get(k).push(rec);
+  }
+  if (oldByTriplet.size === 0) {
+    return { recordsToUpdate, recordsToCreate, inventoryMovements };
+  }
+
+  // Group current temp entries by the same triplet.
+  const newByTriplet = new Map();
+  for (const processed of processedTableData) {
+    if (processed.skipProcessing) continue;
+    const docLineId = isGDPP === 1
+      ? (processed.picking_plan_line_id || processed.doc_line_id)
+      : processed.doc_line_id;
+    for (const groupKey of processed.groupKeys) {
+      const group = processed.groupedTempData[groupKey];
+      const k = `${docLineId}|${processed.material_id}|${group.batch_id || ""}`;
+      if (!newByTriplet.has(k)) newByTriplet.set(k, []);
+      newByTriplet.get(k).push({
+        processed,
+        group,
+        binLocation: group.location_id,
+        handlingUnitId: group.handling_unit_id || null,
+      });
+    }
+  }
+
+  const fullyMigratedOldIds = new Set();
+
+  for (const [tripletKey, oldRecs] of oldByTriplet) {
+    const newEntries = newByTriplet.get(tripletKey) || [];
+    if (newEntries.length === 0) continue;
+
+    const tupleMatch = (r, e) =>
+      String(r.bin_location || "") === String(e.binLocation || "") &&
+      String(r.handling_unit_id || "") === String(e.handlingUnitId || "");
+
+    const unmatchedOld = oldRecs.filter((r) => !newEntries.some((e) => tupleMatch(r, e)));
+    const unmatchedNew = newEntries.filter((e) => !oldRecs.some((r) => tupleMatch(r, e)));
+    if (unmatchedOld.length === 0 || unmatchedNew.length === 0) continue;
+
+    // Track how much of each new entry's qty is still unconsumed by migration.
+    // Greedy pairing: for each unmatched old record, siphon qty into unmatched
+    // new entries in order. Partial migration is fine — the rest of the new
+    // entry falls through to processCreatedAllocation's fresh-alloc path.
+    const newRemaining = new Map();
+    for (const e of unmatchedNew) {
+      newRemaining.set(e, roundQty(e.group.totalQty || 0));
+    }
+
+    for (const oldRec of unmatchedOld) {
+      let oldRemaining = roundQty(oldRec.reserved_qty || 0);
+      for (const entry of unmatchedNew) {
+        if (oldRemaining <= 0) break;
+        const avail = newRemaining.get(entry) || 0;
+        if (avail <= 0) continue;
+        const migrateQty = roundQty(Math.min(oldRemaining, avail));
+        if (migrateQty <= 0) continue;
+
+        // Reduce or Cancel the old record.
+        const newOldQty = roundQty((oldRec.reserved_qty || 0) - migrateQty);
+        if (newOldQty <= 0) {
+          recordsToUpdate.push({
+            id: oldRec.id,
+            reserved_qty: oldRec.reserved_qty,
+            open_qty: 0,
+            status: "Cancelled",
+            target_gd_id: null,
+          });
+          fullyMigratedOldIds.add(oldRec.id);
+        } else {
+          recordsToUpdate.push({
+            ...oldRec,
+            reserved_qty: newOldQty,
+            open_qty: newOldQty,
+          });
+          oldRec.reserved_qty = newOldQty;
+          oldRec.open_qty = newOldQty;
+        }
+
+        // Create the new record at the target 5-tuple, inheriting doc_type
+        // and source_reserved_id chain so SO/Production lineage is preserved.
+        const { _id: _oldUnderscoreId, id: _oldId, ...oldWithoutId } = oldRec;
+        const newRecord = {
+          ...oldWithoutId,
+          bin_location: entry.binLocation,
+          handling_unit_id: entry.handlingUnitId,
+          reserved_qty: migrateQty,
+          open_qty: migrateQty,
+          delivered_qty: 0,
+          status: "Allocated",
+          source_reserved_id: oldRec.source_reserved_id || oldRec.id,
+          target_gd_id: docId,
+        };
+        recordsToCreate.push(newRecord);
+        // Also push into in-memory allAllocatedData (no DB id yet) so that
+        // downstream processCreatedAllocation's 5-tuple match finds it —
+        // important for partial-migration cases where the temp entry still
+        // needs fresh alloc for the remainder.
+        allAllocatedData.push({ ...newRecord });
+
+        // Cross-bin Reserved shuttle.
+        inventoryMovements.push({
+          material_id: oldRec.material_id,
+          material_code: oldRec.item_code || "",
+          material_name: oldRec.item_name || "",
+          material_uom: oldRec.item_uom,
+          batch_id: oldRec.batch_id,
+          bin_location: oldRec.bin_location,
+          handling_unit_id: oldRec.handling_unit_id || null,
+          quantity: migrateQty,
+          movement_type: "RESERVED_SUBTRACT_CROSS_BIN",
+          line_so_no: oldRec.parent_no || "",
+          doc_line_id: oldRec.doc_line_id || "",
+        });
+        inventoryMovements.push({
+          material_id: oldRec.material_id,
+          material_code: oldRec.item_code || "",
+          material_name: oldRec.item_name || "",
+          material_uom: oldRec.item_uom,
+          batch_id: oldRec.batch_id,
+          bin_location: entry.binLocation,
+          handling_unit_id: entry.handlingUnitId,
+          quantity: migrateQty,
+          movement_type: "RESERVED_ADD_CROSS_BIN",
+          line_so_no: oldRec.parent_no || "",
+          doc_line_id: oldRec.doc_line_id || "",
+        });
+
+        oldRemaining = roundQty(oldRemaining - migrateQty);
+        const remainingOnEntry = roundQty(avail - migrateQty);
+        newRemaining.set(entry, remainingOnEntry);
+        if (remainingOnEntry <= 0) {
+          // Main loop will skip this group — pre-step fully handled it.
+          entry.group._fullyMigrated = true;
+        }
+      }
+    }
+  }
+
+  // Strip fully-migrated old records from in-memory allAllocatedData so the
+  // Step 1 cleanup pass below doesn't flag them as orphans and re-release.
+  if (fullyMigratedOldIds.size > 0) {
+    for (let i = allAllocatedData.length - 1; i >= 0; i--) {
+      if (fullyMigratedOldIds.has(allAllocatedData[i].id)) {
+        allAllocatedData.splice(i, 1);
+      }
+    }
+  }
+
+  return { recordsToUpdate, recordsToCreate, inventoryMovements };
 };
 
 // ============ STEP 2: PROCESS CREATED ALLOCATIONS ============
@@ -1273,6 +1458,21 @@ const allRecordsToCreate = [];
 const allInventoryMovements = [];
 const allHuUpdates = [];
 
+// Step 0: Detect bin+HU migrations (Packing-triggered Created saves only).
+// Gated on isPacking because direct user bin edits in temp_qty_data should
+// keep going through the release+reallocate path (cleanup RESERVED_TO_UNRESTRICTED
+// + fresh UNRESTRICTED_TO_RESERVED): the physical items follow the user's bin
+// change, so Unrestricted exists at the new bin and the two-step works.
+// Packing is different — physical items stay at source while bin/HU changes on
+// paper, so migration emits a direct Reserved shuttle without the Unrestricted
+// intermediate.
+if (saveAs === "Created" && isPacking === 1) {
+  const migrationResult = detectBinHuMigrations();
+  allRecordsToUpdate.push(...migrationResult.recordsToUpdate);
+  allRecordsToCreate.push(...migrationResult.recordsToCreate);
+  allInventoryMovements.push(...migrationResult.inventoryMovements);
+}
+
 // Step 1: Cleanup orphaned allocations (if saveAs !== "Cancelled")
 if (saveAs !== "Cancelled") {
   const cleanupResult = cleanupOrphanedAllocations();
@@ -1289,6 +1489,8 @@ for (const processed of processedTableData) {
 
   for (const groupKey of groupKeys) {
     const group = groupedTempData[groupKey];
+    // Pre-step migrated this group's full qty; skip fresh alloc for it.
+    if (group._fullyMigrated) continue;
     const quantity = roundQty(group.totalQty);
 
     const params = {
