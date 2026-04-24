@@ -300,6 +300,12 @@ const applyHUVisibility = async (pickingSetup) => {
   const rows = this.getValue("table_picking_items") || [];
   if (rows.length === 0) return;
 
+  // No row carries a handling_unit_id — hide the HU column and skip the rest.
+  if (!rows.some((r) => r.handling_unit_id)) {
+    await this.hide("table_picking_items.handling_unit_id");
+    return;
+  }
+
   const splitPolicy = pickingSetup ? pickingSetup.split_policy : null;
   const huSelectEnabled = HU_SELECT_ALLOWED_POLICIES.includes(splitPolicy);
 

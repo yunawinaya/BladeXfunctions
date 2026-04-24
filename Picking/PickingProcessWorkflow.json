@@ -3275,22 +3275,6 @@
                               "propLabel": "Customer Name"
                             },
                             {
-                              "prop": "billing_address",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_gudzrvMQ.data.packingDataList.billing_address}}",
-                              "valueLabel": "",
-                              "propLabel": "Billing Address"
-                            },
-                            {
-                              "prop": "shipping_address",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_gudzrvMQ.data.packingDataList.shipping_address}}",
-                              "valueLabel": "",
-                              "propLabel": "Shipping Address"
-                            },
-                            {
                               "prop": "organization_id",
                               "operator": "",
                               "valueType": "field",
