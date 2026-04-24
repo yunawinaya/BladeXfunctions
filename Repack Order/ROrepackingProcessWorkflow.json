@@ -19,7 +19,7 @@
         "name": "ResolveContext",
         "script": {
           "type": "javascript",
-          "code": "const processType = {{workflowparams:process_type}} || \"\";\nconst items = {{workflowparams:items}} || [];\nconst sourceHu = {{workflowparams:source_hu}} || null;\nconst targetHu = {{workflowparams:target_hu}} || null;\nconst targetWarehouseLocationId = {{workflowparams:target_location_id}} || \"\";\nconst targetWarehouseStorageLocationId = {{workflowparams:target_storage_location_id}} || \"\";\nconst remark = {{workflowparams:remark}} || \"\";\n\n// Build table_hu_items once — shared between source unload and target load\nconst tableHuItems = items.map((it) => ({\n  material_id: it.material_id,\n  material_name: it.material_name,\n  material_desc: it.material_desc,\n  location_id: it.location_id,\n  batch_id: it.batch_id || null,\n  material_uom: it.material_uom,\n  quantity: parseFloat(it.quantity) || 0,\n  balance_id: it.balance_id || \"\",\n}));\n\nconst targetIsNew =\n  (processType === \"Load\" || processType === \"Transfer\") &&\n  targetHu &&\n  !targetHu.id &&\n  targetHu.handling_no === \"Auto-generated number\";\n\nconst needsSourceUnload = processType === \"Unload\" || processType === \"Transfer\";\nconst needsTargetLoad = processType === \"Load\" || processType === \"Transfer\";\n\nreturn {\n  processType,\n  items,\n  tableHuItems,\n  sourceHu,\n  targetHu,\n  targetWarehouseLocationId,\n  targetWarehouseStorageLocationId,\n  remark,\n  targetIsNew: targetIsNew ? 1 : 0,\n  needsSourceUnload: needsSourceUnload ? 1 : 0,\n  needsTargetLoad: needsTargetLoad ? 1 : 0,\n};\n"
+          "code": "const processType = {{workflowparams:process_type}} || \"\";\nconst items = {{workflowparams:items}} || [];\nconst sourceHu = {{workflowparams:source_hu}} || null;\nconst targetHu = {{workflowparams:target_hu}} || null;\nconst targetWarehouseLocationId = {{workflowparams:target_location_id}} || \"\";\nconst targetWarehouseStorageLocationId = {{workflowparams:target_storage_location_id}} || \"\";\nconst remark = {{workflowparams:remark}} || \"\";\n\n// Source variant keeps the item's original bin — used for unload from source HU.\nconst tableHuItems = items.map((it) => ({\n  material_id: it.material_id,\n  material_name: it.material_name,\n  material_desc: it.material_desc,\n  location_id: it.location_id,\n  batch_id: it.batch_id || null,\n  material_uom: it.material_uom,\n  quantity: parseFloat(it.quantity) || 0,\n  balance_id: it.balance_id || \"\",\n}));\n\n// Target variant pins items to the target HU's bin — on load, items sit\n// inside the new HU at the target location, not the source bin they came from.\nconst targetItemsLocationId = (targetHu && targetHu.location_id) || targetWarehouseLocationId || \"\";\nconst tableHuItemsTarget = items.map((it) => ({\n  material_id: it.material_id,\n  material_name: it.material_name,\n  material_desc: it.material_desc,\n  location_id: targetItemsLocationId,\n  batch_id: it.batch_id || null,\n  material_uom: it.material_uom,\n  quantity: parseFloat(it.quantity) || 0,\n  balance_id: it.balance_id || \"\",\n}));\n\nconst targetIsNew =\n  (processType === \"Load\" || processType === \"Transfer\") &&\n  targetHu &&\n  !targetHu.id &&\n  targetHu.handling_no === \"Auto-generated number\";\n\nconst needsSourceUnload = processType === \"Unload\" || processType === \"Transfer\";\nconst needsTargetLoad = processType === \"Load\" || processType === \"Transfer\";\n\nreturn {\n  processType,\n  items,\n  tableHuItems,\n  tableHuItemsTarget,\n  sourceHu,\n  targetHu,\n  targetWarehouseLocationId,\n  targetWarehouseStorageLocationId,\n  remark,\n  targetIsNew: targetIsNew ? 1 : 0,\n  needsSourceUnload: needsSourceUnload ? 1 : 0,\n  needsTargetLoad: needsTargetLoad ? 1 : 0,\n};\n"
         },
         "response_json": [
           {
@@ -138,6 +138,26 @@
             "bsonType": "int",
             "isExpand": false,
             "children": []
+          },
+          {
+            "key": "gxv36ifg",
+            "name": "tableHuItemsTarget",
+            "title": "tableHuItemsTarget",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "qiq5n2eu",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
           }
         ]
       },
@@ -312,7 +332,7 @@
                       "prop": "table_hu_items",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:code_node_CPgy5sGX.data.tableHuItems}}",
+                      "value": "{{node:code_node_CPgy5sGX.data.tableHuItemsTarget}}",
                       "valueLabel": "",
                       "propLabel": "table_hu_items"
                     },
