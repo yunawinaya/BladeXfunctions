@@ -670,6 +670,44 @@
       setTableBalanceData(finalData, includeRawData);
     };
 
+    const fetchHuQtyByLocation = async (
+      materialId,
+      plantId,
+      organizationId,
+      isBatchManaged,
+    ) => {
+      try {
+        const huRes = await db
+          .collection("handling_unit")
+          .where({
+            plant_id: plantId,
+            organization_id: organizationId,
+            is_deleted: 0,
+          })
+          .get();
+
+        const huQtyMap = new Map();
+        for (const hu of huRes.data || []) {
+          const items = (hu.table_hu_items || []).filter(
+            (item) =>
+              item.is_deleted !== 1 && item.material_id === materialId,
+          );
+          for (const item of items) {
+            const locationId = item.location_id || hu.location_id;
+            const key = isBatchManaged
+              ? `${locationId}-${item.batch_id || "no_batch"}`
+              : `${locationId}`;
+            const qty = parseFloat(item.quantity) || 0;
+            huQtyMap.set(key, (huQtyMap.get(key) || 0) + qty);
+          }
+        }
+        return huQtyMap;
+      } catch (error) {
+        console.error("Error fetching HU quantities:", error);
+        return new Map();
+      }
+    };
+
     const processRegularMode = async (
       collectionName,
       materialId,
@@ -692,6 +730,38 @@
         console.log(`response ${collectionName}`, response);
 
         const freshDbData = response.data || [];
+
+        // Deduct HU-bound qty from loose stock so the Inventory tab shows
+        // only non-HU stock. HU contents are double-counted in item_balance
+        // because reservations don't decrement unrestricted_qty.
+        // Skip serialized items — HU items don't carry serial_number.
+        if (itemData.serial_number_management !== 1) {
+          const isBatchManaged = itemData.item_batch_management === 1;
+          const huQtyMap = await fetchHuQtyByLocation(
+            materialId,
+            plantId,
+            data.organization_id,
+            isBatchManaged,
+          );
+
+          for (const row of freshDbData) {
+            const key = isBatchManaged
+              ? `${row.location_id}-${row.batch_id || "no_batch"}`
+              : `${row.location_id}`;
+            const huQty = huQtyMap.get(key) || 0;
+            if (huQty > 0) {
+              row.unrestricted_qty = Math.max(
+                0,
+                (row.unrestricted_qty || 0) - huQty,
+              );
+              row.balance_quantity = Math.max(
+                0,
+                (row.balance_quantity || 0) - huQty,
+              );
+            }
+          }
+        }
+
         const processedFreshData = processItemBalanceData(
           freshDbData,
           itemData,
