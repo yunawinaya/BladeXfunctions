@@ -82,27 +82,17 @@
           await this.setData(lockedUpdates);
 
           const lockedPackingId = this.getValue("id");
-          const lockedPackingResp = await db
-            .collection("packing")
-            .where({ id: lockedPackingId })
-            .get();
-          const lockedPackingDoc =
-            (lockedPackingResp &&
-              lockedPackingResp.data &&
-              lockedPackingResp.data[0]) ||
-            {};
-          const lockedRecorded = Array.isArray(lockedPackingDoc.table_hu)
-            ? lockedPackingDoc.table_hu
-            : [];
-          const lockedFiltered = lockedRecorded.filter(
-            (r) => r.handling_unit_id !== row.handling_unit_id,
-          );
 
+          // DB records only Completed rows (ledger). This row's hu_status was
+          // just reverted to "Packed" via setData above, so filtering drops it.
+          const ledgerTableHu = (this.getValue("table_hu") || []).filter(
+            (r) => r.hu_status === "Completed",
+          );
           await db
             .collection("packing")
             .doc(lockedPackingId)
             .update({
-              table_hu: lockedFiltered,
+              table_hu: ledgerTableHu,
               table_hu_source: this.getValue("table_hu_source") || [],
               table_item_source: this.getValue("table_item_source") || [],
             });
@@ -285,26 +275,16 @@
       await this.setData(updates);
       await this.triggerEvent("PackingRecomputeSource");
 
-      // Update packing DB: drop this HU from recorded table_hu, persist
-      // the updated source tables.
-      const packingResp = await db
-        .collection("packing")
-        .where({ id: packingId })
-        .get();
-      const packingDoc =
-        (packingResp && packingResp.data && packingResp.data[0]) || {};
-      const recordedTableHu = Array.isArray(packingDoc.table_hu)
-        ? packingDoc.table_hu
-        : [];
-      const filteredRecordedTableHu = recordedTableHu.filter(
-        (r) => r.handling_unit_id !== row.handling_unit_id,
+      // DB records only Completed rows (ledger). This row's hu_status was
+      // just flipped to "Unpacked" via setData above, so filtering drops it.
+      const ledgerTableHu = (this.getValue("table_hu") || []).filter(
+        (r) => r.hu_status === "Completed",
       );
-
       await db
         .collection("packing")
         .doc(packingId)
         .update({
-          table_hu: filteredRecordedTableHu,
+          table_hu: ledgerTableHu,
           table_hu_source: this.getValue("table_hu_source") || [],
           table_item_source: this.getValue("table_item_source") || [],
         });

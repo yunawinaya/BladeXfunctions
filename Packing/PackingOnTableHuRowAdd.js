@@ -70,7 +70,7 @@
     }
 
     await this.setData({
-      [`table_hu.${rowIndex}.handling_no`]: "Auto-generated Number",
+      [`table_hu.${rowIndex}.handling_no`]: "Auto-generated number",
       [`table_hu.${rowIndex}.hu_row_type`]: "generated",
       [`table_hu.${rowIndex}.temp_data`]: "[]",
       [`table_hu.${rowIndex}.item_count`]: 0,

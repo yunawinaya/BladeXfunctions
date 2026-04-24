@@ -38,24 +38,16 @@ const rowIndex = arguments[0].rowIndex;
           }
         }
 
-        const packingResp = await db
-          .collection("packing")
-          .where({ id: lockedPackingId })
-          .get();
-        const packingDoc =
-          (packingResp && packingResp.data && packingResp.data[0]) || {};
-        const recordedTableHu = Array.isArray(packingDoc.table_hu)
-          ? packingDoc.table_hu
-          : [];
-
-        const completedRow = { ...row, hu_status: "Completed" };
-        recordedTableHu.push(completedRow);
-
+        // DB records only Completed rows (ledger). Filter the form's current
+        // table_hu to just the Completed ones, including this just-completed row.
+        const ledgerTableHu = (this.getValue("table_hu") || []).filter(
+          (r) => r.hu_status === "Completed",
+        );
         await db
           .collection("packing")
           .doc(lockedPackingId)
           .update({
-            table_hu: recordedTableHu,
+            table_hu: ledgerTableHu,
             table_hu_source: this.getValue("table_hu_source") || [],
             table_item_source: this.getValue("table_item_source") || [],
           });
@@ -207,31 +199,17 @@ const rowIndex = arguments[0].rowIndex;
       }
     }
 
-    // Packing DB doc: append completed row to table_hu, and persist
-    // updated source tables so locks survive reload.
-    const packingResp = await db
-      .collection("packing")
-      .where({ id: packingId })
-      .get();
-    const packingDoc =
-      (packingResp && packingResp.data && packingResp.data[0]) || {};
-    const recordedTableHu = Array.isArray(packingDoc.table_hu)
-      ? packingDoc.table_hu
-      : [];
-
-    const completedRow = {
-      ...row,
-      handling_unit_id: huId,
-      handling_no: huNo,
-      hu_status: "Completed",
-    };
-    recordedTableHu.push(completedRow);
-
+    // DB records only Completed rows (ledger). Filter the form's current
+    // table_hu to just the Completed ones (includes this just-completed row
+    // since setData above flipped its hu_status).
+    const ledgerTableHu = (this.getValue("table_hu") || []).filter(
+      (r) => r.hu_status === "Completed",
+    );
     await db
       .collection("packing")
       .doc(packingId)
       .update({
-        table_hu: recordedTableHu,
+        table_hu: ledgerTableHu,
         table_hu_source: this.getValue("table_hu_source") || [],
         table_item_source: this.getValue("table_item_source") || [],
       });
