@@ -19,7 +19,7 @@
         "name": "ResolveContext",
         "script": {
           "type": "javascript",
-          "code": "const processType = {{workflowparams:process_type}} || \"\";\nconst items = {{workflowparams:items}} || [];\nconst sourceHu = {{workflowparams:source_hu}} || null;\nconst targetHu = {{workflowparams:target_hu}} || null;\nconst targetWarehouseLocationId = {{workflowparams:target_location_id}} || \"\";\nconst targetWarehouseStorageLocationId = {{workflowparams:target_storage_location_id}} || \"\";\nconst remark = {{workflowparams:remark}} || \"\";\n\n// Source variant keeps the item's original bin — used for unload from source HU.\nconst tableHuItems = items.map((it) => ({\n  material_id: it.material_id,\n  material_name: it.material_name,\n  material_desc: it.material_desc,\n  location_id: it.location_id,\n  batch_id: it.batch_id || null,\n  material_uom: it.material_uom,\n  quantity: parseFloat(it.quantity) || 0,\n  balance_id: it.balance_id || \"\",\n}));\n\n// Target variant pins items to the target HU's bin — on load, items sit\n// inside the new HU at the target location, not the source bin they came from.\nconst targetItemsLocationId = (targetHu && targetHu.location_id) || targetWarehouseLocationId || \"\";\nconst tableHuItemsTarget = items.map((it) => ({\n  material_id: it.material_id,\n  material_name: it.material_name,\n  material_desc: it.material_desc,\n  location_id: targetItemsLocationId,\n  batch_id: it.batch_id || null,\n  material_uom: it.material_uom,\n  quantity: parseFloat(it.quantity) || 0,\n  balance_id: it.balance_id || \"\",\n}));\n\nconst targetIsNew =\n  (processType === \"Load\" || processType === \"Transfer\") &&\n  targetHu &&\n  !targetHu.id &&\n  targetHu.handling_no === \"Auto-generated number\";\n\nconst needsSourceUnload = processType === \"Unload\" || processType === \"Transfer\";\nconst needsTargetLoad = processType === \"Load\" || processType === \"Transfer\";\n\nreturn {\n  processType,\n  items,\n  tableHuItems,\n  tableHuItemsTarget,\n  sourceHu,\n  targetHu,\n  targetWarehouseLocationId,\n  targetWarehouseStorageLocationId,\n  remark,\n  targetIsNew: targetIsNew ? 1 : 0,\n  needsSourceUnload: needsSourceUnload ? 1 : 0,\n  needsTargetLoad: needsTargetLoad ? 1 : 0,\n};\n"
+          "code": "const processType = {{workflowparams:process_type}} || \"\";\nconst items = {{workflowparams:items}} || [];\nconst sourceHu = {{workflowparams:source_hu}} || null;\nconst targetHu = {{workflowparams:target_hu}} || null;\nconst targetWarehouseLocationId = {{workflowparams:target_location_id}} || \"\";\nconst targetWarehouseStorageLocationId = {{workflowparams:target_storage_location_id}} || \"\";\nconst remark = {{workflowparams:remark}} || \"\";\n\n// Source variant keeps the item's original bin — used for unload from source HU.\nconst tableHuItems = items.map((it) => ({\n  material_id: it.material_id,\n  material_name: it.material_name,\n  material_desc: it.material_desc,\n  location_id: it.location_id,\n  batch_id: it.batch_id || null,\n  material_uom: it.material_uom,\n  quantity: parseFloat(it.quantity) || 0,\n  balance_id: it.balance_id || \"\",\n}));\n\n// Target variant pins items to the target HU's bin — on load, items sit\n// inside the new HU at the target location, not the source bin they came from.\nconst targetItemsLocationId = (targetHu && targetHu.location_id) || targetWarehouseLocationId || \"\";\nconst tableHuItemsTarget = items.map((it) => ({\n  material_id: it.material_id,\n  material_name: it.material_name,\n  material_desc: it.material_desc,\n  location_id: targetItemsLocationId,\n  batch_id: it.batch_id || null,\n  material_uom: it.material_uom,\n  quantity: parseFloat(it.quantity) || 0,\n  balance_id: it.balance_id || \"\",\n}));\n\nconst targetIsNew =\n  (processType === \"Load\" || processType === \"Transfer\") &&\n  targetHu &&\n  !targetHu.id &&\n  targetHu.handling_no === \"Auto-generated number\";\n\nconst needsSourceUnload = processType === \"Unload\" || processType === \"Transfer\";\nconst needsTargetLoad = processType === \"Load\" || processType === \"Transfer\";\n\nreturn {\n  processType,\n  items,\n  tableHuItems,\n  tableHuItemsTarget,\n  sourceHu,\n  targetHu,\n  targetWarehouseLocationId,\n  targetWarehouseStorageLocationId,\n  remark,\n  targetIsNew: targetIsNew ? 1 : 0,\n  needsSourceUnload: needsSourceUnload ? 1 : 0,\n  needsTargetLoad: needsTargetLoad ? 1 : 0,\n  isPacking: {{workflowparams:isPacking}} || 0\n};\n"
         },
         "response_json": [
           {
@@ -158,6 +158,15 @@
                 "children": []
               }
             ]
+          },
+          {
+            "key": "iqhn7pzj",
+            "name": "isPacking",
+            "title": "isPacking",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
           }
         ]
       },
@@ -867,582 +876,635 @@
       "blocks": []
     },
     {
-      "id": "loop_UsaBEWcU",
-      "type": "loop",
+      "id": "if_s8ym3B1L",
+      "type": "if",
       "data": {
-        "title": "Loop Items",
+        "title": "IF !isPacking",
         "isValidator": true,
-        "nodeName": "Loop Items",
-        "name": "Loop Items",
-        "loopType": "Var",
-        "loopSeletSource": {
-          "datasource": {
-            "rules": {
-              "collectionId": "",
-              "list": [
-                {
-                  "id": 1723795236686,
-                  "parentId": 1723795236685,
-                  "isTop": true,
-                  "prop": "",
-                  "operator": "",
-                  "valueType": "",
-                  "value": "",
-                  "type": "leaf",
-                  "level": 1
-                }
-              ]
+        "nodeName": "IF !isPacking",
+        "name": "IF !isPacking",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1736695973613,
+              "parentId": 1736695973612,
+              "isTop": true,
+              "prop": "node.code_node_CPgy5sGX.data.isPacking",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "isPacking",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
             }
-          },
-          "auto_refresh": 1,
-          "auto_refresh_debounce": 100,
-          "options": [],
-          "props": {
-            "value": "",
-            "label": "",
-            "image": "",
-            "icon": "",
-            "explain": ""
-          },
-          "remote": false,
-          "remoteType": "datasource"
-        },
-        "loopSeletVar": {
-          "type": "markdown",
-          "code": "{{node:code_node_CPgy5sGX.data.items}}"
+          ]
         }
       },
       "blocks": [
         {
-          "id": "code_node_QoW8WOho",
-          "type": "code-node",
-          "data": {
-            "language": "javascript",
-            "code": "",
-            "timeout": 30000,
-            "title": "ItemMovement",
-            "isValidator": true,
-            "nodeName": "ItemMovement",
-            "name": "ItemMovement",
-            "script": {
-              "type": "javascript",
-              "code": "const ctx = {{node:code_node_CPgy5sGX.data}};\nconst resolvedTargetHuId = {{node:code_node_KA3mv0Kd.data.resolvedTargetHuId}} || \"\";\nconst item = {{node:loop_UsaBEWcU}};\nconst processType = ctx.processType;\nconst sourceHu = ctx.sourceHu;\n\nlet subtractLocationId = \"\";\nlet subtractHandlingUnitId = \"\";\nlet addLocationId = \"\";\nlet addHandlingUnitId = \"\";\n\nif (processType === \"Load\") {\n  subtractLocationId = item.location_id;\n  subtractHandlingUnitId = \"\";\n  addLocationId = ctx.targetHu?.location_id || \"\";\n  addHandlingUnitId = resolvedTargetHuId;\n} else if (processType === \"Unload\") {\n  subtractLocationId = item.location_id;\n  subtractHandlingUnitId = sourceHu?.id || \"\";\n  addLocationId = ctx.targetWarehouseLocationId;\n  addHandlingUnitId = \"\";\n} else if (processType === \"Transfer\") {\n  subtractLocationId = item.location_id;\n  subtractHandlingUnitId = sourceHu?.id || \"\";\n  addLocationId = ctx.targetHu?.location_id || \"\";\n  addHandlingUnitId = resolvedTargetHuId;\n}\n\nreturn {\n  material_id: item.material_id,\n  material_uom: item.material_uom,\n  quantity: parseFloat(item.quantity) || 0,\n  batch_id: item.batch_id || null,\n  subtractLocationId,\n  subtractHandlingUnitId,\n  addLocationId,\n  addHandlingUnitId,\n};\n"
-            },
-            "response_json": [
-              {
-                "key": "vzlwzw33",
-                "name": "material_id",
-                "title": "material_id",
-                "description": "",
-                "bsonType": "string",
-                "isExpand": false
-              },
-              {
-                "key": "dhnnshzz",
-                "name": "material_uom",
-                "title": "material_uom",
-                "description": "",
-                "bsonType": "string",
-                "isExpand": false
-              },
-              {
-                "key": "0p98n0un",
-                "name": "quantity",
-                "title": "quantity",
-                "description": "",
-                "bsonType": "decimal",
-                "isExpand": false,
-                "children": []
-              },
-              {
-                "key": "ra40lhql",
-                "name": "batch_id",
-                "title": "batch_id",
-                "description": "",
-                "bsonType": "string",
-                "isExpand": false
-              },
-              {
-                "key": "4j7vxw9y",
-                "name": "subtractLocationId",
-                "title": "subtractLocationId",
-                "description": "",
-                "bsonType": "string",
-                "isExpand": false
-              },
-              {
-                "key": "p6ku8wv2",
-                "name": "subtractHandlingUnitId",
-                "title": "subtractHandlingUnitId",
-                "description": "",
-                "bsonType": "string",
-                "isExpand": false
-              },
-              {
-                "key": "o333zpbg",
-                "name": "addLocationId",
-                "title": "addLocationId",
-                "description": "",
-                "bsonType": "string",
-                "isExpand": false
-              },
-              {
-                "key": "orcu91n3",
-                "name": "addHandlingUnitId",
-                "title": "addHandlingUnitId",
-                "description": "",
-                "bsonType": "string",
-                "isExpand": false
-              }
-            ]
-          },
-          "blocks": []
-        },
-        {
-          "id": "workflow_node_rjDY85KF",
-          "type": "workflow-node",
-          "data": {
-            "workflow_id": "",
-            "workflow_name": "",
-            "input_params": {},
-            "title": "Run Subtract Workflow",
-            "isValidator": true,
-            "nodeName": "Run Subtract Workflow",
-            "name": "Run Subtract Workflow",
-            "workflow": {
-              "source": "SUBTRACT_INVENTORY:Workflow:2012096660219564034",
-              "rules": {
-                "collectionId": "2012096660219564034",
-                "list": [
-                  {
-                    "id": 1723795236686,
-                    "parentId": 1723795236685,
-                    "isTop": true,
-                    "prop": "",
-                    "operator": "",
-                    "valueType": "",
-                    "value": "",
-                    "type": "leaf",
-                    "level": 1
-                  }
-                ]
-              }
-            },
-            "remote": true,
-            "remoteType": "innerdatasource",
-            "body_params": {
-              "list": [
-                {
-                  "prop": "plant_id",
-                  "propLabel": "Plant ID",
-                  "operator": "",
-                  "operatorLabel": "",
-                  "valueType": "field",
-                  "valueTypeLabel": "",
-                  "value": "{{workflowparams:plant_id}}",
-                  "valueLabel": ""
-                },
-                {
-                  "prop": "organization_id",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{workflowparams:organization_id}}",
-                  "valueLabel": "",
-                  "propLabel": "Organization ID"
-                },
-                {
-                  "prop": "material_id",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:code_node_QoW8WOho.data.material_id}}",
-                  "valueLabel": "",
-                  "propLabel": "Material ID"
-                },
-                {
-                  "prop": "quantity",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:code_node_QoW8WOho.data.quantity}}",
-                  "valueLabel": "",
-                  "propLabel": "Quantity"
-                },
-                {
-                  "prop": "material_uom",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:code_node_QoW8WOho.data.material_uom}}",
-                  "valueLabel": "",
-                  "propLabel": "UOM"
-                },
-                {
-                  "prop": "transaction_type",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{workflowparams:transaction_type}}",
-                  "valueLabel": "",
-                  "propLabel": "Transaction Type"
-                },
-                {
-                  "prop": "trx_no",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{workflowparams:trx_no}}",
-                  "valueLabel": "",
-                  "propLabel": "Trx No"
-                },
-                {
-                  "prop": "parent_trx_no",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{workflowparams:parent_trx_no}}",
-                  "valueLabel": "",
-                  "propLabel": "Parent Trx No"
-                },
-                {
-                  "prop": "inventory_category",
-                  "operator": "",
-                  "valueType": "value",
-                  "value": "Unrestricted",
-                  "valueLabel": "",
-                  "propLabel": "Inventory Category"
-                },
-                {
-                  "prop": "location_id",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:code_node_QoW8WOho.data.subtractLocationId}}",
-                  "valueLabel": "",
-                  "propLabel": "Location ID"
-                },
-                {
-                  "prop": "batch_id",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:code_node_QoW8WOho.data.batch_id}}",
-                  "valueLabel": "",
-                  "propLabel": "Batch ID"
-                },
-                {
-                  "prop": "isMovingInv",
-                  "operator": "",
-                  "valueType": "value",
-                  "value": 1,
-                  "valueLabel": "",
-                  "propLabel": "Moving Inventory?"
-                },
-                {
-                  "prop": "handling_unit_id",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:code_node_QoW8WOho.data.subtractHandlingUnitId}}",
-                  "valueLabel": "",
-                  "propLabel": "Handling Unit ID"
-                }
-              ]
-            }
-          },
-          "blocks": []
-        },
-        {
-          "id": "if_UiurUAes",
-          "type": "if",
-          "data": {
-            "title": "IF Error",
-            "isValidator": true,
-            "nodeName": "IF Error",
-            "name": "IF Error",
-            "condition_type": "Expression",
-            "expression": {
-              "type": "javascript",
-              "code": "'{{node:workflow_node_rjDY85KF.data.code}}' == '400'"
-            }
-          },
+          "id": "if_block_O9nbMcEw",
+          "type": "ifBlock",
+          "data": { "title": "true" },
           "blocks": [
             {
-              "id": "ifBlock_MBvg1Im2",
-              "type": "ifBlock",
-              "data": { "title": "true" },
-              "blocks": [
-                {
-                  "id": "return_node_oCO5L1Lf",
-                  "type": "return-node",
-                  "data": {
-                    "return_data": {},
-                    "status_code": 200,
-                    "title": "Return Data",
-                    "isValidator": true,
-                    "nodeName": "Return Data",
-                    "name": "Return Data",
-                    "response_value": {
+              "id": "loop_UsaBEWcU",
+              "type": "loop",
+              "data": {
+                "title": "Loop Items",
+                "isValidator": true,
+                "nodeName": "Loop Items",
+                "name": "Loop Items",
+                "loopType": "Var",
+                "loopSeletSource": {
+                  "datasource": {
+                    "rules": {
+                      "collectionId": "",
                       "list": [
                         {
-                          "prop": "code",
-                          "propLabel": "code",
+                          "id": 1723795236686,
+                          "parentId": 1723795236685,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    }
+                  },
+                  "auto_refresh": 1,
+                  "auto_refresh_debounce": 100,
+                  "options": [],
+                  "props": {
+                    "value": "",
+                    "label": "",
+                    "image": "",
+                    "icon": "",
+                    "explain": ""
+                  },
+                  "remote": false,
+                  "remoteType": "datasource"
+                },
+                "loopSeletVar": {
+                  "type": "markdown",
+                  "code": "{{node:code_node_CPgy5sGX.data.items}}"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "code_node_QoW8WOho",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "ItemMovement",
+                    "isValidator": true,
+                    "nodeName": "ItemMovement",
+                    "name": "ItemMovement",
+                    "script": {
+                      "type": "javascript",
+                      "code": "const ctx = {{node:code_node_CPgy5sGX.data}};\nconst resolvedTargetHuId = {{node:code_node_KA3mv0Kd.data.resolvedTargetHuId}} || \"\";\nconst item = {{node:loop_UsaBEWcU}};\nconst processType = ctx.processType;\nconst sourceHu = ctx.sourceHu;\n\nlet subtractLocationId = \"\";\nlet subtractHandlingUnitId = \"\";\nlet addLocationId = \"\";\nlet addHandlingUnitId = \"\";\n\nif (processType === \"Load\") {\n  subtractLocationId = item.location_id;\n  subtractHandlingUnitId = \"\";\n  addLocationId = ctx.targetHu?.location_id || \"\";\n  addHandlingUnitId = resolvedTargetHuId;\n} else if (processType === \"Unload\") {\n  subtractLocationId = item.location_id;\n  subtractHandlingUnitId = sourceHu?.id || \"\";\n  addLocationId = ctx.targetWarehouseLocationId;\n  addHandlingUnitId = \"\";\n} else if (processType === \"Transfer\") {\n  subtractLocationId = item.location_id;\n  subtractHandlingUnitId = sourceHu?.id || \"\";\n  addLocationId = ctx.targetHu?.location_id || \"\";\n  addHandlingUnitId = resolvedTargetHuId;\n}\n\nreturn {\n  material_id: item.material_id,\n  material_uom: item.material_uom,\n  quantity: parseFloat(item.quantity) || 0,\n  batch_id: item.batch_id || null,\n  subtractLocationId,\n  subtractHandlingUnitId,\n  addLocationId,\n  addHandlingUnitId,\n};\n"
+                    },
+                    "response_json": [
+                      {
+                        "key": "vzlwzw33",
+                        "name": "material_id",
+                        "title": "material_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "dhnnshzz",
+                        "name": "material_uom",
+                        "title": "material_uom",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "0p98n0un",
+                        "name": "quantity",
+                        "title": "quantity",
+                        "description": "",
+                        "bsonType": "decimal",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "ra40lhql",
+                        "name": "batch_id",
+                        "title": "batch_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "4j7vxw9y",
+                        "name": "subtractLocationId",
+                        "title": "subtractLocationId",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "p6ku8wv2",
+                        "name": "subtractHandlingUnitId",
+                        "title": "subtractHandlingUnitId",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "o333zpbg",
+                        "name": "addLocationId",
+                        "title": "addLocationId",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "orcu91n3",
+                        "name": "addHandlingUnitId",
+                        "title": "addHandlingUnitId",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "97xfqe18",
+                        "name": "subtractCategory",
+                        "title": "subtractCategory",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      }
+                    ]
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "workflow_node_rjDY85KF",
+                  "type": "workflow-node",
+                  "data": {
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "Run Subtract Workflow",
+                    "isValidator": true,
+                    "nodeName": "Run Subtract Workflow",
+                    "name": "Run Subtract Workflow",
+                    "workflow": {
+                      "source": "SUBTRACT_INVENTORY:Workflow:2012096660219564034",
+                      "rules": {
+                        "collectionId": "2012096660219564034",
+                        "list": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "plant_id",
+                          "propLabel": "Plant ID",
                           "operator": "",
                           "operatorLabel": "",
                           "valueType": "field",
                           "valueTypeLabel": "",
-                          "value": "{{node:workflow_node_rjDY85KF.data.code}}",
+                          "value": "{{workflowparams:plant_id}}",
                           "valueLabel": ""
                         },
                         {
-                          "prop": "message",
+                          "prop": "organization_id",
                           "operator": "",
                           "valueType": "field",
-                          "value": "{{node:workflow_node_rjDY85KF.data.message}}",
+                          "value": "{{workflowparams:organization_id}}",
                           "valueLabel": "",
-                          "propLabel": "message"
+                          "propLabel": "Organization ID"
+                        },
+                        {
+                          "prop": "material_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_QoW8WOho.data.material_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Material ID"
+                        },
+                        {
+                          "prop": "quantity",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_QoW8WOho.data.quantity}}",
+                          "valueLabel": "",
+                          "propLabel": "Quantity"
+                        },
+                        {
+                          "prop": "material_uom",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_QoW8WOho.data.material_uom}}",
+                          "valueLabel": "",
+                          "propLabel": "UOM"
+                        },
+                        {
+                          "prop": "transaction_type",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{workflowparams:transaction_type}}",
+                          "valueLabel": "",
+                          "propLabel": "Transaction Type"
+                        },
+                        {
+                          "prop": "trx_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{workflowparams:trx_no}}",
+                          "valueLabel": "",
+                          "propLabel": "Trx No"
+                        },
+                        {
+                          "prop": "parent_trx_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{workflowparams:parent_trx_no}}",
+                          "valueLabel": "",
+                          "propLabel": "Parent Trx No"
+                        },
+                        {
+                          "prop": "inventory_category",
+                          "operator": "",
+                          "valueType": "value",
+                          "value": "Unrestricted",
+                          "valueLabel": "",
+                          "propLabel": "Inventory Category"
+                        },
+                        {
+                          "prop": "location_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_QoW8WOho.data.subtractLocationId}}",
+                          "valueLabel": "",
+                          "propLabel": "Location ID"
+                        },
+                        {
+                          "prop": "batch_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_QoW8WOho.data.batch_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Batch ID"
+                        },
+                        {
+                          "prop": "isMovingInv",
+                          "operator": "",
+                          "valueType": "value",
+                          "value": 1,
+                          "valueLabel": "",
+                          "propLabel": "Moving Inventory?"
+                        },
+                        {
+                          "prop": "handling_unit_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_QoW8WOho.data.subtractHandlingUnitId}}",
+                          "valueLabel": "",
+                          "propLabel": "Handling Unit ID"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "if_UiurUAes",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Error",
+                    "isValidator": true,
+                    "nodeName": "IF Error",
+                    "name": "IF Error",
+                    "condition_type": "Expression",
+                    "expression": {
+                      "type": "javascript",
+                      "code": "'{{node:workflow_node_rjDY85KF.data.code}}' == '400'"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "ifBlock_MBvg1Im2",
+                      "type": "ifBlock",
+                      "data": { "title": "true" },
+                      "blocks": [
+                        {
+                          "id": "return_node_oCO5L1Lf",
+                          "type": "return-node",
+                          "data": {
+                            "return_data": {},
+                            "status_code": 200,
+                            "title": "Return Data",
+                            "isValidator": true,
+                            "nodeName": "Return Data",
+                            "name": "Return Data",
+                            "response_value": {
+                              "list": [
+                                {
+                                  "prop": "code",
+                                  "propLabel": "code",
+                                  "operator": "",
+                                  "operatorLabel": "",
+                                  "valueType": "field",
+                                  "valueTypeLabel": "",
+                                  "value": "{{node:workflow_node_rjDY85KF.data.code}}",
+                                  "valueLabel": ""
+                                },
+                                {
+                                  "prop": "message",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:workflow_node_rjDY85KF.data.message}}",
+                                  "valueLabel": "",
+                                  "propLabel": "message"
+                                }
+                              ]
+                            },
+                            "return_raw_data": 0
+                          },
+                          "blocks": []
                         }
                       ]
                     },
-                    "return_raw_data": 0
-                  },
-                  "blocks": []
-                }
-              ]
-            },
-            {
-              "id": "ifBlock_lXgQVSJH",
-              "type": "ifBlock",
-              "data": { "title": "false" },
-              "blocks": []
-            }
-          ]
-        },
-        {
-          "id": "workflow_node_8yCx8KAt",
-          "type": "workflow-node",
-          "data": {
-            "workflow_id": "",
-            "workflow_name": "",
-            "input_params": {},
-            "title": "Run Add Workflow",
-            "isValidator": true,
-            "nodeName": "Run Add Workflow",
-            "name": "Run Add Workflow",
-            "workflow": {
-              "source": "ADD_INVENTORY:Workflow:2012005532688723970",
-              "rules": {
-                "collectionId": "2012005532688723970",
-                "list": [
-                  {
-                    "id": 1776068317107,
-                    "parentId": 1776068317106,
-                    "isTop": true,
-                    "prop": "",
-                    "operator": "",
-                    "valueType": "",
-                    "value": "",
-                    "type": "leaf",
-                    "level": 1
-                  }
-                ]
-              }
-            },
-            "remote": true,
-            "remoteType": "innerdatasource",
-            "body_params": {
-              "list": [
-                {
-                  "prop": "plant_id",
-                  "propLabel": "Plant ID",
-                  "operator": "",
-                  "operatorLabel": "",
-                  "valueType": "field",
-                  "valueTypeLabel": "",
-                  "value": "{{workflowparams:plant_id}}",
-                  "valueLabel": ""
+                    {
+                      "id": "ifBlock_lXgQVSJH",
+                      "type": "ifBlock",
+                      "data": { "title": "false" },
+                      "blocks": []
+                    }
+                  ]
                 },
                 {
-                  "prop": "organization_id",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{workflowparams:organization_id}}",
-                  "valueLabel": "",
-                  "propLabel": "Organization ID"
-                },
-                {
-                  "prop": "material_id",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:code_node_QoW8WOho.data.material_id}}",
-                  "valueLabel": "",
-                  "propLabel": "Material ID"
-                },
-                {
-                  "prop": "quantity",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:code_node_QoW8WOho.data.quantity}}",
-                  "valueLabel": "",
-                  "propLabel": "Quantity"
-                },
-                {
-                  "prop": "material_uom",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:code_node_QoW8WOho.data.material_uom}}",
-                  "valueLabel": "",
-                  "propLabel": "UOM"
-                },
-                {
-                  "prop": "transaction_type",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{workflowparams:transaction_type}}",
-                  "valueLabel": "",
-                  "propLabel": "Transaction Type"
-                },
-                {
-                  "prop": "trx_no",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{workflowparams:trx_no}}",
-                  "valueLabel": "",
-                  "propLabel": "Trx No"
-                },
-                {
-                  "prop": "parent_trx_no",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{workflowparams:parent_trx_no}}",
-                  "valueLabel": "",
-                  "propLabel": "Parent Trx No"
-                },
-                {
-                  "prop": "inventory_category",
-                  "operator": "",
-                  "valueType": "value",
-                  "value": "Unrestricted",
-                  "valueLabel": "",
-                  "propLabel": "Inventory Category"
-                },
-                {
-                  "prop": "location_id",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:code_node_QoW8WOho.data.addLocationId}}",
-                  "valueLabel": "",
-                  "propLabel": "Location ID"
-                },
-                {
-                  "prop": "batch_id",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:code_node_QoW8WOho.data.batch_id}}",
-                  "valueLabel": "",
-                  "propLabel": "Batch ID"
-                },
-                {
-                  "prop": "isMovingInv",
-                  "operator": "",
-                  "valueType": "value",
-                  "value": 1,
-                  "valueLabel": "",
-                  "propLabel": "Moving Inventory?"
-                },
-                {
-                  "prop": "unit_price",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:workflow_node_rjDY85KF.data.unit_price}}",
-                  "valueLabel": "",
-                  "propLabel": "Unit Price"
-                },
-                {
-                  "prop": "manufacturing_date",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:workflow_node_rjDY85KF.data.manufacturing_date}}",
-                  "valueLabel": "",
-                  "propLabel": "Manufacturing Date"
-                },
-                {
-                  "prop": "expired_date",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:workflow_node_rjDY85KF.data.expired_date}}",
-                  "valueLabel": "",
-                  "propLabel": "Expired Date"
-                },
-                {
-                  "prop": "handling_unit_id",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:code_node_QoW8WOho.data.addHandlingUnitId}}",
-                  "valueLabel": "",
-                  "propLabel": "Handling Unit ID"
-                }
-              ]
-            }
-          },
-          "blocks": []
-        },
-        {
-          "id": "if_b5WlpN7q",
-          "type": "if",
-          "data": {
-            "title": "IF Error",
-            "isValidator": true,
-            "nodeName": "IF Error",
-            "name": "IF Error",
-            "condition_type": "Expression",
-            "expression": {
-              "type": "javascript",
-              "code": "'{{node:workflow_node_8yCx8KAt.data.code}}' == '400'"
-            }
-          },
-          "blocks": [
-            {
-              "id": "ifBlock_0dRaRFud",
-              "type": "ifBlock",
-              "data": { "title": "true" },
-              "blocks": [
-                {
-                  "id": "return_node_VaDrcuT6",
-                  "type": "return-node",
+                  "id": "workflow_node_8yCx8KAt",
+                  "type": "workflow-node",
                   "data": {
-                    "return_data": {},
-                    "status_code": 200,
-                    "title": "Return Data",
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "Run Add Workflow",
                     "isValidator": true,
-                    "nodeName": "Return Data",
-                    "name": "Return Data",
-                    "response_value": {
+                    "nodeName": "Run Add Workflow",
+                    "name": "Run Add Workflow",
+                    "workflow": {
+                      "source": "ADD_INVENTORY:Workflow:2012005532688723970",
+                      "rules": {
+                        "collectionId": "2012005532688723970",
+                        "list": [
+                          {
+                            "id": 1776068317107,
+                            "parentId": 1776068317106,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
                       "list": [
                         {
-                          "prop": "code",
-                          "propLabel": "code",
+                          "prop": "plant_id",
+                          "propLabel": "Plant ID",
                           "operator": "",
                           "operatorLabel": "",
                           "valueType": "field",
                           "valueTypeLabel": "",
-                          "value": "{{node:workflow_node_8yCx8KAt.data.code}}",
+                          "value": "{{workflowparams:plant_id}}",
                           "valueLabel": ""
                         },
                         {
-                          "prop": "message",
+                          "prop": "organization_id",
                           "operator": "",
                           "valueType": "field",
-                          "value": "{{node:workflow_node_8yCx8KAt.data.message}}",
+                          "value": "{{workflowparams:organization_id}}",
                           "valueLabel": "",
-                          "propLabel": "message"
+                          "propLabel": "Organization ID"
+                        },
+                        {
+                          "prop": "material_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_QoW8WOho.data.material_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Material ID"
+                        },
+                        {
+                          "prop": "quantity",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_QoW8WOho.data.quantity}}",
+                          "valueLabel": "",
+                          "propLabel": "Quantity"
+                        },
+                        {
+                          "prop": "material_uom",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_QoW8WOho.data.material_uom}}",
+                          "valueLabel": "",
+                          "propLabel": "UOM"
+                        },
+                        {
+                          "prop": "transaction_type",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{workflowparams:transaction_type}}",
+                          "valueLabel": "",
+                          "propLabel": "Transaction Type"
+                        },
+                        {
+                          "prop": "trx_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{workflowparams:trx_no}}",
+                          "valueLabel": "",
+                          "propLabel": "Trx No"
+                        },
+                        {
+                          "prop": "parent_trx_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{workflowparams:parent_trx_no}}",
+                          "valueLabel": "",
+                          "propLabel": "Parent Trx No"
+                        },
+                        {
+                          "prop": "inventory_category",
+                          "operator": "",
+                          "valueType": "value",
+                          "value": "Unrestricted",
+                          "valueLabel": "",
+                          "propLabel": "Inventory Category"
+                        },
+                        {
+                          "prop": "location_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_QoW8WOho.data.addLocationId}}",
+                          "valueLabel": "",
+                          "propLabel": "Location ID"
+                        },
+                        {
+                          "prop": "batch_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_QoW8WOho.data.batch_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Batch ID"
+                        },
+                        {
+                          "prop": "isMovingInv",
+                          "operator": "",
+                          "valueType": "value",
+                          "value": 1,
+                          "valueLabel": "",
+                          "propLabel": "Moving Inventory?"
+                        },
+                        {
+                          "prop": "unit_price",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:workflow_node_rjDY85KF.data.unit_price}}",
+                          "valueLabel": "",
+                          "propLabel": "Unit Price"
+                        },
+                        {
+                          "prop": "manufacturing_date",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:workflow_node_rjDY85KF.data.manufacturing_date}}",
+                          "valueLabel": "",
+                          "propLabel": "Manufacturing Date"
+                        },
+                        {
+                          "prop": "expired_date",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:workflow_node_rjDY85KF.data.expired_date}}",
+                          "valueLabel": "",
+                          "propLabel": "Expired Date"
+                        },
+                        {
+                          "prop": "handling_unit_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_QoW8WOho.data.addHandlingUnitId}}",
+                          "valueLabel": "",
+                          "propLabel": "Handling Unit ID"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "if_b5WlpN7q",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Error",
+                    "isValidator": true,
+                    "nodeName": "IF Error",
+                    "name": "IF Error",
+                    "condition_type": "Expression",
+                    "expression": {
+                      "type": "javascript",
+                      "code": "'{{node:workflow_node_8yCx8KAt.data.code}}' == '400'"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "ifBlock_0dRaRFud",
+                      "type": "ifBlock",
+                      "data": { "title": "true" },
+                      "blocks": [
+                        {
+                          "id": "return_node_VaDrcuT6",
+                          "type": "return-node",
+                          "data": {
+                            "return_data": {},
+                            "status_code": 200,
+                            "title": "Return Data",
+                            "isValidator": true,
+                            "nodeName": "Return Data",
+                            "name": "Return Data",
+                            "response_value": {
+                              "list": [
+                                {
+                                  "prop": "code",
+                                  "propLabel": "code",
+                                  "operator": "",
+                                  "operatorLabel": "",
+                                  "valueType": "field",
+                                  "valueTypeLabel": "",
+                                  "value": "{{node:workflow_node_8yCx8KAt.data.code}}",
+                                  "valueLabel": ""
+                                },
+                                {
+                                  "prop": "message",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:workflow_node_8yCx8KAt.data.message}}",
+                                  "valueLabel": "",
+                                  "propLabel": "message"
+                                }
+                              ]
+                            },
+                            "return_raw_data": 0
+                          },
+                          "blocks": []
                         }
                       ]
                     },
-                    "return_raw_data": 0
-                  },
-                  "blocks": []
+                    {
+                      "id": "ifBlock_54ycKRwJ",
+                      "type": "ifBlock",
+                      "data": { "title": "false" },
+                      "blocks": []
+                    }
+                  ]
                 }
               ]
-            },
-            {
-              "id": "ifBlock_54ycKRwJ",
-              "type": "ifBlock",
-              "data": { "title": "false" },
-              "blocks": []
             }
           ]
+        },
+        {
+          "id": "if_block_VKe9ob7j",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
         }
       ]
     },
@@ -1652,6 +1714,15 @@
       "description": "",
       "bsonType": "string",
       "isExpand": false
+    },
+    {
+      "key": "7yfq7974",
+      "name": "isPacking",
+      "title": "isPacking",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false,
+      "children": []
     }
   ],
   "response_json": [
