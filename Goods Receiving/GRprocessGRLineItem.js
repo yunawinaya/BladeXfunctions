@@ -39,7 +39,9 @@ const processData = async (tableGR, invCategoryData, putawaySetupData) => {
         });
       } else if (putawaySetupData && putawaySetupData.putaway_required === 1) {
         const invCategoryOption = invCategoryData.filter(
-          (cat) => cat.dict_key === putawayCategory,
+          (cat) =>
+            cat.dict_key === "In Transit" ||
+            cat.dict_key === "Unrestricted",
         );
         this.setOptionData(`table_gr.${index}.inv_category`, invCategoryOption);
 
