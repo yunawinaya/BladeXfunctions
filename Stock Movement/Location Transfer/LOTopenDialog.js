@@ -1,15 +1,17 @@
 (async () => {
-  const allData = this.getValues();
-  const lineItemData = arguments[0]?.row;
-  const rowIndex = arguments[0]?.rowIndex;
-  const plant_id = allData.issuing_operation_faci;
-  const materialId = lineItemData.item_selection;
-  const tempQtyData = lineItemData.temp_qty_data;
-  const tempHuData = lineItemData.temp_hu_data;
-  const quantityUOM = lineItemData.quantity_uom;
-  const organizationId = allData.organization_id;
+  this.showLoading("Loading inventory data...");
+  try {
+    const allData = this.getValues();
+    const lineItemData = arguments[0]?.row;
+    const rowIndex = arguments[0]?.rowIndex;
+    const plant_id = allData.issuing_operation_faci;
+    const materialId = lineItemData.item_selection;
+    const tempQtyData = lineItemData.temp_qty_data;
+    const tempHuData = lineItemData.temp_hu_data;
+    const quantityUOM = lineItemData.quantity_uom;
+    const organizationId = allData.organization_id;
 
-  if (!materialId) return;
+    if (!materialId) return;
 
   // ============= HELPERS =============
 
@@ -318,8 +320,10 @@
         (r) => r.row_type === "item" || huIdsWithItems.has(r.handling_unit_id),
       );
 
-      // Restore sm_quantity from existing temp_hu_data on re-open
+      // Restore sm_quantity from existing temp_hu_data on re-open, and re-check
+      // hu_select on the matching header rows so the UI reflects prior selection.
       const parsedTempHu = parseJSON(tempHuStr);
+      const huIdsWithAllocation = new Set();
       for (const tempItem of parsedTempHu) {
         if (tempItem.row_type !== "item") continue;
         const match = filtered.find(
@@ -331,6 +335,22 @@
         );
         if (match) {
           match.sm_quantity = tempItem.sm_quantity || 0;
+          if (match.sm_quantity > 0) {
+            huIdsWithAllocation.add(tempItem.handling_unit_id);
+          }
+        }
+      }
+
+      // LOT enforces NO_SPLIT: set hu_select = 1 on headers whose HU has any
+      // restored allocation, so the checkbox state matches the item rows.
+      if (huIdsWithAllocation.size > 0) {
+        for (const row of filtered) {
+          if (
+            row.row_type === "header" &&
+            huIdsWithAllocation.has(row.handling_unit_id)
+          ) {
+            row.hu_select = 1;
+          }
         }
       }
 
@@ -462,7 +482,10 @@
 
   let looseRowCount = 0;
 
-  // Filter out HU-bound records from temp_qty_data — those belong to table_hu
+  // Filter out HU-bound records from temp_qty_data — those belong to table_hu.
+  // Final filter drops rows with no transferable stock: only rows with
+  // unrestricted_qty > 0 OR block_qty > 0 are kept (Reserved / QI / InTransit
+  // categories aren't transferable via LOT).
   const processBalanceData = (itemBalanceData, itemDataLocal) => {
     const mappedData = mapBalanceData(itemBalanceData);
     let finalData = mappedData;
@@ -478,7 +501,11 @@
       }
     }
 
-    return filterZeroQuantityRecords(finalData, itemDataLocal);
+    return filterZeroQuantityRecords(finalData, itemDataLocal).filter(
+      (r) =>
+        (parseFloat(r.unrestricted_qty) || 0) > 0 ||
+        (parseFloat(r.block_qty) || 0) > 0,
+    );
   };
 
   // item_balance includes stock physically inside HUs and stock reserved by other
@@ -684,16 +711,19 @@
     });
   }
 
+  if (!hasHu) hideTab("handling_unit");
+  if (!hasLoose) hideTab("loose");
+
   if (hasHu && hasLoose) {
-    // Both — default to loose (primary LOT workflow)
     activateTab("loose");
-  } else if (hasHu && !hasLoose) {
-    // HU only — hide loose, show HU
-    hideTab("loose");
+  } else if (hasHu) {
     activateTab("handling_unit");
-  } else {
-    // Loose only or neither — hide handling_unit, show loose
-    hideTab("handling_unit");
+  } else if (hasLoose) {
     activateTab("loose");
+  }
+  } catch (error) {
+    console.error("Error in LOT inventory dialog:", error);
+  } finally {
+    this.hideLoading();
   }
 })();
