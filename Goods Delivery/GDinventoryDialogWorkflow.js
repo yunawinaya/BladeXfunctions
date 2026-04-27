@@ -520,7 +520,9 @@
             const baseQty = parseFloat(huItem.quantity) || 0;
             const isForeignItem = huItem.material_id !== materialId;
             // For foreign items: show raw base qty (UOM conversion is for current material only)
-            let displayQty = isForeignItem ? baseQty : convertBaseToAlt(baseQty, itemData, altUOM);
+            let displayQty = isForeignItem
+              ? baseQty
+              : convertBaseToAlt(baseQty, itemData, altUOM);
 
             // Deduct other lines' HU allocations for same HU item
             const otherLineAlloc = otherLinesHuAllocations.find(
@@ -689,8 +691,7 @@
         const huQtyMap = new Map();
         for (const hu of huRes.data || []) {
           const items = (hu.table_hu_items || []).filter(
-            (item) =>
-              item.is_deleted !== 1 && item.material_id === materialId,
+            (item) => item.is_deleted !== 1 && item.material_id === materialId,
           );
           for (const item of items) {
             const locationId = item.location_id || hu.location_id;
@@ -1121,8 +1122,16 @@
             }
           }
 
+          // After SO-line reserved overwrite + earlier HU deduction, a row may
+          // have nothing pickable left (unrestricted = reserved = 0). Hide those.
+          const filteredBalanceData = balanceData.filter(
+            (r) =>
+              (parseFloat(r.unrestricted_qty) || 0) > 0 ||
+              (parseFloat(r.reserved_qty) || 0) > 0,
+          );
+
           await this.setData({
-            [`gd_item_balance.table_item_balance`]: balanceData,
+            [`gd_item_balance.table_item_balance`]: filteredBalanceData,
           });
         }
       }
@@ -1327,6 +1336,22 @@
     } else {
       hideTab("handling_unit");
       activateTab("loose");
+    }
+
+    // Hide the loose tab when the loose table ended up empty after all filters
+    // (HU deduction, SO-line reserved overwrite + filter). If HU has data, switch
+    // active tab to handling_unit so the user doesn't land on a hidden tab.
+    {
+      const finalState = this.getValues();
+      const looseRowsFinal =
+        finalState.gd_item_balance?.table_item_balance || [];
+      const huRowsFinal = finalState.gd_item_balance?.table_hu || [];
+      if (looseRowsFinal.length === 0) {
+        hideTab("loose");
+        if (huRowsFinal.length > 0) {
+          activateTab("handling_unit");
+        }
+      }
     }
 
     window.validationState = window.validationState || {};
