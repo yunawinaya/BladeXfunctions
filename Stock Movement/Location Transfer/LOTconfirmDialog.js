@@ -118,7 +118,7 @@
     });
   }
 
-  // HU items the user actually wants to deliver
+  // HU items the user actually wants to sm
   const filteredHuData = processedHuData.filter(
     (item) => item.row_type === "item" && parseFloat(item.sm_quantity || 0) > 0,
   );
@@ -126,9 +126,9 @@
   // Validate HU rows: sm_quantity must not exceed available item_quantity.
   // HU items are always treated as Unrestricted, so no category check applies.
   for (const huItem of filteredHuData) {
-    const deliverQty = parseFloat(huItem.sm_quantity || 0);
+    const smQty = parseFloat(huItem.sm_quantity || 0);
     const availableQty = parseFloat(huItem.item_quantity || 0);
-    if (deliverQty > availableQty) {
+    if (smQty > availableQty) {
       const huHeader = huData.find(
         (row) =>
           row.row_type === "header" &&
@@ -136,7 +136,7 @@
       );
       const huName = huHeader?.handling_no || huItem.handling_unit_id;
       this.setData({
-        error_message: `HU ${huName}: deliver quantity (${deliverQty}) exceeds available (${availableQty}).`,
+        error_message: `HU ${huName}: sm quantity (${smQty}) exceeds available (${availableQty}).`,
       });
       isValid = false;
       break;

@@ -216,6 +216,7 @@
     itemData,
     altUOM,
     otherLinesHuAllocations,
+    reservedHuIdSet,
   ) => {
     try {
       const responseHU = await db
@@ -231,6 +232,9 @@
       const huTableData = [];
 
       for (const hu of allHUs) {
+        // Full HU exclusion: skip any HU with an active reservation in on_reserved_gd
+        if (reservedHuIdSet && reservedHuIdSet.has(hu.id)) continue;
+
         const allActiveItems = (hu.table_hu_items || []).filter(
           (item) => item.is_deleted !== 1,
         );
@@ -361,12 +365,12 @@
 
   // ============= MAIN =============
 
-  // Hide category-from/to + serial column; hu_select is unused in LOT
+  // Hide category-from/to + serial column. hu_select stays visible — LOT enforces
+  // NO_SPLIT (whole-HU pick) and the checkbox on header rows is the picker.
   this.hide([
     "sm_item_balance.table_item_balance.category_from",
     "sm_item_balance.table_item_balance.category_to",
     "sm_item_balance.table_item_balance.serial_number",
-    "sm_item_balance.table_hu.hu_select",
   ]);
 
   // Reset tables and clear category default
@@ -406,6 +410,56 @@
   const isBatchManaged = itemData.item_batch_management === 1;
   const isSerial = itemData.serial_number_management === 1;
 
+  // Active GD reservations for this material. Used to:
+  //   (a) Hide whole HUs that have any item reserved (full HU exclusion).
+  //   (b) Subtract loose-stock reservations (no handling_unit_id) from the
+  //       item_balance display so LOT doesn't pick stock already committed to GD.
+  let activeReservations = [];
+  try {
+    const reservationRes = await db
+      .collection("on_reserved_gd")
+      .where({
+        plant_id: plant_id,
+        organization_id: organizationId,
+        material_id: materialId,
+        is_deleted: 0,
+      })
+      .get();
+    activeReservations = (reservationRes.data || []).filter(
+      (r) => parseFloat(r.open_qty || 0) > 0 && r.status !== "Cancelled",
+    );
+  } catch (error) {
+    console.error("Error fetching on_reserved_gd:", error);
+  }
+
+  const convertReservedToBase = (qty, item_uom) => {
+    if (!item_uom || item_uom === itemData.based_uom) return qty;
+    const conv = itemData.table_uom_conversion?.find(
+      (c) => c.alt_uom_id === item_uom,
+    );
+    if (conv && conv.base_qty) return qty * conv.base_qty;
+    return qty;
+  };
+
+  const reservedHuIds = new Set();
+  const looseReservedMap = new Map();
+  for (const r of activeReservations) {
+    if (r.handling_unit_id) {
+      reservedHuIds.add(r.handling_unit_id);
+    } else {
+      const locId = r.bin_location;
+      if (!locId) continue;
+      const key = isBatchManaged
+        ? `${locId}-${r.batch_id || "no_batch"}`
+        : `${locId}`;
+      const qtyBase = convertReservedToBase(
+        parseFloat(r.open_qty || 0),
+        r.item_uom,
+      );
+      looseReservedMap.set(key, (looseReservedMap.get(key) || 0) + qtyBase);
+    }
+  }
+
   let looseRowCount = 0;
 
   // Filter out HU-bound records from temp_qty_data — those belong to table_hu
@@ -427,7 +481,8 @@
     return filterZeroQuantityRecords(finalData, itemDataLocal);
   };
 
-  // item_balance includes stock physically inside HUs — deduct so it isn't double-counted.
+  // item_balance includes stock physically inside HUs and stock reserved by other
+  // GDs — deduct both so loose display reflects what's actually available to LOT.
   // Skip serialized items: HU items don't carry serial_number.
   const applyLooseDeduction = async (freshDbData) => {
     if (isSerial) return freshDbData;
@@ -442,9 +497,17 @@
         ? `${row.location_id}-${row.batch_id || "no_batch"}`
         : `${row.location_id}`;
       const huQty = huQtyMap.get(key) || 0;
-      if (huQty > 0) {
-        row.unrestricted_qty = Math.max(0, (row.unrestricted_qty || 0) - huQty);
-        row.balance_quantity = Math.max(0, (row.balance_quantity || 0) - huQty);
+      const reservedQty = looseReservedMap.get(key) || 0;
+      const totalDeduct = huQty + reservedQty;
+      if (totalDeduct > 0) {
+        row.unrestricted_qty = Math.max(
+          0,
+          (row.unrestricted_qty || 0) - totalDeduct,
+        );
+        row.balance_quantity = Math.max(
+          0,
+          (row.balance_quantity || 0) - totalDeduct,
+        );
       }
     }
     return freshDbData;
@@ -598,6 +661,7 @@
     itemData,
     quantityUOM,
     otherLinesHuAllocations,
+    reservedHuIds,
   );
 
   // Reset both tabs to visible — clears any stale hide from a previous open
@@ -610,10 +674,12 @@
   if (hasHu) {
     await this.setData({ "sm_item_balance.table_hu": huTableData });
 
-    // Header rows are summary-only — only item rows accept user input
+    // NO_SPLIT UI: sm_quantity is auto-driven by hu_select on the header,
+    // never user-editable on any row. hu_select is only clickable on headers.
     huTableData.forEach((row, idx) => {
-      if (row.row_type === "header") {
-        this.disabled([`sm_item_balance.table_hu.${idx}.sm_quantity`], true);
+      this.disabled([`sm_item_balance.table_hu.${idx}.sm_quantity`], true);
+      if (row.row_type === "item") {
+        this.disabled([`sm_item_balance.table_hu.${idx}.hu_select`], true);
       }
     });
   }
