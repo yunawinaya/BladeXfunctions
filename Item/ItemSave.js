@@ -38,7 +38,7 @@ const validateForm = (data, requiredFields) => {
           const subValue = item[subField.name];
           if (validateField(subValue, subField)) {
             missingFields.push(
-              `${subField.label} (in ${field.label} #${index + 1})`
+              `${subField.label} (in ${field.label} #${index + 1})`,
             );
           }
         });
@@ -95,13 +95,13 @@ const generatePrefix = (runNumber, now, prefixData) => {
   generated = generated.replace("suffix", prefixData.suffix_value);
   generated = generated.replace(
     "month",
-    String(now.getMonth() + 1).padStart(2, "0")
+    String(now.getMonth() + 1).padStart(2, "0"),
   );
   generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
   generated = generated.replace("year", now.getFullYear());
   generated = generated.replace(
     "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0")
+    String(runNumber).padStart(prefixData.padding_zeroes, "0"),
   );
   return generated;
 };
@@ -133,7 +133,7 @@ const findUniquePrefix = async (prefixData) => {
 
   if (!isUnique) {
     this.$message.error(
-      "Could not generate a unique Item number after maximum attempts"
+      "Could not generate a unique Item number after maximum attempts",
     );
   }
 
@@ -181,7 +181,7 @@ const validateFormula = async (entry) => {
           {
             confirmButtonText: "Ok",
             type: "error",
-          }
+          },
         );
 
         throw new Error("Error processing formula.");
@@ -194,23 +194,23 @@ const validateUOMConversion = async (entry) => {
   const uomConversion = entry.table_uom_conversion;
 
   const latestConversion = uomConversion.filter(
-    (item) => item.alt_uom_id && item.alt_uom_id !== ""
+    (item) => item.alt_uom_id && item.alt_uom_id !== "",
   );
 
   console.log("latestConversion", latestConversion);
 
   const hasInvalidAltQty = latestConversion.filter(
-    (item, index) => (item.alt_qty === 1 || item.alt_qty === 0) && index !== 0
+    (item) => item.base_qty === 0,
   );
 
   if (hasInvalidAltQty.length > 0) {
     await this.$alert(
-      "Invalid Alt Qty. Alt Qty must be not equal to 0 or 1.",
-      "Invalid Alt Qty",
+      "Invalid Base Qty. Base Qty must be not equal to 0.",
+      "Invalid Base Qty",
       {
         confirmButtonText: "OK",
         type: "error",
-      }
+      },
     );
     throw new Error("Invalid UOM Conversion");
   }
@@ -226,7 +226,7 @@ const findMissingPriceLine = async (table, name) => {
     (item) =>
       (!item[`${name.tableName}_id`] || item[`${name.tableName}_id`] === "") &&
       (!item[`${name.fieldName}_price_tag_id`] ||
-        item[`${name.fieldName}_price_tag_id`] === "")
+        item[`${name.fieldName}_price_tag_id`] === ""),
   );
 
   return lineData;
@@ -238,7 +238,7 @@ const findDuplicatePriceLine = async (table, name) => {
       item[`${name.tableName}_id`] &&
       item[`${name.tableName}_id`] !== "" &&
       item[`${name.fieldName}_price_tag_id`] &&
-      item[`${name.fieldName}_price_tag_id`] !== ""
+      item[`${name.fieldName}_price_tag_id`] !== "",
   );
 };
 
@@ -385,18 +385,18 @@ const validatePurchaseAndSalesInformation = async (entry) => {
         {
           confirmButtonText: "OK",
           type: "error",
-        }
+        },
       );
       throw new Error(
         `Missing ${
           name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)
-        } Price Line`
+        } Price Line`,
       );
     }
 
     const duplicatePriceAccess = await findDuplicatePriceLine(
       accessTable,
-      name
+      name,
     );
 
     const duplicatePriceLine = await findDuplicatePriceLine(priceTable, name);
@@ -413,7 +413,7 @@ const validatePurchaseAndSalesInformation = async (entry) => {
           confirmButtonText: "OK",
           type: "error",
           dangerouslyUseHTMLString: true,
-        }
+        },
       );
       throw new Error("Duplicate Input");
     }
@@ -429,7 +429,7 @@ const validatePurchaseAndSalesInformation = async (entry) => {
         {
           confirmButtonText: "OK",
           type: "error",
-        }
+        },
       );
       console.log("invalidDateLine", invalidDateLine);
       throw new Error("Invalid Date Input");
@@ -483,13 +483,57 @@ const validatePurchaseAndSalesInformation = async (entry) => {
           confirmButtonText: "OK",
           type: "error",
           dangerouslyUseHTMLString: true,
-        }
+        },
       );
       throw new Error(
         `Invalid Data in ${
           name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)
-        } Price Line`
+        } Price Line`,
       );
+    }
+  }
+};
+
+const createBOM = async (data) => {
+  const autoBOM = data.auto_bom;
+
+  if (autoBOM) {
+    if (!data.bom_id || data.bom_id === "" || data.bom_id === null) {
+      const resBOM = await db.collection("bom_tree").add({
+        bom_level: 1,
+        bom_sort: 0,
+        organization_id: data.organization_id,
+
+        is_current_version: 1,
+        is_top_level: 1,
+        is_active: 1,
+        bom_status: "Unready",
+        bom_version: "V1",
+        base_quantity: 1,
+
+        material_id: data.id,
+        material_code: data.material_code,
+        material_name: data.material_name,
+        material_desc: data.material_desc,
+        category: data.item_category,
+        material_type: data.item_properties,
+        material_uom: data.based_uom,
+
+        bom_type: "STANDARD",
+      });
+
+      await db.collection("Item").doc(data.id).update({
+        bom_id: resBOM.data[0].id,
+        bom_status: resBOM.data[0].bom_status,
+      });
+
+      await db
+        .collection("bom_tree")
+        .doc(resBOM.data[0].id)
+        .update({
+          root_id: resBOM.data[0].id,
+          bom_path: "/" + resBOM.data[0].id + "/",
+        });
     }
   }
 };
@@ -509,6 +553,7 @@ const validatePurchaseAndSalesInformation = async (entry) => {
       { name: "material_code", label: "Item Code" },
       { name: "item_category", label: "Item Category" },
       { name: "based_uom", label: "Based UOM" },
+      { name: "item_properties", label: "Item Properties" },
     ];
 
     const missingFields = await validateForm(data, requiredFields);
@@ -522,74 +567,9 @@ const validatePurchaseAndSalesInformation = async (entry) => {
         organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
 
-      // Prepare entry data
-      let entry = {
-        is_active: data.is_active,
-        item_image: data.item_image,
-        material_type: data.material_type,
-        organization_id: organizationId,
-        material_code: data.material_code,
-        material_name: data.material_name,
-        item_category: data.item_category,
-        material_sub_category: data.material_sub_category,
-        material_desc: data.material_desc,
-        material_costing_method: data.material_costing_method,
-        stock_control: data.stock_control,
-        show_delivery: data.show_delivery,
-        show_receiving: data.show_receiving,
-        based_uom: data.based_uom,
-        item_properties: data.item_properties,
-        business_scope: Array.isArray(data.business_scope)
-          ? data.business_scope.join(",")
-          : data.business_scope,
-        table_uom_conversion: data.table_uom_conversion,
-        purchase_tariff_id: data.purchase_tariff_id,
-        mat_purchase_currency_id: data.mat_purchase_currency_id,
-        mat_purchase_tax_id: data.mat_purchase_tax_id,
-        purchase_tax_percent: data.purchase_tax_percent,
-        purchase_unit_price: data.purchase_unit_price,
-        sales_tariff_id: data.sales_tariff_id,
-        mat_sales_tax_id: data.mat_sales_tax_id,
-        sales_tax_percent: data.sales_tax_percent,
-        mat_sales_currency_id: data.mat_sales_currency_id,
-        sales_unit_price: data.sales_unit_price,
-        item_batch_management: data.item_batch_management,
-        batch_number_genaration:
-          data.batch_number_genaration || "According To System Settings",
-        serial_number_management: data.serial_number_management,
-        is_single_unit_serial: data.is_single_unit_serial,
-        serial_no_generate_rule: data.serial_no_generate_rule,
-        brand_id: data.brand_id,
-        brand_artwork_id: data.brand_artwork_id,
-        subform_packaging_remark: data.subform_packaging_remark,
-        reorder_level: data.reorder_level,
-        lead_time: data.lead_time,
-        assembly_cost: data.assembly_cost,
-        bom_related: data.bom_related,
-        reorder_quantity: data.reorder_quantity,
-        irbm_id: data.irbm_id,
-        production_time: data.production_time,
-        additional_remark: data.additional_remark,
-        over_receive_tolerance: data.over_receive_tolerance,
-        under_receive_tolerance: data.under_receive_tolerance,
-        over_delivery_tolerance: data.over_delivery_tolerance,
-        under_delivery_tolerance: data.under_delivery_tolerance,
-        posted_status: "",
-        barcode_number: data.barcode_number,
-        purchase_default_uom: data.purchase_default_uom,
-        sales_default_uom: data.sales_default_uom,
-        receiving_inspection: data.receiving_inspection,
-        table_default_bin: data.table_default_bin,
-        is_base: data.is_base,
-        last_transaction_date: data.last_transaction_date,
-        min_sales_qty: data.min_sales_qty,
-        min_purchase_qty: data.min_purchase_qty,
-        formula: data.formula,
-        table_sup_item_access: data.table_sup_item_access,
-        table_supplier_price: data.table_supplier_price,
-        table_cust_item_access: data.table_cust_item_access,
-        table_customer_price: data.table_customer_price,
-      };
+      let entry = data;
+      entry.batch_number_genaration =
+        entry.batch_number_genaration || "According To System Settings";
 
       console.log("JN", entry);
 
@@ -605,9 +585,8 @@ const validatePurchaseAndSalesInformation = async (entry) => {
             const prefixData = await getPrefixData(organizationId);
 
             if (prefixData.length !== 0) {
-              const { prefixToShow, runningNumber } = await findUniquePrefix(
-                prefixData
-              );
+              const { prefixToShow, runningNumber } =
+                await findUniquePrefix(prefixData);
 
               await updatePrefix(organizationId, runningNumber);
 
@@ -615,14 +594,15 @@ const validatePurchaseAndSalesInformation = async (entry) => {
             }
           }
 
-          await db.collection("Item").add(entry);
+          const resItem = await db.collection("Item").add(entry);
+          await createBOM(resItem.data[0]);
           this.$message.success("Add successfully.");
           await closeDialog();
         } catch (error) {
           console.error("Error adding item:", error);
           this.hideLoading();
           this.$message.error(
-            error.message || "An error occurred while adding the item."
+            error.message || "An error occurred while adding the item.",
           );
         }
       } else if (page_status === "Edit") {
@@ -632,7 +612,11 @@ const validatePurchaseAndSalesInformation = async (entry) => {
             throw new Error("Item ID not found");
           }
 
-          await db.collection("Item").doc(item_no).update(entry);
+          const resItem = await db
+            .collection("Item")
+            .doc(item_no)
+            .update(entry);
+          await createBOM(entry);
           this.$message.success("Update successfully.");
           // Close dialog after successful operation
           closeDialog();
@@ -640,7 +624,7 @@ const validatePurchaseAndSalesInformation = async (entry) => {
           console.error("Error updating item:", error);
           this.hideLoading();
           this.$message.error(
-            error.message || "An error occurred while updating the item."
+            error.message || "An error occurred while updating the item.",
           );
         }
       } else {
