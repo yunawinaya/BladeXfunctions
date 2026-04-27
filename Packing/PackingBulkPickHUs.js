@@ -58,7 +58,10 @@
       const tempDataEntries = childItems.map((child, idx) => ({
         line_index: idx,
         line_item_id: child.id,
-        item_id: child.item_id,
+        // Form schema for table_hu_source doesn't declare item_id, so it gets
+        // stripped on load. Use item_code (which IS in the schema) — matches
+        // what PackingPickItemToHU does for the same reason.
+        item_id: child.item_code,
         item_code: child.item_code,
         item_name: child.item_name,
         item_desc: child.item_desc,

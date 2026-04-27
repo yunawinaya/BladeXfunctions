@@ -75,7 +75,10 @@
     const children = childRows.map((c, i) => ({
       line_index: i,
       line_item_id: c.id,
-      item_id: c.item_id,
+      // Form schema for table_hu_source doesn't declare item_id, so it gets
+      // stripped on load. Use item_code (which IS in the schema) — matches
+      // what PackingPickItemToHU does for the same reason.
+      item_id: c.item_code,
       item_code: c.item_code,
       item_name: c.item_name,
       item_desc: c.item_desc,
