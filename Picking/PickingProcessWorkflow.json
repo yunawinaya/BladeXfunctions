@@ -2642,6 +2642,14 @@
                                   "value": "{{node:code_node_Z5JH4g2u.data.isForceComplete}}",
                                   "valueLabel": "",
                                   "propLabel": "isForceComplete"
+                                },
+                                {
+                                  "prop": "isLoadingBay",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:get_node_Uj1uV9PU.data.data.is_loading_bay}}",
+                                  "valueLabel": "",
+                                  "propLabel": "isLoadingBay"
                                 }
                               ]
                             }
@@ -2803,6 +2811,14 @@
                                   "value": "Yes",
                                   "valueLabel": "",
                                   "propLabel": "isPicking"
+                                },
+                                {
+                                  "prop": "isLoadingBay",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:get_node_Uj1uV9PU.data.data.is_loading_bay}}",
+                                  "valueLabel": "",
+                                  "propLabel": "isLoadingBay"
                                 }
                               ]
                             }
