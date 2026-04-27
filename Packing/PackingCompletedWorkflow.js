@@ -9,7 +9,7 @@ const closeDialog = () => {
 const showErrors = (errors) => {
   const preview = errors.slice(0, 3).join("; ");
   const suffix = errors.length > 3 ? ` (+${errors.length - 3} more)` : "";
-  this.$message.error(`Cannot complete packing: ${preview}${suffix}`);
+  this.$message.warning(`Cannot complete packing: ${preview}${suffix}`);
 };
 
 (async () => {
@@ -23,7 +23,7 @@ const showErrors = (errors) => {
       const remaining = parseFloat(r.remaining_qty) || 0;
       if (remaining > EPS || r.line_status !== "Fully Picked") {
         preErrors.push(
-          `Item ${r.item_code || r.item_name || r.id || "(?)"} is not fully packed.`,
+          `Item ${r.item_name || r.id || "(?)"} is not fully packed.`,
         );
       }
     }
