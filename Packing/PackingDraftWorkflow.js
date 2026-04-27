@@ -11,6 +11,25 @@ const closeDialog = () => {
     this.showLoading("Drafting Packing...");
 
     const data = this.getValues();
+
+    // Clear UI-only selection state before submitting — form checkboxes
+    // (bulk pick / single-select active target) that shouldn't persist.
+    if (Array.isArray(data.table_hu)) {
+      data.table_hu = data.table_hu.map((r) => ({ ...r, select_hu: 0 }));
+    }
+    if (Array.isArray(data.table_hu_source)) {
+      data.table_hu_source = data.table_hu_source.map((r) => ({
+        ...r,
+        hu_select: 0,
+      }));
+    }
+    if (Array.isArray(data.table_item_source)) {
+      data.table_item_source = data.table_item_source.map((r) => ({
+        ...r,
+        select_item: 0,
+      }));
+    }
+
     console.log("data", data);
 
     let workflowResult;

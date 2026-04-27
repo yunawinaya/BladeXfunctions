@@ -72,6 +72,15 @@ const showErrors = (errors) => {
           rowIndex: i,
         });
       }
+
+      // triggerEvent on this platform fires-and-forgets — the per-row Complete
+      // handler is still running async after the loop returns. Don't try to
+      // submit the packing now (it'd carry stale "Packed" rows). Tell the user
+      // to click again once the per-row work has settled.
+      this.$message.info(
+        `Auto-completing ${pendingIndexes.length} HU(s) — please click Save As Completed again in a moment.`,
+      );
+      return;
     }
 
     // ---- Re-read state and validate everything is now Completed ----
@@ -105,6 +114,26 @@ const showErrors = (errors) => {
 
     this.showLoading("Completing Packing...");
     const finalData = this.getValues();
+
+    // Clear UI-only selection state before submitting — these are form
+    // checkboxes (bulk pick on source / single-select active target on table_hu)
+    // that should never persist past save.
+    if (Array.isArray(finalData.table_hu)) {
+      finalData.table_hu = finalData.table_hu.map((r) => ({ ...r, select_hu: 0 }));
+    }
+    if (Array.isArray(finalData.table_hu_source)) {
+      finalData.table_hu_source = finalData.table_hu_source.map((r) => ({
+        ...r,
+        hu_select: 0,
+      }));
+    }
+    if (Array.isArray(finalData.table_item_source)) {
+      finalData.table_item_source = finalData.table_item_source.map((r) => ({
+        ...r,
+        select_item: 0,
+      }));
+    }
+
     console.log("data", finalData);
 
     let workflowResult;
