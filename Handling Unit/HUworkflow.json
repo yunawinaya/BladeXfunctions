@@ -1291,6 +1291,22 @@
               "value": "{{node:code_node_Li3O7y4d.data.hu_status}}",
               "valueLabel": "",
               "propLabel": "HU Status"
+            },
+            {
+              "prop": "storage_location_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{workflowparams:storage_location_id}}",
+              "valueLabel": "",
+              "propLabel": "Storage Location"
+            },
+            {
+              "prop": "location_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{workflowparams:location_id}}",
+              "valueLabel": "",
+              "propLabel": "Target Location"
             }
           ]
         }
