@@ -33,7 +33,8 @@ const {
   parentId,
   parentNo,
   pickingPlanId,
-  isPacking
+  isPacking,
+  isLoadingBay
 } = batchData;
 
 // Create item lookup Map from array (workflow platform can't pass object maps)
@@ -1458,15 +1459,17 @@ const allRecordsToCreate = [];
 const allInventoryMovements = [];
 const allHuUpdates = [];
 
-// Step 0: Detect bin+HU migrations (Packing-triggered Created saves only).
-// Gated on isPacking because direct user bin edits in temp_qty_data should
-// keep going through the release+reallocate path (cleanup RESERVED_TO_UNRESTRICTED
-// + fresh UNRESTRICTED_TO_RESERVED): the physical items follow the user's bin
-// change, so Unrestricted exists at the new bin and the two-step works.
-// Packing is different — physical items stay at source while bin/HU changes on
-// paper, so migration emits a direct Reserved shuttle without the Unrestricted
-// intermediate.
-if (saveAs === "Created" && isPacking === 1) {
+// Step 0: Detect bin+HU migrations (Packing- or LoadingBay-triggered Created saves).
+// Gated because direct user bin edits in temp_qty_data should keep going through
+// the release+reallocate path (cleanup RESERVED_TO_UNRESTRICTED + fresh
+// UNRESTRICTED_TO_RESERVED): the physical items follow the user's bin change,
+// so Unrestricted exists at the new bin and the two-step works.
+// Packing and LoadingBay are different — the move is paper-only relative to the
+// allocation lineage (Packing keeps items at source while bin/HU changes on paper;
+// LoadingBay shifts items to a staging bin via Picking but the same Reserved
+// allocation should follow). Both emit a direct Reserved shuttle without the
+// Unrestricted intermediate to preserve source_reserved_id and SO/Production chain.
+if (saveAs === "Created" && (isPacking === 1 || isLoadingBay === 1)) {
   const migrationResult = detectBinHuMigrations();
   allRecordsToUpdate.push(...migrationResult.recordsToUpdate);
   allRecordsToCreate.push(...migrationResult.recordsToCreate);
