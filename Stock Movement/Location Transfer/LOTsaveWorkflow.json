@@ -1304,12 +1304,6 @@
                                 "return_raw_data": 0
                               },
                               "blocks": []
-                            },
-                            {
-                              "id": "breakLoop_wzimxRNK",
-                              "type": "breakLoop",
-                              "data": { "title": "退出循环" },
-                              "blocks": []
                             }
                           ]
                         },
@@ -1567,12 +1561,6 @@
                                 },
                                 "return_raw_data": 0
                               },
-                              "blocks": []
-                            },
-                            {
-                              "id": "breakLoop_YrokxSPa",
-                              "type": "breakLoop",
-                              "data": { "title": "退出循环" },
                               "blocks": []
                             }
                           ]
@@ -2629,14 +2617,6 @@
                                                     "return_raw_data": 0
                                                   },
                                                   "blocks": []
-                                                },
-                                                {
-                                                  "id": "breakLoop_GCv7srxy",
-                                                  "type": "breakLoop",
-                                                  "data": {
-                                                    "title": "退出循环"
-                                                  },
-                                                  "blocks": []
                                                 }
                                               ]
                                             },
@@ -2885,14 +2865,6 @@
                                                       ]
                                                     },
                                                     "return_raw_data": 0
-                                                  },
-                                                  "blocks": []
-                                                },
-                                                {
-                                                  "id": "breakLoop_KNHGt3I1",
-                                                  "type": "breakLoop",
-                                                  "data": {
-                                                    "title": "退出循环"
                                                   },
                                                   "blocks": []
                                                 }
@@ -3377,14 +3349,6 @@
                                                     "return_raw_data": 0
                                                   },
                                                   "blocks": []
-                                                },
-                                                {
-                                                  "id": "breakLoop_jryHGa26",
-                                                  "type": "breakLoop",
-                                                  "data": {
-                                                    "title": "退出循环"
-                                                  },
-                                                  "blocks": []
                                                 }
                                               ]
                                             },
@@ -3633,14 +3597,6 @@
                                                       ]
                                                     },
                                                     "return_raw_data": 0
-                                                  },
-                                                  "blocks": []
-                                                },
-                                                {
-                                                  "id": "breakLoop_QeFOYchI",
-                                                  "type": "breakLoop",
-                                                  "data": {
-                                                    "title": "退出循环"
                                                   },
                                                   "blocks": []
                                                 }
@@ -5123,12 +5079,6 @@
                                 "return_raw_data": 0
                               },
                               "blocks": []
-                            },
-                            {
-                              "id": "break_YqHafhTx",
-                              "type": "breakLoop",
-                              "data": { "title": "退出循环" },
-                              "blocks": []
                             }
                           ]
                         },
@@ -5446,12 +5396,6 @@
                                         "return_raw_data": 0
                                       },
                                       "blocks": []
-                                    },
-                                    {
-                                      "id": "breakLoop_I81f7VVd",
-                                      "type": "breakLoop",
-                                      "data": { "title": "退出循环" },
-                                      "blocks": []
                                     }
                                   ]
                                 },
@@ -5741,12 +5685,6 @@
                                         "return_raw_data": 0
                                       },
                                       "blocks": []
-                                    },
-                                    {
-                                      "id": "break_W6ffTL1n",
-                                      "type": "breakLoop",
-                                      "data": { "title": "退出循环" },
-                                      "blocks": []
                                     }
                                   ]
                                 },
@@ -5754,6 +5692,261 @@
                                   "id": "if_block_s2l2uSkW",
                                   "type": "ifBlock",
                                   "data": { "title": "false" },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "code_node_DDcO5DOo",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "Aggregate HU Updates",
+                                "isValidator": true,
+                                "nodeName": "Aggregate HU Updates",
+                                "name": "Aggregate HU Updates",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "const allData = {{node:code_node_yPlLXIZW.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst plantId = allData.issuing_operation_faci;\nconst organizationId = allData.organization_id;\n\nconst huUpdatesMap = new Map();\nfor (const entry of balanceIndex) {\n  const huId = entry.handling_unit_id;\n  if (!huId) continue;\n  if (huUpdatesMap.has(huId)) continue;\n  const rowIdx = parseInt(entry.row_index, 10);\n  const smRow = stockMovement[rowIdx];\n  if (!smRow) continue;\n  if (!smRow.location_id || !smRow.storage_location_id) continue;\n  huUpdatesMap.set(huId, {\n    handling_unit_id: huId,\n    plant_id: plantId,\n    organization_id: organizationId,\n    location_id: smRow.location_id,\n    storage_location_id: smRow.storage_location_id,\n  });\n}\n\nreturn {\n  huUpdates: Array.from(huUpdatesMap.values()),\n  huUpdatesLength: huUpdatesMap.size,\n};\n"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "10s087fp",
+                                    "name": "huUpdates",
+                                    "title": "huUpdates",
+                                    "description": "",
+                                    "bsonType": "array",
+                                    "isExpand": true,
+                                    "children": [
+                                      {
+                                        "key": "nmi1rj8l",
+                                        "name": "items",
+                                        "title": "",
+                                        "description": "",
+                                        "bsonType": "any",
+                                        "isExpand": false,
+                                        "isArrayItem": true,
+                                        "children": []
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "key": "bcxpek2j",
+                                    "name": "huUpdatesLength",
+                                    "title": "huUpdatesLength",
+                                    "description": "",
+                                    "bsonType": "int",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "loop_ZCizlmVG",
+                              "type": "loop",
+                              "data": {
+                                "title": "Loop huUpdates",
+                                "isValidator": true,
+                                "nodeName": "Loop huUpdates",
+                                "name": "Loop huUpdates",
+                                "loopType": "Var",
+                                "loopSeletSource": {
+                                  "datasource": {
+                                    "rules": {
+                                      "collectionId": "",
+                                      "list": [
+                                        {
+                                          "id": 1723795236686,
+                                          "parentId": 1723795236685,
+                                          "isTop": true,
+                                          "prop": "",
+                                          "operator": "",
+                                          "valueType": "",
+                                          "value": "",
+                                          "type": "leaf",
+                                          "level": 1
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "auto_refresh": 1,
+                                  "auto_refresh_debounce": 100,
+                                  "options": [],
+                                  "props": {
+                                    "value": "",
+                                    "label": "",
+                                    "image": "",
+                                    "icon": "",
+                                    "explain": ""
+                                  },
+                                  "remote": false,
+                                  "remoteType": "datasource"
+                                },
+                                "loopSeletVar": {
+                                  "type": "markdown",
+                                  "code": "{{node:code_node_DDcO5DOo.data.huUpdates}}"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "code_node_eWmMM4Ff",
+                                  "type": "code-node",
+                                  "data": {
+                                    "language": "javascript",
+                                    "code": "",
+                                    "timeout": 30000,
+                                    "title": "Pick HU Updates",
+                                    "isValidator": true,
+                                    "nodeName": "Pick HU Updates",
+                                    "name": "Pick HU Updates",
+                                    "script": {
+                                      "type": "javascript",
+                                      "code": "const u = {{node:loop_ZCizlmVG}}\n\nreturn {\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n};\n"
+                                    },
+                                    "response_json": [
+                                      {
+                                        "key": "uf1xfisl",
+                                        "name": "handling_unit_id",
+                                        "title": "handling_unit_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "gf157u1b",
+                                        "name": "plant_id",
+                                        "title": "plant_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "njv6iiyl",
+                                        "name": "organization_id",
+                                        "title": "organization_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "5wrkdcee",
+                                        "name": "location_id",
+                                        "title": "location_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "t6bw1kp9",
+                                        "name": "storage_location_id",
+                                        "title": "storage_location_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      }
+                                    ]
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "workflow_node_vVPX9VI7",
+                                  "type": "workflow-node",
+                                  "data": {
+                                    "workflow_id": "",
+                                    "workflow_name": "",
+                                    "input_params": {},
+                                    "title": "Run Handling Unit Workflow",
+                                    "isValidator": true,
+                                    "nodeName": "Run Handling Unit Workflow",
+                                    "name": "Run Handling Unit Workflow",
+                                    "workflow": {
+                                      "source": "HANDLING_UNIT:Workflow:2037062451509002241",
+                                      "rules": {
+                                        "collectionId": "2037062451509002241",
+                                        "list": [
+                                          {
+                                            "id": 1723795236686,
+                                            "parentId": 1723795236685,
+                                            "isTop": true,
+                                            "prop": "",
+                                            "operator": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "type": "leaf",
+                                            "level": 1
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "remote": true,
+                                    "remoteType": "innerdatasource",
+                                    "body_params": {
+                                      "list": [
+                                        {
+                                          "prop": "handling_unit_id",
+                                          "propLabel": "handling_unit_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_eWmMM4Ff.data.handling_unit_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "plant_id",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_eWmMM4Ff.data.plant_id}}",
+                                          "valueLabel": "",
+                                          "propLabel": "plant_id"
+                                        },
+                                        {
+                                          "prop": "organization_id",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_eWmMM4Ff.data.organization_id}}",
+                                          "valueLabel": "",
+                                          "propLabel": "organization_id"
+                                        },
+                                        {
+                                          "prop": "storage_location_id",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_eWmMM4Ff.data.storage_location_id}}",
+                                          "valueLabel": "",
+                                          "propLabel": "storage_location_id"
+                                        },
+                                        {
+                                          "prop": "location_id",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_eWmMM4Ff.data.location_id}}",
+                                          "valueLabel": "",
+                                          "propLabel": "location_id"
+                                        },
+                                        {
+                                          "prop": "table_hu_items",
+                                          "operator": "",
+                                          "valueType": "value",
+                                          "value": "[]",
+                                          "valueLabel": "",
+                                          "propLabel": "table_hu_items"
+                                        },
+                                        {
+                                          "prop": "process_type",
+                                          "operator": "",
+                                          "valueType": "value",
+                                          "value": "move",
+                                          "valueLabel": "",
+                                          "propLabel": "process_type"
+                                        }
+                                      ]
+                                    }
+                                  },
                                   "blocks": []
                                 }
                               ]
