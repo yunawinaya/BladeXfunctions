@@ -245,8 +245,7 @@
           // ALLOW_SPLIT: keep only items matching the current material; skip the
           // HU entirely if it has none.
           const allActiveItems = (hu.table_hu_items || []).filter(
-            (item) =>
-              item.is_deleted !== 1 && item.material_id === matId,
+            (item) => item.is_deleted !== 1 && item.material_id === matId,
           );
           if (allActiveItems.length === 0) continue;
 

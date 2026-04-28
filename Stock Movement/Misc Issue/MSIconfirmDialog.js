@@ -1,5 +1,7 @@
 (async () => {
+  console.log("test");
   const allData = this.getValues();
+  console.log("allData", allData);
   const temporaryData = allData.sm_item_balance.table_item_balance;
   const huData = allData.sm_item_balance.table_hu || [];
   const rowIndex = allData.sm_item_balance.row_index;
@@ -8,15 +10,17 @@
 
   let isValid = true;
 
-  const allValid = temporaryData.every((item, idx) => {
-    const valid =
-      window.validationState && window.validationState[idx] !== false;
-    return valid;
-  });
+  // const allValid = temporaryData.every((item, idx) => {
+  //   console.log('window.validationState', window.validationState)
+  //   const valid =
+  //     window.validationState && window.validationState[idx] !== false;
+  //   return valid;
+  // });
 
-  if (!allValid) {
-    return;
-  }
+  // if (!allValid) {
+  //   console.log('allValid', allValid)
+  //   return;
+  // }
 
   const gdUOM = await db
     .collection("unit_of_measurement")
