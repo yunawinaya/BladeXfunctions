@@ -229,6 +229,7 @@
   const huAsBalanceRowsBase = filteredHuData.map((huItem) => ({
     material_id: huItem.material_id,
     location_id: huItem.location_id,
+    storage_location_id: huItem.storage_location_id || null,
     batch_id: huItem.batch_id || null,
     balance_id: huItem.balance_id || "",
     sm_quantity: parseFloat(huItem.sm_quantity) || 0,

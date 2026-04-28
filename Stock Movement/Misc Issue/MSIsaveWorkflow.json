@@ -1662,6 +1662,362 @@
                   "blocks": []
                 }
               ]
+            },
+            {
+              "id": "code_node_lQC8Yp2y",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Aggregate HU Unloads",
+                "isValidator": true,
+                "nodeName": "Aggregate HU Unloads",
+                "name": "Aggregate HU Unloads",
+                "script": {
+                  "type": "javascript",
+                  "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}};\nconst balanceIndex = allData.balance_index || [];\nconst plantId = allData.issuing_operation_faci;\nconst organizationId = allData.organization_id;\n\nconst huUpdatesMap = new Map();\nfor (const entry of balanceIndex) {\n  const huId = entry.handling_unit_id;\n  if (!huId) continue;\n  const qty = parseFloat(entry.sm_quantity || 0);\n  if (qty <= 0) continue;\n\n  if (!huUpdatesMap.has(huId)) {\n    huUpdatesMap.set(huId, {\n      handling_unit_id: huId,\n      plant_id: plantId,\n      organization_id: organizationId,\n      location_id: entry.location_id || null,\n      storage_location_id: entry.storage_location_id || null,\n      items: [],\n    });\n  }\n  const update = huUpdatesMap.get(huId);\n\n  // Aggregate qty per (material_id, balance_id, batch_id) — matches HUworkflow's unload key\n  const key = `${entry.material_id}__${entry.balance_id || \"\"}__${entry.batch_id || \"\"}`;\n  const existing = update.items.find(\n    (i) => `${i.material_id}__${i.balance_id || \"\"}__${i.batch_id || \"\"}` === key\n  );\n  if (existing) {\n    existing.quantity += qty;\n  } else {\n    update.items.push({\n      material_id: entry.material_id,\n      balance_id: entry.balance_id || \"\",\n      batch_id: entry.batch_id || null,\n      quantity: qty,\n    });\n  }\n}\n\nreturn {\n  huUpdates: Array.from(huUpdatesMap.values()),\n  huUpdatesLength: huUpdatesMap.size,\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "go76sbii",
+                    "name": "huUpdatesLength",
+                    "title": "huUpdatesLength",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "a3q59cnv",
+                    "name": "huUpdates",
+                    "title": "huUpdates",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "eusndgim",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "loop_ONoGvpqr",
+              "type": "loop",
+              "data": {
+                "title": "Loop HU Unloads",
+                "isValidator": true,
+                "nodeName": "Loop HU Unloads",
+                "name": "Loop HU Unloads",
+                "loopType": "Var",
+                "loopSeletSource": {
+                  "datasource": {
+                    "rules": {
+                      "collectionId": "",
+                      "list": [
+                        {
+                          "id": 1723795236686,
+                          "parentId": 1723795236685,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    }
+                  },
+                  "auto_refresh": 1,
+                  "auto_refresh_debounce": 100,
+                  "options": [],
+                  "props": {
+                    "value": "",
+                    "label": "",
+                    "image": "",
+                    "icon": "",
+                    "explain": ""
+                  },
+                  "remote": false,
+                  "remoteType": "datasource"
+                },
+                "loopSeletVar": {
+                  "type": "markdown",
+                  "code": "{{node:code_node_lQC8Yp2y.data.huUpdates}}"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "code_node_rx6UIltj",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "Pick HU Unload",
+                    "isValidator": true,
+                    "nodeName": "Pick HU Unload",
+                    "name": "Pick HU Unload",
+                    "script": {
+                      "type": "javascript",
+                      "code": "const u = {{node:loop_ONoGvpqr}};\nreturn {\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n};\n"
+                    },
+                    "response_json": [
+                      {
+                        "key": "3ucpicpf",
+                        "name": "handling_unit_id",
+                        "title": "handling_unit_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "5o4q79xf",
+                        "name": "plant_id",
+                        "title": "plant_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "3817k1zs",
+                        "name": "organization_id",
+                        "title": "organization_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "wvnxesl9",
+                        "name": "location_id",
+                        "title": "location_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "y874ll5q",
+                        "name": "storage_location_id",
+                        "title": "storage_location_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "2cko1v42",
+                        "name": "table_hu_items",
+                        "title": "table_hu_items",
+                        "description": "",
+                        "bsonType": "array",
+                        "isExpand": true,
+                        "children": [
+                          {
+                            "key": "hfei9k9d",
+                            "name": "items",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "isArrayItem": true,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "workflow_node_hbeq1BRE",
+                  "type": "workflow-node",
+                  "data": {
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "Run Handling Unit Workflow",
+                    "isValidator": true,
+                    "nodeName": "Run Handling Unit Workflow",
+                    "name": "Run Handling Unit Workflow",
+                    "workflow": {
+                      "source": "HANDLING_UNIT:Workflow:2037062451509002241",
+                      "rules": {
+                        "collectionId": "2037062451509002241",
+                        "list": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "handling_unit_id",
+                          "propLabel": "handling_unit_id",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:code_node_rx6UIltj.data.handling_unit_id}}",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "plant_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_rx6UIltj.data.plant_id}}",
+                          "valueLabel": "",
+                          "propLabel": "plant_id"
+                        },
+                        {
+                          "prop": "organization_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_rx6UIltj.data.organization_id}}",
+                          "valueLabel": "",
+                          "propLabel": "organization_id"
+                        },
+                        {
+                          "prop": "storage_location_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_rx6UIltj.data.storage_location_id}}",
+                          "valueLabel": "",
+                          "propLabel": "storage_location_id"
+                        },
+                        {
+                          "prop": "location_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_rx6UIltj.data.location_id}}",
+                          "valueLabel": "",
+                          "propLabel": "location_id"
+                        },
+                        {
+                          "prop": "table_hu_items",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_rx6UIltj.data.table_hu_items}}",
+                          "valueLabel": "",
+                          "propLabel": "table_hu_items"
+                        },
+                        {
+                          "prop": "process_type",
+                          "operator": "",
+                          "valueType": "value",
+                          "value": "unload",
+                          "valueLabel": "",
+                          "propLabel": "process_type"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "if_cyoKOxVl",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Error",
+                    "isValidator": true,
+                    "nodeName": "IF Error",
+                    "name": "IF Error",
+                    "condition_type": "ConditionRule",
+                    "expression": { "type": "javascript", "code": "" },
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1736695973613,
+                          "parentId": 1736695973612,
+                          "isTop": true,
+                          "prop": "node.workflow_node_hbeq1BRE.data.code",
+                          "operator": "equal",
+                          "valueType": "value",
+                          "value": "400",
+                          "type": "leaf",
+                          "level": 1,
+                          "propLabel": "code",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_block_AZbIrDpl",
+                      "type": "ifBlock",
+                      "data": { "title": "true" },
+                      "blocks": [
+                        {
+                          "id": "return_node_f3qT9zy5",
+                          "type": "return-node",
+                          "data": {
+                            "return_data": {},
+                            "status_code": 200,
+                            "title": "Return Data",
+                            "isValidator": true,
+                            "nodeName": "Return Data",
+                            "name": "Return Data",
+                            "response_value": {
+                              "list": [
+                                {
+                                  "prop": "code",
+                                  "propLabel": "code",
+                                  "operator": "",
+                                  "operatorLabel": "",
+                                  "valueType": "field",
+                                  "valueTypeLabel": "",
+                                  "value": "{{node:workflow_node_hbeq1BRE.data.code}}",
+                                  "valueLabel": ""
+                                },
+                                {
+                                  "prop": "message",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:workflow_node_hbeq1BRE.data.message}}",
+                                  "valueLabel": "",
+                                  "propLabel": "message"
+                                }
+                              ]
+                            },
+                            "return_raw_data": 0
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_block_hkGUcsoO",
+                      "type": "ifBlock",
+                      "data": { "title": "false" },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
