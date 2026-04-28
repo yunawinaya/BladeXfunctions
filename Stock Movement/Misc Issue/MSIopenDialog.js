@@ -212,8 +212,9 @@
       }
     };
 
-    // Fetch HUs for the material. "No mixed item HU" rule: only show HUs whose every
-    // active item matches the current row's material (foreign-item HUs are skipped).
+    // Fetch HUs for the material. ALLOW_SPLIT: include HUs that contain the current
+    // material; filter table_hu_items down to only the matching items (foreign items
+    // in the same HU are hidden from view, not blocking).
     const fetchHandlingUnits = async (
       plantId,
       orgId,
@@ -241,16 +242,13 @@
           // Full HU exclusion: skip any HU with an active reservation in on_reserved_gd
           if (reservedHuIdSet && reservedHuIdSet.has(hu.id)) continue;
 
+          // ALLOW_SPLIT: keep only items matching the current material; skip the
+          // HU entirely if it has none.
           const allActiveItems = (hu.table_hu_items || []).filter(
-            (item) => item.is_deleted !== 1,
+            (item) =>
+              item.is_deleted !== 1 && item.material_id === matId,
           );
           if (allActiveItems.length === 0) continue;
-
-          // No mixed-item HUs: skip if any active item is a different material
-          const allMatch = allActiveItems.every(
-            (item) => item.material_id === matId,
-          );
-          if (!allMatch) continue;
 
           // Header row placeholder — item_quantity updated after items are added
           const headerRow = {
@@ -325,10 +323,9 @@
             r.row_type === "item" || huIdsWithItems.has(r.handling_unit_id),
         );
 
-        // Restore sm_quantity from existing temp_hu_data on re-open, and re-check
-        // hu_select on the matching header rows so the UI reflects prior selection.
+        // Restore sm_quantity from existing temp_hu_data on re-open.
+        // ALLOW_SPLIT: no hu_select to re-check (column is hidden in MSI).
         const parsedTempHu = parseJSON(tempHuStr);
-        const huIdsWithAllocation = new Set();
         for (const tempItem of parsedTempHu) {
           if (tempItem.row_type !== "item") continue;
           const match = filtered.find(
@@ -340,22 +337,6 @@
           );
           if (match) {
             match.sm_quantity = tempItem.sm_quantity || 0;
-            if (match.sm_quantity > 0) {
-              huIdsWithAllocation.add(tempItem.handling_unit_id);
-            }
-          }
-        }
-
-        // LOT enforces NO_SPLIT: set hu_select = 1 on headers whose HU has any
-        // restored allocation, so the checkbox state matches the item rows.
-        if (huIdsWithAllocation.size > 0) {
-          for (const row of filtered) {
-            if (
-              row.row_type === "header" &&
-              huIdsWithAllocation.has(row.handling_unit_id)
-            ) {
-              row.hu_select = 1;
-            }
           }
         }
 
@@ -390,12 +371,13 @@
 
     // ============= MAIN =============
 
-    // Hide category-from/to + serial column. hu_select stays visible — LOT enforces
-    // NO_SPLIT (whole-HU pick) and the checkbox on header rows is the picker.
+    // Hide category-from/to + serial column. MSI uses ALLOW_SPLIT — user picks
+    // per-item sm_quantity manually; hu_select column is hidden.
     this.hide([
       "sm_item_balance.table_item_balance.category_from",
       "sm_item_balance.table_item_balance.category_to",
       "sm_item_balance.table_item_balance.serial_number",
+      "sm_item_balance.table_hu.hu_select",
     ]);
 
     // Reset tables and clear category default
@@ -438,7 +420,7 @@
     // Active GD reservations for this material. Used to:
     //   (a) Hide whole HUs that have any item reserved (full HU exclusion).
     //   (b) Subtract loose-stock reservations (no handling_unit_id) from the
-    //       item_balance display so LOT doesn't pick stock already committed to GD.
+    //       item_balance display so MSI doesn't pick stock already committed to GD.
     let activeReservations = [];
     try {
       const reservationRes = await db
@@ -488,9 +470,9 @@
     let looseRowCount = 0;
 
     // Filter out HU-bound records from temp_qty_data — those belong to table_hu.
-    // Final filter drops rows with no transferable stock: only rows with
+    // Final filter drops rows with no issuable stock: only rows with
     // unrestricted_qty > 0 OR block_qty > 0 are kept (Reserved / QI / InTransit
-    // categories aren't transferable via LOT).
+    // categories aren't issuable via MSI).
     const processBalanceData = (itemBalanceData, itemDataLocal) => {
       const mappedData = mapBalanceData(itemBalanceData);
       let finalData = mappedData;
@@ -514,7 +496,7 @@
     };
 
     // item_balance includes stock physically inside HUs and stock reserved by other
-    // GDs — deduct both so loose display reflects what's actually available to LOT.
+    // GDs — deduct both so loose display reflects what's actually available to MSI.
     // Skip serialized items: HU items don't carry serial_number.
     const applyLooseDeduction = async (freshDbData) => {
       if (isSerial) return freshDbData;
@@ -706,12 +688,11 @@
     if (hasHu) {
       await this.setData({ "sm_item_balance.table_hu": huTableData });
 
-      // NO_SPLIT UI: sm_quantity is auto-driven by hu_select on the header,
-      // never user-editable on any row. hu_select is only clickable on headers.
+      // ALLOW_SPLIT UI: user manually edits sm_quantity per item row.
+      // Header rows are summary-only — disable their sm_quantity.
       huTableData.forEach((row, idx) => {
-        this.disabled([`sm_item_balance.table_hu.${idx}.sm_quantity`], true);
-        if (row.row_type === "item") {
-          this.disabled([`sm_item_balance.table_hu.${idx}.hu_select`], true);
+        if (row.row_type === "header") {
+          this.disabled([`sm_item_balance.table_hu.${idx}.sm_quantity`], true);
         }
       });
     }
@@ -727,7 +708,7 @@
       activateTab("loose");
     }
   } catch (error) {
-    console.error("Error in LOT inventory dialog:", error);
+    console.error("Error in MSI inventory dialog:", error);
   } finally {
     this.hideLoading();
   }
