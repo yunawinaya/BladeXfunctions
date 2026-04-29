@@ -62,6 +62,40 @@
       "blocks": []
     },
     {
+      "id": "get_node_XlbxIscw",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Picking Setup:Table:1935547845324787714",
+          "rules": {
+            "collectionId": "1935547845324787714",
+            "list": [
+              {
+                "id": 1777426388977,
+                "parentId": 1777426388976,
+                "isTop": true,
+                "prop": "plant_id",
+                "operator": "numberEqual",
+                "valueType": "field",
+                "value": "{{workflowparams:plant_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Plant ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get Picking Setup",
+        "isValidator": true,
+        "nodeName": "Get Picking Setup",
+        "name": "Get Picking Setup"
+      },
+      "blocks": []
+    },
+    {
       "id": "code_node_PYFZeGpr",
       "type": "code-node",
       "data": {
