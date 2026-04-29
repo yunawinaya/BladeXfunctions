@@ -402,6 +402,24 @@ const displayPlanQty = async (data) => {
   }
 };
 
+const displayPickedFieldsIfFullPicking = async (organizationId) => {
+  if (!organizationId) return;
+  try {
+    const setupData = await db
+      .collection("picking_setup")
+      .where({ organization_id: organizationId })
+      .get();
+    if (setupData?.data?.[0]?.allow_full_picking === 1) {
+      this.display([
+        "table_gd.picked_qty",
+        "table_gd.picked_view_stock",
+      ]);
+    }
+  } catch (error) {
+    console.error("Error reading picking_setup:", error);
+  }
+};
+
 // Main execution function
 (async () => {
   try {
@@ -493,6 +511,7 @@ const displayPlanQty = async (data) => {
         await displayDeliveryMethod();
         await fetchDeliveredQuantity();
         await displayPlanQty(data);
+        await displayPickedFieldsIfFullPicking(organizationId);
         break;
 
       case "View":
@@ -500,6 +519,7 @@ const displayPlanQty = async (data) => {
         await displayDeliveryMethod();
         await setPickingSetup(data);
         await displayPlanQty(data);
+        await displayPickedFieldsIfFullPicking(organizationId);
         this.hide([
           "link_billing_address",
           "link_shipping_address",
