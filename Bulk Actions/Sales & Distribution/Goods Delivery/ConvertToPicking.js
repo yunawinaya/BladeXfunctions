@@ -29,12 +29,24 @@ const isFullPickingEnabled = async (organizationId) => {
   }
 };
 
-// Sum qty_to_pick across non-terminal Pickings, keyed by gd_line_id.
-// Used to gate Convert to Picking when allow_full_picking is ON so that
-// multiple Created Pickings don't collectively over-allocate a GD line.
-const buildInFlightQtyMap = async (gdIds) => {
-  const inFlight = {};
-  if (!Array.isArray(gdIds) || gdIds.length === 0) return inFlight;
+// Build a per-bin "consumed" map from authoritative TO data:
+//   { [gd_line_id]: { [`${source_bin}_${batch}_${hu}`]: consumedQty } }
+// Sources:
+//   - Completed TOs: store_out_qty from table_picking_records (skip Cancelled lines)
+//   - Non-Completed, non-Cancelled TOs: qty_to_pick from table_picking_items
+// This map drives both the eligibility filter (sum across keys per line) and
+// the per-bin subtraction in SplitPickingConfirm.js — single source of truth,
+// no reliance on denormalized picked_qty / picked_temp_qty_data fields.
+const buildConsumedQtyMap = async (gdIds) => {
+  const consumed = {};
+  if (!Array.isArray(gdIds) || gdIds.length === 0) return consumed;
+
+  const binKeyOf = (loc, batch, hu) =>
+    (loc || "no-loc") +
+    "_" +
+    (batch || "no-batch") +
+    "_" +
+    (hu || "no-hu");
 
   await Promise.all(
     gdIds.map(async (gdId) => {
@@ -44,34 +56,65 @@ const buildInFlightQtyMap = async (gdIds) => {
           .where({ gd_no: gdId })
           .get();
         for (const to of toResult?.data || []) {
-          if (to.to_status === "Completed" || to.to_status === "Cancelled") {
-            continue;
-          }
-          for (const item of to.table_picking_items || []) {
-            if (!item.gd_line_id) continue;
-            const qty = parseFloat(item.qty_to_pick || 0);
-            inFlight[item.gd_line_id] = (inFlight[item.gd_line_id] || 0) + qty;
+          if (to.to_status === "Cancelled") continue;
+
+          if (to.to_status === "Completed") {
+            for (const rec of to.table_picking_records || []) {
+              if (rec.line_status === "Cancelled") continue;
+              const lid = String(rec.gd_line_id || "");
+              if (!lid) continue;
+              const k = binKeyOf(
+                rec.source_bin,
+                rec.batch_no,
+                rec.handling_unit_id,
+              );
+              consumed[lid] = consumed[lid] || {};
+              consumed[lid][k] =
+                (consumed[lid][k] || 0) + parseFloat(rec.store_out_qty || 0);
+            }
+          } else {
+            for (const item of to.table_picking_items || []) {
+              if (item.row_type === "header") continue;
+              if (item.line_status === "Cancelled") continue;
+              const lid = String(item.gd_line_id || "");
+              if (!lid) continue;
+              const batch = item.batch_no || item.item_batch_id || null;
+              const k = binKeyOf(
+                item.source_bin,
+                batch,
+                item.handling_unit_id,
+              );
+              consumed[lid] = consumed[lid] || {};
+              consumed[lid][k] =
+                (consumed[lid][k] || 0) + parseFloat(item.qty_to_pick || 0);
+            }
           }
         }
       } catch (err) {
-        console.error(`Error fetching in-flight TOs for gd ${gdId}:`, err);
+        console.error(`Error building consumed map for gd ${gdId}:`, err);
       }
     }),
   );
 
-  return inFlight;
+  return consumed;
 };
 
-const lineRemainingPickable = (gdItem, inFlightMap) => {
-  const inFlight = inFlightMap?.[gdItem.id] || 0;
-  return (gdItem.gd_qty || 0) - (gdItem.picked_qty || 0) - inFlight;
+const sumConsumedForLine = (consumedByLine, lineId) => {
+  const m = consumedByLine?.[String(lineId)];
+  if (!m) return 0;
+  let total = 0;
+  for (const v of Object.values(m)) total += v;
+  return total;
 };
 
-const hasPickableLine = (item, fullPickingEnabled, inFlightMap) => {
+const lineRemainingPickable = (gdItem, consumedByLine) =>
+  (gdItem.gd_qty || 0) - sumConsumedForLine(consumedByLine, gdItem.id);
+
+const hasPickableLine = (item, fullPickingEnabled, consumedByLine) => {
   if (fullPickingEnabled) {
     return item.table_gd.some(
       (gdItem) =>
-        lineRemainingPickable(gdItem, inFlightMap) > 0 &&
+        lineRemainingPickable(gdItem, consumedByLine) > 0 &&
         gdItem.picking_status !== "Completed" &&
         gdItem.picking_status !== "Cancelled",
     );
@@ -81,11 +124,11 @@ const hasPickableLine = (item, fullPickingEnabled, inFlightMap) => {
   );
 };
 
-const countPickableLines = (item, fullPickingEnabled, inFlightMap) => {
+const countPickableLines = (item, fullPickingEnabled, consumedByLine) => {
   if (fullPickingEnabled) {
     return item.table_gd.filter(
       (gdItem) =>
-        lineRemainingPickable(gdItem, inFlightMap) > 0 &&
+        lineRemainingPickable(gdItem, consumedByLine) > 0 &&
         gdItem.picking_status !== "Completed" &&
         gdItem.picking_status !== "Cancelled",
     ).length;
@@ -180,18 +223,18 @@ const handlePicking = async (selectedRecords) => {
         selectedRecords[0].organization_id,
       );
 
-      const inFlightMap = fullPickingEnabled
-        ? await buildInFlightQtyMap(selectedRecords.map((r) => r.id))
+      const consumedByLine = fullPickingEnabled
+        ? await buildConsumedQtyMap(selectedRecords.map((r) => r.id))
         : {};
 
       selectedRecords = selectedRecords.filter((item) =>
-        hasPickableLine(item, fullPickingEnabled, inFlightMap),
+        hasPickableLine(item, fullPickingEnabled, consumedByLine),
       );
 
       if (selectedRecords.length === 0) {
         await this.$alert(
           fullPickingEnabled
-            ? "No selected records have remaining quantity to pick (after accounting for non-Completed Pickings already in flight)."
+            ? "No selected records have remaining quantity to pick (after accounting for committed picks and in-flight reservations)."
             : "No selected records are available for conversion. Please select records with picking status 'Not Created'.",
           "No Records to Convert",
           {
@@ -211,7 +254,7 @@ const handlePicking = async (selectedRecords) => {
       const pickableItems = countPickableLines(
         item,
         fullPickingEnabled,
-        inFlightMap,
+        consumedByLine,
       );
       return `${item.delivery_no} (${pickableItems}/${totalItems} items)`;
     })
@@ -243,6 +286,7 @@ const handlePicking = async (selectedRecords) => {
               "",
             organization_id: selectedRecords[0].organization_id || "",
             list_component_id: allListID,
+            consumed_by_line: consumedByLine,
             groups: [],
             index: 0,
             assignees: [],

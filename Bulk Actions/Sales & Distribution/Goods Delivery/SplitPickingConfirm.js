@@ -4,26 +4,21 @@
 // dialog_assignee for the first group. SplitPickingAssigneeConfirm.js takes
 // over from there, walking the user through each group sequentially.
 
-const subtractPickedFromTemp = (gdItem) => {
+// Subtract authoritative consumed qty (committed picks from Completed TOs +
+// in-flight reservations from non-Completed TOs) per (location, batch, HU)
+// from the GD line's temp_qty_data. Yields the qty that's still actually
+// pickable per source bin. The consumedByLine map is built upstream in
+// ConvertToPicking.js (buildConsumedQtyMap) and passed via split_state.
+const subtractConsumed = (line, consumedByLine) => {
   let tempArr = [];
   try {
-    tempArr = gdItem.temp_qty_data ? JSON.parse(gdItem.temp_qty_data) : [];
+    tempArr = line.temp_qty_data ? JSON.parse(line.temp_qty_data) : [];
   } catch (e) {
     tempArr = [];
   }
-
-  let pickedArr = [];
-  try {
-    pickedArr = gdItem.picked_temp_qty_data
-      ? JSON.parse(gdItem.picked_temp_qty_data)
-      : [];
-  } catch (e) {
-    pickedArr = [];
-  }
-
   if (!Array.isArray(tempArr) || tempArr.length === 0) return [];
-  if (!Array.isArray(pickedArr) || pickedArr.length === 0) return tempArr;
 
+  const consumed = (consumedByLine || {})[String(line.id)] || {};
   const keyOf = (e) =>
     (e.location_id || "no-loc") +
     "_" +
@@ -31,18 +26,9 @@ const subtractPickedFromTemp = (gdItem) => {
     "_" +
     (e.handling_unit_id || "no-hu");
 
-  const pickedByKey = new Map();
-  for (const p of pickedArr) {
-    const k = keyOf(p);
-    pickedByKey.set(
-      k,
-      (pickedByKey.get(k) || 0) + parseFloat(p.gd_quantity || 0),
-    );
-  }
-
   const remaining = [];
   for (const t of tempArr) {
-    const used = pickedByKey.get(keyOf(t)) || 0;
+    const used = consumed[keyOf(t)] || 0;
     const rem = parseFloat(t.gd_quantity || 0) - used;
     if (rem > 0) {
       remaining.push({ ...t, gd_quantity: rem });
@@ -145,6 +131,7 @@ const buildTablePickingItems = (entries) => {
     const stateRaw = await this.getValue("split_state");
     const state = stateRaw ? JSON.parse(stateRaw) : {};
     const gdIds = Array.isArray(state.gd_ids) ? state.gd_ids : [];
+    const consumedByLine = state.consumed_by_line || {};
 
     if (gdIds.length === 0) {
       this.$message.error("No goods deliveries selected.");
@@ -193,7 +180,7 @@ const buildTablePickingItems = (entries) => {
         if (line.picking_status === "Completed") continue;
         if (line.picking_status === "Cancelled") continue;
 
-        const remaining = subtractPickedFromTemp(line);
+        const remaining = subtractConsumed(line, consumedByLine);
         for (const tempItem of remaining) {
           entries.push({ gd, line, tempItem });
         }
