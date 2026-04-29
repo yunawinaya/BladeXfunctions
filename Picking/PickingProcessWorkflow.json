@@ -158,7 +158,10 @@
         "nodeName": "IF Picking Plan",
         "name": "IF Picking Plan",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -182,7 +185,9 @@
         {
           "id": "if_block_3rtgi7Ya",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_Q3hWck9R",
@@ -729,7 +734,10 @@
                 "nodeName": "IF Error",
                 "name": "IF Error",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -753,7 +761,9 @@
                 {
                   "id": "if_block_TpQ-ERt7",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_node_DZ6uDNjX",
@@ -796,7 +806,9 @@
                 {
                   "id": "if_block_GHyiGWby",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -1111,7 +1123,10 @@
                 "isValidator": true,
                 "nodeName": "Set PP Index",
                 "name": "Set PP Index",
-                "custom_wkbocgni": { "type": "javascript", "code": "0" },
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "0"
+                },
                 "redis_key": "toIndex_{{node:code_node_UDOp8D9x.data.id}}"
               },
               "blocks": []
@@ -1337,7 +1352,9 @@
                     {
                       "id": "ifBlock_AViOhIdy",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "return_node_XTS5ZSQ9",
@@ -1380,7 +1397,9 @@
                     {
                       "id": "ifBlock_KItw5ugn",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": []
                     }
                   ]
@@ -1394,7 +1413,10 @@
                     "nodeName": "IF Completed",
                     "name": "IF Completed",
                     "condition_type": "ConditionRule",
-                    "expression": { "type": "javascript", "code": "" },
+                    "expression": {
+                      "type": "javascript",
+                      "code": ""
+                    },
                     "filter": {
                       "list": [
                         {
@@ -1418,7 +1440,9 @@
                     {
                       "id": "if_block_h4gDV4ze",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "update_node_NvJg9Fcd",
@@ -1473,7 +1497,9 @@
                     {
                       "id": "if_block_9drQcoRM",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": []
                     }
                   ]
@@ -1540,7 +1566,9 @@
         {
           "id": "if_block_NGUmIvsw",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "code_node_oHIIKfiw",
@@ -2016,7 +2044,7 @@
                 "name": "GD Lines Preparation",
                 "script": {
                   "type": "javascript",
-                  "code": "const gdLines = {{node:search_node_krPmTbfL.data.data}};\nconst newRecords = {{node:code_node_oHIIKfiw.data.records}};\nconst updatedItems = {{node:code_node_Z5JH4g2u.data.updatedItems}};\nconst locations = {{node:search_node_kUwlb6md.data.data}} || [];\nconst batches = {{node:search_node_kdhCN7Yu.data.data}} || [];\nconst hus = {{node:search_node_ko6ZYIQp.data.data}} || [];\nconst allData = {{workflowparams:allData}};\n\nconst isForceComplete = {{workflowparams:isForceComplete}} || 0;\nconst existingPickingRecords = allData.table_picking_records || [];\n\nif (!gdLines || gdLines.length === 0) {\n  return { updatedGdLines: [], hasAnyChanges: false, updatedCount: 0 };\n}\n\nif (isForceComplete !== 1 && (!newRecords || newRecords.length === 0)) {\n  return { updatedGdLines: [], hasAnyChanges: false, updatedCount: 0 };\n}\n\nif (isForceComplete === 1 && existingPickingRecords.length === 0) {\n  return { updatedGdLines: [], hasAnyChanges: false, updatedCount: 0 };\n}\n\nconst recordsToProcess = isForceComplete === 1 ? existingPickingRecords : newRecords;\n\nconst locationNameMap = {};\nfor (const loc of locations) {\n  locationNameMap[loc.id] = loc.bin_location_combine || loc.bin_name || loc.id;\n}\n\nconst batchNameMap = {};\nfor (const batch of batches) {\n  batchNameMap[batch.id] = batch.batch_number || batch.id;\n}\n\n// HU id -> handling_no map (for view_stock HU section display)\nconst huNameMap = {};\nfor (const hu of hus) {\n  huNameMap[hu.id] = hu.handling_no || hu.id;\n}\n\nconst splitData = allData.split_data || {};\nfor (const gdLineId in splitData) {\n  const data = splitData[gdLineId];\n  if (data && data.split_locations) {\n    for (const loc of data.split_locations) {\n      if (loc.target_location_id && loc.target_location_name) {\n        locationNameMap[loc.target_location_id] = loc.target_location_name;\n      }\n      if (loc.location_id && loc.location_name) {\n        locationNameMap[loc.location_id] = loc.location_name;\n      }\n      if (loc.batch_no && loc.batch_number) {\n        batchNameMap[loc.batch_no] = loc.batch_number;\n      }\n      if (loc.target_batch && loc.batch_number) {\n        batchNameMap[loc.target_batch] = loc.batch_number;\n      }\n    }\n  }\n}\n\nconst lineStatusByGdLineId = {};\nfor (const item of (updatedItems || [])) {\n  if (item.gd_line_id) {\n    lineStatusByGdLineId[item.gd_line_id] = item.line_status;\n  }\n}\n\nconst recordsByGdLineId = {};\nfor (const record of recordsToProcess) {\n  if (!record.gd_line_id) continue;\n  if (!recordsByGdLineId[record.gd_line_id]) {\n    recordsByGdLineId[record.gd_line_id] = [];\n  }\n  recordsByGdLineId[record.gd_line_id].push(record);\n}\n\nconst sourceInfoByGdLineId = {};\nfor (const item of (allData.table_picking_items || [])) {\n  if (item.gd_line_id) {\n    sourceInfoByGdLineId[item.gd_line_id] = {\n      source_bin: item.source_bin,\n      batch_no: item.batch_no,\n      item_code: item.item_code\n    };\n  }\n}\n\n// Build view_stock matching GDconfirmDialog.js format:\n// loose entries -> \"DETAILS\" or \"LOOSE STOCK\", HU entries -> \"HANDLING UNIT\" with handling_no.\nconst buildViewStock = (entries, uom) => {\n  const active = entries.filter(e => (e.gd_quantity || 0) > 0);\n  if (active.length === 0) {\n    return 'Total: 0 ' + uom + '\\n\\nDETAILS:\\nNo stock allocated';\n  }\n  const looseEntries = active.filter(e => !e.handling_unit_id);\n  const huEntries = active.filter(e => e.handling_unit_id);\n  const total = active.reduce((s, e) => s + (e.gd_quantity || 0), 0);\n\n  const fmtBatch = (e) => {\n    if (!e.batch_id) return '';\n    const name = batchNameMap[e.batch_id] || e.batch_id;\n    return '\\n[Batch: ' + name + ']';\n  };\n  const looseSection = looseEntries.map((e, i) => {\n    const locName = locationNameMap[e.location_id] || e.location_id;\n    return (i + 1) + '. ' + locName + ': ' + e.gd_quantity + ' ' + uom + fmtBatch(e);\n  }).join('\\n');\n  const huSection = huEntries.map((e, i) => {\n    const huName = huNameMap[e.handling_unit_id] || e.handling_unit_id;\n    return (i + 1) + '. ' + huName + ': ' + e.gd_quantity + ' ' + uom + fmtBatch(e);\n  }).join('\\n');\n\n  let result = 'Total: ' + total + ' ' + uom + '\\n\\n';\n  if (looseEntries.length > 0 && huEntries.length > 0) {\n    result += 'LOOSE STOCK:\\n' + looseSection + '\\n\\nHANDLING UNIT:\\n' + huSection;\n  } else if (huEntries.length > 0) {\n    result += 'HANDLING UNIT:\\n' + huSection;\n  } else {\n    result += 'DETAILS:\\n' + looseSection;\n  }\n  return result;\n};\n\nconst updatedGdLines = [];\nlet hasAnyChanges = false;\nlet updatedCount = 0;\n\nfor (const lineItem of gdLines) {\n  const lineRecords = recordsByGdLineId[lineItem.id];\n\n  if (lineItem.picking_status === 'Completed' && isForceComplete !== 1) {\n    updatedGdLines.push(lineItem);\n    continue;\n  }\n\n  if (!lineRecords || lineRecords.length === 0) {\n    if (isForceComplete === 1) {\n      updatedGdLines.push({ ...lineItem, picking_status: 'Completed' });\n    } else {\n      updatedGdLines.push(lineItem);\n    }\n    continue;\n  }\n\n  hasAnyChanges = true;\n  updatedCount++;\n\n  const lineSplitData = splitData[lineItem.id];\n  const isSplitItem = lineSplitData && lineSplitData.is_split === true;\n  const sourceInfo = sourceInfoByGdLineId[lineItem.id] || {};\n\n  const pickingStatus = lineStatusByGdLineId[lineItem.id] || lineItem.picking_status || 'Created';\n  const originalTempQtyData = lineItem.temp_qty_data || '[]';\n\n  let tempQtyDataArray = [];\n  if (lineItem.temp_qty_data) {\n    try {\n      tempQtyDataArray = typeof lineItem.temp_qty_data === 'string'\n        ? JSON.parse(lineItem.temp_qty_data)\n        : (Array.isArray(lineItem.temp_qty_data) ? lineItem.temp_qty_data : []);\n    } catch (e) {\n      tempQtyDataArray = [];\n    }\n  }\n\n  let sessionPickedQty = 0;\n  for (const record of lineRecords) {\n    sessionPickedQty += record.store_out_qty || 0;\n  }\n\n  const originalTotalQuantity = lineItem.gd_qty || lineItem.gd_order_quantity || 0;\n\n  // Tracks whether tempQtyDataArray actually changed; drives cheap-path preservation\n  // of the original view_stock + temp_qty_data when picking didn't shift anything.\n  let wasModified = false;\n\n  if (isForceComplete === 1) {\n    tempQtyDataArray = lineRecords.map(record => ({\n      material_id: record.item_code || lineItem.material_id,\n      location_id: record.target_location || record.source_bin,\n      batch_id: record.target_batch || record.batch_no || null,\n      handling_unit_id: record.handling_unit_id || null,\n      gd_quantity: record.store_out_qty\n    }));\n    wasModified = true;\n  } else if (isSplitItem) {\n    const totalProcessedQuantity = lineSplitData.split_locations.reduce(\n      (sum, loc) => sum + (loc.allocated_quantity || 0), 0\n    );\n\n    const remainingQuantity = originalTotalQuantity - totalProcessedQuantity;\n    const locationQuantityMap = {};\n\n    if (remainingQuantity > 0 && sourceInfo.source_bin) {\n      const sourceBatchNo = sourceInfo.batch_no || null;\n      const normalizedBatch = (sourceBatchNo === 'undefined' || sourceBatchNo === null || sourceBatchNo === undefined) ? null : sourceBatchNo;\n      const sourceKey = sourceInfo.source_bin + '_' + (normalizedBatch || 'none');\n      locationQuantityMap[sourceKey] = {\n        location_id: sourceInfo.source_bin,\n        batch_id: normalizedBatch,\n        quantity: remainingQuantity\n      };\n    }\n\n    for (const splitLoc of lineSplitData.split_locations) {\n      const splitQty = splitLoc.allocated_quantity || 0;\n      const targetLocationId = splitLoc.target_location_id;\n\n      if (splitQty > 0 && targetLocationId) {\n        const batchNo = splitLoc.batch_no || splitLoc.target_batch || null;\n        const normalizedBatch = (batchNo === 'undefined' || batchNo === null || batchNo === undefined) ? null : batchNo;\n        const targetKey = targetLocationId + '_' + (normalizedBatch || 'none');\n\n        if (locationQuantityMap[targetKey]) {\n          locationQuantityMap[targetKey].quantity += splitQty;\n        } else {\n          locationQuantityMap[targetKey] = {\n            location_id: targetLocationId,\n            batch_id: normalizedBatch,\n            quantity: splitQty\n          };\n        }\n      }\n    }\n\n    tempQtyDataArray = [];\n    for (const key in locationQuantityMap) {\n      const locData = locationQuantityMap[key];\n      tempQtyDataArray.push({\n        material_id: lineItem.material_id,\n        location_id: locData.location_id,\n        batch_id: locData.batch_id,\n        block_qty: 0,\n        reserved_qty: 0,\n        unrestricted_qty: locData.quantity,\n        qualityinsp_qty: 0,\n        intransit_qty: 0,\n        balance_quantity: locData.quantity,\n        plant_id: lineItem.plant_id,\n        organization_id: lineItem.organization_id,\n        is_deleted: 0,\n        gd_quantity: locData.quantity\n      });\n    }\n    wasModified = true;\n  } else {\n    for (const record of lineRecords) {\n      const sourceBinId = record.source_bin;\n      const targetLocationId = record.target_location;\n      const originalBatchNo = record.batch_no;\n      const targetBatch = record.target_batch;\n      const pickedQty = record.store_out_qty || 0;\n\n      const hasLocationChange = sourceBinId && targetLocationId && sourceBinId !== targetLocationId;\n      const hasBatchChange = originalBatchNo && targetBatch && originalBatchNo !== targetBatch;\n\n      if ((hasLocationChange || hasBatchChange) && pickedQty > 0) {\n        let sourceEntryIndex = -1;\n\n        if (originalBatchNo) {\n          sourceEntryIndex = tempQtyDataArray.findIndex(entry =>\n            entry.material_id === lineItem.material_id &&\n            entry.location_id === sourceBinId &&\n            entry.batch_id === originalBatchNo\n          );\n        } else {\n          sourceEntryIndex = tempQtyDataArray.findIndex(entry =>\n            entry.material_id === lineItem.material_id &&\n            entry.location_id === sourceBinId\n          );\n        }\n\n        if (sourceEntryIndex !== -1) {\n          const sourceEntry = tempQtyDataArray[sourceEntryIndex];\n          const originalQuantity = sourceEntry.gd_quantity || 0;\n\n          if (pickedQty >= originalQuantity) {\n            if (hasLocationChange) {\n              tempQtyDataArray[sourceEntryIndex].location_id = targetLocationId;\n            }\n            if (hasBatchChange) {\n              tempQtyDataArray[sourceEntryIndex].batch_id = targetBatch;\n            }\n          } else {\n            const remainingQty = originalQuantity - pickedQty;\n\n            tempQtyDataArray[sourceEntryIndex].gd_quantity = remainingQty;\n            tempQtyDataArray[sourceEntryIndex].unrestricted_qty = remainingQty;\n            tempQtyDataArray[sourceEntryIndex].balance_quantity = remainingQty;\n\n            const newEntry = {\n              ...sourceEntry,\n              location_id: hasLocationChange ? targetLocationId : sourceBinId,\n              batch_id: hasBatchChange ? targetBatch : originalBatchNo,\n              gd_quantity: pickedQty,\n              unrestricted_qty: pickedQty,\n              balance_quantity: pickedQty\n            };\n\n            tempQtyDataArray.push(newEntry);\n          }\n          wasModified = true;\n        }\n      }\n    }\n\n    const beforeFilter = tempQtyDataArray.length;\n    tempQtyDataArray = tempQtyDataArray.filter(entry => (entry.gd_quantity || 0) > 0);\n    if (tempQtyDataArray.length !== beforeFilter) wasModified = true;\n\n    // Dedup key now includes handling_unit_id so HU and loose stock at the same\n    // bin/batch don't collapse into one entry.\n    const locationBatchMap = {};\n    for (const entry of tempQtyDataArray) {\n      const normalizedBatch = (entry.batch_id === 'undefined' || entry.batch_id === null || entry.batch_id === undefined) ? null : entry.batch_id;\n      const huKey = entry.handling_unit_id || 'no_hu';\n      const key = entry.location_id + '_' + (normalizedBatch || 'none') + '_' + huKey;\n\n      if (locationBatchMap[key]) {\n        locationBatchMap[key].gd_quantity += entry.gd_quantity || 0;\n        locationBatchMap[key].unrestricted_qty += (entry.unrestricted_qty || 0);\n        locationBatchMap[key].balance_quantity += (entry.balance_quantity || 0);\n      } else {\n        locationBatchMap[key] = { ...entry, batch_id: normalizedBatch };\n      }\n    }\n    const beforeDedup = tempQtyDataArray.length;\n    tempQtyDataArray = Object.values(locationBatchMap);\n    if (tempQtyDataArray.length !== beforeDedup) wasModified = true;\n  }\n\n  let uom = 'PCS';\n  if (lineItem.view_stock) {\n    const uomMatch = lineItem.view_stock.match(/Total:\\s*[\\d.]+\\s+(\\w+)/);\n    if (uomMatch && uomMatch[1]) {\n      uom = uomMatch[1];\n    }\n  }\n\n  // Cheap path: nothing actually moved, so keep the GD-built view_stock (which has\n  // proper LOOSE/HU sections) and the original temp_qty_data string verbatim.\n  const viewStock = wasModified\n    ? buildViewStock(tempQtyDataArray, uom)\n    : (lineItem.view_stock || buildViewStock(tempQtyDataArray, uom));\n  const newTempQtyDataStr = wasModified ? JSON.stringify(tempQtyDataArray) : originalTempQtyData;\n\n  const forceCompleteFields = isForceComplete === 1 ? {\n    plan_qty: lineItem.gd_qty,\n    plan_temp_qty_data: originalTempQtyData,\n    plan_view_stock: lineItem.view_stock,\n    is_force_complete: 1,\n    gd_qty: sessionPickedQty,\n    base_qty: sessionPickedQty,\n    gd_delivered_qty: sessionPickedQty + (lineItem.gd_initial_delivered_qty || 0),\n    gd_undelivered_qty: lineItem.gd_order_quantity - (sessionPickedQty + (lineItem.gd_initial_delivered_qty || 0))\n  } : {};\n\n  updatedGdLines.push({\n    ...lineItem,\n    temp_qty_data: newTempQtyDataStr,\n    prev_temp_qty_data: originalTempQtyData,\n    view_stock: viewStock,\n    picking_status: isForceComplete === 1 ? 'Completed' : pickingStatus,\n    ...forceCompleteFields\n  });\n}\n\nreturn {\n  updatedGdLines,\n  hasAnyChanges,\n  updatedCount,\n  isForceComplete\n};\n"
+                  "code": "const gdLines = {{node:search_node_krPmTbfL.data.data}};\nconst newRecords = {{node:code_node_oHIIKfiw.data.records}};\nconst updatedItems = {{node:code_node_Z5JH4g2u.data.updatedItems}};\nconst locations = {{node:search_node_kUwlb6md.data.data}} || [];\nconst batches = {{node:search_node_kdhCN7Yu.data.data}} || [];\nconst hus = {{node:search_node_ko6ZYIQp.data.data}} || [];\nconst allData = {{workflowparams:allData}};\n\nconst isForceComplete = {{workflowparams:isForceComplete}} || 0;\nconst existingPickingRecords = allData.table_picking_records || [];\nconst allowFullPicking = ({{node:get_node_Uj1uV9PU.data.data.allow_full_picking}} || 0) === 1;\n\nif (!gdLines || gdLines.length === 0) {\n  return { updatedGdLines: [], hasAnyChanges: false, updatedCount: 0 };\n}\n\nif (isForceComplete !== 1 && (!newRecords || newRecords.length === 0)) {\n  return { updatedGdLines: [], hasAnyChanges: false, updatedCount: 0 };\n}\n\nif (isForceComplete === 1 && existingPickingRecords.length === 0) {\n  return { updatedGdLines: [], hasAnyChanges: false, updatedCount: 0 };\n}\n\nconst recordsToProcess = isForceComplete === 1 ? existingPickingRecords : newRecords;\n\nconst locationNameMap = {};\nfor (const loc of locations) {\n  locationNameMap[loc.id] = loc.bin_location_combine || loc.bin_name || loc.id;\n}\n\nconst batchNameMap = {};\nfor (const batch of batches) {\n  batchNameMap[batch.id] = batch.batch_number || batch.id;\n}\n\n// HU id -> handling_no map (for view_stock HU section display)\nconst huNameMap = {};\nfor (const hu of hus) {\n  huNameMap[hu.id] = hu.handling_no || hu.id;\n}\n\nconst splitData = allData.split_data || {};\nfor (const gdLineId in splitData) {\n  const data = splitData[gdLineId];\n  if (data && data.split_locations) {\n    for (const loc of data.split_locations) {\n      if (loc.target_location_id && loc.target_location_name) {\n        locationNameMap[loc.target_location_id] = loc.target_location_name;\n      }\n      if (loc.location_id && loc.location_name) {\n        locationNameMap[loc.location_id] = loc.location_name;\n      }\n      if (loc.batch_no && loc.batch_number) {\n        batchNameMap[loc.batch_no] = loc.batch_number;\n      }\n      if (loc.target_batch && loc.batch_number) {\n        batchNameMap[loc.target_batch] = loc.batch_number;\n      }\n    }\n  }\n}\n\nconst lineStatusByGdLineId = {};\nfor (const item of (updatedItems || [])) {\n  if (item.gd_line_id) {\n    lineStatusByGdLineId[item.gd_line_id] = item.line_status;\n  }\n}\n\nconst recordsByGdLineId = {};\nfor (const record of recordsToProcess) {\n  if (!record.gd_line_id) continue;\n  if (!recordsByGdLineId[record.gd_line_id]) {\n    recordsByGdLineId[record.gd_line_id] = [];\n  }\n  recordsByGdLineId[record.gd_line_id].push(record);\n}\n\nconst sourceInfoByGdLineId = {};\nfor (const item of (allData.table_picking_items || [])) {\n  if (item.gd_line_id) {\n    sourceInfoByGdLineId[item.gd_line_id] = {\n      source_bin: item.source_bin,\n      batch_no: item.batch_no,\n      item_code: item.item_code\n    };\n  }\n}\n\n// Build view_stock matching GDconfirmDialog.js format:\n// loose entries -> \"DETAILS\" or \"LOOSE STOCK\", HU entries -> \"HANDLING UNIT\" with handling_no.\nconst buildViewStock = (entries, uom) => {\n  const active = entries.filter(e => (e.gd_quantity || 0) > 0);\n  if (active.length === 0) {\n    return 'Total: 0 ' + uom + '\\n\\nDETAILS:\\nNo stock allocated';\n  }\n  const looseEntries = active.filter(e => !e.handling_unit_id);\n  const huEntries = active.filter(e => e.handling_unit_id);\n  const total = active.reduce((s, e) => s + (e.gd_quantity || 0), 0);\n\n  const fmtBatch = (e) => {\n    if (!e.batch_id) return '';\n    const name = batchNameMap[e.batch_id] || e.batch_id;\n    return '\\n[Batch: ' + name + ']';\n  };\n  const looseSection = looseEntries.map((e, i) => {\n    const locName = locationNameMap[e.location_id] || e.location_id;\n    return (i + 1) + '. ' + locName + ': ' + e.gd_quantity + ' ' + uom + fmtBatch(e);\n  }).join('\\n');\n  const huSection = huEntries.map((e, i) => {\n    const huName = huNameMap[e.handling_unit_id] || e.handling_unit_id;\n    return (i + 1) + '. ' + huName + ': ' + e.gd_quantity + ' ' + uom + fmtBatch(e);\n  }).join('\\n');\n\n  let result = 'Total: ' + total + ' ' + uom + '\\n\\n';\n  if (looseEntries.length > 0 && huEntries.length > 0) {\n    result += 'LOOSE STOCK:\\n' + looseSection + '\\n\\nHANDLING UNIT:\\n' + huSection;\n  } else if (huEntries.length > 0) {\n    result += 'HANDLING UNIT:\\n' + huSection;\n  } else {\n    result += 'DETAILS:\\n' + looseSection;\n  }\n  return result;\n};\n\nconst updatedGdLines = [];\nlet hasAnyChanges = false;\nlet updatedCount = 0;\n\nfor (const lineItem of gdLines) {\n  const lineRecords = recordsByGdLineId[lineItem.id];\n\n  if (lineItem.picking_status === 'Completed' && isForceComplete !== 1) {\n    updatedGdLines.push(lineItem);\n    continue;\n  }\n\n  if (!lineRecords || lineRecords.length === 0) {\n    if (isForceComplete === 1) {\n      updatedGdLines.push({ ...lineItem, picking_status: 'Completed' });\n    } else {\n      updatedGdLines.push(lineItem);\n    }\n    continue;\n  }\n\n  hasAnyChanges = true;\n  updatedCount++;\n\n  const lineSplitData = splitData[lineItem.id];\n  const isSplitItem = lineSplitData && lineSplitData.is_split === true;\n  const sourceInfo = sourceInfoByGdLineId[lineItem.id] || {};\n\n  const pickingStatus = lineStatusByGdLineId[lineItem.id] || lineItem.picking_status || 'Created';\n  const originalTempQtyData = lineItem.temp_qty_data || '[]';\n\n  let tempQtyDataArray = [];\n  if (lineItem.temp_qty_data) {\n    try {\n      tempQtyDataArray = typeof lineItem.temp_qty_data === 'string'\n        ? JSON.parse(lineItem.temp_qty_data)\n        : (Array.isArray(lineItem.temp_qty_data) ? lineItem.temp_qty_data : []);\n    } catch (e) {\n      tempQtyDataArray = [];\n    }\n  }\n\n  let sessionPickedQty = 0;\n  for (const record of lineRecords) {\n    sessionPickedQty += record.store_out_qty || 0;\n  }\n\n  const originalTotalQuantity = lineItem.gd_qty || lineItem.gd_order_quantity || 0;\n\n  // Tracks whether tempQtyDataArray actually changed; drives cheap-path preservation\n  // of the original view_stock + temp_qty_data when picking didn't shift anything.\n  let wasModified = false;\n\n  if (isForceComplete === 1) {\n    tempQtyDataArray = lineRecords.map(record => ({\n      material_id: record.item_code || lineItem.material_id,\n      location_id: record.target_location || record.source_bin,\n      batch_id: record.target_batch || record.batch_no || null,\n      handling_unit_id: record.handling_unit_id || null,\n      gd_quantity: record.store_out_qty\n    }));\n    wasModified = true;\n  } else if (isSplitItem) {\n    const totalProcessedQuantity = lineSplitData.split_locations.reduce(\n      (sum, loc) => sum + (loc.allocated_quantity || 0), 0\n    );\n\n    const remainingQuantity = originalTotalQuantity - totalProcessedQuantity;\n    const locationQuantityMap = {};\n\n    if (remainingQuantity > 0 && sourceInfo.source_bin) {\n      const sourceBatchNo = sourceInfo.batch_no || null;\n      const normalizedBatch = (sourceBatchNo === 'undefined' || sourceBatchNo === null || sourceBatchNo === undefined) ? null : sourceBatchNo;\n      const sourceKey = sourceInfo.source_bin + '_' + (normalizedBatch || 'none');\n      locationQuantityMap[sourceKey] = {\n        location_id: sourceInfo.source_bin,\n        batch_id: normalizedBatch,\n        quantity: remainingQuantity\n      };\n    }\n\n    for (const splitLoc of lineSplitData.split_locations) {\n      const splitQty = splitLoc.allocated_quantity || 0;\n      const targetLocationId = splitLoc.target_location_id;\n\n      if (splitQty > 0 && targetLocationId) {\n        const batchNo = splitLoc.batch_no || splitLoc.target_batch || null;\n        const normalizedBatch = (batchNo === 'undefined' || batchNo === null || batchNo === undefined) ? null : batchNo;\n        const targetKey = targetLocationId + '_' + (normalizedBatch || 'none');\n\n        if (locationQuantityMap[targetKey]) {\n          locationQuantityMap[targetKey].quantity += splitQty;\n        } else {\n          locationQuantityMap[targetKey] = {\n            location_id: targetLocationId,\n            batch_id: normalizedBatch,\n            quantity: splitQty\n          };\n        }\n      }\n    }\n\n    tempQtyDataArray = [];\n    for (const key in locationQuantityMap) {\n      const locData = locationQuantityMap[key];\n      tempQtyDataArray.push({\n        material_id: lineItem.material_id,\n        location_id: locData.location_id,\n        batch_id: locData.batch_id,\n        block_qty: 0,\n        reserved_qty: 0,\n        unrestricted_qty: locData.quantity,\n        qualityinsp_qty: 0,\n        intransit_qty: 0,\n        balance_quantity: locData.quantity,\n        plant_id: lineItem.plant_id,\n        organization_id: lineItem.organization_id,\n        is_deleted: 0,\n        gd_quantity: locData.quantity\n      });\n    }\n    wasModified = true;\n  } else {\n    for (const record of lineRecords) {\n      const sourceBinId = record.source_bin;\n      const targetLocationId = record.target_location;\n      const originalBatchNo = record.batch_no;\n      const targetBatch = record.target_batch;\n      const pickedQty = record.store_out_qty || 0;\n\n      const hasLocationChange = sourceBinId && targetLocationId && sourceBinId !== targetLocationId;\n      const hasBatchChange = originalBatchNo && targetBatch && originalBatchNo !== targetBatch;\n\n      if ((hasLocationChange || hasBatchChange) && pickedQty > 0) {\n        let sourceEntryIndex = -1;\n\n        if (originalBatchNo) {\n          sourceEntryIndex = tempQtyDataArray.findIndex(entry =>\n            entry.material_id === lineItem.material_id &&\n            entry.location_id === sourceBinId &&\n            entry.batch_id === originalBatchNo\n          );\n        } else {\n          sourceEntryIndex = tempQtyDataArray.findIndex(entry =>\n            entry.material_id === lineItem.material_id &&\n            entry.location_id === sourceBinId\n          );\n        }\n\n        if (sourceEntryIndex !== -1) {\n          const sourceEntry = tempQtyDataArray[sourceEntryIndex];\n          const originalQuantity = sourceEntry.gd_quantity || 0;\n\n          if (pickedQty >= originalQuantity) {\n            if (hasLocationChange) {\n              tempQtyDataArray[sourceEntryIndex].location_id = targetLocationId;\n            }\n            if (hasBatchChange) {\n              tempQtyDataArray[sourceEntryIndex].batch_id = targetBatch;\n            }\n          } else {\n            const remainingQty = originalQuantity - pickedQty;\n\n            tempQtyDataArray[sourceEntryIndex].gd_quantity = remainingQty;\n            tempQtyDataArray[sourceEntryIndex].unrestricted_qty = remainingQty;\n            tempQtyDataArray[sourceEntryIndex].balance_quantity = remainingQty;\n\n            const newEntry = {\n              ...sourceEntry,\n              location_id: hasLocationChange ? targetLocationId : sourceBinId,\n              batch_id: hasBatchChange ? targetBatch : originalBatchNo,\n              gd_quantity: pickedQty,\n              unrestricted_qty: pickedQty,\n              balance_quantity: pickedQty\n            };\n\n            tempQtyDataArray.push(newEntry);\n          }\n          wasModified = true;\n        }\n      }\n    }\n\n    const beforeFilter = tempQtyDataArray.length;\n    tempQtyDataArray = tempQtyDataArray.filter(entry => (entry.gd_quantity || 0) > 0);\n    if (tempQtyDataArray.length !== beforeFilter) wasModified = true;\n\n    // Dedup key now includes handling_unit_id so HU and loose stock at the same\n    // bin/batch don't collapse into one entry.\n    const locationBatchMap = {};\n    for (const entry of tempQtyDataArray) {\n      const normalizedBatch = (entry.batch_id === 'undefined' || entry.batch_id === null || entry.batch_id === undefined) ? null : entry.batch_id;\n      const huKey = entry.handling_unit_id || 'no_hu';\n      const key = entry.location_id + '_' + (normalizedBatch || 'none') + '_' + huKey;\n\n      if (locationBatchMap[key]) {\n        locationBatchMap[key].gd_quantity += entry.gd_quantity || 0;\n        locationBatchMap[key].unrestricted_qty += (entry.unrestricted_qty || 0);\n        locationBatchMap[key].balance_quantity += (entry.balance_quantity || 0);\n      } else {\n        locationBatchMap[key] = { ...entry, batch_id: normalizedBatch };\n      }\n    }\n    const beforeDedup = tempQtyDataArray.length;\n    tempQtyDataArray = Object.values(locationBatchMap);\n    if (tempQtyDataArray.length !== beforeDedup) wasModified = true;\n  }\n\n  let uom = 'PCS';\n  if (lineItem.view_stock) {\n    const uomMatch = lineItem.view_stock.match(/Total:\\s*[\\d.]+\\s+(\\w+)/);\n    if (uomMatch && uomMatch[1]) {\n      uom = uomMatch[1];\n    }\n  }\n\n  // Cheap path: nothing actually moved, so keep the GD-built view_stock (which has\n  // proper LOOSE/HU sections) and the original temp_qty_data string verbatim.\n  const viewStock = wasModified\n    ? buildViewStock(tempQtyDataArray, uom)\n    : (lineItem.view_stock || buildViewStock(tempQtyDataArray, uom));\n  const newTempQtyDataStr = wasModified ? JSON.stringify(tempQtyDataArray) : originalTempQtyData;\n\n  const forceCompleteFields = isForceComplete === 1 ? {\n    plan_qty: lineItem.gd_qty,\n    plan_temp_qty_data: originalTempQtyData,\n    plan_view_stock: lineItem.view_stock,\n    is_force_complete: 1,\n    gd_qty: sessionPickedQty,\n    base_qty: sessionPickedQty,\n    gd_delivered_qty: sessionPickedQty + (lineItem.gd_initial_delivered_qty || 0),\n    gd_undelivered_qty: lineItem.gd_order_quantity - (sessionPickedQty + (lineItem.gd_initial_delivered_qty || 0))\n  } : {};\n\n  // M:N cumulative tracking. When allow_full_picking is ON, a single GD line can\n  // be split across multiple Pickings; this block accumulates picked qty across\n  // sessions on the GD line itself (mirrors PP-branch code_node_AGoxWP7x).\n  let pickedQtyAddon = null;\n  if (allowFullPicking && isForceComplete !== 1) {\n    let existingPickedTempQtyData = [];\n    if (lineItem.picked_temp_qty_data) {\n      try {\n        existingPickedTempQtyData = typeof lineItem.picked_temp_qty_data === 'string'\n          ? JSON.parse(lineItem.picked_temp_qty_data)\n          : (Array.isArray(lineItem.picked_temp_qty_data) ? lineItem.picked_temp_qty_data : []);\n      } catch (e) {\n        existingPickedTempQtyData = [];\n      }\n    }\n\n    const sessionPickedItems = [];\n    for (const record of lineRecords) {\n      const pickedQty = record.store_out_qty || 0;\n      if (pickedQty > 0) {\n        sessionPickedItems.push({\n          material_id: lineItem.material_id,\n          location_id: record.target_location || record.source_bin,\n          batch_id: record.target_batch || record.batch_no || null,\n          handling_unit_id: record.handling_unit_id || null,\n          gd_quantity: pickedQty,\n          plant_id: lineItem.plant_id,\n          organization_id: lineItem.organization_id\n        });\n      }\n    }\n\n    const mergeKey = (locId, batchId, huId) => {\n      const normBatch = (batchId === 'undefined' || batchId === null || batchId === undefined) ? 'none' : batchId;\n      return (locId || 'no-location') + '_' + normBatch + '_' + (huId || 'no_hu');\n    };\n    const mergedMap = new Map();\n    const collect = (entry) => {\n      const k = mergeKey(entry.location_id, entry.batch_id, entry.handling_unit_id);\n      if (mergedMap.has(k)) {\n        const ex = mergedMap.get(k);\n        ex.gd_quantity = (ex.gd_quantity || 0) + (entry.gd_quantity || 0);\n      } else {\n        const normBatch = (entry.batch_id === 'undefined' || entry.batch_id === null || entry.batch_id === undefined) ? null : entry.batch_id;\n        mergedMap.set(k, { ...entry, batch_id: normBatch });\n      }\n    };\n    existingPickedTempQtyData.forEach(collect);\n    sessionPickedItems.forEach(collect);\n    const mergedPickedTempQtyData = Array.from(mergedMap.values());\n\n    const totalPickedQty = mergedPickedTempQtyData.reduce(\n      (sum, e) => sum + (e.gd_quantity || 0),\n      0\n    );\n\n    const pickedViewStock = buildViewStock(mergedPickedTempQtyData, uom);\n\n    const planQty = parseFloat(lineItem.gd_qty || 0);\n    let cumulativePickingStatus;\n    if (totalPickedQty >= planQty && planQty > 0) {\n      cumulativePickingStatus = 'Completed';\n    } else if (totalPickedQty > 0) {\n      cumulativePickingStatus = 'In Progress';\n    } else {\n      cumulativePickingStatus = 'Created';\n    }\n\n    pickedQtyAddon = {\n      picked_qty: totalPickedQty,\n      picked_temp_qty_data: JSON.stringify(mergedPickedTempQtyData),\n      picked_view_stock: pickedViewStock,\n      picking_status: cumulativePickingStatus\n    };\n  }\n\n  updatedGdLines.push({\n    ...lineItem,\n    temp_qty_data: newTempQtyDataStr,\n    prev_temp_qty_data: originalTempQtyData,\n    view_stock: viewStock,\n    picking_status: isForceComplete === 1 ? 'Completed' : pickingStatus,\n    ...forceCompleteFields,\n    ...(pickedQtyAddon || {})\n  });\n}\n\nreturn {\n  updatedGdLines,\n  hasAnyChanges,\n  updatedCount,\n  isForceComplete\n};\n"
                 },
                 "response_json": [
                   {
@@ -2288,6 +2316,30 @@
                       "value": "{{node:code_node_iES7iMKA.data.updatedGdLines.base_qty}}",
                       "valueLabel": "",
                       "propLabel": "Base Qty"
+                    },
+                    {
+                      "prop": "picked_qty",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_iES7iMKA.data.updatedGdLines.picked_qty}}",
+                      "valueLabel": "",
+                      "propLabel": "Picked Quantity"
+                    },
+                    {
+                      "prop": "picked_view_stock",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_iES7iMKA.data.updatedGdLines.picked_view_stock}}",
+                      "valueLabel": "",
+                      "propLabel": "Picked Summary"
+                    },
+                    {
+                      "prop": "picked_temp_qty_data",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_iES7iMKA.data.updatedGdLines.picked_temp_qty_data}}",
+                      "valueLabel": "",
+                      "propLabel": "Picked Temporary Qty Data"
                     }
                   ]
                 }
@@ -2380,7 +2432,10 @@
                 "isValidator": true,
                 "nodeName": "Set GD Index",
                 "name": "Set GD Index",
-                "custom_wkbocgni": { "type": "javascript", "code": "0" },
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "0"
+                },
                 "redis_key": "gdIndex_{{node:code_node_UDOp8D9x.data.id}}"
               },
               "blocks": []
@@ -2509,7 +2564,10 @@
                     "nodeName": "IF Auto Complete GD",
                     "name": "IF Auto Complete GD",
                     "condition_type": "ConditionRule",
-                    "expression": { "type": "javascript", "code": "" },
+                    "expression": {
+                      "type": "javascript",
+                      "code": ""
+                    },
                     "filter": {
                       "list": [
                         {
@@ -2557,7 +2615,9 @@
                     {
                       "id": "if_block_f6k6UqTd",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "workflow_node_Cd96wivg",
@@ -2689,7 +2749,9 @@
                             {
                               "id": "if_block_lLdqApOW",
                               "type": "ifBlock",
-                              "data": { "title": "true" },
+                              "data": {
+                                "title": "true"
+                              },
                               "blocks": [
                                 {
                                   "id": "return_node_rr8Ofx2k",
@@ -2732,7 +2794,9 @@
                             {
                               "id": "if_block_bflyjyId",
                               "type": "ifBlock",
-                              "data": { "title": "false" },
+                              "data": {
+                                "title": "false"
+                              },
                               "blocks": []
                             }
                           ]
@@ -2742,7 +2806,9 @@
                     {
                       "id": "if_block_VheLY2zW",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": [
                         {
                           "id": "workflow_node_4c98bf8x",
@@ -2858,7 +2924,9 @@
                             {
                               "id": "ifBlock_gvyNNAi4",
                               "type": "ifBlock",
-                              "data": { "title": "true" },
+                              "data": {
+                                "title": "true"
+                              },
                               "blocks": [
                                 {
                                   "id": "return_node_Ux87qnrj",
@@ -2901,7 +2969,9 @@
                             {
                               "id": "ifBlock_4bNcmv9J",
                               "type": "ifBlock",
-                              "data": { "title": "false" },
+                              "data": {
+                                "title": "false"
+                              },
                               "blocks": []
                             }
                           ]
@@ -3063,7 +3133,10 @@
                 "nodeName": "IF Auto Packing",
                 "name": "IF Auto Packing",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -3087,7 +3160,9 @@
                 {
                   "id": "if_block_6RaiH2gK",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "get_node_P2TpS5kS",
@@ -3494,7 +3569,9 @@
                 {
                   "id": "if_block_79nTqFVt",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -3542,7 +3619,10 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],
