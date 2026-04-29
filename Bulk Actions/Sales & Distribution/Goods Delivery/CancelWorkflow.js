@@ -123,6 +123,17 @@ const runGDWorkflow = async (data) => {
                 const pickingList = resPicking.data;
 
                 for (const pickingData of pickingList) {
+                  // Skip terminal Pickings: a Completed TO's picks already
+                  // happened physically (and are reflected in GD line picked_qty),
+                  // so we must not retroactively mark them as Cancelled. Cancelled
+                  // TOs are already done.
+                  if (
+                    pickingData.to_status === "Completed" ||
+                    pickingData.to_status === "Cancelled"
+                  ) {
+                    continue;
+                  }
+
                   for (const pickingItem of pickingData.table_picking_items) {
                     if (pickingItem.gd_id === id) {
                       pickingItem.line_status = "Cancelled";
