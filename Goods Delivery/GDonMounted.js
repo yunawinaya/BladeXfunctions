@@ -410,10 +410,7 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
       .where({ organization_id: organizationId })
       .get();
     if (setupData?.data?.[0]?.allow_full_picking === 1) {
-      this.display([
-        "table_gd.picked_qty",
-        "table_gd.picked_view_stock",
-      ]);
+      this.display(["table_gd.picked_qty", "table_gd.picked_view_stock"]);
     }
   } catch (error) {
     console.error("Error reading picking_setup:", error);
@@ -544,7 +541,6 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
 })();
 
 setTimeout(async () => {
-  if (!this.isAdd) return;
   const maxRetries = 10;
   const interval = 500;
   for (let i = 0; i < maxRetries; i++) {
@@ -555,10 +551,24 @@ setTimeout(async () => {
   function getDefaultItem(arr) {
     return arr?.find((item) => item?.item?.is_default === 1);
   }
+  var params = this.getComponent("delivery_no");
+  const { options } = params;
 
   const optionsData = this.getOptionData("delivery_no_type") || [];
-  const data = getDefaultItem(optionsData);
-  if (data) {
-    this.setData({ delivery_no_type: data.value });
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("delivery_no_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        delivery_no_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ delivery_no_type: defaultData.value });
+    }
   }
-}, 500);
+}, 200);
