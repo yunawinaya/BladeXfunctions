@@ -7,19 +7,15 @@ const parseJsonSafely = (jsonString, defaultValue = []) => {
   }
 };
 
-const allData = {{workflowparams:allData}};
+const allData = {{node:code_node_Pgtw6zFL.data.gdData}};
 const pageStatus = {{workflowparams:pageStatus}};
-const gdId = {{node:code_node_IyJHrBst.data.gdId}}; // Get from previous code node that has gdId
+const gdId = allData.id
 const pickingNoType = {{node:get_node_zna6o03F.data.data.id}};
 const organizationId = allData.organization_id;
 
-// Get existing TO from get-node (will be null/empty if not found)
-// Configure get_node_existingTO with:
-// - collection: transfer_order
-// - where: ref_doc_type = "Goods Delivery", gd_no contains gdId, movement_type = "Picking", is_deleted = 0
-const existingTOData = {{node:get_node_existingTO.data.data}};
-const isUpdate = existingTOData && existingTOData.id ? true : false;
-const existingTO = isUpdate ? existingTOData : null;
+const existingTOData = {{node:get_node_EeFMAtLg.data.data}} || null;
+const isUpdate = existingTOData && existingTOData.id ? 1 : 0;
+const existingTO = isUpdate === 1 ? existingTOData : null;
 
 // Process table items with grouping for serialized items
 const pickingItemGroups = new Map();
@@ -31,8 +27,9 @@ allData.table_gd.forEach((item, gdLineIndex) => {
 
       tempData.forEach((tempItem) => {
         const materialId = tempItem.material_id || item.material_id;
-        // Create a grouping key based on item, batch, location, and GD line index to prevent merging separate lines
-        const groupKey = `${materialId}_${tempItem.batch_id || "no-batch"}_${tempItem.location_id}_line${gdLineIndex}`;
+        // Group key now includes handling_unit_id so HU and loose allocations
+        // for the same line/batch/location become separate picking rows.
+        const groupKey = `${materialId}_${tempItem.batch_id || "no-batch"}_${tempItem.location_id}_line${gdLineIndex}_${tempItem.handling_unit_id || "no-hu"}`;
 
         if (!pickingItemGroups.has(groupKey)) {
           // Create new group
@@ -54,6 +51,7 @@ allData.table_gd.forEach((item, gdLineIndex) => {
             gd_id: gdId,
             gd_line_id: item.id,
             serial_numbers: [],
+            handling_unit_id: tempItem.handling_unit_id ? String(tempItem.handling_unit_id) : null,
           });
         }
 
@@ -86,12 +84,44 @@ pickingItemGroups.forEach((group) => {
   tablePickingItems.push(group);
 });
 
+// Cluster HU-allocated rows within each gd_line_id so consecutive HU rows
+// can share a single header row inserted below.
+tablePickingItems.sort((a, b) => {
+  if (a.gd_line_id !== b.gd_line_id) return 0;
+  const aHU = a.handling_unit_id || "";
+  const bHU = b.handling_unit_id || "";
+  if (aHU === bHU) return 0;
+  return aHU < bHU ? -1 : 1;
+});
+
+// Insert display-only header rows above each consecutive run sharing the
+// same handling_unit_id. Item rows are stamped with row_type: "item";
+// header rows get row_type: "header" and carry only the HU fields.
+const withHeaders = [];
+let lastHuId = null;
+for (const row of tablePickingItems) {
+  const huId = row.handling_unit_id;
+  if (huId && huId !== lastHuId) {
+    withHeaders.push({
+      row_type: "header",
+      handling_unit_id: huId,
+      hu_select: 0,
+    });
+    lastHuId = huId;
+  } else if (!huId) {
+    lastHuId = null;
+  }
+  withHeaders.push({ ...row, row_type: "item" });
+}
+tablePickingItems.splice(0, tablePickingItems.length, ...withHeaders);
+
 // Get SO numbers for display
 const soNOs = [...new Set(tablePickingItems.map((pi) => pi.so_no).filter(Boolean))];
 
 // Build the transfer order data
 const transferOrderData = {
   to_status: "Created",
+  to_id: 'issued',
   to_id_type: pickingNoType,
   plant_id: allData.plant_id,
   organization_id: organizationId,
@@ -112,9 +142,9 @@ let notificationData = null;
 let removedUsers = [];
 let addedUsers = [];
 
-if (isUpdate && existingTO) {
+if (isUpdate === 1 && existingTO) {
   // Prepare for update
-  transferOrderData.updated_by = {{$global:nickname}};
+  transferOrderData.updated_by = allData.gd_created_by;
   transferOrderData.updated_at = new Date().toISOString();
 
   // Determine notification recipients for update
@@ -135,7 +165,7 @@ if (isUpdate && existingTO) {
   }
 } else {
   // Prepare for create
-  transferOrderData.created_by = {{$global:nickname}};
+  transferOrderData.created_by = allData.gd_created_by;
   transferOrderData.created_at = new Date().toISOString().slice(0, 19).replace("T", " ");
 
   // New assignment notification
