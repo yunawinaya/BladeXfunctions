@@ -229,8 +229,30 @@ const handlePicking = async (selectedRecords) => {
       });
 
       if (selectedRecords.length > 0) {
-        await handlePicking(selectedRecords);
-        await this.getComponent(allListID)?.$refs.crud.clearSelection();
+        if (fullPickingEnabled) {
+          // M:N path: open dialog_split_picking. The dialog's Confirm
+          // handler picks up from here (re-fetches GDs, computes groups,
+          // drives dialog_assignee N times, creates N TOs directly).
+          // All inter-handler state is JSON-stringified into a single
+          // `split_state` form-level hidden field.
+          const splitState = {
+            gd_ids: selectedRecords.map((r) => r.id),
+            plant_id:
+              selectedRecords[0].plant_id?.id ||
+              selectedRecords[0].plant_id ||
+              "",
+            organization_id: selectedRecords[0].organization_id || "",
+            list_component_id: allListID,
+            groups: [],
+            index: 0,
+            assignees: [],
+          };
+          await this.setData({ split_state: JSON.stringify(splitState) });
+          await this.openDialog("dialog_split_picking");
+        } else {
+          await handlePicking(selectedRecords);
+          await this.getComponent(allListID)?.$refs.crud.clearSelection();
+        }
       }
     } else {
       this.$message.error("Please select at least one record.");
