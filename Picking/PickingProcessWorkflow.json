@@ -158,7 +158,10 @@
         "nodeName": "IF Picking Plan",
         "name": "IF Picking Plan",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -182,7 +185,9 @@
         {
           "id": "if_block_3rtgi7Ya",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_Q3hWck9R",
@@ -729,7 +734,10 @@
                 "nodeName": "IF Error",
                 "name": "IF Error",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -753,7 +761,9 @@
                 {
                   "id": "if_block_TpQ-ERt7",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_node_DZ6uDNjX",
@@ -796,7 +806,9 @@
                 {
                   "id": "if_block_GHyiGWby",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -1111,7 +1123,10 @@
                 "isValidator": true,
                 "nodeName": "Set PP Index",
                 "name": "Set PP Index",
-                "custom_wkbocgni": { "type": "javascript", "code": "0" },
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "0"
+                },
                 "redis_key": "toIndex_{{node:code_node_UDOp8D9x.data.id}}"
               },
               "blocks": []
@@ -1337,7 +1352,9 @@
                     {
                       "id": "ifBlock_AViOhIdy",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "return_node_XTS5ZSQ9",
@@ -1380,7 +1397,9 @@
                     {
                       "id": "ifBlock_KItw5ugn",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": []
                     }
                   ]
@@ -1394,7 +1413,10 @@
                     "nodeName": "IF Completed",
                     "name": "IF Completed",
                     "condition_type": "ConditionRule",
-                    "expression": { "type": "javascript", "code": "" },
+                    "expression": {
+                      "type": "javascript",
+                      "code": ""
+                    },
                     "filter": {
                       "list": [
                         {
@@ -1418,7 +1440,9 @@
                     {
                       "id": "if_block_h4gDV4ze",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "update_node_NvJg9Fcd",
@@ -1473,7 +1497,9 @@
                     {
                       "id": "if_block_9drQcoRM",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": []
                     }
                   ]
@@ -1540,7 +1566,9 @@
         {
           "id": "if_block_NGUmIvsw",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "code_node_oHIIKfiw",
@@ -1701,7 +1729,7 @@
                 "name": "Calculate Updated Items & Status",
                 "script": {
                   "type": "javascript",
-                  "code": "// Input from previous nodes\nconst originalPickingData = {{node:get_node_jEllcWiJ.data.data}};\nconst allData = {{workflowparams:allData}};\nconst newRecords = {{node:code_node_oHIIKfiw.data.records}};\n\n// NEW: Check for force complete flag\nconst isForceComplete = {{workflowparams:isForceComplete}} || 0;\n\n// Get original items from fetched data\nconst originalItems = originalPickingData.table_picking_items || [];\nconst originalRecords = originalPickingData.table_picking_records || [];\n\n// Create map of workflow items by gd_line_id or id\nconst workflowItemMap = {};\nfor (const item of allData.table_picking_items) {\n  const baseId = item.id.split('_split_')[0];\n  const key = item.gd_line_id || baseId;\n  workflowItemMap[key] = item;\n}\n\n// Create map of picked quantities by gd_line_id (not item_code)\nconst pickedQuantityMap = {};\nfor (const record of newRecords) {\n  const key = record.gd_line_id;\n  const current = pickedQuantityMap[key] || 0;\n  pickedQuantityMap[key] = current + record.store_out_qty;\n}\n\n// Update each original item\nconst updatedItems = originalItems.map(originalItem => {\n  const key = originalItem.gd_line_id || originalItem.id;\n  const workflowItem = workflowItemMap[key];\n  \n  // FORCE COMPLETE: Set all non-cancelled items to Completed\n  if (isForceComplete === 1) {\n    return {\n      ...originalItem,\n      pending_process_qty: 0,\n      line_status: originalItem.line_status === 'Cancelled' ? 'Cancelled' : 'Completed'\n    };\n  }\n  \n  if (workflowItem) {\n    // Item was processed in this session\n    const pickedQty = pickedQuantityMap[originalItem.gd_line_id] || 0;\n    const newPendingQty = Math.max(0, (originalItem.pending_process_qty || 0) - pickedQty);\n    \n    // Determine line status\n    let lineStatus;\n    if (originalItem.line_status === 'Cancelled') {\n      lineStatus = 'Cancelled';\n    } else if (newPendingQty === 0) {\n      lineStatus = 'Completed';\n    } else if (pickedQty > 0) {\n      lineStatus = 'In Progress';\n    } else {\n      lineStatus = 'Open';\n    }\n    \n    return {\n      ...originalItem,\n      pending_process_qty: newPendingQty,\n      line_status: lineStatus\n    };\n  } else {\n    // Item was not processed - preserve original state\n    return {\n      ...originalItem,\n      line_status: originalItem.line_status || 'Open'\n    };\n  }\n});\n\n// Combine original records with new records\nconst combinedRecords = [...originalRecords, ...newRecords];\n\n// Determine overall transfer order status\n// FORCE COMPLETE: Override to Completed\nlet toStatus;\nif (isForceComplete === 1) {\n  toStatus = 'Completed';\n} else {\n  const nonCancelledItems = updatedItems.filter(i => i.line_status !== 'Cancelled');\n  const completedItems = nonCancelledItems.filter(i => i.line_status === 'Completed');\n  const inProgressItems = nonCancelledItems.filter(i => i.line_status === 'In Progress');\n\n  if (completedItems.length === nonCancelledItems.length && nonCancelledItems.length > 0) {\n    toStatus = 'Completed';\n  } else if (completedItems.length > 0 || inProgressItems.length > 0) {\n    toStatus = 'In Progress';\n  } else {\n    toStatus = 'Open';\n  }\n}\n\nreturn {\n  updatedItems: updatedItems,\n  combinedRecords: combinedRecords,\n  toStatus: toStatus,\n  originalRecordsCount: originalRecords.length,\n  newRecordsCount: newRecords.length,\n  isForceComplete: isForceComplete === 1 ? \"Yes\" : null\n};\n"
+                  "code": "// Input from previous nodes\nconst originalPickingData = {{node:get_node_jEllcWiJ.data.data}};\nconst allData = {{workflowparams:allData}};\nconst newRecords = {{node:code_node_oHIIKfiw.data.records}};\n\n// NEW: Check for force complete flag\nconst isForceComplete = {{workflowparams:isForceComplete}} || 0;\n\n// M:N config: when allow_full_picking is ON, a Picking line goes directly\n// from Open to Completed once any qty is picked (no In Progress middle state).\n// Leftover qty becomes a new Picking via Convert to Picking. Mirrors the\n// PP-branch behavior for the GD-source flow.\nconst allowFullPicking = ({{node:get_node_Uj1uV9PU.data.data.allow_full_picking}} || 0) === 1;\n\n// Get original items from fetched data\nconst originalItems = originalPickingData.table_picking_items || [];\nconst originalRecords = originalPickingData.table_picking_records || [];\n\n// Create map of workflow items by gd_line_id or id\nconst workflowItemMap = {};\nfor (const item of allData.table_picking_items) {\n  const baseId = item.id.split('_split_')[0];\n  const key = item.gd_line_id || baseId;\n  workflowItemMap[key] = item;\n}\n\n// Create map of picked quantities by gd_line_id (not item_code)\nconst pickedQuantityMap = {};\nfor (const record of newRecords) {\n  const key = record.gd_line_id;\n  const current = pickedQuantityMap[key] || 0;\n  pickedQuantityMap[key] = current + record.store_out_qty;\n}\n\n// Update each original item\nconst updatedItems = originalItems.map(originalItem => {\n  const key = originalItem.gd_line_id || originalItem.id;\n  const workflowItem = workflowItemMap[key];\n  \n  // FORCE COMPLETE: Set all non-cancelled items to Completed\n  if (isForceComplete === 1) {\n    return {\n      ...originalItem,\n      pending_process_qty: 0,\n      line_status: originalItem.line_status === 'Cancelled' ? 'Cancelled' : 'Completed'\n    };\n  }\n  \n  if (workflowItem) {\n    // Item was processed in this session\n    const pickedQty = pickedQuantityMap[originalItem.gd_line_id] || 0;\n    const newPendingQty = Math.max(0, (originalItem.pending_process_qty || 0) - pickedQty);\n    \n    // Determine line status\n    let lineStatus;\n    let finalPendingQty = newPendingQty;\n    if (originalItem.line_status === 'Cancelled') {\n      lineStatus = 'Cancelled';\n    } else if (allowFullPicking && pickedQty > 0) {\n      // M:N: any picked qty closes the line. Remaining (if any) goes to a\n      // new Picking via Convert to Picking. Force pending to 0 since this\n      // Picking is done with this line.\n      lineStatus = 'Completed';\n      finalPendingQty = 0;\n    } else if (newPendingQty === 0) {\n      lineStatus = 'Completed';\n    } else if (pickedQty > 0) {\n      lineStatus = 'In Progress';\n    } else {\n      lineStatus = 'Open';\n    }\n    \n    return {\n      ...originalItem,\n      pending_process_qty: finalPendingQty,\n      line_status: lineStatus\n    };\n  } else {\n    // Item was not processed - preserve original state\n    return {\n      ...originalItem,\n      line_status: originalItem.line_status || 'Open'\n    };\n  }\n});\n\n// Combine original records with new records\nconst combinedRecords = [...originalRecords, ...newRecords];\n\n// Determine overall transfer order status\n// FORCE COMPLETE: Override to Completed\nlet toStatus;\nif (isForceComplete === 1) {\n  toStatus = 'Completed';\n} else {\n  const nonCancelledItems = updatedItems.filter(i => i.line_status !== 'Cancelled');\n  const completedItems = nonCancelledItems.filter(i => i.line_status === 'Completed');\n  const inProgressItems = nonCancelledItems.filter(i => i.line_status === 'In Progress');\n\n  if (completedItems.length === nonCancelledItems.length && nonCancelledItems.length > 0) {\n    toStatus = 'Completed';\n  } else if (completedItems.length > 0 || inProgressItems.length > 0) {\n    toStatus = 'In Progress';\n  } else {\n    toStatus = 'Open';\n  }\n}\n\nreturn {\n  updatedItems: updatedItems,\n  combinedRecords: combinedRecords,\n  toStatus: toStatus,\n  originalRecordsCount: originalRecords.length,\n  newRecordsCount: newRecords.length,\n  isForceComplete: isForceComplete === 1 ? \"Yes\" : null\n};\n"
                 },
                 "response_json": [
                   {
@@ -2404,7 +2432,10 @@
                 "isValidator": true,
                 "nodeName": "Set GD Index",
                 "name": "Set GD Index",
-                "custom_wkbocgni": { "type": "javascript", "code": "0" },
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "0"
+                },
                 "redis_key": "gdIndex_{{node:code_node_UDOp8D9x.data.id}}"
               },
               "blocks": []
@@ -2533,7 +2564,10 @@
                     "nodeName": "IF Auto Complete GD",
                     "name": "IF Auto Complete GD",
                     "condition_type": "ConditionRule",
-                    "expression": { "type": "javascript", "code": "" },
+                    "expression": {
+                      "type": "javascript",
+                      "code": ""
+                    },
                     "filter": {
                       "list": [
                         {
@@ -2581,7 +2615,9 @@
                     {
                       "id": "if_block_f6k6UqTd",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "workflow_node_Cd96wivg",
@@ -2713,7 +2749,9 @@
                             {
                               "id": "if_block_lLdqApOW",
                               "type": "ifBlock",
-                              "data": { "title": "true" },
+                              "data": {
+                                "title": "true"
+                              },
                               "blocks": [
                                 {
                                   "id": "return_node_rr8Ofx2k",
@@ -2756,7 +2794,9 @@
                             {
                               "id": "if_block_bflyjyId",
                               "type": "ifBlock",
-                              "data": { "title": "false" },
+                              "data": {
+                                "title": "false"
+                              },
                               "blocks": []
                             }
                           ]
@@ -2766,7 +2806,9 @@
                     {
                       "id": "if_block_VheLY2zW",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": [
                         {
                           "id": "workflow_node_4c98bf8x",
@@ -2882,7 +2924,9 @@
                             {
                               "id": "ifBlock_gvyNNAi4",
                               "type": "ifBlock",
-                              "data": { "title": "true" },
+                              "data": {
+                                "title": "true"
+                              },
                               "blocks": [
                                 {
                                   "id": "return_node_Ux87qnrj",
@@ -2925,7 +2969,9 @@
                             {
                               "id": "ifBlock_4bNcmv9J",
                               "type": "ifBlock",
-                              "data": { "title": "false" },
+                              "data": {
+                                "title": "false"
+                              },
                               "blocks": []
                             }
                           ]
@@ -3087,7 +3133,10 @@
                 "nodeName": "IF Auto Packing",
                 "name": "IF Auto Packing",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -3111,7 +3160,9 @@
                 {
                   "id": "if_block_6RaiH2gK",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "get_node_P2TpS5kS",
@@ -3518,7 +3569,9 @@
                 {
                   "id": "if_block_79nTqFVt",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -3566,7 +3619,10 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],
