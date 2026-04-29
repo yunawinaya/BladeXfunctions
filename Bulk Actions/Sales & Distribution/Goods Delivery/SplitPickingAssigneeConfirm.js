@@ -128,14 +128,13 @@ const finalize = async (
       return;
     }
 
-    const currentAssignee = await this.getValue("dialog_assignee.assignee");
-    if (
-      !currentAssignee ||
-      (Array.isArray(currentAssignee) && currentAssignee.length === 0)
-    ) {
-      this.$message.error("Please select at least one assignee.");
-      return;
-    }
+    // Assignee is optional — empty = unassigned picking.
+    const rawAssignee = await this.getValue("dialog_assignee.assignee");
+    const currentAssignee = Array.isArray(rawAssignee)
+      ? rawAssignee
+      : rawAssignee
+        ? [rawAssignee]
+        : [];
 
     assignees[index] = currentAssignee;
     const nextIndex = index + 1;
