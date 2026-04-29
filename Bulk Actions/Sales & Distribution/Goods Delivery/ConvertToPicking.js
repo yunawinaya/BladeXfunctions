@@ -16,6 +16,85 @@ const getPackingSetup = async (organizationId) => {
   }
 };
 
+const isFullPickingEnabled = async (organizationId) => {
+  try {
+    const setupData = await db
+      .collection("picking_setup")
+      .where({ organization_id: organizationId })
+      .get();
+    return setupData?.data?.[0]?.allow_full_picking === 1;
+  } catch (error) {
+    console.error("Error reading allow_full_picking:", error);
+    return false;
+  }
+};
+
+// Sum qty_to_pick across non-terminal Pickings, keyed by gd_line_id.
+// Used to gate Convert to Picking when allow_full_picking is ON so that
+// multiple Created Pickings don't collectively over-allocate a GD line.
+const buildInFlightQtyMap = async (gdIds) => {
+  const inFlight = {};
+  if (!Array.isArray(gdIds) || gdIds.length === 0) return inFlight;
+
+  await Promise.all(
+    gdIds.map(async (gdId) => {
+      try {
+        const toResult = await db
+          .collection("transfer_order")
+          .where({ gd_no: gdId })
+          .get();
+        for (const to of toResult?.data || []) {
+          if (to.to_status === "Completed" || to.to_status === "Cancelled") {
+            continue;
+          }
+          for (const item of to.table_picking_items || []) {
+            if (!item.gd_line_id) continue;
+            const qty = parseFloat(item.qty_to_pick || 0);
+            inFlight[item.gd_line_id] = (inFlight[item.gd_line_id] || 0) + qty;
+          }
+        }
+      } catch (err) {
+        console.error(`Error fetching in-flight TOs for gd ${gdId}:`, err);
+      }
+    }),
+  );
+
+  return inFlight;
+};
+
+const lineRemainingPickable = (gdItem, inFlightMap) => {
+  const inFlight = inFlightMap?.[gdItem.id] || 0;
+  return (gdItem.gd_qty || 0) - (gdItem.picked_qty || 0) - inFlight;
+};
+
+const hasPickableLine = (item, fullPickingEnabled, inFlightMap) => {
+  if (fullPickingEnabled) {
+    return item.table_gd.some(
+      (gdItem) =>
+        lineRemainingPickable(gdItem, inFlightMap) > 0 &&
+        gdItem.picking_status !== "Completed" &&
+        gdItem.picking_status !== "Cancelled",
+    );
+  }
+  return item.table_gd.some(
+    (gdItem) => gdItem.picking_status === "Not Created",
+  );
+};
+
+const countPickableLines = (item, fullPickingEnabled, inFlightMap) => {
+  if (fullPickingEnabled) {
+    return item.table_gd.filter(
+      (gdItem) =>
+        lineRemainingPickable(gdItem, inFlightMap) > 0 &&
+        gdItem.picking_status !== "Completed" &&
+        gdItem.picking_status !== "Cancelled",
+    ).length;
+  }
+  return item.table_gd.filter(
+    (gdItem) => gdItem.picking_status === "Not Created",
+  ).length;
+};
+
 const handlePicking = async (selectedRecords) => {
   const uniquePlants = new Set(selectedRecords.map((gd) => gd.plant_id.id));
   const allSamePlant = uniquePlants.size === 1;
@@ -97,13 +176,23 @@ const handlePicking = async (selectedRecords) => {
     console.log("selectedRecords", selectedRecords);
 
     if (selectedRecords && selectedRecords.length > 0) {
+      const fullPickingEnabled = await isFullPickingEnabled(
+        selectedRecords[0].organization_id,
+      );
+
+      const inFlightMap = fullPickingEnabled
+        ? await buildInFlightQtyMap(selectedRecords.map((r) => r.id))
+        : {};
+
       selectedRecords = selectedRecords.filter((item) =>
-        item.table_gd.some((gdItem) => gdItem.picking_status === "Not Created"),
+        hasPickableLine(item, fullPickingEnabled, inFlightMap),
       );
 
       if (selectedRecords.length === 0) {
         await this.$alert(
-          "No selected records are available for conversion. Please select records with picking status 'Not Created' or 'Created' or 'In Progress'.",
+          fullPickingEnabled
+            ? "No selected records have remaining quantity to pick (after accounting for non-Completed Pickings already in flight)."
+            : "No selected records are available for conversion. Please select records with picking status 'Not Created'.",
           "No Records to Convert",
           {
             confirmButtonText: "OK",
@@ -114,15 +203,16 @@ const handlePicking = async (selectedRecords) => {
         return;
       }
 
-      // Filter out records that are not "Not Created"
       await this.$confirm(
         `Only these goods delivery records available for conversion. Proceed?<br><br>
   <strong>Selected Records:</strong><br> ${selectedRecords
     .map((item) => {
       const totalItems = item.table_gd.length;
-      const pickableItems = item.table_gd.filter(
-        (gdItem) => gdItem.picking_status === "Not Created",
-      ).length;
+      const pickableItems = countPickableLines(
+        item,
+        fullPickingEnabled,
+        inFlightMap,
+      );
       return `${item.delivery_no} (${pickableItems}/${totalItems} items)`;
     })
     .join("<br>")}`,
