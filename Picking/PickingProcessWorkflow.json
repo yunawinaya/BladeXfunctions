@@ -158,10 +158,7 @@
         "nodeName": "IF Picking Plan",
         "name": "IF Picking Plan",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -185,9 +182,7 @@
         {
           "id": "if_block_3rtgi7Ya",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "code_node_Q3hWck9R",
@@ -734,10 +729,7 @@
                 "nodeName": "IF Error",
                 "name": "IF Error",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -761,9 +753,7 @@
                 {
                   "id": "if_block_TpQ-ERt7",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "return_node_DZ6uDNjX",
@@ -806,9 +796,7 @@
                 {
                   "id": "if_block_GHyiGWby",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -1123,10 +1111,7 @@
                 "isValidator": true,
                 "nodeName": "Set PP Index",
                 "name": "Set PP Index",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "0"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "0" },
                 "redis_key": "toIndex_{{node:code_node_UDOp8D9x.data.id}}"
               },
               "blocks": []
@@ -1352,9 +1337,7 @@
                     {
                       "id": "ifBlock_AViOhIdy",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "return_node_XTS5ZSQ9",
@@ -1397,9 +1380,7 @@
                     {
                       "id": "ifBlock_KItw5ugn",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -1413,10 +1394,7 @@
                     "nodeName": "IF Completed",
                     "name": "IF Completed",
                     "condition_type": "ConditionRule",
-                    "expression": {
-                      "type": "javascript",
-                      "code": ""
-                    },
+                    "expression": { "type": "javascript", "code": "" },
                     "filter": {
                       "list": [
                         {
@@ -1440,9 +1418,7 @@
                     {
                       "id": "if_block_h4gDV4ze",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "update_node_NvJg9Fcd",
@@ -1497,9 +1473,7 @@
                     {
                       "id": "if_block_9drQcoRM",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -1566,9 +1540,7 @@
         {
           "id": "if_block_NGUmIvsw",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": [
             {
               "id": "code_node_oHIIKfiw",
@@ -2432,10 +2404,7 @@
                 "isValidator": true,
                 "nodeName": "Set GD Index",
                 "name": "Set GD Index",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "0"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "0" },
                 "redis_key": "gdIndex_{{node:code_node_UDOp8D9x.data.id}}"
               },
               "blocks": []
@@ -2564,10 +2533,7 @@
                     "nodeName": "IF Auto Complete GD",
                     "name": "IF Auto Complete GD",
                     "condition_type": "ConditionRule",
-                    "expression": {
-                      "type": "javascript",
-                      "code": ""
-                    },
+                    "expression": { "type": "javascript", "code": "" },
                     "filter": {
                       "list": [
                         {
@@ -2615,9 +2581,7 @@
                     {
                       "id": "if_block_f6k6UqTd",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "workflow_node_Cd96wivg",
@@ -2749,9 +2713,7 @@
                             {
                               "id": "if_block_lLdqApOW",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "return_node_rr8Ofx2k",
@@ -2794,9 +2756,7 @@
                             {
                               "id": "if_block_bflyjyId",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -2806,9 +2766,7 @@
                     {
                       "id": "if_block_VheLY2zW",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": [
                         {
                           "id": "workflow_node_4c98bf8x",
@@ -2924,9 +2882,7 @@
                             {
                               "id": "ifBlock_gvyNNAi4",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "return_node_Ux87qnrj",
@@ -2969,9 +2925,7 @@
                             {
                               "id": "ifBlock_4bNcmv9J",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -3133,10 +3087,7 @@
                 "nodeName": "IF Auto Packing",
                 "name": "IF Auto Packing",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -3160,9 +3111,7 @@
                 {
                   "id": "if_block_6RaiH2gK",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "get_node_P2TpS5kS",
@@ -3569,9 +3518,7 @@
                 {
                   "id": "if_block_79nTqFVt",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -3619,10 +3566,7 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": {
-        "isValidator": true,
-        "title": "End Node"
-      },
+      "data": { "isValidator": true, "title": "End Node" },
       "blocks": []
     }
   ],
