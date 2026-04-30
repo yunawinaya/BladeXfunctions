@@ -158,10 +158,7 @@
         "nodeName": "IF Picking Plan",
         "name": "IF Picking Plan",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -185,9 +182,7 @@
         {
           "id": "if_block_3rtgi7Ya",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "code_node_Q3hWck9R",
@@ -734,10 +729,7 @@
                 "nodeName": "IF Error",
                 "name": "IF Error",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -761,9 +753,7 @@
                 {
                   "id": "if_block_TpQ-ERt7",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "return_node_DZ6uDNjX",
@@ -806,9 +796,7 @@
                 {
                   "id": "if_block_GHyiGWby",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -1123,10 +1111,7 @@
                 "isValidator": true,
                 "nodeName": "Set PP Index",
                 "name": "Set PP Index",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "0"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "0" },
                 "redis_key": "toIndex_{{node:code_node_UDOp8D9x.data.id}}"
               },
               "blocks": []
@@ -1352,9 +1337,7 @@
                     {
                       "id": "ifBlock_AViOhIdy",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "return_node_XTS5ZSQ9",
@@ -1397,9 +1380,7 @@
                     {
                       "id": "ifBlock_KItw5ugn",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -1413,10 +1394,7 @@
                     "nodeName": "IF Completed",
                     "name": "IF Completed",
                     "condition_type": "ConditionRule",
-                    "expression": {
-                      "type": "javascript",
-                      "code": ""
-                    },
+                    "expression": { "type": "javascript", "code": "" },
                     "filter": {
                       "list": [
                         {
@@ -1440,9 +1418,7 @@
                     {
                       "id": "if_block_h4gDV4ze",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "update_node_NvJg9Fcd",
@@ -1497,9 +1473,7 @@
                     {
                       "id": "if_block_9drQcoRM",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -1566,9 +1540,7 @@
         {
           "id": "if_block_NGUmIvsw",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": [
             {
               "id": "code_node_oHIIKfiw",
@@ -2432,10 +2404,7 @@
                 "isValidator": true,
                 "nodeName": "Set GD Index",
                 "name": "Set GD Index",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "0"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "0" },
                 "redis_key": "gdIndex_{{node:code_node_UDOp8D9x.data.id}}"
               },
               "blocks": []
@@ -2564,10 +2533,7 @@
                     "nodeName": "IF Auto Complete GD",
                     "name": "IF Auto Complete GD",
                     "condition_type": "ConditionRule",
-                    "expression": {
-                      "type": "javascript",
-                      "code": ""
-                    },
+                    "expression": { "type": "javascript", "code": "" },
                     "filter": {
                       "list": [
                         {
@@ -2615,9 +2581,7 @@
                     {
                       "id": "if_block_f6k6UqTd",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "workflow_node_Cd96wivg",
@@ -2749,9 +2713,7 @@
                             {
                               "id": "if_block_lLdqApOW",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "return_node_rr8Ofx2k",
@@ -2794,9 +2756,7 @@
                             {
                               "id": "if_block_bflyjyId",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -2806,9 +2766,7 @@
                     {
                       "id": "if_block_VheLY2zW",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": [
                         {
                           "id": "workflow_node_4c98bf8x",
@@ -2924,9 +2882,7 @@
                             {
                               "id": "ifBlock_gvyNNAi4",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "return_node_Ux87qnrj",
@@ -2969,9 +2925,7 @@
                             {
                               "id": "ifBlock_4bNcmv9J",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -3168,10 +3122,7 @@
                 "nodeName": "IF Auto Packing",
                 "name": "IF Auto Packing",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -3195,9 +3146,7 @@
                 {
                   "id": "if_block_6RaiH2gK",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "get_node_P2TpS5kS",
@@ -3372,7 +3321,7 @@
                         "name": "Enrich Packing List",
                         "script": {
                           "type": "javascript",
-                          "code": "const partialList = {{node:code_node_pMVdQBEQ.data.packingDataList}} || [];\nconst huMasters = {{node:search_node_mUPqqQph.data.data}} || [];\nconst soMasters = {{node:search_node_i5v6z7Hu.data.data}} || [];\nconst gdMasters = {{node:search_node_c7BtNx91.data.data}} || [];\nconst existingPackings = {{node:search_node_FXknErTg.data.data}} || [];\n\nconst huById = {};\nfor (const h of huMasters) huById[h.id] = h;\n\nconst soById = {};\nfor (const s of soMasters) soById[s.id] = s;\n\nconst gdById = {};\nfor (const g of gdMasters) gdById[g.id] = g;\n\n// One existing Packing per gd_id (1 GD ↔ 1 Packing invariant). If multiple\n// non-terminal Packings exist for the same gd_id (shouldn't happen but\n// defensive), we take the first.\nconst existingByGdId = {};\nfor (const p of existingPackings) {\n  if (p.gd_id && !existingByGdId[p.gd_id]) {\n    existingByGdId[p.gd_id] = p;\n  }\n}\n\nconst packingsToCreate = [];\nconst packingsToUpdate = [];\n\nfor (const p of partialList) {\n  const huItems = p.huItemsPartial || [];\n  const distinctHuIds = [];\n  const seen = {};\n  for (const it of huItems) {\n    if (!seen[it.handling_unit_id]) {\n      seen[it.handling_unit_id] = true;\n      distinctHuIds.push(it.handling_unit_id);\n    }\n  }\n\n  // HU rows = full GD-allocation projection. Header status inherits from its\n  // items: \"Unpacked\" if any item is upstream-picked, else \"Pending\".\n  const newHuRows = [];\n  for (const huId of distinctHuIds) {\n    const hu = huById[huId] || {};\n    const itemsForHu = huItems.filter(function(it) { return it.handling_unit_id === huId; });\n    const headerStatus = itemsForHu.some(function(it) { return it.hu_status === \"Unpacked\"; })\n      ? \"Unpacked\"\n      : \"Pending\";\n    newHuRows.push({\n      row_type: \"header\",\n      handling_unit_id: huId,\n      handling_no: hu.handling_no || \"\",\n      hu_material_id: hu.hu_material_id || \"\",\n      hu_type: hu.hu_type || \"\",\n      hu_uom: hu.hu_uom || \"\",\n      hu_status: headerStatus,\n      storage_location: hu.storage_location || \"\",\n      gross_weight: hu.gross_weight || 0,\n      net_weight: hu.net_weight || 0,\n      net_volume: hu.net_volume || 0\n    });\n    for (const it of itemsForHu) newHuRows.push(it);\n  }\n\n  const so = soById[p.so_id] || {};\n  const gd = gdById[p.gd_id] || {};\n  const existing = existingByGdId[p.gd_id] || null;\n\n  if (existing) {\n    // UPDATE path: rebuild table_item_source from GD (cumulative picks),\n    // merge table_hu_source with existing rows. Skip duplicate HU headers.\n    const existingHuSource = Array.isArray(existing.table_hu_source) ? existing.table_hu_source : [];\n    const existingHuIds = {};\n    for (const r of existingHuSource) {\n      if (r.row_type === \"header\" && r.handling_unit_id) {\n        existingHuIds[r.handling_unit_id] = true;\n      }\n    }\n    const mergedHuSource = existingHuSource.slice();\n    for (const r of newHuRows) {\n      if (r.row_type === \"header\" && existingHuIds[r.handling_unit_id]) continue;\n      if (r.row_type === \"header\") existingHuIds[r.handling_unit_id] = true;\n      mergedHuSource.push(r);\n    }\n\n    packingsToUpdate.push({\n      existing_packing_id: existing.id,\n      gd_id: p.gd_id,\n      table_item_source: p.table_item_source,\n      table_hu_source: mergedHuSource\n    });\n  } else {\n    // CREATE path: full payload for the existing add-node\n    packingsToCreate.push({\n      plant_id: gd.plant_id || p.plant_id,\n      organization_id: gd.organization_id || p.organization_id,\n      packing_mode: p.packing_mode,\n      created_by: p.created_by,\n      created_at: p.created_at,\n      gd_id: p.gd_id,\n      gd_no: gd.delivery_no || p.gd_no,\n      so_id: gd.so_id || p.so_id,\n      so_no: gd.so_no || p.so_no,\n      to_id: p.to_id,\n      customer_id: gd.customer_name || so.customer_id || \"\",\n      billing_address: gd.gd_billing_address || so.cust_billing_address || \"\",\n      shipping_address: gd.gd_shipping_address || so.cust_shipping_address || \"\",\n      table_item_source: p.table_item_source,\n      table_hu_source: newHuRows\n    });\n  }\n}\n\nreturn {\n  packingsToCreate: packingsToCreate,\n  packingsToUpdate: packingsToUpdate,\n  hasCreates: packingsToCreate.length > 0 ? 1 : 0,\n  hasUpdates: packingsToUpdate.length > 0 ? 1 : 0,\n  // Kept for backward-compat with any node still reading packingDataList:\n  packingDataList: packingsToCreate\n};\n"
+                          "code": "const partialList = {{node:code_node_pMVdQBEQ.data.packingDataList}} || [];\nconst huMasters = {{node:search_node_mUPqqQph.data.data}} || [];\nconst soMasters = {{node:search_node_i5v6z7Hu.data.data}} || [];\nconst gdMasters = {{node:search_node_c7BtNx91.data.data}} || [];\nconst existingPackings = {{node:search_node_FXknErTg.data.data}} || [];\n\nconst huById = {};\nfor (const h of huMasters) huById[h.id] = h;\n\nconst soById = {};\nfor (const s of soMasters) soById[s.id] = s;\n\nconst gdById = {};\nfor (const g of gdMasters) gdById[g.id] = g;\n\n// One existing Packing per gd_id (1 GD ↔ 1 Packing invariant). If multiple\n// non-terminal Packings exist for the same gd_id (shouldn't happen but\n// defensive), we take the first.\nconst existingByGdId = {};\nfor (const p of existingPackings) {\n  if (p.gd_id && !existingByGdId[p.gd_id]) {\n    existingByGdId[p.gd_id] = p;\n  }\n}\n\nconst packingsToCreate = [];\nconst packingsToUpdate = [];\n\nfor (const p of partialList) {\n  const huItems = p.huItemsPartial || [];\n  const distinctHuIds = [];\n  const seen = {};\n  for (const it of huItems) {\n    if (!seen[it.handling_unit_id]) {\n      seen[it.handling_unit_id] = true;\n      distinctHuIds.push(it.handling_unit_id);\n    }\n  }\n\n  // HU rows = full GD-allocation projection. Header status inherits from its\n  // items: \"Unpacked\" if any item is upstream-picked, else \"Pending\".\n  const newHuRows = [];\n  for (const huId of distinctHuIds) {\n    const hu = huById[huId] || {};\n    const itemsForHu = huItems.filter(function(it) { return it.handling_unit_id === huId; });\n    const headerStatus = itemsForHu.some(function(it) { return it.hu_status === \"Unpacked\"; })\n      ? \"Unpacked\"\n      : \"Pending\";\n    newHuRows.push({\n      row_type: \"header\",\n      handling_unit_id: huId,\n      handling_no: hu.handling_no || \"\",\n      hu_material_id: hu.hu_material_id || \"\",\n      hu_type: hu.hu_type || \"\",\n      hu_uom: hu.hu_uom || \"\",\n      hu_status: headerStatus,\n      storage_location: hu.storage_location || \"\",\n      gross_weight: hu.gross_weight || 0,\n      net_weight: hu.net_weight || 0,\n      net_volume: hu.net_volume || 0\n    });\n    for (const it of itemsForHu) newHuRows.push(it);\n  }\n\n  const so = soById[p.so_id] || {};\n  const gd = gdById[p.gd_id] || {};\n  const existing = existingByGdId[p.gd_id] || null;\n\n  if (existing) {\n    // UPDATE path: rebuild table_item_source from GD (cumulative picks),\n    // merge table_hu_source with existing rows. Skip duplicate HU headers.\n    const existingHuSource = Array.isArray(existing.table_hu_source) ? existing.table_hu_source : [];\n    const existingHuIds = {};\n    for (const r of existingHuSource) {\n      if (r.row_type === \"header\" && r.handling_unit_id) {\n        existingHuIds[r.handling_unit_id] = true;\n      }\n    }\n    const mergedHuSource = existingHuSource.slice();\n    for (const r of newHuRows) {\n      if (r.row_type === \"header\" && existingHuIds[r.handling_unit_id]) continue;\n      if (r.row_type === \"header\") existingHuIds[r.handling_unit_id] = true;\n      mergedHuSource.push(r);\n    }\n\n    packingsToUpdate.push({\n      existing_packing_id: existing.id,\n      gd_id: p.gd_id,\n      table_item_source: p.table_item_source,\n      table_hu_source: mergedHuSource\n    });\n  } else {\n    // CREATE path: full payload for the existing add-node\n    packingsToCreate.push({\n      plant_id: gd.plant_id || p.plant_id,\n      organization_id: gd.organization_id || p.organization_id,\n      packing_mode: p.packing_mode,\n      created_by: p.created_by,\n      created_at: p.created_at,\n      gd_id: p.gd_id,\n      gd_no: gd.delivery_no || p.gd_no,\n      so_id: gd.so_id || p.so_id,\n      so_no: gd.so_no || p.so_no,\n      to_id: p.to_id,\n      customer_id: gd.customer_name || so.customer_id || \"\",\n      billing_address: gd.gd_billing_address || so.cust_billing_address || \"\",\n      shipping_address: gd.gd_shipping_address || so.cust_shipping_address || \"\",\n      table_item_source: p.table_item_source,\n      table_hu_source: newHuRows\n    });\n  }\n}\n\n// packingsToUpdate is a SINGLE OBJECT (or null) so update-node refs like\n// {{node:...packingsToUpdate.table_item_source}} resolve to a flat value\n// rather than an array-of-arrays. Each Picking save touches one GD, so at\n// most one Packing needs updating per run.\nconst packingToUpdate = packingsToUpdate[0] || null;\n\nreturn {\n  packingsToCreate: packingsToCreate,\n  packingsToUpdate: packingToUpdate,\n  hasCreates: packingsToCreate.length > 0 ? 1 : 0,\n  hasUpdates: packingsToUpdate.length > 0 ? 1 : 0,\n  // Backward-compat alias of packingsToCreate:\n  packingDataList: packingsToCreate\n};\n"
                         },
                         "response_json": [
                           {
@@ -3462,12 +3411,8 @@
                       "type": "condition-all-node",
                       "data": {
                         "title": "Parallel Branch",
-                        "filter": {
-                          "list": []
-                        },
-                        "expression": {
-                          "code": ""
-                        },
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -3494,9 +3439,7 @@
                                 }
                               ]
                             },
-                            "expression": {
-                              "code": ""
-                            },
+                            "expression": { "code": "" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "hasCreates",
@@ -3693,9 +3636,7 @@
                                 }
                               ]
                             },
-                            "expression": {
-                              "code": ""
-                            },
+                            "expression": { "code": "" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "hasUpdates",
@@ -3781,9 +3722,7 @@
                                 }
                               ]
                             },
-                            "expression": {
-                              "code": ""
-                            },
+                            "expression": { "code": "" },
                             "displayContent": "sdk.form.setCondition",
                             "__index": 3,
                             "isValidator": true,
@@ -3836,9 +3775,7 @@
                 {
                   "id": "if_block_79nTqFVt",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -3886,10 +3823,7 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": {
-        "isValidator": true,
-        "title": "End Node"
-      },
+      "data": { "isValidator": true, "title": "End Node" },
       "blocks": []
     }
   ],
