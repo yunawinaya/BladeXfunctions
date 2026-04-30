@@ -9139,6 +9139,22 @@
                               "propLabel": "Is Accurate"
                             },
                             {
+                              "prop": "delivery_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.delivery_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Goods Delivery Number"
+                            },
+                            {
+                              "prop": "delivery_no_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.delivery_no_type}}",
+                              "valueLabel": "",
+                              "propLabel": "规则"
+                            },
+                            {
                               "prop": "driver_name",
                               "operator": "",
                               "valueType": "field",
