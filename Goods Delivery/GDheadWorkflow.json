@@ -1856,6 +1856,192 @@
       ]
     },
     {
+      "id": "if_j38KWlWo",
+      "type": "if",
+      "data": {
+        "title": "IF Check Multiple Created Picking",
+        "isValidator": true,
+        "nodeName": "IF Check Multiple Created Picking",
+        "name": "IF Check Multiple Created Picking",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1777532335702,
+              "parentId": 1777532335703,
+              "isTop": true,
+              "prop": "",
+              "operator": "all",
+              "valueType": "",
+              "value": "",
+              "type": "branch",
+              "level": 1,
+              "children": [
+                {
+                  "id": 1736695973613,
+                  "parentId": 1777532335702,
+                  "isTop": false,
+                  "prop": "node.get_node_iFPuvJX2.data.data.allow_full_picking",
+                  "operator": "numberEqual",
+                  "valueType": "value",
+                  "value": 1,
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "Allow Full Picking GD",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                },
+                {
+                  "id": 1777532335704,
+                  "parentId": 1777532335702,
+                  "isTop": false,
+                  "prop": "workflowparams.saveAs",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "Created",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "saveAs",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                },
+                {
+                  "id": 1777532335705,
+                  "parentId": 1777532335702,
+                  "isTop": false,
+                  "prop": "workflowparams.pageStatus",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "Edit",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "pageStatus",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                },
+                {
+                  "id": 1777532335707,
+                  "isTop": false,
+                  "parentId": 1777532335702,
+                  "type": "branch",
+                  "operator": "any",
+                  "level": 2,
+                  "children": [
+                    {
+                      "id": 1777532335706,
+                      "parentId": 1777532335707,
+                      "isTop": false,
+                      "prop": "node.get_node_xTRvHWB8.data.data.picking_status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "Created",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    },
+                    {
+                      "id": 1777532335708,
+                      "parentId": 1777532335707,
+                      "isTop": false,
+                      "prop": "node.get_node_xTRvHWB8.data.data.picking_status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "In Progress",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_PoEPyLHo",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "search_node_NBAQ9gsj",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Transfer Order Picking:Table:1935556443668959233",
+                  "rules": {
+                    "collectionId": "1935556443668959233",
+                    "list": [
+                      {
+                        "id": 1777532457736,
+                        "parentId": 1777532457737,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1777532457737,
+                            "parentId": 1777532457736,
+                            "isTop": false,
+                            "prop": "gd_no",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{workflowparams:allData.id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Reference Doc No",
+                            "valueLabel": "",
+                            "operatorLabel": "In"
+                          },
+                          {
+                            "id": 1777532457738,
+                            "parentId": 1777532457736,
+                            "isTop": false,
+                            "prop": "to_status",
+                            "operator": "notEqual",
+                            "valueType": "value",
+                            "value": "Completed",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Transfer Order Status",
+                            "valueLabel": "",
+                            "operatorLabel": "Not Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get Active Picking",
+                "isValidator": true,
+                "nodeName": "Get Active Picking",
+                "name": "Get Active Picking"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_iV0Bv6NW",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "code_node_IyJHrBst",
       "type": "code-node",
       "data": {
@@ -1868,7 +2054,7 @@
         "name": "fillbackHeaderFields",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}};\nconst updatedGD = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst isForceComplete = {{workflowparams:isForceComplete}};\nconst pickingSetup = {{node:get_node_iFPuvJX2.data.data}};\nconst pageStatus = {{workflowparams:pageStatus}}\n\nconst skippedRows = [];\n\nif (pickingSetup?.picking_mode === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableGD = {{node:code_node_ymugKpln.data.tableGD}}\n  if (tableGD?.length > 0) {\n    allData.table_gd = tableGD\n  }\n}\n\nfor (const [index, gdLineItem] of allData.table_gd.entries()) {\n  if (!gdLineItem.gd_qty || parseFloat(gdLineItem.gd_qty) === 0) {\n    continue;\n  }\n\n  const tempQtyData = gdLineItem.temp_qty_data;\n  const isEmpty =\n    !tempQtyData ||\n    tempQtyData === \"\" ||\n    tempQtyData === \"[]\" ||\n    tempQtyData === null;\n\n  if (isEmpty) {\n    skippedRows.push({\n      index: index,\n      material_name: gdLineItem.material_name || \"Unknown\",\n      gd_qty: gdLineItem.gd_qty,\n      so_no: gdLineItem.so_no || \"\",\n      reason: \"temp_qty_data is empty\",\n    });\n    continue;\n  }\n\n  try {\n    const parsedTempQty = JSON.parse(tempQtyData);\n    const totalAllocated = parsedTempQty.reduce(\n      (sum, item) => sum + (parseFloat(item.gd_quantity) || 0),\n      0\n    );\n    const gdQty = parseFloat(gdLineItem.gd_qty) || 0;\n\n    if (Math.abs(totalAllocated - gdQty) > 0.001) {\n      skippedRows.push({\n        index: index,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        allocated_qty: totalAllocated,\n        so_no: gdLineItem.so_no || \"\",\n        reason: `temp_qty_data total (${totalAllocated}) != gd_qty (${gdQty})`,\n      });\n      continue;\n    }\n  } catch (e) {\n    skippedRows.push({\n      index: index,\n      material_name: gdLineItem.material_name || \"Unknown\",\n      gd_qty: gdLineItem.gd_qty,\n      so_no: gdLineItem.so_no || \"\",\n      reason: \"temp_qty_data parse error\",\n    });\n    continue;\n  }\n\n  gdLineItem.customer_id = allData.customer_name || null;\n  gdLineItem.organization_id = allData.organization_id;\n  gdLineItem.plant_id = allData.plant_id || null;\n  gdLineItem.billing_state_id = allData.billing_address_state || null;\n  gdLineItem.billing_country_id = allData.billing_address_country || null;\n  gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n  gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n  gdLineItem.assigned_to = allData.assigned_to || null;\n  gdLineItem.area_id = allData.gd_area_id || null;\n  gdLineItem.line_index = index + 1;\n\n  if (isForceComplete === \"Yes\") {\n    gdLineItem.picking_status = \"Completed\";\n  } else if (saveAs === \"Cancelled\") {\n    gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n  }\n\n  if (\n    pickingSetup &&\n    (!allData.picking_status || allData.picking_status === \"\") &&\n    saveAs === \"Created\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      gdLineItem.picking_status = \"Created\";\n    } else {\n      gdLineItem.picking_status = \"Not Created\";\n    }\n  }\n\n  updatedGD.push(gdLineItem);\n}\n\nallData.table_gd = updatedGD;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gd_status = \"Draft\";\n}\n\nif (\n  pickingSetup &&\n  (!allData.picking_status || allData.picking_status === \"\") &&\n  saveAs === \"Created\" &&\n  pickingSetup.picking_required === 1\n) {\n  if (pickingSetup.auto_trigger_to === 1) {\n    allData.picking_status = \"Created\";\n  } else {\n    allData.picking_status = \"Not Created\";\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\")\n    ) {\n      allData.delivery_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\" ||\n        allData.gd_status === \"Draft\")\n    ) {\n      allData.delivery_no = \"issued\";\n    }\n  }\n}\n\nlet needCL;\n\nif (allData.acc_integration_type !== \"No Accounting\" && {{workflowparams:needCL}} === \"required\") {\n  needCL = \"required\";\n} else {\n  needCL = \"not required\";\n}\n\nif (isForceComplete === \"Yes\") {\n  allData.picking_status = \"Completed\"\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n}\n\nlet needSOCleanUp = 0\n\nif (allData.gd_status === \"Created\") {\n  const originalGD = {{node:get_node_xTRvHWB8.data.data}};\n\n  allData.table_gd.forEach((item) => {\n    const originalItem = originalGD.table_gd?.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  if (allData.table_gd.length !== originalGD.table_gd.length) {\n    needSOCleanUp = 1\n  }\n}\n\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.index + 1}: ${row.material_name} - qty: ${row.gd_qty}${row.allocated_qty !== undefined ? `, allocated: ${row.allocated_qty}` : \"\"}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"} — ${row.reason}`\n  ).join(\"\\n\");\n  \n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to invalid allocation data:\\n\\n${rowDetails}\\n\\nThese rows may need manual allocation or the allocation workflow may have failed.`;\n}\n\nreturn {\n  allData: allData,\n  gd_status: allData.gd_status,\n  needCL: needCL,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage\n};\n"
+          "code": "let allData = {{workflowparams:allData}};\nconst updatedGD = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst isForceComplete = {{workflowparams:isForceComplete}};\nconst pickingSetup = {{node:get_node_iFPuvJX2.data.data}};\nconst pageStatus = {{workflowparams:pageStatus}}\n\n// M:N edit gate: when allow_full_picking=1 AND user is editing a GD that has\n// multiple non-terminal Pickings (Created / In Progress), block the save with\n// a clear error. Forces user to cancel or complete those Pickings before\n// modifying the GD upstream of them. Reuses the invalidData -> 400 path\n// (if_vnwLSl9x).\nif (\n  pickingSetup &&\n  pickingSetup.allow_full_picking === 1 &&\n  saveAs === \"Created\" &&\n  pageStatus === \"Edit\"\n) {\n  const activePickings = ({{node:search_node_NBAQ9gsj.data.data}} || [])\n    .filter(function(to) {\n      return to.to_status !== \"Completed\" &&\n             to.to_status !== \"Cancelled\" &&\n             to.to_status !== \"Draft\";\n    });\n  if (activePickings.length > 1) {\n    const list = activePickings\n      .map(function(to) { return to.to_id || to.id; })\n      .slice(0, 5)\n      .join(\", \");\n    const suffix = activePickings.length > 5\n      ? \" (+\" + (activePickings.length - 5) + \" more)\"\n      : \"\";\n    return {\n      allData: allData,\n      gd_status: allData.gd_status,\n      needCL: \"not required\",\n      picking_status: allData.picking_status,\n      packing_status: allData.packing_status,\n      needSOCleanUp: 0,\n      invalidData: 1,\n      invalidDataMessage: \"Cannot edit this Goods Delivery while \" + activePickings.length + \" Pickings are active: \" + list + suffix + \". Cancel or complete those Pickings before editing.\"\n    };\n  }\n}\n\nconst skippedRows = [];\n\nif (pickingSetup?.picking_mode === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableGD = {{node:code_node_ymugKpln.data.tableGD}}\n  if (tableGD?.length > 0) {\n    allData.table_gd = tableGD\n  }\n}\n\nfor (const [index, gdLineItem] of allData.table_gd.entries()) {\n  if (!gdLineItem.gd_qty || parseFloat(gdLineItem.gd_qty) === 0) {\n    continue;\n  }\n\n  const tempQtyData = gdLineItem.temp_qty_data;\n  const isEmpty =\n    !tempQtyData ||\n    tempQtyData === \"\" ||\n    tempQtyData === \"[]\" ||\n    tempQtyData === null;\n\n  if (isEmpty) {\n    skippedRows.push({\n      index: index,\n      material_name: gdLineItem.material_name || \"Unknown\",\n      gd_qty: gdLineItem.gd_qty,\n      so_no: gdLineItem.so_no || \"\",\n      reason: \"temp_qty_data is empty\",\n    });\n    continue;\n  }\n\n  try {\n    const parsedTempQty = JSON.parse(tempQtyData);\n    const totalAllocated = parsedTempQty.reduce(\n      (sum, item) => sum + (parseFloat(item.gd_quantity) || 0),\n      0\n    );\n    const gdQty = parseFloat(gdLineItem.gd_qty) || 0;\n\n    if (Math.abs(totalAllocated - gdQty) > 0.001) {\n      skippedRows.push({\n        index: index,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        allocated_qty: totalAllocated,\n        so_no: gdLineItem.so_no || \"\",\n        reason: `temp_qty_data total (${totalAllocated}) != gd_qty (${gdQty})`,\n      });\n      continue;\n    }\n  } catch (e) {\n    skippedRows.push({\n      index: index,\n      material_name: gdLineItem.material_name || \"Unknown\",\n      gd_qty: gdLineItem.gd_qty,\n      so_no: gdLineItem.so_no || \"\",\n      reason: \"temp_qty_data parse error\",\n    });\n    continue;\n  }\n\n  gdLineItem.customer_id = allData.customer_name || null;\n  gdLineItem.organization_id = allData.organization_id;\n  gdLineItem.plant_id = allData.plant_id || null;\n  gdLineItem.billing_state_id = allData.billing_address_state || null;\n  gdLineItem.billing_country_id = allData.billing_address_country || null;\n  gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n  gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n  gdLineItem.assigned_to = allData.assigned_to || null;\n  gdLineItem.area_id = allData.gd_area_id || null;\n  gdLineItem.line_index = index + 1;\n\n  if (isForceComplete === \"Yes\") {\n    gdLineItem.picking_status = \"Completed\";\n  } else if (saveAs === \"Cancelled\") {\n    gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n  }\n\n  if (\n    pickingSetup &&\n    (!allData.picking_status || allData.picking_status === \"\") &&\n    saveAs === \"Created\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      gdLineItem.picking_status = \"Created\";\n    } else {\n      gdLineItem.picking_status = \"Not Created\";\n    }\n  }\n\n  updatedGD.push(gdLineItem);\n}\n\nallData.table_gd = updatedGD;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gd_status = \"Draft\";\n}\n\nif (\n  pickingSetup &&\n  (!allData.picking_status || allData.picking_status === \"\") &&\n  saveAs === \"Created\" &&\n  pickingSetup.picking_required === 1\n) {\n  if (pickingSetup.auto_trigger_to === 1) {\n    allData.picking_status = \"Created\";\n  } else {\n    allData.picking_status = \"Not Created\";\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\")\n    ) {\n      allData.delivery_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\" ||\n        allData.gd_status === \"Draft\")\n    ) {\n      allData.delivery_no = \"issued\";\n    }\n  }\n}\n\nlet needCL;\n\nif (allData.acc_integration_type !== \"No Accounting\" && {{workflowparams:needCL}} === \"required\") {\n  needCL = \"required\";\n} else {\n  needCL = \"not required\";\n}\n\nif (isForceComplete === \"Yes\") {\n  allData.picking_status = \"Completed\"\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n}\n\nlet needSOCleanUp = 0\n\nif (allData.gd_status === \"Created\") {\n  const originalGD = {{node:get_node_xTRvHWB8.data.data}};\n\n  allData.table_gd.forEach((item) => {\n    const originalItem = originalGD.table_gd?.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  if (allData.table_gd.length !== originalGD.table_gd.length) {\n    needSOCleanUp = 1\n  }\n}\n\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.index + 1}: ${row.material_name} - qty: ${row.gd_qty}${row.allocated_qty !== undefined ? `, allocated: ${row.allocated_qty}` : \"\"}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"} — ${row.reason}`\n  ).join(\"\\n\");\n  \n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to invalid allocation data:\\n\\n${rowDetails}\\n\\nThese rows may need manual allocation or the allocation workflow may have failed.`;\n}\n\nreturn {\n  allData: allData,\n  gd_status: allData.gd_status,\n  needCL: needCL,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage\n};\n"
         },
         "response_json": [
           {
