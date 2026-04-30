@@ -158,7 +158,10 @@
         "nodeName": "IF Picking Plan",
         "name": "IF Picking Plan",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -182,7 +185,9 @@
         {
           "id": "if_block_3rtgi7Ya",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_Q3hWck9R",
@@ -729,7 +734,10 @@
                 "nodeName": "IF Error",
                 "name": "IF Error",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -753,7 +761,9 @@
                 {
                   "id": "if_block_TpQ-ERt7",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_node_DZ6uDNjX",
@@ -796,7 +806,9 @@
                 {
                   "id": "if_block_GHyiGWby",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -1111,7 +1123,10 @@
                 "isValidator": true,
                 "nodeName": "Set PP Index",
                 "name": "Set PP Index",
-                "custom_wkbocgni": { "type": "javascript", "code": "0" },
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "0"
+                },
                 "redis_key": "toIndex_{{node:code_node_UDOp8D9x.data.id}}"
               },
               "blocks": []
@@ -1337,7 +1352,9 @@
                     {
                       "id": "ifBlock_AViOhIdy",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "return_node_XTS5ZSQ9",
@@ -1380,7 +1397,9 @@
                     {
                       "id": "ifBlock_KItw5ugn",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": []
                     }
                   ]
@@ -1394,7 +1413,10 @@
                     "nodeName": "IF Completed",
                     "name": "IF Completed",
                     "condition_type": "ConditionRule",
-                    "expression": { "type": "javascript", "code": "" },
+                    "expression": {
+                      "type": "javascript",
+                      "code": ""
+                    },
                     "filter": {
                       "list": [
                         {
@@ -1418,7 +1440,9 @@
                     {
                       "id": "if_block_h4gDV4ze",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "update_node_NvJg9Fcd",
@@ -1473,7 +1497,9 @@
                     {
                       "id": "if_block_9drQcoRM",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": []
                     }
                   ]
@@ -1540,7 +1566,9 @@
         {
           "id": "if_block_NGUmIvsw",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "code_node_oHIIKfiw",
@@ -2404,7 +2432,10 @@
                 "isValidator": true,
                 "nodeName": "Set GD Index",
                 "name": "Set GD Index",
-                "custom_wkbocgni": { "type": "javascript", "code": "0" },
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "0"
+                },
                 "redis_key": "gdIndex_{{node:code_node_UDOp8D9x.data.id}}"
               },
               "blocks": []
@@ -2533,7 +2564,10 @@
                     "nodeName": "IF Auto Complete GD",
                     "name": "IF Auto Complete GD",
                     "condition_type": "ConditionRule",
-                    "expression": { "type": "javascript", "code": "" },
+                    "expression": {
+                      "type": "javascript",
+                      "code": ""
+                    },
                     "filter": {
                       "list": [
                         {
@@ -2581,7 +2615,9 @@
                     {
                       "id": "if_block_f6k6UqTd",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "workflow_node_Cd96wivg",
@@ -2713,7 +2749,9 @@
                             {
                               "id": "if_block_lLdqApOW",
                               "type": "ifBlock",
-                              "data": { "title": "true" },
+                              "data": {
+                                "title": "true"
+                              },
                               "blocks": [
                                 {
                                   "id": "return_node_rr8Ofx2k",
@@ -2756,7 +2794,9 @@
                             {
                               "id": "if_block_bflyjyId",
                               "type": "ifBlock",
-                              "data": { "title": "false" },
+                              "data": {
+                                "title": "false"
+                              },
                               "blocks": []
                             }
                           ]
@@ -2766,7 +2806,9 @@
                     {
                       "id": "if_block_VheLY2zW",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": [
                         {
                           "id": "workflow_node_4c98bf8x",
@@ -2882,7 +2924,9 @@
                             {
                               "id": "ifBlock_gvyNNAi4",
                               "type": "ifBlock",
-                              "data": { "title": "true" },
+                              "data": {
+                                "title": "true"
+                              },
                               "blocks": [
                                 {
                                   "id": "return_node_Ux87qnrj",
@@ -2925,7 +2969,9 @@
                             {
                               "id": "ifBlock_4bNcmv9J",
                               "type": "ifBlock",
-                              "data": { "title": "false" },
+                              "data": {
+                                "title": "false"
+                              },
                               "blocks": []
                             }
                           ]
@@ -3002,7 +3048,7 @@
                 "name": "Check & Prepare Packing Data",
                 "script": {
                   "type": "javascript",
-                  "code": "const packingSetup = {{node:get_node_V4PP8WJI.data.data}} || null;\nconst toStatus = {{node:code_node_Z5JH4g2u.data.toStatus}};\nconst pickingData = {{workflowparams:allData}};\nconst updatedItems = {{node:code_node_Z5JH4g2u.data.updatedItems}};\nconst gdMasters = {{node:search_node_c7BtNx91.data.data}} || [];\n\nconst shouldTriggerAutoPacking =\n  packingSetup &&\n  packingSetup.packing_required === 1 &&\n  packingSetup.auto_trigger_pkg === 1 &&\n  toStatus === \"Completed\";\n\nif (!shouldTriggerAutoPacking) {\n  return { shouldTriggerAutoPacking: 0, packingDataList: [], huIdsAcrossGDs: [], soIdsAcrossGDs: [] };\n}\n\n// Derive picked rows in this Picking session. Used for: (1) discovering which\n// GDs were touched, (2) building HU rows from THIS Picking's records.\nconst pickedRows = [];\nfor (const r of (updatedItems || [])) {\n  const qtyToPick = Number(r.qty_to_pick) || 0;\n  const pending = Number(r.pending_process_qty) || 0;\n  const picked = qtyToPick - pending;\n  if (picked > 0 && r.gd_id) {\n    pickedRows.push(Object.assign({}, r, { _picked_qty: picked }));\n  }\n}\n\nconst groups = {};\nfor (const r of pickedRows) {\n  if (!groups[r.gd_id]) groups[r.gd_id] = [];\n  groups[r.gd_id].push(r);\n}\n\nconst gdIds = Object.keys(groups);\nif (gdIds.length === 0) {\n  return { shouldTriggerAutoPacking: 0, packingDataList: [], huIdsAcrossGDs: [], soIdsAcrossGDs: [] };\n}\n\nconst huIdSet = {};\nconst soIdSet = {};\nfor (const r of pickedRows) {\n  if (r.handling_unit_id) huIdSet[r.handling_unit_id] = true;\n  if (r.so_id) soIdSet[r.so_id] = true;\n}\nconst huIdsAcrossGDs = Object.keys(huIdSet);\nconst soIdsAcrossGDs = Object.keys(soIdSet);\n\nconst gdById = {};\nfor (const g of gdMasters) gdById[g.id] = g;\n\n// Build one packingData entry per GD. table_item_source is a projection of\n// the GD's table_gd (one row per GD line) with total_quantity set to the\n// cumulative picked_qty (set by code_node_iES7iMKA's M:N writeback). HU rows\n// come from THIS Picking's records — the merge with any existing Packing's\n// table_hu_source happens in code_node_gudzrvMQ.\nconst packingDataList = gdIds.map(function(gdId) {\n  const gd = gdById[gdId] || {};\n  const tableGd = Array.isArray(gd.table_gd) ? gd.table_gd : [];\n  const rows = groups[gdId];\n  const anyRow = rows[0];\n\n  const table_item_source = tableGd\n    .filter(function(line) {\n      return line.material_id && Number(line.gd_qty || 0) > 0 && line.picking_status !== \"Cancelled\";\n    })\n    .map(function(line) {\n      // total_quantity = cumulative qty already picked from upstream Pickings\n      // for this GD line (drives \"qty available to pack\"). Recomputed by\n      // PackingRecomputeSource.js on form mount based on table_hu actions.\n      const cumulativePicked = Number(line.picked_qty) || 0;\n      return {\n        id: line.id || \"\",\n        item_id: line.material_id,\n        item_code: line.material_id,\n        item_name: line.material_name,\n        item_desc: line.gd_material_desc || \"\",\n        item_uom: line.good_delivery_uom_id || line.gd_order_uom_id || \"\",\n        batch_no: \"\",\n        bin_location: \"\",\n        total_quantity: cumulativePicked,\n        picked_qty: 0,\n        remaining_qty: cumulativePicked,\n        qty_to_pick: cumulativePicked,\n        line_status: cumulativePicked > 0 ? \"Open\" : \"Open\",\n        so_id: line.line_so_id || anyRow.so_id || \"\",\n        so_no: line.line_so_no || anyRow.so_no || \"\",\n        so_line_id: line.so_line_item_id || \"\",\n        gd_id: gdId,\n        gd_no: gd.delivery_no || anyRow.gd_no || \"\",\n        gd_line_id: line.id || \"\",\n        to_id: pickingData.id || \"\",\n        to_line_id: \"\"\n      };\n    });\n\n  const huRows = rows.filter(function(r) { return r.handling_unit_id; });\n  const huItemsPartial = huRows.map(function(r) {\n    return {\n      row_type: \"item\",\n      handling_unit_id: r.handling_unit_id,\n      id: r.gd_line_id || r.fm_key || \"\",\n      item_id: r.item_code,\n      item_code: r.item_code,\n      item_name: r.item_name,\n      item_desc: r.item_desc,\n      item_uom: r.item_uom,\n      batch_no: r.batch_no || \"\",\n      bin_location: r.source_bin || \"\",\n      total_quantity: r._picked_qty,\n      hu_status: \"Unpacked\",\n      so_id: r.so_id,\n      so_no: r.so_no,\n      so_line_id: r.so_line_id,\n      gd_id: r.gd_id,\n      gd_no: r.gd_no,\n      gd_line_id: r.gd_line_id,\n      to_id: pickingData.id || \"\",\n      to_line_id: r.to_line_id || \"\"\n    };\n  });\n\n  return {\n    plant_id: gd.plant_id || pickingData.plant_id,\n    organization_id: gd.organization_id || pickingData.organization_id,\n    packing_mode: packingSetup.packing_mode || \"\",\n    created_by: pickingData.created_by,\n    created_at: new Date().toISOString().split(\"T\")[0],\n    gd_id: gdId,\n    gd_no: gd.delivery_no || anyRow.gd_no,\n    so_id: gd.so_id || anyRow.so_id,\n    so_no: gd.so_no || anyRow.so_no,\n    to_id: pickingData.id || \"\",\n    customer_id: gd.customer_name || pickingData.customer_id || \"\",\n    table_item_source: table_item_source,\n    huItemsPartial: huItemsPartial\n  };\n});\n\nreturn {\n  shouldTriggerAutoPacking: 1,\n  packingDataList: packingDataList,\n  huIdsAcrossGDs: huIdsAcrossGDs,\n  soIdsAcrossGDs: soIdsAcrossGDs\n};\n"
+                  "code": "const packingSetup = {{node:get_node_V4PP8WJI.data.data}} || null;\nconst toStatus = {{node:code_node_Z5JH4g2u.data.toStatus}};\nconst pickingData = {{workflowparams:allData}};\nconst updatedItems = {{node:code_node_Z5JH4g2u.data.updatedItems}};\nconst gdMasters = {{node:search_node_c7BtNx91.data.data}} || [];\n\nconst shouldTriggerAutoPacking =\n  packingSetup &&\n  packingSetup.packing_required === 1 &&\n  packingSetup.auto_trigger_pkg === 1 &&\n  toStatus === \"Completed\";\n\nif (!shouldTriggerAutoPacking) {\n  return { shouldTriggerAutoPacking: 0, packingDataList: [], huIdsAcrossGDs: [], soIdsAcrossGDs: [] };\n}\n\n// Derive picked rows in this Picking session. Used for: (1) discovering which\n// GDs were touched, (2) building HU rows from THIS Picking's records.\nconst pickedRows = [];\nfor (const r of (updatedItems || [])) {\n  const qtyToPick = Number(r.qty_to_pick) || 0;\n  const pending = Number(r.pending_process_qty) || 0;\n  const picked = qtyToPick - pending;\n  if (picked > 0 && r.gd_id) {\n    pickedRows.push(Object.assign({}, r, { _picked_qty: picked }));\n  }\n}\n\nconst groups = {};\nfor (const r of pickedRows) {\n  if (!groups[r.gd_id]) groups[r.gd_id] = [];\n  groups[r.gd_id].push(r);\n}\n\nconst gdIds = Object.keys(groups);\nif (gdIds.length === 0) {\n  return { shouldTriggerAutoPacking: 0, packingDataList: [], huIdsAcrossGDs: [], soIdsAcrossGDs: [] };\n}\n\nconst huIdSet = {};\nconst soIdSet = {};\nfor (const r of pickedRows) {\n  if (r.handling_unit_id) huIdSet[r.handling_unit_id] = true;\n  if (r.so_id) soIdSet[r.so_id] = true;\n}\nconst huIdsAcrossGDs = Object.keys(huIdSet);\nconst soIdsAcrossGDs = Object.keys(soIdSet);\n\nconst gdById = {};\nfor (const g of gdMasters) gdById[g.id] = g;\n\n// Build one packingData entry per GD. table_item_source is a projection of\n// the GD's table_gd (one row per GD line) with total_quantity set to the\n// cumulative picked_qty (set by code_node_iES7iMKA's M:N writeback). HU rows\n// come from THIS Picking's records — the merge with any existing Packing's\n// table_hu_source happens in code_node_gudzrvMQ.\nconst packingDataList = gdIds.map(function(gdId) {\n  const gd = gdById[gdId] || {};\n  const tableGd = Array.isArray(gd.table_gd) ? gd.table_gd : [];\n  const rows = groups[gdId];\n  const anyRow = rows[0];\n\n  const table_item_source = tableGd\n    .filter(function(line) {\n      return line.material_id && Number(line.gd_qty || 0) > 0 && line.picking_status !== \"Cancelled\";\n    })\n    .map(function(line) {\n      // table_item_source is a projection of the GD: total_quantity is the\n      // FULL gd_qty (Packing == GD invariant). picked_qty seeds with the GD\n      // line's cumulative upstream picked_qty so the user sees how much has\n      // been picked across all sibling Pickings. PackingRecomputeSource\n      // overrides picked_qty from table_hu when packing actions occur.\n      const gdQty = Number(line.gd_qty) || 0;\n      const cumulativePicked = Number(line.picked_qty) || 0;\n      const remainingQty = Math.max(0, gdQty - cumulativePicked);\n      return {\n        id: line.id || \"\",\n        item_id: line.material_id,\n        item_code: line.material_id,\n        item_name: line.material_name,\n        item_desc: line.gd_material_desc || \"\",\n        item_uom: line.good_delivery_uom_id || line.gd_order_uom_id || \"\",\n        batch_no: \"\",\n        bin_location: \"\",\n        total_quantity: gdQty,\n        picked_qty: cumulativePicked,\n        remaining_qty: remainingQty,\n        qty_to_pick: remainingQty,\n        line_status: cumulativePicked <= 0 ? \"Open\" : (remainingQty <= 0.001 ? \"Fully Picked\" : \"Partially Picked\"),\n        so_id: line.line_so_id || anyRow.so_id || \"\",\n        so_no: line.line_so_no || anyRow.so_no || \"\",\n        so_line_id: line.so_line_item_id || \"\",\n        gd_id: gdId,\n        gd_no: gd.delivery_no || anyRow.gd_no || \"\",\n        gd_line_id: line.id || \"\",\n        to_id: pickingData.id || \"\",\n        to_line_id: \"\"\n      };\n    });\n\n  // table_hu_source is a projection of the GD's temp_qty_data (full HU\n  // allocation). Every HU in the GD appears from day one. Status:\n  //   - \"Unpacked\": fully picked from upstream (ready to pack into table_hu)\n  //   - \"Pending\":  exists in GD allocation but not yet picked from upstream\n  //                 (will flip to Unpacked when its sibling Picking completes)\n  // Loose temp_qty_data entries (no handling_unit_id) live in table_item_source\n  // already, so we skip them here.\n  const huItemsPartial = [];\n  const parseJsonSafe = function(s) {\n    try { return s ? JSON.parse(s) : []; } catch (e) { return []; }\n  };\n  for (const line of tableGd) {\n    if (!line.material_id || line.picking_status === \"Cancelled\") continue;\n    const tempArr = parseJsonSafe(line.temp_qty_data);\n    const pickedArr = parseJsonSafe(line.picked_temp_qty_data);\n    if (!Array.isArray(tempArr) || tempArr.length === 0) continue;\n\n    // Sum upstream-picked qty per (location, batch, HU) — used to decide\n    // whether each HU's contents have been picked yet.\n    const pickedByKey = {};\n    for (const p of (Array.isArray(pickedArr) ? pickedArr : [])) {\n      if (!p.handling_unit_id) continue;\n      const k = (p.location_id || \"no-loc\") + \"_\" + (p.batch_id || \"no-batch\") + \"_\" + p.handling_unit_id;\n      pickedByKey[k] = (pickedByKey[k] || 0) + (Number(p.gd_quantity) || 0);\n    }\n\n    for (const t of tempArr) {\n      if (!t.handling_unit_id) continue; // loose items skipped\n      const k = (t.location_id || \"no-loc\") + \"_\" + (t.batch_id || \"no-batch\") + \"_\" + t.handling_unit_id;\n      const allocatedQty = Number(t.gd_quantity) || 0;\n      const pickedQtyForKey = pickedByKey[k] || 0;\n      // Atomic HU rule: each HU is either fully picked or not picked.\n      const huStatus = pickedQtyForKey >= allocatedQty - 0.001 && allocatedQty > 0\n        ? \"Unpacked\"\n        : \"Pending\";\n\n      huItemsPartial.push({\n        row_type: \"item\",\n        handling_unit_id: t.handling_unit_id,\n        id: line.id || \"\",\n        item_id: t.material_id || line.material_id,\n        item_code: t.material_id || line.material_id,\n        item_name: line.material_name,\n        item_desc: line.gd_material_desc || \"\",\n        item_uom: line.good_delivery_uom_id || line.gd_order_uom_id || \"\",\n        batch_no: t.batch_id || \"\",\n        bin_location: t.location_id || \"\",\n        total_quantity: allocatedQty,\n        hu_status: huStatus,\n        so_id: line.line_so_id || \"\",\n        so_no: line.line_so_no || \"\",\n        so_line_id: line.so_line_item_id || \"\",\n        gd_id: gdId,\n        gd_no: gd.delivery_no || \"\",\n        gd_line_id: line.id || \"\",\n        to_id: pickingData.id || \"\",\n        to_line_id: \"\"\n      });\n    }\n  }\n\n  return {\n    plant_id: gd.plant_id || pickingData.plant_id,\n    organization_id: gd.organization_id || pickingData.organization_id,\n    packing_mode: packingSetup.packing_mode || \"\",\n    created_by: pickingData.created_by,\n    created_at: new Date().toISOString().split(\"T\")[0],\n    gd_id: gdId,\n    gd_no: gd.delivery_no || anyRow.gd_no,\n    so_id: gd.so_id || anyRow.so_id,\n    so_no: gd.so_no || anyRow.so_no,\n    to_id: pickingData.id || \"\",\n    customer_id: gd.customer_name || pickingData.customer_id || \"\",\n    table_item_source: table_item_source,\n    huItemsPartial: huItemsPartial\n  };\n});\n\nreturn {\n  shouldTriggerAutoPacking: 1,\n  packingDataList: packingDataList,\n  huIdsAcrossGDs: huIdsAcrossGDs,\n  soIdsAcrossGDs: soIdsAcrossGDs\n};\n"
                 },
                 "response_json": [
                   {
@@ -3122,7 +3168,10 @@
                 "nodeName": "IF Auto Packing",
                 "name": "IF Auto Packing",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -3146,7 +3195,9 @@
                 {
                   "id": "if_block_6RaiH2gK",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "get_node_P2TpS5kS",
@@ -3321,7 +3372,7 @@
                         "name": "Enrich Packing List",
                         "script": {
                           "type": "javascript",
-                          "code": "const partialList = {{node:code_node_pMVdQBEQ.data.packingDataList}} || [];\nconst huMasters = {{node:search_node_mUPqqQph.data.data}} || [];\nconst soMasters = {{node:search_node_i5v6z7Hu.data.data}} || [];\nconst gdMasters = {{node:search_node_c7BtNx91.data.data}} || [];\nconst existingPackings = {{node:search_node_FXknErTg.data.data}} || [];\n\nconst huById = {};\nfor (const h of huMasters) huById[h.id] = h;\n\nconst soById = {};\nfor (const s of soMasters) soById[s.id] = s;\n\nconst gdById = {};\nfor (const g of gdMasters) gdById[g.id] = g;\n\n// One existing Packing per gd_id (1 GD ↔ 1 Packing invariant). If multiple\n// non-terminal Packings exist for the same gd_id (shouldn't happen but\n// defensive), we take the first.\nconst existingByGdId = {};\nfor (const p of existingPackings) {\n  if (p.gd_id && !existingByGdId[p.gd_id]) {\n    existingByGdId[p.gd_id] = p;\n  }\n}\n\nconst packingsToCreate = [];\nconst packingsToUpdate = [];\n\nfor (const p of partialList) {\n  const huItems = p.huItemsPartial || [];\n  const distinctHuIds = [];\n  const seen = {};\n  for (const it of huItems) {\n    if (!seen[it.handling_unit_id]) {\n      seen[it.handling_unit_id] = true;\n      distinctHuIds.push(it.handling_unit_id);\n    }\n  }\n\n  // HU rows from THIS Picking only (header + child item rows)\n  const newHuRows = [];\n  for (const huId of distinctHuIds) {\n    const hu = huById[huId] || {};\n    newHuRows.push({\n      row_type: \"header\",\n      handling_unit_id: huId,\n      handling_no: hu.handling_no || \"\",\n      hu_material_id: hu.hu_material_id || \"\",\n      hu_type: hu.hu_type || \"\",\n      hu_uom: hu.hu_uom || \"\",\n      hu_status: \"Unpacked\",\n      storage_location: hu.storage_location || \"\",\n      gross_weight: hu.gross_weight || 0,\n      net_weight: hu.net_weight || 0,\n      net_volume: hu.net_volume || 0\n    });\n    for (const it of huItems) {\n      if (it.handling_unit_id === huId) newHuRows.push(it);\n    }\n  }\n\n  const so = soById[p.so_id] || {};\n  const gd = gdById[p.gd_id] || {};\n  const existing = existingByGdId[p.gd_id] || null;\n\n  if (existing) {\n    // UPDATE path: rebuild table_item_source from GD (cumulative picks),\n    // merge table_hu_source with existing rows. Skip duplicate HU headers.\n    const existingHuSource = Array.isArray(existing.table_hu_source) ? existing.table_hu_source : [];\n    const existingHuIds = {};\n    for (const r of existingHuSource) {\n      if (r.row_type === \"header\" && r.handling_unit_id) {\n        existingHuIds[r.handling_unit_id] = true;\n      }\n    }\n    const mergedHuSource = existingHuSource.slice();\n    for (const r of newHuRows) {\n      if (r.row_type === \"header\" && existingHuIds[r.handling_unit_id]) continue;\n      if (r.row_type === \"header\") existingHuIds[r.handling_unit_id] = true;\n      mergedHuSource.push(r);\n    }\n\n    packingsToUpdate.push({\n      existing_packing_id: existing.id,\n      gd_id: p.gd_id,\n      table_item_source: p.table_item_source,\n      table_hu_source: mergedHuSource\n    });\n  } else {\n    // CREATE path: full payload for the existing add-node\n    packingsToCreate.push({\n      plant_id: gd.plant_id || p.plant_id,\n      organization_id: gd.organization_id || p.organization_id,\n      packing_mode: p.packing_mode,\n      created_by: p.created_by,\n      created_at: p.created_at,\n      gd_id: p.gd_id,\n      gd_no: gd.delivery_no || p.gd_no,\n      so_id: gd.so_id || p.so_id,\n      so_no: gd.so_no || p.so_no,\n      to_id: p.to_id,\n      customer_id: gd.customer_name || so.customer_id || \"\",\n      billing_address: gd.gd_billing_address || so.cust_billing_address || \"\",\n      shipping_address: gd.gd_shipping_address || so.cust_shipping_address || \"\",\n      table_item_source: p.table_item_source,\n      table_hu_source: newHuRows\n    });\n  }\n}\n\nreturn {\n  packingsToCreate: packingsToCreate,\n  packingsToUpdate: packingsToUpdate,\n  hasCreates: packingsToCreate.length > 0 ? 1 : 0,\n  hasUpdates: packingsToUpdate.length > 0 ? 1 : 0,\n  // Kept for backward-compat with any node still reading packingDataList:\n  packingDataList: packingsToCreate\n};\n"
+                          "code": "const partialList = {{node:code_node_pMVdQBEQ.data.packingDataList}} || [];\nconst huMasters = {{node:search_node_mUPqqQph.data.data}} || [];\nconst soMasters = {{node:search_node_i5v6z7Hu.data.data}} || [];\nconst gdMasters = {{node:search_node_c7BtNx91.data.data}} || [];\nconst existingPackings = {{node:search_node_FXknErTg.data.data}} || [];\n\nconst huById = {};\nfor (const h of huMasters) huById[h.id] = h;\n\nconst soById = {};\nfor (const s of soMasters) soById[s.id] = s;\n\nconst gdById = {};\nfor (const g of gdMasters) gdById[g.id] = g;\n\n// One existing Packing per gd_id (1 GD ↔ 1 Packing invariant). If multiple\n// non-terminal Packings exist for the same gd_id (shouldn't happen but\n// defensive), we take the first.\nconst existingByGdId = {};\nfor (const p of existingPackings) {\n  if (p.gd_id && !existingByGdId[p.gd_id]) {\n    existingByGdId[p.gd_id] = p;\n  }\n}\n\nconst packingsToCreate = [];\nconst packingsToUpdate = [];\n\nfor (const p of partialList) {\n  const huItems = p.huItemsPartial || [];\n  const distinctHuIds = [];\n  const seen = {};\n  for (const it of huItems) {\n    if (!seen[it.handling_unit_id]) {\n      seen[it.handling_unit_id] = true;\n      distinctHuIds.push(it.handling_unit_id);\n    }\n  }\n\n  // HU rows = full GD-allocation projection. Header status inherits from its\n  // items: \"Unpacked\" if any item is upstream-picked, else \"Pending\".\n  const newHuRows = [];\n  for (const huId of distinctHuIds) {\n    const hu = huById[huId] || {};\n    const itemsForHu = huItems.filter(function(it) { return it.handling_unit_id === huId; });\n    const headerStatus = itemsForHu.some(function(it) { return it.hu_status === \"Unpacked\"; })\n      ? \"Unpacked\"\n      : \"Pending\";\n    newHuRows.push({\n      row_type: \"header\",\n      handling_unit_id: huId,\n      handling_no: hu.handling_no || \"\",\n      hu_material_id: hu.hu_material_id || \"\",\n      hu_type: hu.hu_type || \"\",\n      hu_uom: hu.hu_uom || \"\",\n      hu_status: headerStatus,\n      storage_location: hu.storage_location || \"\",\n      gross_weight: hu.gross_weight || 0,\n      net_weight: hu.net_weight || 0,\n      net_volume: hu.net_volume || 0\n    });\n    for (const it of itemsForHu) newHuRows.push(it);\n  }\n\n  const so = soById[p.so_id] || {};\n  const gd = gdById[p.gd_id] || {};\n  const existing = existingByGdId[p.gd_id] || null;\n\n  if (existing) {\n    // UPDATE path: rebuild table_item_source from GD (cumulative picks),\n    // merge table_hu_source with existing rows. Skip duplicate HU headers.\n    const existingHuSource = Array.isArray(existing.table_hu_source) ? existing.table_hu_source : [];\n    const existingHuIds = {};\n    for (const r of existingHuSource) {\n      if (r.row_type === \"header\" && r.handling_unit_id) {\n        existingHuIds[r.handling_unit_id] = true;\n      }\n    }\n    const mergedHuSource = existingHuSource.slice();\n    for (const r of newHuRows) {\n      if (r.row_type === \"header\" && existingHuIds[r.handling_unit_id]) continue;\n      if (r.row_type === \"header\") existingHuIds[r.handling_unit_id] = true;\n      mergedHuSource.push(r);\n    }\n\n    packingsToUpdate.push({\n      existing_packing_id: existing.id,\n      gd_id: p.gd_id,\n      table_item_source: p.table_item_source,\n      table_hu_source: mergedHuSource\n    });\n  } else {\n    // CREATE path: full payload for the existing add-node\n    packingsToCreate.push({\n      plant_id: gd.plant_id || p.plant_id,\n      organization_id: gd.organization_id || p.organization_id,\n      packing_mode: p.packing_mode,\n      created_by: p.created_by,\n      created_at: p.created_at,\n      gd_id: p.gd_id,\n      gd_no: gd.delivery_no || p.gd_no,\n      so_id: gd.so_id || p.so_id,\n      so_no: gd.so_no || p.so_no,\n      to_id: p.to_id,\n      customer_id: gd.customer_name || so.customer_id || \"\",\n      billing_address: gd.gd_billing_address || so.cust_billing_address || \"\",\n      shipping_address: gd.gd_shipping_address || so.cust_shipping_address || \"\",\n      table_item_source: p.table_item_source,\n      table_hu_source: newHuRows\n    });\n  }\n}\n\nreturn {\n  packingsToCreate: packingsToCreate,\n  packingsToUpdate: packingsToUpdate,\n  hasCreates: packingsToCreate.length > 0 ? 1 : 0,\n  hasUpdates: packingsToUpdate.length > 0 ? 1 : 0,\n  // Kept for backward-compat with any node still reading packingDataList:\n  packingDataList: packingsToCreate\n};\n"
                         },
                         "response_json": [
                           {
@@ -3411,8 +3462,12 @@
                       "type": "condition-all-node",
                       "data": {
                         "title": "Parallel Branch",
-                        "filter": { "list": [] },
-                        "expression": { "code": "" },
+                        "filter": {
+                          "list": []
+                        },
+                        "expression": {
+                          "code": ""
+                        },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -3439,7 +3494,9 @@
                                 }
                               ]
                             },
-                            "expression": { "code": "" },
+                            "expression": {
+                              "code": ""
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "hasCreates",
@@ -3636,7 +3693,9 @@
                                 }
                               ]
                             },
-                            "expression": { "code": "" },
+                            "expression": {
+                              "code": ""
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "hasUpdates",
@@ -3722,7 +3781,9 @@
                                 }
                               ]
                             },
-                            "expression": { "code": "" },
+                            "expression": {
+                              "code": ""
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "__index": 3,
                             "isValidator": true,
@@ -3775,7 +3836,9 @@
                 {
                   "id": "if_block_79nTqFVt",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -3823,7 +3886,10 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],

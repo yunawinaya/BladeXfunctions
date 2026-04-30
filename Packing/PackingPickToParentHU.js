@@ -23,6 +23,12 @@
       this.$message.warning("This HU has already been picked.");
       return;
     }
+    if (sourceHeader.hu_status === "Pending") {
+      this.$message.warning(
+        "This HU hasn't been picked from upstream yet. Wait for the corresponding Picking to complete.",
+      );
+      return;
+    }
 
     const data = this.getValues();
     const selectedHuIndex = Number(data.selected_hu_index);

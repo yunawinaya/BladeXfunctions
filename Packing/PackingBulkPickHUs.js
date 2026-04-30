@@ -8,18 +8,30 @@
   try {
     const data = this.getValues();
     const huSource = data.table_hu_source || [];
-    const selectedHeaders = huSource.filter(
+    const allSelected = huSource.filter(
       (r) =>
         r.row_type === "header" &&
-        (r.hu_select === 1 || r.hu_select === true) &&
-        r.hu_status !== "Picked",
+        (r.hu_select === 1 || r.hu_select === true),
+    );
+    const pendingSelected = allSelected.filter(
+      (r) => r.hu_status === "Pending",
+    );
+    const selectedHeaders = allSelected.filter(
+      (r) => r.hu_status !== "Picked" && r.hu_status !== "Pending",
     );
 
     if (selectedHeaders.length === 0) {
       this.$message.warning(
-        "No HU headers selected (or all already picked).",
+        pendingSelected.length > 0
+          ? "Some selected HUs haven't been picked from upstream yet. Wait for the corresponding Pickings to complete."
+          : "No HU headers selected (or all already picked).",
       );
       return;
+    }
+    if (pendingSelected.length > 0) {
+      this.$message.warning(
+        `${pendingSelected.length} selected HU(s) are still pending upstream — they were skipped.`,
+      );
     }
 
     const tableHu = data.table_hu || [];

@@ -34,6 +34,12 @@
       this.$message.warning("This HU has already been picked.");
       return;
     }
+    if (headerRow.hu_status === "Pending") {
+      this.$message.warning(
+        "This HU hasn't been picked from upstream yet. Wait for the corresponding Picking to complete.",
+      );
+      return;
+    }
 
     const sourceHuId = headerRow.handling_unit_id;
     if (!sourceHuId) {
