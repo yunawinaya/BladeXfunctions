@@ -2044,7 +2044,7 @@
                                       "prop": "total_hu_count",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_hu_count}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_hu_count}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Packing Count"
                                     },
@@ -2052,7 +2052,7 @@
                                       "prop": "total_item_count",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_count}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_item_count}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Item Count"
                                     },
@@ -2060,7 +2060,7 @@
                                       "prop": "total_item_qty",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_qty}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_item_qty}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Item Quantity"
                                     },
@@ -3142,7 +3142,7 @@
                           },
                           "blocks": [
                             {
-                              "id": "update_node_0WeFUiPT",
+                              "id": "update_node_Akh8ZQoo",
                               "type": "update-node",
                               "data": {
                                 "table_id": {
@@ -3300,7 +3300,7 @@
                                       "prop": "total_hu_count",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_hu_count}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_hu_count}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Packing Count"
                                     },
@@ -3308,7 +3308,7 @@
                                       "prop": "total_item_count",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_count}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_item_count}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Item Count"
                                     },
@@ -3316,7 +3316,7 @@
                                       "prop": "total_item_qty",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_qty}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_item_qty}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Item Quantity"
                                     },
