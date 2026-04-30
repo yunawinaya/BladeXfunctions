@@ -296,7 +296,7 @@ const createHeaderRows = async () => {
   }
 };
 
-const applyHUVisibility = async (pickingSetup) => {
+const applyHUVisibility = async () => {
   const rows = this.getValue("table_picking_items") || [];
   if (rows.length === 0) return;
 
@@ -306,15 +306,21 @@ const applyHUVisibility = async (pickingSetup) => {
     return;
   }
 
-  const splitPolicy = pickingSetup ? pickingSetup.split_policy : null;
-  const huSelectEnabled = HU_SELECT_ALLOWED_POLICIES.includes(splitPolicy);
+  // HUs are atomic packaging units — once an HU is selected to pick, all of
+  // its contents move together. Manual partial entry on HU items would let a
+  // user pick half an HU, which corrupts downstream Packing state (Packing's
+  // "Pick HU" snapshots the whole HU). Force atomic HU selection for every
+  // split_policy. The HU_SELECT_ALLOWED_POLICIES const is kept for reference
+  // but no longer gates the UI.
+  const huSelectEnabled = true;
 
-  // handling_unit_id: enable column-wide so it can be shown on headers; we
-  // then per-row hide it on item rows.
-  // hu_select: stays hidden by JSON default; we per-row display it on header
-  // rows only (and only when split_policy permits). This avoids leaking it
-  // onto item rows.
+  // handling_unit_id + hu_select: enable column-wide so they can be shown
+  // on header rows; we then per-row hide them on item rows. (Some platforms
+  // require column-level display before per-row display takes effect.)
   await this.display("table_picking_items.handling_unit_id");
+  if (huSelectEnabled) {
+    await this.display("table_picking_items.hu_select");
+  }
 
   const HU_FIELDS = ["handling_unit_id", "hu_select"];
   const sampleItem = rows.find((r) => r.row_type !== "header");
@@ -341,7 +347,11 @@ const applyHUVisibility = async (pickingSetup) => {
       }
     } else {
       await this.hide(`table_picking_items.${i}.handling_unit_id`);
-      // hu_select stays hidden by JSON default on item rows — no per-row call needed
+      if (huSelectEnabled) {
+        // hu_select column was just enabled at column level; explicitly hide
+        // on item rows so the checkbox only renders on HU header rows.
+        await this.hide(`table_picking_items.${i}.hu_select`);
+      }
     }
   }
 
@@ -430,7 +440,7 @@ const PickingPlan = async (pickingSetup) => {
         {
           const pickingSetup = await fetchPickingSetup();
           await createHeaderRows();
-          await applyHUVisibility(pickingSetup);
+          await applyHUVisibility();
           await PickingPlan(pickingSetup);
         }
         break;
@@ -455,7 +465,7 @@ const PickingPlan = async (pickingSetup) => {
         {
           const pickingSetup = await fetchPickingSetup();
           await createHeaderRows();
-          await applyHUVisibility(pickingSetup);
+          await applyHUVisibility();
           await PickingPlan(pickingSetup);
         }
         break;
@@ -474,7 +484,7 @@ const PickingPlan = async (pickingSetup) => {
         {
           const pickingSetup = await fetchPickingSetup();
           await createHeaderRows();
-          await applyHUVisibility(pickingSetup);
+          await applyHUVisibility();
           await PickingPlan(pickingSetup);
         }
         break;
@@ -486,7 +496,6 @@ const PickingPlan = async (pickingSetup) => {
 })();
 
 setTimeout(async () => {
-  if (!this.isAdd) return;
   const maxRetries = 10;
   const interval = 500;
   for (let i = 0; i < maxRetries; i++) {
@@ -497,10 +506,24 @@ setTimeout(async () => {
   function getDefaultItem(arr) {
     return arr?.find((item) => item?.item?.is_default === 1);
   }
+  var params = this.getComponent("to_id");
+  const { options } = params;
 
   const optionsData = this.getOptionData("to_id_type") || [];
-  const data = getDefaultItem(optionsData);
-  if (data) {
-    this.setData({ to_id_type: data.value });
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("to_id_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        to_id_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ to_id_type: defaultData.value });
+    }
   }
-}, 500);
+}, 200);
