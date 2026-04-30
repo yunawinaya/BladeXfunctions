@@ -9,13 +9,50 @@ const closeDialog = () => {
 const showErrors = (errors) => {
   const preview = errors.slice(0, 3).join("; ");
   const suffix = errors.length > 3 ? ` (+${errors.length - 3} more)` : "";
-  this.$message.warning(`Cannot complete packing: ${preview}${suffix}`);
+  this.$message.warning(
+    `Cannot complete packing: ${preview}${suffix} — Use "Save as Created" to keep your progress and complete later.`,
+  );
 };
 
 (async () => {
   try {
     const data = this.getValues();
     const EPS = 0.001;
+
+    // ---- M:N gate: every GD line must be fully picked across all sibling Pickings ----
+    // Even if THIS Packing's table_item_source looks complete, sibling Pickings
+    // may still be open under allow_full_picking. Block completion until cumulative
+    // picked_qty >= gd_qty for every non-Cancelled GD line.
+    if (data.gd_id) {
+      try {
+        const gdRes = await db
+          .collection("goods_delivery")
+          .doc(data.gd_id)
+          .get();
+        const gd = gdRes?.data?.[0];
+        if (gd && Array.isArray(gd.table_gd)) {
+          const gdLineErrors = [];
+          for (const line of gd.table_gd) {
+            if (!line.material_id) continue;
+            if (line.picking_status === "Cancelled") continue;
+            const gdQty = parseFloat(line.gd_qty) || 0;
+            if (gdQty <= 0) continue;
+            const pickedQty = parseFloat(line.picked_qty) || 0;
+            if (pickedQty + EPS < gdQty) {
+              gdLineErrors.push(
+                `GD line ${line.material_name || line.material_id}: ${pickedQty}/${gdQty} picked. Pickings still pending.`,
+              );
+            }
+          }
+          if (gdLineErrors.length > 0) {
+            showErrors(gdLineErrors);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("M:N gate check failed:", e);
+      }
+    }
 
     // ---- Precheck: source tables fully packed ----
     const preErrors = [];
@@ -119,7 +156,10 @@ const showErrors = (errors) => {
     // checkboxes (bulk pick on source / single-select active target on table_hu)
     // that should never persist past save.
     if (Array.isArray(finalData.table_hu)) {
-      finalData.table_hu = finalData.table_hu.map((r) => ({ ...r, select_hu: 0 }));
+      finalData.table_hu = finalData.table_hu.map((r) => ({
+        ...r,
+        select_hu: 0,
+      }));
     }
     if (Array.isArray(finalData.table_hu_source)) {
       finalData.table_hu_source = finalData.table_hu_source.map((r) => ({
