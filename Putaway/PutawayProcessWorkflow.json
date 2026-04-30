@@ -19,7 +19,7 @@
         "name": "Unique Index",
         "script": {
           "type": "javascript",
-          "code": "const allData = {{workflowparams:allData}};\nconst id = allData.id;\n\nreturn {\n  id\n}"
+          "code": "const allData = {{workflowparams:allData}};\nconst id = allData.id;\nconst updateTime = allData.update_time;\n\nreturn {\n  id: id + updateTime\n}"
         },
         "response_json": [
           {
@@ -1042,6 +1042,25 @@
                       "blocks": []
                     }
                   ]
+                },
+                {
+                  "id": "set_cache_node_TQ0cOvRy",
+                  "type": "set-cache-node",
+                  "data": {
+                    "cache_key": "",
+                    "cache_value": "",
+                    "expire_time": 3600,
+                    "title": "Set Subtract Data Cache",
+                    "isValidator": true,
+                    "nodeName": "Set Subtract Data Cache",
+                    "name": "Set Subtract Data Cache",
+                    "custom_wkbocgni": {
+                      "type": "javascript",
+                      "code": "{{node:workflow_node_MIAAZc1J.data}}"
+                    },
+                    "redis_key": "subtractdata_{{node:code_node_M7IX2sBi.data.id}}"
+                  },
+                  "blocks": []
                 }
               ]
             },
@@ -1078,6 +1097,55 @@
                 "condition_type": "ConditionRule"
               },
               "blocks": [
+                {
+                  "id": "get_cache_node_BztKo01z",
+                  "type": "get-cache-node",
+                  "data": {
+                    "cache_key": "",
+                    "title": "Get Subtract Data Cache",
+                    "isValidator": true,
+                    "nodeName": "Get Subtract Data Cache",
+                    "name": "Get Subtract Data Cache",
+                    "redis_key": "subtractdata_{{node:code_node_M7IX2sBi.data.id}}"
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "code_node_4Baken82",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "Get Dates",
+                    "isValidator": true,
+                    "nodeName": "Get Dates",
+                    "name": "Get Dates",
+                    "script": {
+                      "type": "javascript",
+                      "code": "const subtractDataRaw = {{node:get_cache_node_BztKo01z.data}};\nconst subtractData = JSON.parse(subtractDataRaw);\n\nreturn {\n  manufacturing_date: subtractData.manufacturing_date || \"\",\n  expired_date: subtractData.expired_date || \"\",\n}"
+                    },
+                    "response_json": [
+                      {
+                        "key": "qhnj4n1o",
+                        "name": "manufacturing_date",
+                        "title": "manufacturing_date",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "6tg9jdy9",
+                        "name": "expired_date",
+                        "title": "expired_date",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      }
+                    ]
+                  },
+                  "blocks": []
+                },
                 {
                   "id": "workflow_node_wCxvhaAr",
                   "type": "workflow-node",
@@ -1233,6 +1301,22 @@
                           "value": "{{node:code_node_dofqVRSn.data.huId}}",
                           "valueLabel": "",
                           "propLabel": "Handling Unit ID"
+                        },
+                        {
+                          "prop": "manufacturing_date",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_4Baken82.data.manufacturing_date}}",
+                          "valueLabel": "",
+                          "propLabel": "Manufacturing Date"
+                        },
+                        {
+                          "prop": "expired_date",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_4Baken82.data.expired_date}}",
+                          "valueLabel": "",
+                          "propLabel": "Expired Date"
                         }
                       ]
                     }
