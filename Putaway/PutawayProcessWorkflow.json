@@ -1,0 +1,1879 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "code_node_M7IX2sBi",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Unique Index",
+        "isValidator": true,
+        "nodeName": "Unique Index",
+        "name": "Unique Index",
+        "script": {
+          "type": "javascript",
+          "code": "const allData = {{workflowparams:allData}};\nconst id = allData.id;\n\nreturn {\n  id\n}"
+        },
+        "response_json": [
+          {
+            "key": "nfgua2wj",
+            "name": "id",
+            "title": "id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "get_node_ca2032Ub",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Putaway Setup:Table:1937437989915992066",
+          "rules": {
+            "collectionId": "1937437989915992066",
+            "list": [
+              {
+                "id": 1773123821735,
+                "parentId": 1773123821736,
+                "isTop": true,
+                "type": "branch",
+                "operator": "all",
+                "prop": "plant_id",
+                "valueType": "field",
+                "value": "{{workflowparams:allData.plant_id}}",
+                "level": 1,
+                "propLabel": "Plant ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal",
+                "children": [
+                  {
+                    "id": 1773123834495,
+                    "parentId": 1773123821735,
+                    "isTop": false,
+                    "type": "leaf",
+                    "operator": "numberEqual",
+                    "prop": "plant_id",
+                    "valueType": "field",
+                    "value": "{{workflowparams:allData.plant_id}}",
+                    "level": 2,
+                    "propLabel": "Plant ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1773123821737,
+                    "parentId": 1773123821735,
+                    "isTop": false,
+                    "prop": "organization_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{workflowparams:allData.organization_id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Organization ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get Putaway Setup",
+        "isValidator": true,
+        "nodeName": "Get Putaway Setup",
+        "name": "Get Putaway Setup"
+      },
+      "blocks": []
+    },
+    {
+      "id": "get_node_C64LC1sr",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Transfer Order Putaway:Table:1937714890958053378",
+          "rules": {
+            "collectionId": "1937714890958053378",
+            "list": [
+              {
+                "id": 1773123882959,
+                "parentId": 1773123882958,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:allData.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get Original Putaway",
+        "isValidator": true,
+        "nodeName": "Get Original Putaway",
+        "name": "Get Original Putaway"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_S8GL6e4o",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Validate Items",
+        "isValidator": true,
+        "nodeName": "Validate Items",
+        "name": "Validate Items",
+        "script": {
+          "type": "javascript",
+          "code": "const allData = {{workflowparams:allData}};\n\nconst errors = [];\nconst items = allData.table_putaway_item || [];\n\nfor (let index = 0; index < items.length; index++) {\n  const item = items[index];\n\n  // Skip cancelled items\n  if (item.line_status === 'Cancelled') continue;\n\n  // Skip parent items with split children\n  if (item.parent_or_child === 'Parent' && item.is_split === 'Yes') continue;\n\n  const putawayQty = parseFloat(item.putaway_qty) || 0;\n  const pendingProcessQty = parseFloat(item.pending_process_qty) || 0;\n\n  // Validate putaway_qty doesn't exceed pending_process_qty\n  if (putawayQty > pendingProcessQty) {\n    errors.push(\n      `Putaway quantity (${putawayQty}) cannot be greater than pending quantity (${pendingProcessQty}) for item ${item.item_code || '#' + (index + 1)}`\n    );\n  }\n\n  // Validate putaway_qty is not negative\n  if (putawayQty < 0) {\n    errors.push(\n      `Putaway quantity cannot be negative for item ${item.item_code || '#' + (index + 1)}`\n    );\n  }\n\n  // Check target location for items with putaway_qty > 0 (non-split items only)\n  if (item.is_split === 'No' && putawayQty > 0) {\n    if (!item.target_location || item.target_location === null || item.target_location === '') {\n      errors.push(\n        `Target Location is required for item ${item.item_code || '#' + (index + 1)} (Putaway Qty: ${putawayQty})`\n      );\n    }\n  }\n}\n\nconst isValid = errors.length === 0 ? 1 : 0;\n\nreturn {\n  isValid: isValid,\n  errors: errors,\n  errorMessage: errors.join('; ')\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "44bq26eq",
+            "name": "isValid",
+            "title": "isValid",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "4w1wuntz",
+            "name": "errorMessage",
+            "title": "errorMessage",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_v5bYSdo9",
+      "type": "if",
+      "data": {
+        "title": "IF !isValid",
+        "isValidator": true,
+        "nodeName": "IF !isValid",
+        "name": "IF !isValid",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1736695973613,
+              "parentId": 1736695973612,
+              "isTop": true,
+              "prop": "node.code_node_S8GL6e4o.data.isValid",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 0,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "isValid",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_PlgrInC5",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_p3kLaRSX",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_S8GL6e4o.data.errorMessage}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_xU83FUvB",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_node_qfSZO0bi",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Create Table Putaway Records",
+        "isValidator": true,
+        "nodeName": "Create Table Putaway Records",
+        "name": "Create Table Putaway Records",
+        "script": {
+          "type": "javascript",
+          "code": "const allData = {{workflowparams:allData}};\n\nconst records = [];\nconst itemsToProcess = []; // Items with putaway_qty > 0 for inventory processing\nlet totalOriginalQuantity = 0;\nlet totalPutawayQuantity = 0;\nlet hasAnyQuantity = false;\n\nfor (const item of allData.table_putaway_item) {\n  // Skip cancelled items\n  if (item.line_status === 'Cancelled') continue;\n\n  // Skip parent items with split children (process children instead)\n  if (item.parent_or_child === 'Parent' && item.is_split === 'Yes') continue;\n\n  const putawayQty = parseFloat(item.putaway_qty) || 0;\n\n  // Track totals for parent items only\n  if (item.parent_or_child !== 'Child') {\n    totalOriginalQuantity += parseFloat(item.qty_to_putaway) || 0;\n  }\n  totalPutawayQuantity += putawayQty;\n\n  // Only create records for items with quantity\n  if (putawayQty > 0) {\n    hasAnyQuantity = true;\n\n    // Add to putaway records\n    records.push({\n      line_index: item.line_index,\n      item_code: item.item_code,\n      item_name: item.item_name,\n      item_desc: item.item_desc || '',\n      batch_no: item.batch_no || '',\n      source_inv_category: item.source_inv_category,\n      target_inv_category: item.target_inv_category,\n      store_in_qty: putawayQty,\n      item_uom: item.item_uom,\n      source_bin: item.source_bin || '',\n      target_location: item.target_location || '',\n      remark: item.remark || '',\n      line_status: 'Confirmed',\n      confirmed_by: {{workflowparams:confirmed_by}} || \"\",\n      confirmed_at: new Date().toISOString().replace(\"T\", \" \").slice(0, 19),\n    });\n\n    // Add to items for inventory processing\n    itemsToProcess.push({\n      item_code: item.item_code,\n      item_uom: item.item_uom,\n      putaway_qty: putawayQty,\n      source_bin: item.source_bin || '',\n      storage_location: item.storage_location || '',\n      target_location: item.target_location || '',\n      batch_no: item.batch_no || '',\n      source_inv_category: item.source_inv_category,\n      target_inv_category: item.target_inv_category,\n      unit_price: parseFloat(item.unit_price) || 0,\n      hu_data: item.hu_data || '',\n    });\n  }\n}\n\n// Extract unique item codes for Item master lookup\nconst uniqueItemCodes = [...new Set(itemsToProcess.map(i => i.item_code))];\n\nreturn {\n  records,\n  itemsToProcess,\n  uniqueItemCodes,\n  totalOriginalQuantity,\n  totalPutawayQuantity,\n  hasAnyQuantity\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "jvndmz6w",
+            "name": "records",
+            "title": "records",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "4zvmvmdp",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "9xbvfqso",
+            "name": "totalOriginalQuantity",
+            "title": "totalOriginalQuantity",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "rv6a0434",
+            "name": "totalPutawayQuantity",
+            "title": "totalPutawayQuantity",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "atbt5htc",
+            "name": "hasAnyQuantity",
+            "title": "hasAnyQuantity",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "iem9y8rw",
+            "name": "itemsToProcess",
+            "title": "itemsToProcess",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "1nfn47tc",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "w7wrmtvq",
+            "name": "uniqueItemCodes",
+            "title": "uniqueItemCodes",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "xx82fujo",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_6yzlT81I",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Item:Table:1901546842240438273",
+          "rules": {
+            "collectionId": "1901546842240438273",
+            "list": [
+              {
+                "id": 1773127781923,
+                "parentId": 1773127781922,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_qfSZO0bi.data.uniqueItemCodes}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get Items",
+        "isValidator": true,
+        "nodeName": "Get Items",
+        "name": "Get Items"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_KbJLkjP8",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Calculate Updated Items & Status",
+        "isValidator": true,
+        "nodeName": "Calculate Updated Items & Status",
+        "name": "Calculate Updated Items & Status",
+        "script": {
+          "type": "javascript",
+          "code": "const originalPutawayData = {{node:get_node_C64LC1sr.data.data}};\nconst allData = {{workflowparams:allData}};\nconst newRecords = {{node:code_node_qfSZO0bi.data.records}};\n\nconst originalItems = [...(originalPutawayData.table_putaway_item || [])];\nconst originalRecords = originalPutawayData.table_putaway_records || [];\n\nconst workflowItemMap = {};\nfor (const item of allData.table_putaway_item) {\n  workflowItemMap[String(item.line_index)] = item;\n}\n\n// Calculate total putaway quantity per PARENT from new records\nconst parentPutawayMap = {};\nfor (const record of newRecords) {\n  const lineIndexStr = String(record.line_index);\n  const parentLineIndex = lineIndexStr.includes(' - ') \n    ? lineIndexStr.split(' - ')[0] \n    : lineIndexStr;\n  const current = parentPutawayMap[parentLineIndex] || 0;\n  parentPutawayMap[parentLineIndex] = current + (parseFloat(record.store_in_qty) || 0);\n}\n\n// Update each original item (parents only)\nconst updatedItems = originalItems.map(originalItem => {\n  const lineIndexStr = String(originalItem.line_index);\n  const totalPutawayQty = parentPutawayMap[lineIndexStr] || 0;\n  const currentPending = parseFloat(originalItem.pending_process_qty) || 0;\n  const newPendingQty = Math.max(0, currentPending - totalPutawayQty);\n  \n  let lineStatus;\n  if (originalItem.line_status === 'Cancelled') {\n    lineStatus = 'Cancelled';\n  } else if (newPendingQty === 0 && totalPutawayQty > 0) {\n    lineStatus = 'Completed';\n  } else if (totalPutawayQty > 0) {\n    lineStatus = 'In Progress';\n  } else {\n    lineStatus = originalItem.line_status || 'Open';\n  }\n  \n  return {\n    ...originalItem,\n    pending_process_qty: newPendingQty,\n    line_status: lineStatus,\n    putaway_qty: 0,\n    target_location: '',\n    remark: '',\n    is_split: 'No',\n    parent_or_child: 'Parent'\n  };\n});\n\nconst combinedRecords = [...originalRecords, ...newRecords];\n\n// Calculate overall to_status\nlet toStatus;\nconst allCompleted = updatedItems.every(item => \n  item.line_status === 'Completed' || item.line_status === 'Cancelled'\n);\nconst anyInProgress = updatedItems.some(item => \n  item.line_status === 'In Progress' || item.line_status === 'Completed'\n);\n\nif (allCompleted) {\n  toStatus = 'Completed';\n} else if (anyInProgress) {\n  toStatus = 'In Progress';\n} else {\n  toStatus = 'Open';\n}\n\nreturn { updatedItems, combinedRecords, toStatus };\n"
+        },
+        "response_json": [
+          {
+            "key": "11nr07to",
+            "name": "updatedItems",
+            "title": "updatedItems",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "aj0qo453",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "taexot3o",
+            "name": "combinedRecords",
+            "title": "combinedRecords",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "05x50r5m",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "fqu2zzls",
+            "name": "toStatus",
+            "title": "toStatus",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_M7XzDZ48",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Create Inventory Movement Array",
+        "isValidator": true,
+        "nodeName": "Create Inventory Movement Array",
+        "name": "Create Inventory Movement Array",
+        "script": {
+          "type": "javascript",
+          "code": "const allData = {{workflowparams:allData}};\nconst itemsToProcess = {{node:code_node_qfSZO0bi.data.itemsToProcess}};\nconst itemMasterData = {{node:search_node_6yzlT81I.data.data}} || [];\n\n// Helper: round to 3 decimal places\nconst roundQty = (value) => parseFloat(parseFloat(value || 0).toFixed(3));\nconst roundPrice = (value) => parseFloat(parseFloat(value || 0).toFixed(4));\n\n// Build item master lookup map\nconst itemMasterMap = {};\nfor (const item of itemMasterData) {\n  itemMasterMap[item.id] = item;\n}\n\n// Array to collect inventory movements for loop processing\nconst inventoryMovements = [];\n\nfor (const mat of itemsToProcess) {\n  const itemData = itemMasterMap[mat.item_code];\n\n  if (!itemData) {\n    continue;\n  }\n\n  // UOM conversion\n  let basedQty = mat.putaway_qty;\n  if (mat.item_uom !== itemData.based_uom && itemData.table_uom_conversion) {\n    for (const uom of itemData.table_uom_conversion) {\n      if (mat.item_uom === uom.alt_uom_id) {\n        basedQty = roundQty(mat.putaway_qty * uom.base_qty);\n        break;\n      }\n    }\n  }\n  basedQty = roundQty(basedQty);\n\n  const isBatchManaged = itemData.item_batch_management === 1;\n\n  // OUT movement from source_bin\n  inventoryMovements.push({\n    movement: \"OUT\",\n    item_id: mat.item_code,\n    item_uom: mat.item_uom,\n    based_uom: itemData.based_uom,\n    quantity: mat.putaway_qty,\n    based_qty: basedQty,\n    bin_location_id: mat.source_bin,\n    batch_id: mat.batch_no || null,\n    inventory_category: mat.source_inv_category,\n    unit_price: roundPrice(mat.unit_price),\n    total_price: roundPrice(mat.unit_price * basedQty),\n    costing_method_id: itemData.material_costing_method || \"\",\n    is_batch_managed: isBatchManaged ? 1 : 0,\n    transaction_type: \"TO - PA\",\n    trx_no: allData.to_id,\n    parent_trx_no: allData.receiving_no || \"\",\n    plant_id: allData.plant_id,\n    organization_id: allData.organization_id,\n  });\n\n  // IN movement to target_location\n  inventoryMovements.push({\n    movement: \"IN\",\n    item_id: mat.item_code,\n    item_uom: mat.item_uom,\n    based_uom: itemData.based_uom,\n    quantity: mat.putaway_qty,\n    based_qty: basedQty,\n    storage_location: mat.storage_location,\n    bin_location_id: mat.target_location,\n    batch_id: mat.batch_no || null,\n    inventory_category: mat.target_inv_category,\n    unit_price: roundPrice(mat.unit_price),\n    total_price: roundPrice(mat.unit_price * basedQty),\n    costing_method_id: itemData.material_costing_method || \"\",\n    is_batch_managed: isBatchManaged ? 1 : 0,\n    transaction_type: \"TO - PA\",\n    trx_no: allData.to_id,\n    parent_trx_no: allData.receiving_no || \"\",\n    plant_id: allData.plant_id,\n    organization_id: allData.organization_id,\n    hu_data: mat.hu_data || \"\",\n  });\n}\n\nreturn {\n  inventoryMovements: inventoryMovements,\n  inventoryMovementsLength: inventoryMovements.length\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "bvvn9qet",
+            "name": "inventoryMovements",
+            "title": "inventoryMovements",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "i8tt3ewu",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "6iryci7l",
+            "name": "inventoryMovementsLength",
+            "title": "inventoryMovementsLength",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_SVMdNd3K",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Transfer Order Putaway:Table:1937714890958053378",
+          "rules": {
+            "collectionId": "1937714890958053378",
+            "list": [
+              {
+                "id": 1773126473331,
+                "parentId": 1773126473330,
+                "isTop": true,
+                "prop": "gr_no",
+                "operator": "equal",
+                "valueType": "field",
+                "value": "{{workflowparams:allData.gr_no}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Reference Document No",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get Other Putaways",
+        "isValidator": true,
+        "nodeName": "Get Other Putaways",
+        "name": "Get Other Putaways"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_T5BGLPpK",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Basic Inspection Lot:Table:1930547663980482561",
+          "rules": {
+            "collectionId": "1930547663980482561",
+            "list": [
+              {
+                "id": 1773128324192,
+                "parentId": 1773128324191,
+                "isTop": true,
+                "prop": "goods_receiving_no",
+                "operator": "equal",
+                "valueType": "field",
+                "value": "{{workflowparams:allData.gr_no}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Goods Receiving No",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get QIs",
+        "isValidator": true,
+        "nodeName": "Get QIs",
+        "name": "Get QIs"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_ds7jurnq",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Determine GR Putaway Status",
+        "isValidator": true,
+        "nodeName": "Determine GR Putaway Status",
+        "name": "Determine GR Putaway Status",
+        "script": {
+          "type": "javascript",
+          "code": "const allData = {{workflowparams:allData}};\nconst currentToStatus = {{node:code_node_KbJLkjP8.data.toStatus}};\nconst putawaySetup = {{node:get_node_ca2032Ub.data.data}};\nconst otherPutawayTOs = {{node:search_node_SVMdNd3K.data.data}} || [];\nconst qiLots = {{node:search_node_T5BGLPpK.data.data}} || [];\n\nconst currentToId = String(allData.id);\nconst grNo = allData.gr_no;\n\n// Check if auto_completed_gr is enabled\nconst isAutoCompleteGR = putawaySetup && putawaySetup.auto_completed_gr === 1 ? 1 : 0;\n\n// Check if ALL putaway TOs are completed\nlet allTOsCompleted = 1;\n\n// Current TO status (use the calculated status, not database status)\nif (currentToStatus !== 'Completed') {\n  allTOsCompleted = 0;\n}\n\n// Check other TOs (excluding current one by ID comparison)\nfor (const to of otherPutawayTOs) {\n  // Skip current TO - use String() to ensure consistent comparison\n  if (String(to.id) === currentToId) {\n    continue;\n  }\n  \n  // Check if this other TO is not completed\n  if (to.to_status !== 'Completed') {\n    allTOsCompleted = 0;\n    break;\n  }\n}\n\n// Check if ALL QI lots are completed\nlet allQICompleted = 1;\nif (qiLots.length > 0) {\n  for (const qi of qiLots) {\n    if (qi.receiving_insp_status !== 'Completed') {\n      allQICompleted = 0;\n      break;\n    }\n  }\n}\n\n// Determine GR putaway status and gr_status\nlet grPutawayStatus;\nlet grStatus = \"Received\";\nlet isGRCompleted = 0;\n\nif (allTOsCompleted === 1 && allQICompleted === 1) {\n  grPutawayStatus = 'Completed';\n  if (isAutoCompleteGR === 1) {\n    grStatus = 'Completed';\n    isGRCompleted = 1;\n  }\n} else {\n  grPutawayStatus = 'In Progress';\n}\n\nreturn {\n  grNo: grNo,\n  grPutawayStatus: grPutawayStatus,\n  grStatus: grStatus,\n  allTOsCompleted: allTOsCompleted,\n  allQICompleted: allQICompleted,\n  isAutoCompleteGR: isAutoCompleteGR,\n  isGRCompleted: isGRCompleted\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "dgaiwynk",
+            "name": "grNo",
+            "title": "grNo",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "qwhxpud1",
+            "name": "grPutawayStatus",
+            "title": "grPutawayStatus",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "6rwlgsrf",
+            "name": "allTOsCompleted",
+            "title": "allTOsCompleted",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "rajpu5as",
+            "name": "grStatus",
+            "title": "grStatus",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "wvp3pdmb",
+            "name": "allQICompleted",
+            "title": "allQICompleted",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "zfkpe2ew",
+            "name": "isAutoCompleteGR",
+            "title": "isAutoCompleteGR",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ek09nkwi",
+            "name": "isGRCompleted",
+            "title": "isGRCompleted",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "set_cache_node_sMkxQnjC",
+      "type": "set-cache-node",
+      "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Set Index",
+        "isValidator": true,
+        "nodeName": "Set Index",
+        "name": "Set Index",
+        "custom_wkbocgni": { "type": "javascript", "code": "0" },
+        "redis_key": "index_{{node:code_node_M7IX2sBi.data.id}}"
+      },
+      "blocks": []
+    },
+    {
+      "id": "loop_2zWUDmG7",
+      "type": "loop",
+      "data": {
+        "title": "Loop",
+        "isValidator": true,
+        "nodeName": "Loop",
+        "name": "Loop",
+        "loopType": "Var",
+        "loopSeletVar": {
+          "type": "markdown",
+          "code": "{{node:code_node_M7XzDZ48.data.inventoryMovements}}"
+        }
+      },
+      "blocks": [
+        {
+          "id": "get_cache_node_CqyAlkUh",
+          "type": "get-cache-node",
+          "data": {
+            "cache_key": "",
+            "title": "Get Index",
+            "isValidator": true,
+            "nodeName": "Get Index",
+            "name": "Get Index",
+            "redis_key": "index_{{node:code_node_M7IX2sBi.data.id}}"
+          },
+          "blocks": []
+        },
+        {
+          "id": "code_node_dofqVRSn",
+          "type": "code-node",
+          "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Data Preparation",
+            "isValidator": true,
+            "nodeName": "Data Preparation",
+            "name": "Data Preparation",
+            "script": {
+              "type": "javascript",
+              "code": "const inventoryMovements = {{node:code_node_M7XzDZ48.data.inventoryMovements}} || [];\nconst currentIndexRaw = {{node:get_cache_node_CqyAlkUh.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst data = inventoryMovements[index];\nconst movement = data.movement;\nconst huData = data.hu_data && data.hu_data !== \"\" ? JSON.parse(data.hu_data) : null;\n\nreturn {\n  data,\n  movement,\n  index,\n  nextIndex: index + 1,\n  huData,\n  huId: huData?.handling_unit_id || \"\",\n}\n"
+            },
+            "response_json": [
+              {
+                "key": "s7q9k8uw",
+                "name": "data",
+                "title": "data",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "g7twc7jn",
+                "name": "movement",
+                "title": "movement",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false
+              },
+              {
+                "key": "qj3v02wm",
+                "name": "nextIndex",
+                "title": "nextIndex",
+                "description": "",
+                "bsonType": "int",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "mx56z4wt",
+                "name": "index",
+                "title": "index",
+                "description": "",
+                "bsonType": "int",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "b7o8uqxh",
+                "name": "huData",
+                "title": "huData",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "thcbftvq",
+                "name": "huId",
+                "title": "huId",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false
+              }
+            ]
+          },
+          "blocks": []
+        },
+        {
+          "id": "condition_or_1of21DHB",
+          "type": "condition-or-node",
+          "data": {
+            "title": "Condition",
+            "filter": { "list": [] },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition"
+          },
+          "blocks": [
+            {
+              "id": "condition_or_node_item_awufF7HD",
+              "type": "condition-or-node-item",
+              "data": {
+                "title": "OUT",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1773130002521,
+                      "parentId": 1773130002520,
+                      "isTop": true,
+                      "prop": "node.code_node_dofqVRSn.data.movement",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "OUT",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "movement",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                },
+                "expression": { "code": "" },
+                "displayContent": "sdk.form.setCondition",
+                "isValidator": true,
+                "nodeName": "OUT",
+                "name": "OUT",
+                "condition_type": "ConditionRule"
+              },
+              "blocks": [
+                {
+                  "id": "workflow_node_MIAAZc1J",
+                  "type": "workflow-node",
+                  "data": {
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "Run Subtract Workflow",
+                    "isValidator": true,
+                    "nodeName": "Run Subtract Workflow",
+                    "name": "Run Subtract Workflow",
+                    "workflow": {
+                      "source": "SUBTRACT_INVENTORY:Workflow:2012096660219564034",
+                      "rules": {
+                        "collectionId": "2012096660219564034",
+                        "list": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "plant_id",
+                          "propLabel": "Plant ID",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:code_node_dofqVRSn.data.data.plant_id}}",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "organization_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.organization_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Organization ID"
+                        },
+                        {
+                          "prop": "material_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.item_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Material ID"
+                        },
+                        {
+                          "prop": "quantity",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.quantity}}",
+                          "valueLabel": "",
+                          "propLabel": "Quantity"
+                        },
+                        {
+                          "prop": "material_uom",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.item_uom}}",
+                          "valueLabel": "",
+                          "propLabel": "UOM"
+                        },
+                        {
+                          "prop": "unit_price",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.unit_price}}",
+                          "valueLabel": "",
+                          "propLabel": "Unit Price"
+                        },
+                        {
+                          "prop": "transaction_type",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.transaction_type}}",
+                          "valueLabel": "",
+                          "propLabel": "Transaction Type"
+                        },
+                        {
+                          "prop": "trx_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.trx_no}}",
+                          "valueLabel": "",
+                          "propLabel": "Trx No"
+                        },
+                        {
+                          "prop": "parent_trx_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.parent_trx_no}}",
+                          "valueLabel": "",
+                          "propLabel": "Parent Trx No"
+                        },
+                        {
+                          "prop": "inventory_category",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.inventory_category}}",
+                          "valueLabel": "",
+                          "propLabel": "Inventory Category"
+                        },
+                        {
+                          "prop": "location_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.bin_location_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Location ID"
+                        },
+                        {
+                          "prop": "batch_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.batch_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Batch ID"
+                        },
+                        {
+                          "prop": "index",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.index}}",
+                          "valueLabel": "",
+                          "propLabel": "Index"
+                        },
+                        {
+                          "prop": "isMovingInv",
+                          "operator": "",
+                          "valueType": "value",
+                          "value": 1,
+                          "valueLabel": "",
+                          "propLabel": "Moving Inventory?"
+                        },
+                        {
+                          "prop": "handling_unit_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.huId}}",
+                          "valueLabel": "",
+                          "propLabel": "Handling Unit ID"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "if_VJ2zhA37",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Error",
+                    "isValidator": true,
+                    "nodeName": "IF Error",
+                    "name": "IF Error",
+                    "condition_type": "Expression",
+                    "expression": {
+                      "type": "javascript",
+                      "code": "'{{node:workflow_node_MIAAZc1J.data.code}}' == '400'"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_block_Lw4y7GFa",
+                      "type": "ifBlock",
+                      "data": { "title": "true" },
+                      "blocks": [
+                        {
+                          "id": "return_node_8TGyylGl",
+                          "type": "return-node",
+                          "data": {
+                            "return_data": {},
+                            "status_code": 200,
+                            "title": "Return Data",
+                            "isValidator": true,
+                            "nodeName": "Return Data",
+                            "name": "Return Data",
+                            "response_value": {
+                              "list": [
+                                {
+                                  "prop": "code",
+                                  "propLabel": "code",
+                                  "operator": "",
+                                  "operatorLabel": "",
+                                  "valueType": "field",
+                                  "valueTypeLabel": "",
+                                  "value": "{{node:workflow_node_MIAAZc1J.data.code}}",
+                                  "valueLabel": ""
+                                },
+                                {
+                                  "prop": "message",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:workflow_node_MIAAZc1J.data.message}}",
+                                  "valueLabel": "",
+                                  "propLabel": "message"
+                                }
+                              ]
+                            },
+                            "return_raw_data": 0
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_block_MTkugcBK",
+                      "type": "ifBlock",
+                      "data": { "title": "false" },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "condition_or_item_mdCXFCmF",
+              "type": "condition-or-node-item",
+              "data": {
+                "title": "IN",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1773130010515,
+                      "parentId": 1773130010514,
+                      "isTop": true,
+                      "prop": "node.code_node_dofqVRSn.data.movement",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "IN",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "movement",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                },
+                "expression": { "code": "" },
+                "displayContent": "sdk.form.setCondition",
+                "__index": 2,
+                "isDefault": false,
+                "isValidator": true,
+                "nodeName": "IN",
+                "name": "IN",
+                "condition_type": "ConditionRule"
+              },
+              "blocks": [
+                {
+                  "id": "workflow_node_wCxvhaAr",
+                  "type": "workflow-node",
+                  "data": {
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "Run Add Workflow",
+                    "isValidator": true,
+                    "nodeName": "Run Add Workflow",
+                    "name": "Run Add Workflow",
+                    "workflow": {
+                      "source": "ADD_INVENTORY:Workflow:2012005532688723970",
+                      "rules": {
+                        "collectionId": "2012005532688723970",
+                        "list": [
+                          {
+                            "id": 1773130542494,
+                            "parentId": 1773130542493,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "plant_id",
+                          "propLabel": "Plant ID",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:code_node_dofqVRSn.data.data.plant_id}}",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "organization_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.organization_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Organization ID"
+                        },
+                        {
+                          "prop": "material_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.item_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Material ID"
+                        },
+                        {
+                          "prop": "quantity",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.quantity}}",
+                          "valueLabel": "",
+                          "propLabel": "Quantity"
+                        },
+                        {
+                          "prop": "material_uom",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.item_uom}}",
+                          "valueLabel": "",
+                          "propLabel": "UOM"
+                        },
+                        {
+                          "prop": "unit_price",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.unit_price}}",
+                          "valueLabel": "",
+                          "propLabel": "Unit Price"
+                        },
+                        {
+                          "prop": "transaction_type",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.transaction_type}}",
+                          "valueLabel": "",
+                          "propLabel": "Transaction Type"
+                        },
+                        {
+                          "prop": "trx_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.trx_no}}",
+                          "valueLabel": "",
+                          "propLabel": "Trx No"
+                        },
+                        {
+                          "prop": "parent_trx_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.parent_trx_no}}",
+                          "valueLabel": "",
+                          "propLabel": "Parent Trx No"
+                        },
+                        {
+                          "prop": "inventory_category",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.inventory_category}}",
+                          "valueLabel": "",
+                          "propLabel": "Inventory Category"
+                        },
+                        {
+                          "prop": "location_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.bin_location_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Location ID"
+                        },
+                        {
+                          "prop": "batch_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.data.batch_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Batch ID"
+                        },
+                        {
+                          "prop": "index",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.index}}",
+                          "valueLabel": "",
+                          "propLabel": "Index"
+                        },
+                        {
+                          "prop": "isMovingInv",
+                          "operator": "",
+                          "valueType": "value",
+                          "value": 1,
+                          "valueLabel": "",
+                          "propLabel": "Moving Inventory?"
+                        },
+                        {
+                          "prop": "handling_unit_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_dofqVRSn.data.huId}}",
+                          "valueLabel": "",
+                          "propLabel": "Handling Unit ID"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "if_XpgWL6D3",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Error",
+                    "isValidator": true,
+                    "nodeName": "IF Error",
+                    "name": "IF Error",
+                    "condition_type": "Expression",
+                    "expression": {
+                      "type": "javascript",
+                      "code": "'{{node:workflow_node_wCxvhaAr.data.code}}' == '400'"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "ifBlock_cB6T6yN6",
+                      "type": "ifBlock",
+                      "data": { "title": "true" },
+                      "blocks": [
+                        {
+                          "id": "return_node_VPHHjy2p",
+                          "type": "return-node",
+                          "data": {
+                            "return_data": {},
+                            "status_code": 200,
+                            "title": "Return Data",
+                            "isValidator": true,
+                            "nodeName": "Return Data",
+                            "name": "Return Data",
+                            "response_value": {
+                              "list": [
+                                {
+                                  "prop": "code",
+                                  "propLabel": "code",
+                                  "operator": "",
+                                  "operatorLabel": "",
+                                  "valueType": "field",
+                                  "valueTypeLabel": "",
+                                  "value": "{{node:workflow_node_wCxvhaAr.data.code}}",
+                                  "valueLabel": ""
+                                },
+                                {
+                                  "prop": "message",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:workflow_node_wCxvhaAr.data.message}}",
+                                  "valueLabel": "",
+                                  "propLabel": "message"
+                                }
+                              ]
+                            },
+                            "return_raw_data": 0
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "ifBlock_ip7XD97E",
+                      "type": "ifBlock",
+                      "data": { "title": "false" },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "code_node_qiSKhKkT",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "HU Preparation",
+                    "isValidator": true,
+                    "nodeName": "HU Preparation",
+                    "name": "HU Preparation",
+                    "script": {
+                      "type": "javascript",
+                      "code": "let huData = {{node:code_node_dofqVRSn.data.huData}} || null;\nif (huData && huData?.table_hu_items && huData?.table_hu_items.length > 0) {\n  huData.table_hu_items[0].location_id = {{node:code_node_dofqVRSn.data.data.bin_location_id}};\n  huData.table_hu_items[0].balance_id = {{node:workflow_node_wCxvhaAr.data.balanceId}} || \"\";\n}\n\nreturn {\n  table_hu_items: huData?.table_hu_items || [],\n  hasHuData: huData?.hasHuData || 0,\n  handling_unit_id: huData?.handling_unit_id || \"\",\n  handling_no: huData?.handling_no || \"\",\n  hu_material_id: huData?.hu_material_id || \"\",\n  hu_type: huData?.hu_type || \"\",\n  hu_uom: huData?.hu_uom || \"\",\n  remark: huData?.remark || \"\",\n}\n\n"
+                    },
+                    "response_json": [
+                      {
+                        "key": "l67fu7mr",
+                        "name": "table_hu_items",
+                        "title": "table_hu_items",
+                        "description": "",
+                        "bsonType": "array",
+                        "isExpand": true,
+                        "children": [
+                          {
+                            "key": "59m0exgc",
+                            "name": "items",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "isArrayItem": true,
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "key": "tygvr9mn",
+                        "name": "hasHuData",
+                        "title": "hasHuData",
+                        "description": "",
+                        "bsonType": "int",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "bm2b1rej",
+                        "name": "handling_unit_id",
+                        "title": "handling_unit_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "r2sjz1ie",
+                        "name": "handling_no",
+                        "title": "handling_no",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "l7x3bc0e",
+                        "name": "hu_material_id",
+                        "title": "hu_material_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "8z8839h5",
+                        "name": "hu_type",
+                        "title": "hu_type",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "s8roo7v4",
+                        "name": "hu_uom",
+                        "title": "hu_uom",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "sen382aw",
+                        "name": "remark",
+                        "title": "remark",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      }
+                    ]
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "if_7u1BehPr",
+                  "type": "if",
+                  "data": {
+                    "title": "IF hasHuData",
+                    "isValidator": true,
+                    "nodeName": "IF hasHuData",
+                    "name": "IF hasHuData",
+                    "condition_type": "ConditionRule",
+                    "expression": { "type": "javascript", "code": "" },
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1736695973613,
+                          "parentId": 1775120687942,
+                          "isTop": true,
+                          "prop": "node.code_node_qiSKhKkT.data.hasHuData",
+                          "operator": "numberEqual",
+                          "valueType": "value",
+                          "value": 1,
+                          "type": "leaf",
+                          "level": 1,
+                          "propLabel": "hasHuData",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "ifBlock_hEDxoa6a",
+                      "type": "ifBlock",
+                      "data": { "title": "true" },
+                      "blocks": [
+                        {
+                          "id": "workflow_node_3k3T7tUz",
+                          "type": "workflow-node",
+                          "data": {
+                            "workflow_id": "",
+                            "workflow_name": "",
+                            "input_params": {},
+                            "title": "Handling Unit Workflow",
+                            "isValidator": true,
+                            "nodeName": "Handling Unit Workflow",
+                            "name": "Handling Unit Workflow",
+                            "workflow": {
+                              "source": "HANDLING_UNIT:Workflow:2037062451509002241",
+                              "rules": {
+                                "collectionId": "2037062451509002241",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "",
+                                    "operator": "",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "leaf",
+                                    "level": 1
+                                  }
+                                ]
+                              }
+                            },
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "body_params": {
+                              "list": [
+                                {
+                                  "prop": "handling_unit_id",
+                                  "propLabel": "handling_unit_id",
+                                  "operator": "",
+                                  "operatorLabel": "",
+                                  "valueType": "field",
+                                  "valueTypeLabel": "",
+                                  "value": "{{node:code_node_qiSKhKkT.data.handling_unit_id}}",
+                                  "valueLabel": ""
+                                },
+                                {
+                                  "prop": "handling_no",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_qiSKhKkT.data.handling_no}}",
+                                  "valueLabel": "",
+                                  "propLabel": "handling_no"
+                                },
+                                {
+                                  "prop": "plant_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_dofqVRSn.data.data.plant_id}}",
+                                  "valueLabel": "",
+                                  "propLabel": "plant_id"
+                                },
+                                {
+                                  "prop": "organization_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_dofqVRSn.data.data.organization_id}}",
+                                  "valueLabel": "",
+                                  "propLabel": "organization_id"
+                                },
+                                {
+                                  "prop": "hu_material_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_qiSKhKkT.data.hu_material_id}}",
+                                  "valueLabel": "",
+                                  "propLabel": "hu_material_id"
+                                },
+                                {
+                                  "prop": "hu_type",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_qiSKhKkT.data.hu_type}}",
+                                  "valueLabel": "",
+                                  "propLabel": "hu_type"
+                                },
+                                {
+                                  "prop": "hu_quantity",
+                                  "operator": "",
+                                  "valueType": "value",
+                                  "value": 1,
+                                  "valueLabel": "",
+                                  "propLabel": "hu_quantity"
+                                },
+                                {
+                                  "prop": "hu_uom",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_qiSKhKkT.data.hu_uom}}",
+                                  "valueLabel": "",
+                                  "propLabel": "hu_uom"
+                                },
+                                {
+                                  "prop": "storage_location_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_dofqVRSn.data.data.storage_location}}",
+                                  "valueLabel": "",
+                                  "propLabel": "storage_location_id"
+                                },
+                                {
+                                  "prop": "location_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_dofqVRSn.data.data.bin_location_id}}",
+                                  "valueLabel": "",
+                                  "propLabel": "location_id"
+                                },
+                                {
+                                  "prop": "remark",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_qiSKhKkT.data.remark}}",
+                                  "valueLabel": "",
+                                  "propLabel": "remark"
+                                },
+                                {
+                                  "prop": "table_hu_items",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_qiSKhKkT.data.table_hu_items}}",
+                                  "valueLabel": "",
+                                  "propLabel": "table_hu_items"
+                                },
+                                {
+                                  "prop": "parent_trx_no",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_dofqVRSn.data.data.parent_trx_no}}",
+                                  "valueLabel": "",
+                                  "propLabel": "parent_trx_no"
+                                },
+                                {
+                                  "prop": "inventory_movement_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:workflow_node_wCxvhaAr.data.inventoryMovementId}}",
+                                  "valueLabel": "",
+                                  "propLabel": "inventory_movement_id"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "ifBlock_eW5UKZzt",
+                      "type": "ifBlock",
+                      "data": { "title": "false" },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "condition_or_node_item_H4UIuRmd",
+              "type": "condition-or-node-item",
+              "data": {
+                "title": "Invalid",
+                "isDefault": true,
+                "filter": { "list": [] },
+                "expression": { "code": "" },
+                "displayContent": "sdk.form.otherCondition"
+              },
+              "blocks": [
+                {
+                  "id": "return_node_EiegwJay",
+                  "type": "return-node",
+                  "data": {
+                    "return_data": {},
+                    "status_code": 200,
+                    "title": "Return Data",
+                    "isValidator": true,
+                    "nodeName": "Return Data",
+                    "name": "Return Data",
+                    "response_value": {
+                      "list": [
+                        {
+                          "prop": "code",
+                          "propLabel": "code",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "value": "400",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "message",
+                          "operator": "",
+                          "valueType": "value",
+                          "value": "Invalid movement",
+                          "valueLabel": "",
+                          "propLabel": "message"
+                        }
+                      ]
+                    },
+                    "return_raw_data": 0
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "set_cache_node_iUl8kVmx",
+          "type": "set-cache-node",
+          "data": {
+            "cache_key": "",
+            "cache_value": "",
+            "expire_time": 3600,
+            "title": "Set Index",
+            "isValidator": true,
+            "nodeName": "Set Index",
+            "name": "Set Index",
+            "custom_wkbocgni": {
+              "type": "javascript",
+              "code": "{{node:code_node_dofqVRSn.data.nextIndex}}"
+            },
+            "redis_key": "index_{{node:code_node_M7IX2sBi.data.id}}"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "update_node_wYdL6wYD",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Transfer Order Putaway:Table:1937714890958053378",
+          "rules": {
+            "collectionId": "1937714890958053378",
+            "list": [
+              {
+                "id": 1773126621248,
+                "parentId": 1773126621247,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:allData.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Update Putaway",
+        "isValidator": true,
+        "nodeName": "Update Putaway",
+        "name": "Update Putaway",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "to_status",
+              "valueType": "field",
+              "value": "{{node:code_node_KbJLkjP8.data.toStatus}}",
+              "operator": "",
+              "valueLabel": "",
+              "propLabel": "Transfer Order Status"
+            },
+            {
+              "prop": "table_putaway_item",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_KbJLkjP8.data.updatedItems}}",
+              "valueLabel": "",
+              "propLabel": "Putaway Items"
+            },
+            {
+              "prop": "table_putaway_records",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_KbJLkjP8.data.combinedRecords}}",
+              "valueLabel": "",
+              "propLabel": "Putaway Items"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "update_node_qBb4oUDj",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Goods Receiving:Table:1901845517592285186",
+          "rules": {
+            "collectionId": "1901845517592285186",
+            "list": [
+              {
+                "id": 1773126735081,
+                "parentId": 1773126735080,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:allData.gr_no}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Update GR",
+        "isValidator": true,
+        "nodeName": "Update GR",
+        "name": "Update GR",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "putaway_status",
+              "valueType": "field",
+              "value": "{{node:code_node_ds7jurnq.data.grPutawayStatus}}",
+              "operator": "",
+              "valueLabel": "",
+              "propLabel": "Putaway Status"
+            },
+            {
+              "prop": "gr_status",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_ds7jurnq.data.grStatus}}",
+              "valueLabel": "",
+              "propLabel": "GR Status"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_NUcmslK4",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "valueTypeLabel": "",
+              "value": "200",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "operator": "",
+              "valueType": "value",
+              "value": "Putaway processed successfully",
+              "valueLabel": "",
+              "propLabel": "message"
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "ml92rvlq",
+      "name": "allData",
+      "title": "allData",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "tynnbe46",
+      "name": "confirmed_by",
+      "title": "confirmed_by",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "qwr3c0zu",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "gapff3tq",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}
