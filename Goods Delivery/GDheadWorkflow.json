@@ -5678,6 +5678,22 @@
                                       "propLabel": "Attention"
                                     },
                                     {
+                                      "prop": "billing_address_fax",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_IyJHrBst.data.allData.billing_address_fax}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Fax"
+                                    },
+                                    {
+                                      "prop": "shipping_address_fax",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_IyJHrBst.data.allData.shipping_address_fax}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Fax"
+                                    },
+                                    {
                                       "prop": "shipping_address_name",
                                       "operator": "",
                                       "valueType": "field",
@@ -9725,6 +9741,22 @@
                               "propLabel": "Attention"
                             },
                             {
+                              "prop": "billing_address_fax",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.billing_address_fax}}",
+                              "valueLabel": "",
+                              "propLabel": "Fax"
+                            },
+                            {
+                              "prop": "shipping_address_fax",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.shipping_address_fax}}",
+                              "valueLabel": "",
+                              "propLabel": "Fax"
+                            },
+                            {
                               "prop": "shipping_address_name",
                               "operator": "",
                               "valueType": "field",
@@ -10510,6 +10542,22 @@
                               "value": "{{node:code_node_IyJHrBst.data.allData.billing_attention}}",
                               "valueLabel": "",
                               "propLabel": "Attention"
+                            },
+                            {
+                              "prop": "billing_address_fax",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.billing_address_fax}}",
+                              "valueLabel": "",
+                              "propLabel": "Fax"
+                            },
+                            {
+                              "prop": "shipping_address_fax",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.shipping_address_fax}}",
+                              "valueLabel": "",
+                              "propLabel": "Fax"
                             },
                             {
                               "prop": "shipping_address_name",
