@@ -450,7 +450,7 @@
                         "name": "Prepare Data to Add",
                         "script": {
                           "type": "javascript",
-                          "code": "let handling_no = {{workflowparams:handling_no}} || \"\";\nlet handling_no_type\n\nif (handling_no === \"Auto-generated number\") {\n  handling_no = \"issued\"\n  handling_no_type = {{node:get_node_p1se2ZUP.data.data.id}}\n} else {\n  handling_no_type = -9999\n}\n\nconst table_hu_items = {{workflowparams:table_hu_items}} || []\nconst item_count = table_hu_items.length\nconst total_quantity = table_hu_items.reduce((sum, hu) => sum + (parseFloat(hu.quantity) || 0),0,);\n\nreturn {\n  handling_no,\n  handling_no_type,\n  item_count,\n  total_quantity\n}\n\n"
+                          "code": "let handling_no = {{workflowparams:handling_no}} || \"\";\nlet handling_no_type\n\nif (handling_no === \"Auto-generated number\") {\n  handling_no = \"issued\"\n  handling_no_type = {{node:get_node_p1se2ZUP.data.data.id}}\n} else {\n  handling_no_type = -9999\n}\n\nconst table_hu_items = {{workflowparams:table_hu_items}} || []\nconst item_count = table_hu_items.length\nconst total_quantity = table_hu_items.reduce((sum, hu) => sum + (parseFloat(hu.quantity) || 0),0,);\n\nconst hu_status = {{workflowparams:hu_status}} || \"Created\"\n\nreturn {\n  handling_no,\n  handling_no_type,\n  item_count,\n  total_quantity,\n  hu_status\n}\n\n"
                         },
                         "response_json": [
                           {
@@ -487,6 +487,14 @@
                             "bsonType": "decimal",
                             "isExpand": false,
                             "children": []
+                          },
+                          {
+                            "key": "onyw9vvi",
+                            "name": "hu_status",
+                            "title": "hu_status",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
                           }
                         ]
                       },
@@ -647,7 +655,7 @@
                               "prop": "hu_status",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{workflowparams:hu_status}}",
+                              "value": "{{node:code_node_5TaNy6P5.data.hu_status}}",
                               "valueLabel": "",
                               "propLabel": "HU Status"
                             }
