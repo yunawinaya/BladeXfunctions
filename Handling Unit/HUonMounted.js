@@ -126,6 +126,7 @@ setTimeout(async () => {
     let pageStatus = "";
 
     if (this.isAdd) pageStatus = "Add";
+    else if (this.isEdit) pageStatus = "Edit";
     else if (this.isView) pageStatus = "View";
     else throw new Error("Invalid page state");
 
@@ -147,6 +148,17 @@ setTimeout(async () => {
 
         const plantID = setPlant(organizationId, pageStatus);
         await setStorageLocation(plantID);
+        break;
+
+      case "Edit":
+        this.setData({ page_status: pageStatus });
+        configureFields();
+        configureButtons(pageStatus, data.hu_status);
+        showStatusHTML(data.hu_status);
+        showConditionalFields(data);
+        if (data.hu_status !== "Draft") {
+          editDisabledField();
+        }
         break;
 
       case "View":
