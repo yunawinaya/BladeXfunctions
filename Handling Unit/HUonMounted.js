@@ -11,33 +11,68 @@ const showStatusHTML = (status) => {
   }
 };
 
+const CONFIG = {
+  fields: {
+    buttons: ["button_save_as_draft", "button_created"],
+    hide: ["page_status", "hu_status"],
+    conditional: ["customer_id", "parent_hu_id", "packing_id", "closed_by"],
+  },
+  buttonConfig: {
+    Draft: ["button_save_as_draft", "button_created"],
+  },
+};
+
+const configureFields = () => {
+  this.hide(CONFIG.fields.hide);
+};
+
+const configureButtons = (pageStatus, huStatus) => {
+  this.hide(CONFIG.fields.buttons);
+
+  if (pageStatus === "Add" || huStatus === "Draft") {
+    this.display(CONFIG.buttonConfig.Draft);
+  }
+};
+
+const showConditionalFields = (data) => {
+  if (data.customer_id) this.display(["customer_id"]);
+  if (data.closed_by) this.display(["closed_by"]);
+  if (data.table_hu_items && data.table_hu_items.length > 0)
+    this.display(["table_hu_items"]);
+};
+
 const editDisabledField = () => {
   this.disabled(
     [
-      "issue_date",
-      "handling_no",
-      "movement_type",
-      "movement_reason",
-      "issued_by",
       "plant_id",
-      "remarks",
+      "organization_id",
+      "customer_id",
+      "parent_hu_id",
+      "handling_no",
+      "handling_no_type",
+      "hu_material_id",
+      "hu_type",
+      "hu_quantity",
+      "hu_uom",
+      "storage_location_id",
+      "location_id",
+      "item_count",
+      "total_quantity",
+      "gross_weight",
+      "net_weight",
+      "net_volume",
+      "ref_doc",
       "remark",
-      "remark2",
-      "remark3",
-      "reference_documents",
-      "movement_id",
-      "stock_movement",
-      "stock_movement.item_selection",
-      "stock_movement.category",
-      "stock_movement.received_quantity",
-      "stock_movement.received_quantity_uom",
-      "stock_movement.unit_price",
-      "stock_movement.amount",
-      "stock_movement.location_id",
-      "stock_movement.storage_location_id",
-      "stock_movement.batch_id",
-      "stock_movement.manufacturing_date",
-      "stock_movement.expiry_date",
+      "packing_id",
+      "closed_by",
+      "table_hu_items",
+      "table_hu_items.material_id",
+      "table_hu_items.material_name",
+      "table_hu_items.material_desc",
+      "table_hu_items.location_id",
+      "table_hu_items.batch_id",
+      "table_hu_items.material_uom",
+      "table_hu_items.quantity",
     ],
     true,
   );
@@ -124,21 +159,20 @@ setTimeout(async () => {
           page_status: pageStatus,
         });
 
-        this.display(["draft_status", "button_save_as_draft"]);
-        this.hide(CONFIG.fields.hide);
-
-        const plantID = setPlant(organizationId, pageStatus);
         configureFields();
         configureButtons(pageStatus, null);
+        this.display(["draft_status"]);
+
+        const plantID = setPlant(organizationId, pageStatus);
         await setStorageLocation(plantID);
         break;
 
       case "View":
         configureFields();
-        configureButtons(pageStatus, data.stock_movement_status);
-        this.hide(CONFIG.fields.hide);
-
-        showStatusHTML(data.stock_movement_status);
+        configureButtons(pageStatus, data.hu_status);
+        showStatusHTML(data.hu_status);
+        showConditionalFields(data);
+        editDisabledField();
         break;
     }
   } catch (error) {
@@ -148,6 +182,7 @@ setTimeout(async () => {
 }, 500);
 
 setTimeout(async () => {
+  if (!this.isAdd) return;
   const maxRetries = 10;
   const interval = 500;
   for (let i = 0; i < maxRetries; i++) {
@@ -168,14 +203,10 @@ setTimeout(async () => {
       { label: "Manual Input", value: -9999 },
       ...optionsData,
     ]);
-    if (this.isAdd) {
-      this.setData({
-        handling_no_type: defaultData ? defaultData.value : -9999,
-      });
-    }
+    this.setData({
+      handling_no_type: defaultData ? defaultData.value : -9999,
+    });
   } else if (defaultData) {
-    if (this.isAdd) {
-      this.setData({ handling_no_type: defaultData.value });
-    }
+    this.setData({ handling_no_type: defaultData.value });
   }
 }, 200);
