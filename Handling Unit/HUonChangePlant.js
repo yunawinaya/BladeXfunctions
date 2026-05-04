@@ -15,7 +15,7 @@
         is_deleted: 0,
         is_default: 1,
         storage_status: 1,
-        location_type: "Common",
+        location_type: "Loading Bay",
       })
       .get();
 

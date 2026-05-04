@@ -35,8 +35,9 @@ const configureButtons = (pageStatus, huStatus) => {
 };
 
 const showConditionalFields = (data) => {
-  if (data.customer_id) this.display(["customer_id"]);
-  if (data.closed_by) this.display(["closed_by"]);
+  if (data.customer_id && data.customer_id.length > 0)
+    this.display(["customer_id"]);
+  if (data.closed_by && data.closed_by !== "") this.display(["closed_by"]);
   if (data.table_hu_items && data.table_hu_items.length > 0)
     this.display(["table_hu_items"]);
 };
@@ -102,7 +103,7 @@ const setStorageLocation = async (plantID) => {
           is_deleted: 0,
           is_default: 1,
           storage_status: 1,
-          location_type: "Common",
+          location_type: "Loading Bay",
         })
         .get();
 
