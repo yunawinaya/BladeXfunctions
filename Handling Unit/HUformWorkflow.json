@@ -1,0 +1,1300 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "code_node_om8UrVAB",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "fillbackHeaderFields",
+        "isValidator": true,
+        "nodeName": "fillbackHeaderFields",
+        "name": "fillbackHeaderFields",
+        "script": {
+          "type": "javascript",
+          "code": "let allData = {{workflowparams:allData}}\nconst saveAs = {{workflowparams:saveAs}}\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.hu_status = \"Draft\";\n}\n\nif (saveAs === \"Draft\") {\n  if (\n    allData.handling_no_type !== -9999 &&\n    (!allData.handling_no ||\n      allData.handling_no === null ||\n      allData.handling_no === \"\")\n  ) {\n    allData.handling_no = \"draft\";\n  }\n} else {\n  if (\n    allData.handling_no_type !== -9999 &&\n    (!allData.handling_no ||\n      allData.handling_no === null ||\n      allData.handling_no === \"\")\n  ) {\n    allData.handling_no = \"issued\";\n  }\n}\n\nreturn {\n  allData: allData,\n  hu_status: allData.hu_status,\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "ip6i07es",
+            "name": "allData",
+            "title": "allData",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "zgd3vr8b",
+            "name": "hu_status",
+            "title": "hu_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_nd4xsgFm",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Required Fields",
+        "isValidator": true,
+        "nodeName": "Required Fields",
+        "name": "Required Fields",
+        "script": {
+          "type": "javascript",
+          "code": "return {\n  required_fields: JSON.stringify([\n  { name: \"handling_no\", label: \"Handling Unit No\" },\n  { name: \"location_id\", label: \"Bin Location\" },\n  { name: \"hu_material_id\", label: \"Handling Unit Material\" },\n  { name: \"plant_id\", label: \"Plant\" },\n]),\n  data: JSON.stringify({\n    handling_no: {{node:code_node_om8UrVAB.data.allData.handling_no}},\n    location_id: {{node:code_node_om8UrVAB.data.allData.location_id}},\n    hu_material_id: {{node:code_node_om8UrVAB.data.allData.hu_material_id}},\n    plant_id: {{node:code_node_om8UrVAB.data.allData.plant_id}},\n  })\n}"
+        },
+        "response_json": [
+          {
+            "key": "iomd4yaj",
+            "name": "required_fields",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "z59j2g2u",
+            "name": "data",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "workflow_node_V3yGUPJe",
+      "type": "workflow-node",
+      "data": {
+        "workflow_id": "",
+        "workflow_name": "",
+        "input_params": {},
+        "title": "Check Required Workflow",
+        "isValidator": true,
+        "nodeName": "Check Required Workflow",
+        "name": "Check Required Workflow",
+        "workflow": {
+          "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+          "rules": {
+            "collectionId": "1988831880511062018",
+            "list": [
+              {
+                "id": 1763010683443,
+                "parentId": 1763010683442,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          }
+        },
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "body_params": {
+          "list": [
+            {
+              "prop": "entry",
+              "propLabel": "entry",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_nd4xsgFm.data.data}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "required_fields",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_nd4xsgFm.data.required_fields}}",
+              "valueLabel": "",
+              "propLabel": "required_fields"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_M9GDAcrn",
+      "type": "if",
+      "data": {
+        "title": "IF Validation Failed",
+        "isValidator": true,
+        "nodeName": "IF Validation Failed",
+        "name": "IF Validation Failed",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1736695973613,
+              "parentId": 1736695973612,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:workflow_node_V3yGUPJe.data.data.status}}' == 'Failed'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_gtgx1Ppk",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_UsLnbxDW",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:workflow_node_V3yGUPJe.data.data.message}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_ir4cGu1M",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_lk7Ocwr4",
+      "type": "if",
+      "data": {
+        "title": "IF !Draft",
+        "isValidator": true,
+        "nodeName": "IF !Draft",
+        "name": "IF !Draft",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1736695973613,
+              "parentId": 1736695973612,
+              "isTop": true,
+              "prop": "workflowparams.saveAs",
+              "operator": "notEqual",
+              "valueType": "value",
+              "value": "Draft",
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "saveAs",
+              "valueLabel": "",
+              "operatorLabel": "Not Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_ISbnR2cB",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "if_EWjtnpeH",
+              "type": "if",
+              "data": {
+                "title": "IF Edit Mode",
+                "isValidator": true,
+                "nodeName": "IF Edit Mode",
+                "name": "IF Edit Mode",
+                "condition_type": "ConditionRule",
+                "expression": { "type": "javascript", "code": "" },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973613,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "workflowparams.pageStatus",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "Edit",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "pageStatus",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_z7PVVYjX",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "update_node_oUxT0aiJ",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Handling Unit:Table:2036736671686529026",
+                          "rules": {
+                            "collectionId": "2036736671686529026",
+                            "list": [
+                              {
+                                "id": 1777877462741,
+                                "parentId": 1777877462740,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{workflowparams:allData.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Update HU Data",
+                        "isValidator": true,
+                        "nodeName": "Update HU Data",
+                        "name": "Update HU Data",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "hu_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:saveAs}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Status"
+                            },
+                            {
+                              "prop": "plant_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.plant_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Plant"
+                            },
+                            {
+                              "prop": "organization_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.organization_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Organization"
+                            },
+                            {
+                              "prop": "handling_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_om8UrVAB.data.allData.handling_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Handling Unit No"
+                            },
+                            {
+                              "prop": "handling_no_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_om8UrVAB.data.allData.handling_no_type}}",
+                              "valueLabel": "",
+                              "propLabel": "规则"
+                            },
+                            {
+                              "prop": "hu_material_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_material_id}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Material"
+                            },
+                            {
+                              "prop": "hu_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_type}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Type"
+                            },
+                            {
+                              "prop": "hu_quantity",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_quantity}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Quantity"
+                            },
+                            {
+                              "prop": "hu_uom",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_uom}}",
+                              "valueLabel": "",
+                              "propLabel": "HU UOM"
+                            },
+                            {
+                              "prop": "item_count",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.item_count}}",
+                              "valueLabel": "",
+                              "propLabel": "Item Count"
+                            },
+                            {
+                              "prop": "total_quantity",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.total_quantity}}",
+                              "valueLabel": "",
+                              "propLabel": "Total Item Quantity"
+                            },
+                            {
+                              "prop": "storage_location_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.storage_location_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Storage Location"
+                            },
+                            {
+                              "prop": "location_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.location_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Location"
+                            },
+                            {
+                              "prop": "remark",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.remark}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark"
+                            },
+                            {
+                              "prop": "table_hu_items",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.table_hu_items}}",
+                              "valueLabel": "",
+                              "propLabel": "Items"
+                            },
+                            {
+                              "prop": "parent_hu_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.parent_hu_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Parent HU ID"
+                            },
+                            {
+                              "prop": "customer_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.customer_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Customer"
+                            },
+                            {
+                              "prop": "packing_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.packing_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Packing"
+                            },
+                            {
+                              "prop": "closed_by",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.closed_by}}",
+                              "valueLabel": "",
+                              "propLabel": "Closed By"
+                            },
+                            {
+                              "prop": "gross_weight",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.gross_weight}}",
+                              "valueLabel": "",
+                              "propLabel": "Gross Weight"
+                            },
+                            {
+                              "prop": "net_weight",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.net_weight}}",
+                              "valueLabel": "",
+                              "propLabel": "Net Weight"
+                            },
+                            {
+                              "prop": "net_volume",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.net_volume}}",
+                              "valueLabel": "",
+                              "propLabel": "Net Volume"
+                            },
+                            {
+                              "prop": "ref_doc",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.ref_doc}}",
+                              "valueLabel": "",
+                              "propLabel": "Reference Document"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_eBj51xgz",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": [
+                    {
+                      "id": "add_node_ogHtV3su",
+                      "type": "add-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Handling Unit:Table:2036736671686529026",
+                          "rules": {
+                            "collectionId": "2036736671686529026",
+                            "list": [
+                              {
+                                "id": 1777877544673,
+                                "parentId": 1777877544672,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "title": "Add HU Data",
+                        "isValidator": true,
+                        "nodeName": "Add HU Data",
+                        "name": "Add HU Data",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "hu_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:saveAs}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Status"
+                            },
+                            {
+                              "prop": "plant_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.plant_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Plant"
+                            },
+                            {
+                              "prop": "organization_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.organization_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Organization"
+                            },
+                            {
+                              "prop": "handling_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_om8UrVAB.data.allData.handling_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Handling Unit No"
+                            },
+                            {
+                              "prop": "handling_no_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_om8UrVAB.data.allData.handling_no_type}}",
+                              "valueLabel": "",
+                              "propLabel": "规则"
+                            },
+                            {
+                              "prop": "hu_material_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_material_id}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Material"
+                            },
+                            {
+                              "prop": "hu_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_type}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Type"
+                            },
+                            {
+                              "prop": "hu_quantity",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_quantity}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Quantity"
+                            },
+                            {
+                              "prop": "hu_uom",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_uom}}",
+                              "valueLabel": "",
+                              "propLabel": "HU UOM"
+                            },
+                            {
+                              "prop": "item_count",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.item_count}}",
+                              "valueLabel": "",
+                              "propLabel": "Item Count"
+                            },
+                            {
+                              "prop": "total_quantity",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.total_quantity}}",
+                              "valueLabel": "",
+                              "propLabel": "Total Item Quantity"
+                            },
+                            {
+                              "prop": "storage_location_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.storage_location_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Storage Location"
+                            },
+                            {
+                              "prop": "location_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.location_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Location"
+                            },
+                            {
+                              "prop": "remark",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.remark}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark"
+                            },
+                            {
+                              "prop": "table_hu_items",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.table_hu_items}}",
+                              "valueLabel": "",
+                              "propLabel": "Items"
+                            },
+                            {
+                              "prop": "parent_hu_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.parent_hu_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Parent HU ID"
+                            },
+                            {
+                              "prop": "customer_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.customer_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Customer"
+                            },
+                            {
+                              "prop": "packing_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.packing_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Packing"
+                            },
+                            {
+                              "prop": "closed_by",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.closed_by}}",
+                              "valueLabel": "",
+                              "propLabel": "Closed By"
+                            },
+                            {
+                              "prop": "gross_weight",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.gross_weight}}",
+                              "valueLabel": "",
+                              "propLabel": "Gross Weight"
+                            },
+                            {
+                              "prop": "net_weight",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.net_weight}}",
+                              "valueLabel": "",
+                              "propLabel": "Net Weight"
+                            },
+                            {
+                              "prop": "net_volume",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.net_volume}}",
+                              "valueLabel": "",
+                              "propLabel": "Net Volume"
+                            },
+                            {
+                              "prop": "ref_doc",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.ref_doc}}",
+                              "valueLabel": "",
+                              "propLabel": "Reference Document"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_O2chvRzo",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": [
+            {
+              "id": "if_acrzo5l6",
+              "type": "if",
+              "data": {
+                "title": "IF Edit Mode",
+                "isValidator": true,
+                "nodeName": "IF Edit Mode",
+                "name": "IF Edit Mode",
+                "condition_type": "ConditionRule",
+                "expression": { "type": "javascript", "code": "" },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973613,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "workflowparams.pageStatus",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "Edit",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "pageStatus",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_4bgu9J0l",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "update_node_LsHnf6sY",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Handling Unit:Table:2036736671686529026",
+                          "rules": {
+                            "collectionId": "2036736671686529026",
+                            "list": [
+                              {
+                                "id": 1777877462741,
+                                "parentId": 1777877462740,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{workflowparams:allData.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Update HU Draft",
+                        "isValidator": true,
+                        "nodeName": "Update HU Data",
+                        "name": "Update HU Data",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "hu_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:saveAs}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Status"
+                            },
+                            {
+                              "prop": "plant_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.plant_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Plant"
+                            },
+                            {
+                              "prop": "organization_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.organization_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Organization"
+                            },
+                            {
+                              "prop": "handling_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_om8UrVAB.data.allData.handling_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Handling Unit No"
+                            },
+                            {
+                              "prop": "handling_no_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_om8UrVAB.data.allData.handling_no_type}}",
+                              "valueLabel": "",
+                              "propLabel": "规则"
+                            },
+                            {
+                              "prop": "hu_material_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_material_id}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Material"
+                            },
+                            {
+                              "prop": "hu_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_type}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Type"
+                            },
+                            {
+                              "prop": "hu_quantity",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_quantity}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Quantity"
+                            },
+                            {
+                              "prop": "hu_uom",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_uom}}",
+                              "valueLabel": "",
+                              "propLabel": "HU UOM"
+                            },
+                            {
+                              "prop": "item_count",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.item_count}}",
+                              "valueLabel": "",
+                              "propLabel": "Item Count"
+                            },
+                            {
+                              "prop": "total_quantity",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.total_quantity}}",
+                              "valueLabel": "",
+                              "propLabel": "Total Item Quantity"
+                            },
+                            {
+                              "prop": "storage_location_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.storage_location_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Storage Location"
+                            },
+                            {
+                              "prop": "location_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.location_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Location"
+                            },
+                            {
+                              "prop": "remark",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.remark}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark"
+                            },
+                            {
+                              "prop": "table_hu_items",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.table_hu_items}}",
+                              "valueLabel": "",
+                              "propLabel": "Items"
+                            },
+                            {
+                              "prop": "parent_hu_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.parent_hu_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Parent HU ID"
+                            },
+                            {
+                              "prop": "customer_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.customer_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Customer"
+                            },
+                            {
+                              "prop": "packing_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.packing_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Packing"
+                            },
+                            {
+                              "prop": "closed_by",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.closed_by}}",
+                              "valueLabel": "",
+                              "propLabel": "Closed By"
+                            },
+                            {
+                              "prop": "gross_weight",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.gross_weight}}",
+                              "valueLabel": "",
+                              "propLabel": "Gross Weight"
+                            },
+                            {
+                              "prop": "net_weight",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.net_weight}}",
+                              "valueLabel": "",
+                              "propLabel": "Net Weight"
+                            },
+                            {
+                              "prop": "net_volume",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.net_volume}}",
+                              "valueLabel": "",
+                              "propLabel": "Net Volume"
+                            },
+                            {
+                              "prop": "ref_doc",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.ref_doc}}",
+                              "valueLabel": "",
+                              "propLabel": "Reference Document"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_b4eBzEfl",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": [
+                    {
+                      "id": "add_node_FWbB5TAA",
+                      "type": "add-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Handling Unit:Table:2036736671686529026",
+                          "rules": {
+                            "collectionId": "2036736671686529026",
+                            "list": [
+                              {
+                                "id": 1777877544673,
+                                "parentId": 1777877544672,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "title": "Add HU Draft",
+                        "isValidator": true,
+                        "nodeName": "Add HU Data",
+                        "name": "Add HU Data",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "hu_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:saveAs}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Status"
+                            },
+                            {
+                              "prop": "plant_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.plant_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Plant"
+                            },
+                            {
+                              "prop": "organization_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.organization_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Organization"
+                            },
+                            {
+                              "prop": "handling_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_om8UrVAB.data.allData.handling_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Handling Unit No"
+                            },
+                            {
+                              "prop": "handling_no_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_om8UrVAB.data.allData.handling_no_type}}",
+                              "valueLabel": "",
+                              "propLabel": "规则"
+                            },
+                            {
+                              "prop": "hu_material_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_material_id}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Material"
+                            },
+                            {
+                              "prop": "hu_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_type}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Type"
+                            },
+                            {
+                              "prop": "hu_quantity",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_quantity}}",
+                              "valueLabel": "",
+                              "propLabel": "HU Quantity"
+                            },
+                            {
+                              "prop": "hu_uom",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.hu_uom}}",
+                              "valueLabel": "",
+                              "propLabel": "HU UOM"
+                            },
+                            {
+                              "prop": "item_count",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.item_count}}",
+                              "valueLabel": "",
+                              "propLabel": "Item Count"
+                            },
+                            {
+                              "prop": "total_quantity",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.total_quantity}}",
+                              "valueLabel": "",
+                              "propLabel": "Total Item Quantity"
+                            },
+                            {
+                              "prop": "storage_location_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.storage_location_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Storage Location"
+                            },
+                            {
+                              "prop": "location_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.location_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Location"
+                            },
+                            {
+                              "prop": "remark",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.remark}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark"
+                            },
+                            {
+                              "prop": "table_hu_items",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.table_hu_items}}",
+                              "valueLabel": "",
+                              "propLabel": "Items"
+                            },
+                            {
+                              "prop": "parent_hu_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.parent_hu_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Parent HU ID"
+                            },
+                            {
+                              "prop": "customer_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.customer_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Customer"
+                            },
+                            {
+                              "prop": "packing_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.packing_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Packing"
+                            },
+                            {
+                              "prop": "closed_by",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.closed_by}}",
+                              "valueLabel": "",
+                              "propLabel": "Closed By"
+                            },
+                            {
+                              "prop": "gross_weight",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.gross_weight}}",
+                              "valueLabel": "",
+                              "propLabel": "Gross Weight"
+                            },
+                            {
+                              "prop": "net_weight",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.net_weight}}",
+                              "valueLabel": "",
+                              "propLabel": "Net Weight"
+                            },
+                            {
+                              "prop": "net_volume",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.net_volume}}",
+                              "valueLabel": "",
+                              "propLabel": "Net Volume"
+                            },
+                            {
+                              "prop": "ref_doc",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:allData.ref_doc}}",
+                              "valueLabel": "",
+                              "propLabel": "Reference Document"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "yzqp8u1g",
+      "name": "allData",
+      "title": "allData",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "8p58d17g",
+      "name": "saveAs",
+      "title": "saveAs",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "uoevu64f",
+      "name": "pageStatus",
+      "title": "pageStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "hpb0ojeu",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "m56ueig4",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}
