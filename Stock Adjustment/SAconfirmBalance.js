@@ -177,7 +177,10 @@
         }); // Log quantity fields
 
         // Validate only if movementType is "Out" or "OUT"
-        if ((movementType === "Out" || movementType === "OUT") && quantity > 0) {
+        if (
+          (movementType === "Out" || movementType === "OUT") &&
+          quantity > 0
+        ) {
           let selectedField;
           switch (category_type) {
             case "Unrestricted":
