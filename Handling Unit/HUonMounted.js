@@ -112,25 +112,6 @@ const setStorageLocation = async (plantID) => {
           storage_location_id: defaultStorageLocationID,
         });
       }
-
-      if (defaultStorageLocationID && defaultStorageLocationID !== "") {
-        const resBinLocation = await db
-          .collection("bin_location")
-          .where({
-            plant_id: plantID,
-            storage_location_id: defaultStorageLocationID,
-            is_deleted: 0,
-            is_default: 1,
-            bin_status: 1,
-          })
-          .get();
-
-        if (resBinLocation.data && resBinLocation.data.length > 0) {
-          this.setData({
-            location_id: resBinLocation.data[0].id,
-          });
-        }
-      }
     }
   } catch (error) {
     console.error(error);
