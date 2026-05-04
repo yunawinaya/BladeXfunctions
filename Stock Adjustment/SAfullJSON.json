@@ -5250,7 +5250,7 @@
             "subform": false,
             "hideLabel": true,
             "select-card_n7ge7fmb": [],
-            "immutable": true,
+            "immutable": false,
             "left": 3,
             "right": 4,
             "pad": "*",
