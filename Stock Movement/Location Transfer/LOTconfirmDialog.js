@@ -8,16 +8,6 @@
 
   let isValid = true;
 
-  const allValid = temporaryData.every((item, idx) => {
-    const valid =
-      window.validationState && window.validationState[idx] !== false;
-    return valid;
-  });
-
-  if (!allValid) {
-    return;
-  }
-
   const gdUOM = await db
     .collection("unit_of_measurement")
     .where({ id: quantityUOM })
