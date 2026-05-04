@@ -5255,7 +5255,54 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "autoPaging": false,
+            "autoPageSize": 5,
+            "autoLoadDelay": 500,
+            "useVTable": true,
+            "useTableV2": false,
+            "useTableV2Height": 1,
+            "groupBy": "",
+            "filters": [],
+            "filter_collapse": 0,
+            "rowActions": [],
+            "collapse_all": 0,
+            "rowSelectionType": "None",
+            "batchOperate": [],
+            "resizable": 0,
+            "emptyTip": "",
+            "tableHeightMode": "fixed",
+            "tableFixedHeight": null,
+            "tableMaxHeight": null,
+            "rowHeightType": "auto",
+            "hideIndex": false,
+            "highlightSelectedRow": false,
+            "highlightHoverRow": false,
+            "showTableBorder": 0,
+            "stripe": 0,
+            "rowColor": "#FFFFFF",
+            "headerBgColor": "#FFFFFF",
+            "styles": {},
+            "customProps": {
+              "toolbar": [
+                {
+                  "title": "全屏",
+                  "type": "fullscreenBtn",
+                  "icon": "",
+                  "events": [],
+                  "hidden": false,
+                  "disabled": false
+                },
+                {
+                  "title": "列操作",
+                  "type": "columnBtn",
+                  "icon": "",
+                  "events": [],
+                  "hidden": false,
+                  "disabled": false
+                }
+              ]
+            }
           },
           "events": {
             "onChange": "",
