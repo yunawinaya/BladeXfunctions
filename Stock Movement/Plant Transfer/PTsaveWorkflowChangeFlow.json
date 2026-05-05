@@ -725,7 +725,7 @@
                     "name": "Subform Preparation",
                     "script": {
                       "type": "javascript",
-                      "code": "const page_status = {{workflowparams:pageStatus}};\nconst allData = {{node:code_node_37LA0tgq.data.allData}}\n\nconst subformData = allData.stock_movement;\nconst currentIndexRaw = {{node:get_cache_node_ICyUff2y.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst doc_date = allData.issue_date;\n\nconst item = subformData[index];\nconst material_id = item.item_selection;\nconst material_uom = item.quantity_uom || item.received_quantity_uom;\nconst total_quantity = item.total_quantity;\nconst location_id = item.location_id;\nconst batch_id = item.batch_id || null;\nconst inventory_category = \"Unrestricted\";\n\nlet tempDataParsed;\n\nconst tempData = item.temp_qty_data;\nif (!tempData) {\n  tempDataParsed = [];\n} else {\n  tempDataParsed = JSON.parse(tempData);\n  tempDataParsed = tempDataParsed.filter(\n    (tempData) => tempData.sm_quantity > 0\n  );\n  if (!Array.isArray(tempDataParsed)) {\n    tempDataParsed = [];\n  }\n}\n\nlet balancesToProcess =\n  allData.balance_index?.filter(\n    (balance) =>\n      balance.sm_quantity &&\n      parseFloat(balance.sm_quantity) > 0 &&\n      tempDataParsed.some(\n        (tempData) =>\n          tempData.material_id === balance.material_id &&\n          tempData.location_id === balance.location_id &&\n          (tempData.batch_id || \"\") === (balance.batch_id || \"\") &&\n          (tempData.category || \"Unrestricted\") === (balance.category || \"Unrestricted\")\n      )\n  ) || [];\n\nreturn {\n  plant_id: plant_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  location_id: location_id,\n  batch_id: batch_id,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  balancesToProcess: balancesToProcess,\n  index: index,\n  nextIndex: index + 1\n};"
+                      "code": "const page_status = {{workflowparams:pageStatus}};\nconst allData = {{node:code_node_37LA0tgq.data.allData}}\n\nconst subformData = allData.stock_movement;\nconst currentIndexRaw = {{node:get_cache_node_ICyUff2y.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.issuing_operation_faci;\nconst receiving_plant = allData.receiving_operation_faci;\nconst receiving_default_location_id = {{node:get_node_WtFOLdKB.data.data.id}};\nconst receiving_default_storage_location_id = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst doc_date = allData.issue_date;\n\nconst item = subformData[index];\nconst material_id = item.item_selection;\nconst material_uom = item.quantity_uom || item.received_quantity_uom;\nconst total_quantity = item.total_quantity;\nconst location_id = item.location_id;\nconst batch_id = item.batch_id || null;\nconst inventory_category = \"Unrestricted\";\n\nlet tempDataParsed;\n\nconst tempData = item.temp_qty_data;\nif (!tempData) {\n  tempDataParsed = [];\n} else {\n  tempDataParsed = JSON.parse(tempData);\n  tempDataParsed = tempDataParsed.filter(\n    (tempData) => tempData.sm_quantity > 0\n  );\n  if (!Array.isArray(tempDataParsed)) {\n    tempDataParsed = [];\n  }\n}\n\nlet balancesToProcess =\n  allData.balance_index?.filter(\n    (balance) =>\n      balance.sm_quantity &&\n      parseFloat(balance.sm_quantity) > 0 &&\n      tempDataParsed.some(\n        (tempData) =>\n          tempData.material_id === balance.material_id &&\n          tempData.location_id === balance.location_id &&\n          (tempData.batch_id || \"\") === (balance.batch_id || \"\") &&\n          (tempData.category || \"Unrestricted\") === (balance.category || \"Unrestricted\")\n      )\n  ) || [];\n\nreturn {\n  plant_id: plant_id,\n  receiving_plant: receiving_plant,\n  receiving_default_location_id: receiving_default_location_id,\n  receiving_default_storage_location_id: receiving_default_storage_location_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  location_id: location_id,\n  batch_id: batch_id,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  balancesToProcess: balancesToProcess,\n  index: index,\n  nextIndex: index + 1\n};"
                     },
                     "response_json": [
                       {
@@ -870,6 +870,30 @@
                         "description": "",
                         "bsonType": "string",
                         "isExpand": false
+                      },
+                      {
+                        "key": "awm0qa5s",
+                        "name": "receiving_plant",
+                        "title": "receiving_plant",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "47eqwkp5",
+                        "name": "receiving_default_location_id",
+                        "title": "receiving_default_location_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "vjxjxpto",
+                        "name": "receiving_default_storage_location_id",
+                        "title": "receiving_default_storage_location_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
                       }
                     ]
                   },
@@ -999,7 +1023,7 @@
                         "name": "Balance Preparation",
                         "script": {
                           "type": "javascript",
-                          "code": "const balancesToProcess = {{node:code_node_pXRTlLyD.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_hMQuHr1N.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_37LA0tgq.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1\n};\n\n"
+                          "code": "const balancesToProcess = {{node:code_node_pXRTlLyD.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_hMQuHr1N.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_37LA0tgq.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n  index: index,\n  nextIndex: index + 1\n};\n\n"
                         },
                         "response_json": [
                           {
@@ -1068,6 +1092,14 @@
                             "description": "",
                             "bsonType": "string",
                             "isExpand": false
+                          },
+                          {
+                            "key": "f4kzk2xc",
+                            "name": "handling_unit_id",
+                            "title": "handling_unit_id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
                           }
                         ]
                       },
@@ -1114,7 +1146,7 @@
                               "operatorLabel": "",
                               "valueType": "field",
                               "valueTypeLabel": "",
-                              "value": "{{node:code_node_pXRTlLyD.data.plant_id}}",
+                              "value": "{{node:code_node_pXRTlLyD.data.receiving_plant}}",
                               "valueLabel": ""
                             },
                             {
@@ -1177,7 +1209,7 @@
                               "prop": "location_id",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{node:code_node_ZIdZYdQE.data.location_id}}",
+                              "value": "{{node:code_node_pXRTlLyD.data.receiving_default_location_id}}",
                               "valueLabel": "",
                               "propLabel": "Location ID"
                             },
@@ -1236,6 +1268,16 @@
                               "value": 1,
                               "valueLabel": "",
                               "propLabel": "Moving Inventory?"
+                            },
+                            {
+                              "prop": "handling_unit_id",
+                              "propLabel": "handling_unit_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_ZIdZYdQE.data.handling_unit_id}}",
+                              "valueLabel": ""
                             }
                           ]
                         }
@@ -1494,6 +1536,16 @@
                               "value": 1,
                               "valueLabel": "",
                               "propLabel": "Moving Inventory?"
+                            },
+                            {
+                              "prop": "handling_unit_id",
+                              "propLabel": "handling_unit_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_ZIdZYdQE.data.handling_unit_id}}",
+                              "valueLabel": ""
                             }
                           ]
                         }
@@ -1904,7 +1956,7 @@
                                 "name": "Readjustment Balance Data",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}}\n\nconst initialMovementTable = {{node:get_node_1wi90Edk.data.data.stock_movement}}\nconst initialBalanceIndex = {{node:get_node_1wi90Edk.data.data.balance_index}}\n\nconst currentMovementTable = {{node:code_node_37LA0tgq.data.allData.stock_movement}}\nconst currentBalanceIndex = {{node:code_node_37LA0tgq.data.allData.balance_index}}\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst page_status = {{workflowparams:pageStatus}}\nconst doc_date = allData.issue_date;\n\nconst balanceToAdd = []\nconst balanceToSubtract = []\n\n// Create key using material_id + location_id + batch_id + category\nconst createKey = (item) => {\n  const batchId = item.batch_id || \"\"\n  const category = item.category || \"Unrestricted\"\n  return `${item.material_id}|${item.location_id}|${batchId}|${category}`\n}\n\n// Build map of initial quantities from balance_index\nconst initialMap = {}\nfor (const item of initialBalanceIndex) {\n  if (parseFloat(item.sm_quantity || 0) > 0) {\n    const key = createKey(item)\n    initialMap[key] = {\n      material_id: item.material_id,\n      material_uom: item.material_uom,\n      location_id: item.location_id,\n      batch_id: item.batch_id || null,\n      category: item.category || \"Unrestricted\",\n      sm_quantity: parseFloat(item.sm_quantity || 0),\n      manufacturing_date: item.manufacturing_date || null,\n      expired_date: item.expired_date || null\n    }\n  }\n}\n\n// Build map of current quantities from balance_index\nconst currentMap = {}\nfor (const item of currentBalanceIndex) {\n  if (parseFloat(item.sm_quantity || 0) > 0) {\n    const key = createKey(item)\n    currentMap[key] = {\n      material_id: item.material_id,\n      material_uom: item.material_uom,\n      location_id: item.location_id,\n      batch_id: item.batch_id || null,\n      category: item.category || \"Unrestricted\",\n      sm_quantity: parseFloat(item.sm_quantity || 0),\n      manufacturing_date: item.manufacturing_date || null,\n      expired_date: item.expired_date || null\n    }\n  }\n}\n\n// Compare and calculate differences\n// Check items in current (new or increased)\nfor (const key in currentMap) {\n  const currentItem = currentMap[key]\n  const initialItem = initialMap[key]\n\n  if (!initialItem) {\n    // New item added (or category changed - treated as new)\n    balanceToAdd.push({\n      material_id: currentItem.material_id,\n      material_uom: currentItem.material_uom,\n      location_id: currentItem.location_id,\n      batch_id: currentItem.batch_id,\n      category: currentItem.category,\n      sm_quantity: currentItem.sm_quantity,\n      manufacturing_date: currentItem.manufacturing_date,\n      expired_date: currentItem.expired_date\n    })\n  } else {\n    const diff = currentItem.sm_quantity - initialItem.sm_quantity\n    if (diff > 0) {\n      // Quantity increased\n      balanceToAdd.push({\n        material_id: currentItem.material_id,\n        material_uom: currentItem.material_uom,\n        location_id: currentItem.location_id,\n        batch_id: currentItem.batch_id,\n        category: currentItem.category,\n        sm_quantity: diff,\n        manufacturing_date: currentItem.manufacturing_date,\n        expired_date: currentItem.expired_date\n      })\n    } else if (diff < 0) {\n      // Quantity decreased\n      balanceToSubtract.push({\n        material_id: currentItem.material_id,\n        material_uom: currentItem.material_uom,\n        location_id: currentItem.location_id,\n        batch_id: currentItem.batch_id,\n        category: currentItem.category,\n        sm_quantity: Math.abs(diff),\n        manufacturing_date: currentItem.manufacturing_date,\n        expired_date: currentItem.expired_date\n      })\n    }\n  }\n}\n\n// Check items removed (in initial but not in current, or category changed)\nfor (const key in initialMap) {\n  if (!currentMap[key]) {\n    const initialItem = initialMap[key]\n    balanceToSubtract.push({\n      material_id: initialItem.material_id,\n      material_uom: initialItem.material_uom,\n      location_id: initialItem.location_id,\n      batch_id: initialItem.batch_id,\n      category: initialItem.category,\n      sm_quantity: initialItem.sm_quantity,\n      manufacturing_date: initialItem.manufacturing_date,\n      expired_date: initialItem.expired_date\n    })\n  }\n}\n\nreturn {\n  plant_id: plant_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  doc_date: doc_date,\n  balanceToAdd: balanceToAdd,\n  balanceToAddLength: balanceToAdd.length,\n  balanceToSubtract: balanceToSubtract,\n  balanceToSubtractLength: balanceToSubtract.length\n}"
+                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}}\n\nconst initialMovementTable = {{node:get_node_1wi90Edk.data.data.stock_movement}}\nconst initialBalanceIndex = {{node:get_node_1wi90Edk.data.data.balance_index}}\n\nconst currentMovementTable = {{node:code_node_37LA0tgq.data.allData.stock_movement}}\nconst currentBalanceIndex = {{node:code_node_37LA0tgq.data.allData.balance_index}}\n\nconst plant_id = allData.issuing_operation_faci;\nconst receiving_plant = allData.receiving_operation_faci;\nconst receiving_default_location_id = {{node:get_node_WtFOLdKB.data.data.id}};\nconst receiving_default_storage_location_id = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst page_status = {{workflowparams:pageStatus}}\nconst doc_date = allData.issue_date;\n\nconst balanceToAdd = []\nconst balanceToSubtract = []\n\n// Create key using material_id + location_id + batch_id + category\nconst createKey = (item) => {\n  const batchId = item.batch_id || \"\"\n  const category = item.category || \"Unrestricted\"\n  const huId = item.handling_unit_id || \"\"\n  return `${item.material_id}|${item.location_id}|${batchId}|${category}|${huId}`\n}\n\n// Build map of initial quantities from balance_index\nconst initialMap = {}\nfor (const item of initialBalanceIndex) {\n  if (parseFloat(item.sm_quantity || 0) > 0) {\n    const key = createKey(item)\n    initialMap[key] = {\n      material_id: item.material_id,\n      material_uom: item.material_uom,\n      location_id: item.location_id,\n      batch_id: item.batch_id || null,\n      category: item.category || \"Unrestricted\",\n      sm_quantity: parseFloat(item.sm_quantity || 0),\n      manufacturing_date: item.manufacturing_date || null,\n      expired_date: item.expired_date || null,\n      handling_unit_id: item.handling_unit_id || null\n    }\n  }\n}\n\n// Build map of current quantities from balance_index\nconst currentMap = {}\nfor (const item of currentBalanceIndex) {\n  if (parseFloat(item.sm_quantity || 0) > 0) {\n    const key = createKey(item)\n    currentMap[key] = {\n      material_id: item.material_id,\n      material_uom: item.material_uom,\n      location_id: item.location_id,\n      batch_id: item.batch_id || null,\n      category: item.category || \"Unrestricted\",\n      sm_quantity: parseFloat(item.sm_quantity || 0),\n      manufacturing_date: item.manufacturing_date || null,\n      expired_date: item.expired_date || null,\n      handling_unit_id: item.handling_unit_id || null\n    }\n  }\n}\n\n// Compare and calculate differences\n// Check items in current (new or increased)\nfor (const key in currentMap) {\n  const currentItem = currentMap[key]\n  const initialItem = initialMap[key]\n\n  if (!initialItem) {\n    // New item added (or category changed - treated as new)\n    balanceToAdd.push({\n      material_id: currentItem.material_id,\n      material_uom: currentItem.material_uom,\n      location_id: currentItem.location_id,\n      batch_id: currentItem.batch_id,\n      category: currentItem.category,\n      sm_quantity: currentItem.sm_quantity,\n      manufacturing_date: currentItem.manufacturing_date,\n      expired_date: currentItem.expired_date\n    })\n  } else {\n    const diff = currentItem.sm_quantity - initialItem.sm_quantity\n    if (diff > 0) {\n      // Quantity increased\n      balanceToAdd.push({\n        material_id: currentItem.material_id,\n        material_uom: currentItem.material_uom,\n        location_id: currentItem.location_id,\n        batch_id: currentItem.batch_id,\n        category: currentItem.category,\n        sm_quantity: diff,\n        manufacturing_date: currentItem.manufacturing_date,\n        expired_date: currentItem.expired_date,\n        handling_unit_id: currentItem.handling_unit_id\n      })\n    } else if (diff < 0) {\n      // Quantity decreased\n      balanceToSubtract.push({\n        material_id: currentItem.material_id,\n        material_uom: currentItem.material_uom,\n        location_id: currentItem.location_id,\n        batch_id: currentItem.batch_id,\n        category: currentItem.category,\n        sm_quantity: Math.abs(diff),\n        manufacturing_date: currentItem.manufacturing_date,\n        expired_date: currentItem.expired_date,\n        handling_unit_id: currentItem.handling_unit_id\n      })\n    }\n  }\n}\n\n// Check items removed (in initial but not in current, or category changed)\nfor (const key in initialMap) {\n  if (!currentMap[key]) {\n    const initialItem = initialMap[key]\n    balanceToSubtract.push({\n      material_id: initialItem.material_id,\n      material_uom: initialItem.material_uom,\n      location_id: initialItem.location_id,\n      batch_id: initialItem.batch_id,\n      category: initialItem.category,\n      sm_quantity: initialItem.sm_quantity,\n      manufacturing_date: initialItem.manufacturing_date,\n      expired_date: initialItem.expired_date,\n      handling_unit_id: initialItem.handling_unit_id\n    })\n  }\n}\n\nreturn {\n  plant_id: plant_id,\n  receiving_plant: receiving_plant,\n  receiving_default_location_id: receiving_default_location_id,\n  receiving_default_storage_location_id: receiving_default_storage_location_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  doc_date: doc_date,\n  balanceToAdd: balanceToAdd,\n  balanceToAddLength: balanceToAdd.length,\n  balanceToSubtract: balanceToSubtract,\n  balanceToSubtractLength: balanceToSubtract.length\n}"
                                 },
                                 "response_json": [
                                   {
@@ -2004,6 +2056,30 @@
                                     "bsonType": "int",
                                     "isExpand": false,
                                     "children": []
+                                  },
+                                  {
+                                    "key": "wrdwqq4w",
+                                    "name": "receiving_plant",
+                                    "title": "receiving_plant",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "sawmvasq",
+                                    "name": "receiving_default_location_id",
+                                    "title": "receiving_default_location_id",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "3ckf7t5t",
+                                    "name": "receiving_default_storage_location_id",
+                                    "title": "receiving_default_storage_location_id",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
                                   }
                                 ]
                               },
@@ -2146,7 +2222,7 @@
                                             "name": "balanceToAdd Data",
                                             "script": {
                                               "type": "javascript",
-                                              "code": "const balanceToAdd = {{node:code_node_A8hTl5B7.data.balanceToAdd}}\nconst currentIndexRaw = {{node:get_cache_node_8OLPF1np.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\n\nconst balance = balanceToAdd[index];\nconst material_id = balance.material_id;\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst material_uom = balance.material_uom;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date;\nconst expired_date = balance.expired_date;\n\nreturn {\n  material_id: material_id,\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  material_uom: material_uom,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1\n};"
+                                              "code": "const balanceToAdd = {{node:code_node_A8hTl5B7.data.balanceToAdd}}\nconst currentIndexRaw = {{node:get_cache_node_8OLPF1np.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\n\nconst balance = balanceToAdd[index];\nconst material_id = balance.material_id;\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst material_uom = balance.material_uom;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date;\nconst expired_date = balance.expired_date;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nreturn {\n  material_id: material_id,\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  material_uom: material_uom,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n  index: index,\n  nextIndex: index + 1\n};"
                                             },
                                             "response_json": [
                                               {
@@ -2228,6 +2304,14 @@
                                                 "key": "wb23drfc",
                                                 "name": "expired_date",
                                                 "title": "expired_date",
+                                                "description": "",
+                                                "bsonType": "string",
+                                                "isExpand": false
+                                              },
+                                              {
+                                                "key": "84otz048",
+                                                "name": "handling_unit_id",
+                                                "title": "handling_unit_id",
                                                 "description": "",
                                                 "bsonType": "string",
                                                 "isExpand": false
@@ -2391,6 +2475,16 @@
                                                   "value": 1,
                                                   "valueLabel": "",
                                                   "propLabel": "Moving Inventory?"
+                                                },
+                                                {
+                                                  "prop": "handling_unit_id",
+                                                  "propLabel": "handling_unit_id",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:code_node_7HzTnOCE.data.handling_unit_id}}",
+                                                  "valueLabel": ""
                                                 }
                                               ]
                                             }
@@ -2519,7 +2613,7 @@
                                                   "operatorLabel": "",
                                                   "valueType": "field",
                                                   "valueTypeLabel": "",
-                                                  "value": "{{node:code_node_A8hTl5B7.data.plant_id}}",
+                                                  "value": "{{node:code_node_A8hTl5B7.data.receiving_plant}}",
                                                   "valueLabel": ""
                                                 },
                                                 {
@@ -2582,7 +2676,7 @@
                                                   "prop": "location_id",
                                                   "operator": "",
                                                   "valueType": "field",
-                                                  "value": "{{node:code_node_7HzTnOCE.data.location_id}}",
+                                                  "value": "{{node:code_node_A8hTl5B7.data.receiving_default_location_id}}",
                                                   "valueLabel": "",
                                                   "propLabel": "Location ID"
                                                 },
@@ -2641,6 +2735,16 @@
                                                   "value": 1,
                                                   "valueLabel": "",
                                                   "propLabel": "Moving Inventory?"
+                                                },
+                                                {
+                                                  "prop": "handling_unit_id",
+                                                  "propLabel": "handling_unit_id",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:code_node_7HzTnOCE.data.handling_unit_id}}",
+                                                  "valueLabel": ""
                                                 }
                                               ]
                                             }
@@ -2878,7 +2982,7 @@
                                             "name": "balanceToSubtract Data",
                                             "script": {
                                               "type": "javascript",
-                                              "code": "const balanceToSubtract = {{node:code_node_A8hTl5B7.data.balanceToSubtract}}\nconst currentIndexRaw = {{node:get_cache_node_DpNBuLBD.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\n\nconst balance = balanceToSubtract[index];\nconst material_id = balance.material_id;\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst material_uom = balance.material_uom;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date;\nconst expired_date = balance.expired_date;\n\nreturn {\n  material_id: material_id,\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  material_uom: material_uom,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1\n};"
+                                              "code": "const balanceToSubtract = {{node:code_node_A8hTl5B7.data.balanceToSubtract}}\nconst currentIndexRaw = {{node:get_cache_node_DpNBuLBD.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\n\nconst balance = balanceToSubtract[index];\nconst material_id = balance.material_id;\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst material_uom = balance.material_uom;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date;\nconst expired_date = balance.expired_date;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nreturn {\n  material_id: material_id,\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  material_uom: material_uom,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n  index: index,\n  nextIndex: index + 1\n};"
                                             },
                                             "response_json": [
                                               {
@@ -2963,6 +3067,14 @@
                                                 "description": "",
                                                 "bsonType": "string",
                                                 "isExpand": false
+                                              },
+                                              {
+                                                "key": "7iakh119",
+                                                "name": "handling_unit_id",
+                                                "title": "handling_unit_id",
+                                                "description": "",
+                                                "bsonType": "string",
+                                                "isExpand": false
                                               }
                                             ]
                                           },
@@ -3009,7 +3121,7 @@
                                                   "operatorLabel": "",
                                                   "valueType": "field",
                                                   "valueTypeLabel": "",
-                                                  "value": "{{node:code_node_A8hTl5B7.data.plant_id}}",
+                                                  "value": "{{node:code_node_A8hTl5B7.data.receiving_plant}}",
                                                   "valueLabel": ""
                                                 },
                                                 {
@@ -3072,7 +3184,7 @@
                                                   "prop": "location_id",
                                                   "operator": "",
                                                   "valueType": "field",
-                                                  "value": "{{node:code_node_uRpuU37V.data.location_id}}",
+                                                  "value": "{{node:code_node_A8hTl5B7.data.receiving_default_location_id}}",
                                                   "valueLabel": "",
                                                   "propLabel": "Location ID"
                                                 },
@@ -3123,6 +3235,16 @@
                                                   "value": 1,
                                                   "valueLabel": "",
                                                   "propLabel": "Moving Inventory?"
+                                                },
+                                                {
+                                                  "prop": "handling_unit_id",
+                                                  "propLabel": "handling_unit_id",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:code_node_uRpuU37V.data.handling_unit_id}}",
+                                                  "valueLabel": ""
                                                 }
                                               ]
                                             }
@@ -3373,6 +3495,16 @@
                                                   "value": 1,
                                                   "valueLabel": "",
                                                   "propLabel": "Moving Inventory?"
+                                                },
+                                                {
+                                                  "prop": "handling_unit_id",
+                                                  "propLabel": "handling_unit_id",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:code_node_uRpuU37V.data.handling_unit_id}}",
+                                                  "valueLabel": ""
                                                 }
                                               ]
                                             }
@@ -4952,7 +5084,7 @@
                                 "name": "Balance Preparation",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const balancesToProcess = {{node:code_node_poWge4ua.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_M7gGoNBu.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_37LA0tgq.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1\n};\n\n"
+                                  "code": "const balancesToProcess = {{node:code_node_poWge4ua.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_M7gGoNBu.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_37LA0tgq.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n  index: index,\n  nextIndex: index + 1\n};\n\n"
                                 },
                                 "response_json": [
                                   {
@@ -5018,6 +5150,14 @@
                                     "key": "riagl68c",
                                     "name": "expired_date",
                                     "title": "expired_date",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "b8h98jso",
+                                    "name": "handling_unit_id",
+                                    "title": "handling_unit_id",
                                     "description": "",
                                     "bsonType": "string",
                                     "isExpand": false
@@ -5189,6 +5329,14 @@
                                       "value": 1,
                                       "valueLabel": "",
                                       "propLabel": "Moving Inventory?"
+                                    },
+                                    {
+                                      "prop": "handling_unit_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_YIGFvmJT.data.handling_unit_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Handling Unit ID"
                                     }
                                   ]
                                 }
@@ -5471,6 +5619,14 @@
                                       "value": 1,
                                       "valueLabel": "",
                                       "propLabel": "Moving Inventory?"
+                                    },
+                                    {
+                                      "prop": "handling_unit_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_YIGFvmJT.data.handling_unit_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Handling Unit ID"
                                     }
                                   ]
                                 }
@@ -7299,7 +7455,7 @@
                                 "name": "Balance Preparation",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const balancesToProcess = {{node:code_node_KBlgXeX5.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_UnxFSw9m.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_37LA0tgq.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst inventory_category = \"In Transit\";\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1\n};\n\n"
+                                  "code": "const balancesToProcess = {{node:code_node_KBlgXeX5.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_UnxFSw9m.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_37LA0tgq.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst inventory_category = \"In Transit\";\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n  index: index,\n  nextIndex: index + 1\n};\n\n"
                                 },
                                 "response_json": [
                                   {
@@ -7365,6 +7521,14 @@
                                     "key": "riagl68c",
                                     "name": "expired_date",
                                     "title": "expired_date",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "doadvlod",
+                                    "name": "handling_unit_id",
+                                    "title": "handling_unit_id",
                                     "description": "",
                                     "bsonType": "string",
                                     "isExpand": false
@@ -7536,6 +7700,16 @@
                                       "value": 0,
                                       "valueLabel": "",
                                       "propLabel": "Moving Inventory?"
+                                    },
+                                    {
+                                      "prop": "handling_unit_id",
+                                      "propLabel": "handling_unit_id",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_O0Lhif9c.data.handling_unit_id}}",
+                                      "valueLabel": ""
                                     }
                                   ]
                                 }
@@ -7874,6 +8048,16 @@
                                           "value": 0,
                                           "valueLabel": "",
                                           "propLabel": "Moving Inventory?"
+                                        },
+                                        {
+                                          "prop": "handling_unit_id",
+                                          "propLabel": "handling_unit_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_O0Lhif9c.data.handling_unit_id}}",
+                                          "valueLabel": ""
                                         }
                                       ]
                                     }
@@ -8163,6 +8347,16 @@
                                           "value": 0,
                                           "valueLabel": "",
                                           "propLabel": "Moving Inventory?"
+                                        },
+                                        {
+                                          "prop": "handling_unit_id",
+                                          "propLabel": "handling_unit_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_O0Lhif9c.data.handling_unit_id}}",
+                                          "valueLabel": ""
                                         }
                                       ]
                                     }
