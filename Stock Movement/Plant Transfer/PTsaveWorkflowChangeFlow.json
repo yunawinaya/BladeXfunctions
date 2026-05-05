@@ -1676,6 +1676,1362 @@
               ]
             },
             {
+              "id": "search_node_JXM2g1CY",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Handling Unit:Table:2036736671686529026",
+                  "rules": {
+                    "collectionId": "2036736671686529026",
+                    "list": [
+                      {
+                        "id": 1777970000001,
+                        "parentId": 1777970000000,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1777970000002,
+                            "parentId": 1777970000001,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1777970000003,
+                            "parentId": 1777970000001,
+                            "isTop": false,
+                            "prop": "location_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{node:get_node_WtFOLdKB.data.data.id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Bin Location",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get HUs at Receiving Default - Cancel",
+                "isValidator": true,
+                "nodeName": "Get HUs at Receiving Default - Cancel",
+                "name": "Get HUs at Receiving Default - Cancel"
+              },
+              "blocks": []
+            },
+            {
+              "id": "condition_or_node_nkWGjwko",
+              "type": "condition-or-node",
+              "data": {
+                "title": "Condition",
+                "filter": { "list": [] },
+                "expression": { "code": "" },
+                "displayContent": "sdk.form.setCondition"
+              },
+              "blocks": [
+                {
+                  "id": "condition_or_node_item_t2A1fL68",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "generate_new_batch === 0",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1777970001001,
+                          "parentId": 1777970001000,
+                          "isTop": true,
+                          "prop": "node.get_node_tt0natxw.data.data.generate_new_batch",
+                          "operator": "numberEqual",
+                          "valueType": "value",
+                          "value": 0,
+                          "type": "leaf",
+                          "level": 1,
+                          "propLabel": "Generate New Batch",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        }
+                      ]
+                    },
+                    "expression": { "code": "" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "generate_new_batch === 0",
+                    "name": "generate_new_batch === 0",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "code_node_LBQQpQnR",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Aggregate Cancel HU Moves",
+                        "isValidator": true,
+                        "nodeName": "Aggregate Cancel HU Moves",
+                        "name": "Aggregate Cancel HU Moves",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst sourcePlantId = allData.issuing_operation_faci;\n\n// Branch A reversal: each unique source HU goes back to issuing plant + its source bin\nconst huMovesMap = new Map();\nfor (const entry of balanceIndex) {\n  const huId = entry.handling_unit_id;\n  if (!huId) continue;\n  if (huMovesMap.has(huId)) continue;\n  huMovesMap.set(huId, {\n    handling_unit_id: huId,\n    plant_id: sourcePlantId,\n    organization_id: organizationId,\n    location_id: entry.location_id,\n    storage_location_id: entry.storage_location_id || \"\",\n  });\n}\n\nconst huMoves = Array.from(huMovesMap.values());\nreturn { huMoves: huMoves, huMovesLength: huMoves.length };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "hmxndsg5",
+                            "name": "huMoves",
+                            "title": "huMoves",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "mypw8gjb",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
+                            ]
+                          },
+                          {
+                            "key": "rmlewv85",
+                            "name": "huMovesLength",
+                            "title": "huMovesLength",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_bXGy3SUm",
+                      "type": "if",
+                      "data": {
+                        "title": "IF huMovesLength > 0",
+                        "isValidator": true,
+                        "nodeName": "IF huMovesLength > 0",
+                        "name": "IF huMovesLength > 0",
+                        "condition_type": "ConditionRule",
+                        "expression": { "type": "javascript", "code": "" },
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1777970002001,
+                              "parentId": 1777970002000,
+                              "isTop": true,
+                              "prop": "node.code_node_LBQQpQnR.data.huMovesLength",
+                              "operator": "greaterThan",
+                              "valueType": "value",
+                              "value": 0,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "huMovesLength",
+                              "valueLabel": "",
+                              "operatorLabel": "Greater Than"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_KFI8tFfP",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "loop_aKvWTpyi",
+                              "type": "loop",
+                              "data": {
+                                "title": "Loop Cancel HU Moves",
+                                "isValidator": true,
+                                "nodeName": "Loop Cancel HU Moves",
+                                "name": "Loop Cancel HU Moves",
+                                "loopType": "Var",
+                                "loopSeletSource": {
+                                  "datasource": {
+                                    "rules": {
+                                      "collectionId": "",
+                                      "list": [
+                                        {
+                                          "id": 1723795236686,
+                                          "parentId": 1723795236685,
+                                          "isTop": true,
+                                          "prop": "",
+                                          "operator": "",
+                                          "valueType": "",
+                                          "value": "",
+                                          "type": "leaf",
+                                          "level": 1
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "auto_refresh": 1,
+                                  "auto_refresh_debounce": 100,
+                                  "options": [],
+                                  "props": {
+                                    "value": "",
+                                    "label": "",
+                                    "image": "",
+                                    "icon": "",
+                                    "explain": ""
+                                  },
+                                  "remote": false,
+                                  "remoteType": "datasource",
+                                  "limit_count": ""
+                                },
+                                "loopSeletVar": {
+                                  "type": "markdown",
+                                  "code": "{{node:code_node_LBQQpQnR.data.huMoves}}"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "code_node_dW6tJK1G",
+                                  "type": "code-node",
+                                  "data": {
+                                    "language": "javascript",
+                                    "code": "",
+                                    "timeout": 30000,
+                                    "title": "Pick Cancel HU Move",
+                                    "isValidator": true,
+                                    "nodeName": "Pick Cancel HU Move",
+                                    "name": "Pick Cancel HU Move",
+                                    "script": {
+                                      "type": "javascript",
+                                      "code": "const u = {{node:loop_aKvWTpyi}};\nreturn {\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n};"
+                                    },
+                                    "response_json": [
+                                      {
+                                        "key": "evak29ib",
+                                        "name": "handling_unit_id",
+                                        "title": "handling_unit_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "bfvz96fw",
+                                        "name": "plant_id",
+                                        "title": "plant_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "yuigykrq",
+                                        "name": "organization_id",
+                                        "title": "organization_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "oqj8zev1",
+                                        "name": "location_id",
+                                        "title": "location_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "1nwf29wc",
+                                        "name": "storage_location_id",
+                                        "title": "storage_location_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      }
+                                    ]
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "workflow_node_yklixJY7",
+                                  "type": "workflow-node",
+                                  "data": {
+                                    "workflow_id": "",
+                                    "workflow_name": "",
+                                    "input_params": {},
+                                    "title": "Run HU Workflow - Cancel Move",
+                                    "isValidator": true,
+                                    "nodeName": "Run HU Workflow - Cancel Move",
+                                    "name": "Run HU Workflow - Cancel Move",
+                                    "workflow": {
+                                      "source": "HANDLING_UNIT:Workflow:2037062451509002241",
+                                      "rules": {
+                                        "collectionId": "2037062451509002241",
+                                        "list": [
+                                          {
+                                            "id": 1723795236686,
+                                            "parentId": 1723795236685,
+                                            "isTop": true,
+                                            "prop": "",
+                                            "operator": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "type": "leaf",
+                                            "level": 1
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "remote": true,
+                                    "remoteType": "innerdatasource",
+                                    "body_params": {
+                                      "list": [
+                                        {
+                                          "prop": "handling_unit_id",
+                                          "propLabel": "handling_unit_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_dW6tJK1G.data.handling_unit_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "plant_id",
+                                          "propLabel": "plant_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_dW6tJK1G.data.plant_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "organization_id",
+                                          "propLabel": "organization_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_dW6tJK1G.data.organization_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "storage_location_id",
+                                          "propLabel": "storage_location_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_dW6tJK1G.data.storage_location_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "location_id",
+                                          "propLabel": "location_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_dW6tJK1G.data.location_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "table_hu_items",
+                                          "propLabel": "table_hu_items",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "value",
+                                          "valueTypeLabel": "",
+                                          "value": "[]",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "process_type",
+                                          "propLabel": "process_type",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "value",
+                                          "valueTypeLabel": "",
+                                          "value": "move",
+                                          "valueLabel": ""
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "if_nmdGdMHz",
+                                  "type": "if",
+                                  "data": {
+                                    "title": "IF Error - Cancel Move",
+                                    "isValidator": true,
+                                    "nodeName": "IF Error - Cancel Move",
+                                    "name": "IF Error - Cancel Move",
+                                    "condition_type": "ConditionRule",
+                                    "expression": {
+                                      "type": "javascript",
+                                      "code": ""
+                                    },
+                                    "filter": {
+                                      "list": [
+                                        {
+                                          "id": 1777970003001,
+                                          "parentId": 1777970003000,
+                                          "isTop": true,
+                                          "prop": "node.workflow_node_yklixJY7.data.code",
+                                          "operator": "equal",
+                                          "valueType": "value",
+                                          "value": "400",
+                                          "type": "leaf",
+                                          "level": 1,
+                                          "propLabel": "code",
+                                          "valueLabel": "",
+                                          "operatorLabel": "Equal"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "ifBlock_W7WE1MZf",
+                                      "type": "ifBlock",
+                                      "data": { "title": "true" },
+                                      "blocks": [
+                                        {
+                                          "id": "return_node_ASjyrB0B",
+                                          "type": "return-node",
+                                          "data": {
+                                            "return_data": {},
+                                            "status_code": 200,
+                                            "title": "Return Error - Cancel Move",
+                                            "isValidator": true,
+                                            "nodeName": "Return Error - Cancel Move",
+                                            "name": "Return Error - Cancel Move",
+                                            "response_value": {
+                                              "list": [
+                                                {
+                                                  "prop": "code",
+                                                  "propLabel": "code",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:workflow_node_yklixJY7.data.code}}",
+                                                  "valueLabel": ""
+                                                },
+                                                {
+                                                  "prop": "message",
+                                                  "propLabel": "message",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:workflow_node_yklixJY7.data.message}}",
+                                                  "valueLabel": ""
+                                                }
+                                              ]
+                                            },
+                                            "return_raw_data": 0
+                                          },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "ifBlock_c8KY2PMS",
+                                      "type": "ifBlock",
+                                      "data": { "title": "false" },
+                                      "blocks": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_Hw5j0v4u",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_or_node_item_VYHl1Leg",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "generate_new_batch === 1",
+                    "isDefault": true,
+                    "filter": { "list": [] },
+                    "expression": { "code": "" },
+                    "displayContent": "sdk.form.otherCondition",
+                    "nodeName": "generate_new_batch === 1",
+                    "name": "generate_new_batch === 1"
+                  },
+                  "blocks": [
+                    {
+                      "id": "code_node_YzQzAhFb",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Aggregate Cancel HU Unloads",
+                        "isValidator": true,
+                        "nodeName": "Aggregate Cancel HU Unloads",
+                        "name": "Aggregate Cancel HU Unloads",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst receivingPlantId = allData.receiving_operation_faci;\nconst receivingDefaultLoc = {{node:get_node_WtFOLdKB.data.data.id}};\nconst receivingDefaultStorage = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\nlet husAtReceiving = {{node:search_node_JXM2g1CY.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\n\n// Find new HU via transfer_source_hu_id linkage\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h]));\n\n// Empty the new HU at receiving plant default bin\nconst unloadMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n  const qty = parseFloat(entry.sm_quantity || 0);\n  if (qty <= 0) continue;\n\n  const newHu = huBySource.get(sourceHuId);\n  if (!newHu) continue;  // defensive — new HU not at default; skip\n\n  if (!unloadMap.has(newHu.id)) {\n    unloadMap.set(newHu.id, {\n      handling_unit_id: newHu.id,\n      plant_id: receivingPlantId,\n      organization_id: organizationId,\n      location_id: receivingDefaultLoc,\n      storage_location_id: receivingDefaultStorage,\n      items: [],\n    });\n  }\n  unloadMap.get(newHu.id).items.push({\n    material_id: entry.material_id,\n    material_uom: entry.material_uom,\n    balance_id: \"\",\n    batch_id: entry.batch_id || \"\",\n    quantity: qty,\n  });\n}\n\nconst huUnloads = Array.from(unloadMap.values()).map((u) => ({\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huUnloads: huUnloads, huUnloadsLength: huUnloads.length };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "hkc9ji9l",
+                            "name": "huUnloads",
+                            "title": "huUnloads",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "jz9h9jmj",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
+                            ]
+                          },
+                          {
+                            "key": "atufju4i",
+                            "name": "huUnloadsLength",
+                            "title": "huUnloadsLength",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_aea1dpog",
+                      "type": "if",
+                      "data": {
+                        "title": "IF huUnloadsLength > 0",
+                        "isValidator": true,
+                        "nodeName": "IF huUnloadsLength > 0",
+                        "name": "IF huUnloadsLength > 0",
+                        "condition_type": "ConditionRule",
+                        "expression": { "type": "javascript", "code": "" },
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1777970004001,
+                              "parentId": 1777970004000,
+                              "isTop": true,
+                              "prop": "node.code_node_YzQzAhFb.data.huUnloadsLength",
+                              "operator": "greaterThan",
+                              "valueType": "value",
+                              "value": 0,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "huUnloadsLength",
+                              "valueLabel": "",
+                              "operatorLabel": "Greater Than"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_alLUgi4A",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "loop_J2OEHMwA",
+                              "type": "loop",
+                              "data": {
+                                "title": "Loop Cancel HU Unloads",
+                                "isValidator": true,
+                                "nodeName": "Loop Cancel HU Unloads",
+                                "name": "Loop Cancel HU Unloads",
+                                "loopType": "Var",
+                                "loopSeletSource": {
+                                  "datasource": {
+                                    "rules": {
+                                      "collectionId": "",
+                                      "list": [
+                                        {
+                                          "id": 1723795236686,
+                                          "parentId": 1723795236685,
+                                          "isTop": true,
+                                          "prop": "",
+                                          "operator": "",
+                                          "valueType": "",
+                                          "value": "",
+                                          "type": "leaf",
+                                          "level": 1
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "auto_refresh": 1,
+                                  "auto_refresh_debounce": 100,
+                                  "options": [],
+                                  "props": {
+                                    "value": "",
+                                    "label": "",
+                                    "image": "",
+                                    "icon": "",
+                                    "explain": ""
+                                  },
+                                  "remote": false,
+                                  "remoteType": "datasource",
+                                  "limit_count": ""
+                                },
+                                "loopSeletVar": {
+                                  "type": "markdown",
+                                  "code": "{{node:code_node_YzQzAhFb.data.huUnloads}}"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "code_node_zo5eCUgA",
+                                  "type": "code-node",
+                                  "data": {
+                                    "language": "javascript",
+                                    "code": "",
+                                    "timeout": 30000,
+                                    "title": "Pick Cancel HU Unload",
+                                    "isValidator": true,
+                                    "nodeName": "Pick Cancel HU Unload",
+                                    "name": "Pick Cancel HU Unload",
+                                    "script": {
+                                      "type": "javascript",
+                                      "code": "const u = {{node:loop_J2OEHMwA}};\nreturn {\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.table_hu_items,\n};"
+                                    },
+                                    "response_json": [
+                                      {
+                                        "key": "jnsrj1gz",
+                                        "name": "handling_unit_id",
+                                        "title": "handling_unit_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "bdsvzyzi",
+                                        "name": "plant_id",
+                                        "title": "plant_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "u0a4dl8c",
+                                        "name": "organization_id",
+                                        "title": "organization_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "l7r6dx2n",
+                                        "name": "location_id",
+                                        "title": "location_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "xtgzs78f",
+                                        "name": "storage_location_id",
+                                        "title": "storage_location_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "i323hivw",
+                                        "name": "table_hu_items",
+                                        "title": "table_hu_items",
+                                        "description": "",
+                                        "bsonType": "array",
+                                        "isExpand": true,
+                                        "children": [
+                                          {
+                                            "key": "yms3167v",
+                                            "name": "items",
+                                            "title": "",
+                                            "description": "",
+                                            "bsonType": "any",
+                                            "isExpand": false,
+                                            "isArrayItem": true,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "workflow_node_4RoKbxSW",
+                                  "type": "workflow-node",
+                                  "data": {
+                                    "workflow_id": "",
+                                    "workflow_name": "",
+                                    "input_params": {},
+                                    "title": "Run HU Workflow - Cancel Unload",
+                                    "isValidator": true,
+                                    "nodeName": "Run HU Workflow - Cancel Unload",
+                                    "name": "Run HU Workflow - Cancel Unload",
+                                    "workflow": {
+                                      "source": "HANDLING_UNIT:Workflow:2037062451509002241",
+                                      "rules": {
+                                        "collectionId": "2037062451509002241",
+                                        "list": [
+                                          {
+                                            "id": 1723795236686,
+                                            "parentId": 1723795236685,
+                                            "isTop": true,
+                                            "prop": "",
+                                            "operator": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "type": "leaf",
+                                            "level": 1
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "remote": true,
+                                    "remoteType": "innerdatasource",
+                                    "body_params": {
+                                      "list": [
+                                        {
+                                          "prop": "handling_unit_id",
+                                          "propLabel": "handling_unit_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_zo5eCUgA.data.handling_unit_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "plant_id",
+                                          "propLabel": "plant_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_zo5eCUgA.data.plant_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "organization_id",
+                                          "propLabel": "organization_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_zo5eCUgA.data.organization_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "storage_location_id",
+                                          "propLabel": "storage_location_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_zo5eCUgA.data.storage_location_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "location_id",
+                                          "propLabel": "location_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_zo5eCUgA.data.location_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "table_hu_items",
+                                          "propLabel": "table_hu_items",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_zo5eCUgA.data.table_hu_items}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "process_type",
+                                          "propLabel": "process_type",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "value",
+                                          "valueTypeLabel": "",
+                                          "value": "unload",
+                                          "valueLabel": ""
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "if_H0mLYpBA",
+                                  "type": "if",
+                                  "data": {
+                                    "title": "IF Error - Cancel Unload",
+                                    "isValidator": true,
+                                    "nodeName": "IF Error - Cancel Unload",
+                                    "name": "IF Error - Cancel Unload",
+                                    "condition_type": "ConditionRule",
+                                    "expression": {
+                                      "type": "javascript",
+                                      "code": ""
+                                    },
+                                    "filter": {
+                                      "list": [
+                                        {
+                                          "id": 1777970005001,
+                                          "parentId": 1777970005000,
+                                          "isTop": true,
+                                          "prop": "node.workflow_node_4RoKbxSW.data.code",
+                                          "operator": "equal",
+                                          "valueType": "value",
+                                          "value": "400",
+                                          "type": "leaf",
+                                          "level": 1,
+                                          "propLabel": "code",
+                                          "valueLabel": "",
+                                          "operatorLabel": "Equal"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "ifBlock_6TAvHhlC",
+                                      "type": "ifBlock",
+                                      "data": { "title": "true" },
+                                      "blocks": [
+                                        {
+                                          "id": "return_node_qFlDXvWW",
+                                          "type": "return-node",
+                                          "data": {
+                                            "return_data": {},
+                                            "status_code": 200,
+                                            "title": "Return Error - Cancel Unload",
+                                            "isValidator": true,
+                                            "nodeName": "Return Error - Cancel Unload",
+                                            "name": "Return Error - Cancel Unload",
+                                            "response_value": {
+                                              "list": [
+                                                {
+                                                  "prop": "code",
+                                                  "propLabel": "code",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:workflow_node_4RoKbxSW.data.code}}",
+                                                  "valueLabel": ""
+                                                },
+                                                {
+                                                  "prop": "message",
+                                                  "propLabel": "message",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:workflow_node_4RoKbxSW.data.message}}",
+                                                  "valueLabel": ""
+                                                }
+                                              ]
+                                            },
+                                            "return_raw_data": 0
+                                          },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "ifBlock_sOq3PS7o",
+                                      "type": "ifBlock",
+                                      "data": { "title": "false" },
+                                      "blocks": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_PxwqGxLU",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "code_node_C66a7Ymz",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Aggregate Cancel HU Loads",
+                        "isValidator": true,
+                        "nodeName": "Aggregate Cancel HU Loads",
+                        "name": "Aggregate Cancel HU Loads",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst sourcePlantId = allData.issuing_operation_faci;\n\n// Refill the source HU back at issuing plant + source bin (undoing the Issued unload)\nconst reloadMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n  const qty = parseFloat(entry.sm_quantity || 0);\n  if (qty <= 0) continue;\n\n  if (!reloadMap.has(sourceHuId)) {\n    reloadMap.set(sourceHuId, {\n      handling_unit_id: sourceHuId,\n      plant_id: sourcePlantId,\n      organization_id: organizationId,\n      location_id: entry.location_id,\n      storage_location_id: entry.storage_location_id || \"\",\n      items: [],\n    });\n  }\n  reloadMap.get(sourceHuId).items.push({\n    material_id: entry.material_id,\n    material_uom: entry.material_uom,\n    balance_id: entry.balance_id || \"\",\n    batch_id: entry.batch_id || \"\",\n    quantity: qty,\n    location_id: entry.location_id,\n  });\n}\n\nconst huLoads = Array.from(reloadMap.values()).map((u) => ({\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huLoads: huLoads, huLoadsLength: huLoads.length };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "bnyo1rit",
+                            "name": "huLoads",
+                            "title": "huLoads",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "93f6oc71",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
+                            ]
+                          },
+                          {
+                            "key": "28girewn",
+                            "name": "huLoadsLength",
+                            "title": "huLoadsLength",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_eKDeyB2x",
+                      "type": "if",
+                      "data": {
+                        "title": "IF huLoadsLength > 0",
+                        "isValidator": true,
+                        "nodeName": "IF huLoadsLength > 0",
+                        "name": "IF huLoadsLength > 0",
+                        "condition_type": "ConditionRule",
+                        "expression": { "type": "javascript", "code": "" },
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1777970006001,
+                              "parentId": 1777970006000,
+                              "isTop": true,
+                              "prop": "node.code_node_C66a7Ymz.data.huLoadsLength",
+                              "operator": "greaterThan",
+                              "valueType": "value",
+                              "value": 0,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "huLoadsLength",
+                              "valueLabel": "",
+                              "operatorLabel": "Greater Than"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_xXDIGMDI",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "loop_hemznr9i",
+                              "type": "loop",
+                              "data": {
+                                "title": "Loop Cancel HU Loads",
+                                "isValidator": true,
+                                "nodeName": "Loop Cancel HU Loads",
+                                "name": "Loop Cancel HU Loads",
+                                "loopType": "Var",
+                                "loopSeletSource": {
+                                  "datasource": {
+                                    "rules": {
+                                      "collectionId": "",
+                                      "list": [
+                                        {
+                                          "id": 1723795236686,
+                                          "parentId": 1723795236685,
+                                          "isTop": true,
+                                          "prop": "",
+                                          "operator": "",
+                                          "valueType": "",
+                                          "value": "",
+                                          "type": "leaf",
+                                          "level": 1
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "auto_refresh": 1,
+                                  "auto_refresh_debounce": 100,
+                                  "options": [],
+                                  "props": {
+                                    "value": "",
+                                    "label": "",
+                                    "image": "",
+                                    "icon": "",
+                                    "explain": ""
+                                  },
+                                  "remote": false,
+                                  "remoteType": "datasource",
+                                  "limit_count": ""
+                                },
+                                "loopSeletVar": {
+                                  "type": "markdown",
+                                  "code": "{{node:code_node_C66a7Ymz.data.huLoads}}"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "code_node_2pMBuMZ0",
+                                  "type": "code-node",
+                                  "data": {
+                                    "language": "javascript",
+                                    "code": "",
+                                    "timeout": 30000,
+                                    "title": "Pick Cancel HU Load",
+                                    "isValidator": true,
+                                    "nodeName": "Pick Cancel HU Load",
+                                    "name": "Pick Cancel HU Load",
+                                    "script": {
+                                      "type": "javascript",
+                                      "code": "const u = {{node:loop_hemznr9i}};\nreturn {\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.table_hu_items,\n};"
+                                    },
+                                    "response_json": [
+                                      {
+                                        "key": "emfy6ps3",
+                                        "name": "handling_unit_id",
+                                        "title": "handling_unit_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "icl4uuow",
+                                        "name": "plant_id",
+                                        "title": "plant_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "4lkgblug",
+                                        "name": "organization_id",
+                                        "title": "organization_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "2vw0is51",
+                                        "name": "location_id",
+                                        "title": "location_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "yiwjhbzm",
+                                        "name": "storage_location_id",
+                                        "title": "storage_location_id",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "lt7rc19j",
+                                        "name": "table_hu_items",
+                                        "title": "table_hu_items",
+                                        "description": "",
+                                        "bsonType": "array",
+                                        "isExpand": true,
+                                        "children": [
+                                          {
+                                            "key": "on7y85gy",
+                                            "name": "items",
+                                            "title": "",
+                                            "description": "",
+                                            "bsonType": "any",
+                                            "isExpand": false,
+                                            "isArrayItem": true,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "workflow_node_CjVBGLDG",
+                                  "type": "workflow-node",
+                                  "data": {
+                                    "workflow_id": "",
+                                    "workflow_name": "",
+                                    "input_params": {},
+                                    "title": "Run HU Workflow - Cancel Load",
+                                    "isValidator": true,
+                                    "nodeName": "Run HU Workflow - Cancel Load",
+                                    "name": "Run HU Workflow - Cancel Load",
+                                    "workflow": {
+                                      "source": "HANDLING_UNIT:Workflow:2037062451509002241",
+                                      "rules": {
+                                        "collectionId": "2037062451509002241",
+                                        "list": [
+                                          {
+                                            "id": 1723795236686,
+                                            "parentId": 1723795236685,
+                                            "isTop": true,
+                                            "prop": "",
+                                            "operator": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "type": "leaf",
+                                            "level": 1
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "remote": true,
+                                    "remoteType": "innerdatasource",
+                                    "body_params": {
+                                      "list": [
+                                        {
+                                          "prop": "handling_unit_id",
+                                          "propLabel": "handling_unit_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_2pMBuMZ0.data.handling_unit_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "plant_id",
+                                          "propLabel": "plant_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_2pMBuMZ0.data.plant_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "organization_id",
+                                          "propLabel": "organization_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_2pMBuMZ0.data.organization_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "storage_location_id",
+                                          "propLabel": "storage_location_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_2pMBuMZ0.data.storage_location_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "location_id",
+                                          "propLabel": "location_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_2pMBuMZ0.data.location_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "table_hu_items",
+                                          "propLabel": "table_hu_items",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_2pMBuMZ0.data.table_hu_items}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "process_type",
+                                          "propLabel": "process_type",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "value",
+                                          "valueTypeLabel": "",
+                                          "value": "load",
+                                          "valueLabel": ""
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "if_MrPwi2ZG",
+                                  "type": "if",
+                                  "data": {
+                                    "title": "IF Error - Cancel Load",
+                                    "isValidator": true,
+                                    "nodeName": "IF Error - Cancel Load",
+                                    "name": "IF Error - Cancel Load",
+                                    "condition_type": "ConditionRule",
+                                    "expression": {
+                                      "type": "javascript",
+                                      "code": ""
+                                    },
+                                    "filter": {
+                                      "list": [
+                                        {
+                                          "id": 1777970007001,
+                                          "parentId": 1777970007000,
+                                          "isTop": true,
+                                          "prop": "node.workflow_node_CjVBGLDG.data.code",
+                                          "operator": "equal",
+                                          "valueType": "value",
+                                          "value": "400",
+                                          "type": "leaf",
+                                          "level": 1,
+                                          "propLabel": "code",
+                                          "valueLabel": "",
+                                          "operatorLabel": "Equal"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "ifBlock_NMvzZL0W",
+                                      "type": "ifBlock",
+                                      "data": { "title": "true" },
+                                      "blocks": [
+                                        {
+                                          "id": "return_node_cnrwxuGV",
+                                          "type": "return-node",
+                                          "data": {
+                                            "return_data": {},
+                                            "status_code": 200,
+                                            "title": "Return Error - Cancel Load",
+                                            "isValidator": true,
+                                            "nodeName": "Return Error - Cancel Load",
+                                            "name": "Return Error - Cancel Load",
+                                            "response_value": {
+                                              "list": [
+                                                {
+                                                  "prop": "code",
+                                                  "propLabel": "code",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:workflow_node_CjVBGLDG.data.code}}",
+                                                  "valueLabel": ""
+                                                },
+                                                {
+                                                  "prop": "message",
+                                                  "propLabel": "message",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:workflow_node_CjVBGLDG.data.message}}",
+                                                  "valueLabel": ""
+                                                }
+                                              ]
+                                            },
+                                            "return_raw_data": 0
+                                          },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "ifBlock_VG70cGSx",
+                                      "type": "ifBlock",
+                                      "data": { "title": "false" },
+                                      "blocks": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_pNxUhDQc",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
               "id": "update_node_b8q8hwYV",
               "type": "update-node",
               "data": {
@@ -9445,7 +10801,7 @@
                                 "name": "Aggregate HU Loads",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\nconst targetLocationId = {{node:get_node_WtFOLdKB.data.data.id}};\nconst targetStorageLocId = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\nconst huLoadsMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n  const qty = parseFloat(entry.sm_quantity || 0);\n  if (qty <= 0) continue;\n\n  const rowIdx = parseInt(entry.row_index, 10);\n  const smRow = stockMovement[rowIdx];\n\n  if (!huLoadsMap.has(sourceHuId)) {\n    huLoadsMap.set(sourceHuId, {\n      plant_id: targetPlantId,\n      organization_id: organizationId,\n      location_id: targetLocationId,\n      storage_location_id: targetStorageLocId,\n      items: [],\n    });\n  }\n\n  const u = huLoadsMap.get(sourceHuId);\n  const existing = u.items.find((it) => it.material_id === entry.material_id);\n  if (existing) {\n    existing.quantity = (parseFloat(existing.quantity) || 0) + qty;\n  } else {\n    u.items.push({\n      material_id: entry.material_id,\n      material_uom: entry.material_uom,\n      batch_id: \"\",\n      batch_no: (smRow && smRow.batch_no) || \"\",\n      quantity: qty,\n      location_id: targetLocationId,\n    });\n  }\n}\n\nconst huLoads = Array.from(huLoadsMap.values()).map((u) => ({\n  handling_unit_id: \"\",\n  handling_no: \"Auto-generated number\",\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huLoads: huLoads, huLoadsLength: huLoads.length };"
+                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\nconst targetLocationId = {{node:get_node_WtFOLdKB.data.data.id}};\nconst targetStorageLocId = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\nconst huLoadsMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n  const qty = parseFloat(entry.sm_quantity || 0);\n  if (qty <= 0) continue;\n\n  const rowIdx = parseInt(entry.row_index, 10);\n  const smRow = stockMovement[rowIdx];\n\n  if (!huLoadsMap.has(sourceHuId)) {\n    huLoadsMap.set(sourceHuId, {\n      transfer_source_hu_id: sourceHuId,\n      plant_id: targetPlantId,\n      organization_id: organizationId,\n      location_id: targetLocationId,\n      storage_location_id: targetStorageLocId,\n      items: [],\n    });\n  }\n\n  const u = huLoadsMap.get(sourceHuId);\n  const existing = u.items.find((it) => it.material_id === entry.material_id);\n  if (existing) {\n    existing.quantity = (parseFloat(existing.quantity) || 0) + qty;\n  } else {\n    u.items.push({\n      material_id: entry.material_id,\n      material_uom: entry.material_uom,\n      batch_id: \"\",\n      batch_no: (smRow && smRow.batch_no) || \"\",\n      quantity: qty,\n      location_id: targetLocationId,\n    });\n  }\n}\n\nconst huLoads = Array.from(huLoadsMap.values()).map((u) => ({\n  handling_unit_id: \"\",\n  handling_no: \"Auto-generated number\",\n  transfer_source_hu_id: u.transfer_source_hu_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huLoads: huLoads, huLoadsLength: huLoads.length };"
                                 },
                                 "response_json": [
                                   {
@@ -9579,7 +10935,7 @@
                                             "name": "Pick HU Load",
                                             "script": {
                                               "type": "javascript",
-                                              "code": "const u = {{node:loop_4kLP1ORi}};\nreturn {\n  handling_unit_id: u.handling_unit_id,\n  handling_no: u.handling_no,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.table_hu_items,\n};"
+                                              "code": "const u = {{node:loop_4kLP1ORi}};\nreturn {\n  handling_unit_id: u.handling_unit_id,\n  handling_no: u.handling_no,\n  transfer_source_hu_id: u.transfer_source_hu_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.table_hu_items,\n};"
                                             },
                                             "response_json": [
                                               {
@@ -9649,6 +11005,14 @@
                                                     "children": []
                                                   }
                                                 ]
+                                              },
+                                              {
+                                                "key": "y4icpfp0",
+                                                "name": "transfer_source_hu_id",
+                                                "title": "transfer_source_hu_id",
+                                                "description": "",
+                                                "bsonType": "string",
+                                                "isExpand": false
                                               }
                                             ]
                                           },
@@ -9766,6 +11130,16 @@
                                                   "valueType": "value",
                                                   "valueTypeLabel": "",
                                                   "value": "load",
+                                                  "valueLabel": ""
+                                                },
+                                                {
+                                                  "prop": "transfer_source_hu_id",
+                                                  "propLabel": "transfer_source_hu_id",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:code_node_anTdo1md.data.transfer_source_hu_id}}",
                                                   "valueLabel": ""
                                                 }
                                               ]
@@ -9920,6 +11294,68 @@
                   "data": { "title": "true" },
                   "blocks": [
                     {
+                      "id": "search_node_oOEYwCue",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Handling Unit:Table:2036736671686529026",
+                          "rules": {
+                            "collectionId": "2036736671686529026",
+                            "list": [
+                              {
+                                "id": 1777960000001,
+                                "parentId": 1777960000000,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "all",
+                                "valueType": "",
+                                "value": "",
+                                "type": "branch",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1777960000002,
+                                    "parentId": 1777960000001,
+                                    "isTop": false,
+                                    "prop": "plant_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Plant",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1777960000003,
+                                    "parentId": 1777960000001,
+                                    "isTop": false,
+                                    "prop": "location_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{node:get_node_WtFOLdKB.data.data.id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Bin Location",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "Get HUs at Receiving Default",
+                        "isValidator": true,
+                        "nodeName": "Get HUs at Receiving Default",
+                        "name": "Get HUs at Receiving Default"
+                      },
+                      "blocks": []
+                    },
+                    {
                       "id": "code_node_ItXi8Yt7",
                       "type": "code-node",
                       "data": {
@@ -9932,7 +11368,7 @@
                         "name": "Aggregate HU Final Moves",
                         "script": {
                           "type": "javascript",
-                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\n\nconst huMovesMap = new Map();\nfor (const entry of balanceIndex) {\n  const huId = entry.handling_unit_id;\n  if (!huId) continue;\n  if (huMovesMap.has(huId)) continue;\n\n  const rowIdx = parseInt(entry.row_index, 10);\n  const smRow = stockMovement[rowIdx];\n  if (!smRow || !smRow.location_id || !smRow.storage_location_id) continue;\n\n  huMovesMap.set(huId, {\n    handling_unit_id: huId,\n    plant_id: targetPlantId,\n    organization_id: organizationId,\n    location_id: smRow.location_id,\n    storage_location_id: smRow.storage_location_id,\n  });\n}\n\nconst huMoves = Array.from(huMovesMap.values());\nreturn { huMoves: huMoves, huMovesLength: huMoves.length };"
+                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\n\nlet husAtReceiving = {{node:search_node_oOEYwCue.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\n\n// Branch A: HU was moved at Issued, same id at receiving\n// Branch B: a NEW HU was created at receiving with transfer_source_hu_id pointing back\nconst huById = new Map(husAtReceiving.map((h) => [h.id, h.id]));\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h.id]));\n\nconst huMovesMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n  const huToMove = huById.get(sourceHuId) || huBySource.get(sourceHuId);\n  if (!huToMove) continue;  // not at receiving default — defensive skip\n  if (huMovesMap.has(huToMove)) continue;\n\n  const rowIdx = parseInt(entry.row_index, 10);\n  const smRow = stockMovement[rowIdx];\n  if (!smRow || !smRow.location_id || !smRow.storage_location_id) continue;\n\n  huMovesMap.set(huToMove, {\n    handling_unit_id: huToMove,\n    plant_id: targetPlantId,\n    organization_id: organizationId,\n    location_id: smRow.location_id,\n    storage_location_id: smRow.storage_location_id,\n  });\n}\n\nconst huMoves = Array.from(huMovesMap.values());\nreturn { huMoves: huMoves, huMovesLength: huMoves.length };"
                         },
                         "response_json": [
                           {
