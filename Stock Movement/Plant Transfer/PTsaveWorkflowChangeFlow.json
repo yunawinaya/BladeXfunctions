@@ -3,10 +3,7 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": {
-        "isValidator": true,
-        "title": "Start Node"
-      },
+      "data": { "isValidator": true, "title": "Start Node" },
       "blocks": []
     },
     {
@@ -18,10 +15,7 @@
         "nodeName": "IF Cancelled",
         "name": "IF Cancelled",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -45,9 +39,7 @@
         {
           "id": "ifBlock_UxTsliZf",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "get_node_ulAJ3pZj",
@@ -88,9 +80,7 @@
         {
           "id": "ifBlock_e3GxtGo3",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -258,9 +248,7 @@
         {
           "id": "ifBlock_5OU9mIGR",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "return_node_3f4coAKs",
@@ -303,9 +291,7 @@
         {
           "id": "ifBlock_PcuRVFBf",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -319,10 +305,7 @@
         "nodeName": "IF !Draft & !Cancelled",
         "name": "IF !Draft & !Cancelled",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -373,9 +356,7 @@
         {
           "id": "ifBlock_MH3rehUV",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "code_node_2KYYOugP",
@@ -446,9 +427,7 @@
                 {
                   "id": "ifBlock_oE9L4On1",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "return_node_BPjx0PPx",
@@ -491,9 +470,7 @@
                 {
                   "id": "ifBlock_LC3exGbl",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -541,10 +518,7 @@
                 "nodeName": "IF No Plant Transfer Setup",
                 "name": "IF No Plant Transfer Setup",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -568,9 +542,7 @@
                 {
                   "id": "if_block_3W6wzNAF",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "return_node_MTuVoYjU",
@@ -613,9 +585,7 @@
                 {
                   "id": "if_block_gD5sAwyf",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -625,9 +595,7 @@
         {
           "id": "ifBlock_qfyVvnau",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -641,10 +609,7 @@
         "nodeName": "IF Cancelled",
         "name": "IF Cancelled",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -668,9 +633,7 @@
         {
           "id": "ifBlock_3E3QDUdq",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "set_cache_node_iFnliYiQ",
@@ -683,10 +646,7 @@
                 "isValidator": true,
                 "nodeName": "Set Initial Subform Index",
                 "name": "Set Initial Subform Index",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "0"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "0" },
                 "redis_key": "subformIndex_{{workflowparams:allData.issued_by}}"
               },
               "blocks": []
@@ -960,10 +920,7 @@
                     "isValidator": true,
                     "nodeName": "Set Initial Balance Index",
                     "name": "Set Initial Balance Index",
-                    "custom_wkbocgni": {
-                      "type": "javascript",
-                      "code": "0"
-                    },
+                    "custom_wkbocgni": { "type": "javascript", "code": "0" },
                     "redis_key": "balanceIndex_{{workflowparams:allData.issued_by}}"
                   },
                   "blocks": []
@@ -1318,9 +1275,7 @@
                         {
                           "id": "ifBlock_qLUKDOaB",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "return_node_Gqz1VrVd",
@@ -1363,9 +1318,7 @@
                         {
                           "id": "ifBlock_E4m5U4qV",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -1580,9 +1533,7 @@
                         {
                           "id": "ifBlock_n3xWT3vb",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "return_node_HPQzkmQt",
@@ -1625,9 +1576,7 @@
                         {
                           "id": "ifBlock_4pcCNvFV",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -1763,9 +1712,7 @@
         {
           "id": "ifBlock_rYFKx0fT",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -1779,10 +1726,7 @@
         "nodeName": "IF !Draft",
         "name": "IF !Draft",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -1806,9 +1750,7 @@
         {
           "id": "ifBlock_2qOyDsPv",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "if_BZvAhHVQ",
@@ -1819,10 +1761,7 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -1846,9 +1785,7 @@
                 {
                   "id": "ifBlock_vbo6GhX5",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "get_node_1wi90Edk",
@@ -1918,12 +1855,8 @@
                       "type": "condition-or-node",
                       "data": {
                         "title": "Condition",
-                        "filter": {
-                          "list": []
-                        },
-                        "expression": {
-                          "code": ""
-                        },
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -1950,9 +1883,7 @@
                                 }
                               ]
                             },
-                            "expression": {
-                              "code": ""
-                            },
+                            "expression": { "code": "" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "isDifferent",
@@ -2083,12 +2014,8 @@
                               "type": "condition-all-node",
                               "data": {
                                 "title": "Parallel Branch",
-                                "filter": {
-                                  "list": []
-                                },
-                                "expression": {
-                                  "code": ""
-                                },
+                                "filter": { "list": [] },
+                                "expression": { "code": "" },
                                 "displayContent": "sdk.form.setCondition"
                               },
                               "blocks": [
@@ -2503,9 +2430,7 @@
                                             {
                                               "id": "ifBlock_RyKFo85Q",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "true"
-                                              },
+                                              "data": { "title": "true" },
                                               "blocks": [
                                                 {
                                                   "id": "return_node_fXqD3O9Z",
@@ -2548,9 +2473,7 @@
                                             {
                                               "id": "ifBlock_PfHchNNz",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "false"
-                                              },
+                                              "data": { "title": "false" },
                                               "blocks": []
                                             }
                                           ]
@@ -2757,9 +2680,7 @@
                                             {
                                               "id": "ifBlock_aKIzbhEb",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "true"
-                                              },
+                                              "data": { "title": "true" },
                                               "blocks": [
                                                 {
                                                   "id": "return_node_K0PTyy1H",
@@ -2802,9 +2723,7 @@
                                             {
                                               "id": "ifBlock_YAuLk4bf",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "false"
-                                              },
+                                              "data": { "title": "false" },
                                               "blocks": []
                                             }
                                           ]
@@ -3243,9 +3162,7 @@
                                             {
                                               "id": "ifBlock_AQLCqFpS",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "true"
-                                              },
+                                              "data": { "title": "true" },
                                               "blocks": [
                                                 {
                                                   "id": "return_node_pwfwexoO",
@@ -3288,9 +3205,7 @@
                                             {
                                               "id": "ifBlock_Cia5oDyr",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "false"
-                                              },
+                                              "data": { "title": "false" },
                                               "blocks": []
                                             }
                                           ]
@@ -3497,9 +3412,7 @@
                                             {
                                               "id": "ifBlock_OyP9DJvN",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "true"
-                                              },
+                                              "data": { "title": "true" },
                                               "blocks": [
                                                 {
                                                   "id": "return_node_eASr6kUL",
@@ -3542,9 +3455,7 @@
                                             {
                                               "id": "ifBlock_mFaqK82I",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "false"
-                                              },
+                                              "data": { "title": "false" },
                                               "blocks": []
                                             }
                                           ]
@@ -3582,12 +3493,8 @@
                           "data": {
                             "title": "!isDifferent",
                             "isDefault": true,
-                            "filter": {
-                              "list": []
-                            },
-                            "expression": {
-                              "code": ""
-                            },
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
                             "displayContent": "sdk.form.otherCondition"
                           },
                           "blocks": []
@@ -3603,10 +3510,7 @@
                         "nodeName": "IF !Draft",
                         "name": "IF !Draft",
                         "condition_type": "ConditionRule",
-                        "expression": {
-                          "type": "javascript",
-                          "code": ""
-                        },
+                        "expression": { "type": "javascript", "code": "" },
                         "filter": {
                           "list": [
                             {
@@ -3630,9 +3534,7 @@
                         {
                           "id": "ifBlock_4Erb4s4f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "update_node_Zcjd67TS",
@@ -3884,9 +3786,7 @@
                                 {
                                   "id": "ifBlock_4PkFwNjb",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "return_node_WMSDo6w6",
@@ -3929,9 +3829,7 @@
                                 {
                                   "id": "ifBlock_2Obm4wus",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -3941,9 +3839,7 @@
                         {
                           "id": "ifBlock_KRBFrRpY",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": [
                             {
                               "id": "update_node_4r4pCsZ9",
@@ -4188,9 +4084,7 @@
                 {
                   "id": "ifBlock_z3jpUTa6",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": [
                     {
                       "id": "if_KsfbQBe2",
@@ -4201,10 +4095,7 @@
                         "nodeName": "IF Issued",
                         "name": "IF Issued",
                         "condition_type": "ConditionRule",
-                        "expression": {
-                          "type": "javascript",
-                          "code": ""
-                        },
+                        "expression": { "type": "javascript", "code": "" },
                         "filter": {
                           "list": [
                             {
@@ -4228,9 +4119,7 @@
                         {
                           "id": "if_block_NyTCq6-E",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "add_node_5Wstw9z2",
@@ -4433,9 +4322,7 @@
                         {
                           "id": "if_block_4xYdCsJk",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -4629,12 +4516,8 @@
               "type": "condition-or-node",
               "data": {
                 "title": "Condition",
-                "filter": {
-                  "list": []
-                },
-                "expression": {
-                  "code": ""
-                },
+                "filter": { "list": [] },
+                "expression": { "code": "" },
                 "displayContent": "sdk.form.setCondition"
               },
               "blocks": [
@@ -4661,9 +4544,7 @@
                         }
                       ]
                     },
-                    "expression": {
-                      "code": ""
-                    },
+                    "expression": { "code": "" },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "Save As Issued",
@@ -5349,9 +5230,7 @@
                                 {
                                   "id": "ifBlock_c1ABfzKH",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "return_node_QfWGZadk",
@@ -5394,9 +5273,7 @@
                                 {
                                   "id": "ifBlock_ta2hS6Lo",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -5635,9 +5512,7 @@
                                 {
                                   "id": "ifBlock_G1vWO5Yn",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "return_node_eUP6IOLA",
@@ -5680,9 +5555,7 @@
                                 {
                                   "id": "ifBlock_NUF2Zm85",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -5754,9 +5627,7 @@
                         }
                       ]
                     },
-                    "expression": {
-                      "code": ""
-                    },
+                    "expression": { "code": "" },
                     "displayContent": "sdk.form.setCondition",
                     "__index": 2,
                     "isDefault": false,
@@ -5996,10 +5867,7 @@
                             "nodeName": "IF Existing Batch Config",
                             "name": "IF Existing Batch Config",
                             "condition_type": "ConditionRule",
-                            "expression": {
-                              "type": "javascript",
-                              "code": ""
-                            },
+                            "expression": { "type": "javascript", "code": "" },
                             "filter": {
                               "list": [
                                 {
@@ -6050,9 +5918,7 @@
                             {
                               "id": "if_block_qgef4AOZ",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "code_node_rdyrD4Tx",
@@ -6526,9 +6392,7 @@
                             {
                               "id": "if_block_uwAbJyUq",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": [
                                 {
                                   "id": "workflow_node_ZUj84fhM",
@@ -6997,12 +6861,8 @@
                   "data": {
                     "title": "Save As Completed",
                     "isDefault": true,
-                    "filter": {
-                      "list": []
-                    },
-                    "expression": {
-                      "code": ""
-                    },
+                    "filter": { "list": [] },
+                    "expression": { "code": "" },
                     "displayContent": "sdk.form.otherCondition"
                   },
                   "blocks": [
@@ -7717,9 +7577,7 @@
                                 {
                                   "id": "ifBlock_ezWWB7Lq",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "return_node_4vPZl41C",
@@ -7762,9 +7620,7 @@
                                 {
                                   "id": "ifBlock_nnnZGxc4",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -7799,10 +7655,7 @@
                             "nodeName": "IF Generate New Batch",
                             "name": "IF Generate New Batch",
                             "condition_type": "ConditionRule",
-                            "expression": {
-                              "type": "javascript",
-                              "code": ""
-                            },
+                            "expression": { "type": "javascript", "code": "" },
                             "filter": {
                               "list": [
                                 {
@@ -7826,9 +7679,7 @@
                             {
                               "id": "if_block_hyYQIgWf",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "workflow_node_A9GngG3F",
@@ -8064,9 +7915,7 @@
                                     {
                                       "id": "ifBlock_IpAA3aN4",
                                       "type": "ifBlock",
-                                      "data": {
-                                        "title": "true"
-                                      },
+                                      "data": { "title": "true" },
                                       "blocks": [
                                         {
                                           "id": "return_node_LeJrVfLO",
@@ -8109,9 +7958,7 @@
                                     {
                                       "id": "ifBlock_Aei8ifAu",
                                       "type": "ifBlock",
-                                      "data": {
-                                        "title": "false"
-                                      },
+                                      "data": { "title": "false" },
                                       "blocks": []
                                     }
                                   ]
@@ -8121,9 +7968,7 @@
                             {
                               "id": "if_block_EgobbS3q",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": [
                                 {
                                   "id": "workflow_node_BCpWOhpy",
@@ -8359,9 +8204,7 @@
                                     {
                                       "id": "ifBlock_DLbuVxwk",
                                       "type": "ifBlock",
-                                      "data": {
-                                        "title": "true"
-                                      },
+                                      "data": { "title": "true" },
                                       "blocks": [
                                         {
                                           "id": "return_node_nN2Z9PdS",
@@ -8404,9 +8247,7 @@
                                     {
                                       "id": "ifBlock_gfxzKX6X",
                                       "type": "ifBlock",
-                                      "data": {
-                                        "title": "false"
-                                      },
+                                      "data": { "title": "false" },
                                       "blocks": []
                                     }
                                   ]
@@ -8497,10 +8338,7 @@
                 "nodeName": "IF saveAs Issued",
                 "name": "IF saveAs Issued",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -8524,21 +8362,15 @@
                 {
                   "id": "if_block_-fG4aOFF",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "condition_or_QLNZ42ir",
                       "type": "condition-or-node",
                       "data": {
                         "title": "Condition",
-                        "filter": {
-                          "list": []
-                        },
-                        "expression": {
-                          "code": ""
-                        },
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -8565,9 +8397,7 @@
                                 }
                               ]
                             },
-                            "expression": {
-                              "code": ""
-                            },
+                            "expression": { "code": "" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "generate_new_batch === 0",
@@ -8659,9 +8489,7 @@
                                 {
                                   "id": "if_block_-DxL8yij",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "loop_18CrDIZf",
@@ -8916,9 +8744,7 @@
                                             {
                                               "id": "if_block_C5R010Xz",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "true"
-                                              },
+                                              "data": { "title": "true" },
                                               "blocks": [
                                                 {
                                                   "id": "return_node_qhlcHGG2",
@@ -8963,9 +8789,7 @@
                                             {
                                               "id": "if_block_NcNl7KFc",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "false"
-                                              },
+                                              "data": { "title": "false" },
                                               "blocks": []
                                             }
                                           ]
@@ -8977,9 +8801,7 @@
                                 {
                                   "id": "if_block_gFPr_eeT",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -8992,12 +8814,8 @@
                           "data": {
                             "title": "generate_new_batch === 1",
                             "isDefault": true,
-                            "filter": {
-                              "list": []
-                            },
-                            "expression": {
-                              "code": ""
-                            },
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
                             "displayContent": "sdk.form.otherCondition"
                           },
                           "blocks": [
@@ -9085,9 +8903,7 @@
                                 {
                                   "id": "if_block_9Wd2aMOH",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "loop_Ekw7Ly2h",
@@ -9362,9 +9178,7 @@
                                             {
                                               "id": "ifBlock_DVCA0TCi",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "true"
-                                              },
+                                              "data": { "title": "true" },
                                               "blocks": [
                                                 {
                                                   "id": "return_node_leEsw0IY",
@@ -9409,9 +9223,7 @@
                                             {
                                               "id": "ifBlock_4UXdd62r",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "false"
-                                              },
+                                              "data": { "title": "false" },
                                               "blocks": []
                                             }
                                           ]
@@ -9423,9 +9235,7 @@
                                 {
                                   "id": "if_block_wAsLRxwb",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -9514,9 +9324,7 @@
                                 {
                                   "id": "ifBlock_Fl0j6Che",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "loop_4kLP1ORi",
@@ -9809,9 +9617,7 @@
                                             {
                                               "id": "ifBlock_xyNFUGsf",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "true"
-                                              },
+                                              "data": { "title": "true" },
                                               "blocks": [
                                                 {
                                                   "id": "return_node_5bU7Rqpo",
@@ -9856,9 +9662,7 @@
                                             {
                                               "id": "ifBlock_Fn9voFSY",
                                               "type": "ifBlock",
-                                              "data": {
-                                                "title": "false"
-                                              },
+                                              "data": { "title": "false" },
                                               "blocks": []
                                             }
                                           ]
@@ -9870,9 +9674,7 @@
                                 {
                                   "id": "ifBlock_74BGZSUR",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -9886,9 +9688,7 @@
                 {
                   "id": "if_block_KbFZ6WIK",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -9925,9 +9725,7 @@
                 {
                   "id": "if_block_XAowe0eW",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "code_node_ItXi8Yt7",
@@ -9986,10 +9784,7 @@
                         "nodeName": "IF huMovesLength > 0",
                         "name": "IF huMovesLength > 0",
                         "condition_type": "ConditionRule",
-                        "expression": {
-                          "type": "javascript",
-                          "code": ""
-                        },
+                        "expression": { "type": "javascript", "code": "" },
                         "filter": {
                           "list": [
                             {
@@ -10013,9 +9808,7 @@
                         {
                           "id": "ifBlock_dVCkZcpt",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "loop_lkQzfXGR",
@@ -10270,9 +10063,7 @@
                                     {
                                       "id": "ifBlock_Hc534ch0",
                                       "type": "ifBlock",
-                                      "data": {
-                                        "title": "true"
-                                      },
+                                      "data": { "title": "true" },
                                       "blocks": [
                                         {
                                           "id": "return_node_SVTQXH6z",
@@ -10317,9 +10108,7 @@
                                     {
                                       "id": "ifBlock_fLEPfbsq",
                                       "type": "ifBlock",
-                                      "data": {
-                                        "title": "false"
-                                      },
+                                      "data": { "title": "false" },
                                       "blocks": []
                                     }
                                   ]
@@ -10331,9 +10120,7 @@
                         {
                           "id": "ifBlock_tQQviV9p",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -10343,9 +10130,7 @@
                 {
                   "id": "if_block_BWHlPlYP",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -10355,9 +10140,7 @@
         {
           "id": "ifBlock_FmiBl9d2",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": [
             {
               "id": "if_iMZznv5F",
@@ -10368,10 +10151,7 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -10395,9 +10175,7 @@
                 {
                   "id": "ifBlock_JrMdH5AV",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "update_node_aY15G0bP",
@@ -10588,9 +10366,7 @@
                 {
                   "id": "ifBlock_J0FOeHun",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": [
                     {
                       "id": "add_node_QyZ0Zyck",
@@ -10947,10 +10723,7 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": {
-        "isValidator": true,
-        "title": "End Node"
-      },
+      "data": { "isValidator": true, "title": "End Node" },
       "blocks": []
     }
   ],
