@@ -1668,6 +1668,14 @@
                                   "value": "{{node:workflow_node_wCxvhaAr.data.inventoryMovementId}}",
                                   "valueLabel": "",
                                   "propLabel": "inventory_movement_id"
+                                },
+                                {
+                                  "prop": "process_type",
+                                  "operator": "",
+                                  "valueType": "value",
+                                  "value": "move",
+                                  "valueLabel": "",
+                                  "propLabel": "process_type"
                                 }
                               ]
                             }
