@@ -56,6 +56,8 @@ const CONFIG = {
       "stock_movement.batch_no",
       "stock_movement.location_id",
       "stock_movement.storage_location_id",
+      "stock_movement.view_hu",
+      "stock_movement.select_hu",
       "parent_id",
     ],
     "Plant Transfer (Receiving)": [
@@ -427,12 +429,22 @@ const isGenerateBatch = async (organizationId) => {
     }
 
     const isGenerateBatch = resPlantTransferSetup.data[0].generate_new_batch;
+
+    // view_hu always visible on receiving form so user can see source HU info per line
+    this.display(["stock_movement.view_hu"]);
+
     if (isGenerateBatch) {
-      this.display(["stock_movement.batch_no"]);
+      this.display([
+        "stock_movement.batch_no",
+        "stock_movement.select_hu",
+      ]);
       this.hide(["stock_movement.batch_id"]);
     } else {
       this.display(["stock_movement.batch_id"]);
-      this.hide(["stock_movement.batch_no"]);
+      this.hide([
+        "stock_movement.batch_no",
+        "stock_movement.select_hu",
+      ]);
     }
   } catch (error) {
     console.error(error);
