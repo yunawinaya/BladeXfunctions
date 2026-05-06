@@ -98,7 +98,7 @@
         "name": "fillbackHeaderFields",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n\nif (saveAs === \"Cancelled\") {\n  const rawData = {{node:get_node_czmdH3Jw.data.data}}\n  allData = Array.isArray(rawData) ? rawData[0] : rawData\n}\n\nfor (const [index, smLineItem] of allData.stock_movement.entries()) {\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  smLineItem.line_index = index + 1;\n\n  updatedSM.push(smLineItem)\n}\n\nallData.stock_movement = updatedSM\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\"\n}\n\nif (saveAs === \"Draft\") {\n  if(allData.stock_movement_no_type !== -9999 && (\n  !allData.stock_movement_no || allData.stock_movement_no === null || allData.stock_movement_no === ''\n)) {\n  allData.stock_movement_no = 'draft'\n  }\n} else {\n  if (\n  allData.stock_movement_no_type !== -9999 &&\n  (!allData.stock_movement_no ||\n    allData.stock_movement_no === null ||\n    allData.stock_movement_no === \"\" ||\n    allData.stock_movement_status !== \"In Progress\")\n) {\n  allData.stock_movement_no = 'issued'\n  }\n}\n\nreturn {\n  allData: allData,\n  stock_movement_status: allData.stock_movement_status,\n  is_production_order: allData.is_production_order\n}\n"
+          "code": "let allData = {{workflowparams:allData}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n\nif (saveAs === \"Cancelled\") {\n  const rawData = {{node:get_node_czmdH3Jw.data.data}}\n  allData = Array.isArray(rawData) ? rawData[0] : rawData\n}\n\nconst normalizeCategory = (cat) => {\n  if (cat === \"UNR\") return \"Unrestricted\"\n  if (cat === \"BLK\") return \"Blocked\"\n  return cat\n}\n\nif (Array.isArray(allData.balance_index)) {\n  for (const bal of allData.balance_index) {\n    bal.category = normalizeCategory(bal.category)\n  }\n}\n\nfor (const [index, smLineItem] of allData.stock_movement.entries()) {\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  smLineItem.line_index = index + 1;\n\n  smLineItem.category = normalizeCategory(smLineItem.category)\n\n  if (Array.isArray(smLineItem.balance_index)) {\n    for (const bal of smLineItem.balance_index) {\n      bal.category = normalizeCategory(bal.category)\n    }\n  }\n\n  if (smLineItem.temp_qty_data) {\n    try {\n      const parsed = JSON.parse(smLineItem.temp_qty_data)\n      if (Array.isArray(parsed)) {\n        for (const row of parsed) {\n          row.category = normalizeCategory(row.category)\n        }\n        smLineItem.temp_qty_data = JSON.stringify(parsed)\n      }\n    } catch (e) {\n      // leave as-is if not valid JSON\n    }\n  }\n\n  updatedSM.push(smLineItem)\n}\n\nallData.stock_movement = updatedSM\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\"\n}\n\nif (saveAs === \"Draft\") {\n  if(allData.stock_movement_no_type !== -9999 && (\n  !allData.stock_movement_no || allData.stock_movement_no === null || allData.stock_movement_no === ''\n)) {\n  allData.stock_movement_no = 'draft'\n  }\n} else {\n  if (\n  allData.stock_movement_no_type !== -9999 &&\n  (!allData.stock_movement_no ||\n    allData.stock_movement_no === null ||\n    allData.stock_movement_no === \"\" ||\n    allData.stock_movement_status !== \"In Progress\")\n) {\n  allData.stock_movement_no = 'issued'\n  }\n}\n\nreturn {\n  allData: allData,\n  stock_movement_status: allData.stock_movement_status,\n  is_production_order: allData.is_production_order\n}\n"
         },
         "response_json": [
           {
@@ -991,7 +991,7 @@
                         "name": "Balance Preparation",
                         "script": {
                           "type": "javascript",
-                          "code": "const balancesToProcess = {{node:code_node_2rKjdaLg.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_9PCG6LQ3.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_yPlLXIZW.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1\n};\n\n"
+                          "code": "const balancesToProcess = {{node:code_node_2rKjdaLg.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_9PCG6LQ3.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_yPlLXIZW.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n  index: index,\n  nextIndex: index + 1\n};\n\n"
                         },
                         "response_json": [
                           {
@@ -1057,6 +1057,14 @@
                             "key": "riagl68c",
                             "name": "expired_date",
                             "title": "expired_date",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "csr4y4op",
+                            "name": "handling_unit_id",
+                            "title": "handling_unit_id",
                             "description": "",
                             "bsonType": "string",
                             "isExpand": false
@@ -1228,6 +1236,14 @@
                               "value": 1,
                               "valueLabel": "",
                               "propLabel": "Moving Inventory?"
+                            },
+                            {
+                              "prop": "handling_unit_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ESMCmepr.data.handling_unit_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Handling Unit ID"
                             }
                           ]
                         }
@@ -1486,6 +1502,14 @@
                               "value": 1,
                               "valueLabel": "",
                               "propLabel": "Moving Inventory?"
+                            },
+                            {
+                              "prop": "handling_unit_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ESMCmepr.data.handling_unit_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Handling Unit ID"
                             }
                           ]
                         }
@@ -2054,7 +2078,7 @@
                                 "name": "Readjustment Balance Data",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const allData = {{node:code_node_yPlLXIZW.data.allData}}\n\nconst initialMovementTable = {{node:get_node_Ij7YbXCA.data.data.stock_movement}}\nconst initialBalanceIndex = {{node:get_node_Ij7YbXCA.data.data.balance_index}}\n\nconst currentMovementTable = {{node:code_node_yPlLXIZW.data.allData.stock_movement}}\nconst currentBalanceIndex = {{node:code_node_yPlLXIZW.data.allData.balance_index}}\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst page_status = {{workflowparams:pageStatus}}\nconst doc_date = allData.issue_date;\n\nconst balanceToAdd = []\nconst balanceToSubtract = []\n\n// Create key using material_id + location_id + batch_id + category\nconst createKey = (item) => {\n  const batchId = item.batch_id || \"\"\n  const category = item.category || \"Unrestricted\"\n  return `${item.material_id}|${item.location_id}|${batchId}|${category}`\n}\n\n// Build map of initial quantities from balance_index\nconst initialMap = {}\nfor (const item of initialBalanceIndex) {\n  if (parseFloat(item.sm_quantity || 0) > 0) {\n    const key = createKey(item)\n    initialMap[key] = {\n      material_id: item.material_id,\n      material_uom: item.material_uom,\n      location_id: item.location_id,\n      batch_id: item.batch_id || null,\n      category: item.category || \"Unrestricted\",\n      sm_quantity: parseFloat(item.sm_quantity || 0),\n      manufacturing_date: item.manufacturing_date || null,\n      expired_date: item.expired_date || null\n    }\n  }\n}\n\n// Build map of current quantities from balance_index\nconst currentMap = {}\nfor (const item of currentBalanceIndex) {\n  if (parseFloat(item.sm_quantity || 0) > 0) {\n    const key = createKey(item)\n    currentMap[key] = {\n      material_id: item.material_id,\n      material_uom: item.material_uom,\n      location_id: item.location_id,\n      batch_id: item.batch_id || null,\n      category: item.category || \"Unrestricted\",\n      sm_quantity: parseFloat(item.sm_quantity || 0),\n      manufacturing_date: item.manufacturing_date || null,\n      expired_date: item.expired_date || null\n    }\n  }\n}\n\n// Compare and calculate differences\n// Check items in current (new or increased)\nfor (const key in currentMap) {\n  const currentItem = currentMap[key]\n  const initialItem = initialMap[key]\n\n  if (!initialItem) {\n    // New item added (or category changed - treated as new)\n    balanceToAdd.push({\n      material_id: currentItem.material_id,\n      material_uom: currentItem.material_uom,\n      location_id: currentItem.location_id,\n      batch_id: currentItem.batch_id,\n      category: currentItem.category,\n      sm_quantity: currentItem.sm_quantity,\n      manufacturing_date: currentItem.manufacturing_date,\n      expired_date: currentItem.expired_date\n    })\n  } else {\n    const diff = currentItem.sm_quantity - initialItem.sm_quantity\n    if (diff > 0) {\n      // Quantity increased\n      balanceToAdd.push({\n        material_id: currentItem.material_id,\n        material_uom: currentItem.material_uom,\n        location_id: currentItem.location_id,\n        batch_id: currentItem.batch_id,\n        category: currentItem.category,\n        sm_quantity: diff,\n        manufacturing_date: currentItem.manufacturing_date,\n        expired_date: currentItem.expired_date\n      })\n    } else if (diff < 0) {\n      // Quantity decreased\n      balanceToSubtract.push({\n        material_id: currentItem.material_id,\n        material_uom: currentItem.material_uom,\n        location_id: currentItem.location_id,\n        batch_id: currentItem.batch_id,\n        category: currentItem.category,\n        sm_quantity: Math.abs(diff),\n        manufacturing_date: currentItem.manufacturing_date,\n        expired_date: currentItem.expired_date\n      })\n    }\n  }\n}\n\n// Check items removed (in initial but not in current, or category changed)\nfor (const key in initialMap) {\n  if (!currentMap[key]) {\n    const initialItem = initialMap[key]\n    balanceToSubtract.push({\n      material_id: initialItem.material_id,\n      material_uom: initialItem.material_uom,\n      location_id: initialItem.location_id,\n      batch_id: initialItem.batch_id,\n      category: initialItem.category,\n      sm_quantity: initialItem.sm_quantity,\n      manufacturing_date: initialItem.manufacturing_date,\n      expired_date: initialItem.expired_date\n    })\n  }\n}\n\nreturn {\n  plant_id: plant_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  doc_date: doc_date,\n  balanceToAdd: balanceToAdd,\n  balanceToSubtract: balanceToSubtract,\n  balanceToAddLength: balanceToAdd.length,\n  balanceToSubtractLength: balanceToSubtract.length\n}"
+                                  "code": "const allData = {{node:code_node_yPlLXIZW.data.allData}}\n\nconst initialMovementTable = {{node:get_node_Ij7YbXCA.data.data.stock_movement}}\nconst initialBalanceIndex = {{node:get_node_Ij7YbXCA.data.data.balance_index}}\n\nconst currentMovementTable = {{node:code_node_yPlLXIZW.data.allData.stock_movement}}\nconst currentBalanceIndex = {{node:code_node_yPlLXIZW.data.allData.balance_index}}\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst page_status = {{workflowparams:pageStatus}}\nconst doc_date = allData.issue_date;\n\nconst balanceToAdd = []\nconst balanceToSubtract = []\n\n// Create key using material_id + location_id + batch_id + category\nconst createKey = (item) => {\n  const batchId = item.batch_id || \"\"\n  const category = item.category || \"Unrestricted\"\n  return `${item.material_id}|${item.location_id}|${batchId}|${category}`\n}\n\n// Build map of initial quantities from balance_index\nconst initialMap = {}\nfor (const item of initialBalanceIndex) {\n  if (parseFloat(item.sm_quantity || 0) > 0) {\n    const key = createKey(item)\n    initialMap[key] = {\n      material_id: item.material_id,\n      material_uom: item.material_uom,\n      location_id: item.location_id,\n      batch_id: item.batch_id || null,\n      category: item.category || \"Unrestricted\",\n      sm_quantity: parseFloat(item.sm_quantity || 0),\n      manufacturing_date: item.manufacturing_date || null,\n      expired_date: item.expired_date || null,\n      handling_unit_id: item.handling_unit_id || null\n    }\n  }\n}\n\n// Build map of current quantities from balance_index\nconst currentMap = {}\nfor (const item of currentBalanceIndex) {\n  if (parseFloat(item.sm_quantity || 0) > 0) {\n    const key = createKey(item)\n    currentMap[key] = {\n      material_id: item.material_id,\n      material_uom: item.material_uom,\n      location_id: item.location_id,\n      batch_id: item.batch_id || null,\n      category: item.category || \"Unrestricted\",\n      sm_quantity: parseFloat(item.sm_quantity || 0),\n      manufacturing_date: item.manufacturing_date || null,\n      expired_date: item.expired_date || null,\n      handling_unit_id: item.handling_unit_id || null\n    }\n  }\n}\n\n// Compare and calculate differences\n// Check items in current (new or increased)\nfor (const key in currentMap) {\n  const currentItem = currentMap[key]\n  const initialItem = initialMap[key]\n\n  if (!initialItem) {\n    // New item added (or category changed - treated as new)\n    balanceToAdd.push({\n      material_id: currentItem.material_id,\n      material_uom: currentItem.material_uom,\n      location_id: currentItem.location_id,\n      batch_id: currentItem.batch_id,\n      category: currentItem.category,\n      sm_quantity: currentItem.sm_quantity,\n      manufacturing_date: currentItem.manufacturing_date,\n      expired_date: currentItem.expired_date,\n      handling_unit_id: currentItem.handling_unit_id\n    })\n  } else {\n    const diff = currentItem.sm_quantity - initialItem.sm_quantity\n    if (diff > 0) {\n      // Quantity increased\n      balanceToAdd.push({\n        material_id: currentItem.material_id,\n        material_uom: currentItem.material_uom,\n        location_id: currentItem.location_id,\n        batch_id: currentItem.batch_id,\n        category: currentItem.category,\n        sm_quantity: diff,\n        manufacturing_date: currentItem.manufacturing_date,\n        expired_date: currentItem.expired_date,\n        handling_unit_id: currentItem.handling_unit_id\n      })\n    } else if (diff < 0) {\n      // Quantity decreased\n      balanceToSubtract.push({\n        material_id: currentItem.material_id,\n        material_uom: currentItem.material_uom,\n        location_id: currentItem.location_id,\n        batch_id: currentItem.batch_id,\n        category: currentItem.category,\n        sm_quantity: Math.abs(diff),\n        manufacturing_date: currentItem.manufacturing_date,\n        expired_date: currentItem.expired_date,\n        handling_unit_id: currentItem.handling_unit_id\n      })\n    }\n  }\n}\n\n// Check items removed (in initial but not in current, or category changed)\nfor (const key in initialMap) {\n  if (!currentMap[key]) {\n    const initialItem = initialMap[key]\n    balanceToSubtract.push({\n      material_id: initialItem.material_id,\n      material_uom: initialItem.material_uom,\n      location_id: initialItem.location_id,\n      batch_id: initialItem.batch_id,\n      category: initialItem.category,\n      sm_quantity: initialItem.sm_quantity,\n      manufacturing_date: initialItem.manufacturing_date,\n      expired_date: initialItem.expired_date,\n      handling_unit_id: initialItem.handling_unit_id\n    })\n  }\n}\n\nreturn {\n  plant_id: plant_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  doc_date: doc_date,\n  balanceToAdd: balanceToAdd,\n  balanceToSubtract: balanceToSubtract,\n  balanceToAddLength: balanceToAdd.length,\n  balanceToSubtractLength: balanceToSubtract.length\n}"
                                 },
                                 "response_json": [
                                   {
@@ -2296,7 +2320,7 @@
                                             "name": "balanceToAdd Data",
                                             "script": {
                                               "type": "javascript",
-                                              "code": "const balanceToAdd = {{node:code_node_T4O1Xj1t.data.balanceToAdd}}\nconst currentIndexRaw = {{node:get_cache_node_HxighziS.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\n\nconst balance = balanceToAdd[index];\nconst material_id = balance.material_id;\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst material_uom = balance.material_uom;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date;\nconst expired_date = balance.expired_date;\n\nreturn {\n  material_id: material_id,\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  material_uom: material_uom,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1\n};"
+                                              "code": "const balanceToAdd = {{node:code_node_T4O1Xj1t.data.balanceToAdd}}\nconst currentIndexRaw = {{node:get_cache_node_HxighziS.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\n\nconst balance = balanceToAdd[index];\nconst material_id = balance.material_id;\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst material_uom = balance.material_uom;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date;\nconst expired_date = balance.expired_date;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nreturn {\n  material_id: material_id,\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  material_uom: material_uom,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n  index: index,\n  nextIndex: index + 1\n};"
                                             },
                                             "response_json": [
                                               {
@@ -2378,6 +2402,14 @@
                                                 "key": "wb23drfc",
                                                 "name": "expired_date",
                                                 "title": "expired_date",
+                                                "description": "",
+                                                "bsonType": "string",
+                                                "isExpand": false
+                                              },
+                                              {
+                                                "key": "unhr7m3h",
+                                                "name": "handling_unit_id",
+                                                "title": "handling_unit_id",
                                                 "description": "",
                                                 "bsonType": "string",
                                                 "isExpand": false
@@ -2541,6 +2573,14 @@
                                                   "value": 1,
                                                   "valueLabel": "",
                                                   "propLabel": "Moving Inventory?"
+                                                },
+                                                {
+                                                  "prop": "handling_unit_id",
+                                                  "operator": "",
+                                                  "valueType": "field",
+                                                  "value": "{{node:code_node_EzgKSRNI.data.handling_unit_id}}",
+                                                  "valueLabel": "",
+                                                  "propLabel": "Handling Unit ID"
                                                 }
                                               ]
                                             }
@@ -2791,6 +2831,14 @@
                                                   "value": 1,
                                                   "valueLabel": "",
                                                   "propLabel": "Moving Inventory?"
+                                                },
+                                                {
+                                                  "prop": "handling_unit_id",
+                                                  "operator": "",
+                                                  "valueType": "field",
+                                                  "value": "{{node:code_node_EzgKSRNI.data.handling_unit_id}}",
+                                                  "valueLabel": "",
+                                                  "propLabel": "Handling Unit ID"
                                                 }
                                               ]
                                             }
@@ -3028,7 +3076,7 @@
                                             "name": "balanceToSubtract Data",
                                             "script": {
                                               "type": "javascript",
-                                              "code": "const balanceToSubtract = {{node:code_node_T4O1Xj1t.data.balanceToSubtract}}\nconst currentIndexRaw = {{node:get_cache_node_HxighziS.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\n\nconst balance = balanceToSubtract[index];\nconst material_id = balance.material_id;\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst material_uom = balance.material_uom;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date;\nconst expired_date = balance.expired_date;\n\nreturn {\n  material_id: material_id,\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  material_uom: material_uom,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1\n};"
+                                              "code": "const balanceToSubtract = {{node:code_node_T4O1Xj1t.data.balanceToSubtract}}\nconst currentIndexRaw = {{node:get_cache_node_HxighziS.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\n\nconst balance = balanceToSubtract[index];\nconst material_id = balance.material_id;\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst material_uom = balance.material_uom;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date;\nconst expired_date = balance.expired_date;\nconst handling_unit_id = balance.handling_unit_id;\n\nreturn {\n  material_id: material_id,\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  material_uom: material_uom,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n  index: index,\n  nextIndex: index + 1\n};"
                                             },
                                             "response_json": [
                                               {
@@ -3110,6 +3158,14 @@
                                                 "key": "7oypdwgl",
                                                 "name": "expired_date",
                                                 "title": "expired_date",
+                                                "description": "",
+                                                "bsonType": "string",
+                                                "isExpand": false
+                                              },
+                                              {
+                                                "key": "cl3k6pw4",
+                                                "name": "handling_unit_id",
+                                                "title": "handling_unit_id",
                                                 "description": "",
                                                 "bsonType": "string",
                                                 "isExpand": false
@@ -3273,6 +3329,14 @@
                                                   "value": 1,
                                                   "valueLabel": "",
                                                   "propLabel": "Moving Inventory?"
+                                                },
+                                                {
+                                                  "prop": "handling_unit_id",
+                                                  "operator": "",
+                                                  "valueType": "field",
+                                                  "value": "{{node:code_node_eDSHrqWi.data.handling_unit_id}}",
+                                                  "valueLabel": "",
+                                                  "propLabel": "Handling Unit ID"
                                                 }
                                               ]
                                             }
@@ -3523,6 +3587,14 @@
                                                   "value": 1,
                                                   "valueLabel": "",
                                                   "propLabel": "Moving Inventory?"
+                                                },
+                                                {
+                                                  "prop": "handling_unit_id",
+                                                  "operator": "",
+                                                  "valueType": "field",
+                                                  "value": "{{node:code_node_eDSHrqWi.data.handling_unit_id}}",
+                                                  "valueLabel": "",
+                                                  "propLabel": "Handling Unit ID"
                                                 }
                                               ]
                                             }
@@ -4766,7 +4838,7 @@
                         "name": "Balance Preparation",
                         "script": {
                           "type": "javascript",
-                          "code": "const balancesToProcess = {{node:code_node_u2hr0fnP.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_xwvcaiWQ.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_yPlLXIZW.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nlet inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\n\nif (saveAs === \"Completed\" && stock_movement_status === \"In Progress\") {\n  inventory_category = \"In Transit\"\n}\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1\n};\n\n"
+                          "code": "const balancesToProcess = {{node:code_node_u2hr0fnP.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_xwvcaiWQ.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_yPlLXIZW.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nlet inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nif (saveAs === \"Completed\" && stock_movement_status === \"In Progress\") {\n  inventory_category = \"In Transit\"\n}\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n  index: index,\n  nextIndex: index + 1\n};\n\n"
                         },
                         "response_json": [
                           {
@@ -4832,6 +4904,14 @@
                             "key": "riagl68c",
                             "name": "expired_date",
                             "title": "expired_date",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "bpgks99m",
+                            "name": "handling_unit_id",
+                            "title": "handling_unit_id",
                             "description": "",
                             "bsonType": "string",
                             "isExpand": false
@@ -5003,6 +5083,14 @@
                               "value": 1,
                               "valueLabel": "",
                               "propLabel": "Moving Inventory?"
+                            },
+                            {
+                              "prop": "handling_unit_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_i5zTBWq2.data.handling_unit_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Handling Unit ID"
                             }
                           ]
                         }
@@ -5320,6 +5408,14 @@
                                       "value": 1,
                                       "valueLabel": "",
                                       "propLabel": "Moving Inventory?"
+                                    },
+                                    {
+                                      "prop": "handling_unit_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_i5zTBWq2.data.handling_unit_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Handling Unit ID"
                                     }
                                   ]
                                 }
@@ -5609,6 +5705,14 @@
                                       "value": 1,
                                       "valueLabel": "",
                                       "propLabel": "Moving Inventory?"
+                                    },
+                                    {
+                                      "prop": "handling_unit_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_i5zTBWq2.data.handling_unit_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Handling Unit ID"
                                     }
                                   ]
                                 }
@@ -6028,6 +6132,87 @@
                             }
                           },
                           "blocks": []
+                        },
+                        {
+                          "id": "if_m7IXVU8W",
+                          "type": "if",
+                          "data": {
+                            "title": "IF Error",
+                            "isValidator": true,
+                            "nodeName": "IF Error",
+                            "name": "IF Error",
+                            "condition_type": "ConditionRule",
+                            "expression": { "type": "javascript", "code": "" },
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1736695973613,
+                                  "parentId": 1736695973612,
+                                  "isTop": true,
+                                  "prop": "node.workflow_node_vVPX9VI7.data.code",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "400",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "code",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": [
+                            {
+                              "id": "if_block_Bl4e9WUM",
+                              "type": "ifBlock",
+                              "data": { "title": "true" },
+                              "blocks": [
+                                {
+                                  "id": "return_node_87dTi3ry",
+                                  "type": "return-node",
+                                  "data": {
+                                    "return_data": {},
+                                    "status_code": 200,
+                                    "title": "Return Data",
+                                    "isValidator": true,
+                                    "nodeName": "Return Data",
+                                    "name": "Return Data",
+                                    "response_value": {
+                                      "list": [
+                                        {
+                                          "prop": "code",
+                                          "propLabel": "code",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:workflow_node_vVPX9VI7.data.code}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "message",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:workflow_node_vVPX9VI7.data.message}}",
+                                          "valueLabel": "",
+                                          "propLabel": "message"
+                                        }
+                                      ]
+                                    },
+                                    "return_raw_data": 0
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_block_4hOc6WE8",
+                              "type": "ifBlock",
+                              "data": { "title": "false" },
+                              "blocks": []
+                            }
+                          ]
                         }
                       ]
                     }
