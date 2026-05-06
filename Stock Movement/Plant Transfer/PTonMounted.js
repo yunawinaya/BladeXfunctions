@@ -432,19 +432,16 @@ const isGenerateBatch = async (organizationId) => {
 
     // view_hu always visible on receiving form so user can see source HU info per line
     this.display(["stock_movement.view_hu"]);
+    // select_hu kept hidden for now (workflow auto-generates HU on Branch B); revisit if/when
+    // we want the receiving user to override the auto-generated HU
+    this.hide(["stock_movement.select_hu"]);
 
     if (isGenerateBatch) {
-      this.display([
-        "stock_movement.batch_no",
-        "stock_movement.select_hu",
-      ]);
+      this.display(["stock_movement.batch_no"]);
       this.hide(["stock_movement.batch_id"]);
     } else {
       this.display(["stock_movement.batch_id"]);
-      this.hide([
-        "stock_movement.batch_no",
-        "stock_movement.select_hu",
-      ]);
+      this.hide(["stock_movement.batch_no"]);
     }
   } catch (error) {
     console.error(error);
