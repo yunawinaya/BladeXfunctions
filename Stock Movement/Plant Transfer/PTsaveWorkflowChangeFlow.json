@@ -8744,6 +8744,68 @@
               "blocks": []
             },
             {
+              "id": "search_node_oOEYwCue",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Handling Unit:Table:2036736671686529026",
+                  "rules": {
+                    "collectionId": "2036736671686529026",
+                    "list": [
+                      {
+                        "id": 1777960000001,
+                        "parentId": 1777960000000,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1777960000002,
+                            "parentId": 1777960000001,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1777960000003,
+                            "parentId": 1777960000001,
+                            "isTop": false,
+                            "prop": "location_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{node:get_node_WtFOLdKB.data.data.id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Bin Location",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get HUs at Receiving Default",
+                "isValidator": true,
+                "nodeName": "Get HUs at Receiving Default",
+                "name": "Get HUs at Receiving Default"
+              },
+              "blocks": []
+            },
+            {
               "id": "condition_or_952aTk8a",
               "type": "condition-or-node",
               "data": {
@@ -10491,7 +10553,7 @@
                                         "name": "Create new subForm",
                                         "script": {
                                           "type": "javascript",
-                                          "code": "let newSubFormData = {{node:get_cache_node_I2KYKxnP.data}};\nconst itemData = {{node:get_node_YDpBb9LH.data.data}};\nconst allData ={{node:code_node_37LA0tgq.data.allData}};\nconst currentSubFormItem = {{node:code_node_oO9ISt7e.data.subFormItem}}\n\nif (newSubFormData) {\n  if (typeof newSubFormData === 'string') {\n    try {\n      newSubFormData = JSON.parse(newSubFormData);\n    } catch (e) {\n      newSubFormData = [];\n    }\n  } else if (typeof newSubFormData === 'array') {\n    newSubFormData = newSubFormData;\n  }\n}\n\nconst unitPrice = {{node:workflow_node_a0efvb83.data.unitPrice}};\n\nconst addSubFormItem = {\n  item_selection: {{node:code_node_oO9ISt7e.data.material_id}},\n  item_name: currentSubFormItem.item_name,\n  item_desc: currentSubFormItem.item_desc,\n  total_quantity: {{node:code_node_CdNEX3lE.data.quantity}},\n  received_quantity: {{node:code_node_CdNEX3lE.data.quantity}},\n  received_quantity_uom: itemData.based_uom,\n  unit_price: unitPrice,\n  category: \"Unrestricted\",\n  batch_id: {{node:code_node_CdNEX3lE.data.batch_id}},\n  manufacturing_date: {{node:code_node_CdNEX3lE.data.manufacturing_date}},\n  expired_date: {{node:code_node_CdNEX3lE.data.expired_date}},\n  organization_id: allData.organization_id,\n  issuing_plant: allData.issuing_operation_faci || null,\n  receiving_plant: allData.receiving_operation_faci || null,\n  line_index: {{node:code_node_oO9ISt7e.data.index}} + 1,\n  temp_qty_data: currentSubFormItem.temp_qty_data\n}\n\nnewSubFormData.push(addSubFormItem)\n\nreturn {\n  newSubFormData\n};"
+                                          "code": "let newSubFormData = {{node:get_cache_node_I2KYKxnP.data}};\nconst itemData = {{node:get_node_YDpBb9LH.data.data}};\nconst allData = {{node:code_node_37LA0tgq.data.allData}};\nconst currentSubFormItem = {{node:code_node_oO9ISt7e.data.subFormItem}};\nconst currentLineIndex = {{node:code_node_oO9ISt7e.data.index}};\n\nif (newSubFormData) {\n  if (typeof newSubFormData === 'string') {\n    try { newSubFormData = JSON.parse(newSubFormData); }\n    catch (e) { newSubFormData = []; }\n  }\n}\nif (!Array.isArray(newSubFormData)) newSubFormData = [];\n\nconst unitPrice = {{node:workflow_node_a0efvb83.data.unitPrice}};\n\n// Current balance entry from per-balance picker\nconst balanceQty = {{node:code_node_CdNEX3lE.data.quantity}};\nconst balanceBatchId = {{node:code_node_CdNEX3lE.data.batch_id}};\nconst balanceMfgDate = {{node:code_node_CdNEX3lE.data.manufacturing_date}};\nconst balanceExpDate = {{node:code_node_CdNEX3lE.data.expired_date}};\n\n// Find the actual balance_index entry that matches this iteration (by row_index + batch_id)\nconst balanceIndex = allData.balance_index || [];\nconst matchingBalance = balanceIndex.find(\n  (b) =>\n    String(b.row_index) === String(currentLineIndex) &&\n    (b.batch_id || null) === (balanceBatchId || null)\n) || {};\nconst sourceHuId = matchingBalance.handling_unit_id || null;\n\n// Lookup HU display info from search-node\nlet husAtReceiving = {{node:search_node_oOEYwCue.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\nconst huById = new Map(husAtReceiving.map((h) => [h.id, h]));\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h]));\nconst huRecord = sourceHuId ? (huById.get(sourceHuId) || huBySource.get(sourceHuId) || null) : null;\nconst huNo = huRecord ? (huRecord.handling_no || huRecord.id) : \"\";\nconst viewHu = huRecord ? `${huNo}: ${balanceQty} qty` : \"\";\nconst tempHuEntry = huRecord\n  ? [{\n      handling_unit_id: huRecord.id,\n      handling_no: huRecord.handling_no || \"\",\n      store_in_quantity: balanceQty,\n      hu_material_id: huRecord.hu_material_id || \"\",\n    }]\n  : [];\n\nconst addSubFormItem = {\n  item_selection: {{node:code_node_oO9ISt7e.data.material_id}},\n  item_name: currentSubFormItem.item_name,\n  item_desc: currentSubFormItem.item_desc,\n  total_quantity: balanceQty,\n  received_quantity: balanceQty,\n  received_quantity_uom: itemData.based_uom,\n  unit_price: unitPrice,\n  category: \"Unrestricted\",\n  batch_id: balanceBatchId,\n  manufacturing_date: balanceMfgDate,\n  expired_date: balanceExpDate,\n  organization_id: allData.organization_id,\n  issuing_plant: allData.issuing_operation_faci || null,\n  receiving_plant: allData.receiving_operation_faci || null,\n  line_index: currentLineIndex + 1,\n  handling_unit_id: huRecord ? huRecord.id : null,\n  view_hu: viewHu,\n  select_hu: \"\",\n  temp_qty_data: JSON.stringify([matchingBalance]),\n  temp_hu_data: JSON.stringify(tempHuEntry),\n};\n\nnewSubFormData.push(addSubFormItem);\n\nreturn { newSubFormData };"
                                         },
                                         "response_json": [
                                           {
@@ -10757,7 +10819,7 @@
                                     "name": "Update subForm",
                                     "script": {
                                       "type": "javascript",
-                                      "code": "let finalSubFormData = {{node:get_cache_node_q5H4wa4T.data}}\nconst itemData = {{node:get_node_YDpBb9LH.data.data}};\nconst currentIndexRaw = {{node:get_cache_node_6O6yMS6l.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst allData = {{node:code_node_37LA0tgq.data.allData}};\n\nif (finalSubFormData) {\n  if (typeof finalSubFormData === 'string') {\n    try {\n      finalSubFormData = JSON.parse(finalSubFormData);\n    } catch (e) {\n      finalSubFormData = [];\n    }\n  }\n}\n\nif (!Array.isArray(finalSubFormData)) {\n  finalSubFormData = [];\n}\n\nconst originalItem = allData.stock_movement[index];\nconst unitPrice = {{node:workflow_node_ZUj84fhM.data.unitPrice}};\n\nconst processedItem = {\n  ...originalItem,\n  unit_price: unitPrice || 0,\n  received_quantity: originalItem.total_quantity,\n  received_quantity_uom: itemData.based_uom,\n  category: \"Unrestricted\",\n  batch_no: itemData.item_batch_management === 1 \n    ? (itemData.batch_number_genaration === \"According To System Settings\" \n       ? \"Auto-generated batch number\" \n       : originalItem.batch_no) \n    : \"-\",\n  organization_id: allData.organization_id,\n  issuing_plant: allData.issuing_operation_faci || null,\n  receiving_plant: allData.receiving_operation_faci || null,\n  line_index: finalSubFormData.length + 1,\n};\n\nfinalSubFormData.push(processedItem);\n\nreturn {\n  finalSubFormData\n};\n"
+                                      "code": "let finalSubFormData = {{node:get_cache_node_q5H4wa4T.data}}\nconst itemData = {{node:get_node_YDpBb9LH.data.data}};\nconst currentIndexRaw = {{node:get_cache_node_6O6yMS6l.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst allData = {{node:code_node_37LA0tgq.data.allData}};\n\nif (finalSubFormData) {\n  if (typeof finalSubFormData === 'string') {\n    try { finalSubFormData = JSON.parse(finalSubFormData); }\n    catch (e) { finalSubFormData = []; }\n  }\n}\nif (!Array.isArray(finalSubFormData)) finalSubFormData = [];\n\nconst originalItem = allData.stock_movement[index];\nconst unitPrice = {{node:workflow_node_ZUj84fhM.data.unitPrice}};\n\n// Filter balance_index for entries belonging to this source line\nconst balanceEntries = (allData.balance_index || []).filter(\n  (b) => String(b.row_index) === String(index)\n);\n\n// Lookup HU display info from search-node (HUs now at receiving plant default)\nlet husAtReceiving = {{node:search_node_oOEYwCue.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\n// Resolve source HU id → actual HU at receiving (Branch A: same id; Branch B: new HU via transfer_source_hu_id)\nconst huById = new Map(husAtReceiving.map((h) => [h.id, h]));\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h]));\nconst resolveHu = (sourceHuId) => huById.get(sourceHuId) || huBySource.get(sourceHuId) || null;\n\nconst buildLine = (qty, sourceHuId, scopedTempQty) => {\n  const huRecord = sourceHuId ? resolveHu(sourceHuId) : null;\n  const huNo = huRecord ? (huRecord.handling_no || huRecord.id) : \"\";\n  const viewHu = huRecord ? `${huNo}: ${qty} qty` : \"\";\n  const tempHuEntry = huRecord\n    ? [{\n        handling_unit_id: huRecord.id,\n        handling_no: huRecord.handling_no || \"\",\n        store_in_quantity: qty,\n        hu_material_id: huRecord.hu_material_id || \"\",\n      }]\n    : [];\n\n  return {\n    ...originalItem,\n    unit_price: unitPrice || 0,\n    total_quantity: qty,\n    received_quantity: qty,\n    received_quantity_uom: itemData.based_uom,\n    category: \"Unrestricted\",\n    batch_no: \"-\",\n    organization_id: allData.organization_id,\n    issuing_plant: allData.issuing_operation_faci || null,\n    receiving_plant: allData.receiving_operation_faci || null,\n    line_index: finalSubFormData.length + 1,\n    handling_unit_id: huRecord ? huRecord.id : null,\n    view_hu: viewHu,\n    select_hu: \"\",\n    temp_qty_data: scopedTempQty,\n    temp_hu_data: JSON.stringify(tempHuEntry),\n  };\n};\n\nif (balanceEntries.length === 0) {\n  // Defensive fallback: 1 consolidated line\n  finalSubFormData.push(buildLine(originalItem.total_quantity, null, originalItem.temp_qty_data));\n} else {\n  // Split into one receiving line per balance entry\n  for (const balance of balanceEntries) {\n    const qty = parseFloat(balance.sm_quantity || 0);\n    const sourceHuId = balance.handling_unit_id || null;\n    finalSubFormData.push(buildLine(qty, sourceHuId, JSON.stringify([balance])));\n  }\n}\n\nreturn { finalSubFormData };"
                                     },
                                     "response_json": [
                                       {
@@ -14040,68 +14102,6 @@
                   "data": { "title": "true" },
                   "blocks": [
                     {
-                      "id": "search_node_oOEYwCue",
-                      "type": "search-node",
-                      "data": {
-                        "table_id": {
-                          "source": "Handling Unit:Table:2036736671686529026",
-                          "rules": {
-                            "collectionId": "2036736671686529026",
-                            "list": [
-                              {
-                                "id": 1777960000001,
-                                "parentId": 1777960000000,
-                                "isTop": true,
-                                "prop": "",
-                                "operator": "all",
-                                "valueType": "",
-                                "value": "",
-                                "type": "branch",
-                                "level": 1,
-                                "children": [
-                                  {
-                                    "id": 1777960000002,
-                                    "parentId": 1777960000001,
-                                    "isTop": false,
-                                    "prop": "plant_id",
-                                    "operator": "numberEqual",
-                                    "valueType": "field",
-                                    "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
-                                    "type": "leaf",
-                                    "level": 2,
-                                    "propLabel": "Plant",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal"
-                                  },
-                                  {
-                                    "id": 1777960000003,
-                                    "parentId": 1777960000001,
-                                    "isTop": false,
-                                    "prop": "location_id",
-                                    "operator": "numberEqual",
-                                    "valueType": "field",
-                                    "value": "{{node:get_node_WtFOLdKB.data.data.id}}",
-                                    "type": "leaf",
-                                    "level": 2,
-                                    "propLabel": "Bin Location",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        },
-                        "condition": {},
-                        "limit": 100,
-                        "title": "Get HUs at Receiving Default",
-                        "isValidator": true,
-                        "nodeName": "Get HUs at Receiving Default",
-                        "name": "Get HUs at Receiving Default"
-                      },
-                      "blocks": []
-                    },
-                    {
                       "id": "code_node_ItXi8Yt7",
                       "type": "code-node",
                       "data": {
@@ -14114,7 +14114,7 @@
                         "name": "Aggregate HU Final Moves",
                         "script": {
                           "type": "javascript",
-                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\n\nlet husAtReceiving = {{node:search_node_oOEYwCue.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\n\n// Branch A: HU was moved at Issued, same id at receiving\n// Branch B: a NEW HU was created at receiving with transfer_source_hu_id pointing back\nconst huById = new Map(husAtReceiving.map((h) => [h.id, h.id]));\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h.id]));\n\nconst huMovesMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n  const huToMove = huById.get(sourceHuId) || huBySource.get(sourceHuId);\n  if (!huToMove) continue;  // not at receiving default — defensive skip\n  if (huMovesMap.has(huToMove)) continue;\n\n  const rowIdx = parseInt(entry.row_index, 10);\n  const smRow = stockMovement[rowIdx];\n  if (!smRow || !smRow.location_id || !smRow.storage_location_id) continue;\n\n  huMovesMap.set(huToMove, {\n    handling_unit_id: huToMove,\n    plant_id: targetPlantId,\n    organization_id: organizationId,\n    location_id: smRow.location_id,\n    storage_location_id: smRow.storage_location_id,\n  });\n}\n\nconst huMoves = Array.from(huMovesMap.values());\nreturn { huMoves: huMoves, huMovesLength: huMoves.length };"
+                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\n\nlet husAtReceiving = {{node:search_node_oOEYwCue.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\n\n// Branch A: HU was moved at Issued, same id at receiving\n// Branch B: a NEW HU was created at receiving with transfer_source_hu_id pointing back\nconst huById = new Map(husAtReceiving.map((h) => [h.id, h.id]));\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h.id]));\n\n// Iterate each receiving line directly. Each line that represents an HU pick\n// carries handling_unit_id (set during In Progress when the receiving doc was\n// created via the per-balance split). Line's chosen bin → target.\nconst huMovesMap = new Map();\nfor (const smRow of stockMovement) {\n  const sourceHuId = smRow.handling_unit_id;\n  if (!sourceHuId) continue;\n  const huToMove = huById.get(sourceHuId) || huBySource.get(sourceHuId);\n  if (!huToMove) continue;\n  if (huMovesMap.has(huToMove)) continue;\n  if (!smRow.location_id || !smRow.storage_location_id) continue;\n\n  huMovesMap.set(huToMove, {\n    handling_unit_id: huToMove,\n    plant_id: targetPlantId,\n    organization_id: organizationId,\n    location_id: smRow.location_id,\n    storage_location_id: smRow.storage_location_id,\n  });\n}\n\nconst huMoves = Array.from(huMovesMap.values());\nreturn { huMoves: huMoves, huMovesLength: huMoves.length };"
                         },
                         "response_json": [
                           {
