@@ -41,20 +41,6 @@
                     "operatorLabel": "In"
                   },
                   {
-                    "id": 1774508747629,
-                    "parentId": 1774508747627,
-                    "isTop": false,
-                    "prop": "plant_id",
-                    "operator": "numberEqual",
-                    "valueType": "field",
-                    "value": "{{workflowparams:plant_id}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "Plant",
-                    "valueLabel": "",
-                    "operatorLabel": "Equal"
-                  },
-                  {
                     "id": 1774508747630,
                     "parentId": 1774508747627,
                     "isTop": false,
@@ -1323,6 +1309,14 @@
               "value": "{{node:code_node_Li3O7y4d.data.hu_status}}",
               "valueLabel": "",
               "propLabel": "HU Status"
+            },
+            {
+              "prop": "plant_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{workflowparams:plant_id}}",
+              "valueLabel": "",
+              "propLabel": "Plant"
             },
             {
               "prop": "storage_location_id",
