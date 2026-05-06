@@ -189,33 +189,11 @@
     [`stock_movement.${rowIndex}.total_quantity`]: totalCombined,
   });
 
-  const currentBalanceIndex = this.getValues().balance_index || [];
   const rowsToUpdate = processedTemporaryData.filter(
     (item) => (item.sm_quantity || 0) > 0,
   );
 
-  let updatedBalanceIndex = currentBalanceIndex.filter((item) => {
-    return String(item.row_index) !== String(rowIndex);
-  });
-
-  rowsToUpdate.forEach((newRow) => {
-    const newEntry = { ...newRow, row_index: rowIndex };
-    delete newEntry.id;
-
-    if (newEntry.dialog_manufacturing_date !== undefined) {
-      newEntry.manufacturing_date = newEntry.dialog_manufacturing_date;
-      delete newEntry.dialog_manufacturing_date;
-    }
-    if (newEntry.dialog_expired_date !== undefined) {
-      newEntry.expired_date = newEntry.dialog_expired_date;
-      delete newEntry.dialog_expired_date;
-    }
-
-    updatedBalanceIndex.push(newEntry);
-  });
-
-  // Convert HU items to balance-shape so they flow through the same persistence path.
-  // sm_quantity carries the picked qty; category is always "Unrestricted" for HU items.
+  // HU items in balance-shape; category always "Unrestricted" for HU items.
   const huAsBalanceRowsBase = filteredHuData.map((huItem) => ({
     material_id: huItem.material_id,
     location_id: huItem.location_id,
@@ -232,14 +210,21 @@
     manufacturing_date: huItem.manufacturing_date || null,
   }));
 
-  huAsBalanceRowsBase.forEach((huRow) => {
-    updatedBalanceIndex.push({ ...huRow, row_index: rowIndex });
+  // Cross-line serial dup check: scan other rows' persisted temp_qty_data,
+  // plus this row's new loose + HU entries.
+  const otherRowEntries = [];
+  (allData.stock_movement || []).forEach((line, idx) => {
+    if (String(idx) === String(rowIndex)) return;
+    if (!line.temp_qty_data) return;
+    try {
+      const parsed = JSON.parse(line.temp_qty_data);
+      if (Array.isArray(parsed)) otherRowEntries.push(...parsed);
+    } catch (e) {}
   });
 
-  // Detect duplicate serials across loose + HU within the same location/batch
   const serialLocationBatchMap = new Map();
 
-  updatedBalanceIndex.forEach((entry) => {
+  [...otherRowEntries, ...rowsToUpdate, ...huAsBalanceRowsBase].forEach((entry) => {
     if (entry.serial_number && entry.serial_number.trim() !== "") {
       const serialNumber = entry.serial_number.trim();
       const locationId = entry.location_id || "no-location";
@@ -444,38 +429,6 @@
     [`stock_movement.${rowIndex}.temp_hu_data`]: JSON.stringify(filteredHuData),
     [`stock_movement.${rowIndex}.stock_summary`]: formattedString,
   });
-
-  const convertedBalanceIndex = updatedBalanceIndex.map((item) => {
-    const converted = { ...item };
-
-    const numericFields = [
-      "unrestricted_qty",
-      "reserved_qty",
-      "qualityinsp_qty",
-      "block_qty",
-      "intransit_qty",
-      "balance_quantity",
-      "sm_quantity",
-      "unit_price",
-    ];
-
-    numericFields.forEach((field) => {
-      if (converted[field] !== null && converted[field] !== undefined) {
-        const num = parseFloat(converted[field]) || 0;
-        converted[field] = num.toFixed(3);
-      }
-    });
-
-    if (converted.is_deleted !== undefined) {
-      converted.is_deleted = converted.is_deleted ? 1 : 0;
-    }
-
-    return converted;
-  });
-
-  this.setData({ balance_index: [] });
-  await new Promise((resolve) => setTimeout(resolve, 50));
-  this.setData({ balance_index: convertedBalanceIndex });
 
   this.models["previous_material_uom"] = undefined;
   this.setData({ error_message: "" });
