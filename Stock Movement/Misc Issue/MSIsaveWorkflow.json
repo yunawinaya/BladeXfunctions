@@ -270,7 +270,7 @@
                 "name": "Validate Location & Quantity",
                 "script": {
                   "type": "javascript",
-                  "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}}\nconst subformData = allData.stock_movement\n\nlet quantityFailed = 0\nlet quantityMessage\n\nconst balancesToProcess =\n  allData.balance_index?.filter(\n    (balance) => balance.sm_quantity && balance.sm_quantity > 0\n  ) || [];\n\nif (balancesToProcess.length === 0) {\n  quantityFailed = 1\n  quantityMessage = 'No quantity selected to issue'\n}\n\nreturn {\n  quantityFailed: quantityFailed,\n  quantityMessage: quantityMessage\n};"
+                  "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}}\nconst subformData = allData.stock_movement || []\n\nlet quantityFailed = 0\nlet quantityMessage\n\nconst hasQuantity = subformData.some((line) => {\n  if (!line.temp_qty_data) return false;\n  try {\n    const parsed = JSON.parse(line.temp_qty_data);\n    return Array.isArray(parsed) && parsed.some(\n      (entry) => entry.sm_quantity && parseFloat(entry.sm_quantity) > 0\n    );\n  } catch (e) {\n    return false;\n  }\n});\n\nif (!hasQuantity) {\n  quantityFailed = 1\n  quantityMessage = 'No quantity selected to issue'\n}\n\nreturn {\n  quantityFailed: quantityFailed,\n  quantityMessage: quantityMessage\n};"
                 },
                 "response_json": [
                   {
@@ -618,14 +618,6 @@
                               "propLabel": "Remark 3"
                             },
                             {
-                              "prop": "balance_index",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.balance_index}}",
-                              "valueLabel": "",
-                              "propLabel": "Balance Index"
-                            },
-                            {
                               "prop": "stock_movement_no",
                               "operator": "",
                               "valueType": "field",
@@ -871,14 +863,6 @@
                               "propLabel": "Remark 3"
                             },
                             {
-                              "prop": "balance_index",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.balance_index}}",
-                              "valueLabel": "",
-                              "propLabel": "Balance Index"
-                            },
-                            {
                               "prop": "stock_movement_no_type",
                               "operator": "",
                               "valueType": "field",
@@ -1001,7 +985,7 @@
                     "name": "Subform Preparation",
                     "script": {
                       "type": "javascript",
-                      "code": "const page_status = {{workflowparams:pageStatus}};\nconst stock_movement_status = {{node:code_node_ISWz5KGY.data.stock_movement_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_1p1Kdkhz.data}}\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_7CFMbGI0.data.data}}\n} else {\n  allData = {{node:code_node_ISWz5KGY.data.allData}}\n}\n\nconst subformData = allData.stock_movement;\nconst currentIndexRaw = {{node:get_cache_node_cFQ0jK2S.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst doc_date = allData.issue_date;\n\nconst item = subformData[index];\nconst material_id = item.item_selection;\nconst material_uom = item.quantity_uom || item.received_quantity_uom;\nconst total_quantity = item.total_quantity;\nconst location_id = item.location_id;\nconst batch_id = item.batch_id || null;\nconst remark = item.item_remark || null;\nconst remark2 = item.item_remark_2 || null;\nconst remark3 = item.item_remark_3 || null;\nconst inventory_category = \"Unrestricted\";\n\nlet tempDataParsed;\n\nconst tempData = item.temp_qty_data;\nif (!tempData) {\n  tempDataParsed = [];\n} else {\n  tempDataParsed = JSON.parse(tempData);\n  tempDataParsed = tempDataParsed.filter(\n    (tempData) => tempData.sm_quantity > 0\n  );\n  if (!Array.isArray(tempDataParsed)) {\n    tempDataParsed = [];\n  }\n}\n\nlet balancesToProcess =\n  allData.balance_index?.filter(\n    (balance) =>\n      balance.sm_quantity &&\n      parseFloat(balance.sm_quantity) > 0 &&\n      tempDataParsed.some(\n        (tempData) =>\n          tempData.material_id === balance.material_id &&\n          tempData.location_id === balance.location_id &&\n          (tempData.batch_id || \"\") === (balance.batch_id || \"\") &&\n          (tempData.category || \"Unrestricted\") === (balance.category || \"Unrestricted\")\n      )\n  ) || [];\n\nreturn {\n  plant_id: plant_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  location_id: location_id,\n  batch_id: batch_id,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  balancesToProcess: balancesToProcess,\n  index: index,\n  nextIndex: index + 1\n};"
+                      "code": "const page_status = {{workflowparams:pageStatus}};\nconst stock_movement_status = {{node:code_node_ISWz5KGY.data.stock_movement_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_1p1Kdkhz.data}}\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_7CFMbGI0.data.data}}\n} else {\n  allData = {{node:code_node_ISWz5KGY.data.allData}}\n}\n\nconst subformData = allData.stock_movement;\nconst currentIndexRaw = {{node:get_cache_node_cFQ0jK2S.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst doc_date = allData.issue_date;\n\nconst item = subformData[index];\nconst material_id = item.item_selection;\nconst material_uom = item.quantity_uom || item.received_quantity_uom;\nconst total_quantity = item.total_quantity;\nconst location_id = item.location_id;\nconst batch_id = item.batch_id || null;\nconst remark = item.item_remark || null;\nconst remark2 = item.item_remark_2 || null;\nconst remark3 = item.item_remark_3 || null;\nconst inventory_category = \"Unrestricted\";\n\nlet balancesToProcess = [];\nconst tempData = item.temp_qty_data;\nif (tempData) {\n  try {\n    const parsed = JSON.parse(tempData);\n    if (Array.isArray(parsed)) {\n      balancesToProcess = parsed.filter(\n        (entry) => entry.sm_quantity && parseFloat(entry.sm_quantity) > 0\n      );\n    }\n  } catch (e) {\n    balancesToProcess = [];\n  }\n}\n\nreturn {\n  plant_id: plant_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  location_id: location_id,\n  batch_id: batch_id,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  balancesToProcess: balancesToProcess,\n  index: index,\n  nextIndex: index + 1\n};"
                     },
                     "response_json": [
                       {
@@ -1676,7 +1660,7 @@
                 "name": "Aggregate HU Unloads",
                 "script": {
                   "type": "javascript",
-                  "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}};\nconst balanceIndex = allData.balance_index || [];\nconst plantId = allData.issuing_operation_faci;\nconst organizationId = allData.organization_id;\n\nconst huUpdatesMap = new Map();\nfor (const entry of balanceIndex) {\n  const huId = entry.handling_unit_id;\n  if (!huId) continue;\n  const qty = parseFloat(entry.sm_quantity || 0);\n  if (qty <= 0) continue;\n\n  if (!huUpdatesMap.has(huId)) {\n    huUpdatesMap.set(huId, {\n      handling_unit_id: huId,\n      plant_id: plantId,\n      organization_id: organizationId,\n      location_id: entry.location_id || null,\n      storage_location_id: entry.storage_location_id || null,\n      items: [],\n    });\n  }\n  const update = huUpdatesMap.get(huId);\n\n  // Aggregate qty per (material_id, balance_id, batch_id) — matches HUworkflow's unload key\n  const key = `${entry.material_id}__${entry.balance_id || \"\"}__${entry.batch_id || \"\"}`;\n  const existing = update.items.find(\n    (i) => `${i.material_id}__${i.balance_id || \"\"}__${i.batch_id || \"\"}` === key\n  );\n  if (existing) {\n    existing.quantity += qty;\n  } else {\n    update.items.push({\n      material_id: entry.material_id,\n      balance_id: entry.balance_id || \"\",\n      batch_id: entry.batch_id || null,\n      quantity: qty,\n    });\n  }\n}\n\nreturn {\n  huUpdates: Array.from(huUpdatesMap.values()),\n  huUpdatesLength: huUpdatesMap.size,\n};\n"
+                  "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}};\nconst subformData = allData.stock_movement || [];\nconst plantId = allData.issuing_operation_faci;\nconst organizationId = allData.organization_id;\n\nconst huUpdatesMap = new Map();\nfor (const line of subformData) {\n  if (!line.temp_qty_data) continue;\n  let entries;\n  try {\n    entries = JSON.parse(line.temp_qty_data);\n  } catch (e) {\n    continue;\n  }\n  if (!Array.isArray(entries)) continue;\n\n  for (const entry of entries) {\n    const huId = entry.handling_unit_id;\n    if (!huId) continue;\n    const qty = parseFloat(entry.sm_quantity || 0);\n    if (qty <= 0) continue;\n\n    if (!huUpdatesMap.has(huId)) {\n      huUpdatesMap.set(huId, {\n        handling_unit_id: huId,\n        plant_id: plantId,\n        organization_id: organizationId,\n        location_id: entry.location_id || null,\n        storage_location_id: entry.storage_location_id || null,\n        items: [],\n      });\n    }\n    const update = huUpdatesMap.get(huId);\n\n    // Aggregate qty per (material_id, balance_id, batch_id) — matches HUworkflow's unload key\n    const key = `${entry.material_id}__${entry.balance_id || \"\"}__${entry.batch_id || \"\"}`;\n    const existing = update.items.find(\n      (i) => `${i.material_id}__${i.balance_id || \"\"}__${i.batch_id || \"\"}` === key\n    );\n    if (existing) {\n      existing.quantity += qty;\n    } else {\n      update.items.push({\n        material_id: entry.material_id,\n        balance_id: entry.balance_id || \"\",\n        batch_id: entry.batch_id || null,\n        quantity: qty,\n      });\n    }\n  }\n}\n\nreturn {\n  huUpdates: Array.from(huUpdatesMap.values()),\n  huUpdatesLength: huUpdatesMap.size,\n};\n"
                 },
                 "response_json": [
                   {
@@ -2223,14 +2207,6 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.remark3}}",
                               "valueLabel": "",
                               "propLabel": "Remark 3"
-                            },
-                            {
-                              "prop": "balance_index",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.balance_index}}",
-                              "valueLabel": "",
-                              "propLabel": "Balance Index"
                             }
                           ]
                         }
@@ -2410,14 +2386,6 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.remark3}}",
                               "valueLabel": "",
                               "propLabel": "Remark 3"
-                            },
-                            {
-                              "prop": "balance_index",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.balance_index}}",
-                              "valueLabel": "",
-                              "propLabel": "Balance Index"
                             },
                             {
                               "prop": "stock_movement_no_type",
