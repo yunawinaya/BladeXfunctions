@@ -1375,7 +1375,19 @@
                                 "title": "batch_id",
                                 "description": "",
                                 "bsonType": "array",
-                                "isExpand": false
+                                "isExpand": true,
+                                "children": [
+                                  {
+                                    "key": "ts77ga7f",
+                                    "name": "items",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "isArrayItem": true,
+                                    "children": []
+                                  }
+                                ]
                               }
                             ]
                           },
