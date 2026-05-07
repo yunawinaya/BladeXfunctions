@@ -131,6 +131,25 @@ const handlePicking = async (selectedRecords) => {
     console.log("selectedRecords", selectedRecords);
 
     if (selectedRecords && selectedRecords.length > 0) {
+      const cancelledRecords = selectedRecords.filter(
+        (item) => item.to_status === "Cancelled",
+      );
+
+      if (cancelledRecords.length > 0) {
+        await this.$alert(
+          `Cannot convert cancelled picking plan records:<br><br>${cancelledRecords
+            .map((item) => item.to_no)
+            .join("<br>")}`,
+          "Cancelled Records Selected",
+          {
+            confirmButtonText: "OK",
+            dangerouslyUseHTMLString: true,
+            type: "error",
+          },
+        );
+        return;
+      }
+
       selectedRecords = selectedRecords.filter((item) =>
         item.table_to.some((toItem) => toItem.picking_status !== "Completed"),
       );
