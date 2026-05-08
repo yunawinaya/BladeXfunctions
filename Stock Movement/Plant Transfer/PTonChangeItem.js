@@ -58,6 +58,14 @@ const handleUOM = async (itemData, rowIndex) => {
         [`stock_movement.${rowIndex}.item_desc`]: itemData.material_desc,
         [`stock_movement.${rowIndex}.quantity_uom`]: itemData.based_uom,
         [`stock_movement.${rowIndex}.unit_price`]: itemData.purchase_unit_price,
+        // Clear prior item's stock picks so the dialog opens fresh for the new item
+        [`stock_movement.${rowIndex}.requested_qty`]: 0,
+        [`stock_movement.${rowIndex}.total_quantity`]: 0,
+        [`stock_movement.${rowIndex}.to_recv_qty`]: 0,
+        [`stock_movement.${rowIndex}.received_quantity`]: 0,
+        [`stock_movement.${rowIndex}.balance_id`]: "",
+        [`stock_movement.${rowIndex}.temp_qty_data`]: "",
+        [`stock_movement.${rowIndex}.temp_hu_data`]: "",
       });
     } else {
       const tableSM = this.getValue("stock_movement");
@@ -89,6 +97,7 @@ const handleUOM = async (itemData, rowIndex) => {
       [`stock_movement.${rowIndex}.stock_summary`]: "",
       [`stock_movement.${rowIndex}.balance_id`]: "",
       [`stock_movement.${rowIndex}.temp_qty_data`]: "",
+      [`stock_movement.${rowIndex}.temp_hu_data`]: "",
       [`stock_movement.${rowIndex}.item_name`]: "",
       [`stock_movement.${rowIndex}.item_desc`]: "",
     });
