@@ -178,28 +178,57 @@
     isBatchManaged,
   ) => {
     try {
-      const huRes = await db
-        .collection("handling_unit")
-        .where({
-          plant_id: plantId,
-          organization_id: orgId,
-          is_deleted: 0,
-        })
+      // Query sub-collection by material — bypasses 5000-row cap on handling_unit
+      const subRes = await db
+        .collection("handling_unit_atu7sreg_sub")
+        .where({ material_id: matId, is_deleted: 0 })
         .get();
 
-      const huQtyMap = new Map();
+      const subRows = subRes.data || [];
+      if (subRows.length === 0) return new Map();
+
+      // Fetch the relevant parent HUs (scoped by plant/org, for location fallback)
+      const candidateHuIds = [
+        ...new Set(subRows.map((r) => r.handling_unit_id).filter(Boolean)),
+      ];
+
+      const huRes = await db
+        .collection("handling_unit")
+        .filter([
+          {
+            type: "branch",
+            operator: "all",
+            children: [
+              { prop: "id", operator: "in", value: candidateHuIds },
+              { prop: "plant_id", operator: "equal", value: plantId },
+              {
+                prop: "organization_id",
+                operator: "equal",
+                value: orgId,
+              },
+              { prop: "is_deleted", operator: "equal", value: 0 },
+            ],
+          },
+        ])
+        .get();
+
+      const huLocationMap = new Map();
       for (const hu of huRes.data || []) {
-        const items = (hu.table_hu_items || []).filter(
-          (item) => item.is_deleted !== 1 && item.material_id === matId,
-        );
-        for (const item of items) {
-          const locationId = item.location_id || hu.location_id;
-          const key = isBatchManaged
-            ? `${locationId}-${item.batch_id || "no_batch"}`
-            : `${locationId}`;
-          const qty = parseFloat(item.quantity) || 0;
-          huQtyMap.set(key, (huQtyMap.get(key) || 0) + qty);
-        }
+        huLocationMap.set(hu.id, hu.location_id);
+      }
+
+      const huQtyMap = new Map();
+      for (const item of subRows) {
+        // Skip sub-rows whose parent HU isn't in this plant/org (or deleted)
+        if (!huLocationMap.has(item.handling_unit_id)) continue;
+
+        const locationId =
+          item.location_id || huLocationMap.get(item.handling_unit_id);
+        const key = isBatchManaged
+          ? `${locationId}-${item.batch_id || "no_batch"}`
+          : `${locationId}`;
+        const qty = parseFloat(item.quantity) || 0;
+        huQtyMap.set(key, (huQtyMap.get(key) || 0) + qty);
       }
       return huQtyMap;
     } catch (error) {
@@ -221,13 +250,42 @@
     reservedHuIdSet,
   ) => {
     try {
+      // Find HU IDs containing this material via the flat sub-collection.
+      // Avoids the 5000-row default cap on `handling_unit` when many HUs exist.
+      const subRes = await db
+        .collection("handling_unit_atu7sreg_sub")
+        .where({ material_id: matId, is_deleted: 0 })
+        .get();
+
+      const candidateHuIds = [
+        ...new Set(
+          (subRes.data || []).map((r) => r.handling_unit_id).filter(Boolean),
+        ),
+      ];
+
+      if (candidateHuIds.length === 0) {
+        return [];
+      }
+
+      // Fetch only the HUs that contain this material — scoped by plant/org
       const responseHU = await db
         .collection("handling_unit")
-        .where({
-          plant_id: plantId,
-          organization_id: orgId,
-          is_deleted: 0,
-        })
+        .filter([
+          {
+            type: "branch",
+            operator: "all",
+            children: [
+              { prop: "id", operator: "in", value: candidateHuIds },
+              { prop: "plant_id", operator: "equal", value: plantId },
+              {
+                prop: "organization_id",
+                operator: "equal",
+                value: orgId,
+              },
+              { prop: "is_deleted", operator: "equal", value: 0 },
+            ],
+          },
+        ])
         .get();
 
       const allHUs = responseHU.data || [];

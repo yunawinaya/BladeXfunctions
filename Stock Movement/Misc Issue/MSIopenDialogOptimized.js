@@ -412,18 +412,46 @@
           console.error("Error fetching on_reserved_gd:", error);
           return { data: [] };
         }),
-      db
-        .collection("handling_unit")
-        .where({
-          plant_id: plant_id,
-          organization_id: organizationId,
-          is_deleted: 0,
-        })
-        .get()
-        .catch((error) => {
+      (async () => {
+        // Find HU IDs containing this material via the flat sub-collection.
+        // Avoids the 5000-row default cap on `handling_unit` when many HUs exist.
+        try {
+          const subRes = await db
+            .collection("handling_unit_atu7sreg_sub")
+            .where({ material_id: materialId, is_deleted: 0 })
+            .get();
+          const candidateHuIds = [
+            ...new Set(
+              (subRes.data || [])
+                .map((r) => r.handling_unit_id)
+                .filter(Boolean),
+            ),
+          ];
+          if (candidateHuIds.length === 0) return { data: [] };
+          return await db
+            .collection("handling_unit")
+            .filter([
+              {
+                type: "branch",
+                operator: "all",
+                children: [
+                  { prop: "id", operator: "in", value: candidateHuIds },
+                  { prop: "plant_id", operator: "equal", value: plant_id },
+                  {
+                    prop: "organization_id",
+                    operator: "equal",
+                    value: organizationId,
+                  },
+                  { prop: "is_deleted", operator: "equal", value: 0 },
+                ],
+              },
+            ])
+            .get();
+        } catch (error) {
           console.error("Error fetching handling units:", error);
           return { data: [] };
-        }),
+        }
+      })(),
       db
         .collection(balanceCollection)
         .where({ material_id: materialId, plant_id: plant_id })
