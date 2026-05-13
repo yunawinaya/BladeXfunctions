@@ -163,7 +163,7 @@
         });
       } else if (isSerial) {
         filteredData.forEach((item) => {
-          item.movement_type = "Out";
+          item.movement_type = "OUT";
         });
       }
     };
@@ -171,7 +171,7 @@
     const applyMovementTypeUI = (isSerial) => {
       if (adjustment_type === "Write Off") {
         this.setData({
-          [`sa_item_balance.table_item_balance.movement_type`]: "Out",
+          [`sa_item_balance.table_item_balance.movement_type`]: "OUT",
         });
         this.hide("sa_item_balance.table_item_balance.movement_type");
       } else if (adjustment_type === "Stock Count") {
@@ -182,7 +182,7 @@
         this.display([`sa_item_balance.table_item_balance.movement_type`]);
       } else if (isSerial) {
         this.setData({
-          [`sa_item_balance.table_item_balance.movement_type`]: "Out",
+          [`sa_item_balance.table_item_balance.movement_type`]: "OUT",
         });
         this.disabled(
           [`sa_item_balance.table_item_balance.movement_type`],
