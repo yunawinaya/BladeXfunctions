@@ -109,7 +109,7 @@ const handleUOM = async (itemData, rowIndex) => {
       [`stock_movement.${rowIndex}.amount`]: 0,
       [`stock_movement.${rowIndex}.storage_location_id`]: "",
       [`stock_movement.${rowIndex}.location_id`]: "",
-      [`stock_movement.${rowIndex}.batch_id`]: "-",
+      [`stock_movement.${rowIndex}.batch_id`]: null,
       [`stock_movement.${rowIndex}.category`]: "",
       [`stock_movement.${rowIndex}.stock_summary`]: "",
       [`stock_movement.${rowIndex}.balance_id`]: "",
