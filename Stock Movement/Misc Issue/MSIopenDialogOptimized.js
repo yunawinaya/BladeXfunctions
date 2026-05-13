@@ -214,7 +214,7 @@
       itemData,
       altUOM,
       otherLinesHuAllocations,
-      reservedHuIdSet,
+      huReservedMap,
     ) => {
       // Map for O(1) other-line allocation lookup (preserves first-match behavior of .find())
       const huAllocMap = new Map();
@@ -226,9 +226,6 @@
       const huTableData = [];
 
       for (const hu of allHUs) {
-        // Full HU exclusion: skip any HU with an active reservation in on_reserved_gd
-        if (reservedHuIdSet && reservedHuIdSet.has(hu.id)) continue;
-
         // ALLOW_SPLIT: keep only items matching the current material; skip the
         // HU entirely if it has none.
         const allActiveItems = (hu.table_hu_items || []).filter(
@@ -255,7 +252,11 @@
 
         let headerItemTotal = 0;
         for (const huItem of allActiveItems) {
-          const baseQty = parseFloat(huItem.quantity) || 0;
+          const rawBaseQty = parseFloat(huItem.quantity) || 0;
+          // Partial GD-reservation deduction in base units, matched on HU + batch
+          const reservedKey = `${hu.id}|${huItem.batch_id || ""}`;
+          const reservedBase = huReservedMap?.get(reservedKey) || 0;
+          const baseQty = Math.max(0, rawBaseQty - reservedBase);
           let displayQty = convertBaseToAlt(baseQty, itemData, altUOM);
 
           const k = `${hu.id}|${huItem.material_id}|${huItem.batch_id || ""}`;
@@ -394,7 +395,8 @@
 
     // Parallelize independent fetches: UOM, GD reservations, all HUs, balance
     // Active GD reservations for this material. Used to:
-    //   (a) Hide whole HUs that have any item reserved (full HU exclusion).
+    //   (a) Subtract HU-bound reservations from the matching HU+batch row in the
+    //       handling_unit display (partial deduction, not full exclusion).
     //   (b) Subtract loose-stock reservations (no handling_unit_id) from the
     //       item_balance display so MSI doesn't pick stock already committed to GD.
     const [uomOptions, reservationRes, huRes, balanceRes] = await Promise.all([
@@ -485,21 +487,23 @@
       return qty;
     };
 
-    const reservedHuIds = new Set();
+    // huReservedMap key: `${huId}|${batchId}` -> reserved base qty
+    const huReservedMap = new Map();
     const looseReservedMap = new Map();
     for (const r of activeReservations) {
+      const qtyBase = convertReservedToBase(
+        parseFloat(r.open_qty || 0),
+        r.item_uom,
+      );
       if (r.handling_unit_id) {
-        reservedHuIds.add(r.handling_unit_id);
+        const key = `${r.handling_unit_id}|${r.batch_id || ""}`;
+        huReservedMap.set(key, (huReservedMap.get(key) || 0) + qtyBase);
       } else {
         const locId = r.bin_location;
         if (!locId) continue;
         const key = isBatchManaged
           ? `${locId}-${r.batch_id || "no_batch"}`
           : `${locId}`;
-        const qtyBase = convertReservedToBase(
-          parseFloat(r.open_qty || 0),
-          r.item_uom,
-        );
         looseReservedMap.set(key, (looseReservedMap.get(key) || 0) + qtyBase);
       }
     }
@@ -685,7 +689,7 @@
       itemData,
       quantityUOM,
       otherLinesHuAllocations,
-      reservedHuIds,
+      huReservedMap,
     );
 
     // Reset both tabs to visible — clears any stale hide from a previous open
