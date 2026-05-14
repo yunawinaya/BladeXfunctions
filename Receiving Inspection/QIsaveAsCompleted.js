@@ -105,107 +105,6 @@ const validateField = (value) => {
   return !value;
 };
 
-const getPrefixData = async (organizationId, documentTypes) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: documentTypes,
-      is_deleted: 0,
-      organization_id: organizationId,
-      is_active: 1,
-    })
-    .get();
-
-  const prefixData = await prefixEntry.data[0];
-
-  return prefixData;
-};
-
-const updatePrefix = async (organizationId, runningNumber, documentTypes) => {
-  try {
-    await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: documentTypes,
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
-  } catch (error) {
-    this.$message.error(error);
-  }
-};
-
-const generatePrefix = (runNumber, now, prefixData) => {
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0"),
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0"),
-  );
-  return generated;
-};
-
-const checkUniqueness = async (
-  generatedPrefix,
-  organizationId,
-  documentTypes,
-) => {
-  if (documentTypes === "Receiving Inspection") {
-    const existingDoc = await db
-      .collection("basic_inspection_lot")
-      .where({
-        inspection_lot_no: generatedPrefix,
-        organization_id: organizationId,
-      })
-      .get();
-    return existingDoc.data[0] ? false : true;
-  } else if (documentTypes === "Transfer Order (Putaway)") {
-    const existingDoc = await db
-      .collection("transfer_order_putaway")
-      .where({ to_id: generatedPrefix, organization_id: organizationId })
-      .get();
-    return existingDoc.data[0] ? false : true;
-  }
-};
-
-const findUniquePrefix = async (prefixData, organizationId, documentTypes) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(
-      prefixToShow,
-      organizationId,
-      documentTypes,
-    );
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    this.$message.error(
-      `Could not generate a unique ${documentTypes} number after maximum attempts`,
-    );
-  }
-
-  return { prefixToShow, runningNumber };
-};
-
 const addInventoryMovementData = async (
   data,
   invCategory,
@@ -259,29 +158,29 @@ const addInventoryMovementData = async (
   }
 };
 
+const getDefaultDocFormat = async (docType, organizationID) => {
+  const response = await db
+    .collection("su_code_serial_no_rule")
+    .where({
+      department_id: organizationID,
+      business_type: docType,
+      is_default: 1,
+    })
+    .get();
+
+  if (response && response.data && response.data.length > 0) {
+    return response.data[0].id;
+  } else {
+    return null;
+  }
+};
+
 const createPutAway = async (data, organizationId) => {
   try {
-    const prefixData = await getPrefixData(
+    const putAwayPrefixID = await getDefaultDocFormat(
+      "Putaway",
       organizationId,
-      "Transfer Order (Putaway)",
     );
-    let putAwayPrefix = "";
-
-    if (prefixData !== null) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId,
-        "Transfer Order (Putaway)",
-      );
-
-      await updatePrefix(
-        organizationId,
-        runningNumber,
-        "Transfer Order (Putaway)",
-      );
-
-      putAwayPrefix = prefixToShow;
-    }
 
     let grId = null;
     const resGR = await db
@@ -462,7 +361,8 @@ const createPutAway = async (data, organizationId) => {
 
     const putawayData = {
       plant_id: data.plant_id,
-      to_id: putAwayPrefix,
+      to_id: "issued",
+      to_id_type: putAwayPrefixID,
       movement_type: "Putaway",
       ref_doc_type: "Goods Receiving",
       gr_no: grId,
@@ -1230,23 +1130,6 @@ const processBalanceTable = async (itemData, matData, putAwayRequired) => {
 
 const updateEntry = async (organizationId, entry, inspLotId) => {
   try {
-    const prefixData = await getPrefixData(
-      organizationId,
-      "Receiving Inspection",
-    );
-
-    if (prefixData !== null) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId,
-        "Receiving Inspection",
-      );
-
-      await updatePrefix(organizationId, runningNumber, "Receiving Inspection");
-
-      entry.inspection_lot_no = prefixToShow;
-    }
-
     await db.collection("basic_inspection_lot").doc(inspLotId).update(entry);
     await processInventoryMovement(entry);
 
@@ -1261,23 +1144,6 @@ const updateEntry = async (organizationId, entry, inspLotId) => {
 
 const addEntry = async (organizationId, entry) => {
   try {
-    const prefixData = await getPrefixData(
-      organizationId,
-      "Receiving Inspection",
-    );
-
-    if (prefixData !== null) {
-      const { prefixToShow, runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId,
-        "Receiving Inspection",
-      );
-
-      await updatePrefix(organizationId, runningNumber, "Receiving Inspection");
-
-      entry.inspection_lot_no = prefixToShow;
-    }
-
     await db.collection("basic_inspection_lot").add(entry);
     await processInventoryMovement(entry);
 
@@ -1294,6 +1160,8 @@ const addEntry = async (organizationId, entry) => {
   try {
     const data = this.getValues();
     this.showLoading();
+    let entry = data;
+    entry.receiving_insp_status = "Completed";
 
     const requiredFields = [
       { name: "plant_id", label: "Plant" },
@@ -1309,7 +1177,15 @@ const addEntry = async (organizationId, entry) => {
       },
     ];
 
-    await this.validate("inspection_lot_no");
+    if (
+      entry.inspection_lot_no_type !== -9999 &&
+      (!entry.inspection_lot_no ||
+        entry.inspection_lot_no === null ||
+        entry.inspection_lot_no === "" ||
+        entry.previous_status === "Draft")
+    ) {
+      entry.inspection_lot_no = "issued";
+    }
 
     for (const [index, item] of data.table_insp_mat.entries()) {
       await this.validate(
@@ -1332,7 +1208,7 @@ const addEntry = async (organizationId, entry) => {
     }
 
     const missingFields = await validateForm(
-      data,
+      entry,
       requiredFields,
       data.table_insp_mat,
     );
@@ -1344,41 +1220,6 @@ const addEntry = async (organizationId, entry) => {
       if (organizationId === "0") {
         organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
-
-      const {
-        plant_id,
-        goods_receiving_no,
-        gr_no_display,
-        inspection_lot_no,
-        insp_lot_created_on,
-        lot_created_by,
-        insp_start_time,
-        insp_end_time,
-        inspector_name,
-        inspection_pass_fail,
-        organization_id,
-        ref_doc,
-        table_insp_mat,
-        remarks,
-      } = data;
-
-      const entry = {
-        receiving_insp_status: "Completed",
-        plant_id,
-        goods_receiving_no,
-        gr_no_display,
-        inspection_lot_no,
-        insp_lot_created_on,
-        lot_created_by,
-        insp_start_time,
-        insp_end_time,
-        inspector_name,
-        inspection_pass_fail,
-        organization_id,
-        ref_doc,
-        table_insp_mat,
-        remarks,
-      };
 
       if (page_status === "Add") {
         await addEntry(organizationId, entry);
