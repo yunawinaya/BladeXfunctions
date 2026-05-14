@@ -105,6 +105,35 @@ const validateField = (value) => {
   return !value;
 };
 
+const getCategoryQtyField = (category) => {
+  switch (category) {
+    case "Unrestricted":
+      return "unrestricted_qty";
+    case "Blocked":
+      return "block_qty";
+    case "Reserved":
+      return "reserved_qty";
+    case "Quality Inspection":
+      return "qualityinsp_qty";
+    case "In Transit":
+    default:
+      return "intransit_qty";
+  }
+};
+
+const getLoadingBayLocation = (putAwaySetupData) => {
+  if (
+    putAwaySetupData &&
+    putAwaySetupData.is_loading_bay === 1 &&
+    putAwaySetupData.putaway_required === 1 &&
+    putAwaySetupData.default_loading_bay &&
+    putAwaySetupData.default_loading_bay !== ""
+  ) {
+    return putAwaySetupData.default_loading_bay;
+  }
+  return null;
+};
+
 const addInventoryMovementData = async (
   data,
   invCategory,
@@ -112,6 +141,7 @@ const addInventoryMovementData = async (
   itemData,
   matData,
   quantity,
+  binLocationId,
 ) => {
   try {
     let basedQty = 0;
@@ -143,7 +173,7 @@ const addInventoryMovementData = async (
       uom_id: matData.received_uom,
       base_uom_id: itemData.based_uom,
       item_id: matData.item_id,
-      bin_location_id: matData.location_id,
+      bin_location_id: binLocationId || matData.location_id,
       batch_number_id: matData.batch_id,
       costing_method_id: itemData.material_costing_method,
       plant_id: data.plant_id,
@@ -175,12 +205,15 @@ const getDefaultDocFormat = async (docType, organizationID) => {
   }
 };
 
-const createPutAway = async (data, organizationId) => {
+const createPutAway = async (data, organizationId, putAwaySetupData) => {
   try {
     const putAwayPrefixID = await getDefaultDocFormat(
       "Putaway",
       organizationId,
     );
+
+    const sourceInvCategory = putAwaySetupData?.category || "In Transit";
+    const loadingBayLocation = getLoadingBayLocation(putAwaySetupData);
 
     let grId = null;
     const resGR = await db
@@ -233,15 +266,15 @@ const createPutAway = async (data, organizationId) => {
               item_name: item.item_name,
               item_desc: item.item_desc,
               batch_no: item.batch_id || "",
-              source_inv_category: "In Transit",
+              source_inv_category: sourceInvCategory,
               target_inv_category: "Blocked",
               received_qty: failedSerials.length,
               item_uom: item.received_uom,
-              source_bin: item.location_id,
+              source_bin: loadingBayLocation || item.location_id,
               qty_to_putaway: failedSerials.length,
               pending_process_qty: failedSerials.length,
               putaway_qty: 0,
-              target_location: "",
+              target_location: loadingBayLocation ? item.location_id : "",
               remark: `Failed inspection - ${failedSerials.length} units`,
               line_status: "Open",
               po_no: "",
@@ -269,15 +302,15 @@ const createPutAway = async (data, organizationId) => {
               item_name: item.item_name,
               item_desc: item.item_desc,
               batch_no: item.batch_id || "",
-              source_inv_category: "In Transit",
+              source_inv_category: sourceInvCategory,
               target_inv_category: "Unrestricted",
               received_qty: passedSerials.length,
               item_uom: item.received_uom,
-              source_bin: item.location_id,
+              source_bin: loadingBayLocation || item.location_id,
               qty_to_putaway: passedSerials.length,
               pending_process_qty: passedSerials.length,
               putaway_qty: 0,
-              target_location: "",
+              target_location: loadingBayLocation ? item.location_id : "",
               remark: `Passed inspection - ${passedSerials.length} units`,
               line_status: "Open",
               po_no: "",
@@ -302,15 +335,15 @@ const createPutAway = async (data, organizationId) => {
             item_name: item.item_name,
             item_desc: item.item_desc,
             batch_no: item.batch_id || "",
-            source_inv_category: "In Transit",
+            source_inv_category: sourceInvCategory,
             target_inv_category: "Blocked",
             received_qty: item.failed_qty,
             item_uom: item.received_uom,
-            source_bin: item.location_id,
+            source_bin: loadingBayLocation || item.location_id,
             qty_to_putaway: item.failed_qty,
             pending_process_qty: item.failed_qty,
             putaway_qty: 0,
-            target_location: "",
+            target_location: loadingBayLocation ? item.location_id : "",
             remark: "",
             line_status: "Open",
             po_no: "",
@@ -332,15 +365,15 @@ const createPutAway = async (data, organizationId) => {
             item_name: item.item_name,
             item_desc: item.item_desc,
             batch_no: item.batch_id || "",
-            source_inv_category: "In Transit",
+            source_inv_category: sourceInvCategory,
             target_inv_category: "Unrestricted",
             received_qty: item.passed_qty,
             item_uom: item.received_uom,
-            source_bin: item.location_id,
+            source_bin: loadingBayLocation || item.location_id,
             qty_to_putaway: item.passed_qty,
             pending_process_qty: item.passed_qty,
             putaway_qty: 0,
-            target_location: "",
+            target_location: loadingBayLocation ? item.location_id : "",
             remark: "",
             line_status: "Open",
             po_no: "",
@@ -419,8 +452,12 @@ const processSerializedItemMovements = async (
   mat,
   itemData,
   putAwayRequired,
+  putawayCategory,
+  binLocationId,
 ) => {
   try {
+    const inventoryLocationId = binLocationId || mat.location_id;
+
     if (!mat.serial_number_data) {
       console.log(`No serial number data for item ${mat.item_id}`);
       return;
@@ -458,7 +495,7 @@ const processSerializedItemMovements = async (
     const serialGroups = new Map();
 
     // Create OUT movement group (all serials from Quality Inspection)
-    const outGroupKey = `${mat.item_id}_${mat.location_id}_${mat.batch_id}_QualityInspection_OUT`;
+    const outGroupKey = `${mat.item_id}_${inventoryLocationId}_${mat.batch_id}_QualityInspection_OUT`;
     serialGroups.set(outGroupKey, {
       category: "Quality Inspection",
       movement: "OUT",
@@ -471,31 +508,31 @@ const processSerializedItemMovements = async (
     const passedSerials = validSerials.filter((serial) => serial.passed === 1);
     const failedSerials = validSerials.filter((serial) => serial.passed === 0);
 
-    if (passedSerials.length > 0) {
-      const passedCategory =
-        putAwayRequired === 1 ? "In Transit" : "Unrestricted";
-      const passedGroupKey = `${mat.item_id}_${mat.location_id}_${mat.batch_id}_${passedCategory}_IN`;
-      serialGroups.set(passedGroupKey, {
-        category: passedCategory,
-        movement: "IN",
-        serials: passedSerials,
-        targetQtyField:
-          putAwayRequired === 1 ? "intransit_qty" : "unrestricted_qty",
-        operation: "add",
-      });
-    }
+    const addInGroup = (serials, category) => {
+      if (serials.length === 0) return;
+      const groupKey = `${mat.item_id}_${inventoryLocationId}_${mat.batch_id}_${category}_IN`;
+      const existing = serialGroups.get(groupKey);
+      if (existing) {
+        existing.serials.push(...serials);
+      } else {
+        serialGroups.set(groupKey, {
+          category,
+          movement: "IN",
+          serials: [...serials],
+          targetQtyField: getCategoryQtyField(category),
+          operation: "add",
+        });
+      }
+    };
 
-    if (failedSerials.length > 0) {
-      const failedCategory = putAwayRequired === 1 ? "In Transit" : "Blocked";
-      const failedGroupKey = `${mat.item_id}_${mat.location_id}_${mat.batch_id}_${failedCategory}_IN`;
-      serialGroups.set(failedGroupKey, {
-        category: failedCategory,
-        movement: "IN",
-        serials: failedSerials,
-        targetQtyField: putAwayRequired === 1 ? "intransit_qty" : "block_qty",
-        operation: "add",
-      });
-    }
+    addInGroup(
+      passedSerials,
+      putAwayRequired === 1 ? putawayCategory : "Unrestricted",
+    );
+    addInGroup(
+      failedSerials,
+      putAwayRequired === 1 ? putawayCategory : "Blocked",
+    );
 
     // Process each group and create grouped inventory movements
     for (const group of serialGroups.values()) {
@@ -523,7 +560,7 @@ const processSerializedItemMovements = async (
         uom_id: mat.received_uom,
         base_uom_id: itemData.based_uom,
         item_id: mat.item_id,
-        bin_location_id: mat.location_id,
+        bin_location_id: inventoryLocationId,
         batch_number_id: mat.batch_id,
         costing_method_id: itemData.material_costing_method,
         plant_id: data.plant_id,
@@ -578,7 +615,7 @@ const processSerializedItemMovements = async (
             material_id: mat.item_id,
             serial_number: serialItem.system_serial_number,
             batch_id: mat.batch_id,
-            location_id: mat.location_id,
+            location_id: inventoryLocationId,
             plant_id: data.plant_id,
             organization_id: data.organization_id,
           })
@@ -621,7 +658,7 @@ const processSerializedItemMovements = async (
       try {
         const generalItemBalanceParams = {
           material_id: mat.item_id,
-          location_id: mat.location_id,
+          location_id: inventoryLocationId,
           plant_id: data.plant_id,
           organization_id: data.organization_id,
         };
@@ -738,7 +775,7 @@ const processSerializedItemMovements = async (
           // Create new item_balance record for IN movement
           const itemBalanceData = {
             material_id: mat.item_id,
-            location_id: mat.location_id,
+            location_id: inventoryLocationId,
             unrestricted_qty:
               group.targetQtyField === "unrestricted_qty" ? consolidatedQty : 0,
             reserved_qty: 0,
@@ -801,6 +838,8 @@ const processInventoryMovement = async (data) => {
     const putAwaySetupData = resPutAwaySetup?.data[0];
     const putAwayRequired =
       putAwaySetupData && putAwaySetupData.putaway_required === 1 ? 1 : 0;
+    const putawayCategory = putAwaySetupData?.category || "In Transit";
+    const loadingBayLocation = getLoadingBayLocation(putAwaySetupData);
 
     for (const mat of matData) {
       if (mat.item_id) {
@@ -811,6 +850,7 @@ const processInventoryMovement = async (data) => {
 
         if (resItem && resItem.data.length > 0) {
           const itemData = resItem.data[0];
+          const inventoryLocationId = loadingBayLocation || mat.location_id;
 
           // Check if this is a serialized item
           if (mat.is_serialized_item === 1 && mat.serial_number_data) {
@@ -820,6 +860,8 @@ const processInventoryMovement = async (data) => {
               mat,
               itemData,
               putAwayRequired,
+              putawayCategory,
+              inventoryLocationId,
             );
           } else {
             // Process non-serialized item as before
@@ -830,41 +872,50 @@ const processInventoryMovement = async (data) => {
               itemData,
               mat,
               mat.received_qty,
+              inventoryLocationId,
             );
 
             if (mat.passed_qty > 0) {
               await addInventoryMovementData(
                 data,
-                putAwayRequired === 1 ? "In Transit" : "Unrestricted",
+                putAwayRequired === 1 ? putawayCategory : "Unrestricted",
                 "IN",
                 itemData,
                 mat,
                 mat.passed_qty,
+                inventoryLocationId,
               );
             }
 
             if (mat.failed_qty > 0) {
               await addInventoryMovementData(
                 data,
-                putAwayRequired === 1 ? "In Transit" : "Blocked",
+                putAwayRequired === 1 ? putawayCategory : "Blocked",
                 "IN",
                 itemData,
                 mat,
                 mat.failed_qty,
+                inventoryLocationId,
               );
             }
           }
 
           // Skip balance processing for serialized items as it's handled in processSerializedItemMovements
           if (!(mat.is_serialized_item === 1 && mat.serial_number_data)) {
-            await processBalanceTable(itemData, mat, putAwayRequired);
+            await processBalanceTable(
+              itemData,
+              mat,
+              putAwayRequired,
+              putawayCategory,
+              inventoryLocationId,
+            );
           }
         }
       }
     }
 
     if (putAwaySetupData && putAwaySetupData.putaway_required === 1) {
-      await createPutAway(data, data.organization_id);
+      await createPutAway(data, data.organization_id, putAwaySetupData);
     } else if (
       !putAwaySetupData ||
       (putAwaySetupData && putAwaySetupData.putaway_required === 0)
@@ -882,8 +933,15 @@ const processInventoryMovement = async (data) => {
   }
 };
 
-const processBalanceTable = async (itemData, matData, putAwayRequired) => {
+const processBalanceTable = async (
+  itemData,
+  matData,
+  putAwayRequired,
+  putawayCategory,
+  binLocationId,
+) => {
   try {
+    const inventoryLocationId = binLocationId || matData.location_id;
     let latestBalanceData = null;
 
     const convertUOM = (quantity, itemData, matData) => {
@@ -898,49 +956,53 @@ const processBalanceTable = async (itemData, matData, putAwayRequired) => {
       }
     };
 
+    const buildBalanceUpdate = (sourceBalance) => {
+      const passedQty = convertUOM(matData.passed_qty, itemData, matData);
+      const failedQty = convertUOM(matData.failed_qty, itemData, matData);
+      const receivedQty = convertUOM(matData.received_qty, itemData, matData);
+
+      const update = {
+        block_qty: sourceBalance.block_qty,
+        reserved_qty: sourceBalance.reserved_qty,
+        unrestricted_qty: sourceBalance.unrestricted_qty,
+        qualityinsp_qty: sourceBalance.qualityinsp_qty - receivedQty,
+        intransit_qty: sourceBalance.intransit_qty,
+      };
+
+      if (putAwayRequired === 1) {
+        const targetField = getCategoryQtyField(putawayCategory);
+        update[targetField] =
+          (sourceBalance[targetField] || 0) + passedQty + failedQty;
+      } else {
+        update.unrestricted_qty = sourceBalance.unrestricted_qty + passedQty;
+        update.block_qty = sourceBalance.block_qty + failedQty;
+      }
+
+      return update;
+    };
+
     if (itemData.item_batch_management) {
       const resBatchBalance = await db
         .collection("item_batch_balance")
         .where({
           material_id: matData.item_id,
-          location_id: matData.location_id,
+          location_id: inventoryLocationId,
           batch_id: matData.batch_id,
         })
         .get();
 
       if (resBatchBalance && resBatchBalance.data.length > 0) {
         const batchBalanceData = resBatchBalance.data[0];
+        const qtyUpdate = buildBalanceUpdate(batchBalanceData);
 
         latestBalanceData = {
           material_id: batchBalanceData.material_id,
           location_id: batchBalanceData.location_id,
-          block_qty:
-            putAwayRequired === 1
-              ? batchBalanceData.block_qty
-              : batchBalanceData.block_qty +
-                convertUOM(matData.failed_qty, itemData, matData),
-          reserved_qty: batchBalanceData.reserved_qty,
-          unrestricted_qty:
-            putAwayRequired === 1
-              ? batchBalanceData.unrestricted_qty
-              : batchBalanceData.unrestricted_qty +
-                convertUOM(matData.passed_qty, itemData, matData),
-          qualityinsp_qty:
-            batchBalanceData.qualityinsp_qty -
-            convertUOM(matData.received_qty, itemData, matData),
+          ...qtyUpdate,
           balance_quantity: batchBalanceData.balance_quantity,
           batch_id: batchBalanceData.batch_id,
           plant_id: batchBalanceData.plant_id,
           organization_id: batchBalanceData.organization_id,
-          intransit_qty:
-            putAwayRequired !== 1
-              ? batchBalanceData.intransit_qty
-              : batchBalanceData.intransit_qty +
-                convertUOM(
-                  matData.passed_qty + matData.failed_qty,
-                  itemData,
-                  matData,
-                ),
           material_uom: itemData.based_uom,
         };
 
@@ -953,7 +1015,7 @@ const processBalanceTable = async (itemData, matData, putAwayRequired) => {
         try {
           const generalItemBalanceParams = {
             material_id: matData.item_id,
-            location_id: matData.location_id,
+            location_id: inventoryLocationId,
             plant_id: batchBalanceData.plant_id,
             organization_id: batchBalanceData.organization_id,
           };
@@ -1033,13 +1095,13 @@ const processBalanceTable = async (itemData, matData, putAwayRequired) => {
               .update(generalUpdateData);
 
             console.log(
-              `✓ Updated item_balance for batch item ${matData.item_id} at location ${matData.location_id}`,
+              `✓ Updated item_balance for batch item ${matData.item_id} at location ${inventoryLocationId}`,
             );
           } else {
             // Create new item_balance record if none exists
             const itemBalanceData = {
               material_id: matData.item_id,
-              location_id: matData.location_id,
+              location_id: inventoryLocationId,
               unrestricted_qty: latestBalanceData.unrestricted_qty,
               reserved_qty: latestBalanceData.reserved_qty,
               qualityinsp_qty: latestBalanceData.qualityinsp_qty,
@@ -1062,7 +1124,7 @@ const processBalanceTable = async (itemData, matData, putAwayRequired) => {
 
             await db.collection("item_balance").add(itemBalanceData);
             console.log(
-              `✓ Created item_balance for batch item ${matData.item_id} at location ${matData.location_id}`,
+              `✓ Created item_balance for batch item ${matData.item_id} at location ${inventoryLocationId}`,
             );
           }
         } catch (itemBalanceError) {
@@ -1078,42 +1140,21 @@ const processBalanceTable = async (itemData, matData, putAwayRequired) => {
         .collection("item_balance")
         .where({
           material_id: matData.item_id,
-          location_id: matData.location_id,
+          location_id: inventoryLocationId,
         })
         .get();
 
       if (resBalance && resBalance.data.length > 0) {
         const balanceData = resBalance.data[0];
+        const qtyUpdate = buildBalanceUpdate(balanceData);
 
         latestBalanceData = {
           material_id: balanceData.material_id,
           location_id: balanceData.location_id,
-          block_qty:
-            putAwayRequired === 1
-              ? balanceData.block_qty
-              : balanceData.block_qty +
-                convertUOM(matData.failed_qty, itemData, matData),
-          reserved_qty: balanceData.reserved_qty,
-          unrestricted_qty:
-            putAwayRequired === 1
-              ? balanceData.unrestricted_qty
-              : balanceData.unrestricted_qty +
-                convertUOM(matData.passed_qty, itemData, matData),
-          qualityinsp_qty:
-            balanceData.qualityinsp_qty -
-            convertUOM(matData.received_qty, itemData, matData),
+          ...qtyUpdate,
           balance_quantity: balanceData.balance_quantity,
           plant_id: balanceData.plant_id,
           organization_id: balanceData.organization_id,
-          intransit_qty:
-            putAwayRequired !== 1
-              ? balanceData.intransit_qty
-              : balanceData.intransit_qty +
-                convertUOM(
-                  matData.passed_qty + matData.failed_qty,
-                  itemData,
-                  matData,
-                ),
           material_uom: itemData.based_uom,
         };
 
