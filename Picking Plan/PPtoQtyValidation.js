@@ -85,8 +85,9 @@ for (let i = 0; i < data.table_to.length; i++) {
       currentUOM,
       itemData,
     );
-    const toUndeliveredQtyBase = convertToBaseUOM(
-      toUndeliveredQty,
+    const orderQtyBase = convertToBaseUOM(order_quantity, currentUOM, itemData);
+    const initialDeliveredQtyBase = convertToBaseUOM(
+      to_initial_delivered_qty,
       currentUOM,
       itemData,
     );
@@ -107,12 +108,9 @@ for (let i = 0; i < data.table_to.length; i++) {
       );
 
       // Still check order limits (use base quantities)
-      let orderLimitBase = toUndeliveredQtyBase;
-      if (itemData.over_delivery_tolerance > 0) {
-        orderLimitBase =
-          toUndeliveredQtyBase +
-          toUndeliveredQtyBase * (itemData.over_delivery_tolerance / 100);
-      }
+      const orderLimitBase =
+        orderQtyBase * (1 + (itemData.over_delivery_tolerance || 0) / 100) -
+        initialDeliveredQtyBase;
 
       if (quantityBase > orderLimitBase) {
         window.validationState[index] = false;
@@ -133,12 +131,9 @@ for (let i = 0; i < data.table_to.length; i++) {
     );
 
     // Calculate order limit with tolerance (use base quantities)
-    let orderLimitBase = toUndeliveredQtyBase;
-    if (itemData.over_delivery_tolerance > 0) {
-      orderLimitBase =
-        toUndeliveredQtyBase +
-        toUndeliveredQtyBase * (itemData.over_delivery_tolerance / 100);
-    }
+    const orderLimitBase =
+      orderQtyBase * (1 + (itemData.over_delivery_tolerance || 0) / 100) -
+      initialDeliveredQtyBase;
 
     // Check order limit first (business rule validation)
     if (quantityBase > orderLimitBase) {
