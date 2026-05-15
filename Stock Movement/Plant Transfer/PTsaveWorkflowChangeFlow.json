@@ -1791,7 +1791,7 @@
                         "name": "Aggregate Cancel HU Moves",
                         "script": {
                           "type": "javascript",
-                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst sourcePlantId = allData.issuing_operation_faci;\n\n// Branch A reversal: each unique source HU goes back to issuing plant + its source bin\nconst huMovesMap = new Map();\nfor (const entry of balanceIndex) {\n  const huId = entry.handling_unit_id;\n  if (!huId) continue;\n  if (huMovesMap.has(huId)) continue;\n  huMovesMap.set(huId, {\n    handling_unit_id: huId,\n    plant_id: sourcePlantId,\n    organization_id: organizationId,\n    location_id: entry.location_id,\n    storage_location_id: entry.storage_location_id || \"\",\n  });\n}\n\nconst huMoves = Array.from(huMovesMap.values());\nreturn { huMoves: huMoves, huMovesLength: huMoves.length };"
+                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst sourcePlantId = allData.issuing_operation_faci;\n\n// Branch A reversal: each unique source HU goes back to issuing plant + its source bin\nconst huMovesMap = new Map();\nfor (const [idx, smRow] of stockMovement.entries()) {\n  // Prefer temp_qty_data per line; fall back to balance_index entries for this row\n  let entries = [];\n  try {\n    entries = JSON.parse(smRow.temp_qty_data || \"[]\");\n  } catch (e) {\n    entries = [];\n  }\n  if (!Array.isArray(entries) || entries.length === 0) {\n    entries = balanceIndex.filter(\n      (b) => String(b.row_index) === String(idx)\n    );\n  }\n\n  for (const entry of entries) {\n    const huId = entry.handling_unit_id;\n    if (!huId) continue;\n    if (huMovesMap.has(huId)) continue;\n    huMovesMap.set(huId, {\n      handling_unit_id: huId,\n      plant_id: sourcePlantId,\n      organization_id: organizationId,\n      location_id: entry.location_id,\n      storage_location_id: entry.storage_location_id || \"\",\n    });\n  }\n}\n\nconst huMoves = Array.from(huMovesMap.values());\nreturn { huMoves: huMoves, huMovesLength: huMoves.length };"
                         },
                         "response_json": [
                           {
@@ -2204,7 +2204,7 @@
                         "name": "Aggregate Cancel HU Unloads",
                         "script": {
                           "type": "javascript",
-                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst receivingPlantId = allData.receiving_operation_faci;\nconst receivingDefaultLoc = {{node:get_node_WtFOLdKB.data.data.id}};\nconst receivingDefaultStorage = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\nlet husAtReceiving = {{node:search_node_JXM2g1CY.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\n\n// Find new HU via transfer_source_hu_id linkage\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h]));\n\n// Empty the new HU at receiving plant default bin\nconst unloadMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n  const qty = parseFloat(entry.sm_quantity || 0);\n  if (qty <= 0) continue;\n\n  const newHu = huBySource.get(sourceHuId);\n  if (!newHu) continue;  // defensive — new HU not at default; skip\n\n  if (!unloadMap.has(newHu.id)) {\n    unloadMap.set(newHu.id, {\n      handling_unit_id: newHu.id,\n      plant_id: receivingPlantId,\n      organization_id: organizationId,\n      location_id: receivingDefaultLoc,\n      storage_location_id: receivingDefaultStorage,\n      items: [],\n    });\n  }\n  unloadMap.get(newHu.id).items.push({\n    material_id: entry.material_id,\n    material_uom: entry.material_uom,\n    balance_id: \"\",\n    batch_id: entry.batch_id || \"\",\n    quantity: qty,\n  });\n}\n\nconst huUnloads = Array.from(unloadMap.values()).map((u) => ({\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huUnloads: huUnloads, huUnloadsLength: huUnloads.length };"
+                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst receivingPlantId = allData.receiving_operation_faci;\nconst receivingDefaultLoc = {{node:get_node_WtFOLdKB.data.data.id}};\nconst receivingDefaultStorage = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\nlet husAtReceiving = {{node:search_node_JXM2g1CY.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\n\n// Find new HU via transfer_source_hu_id linkage\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h]));\n\n// Empty the new HU at receiving plant default bin\nconst unloadMap = new Map();\nfor (const [idx, smRow] of stockMovement.entries()) {\n  // Prefer temp_qty_data per line; fall back to balance_index entries for this row\n  let entries = [];\n  try {\n    entries = JSON.parse(smRow.temp_qty_data || \"[]\");\n  } catch (e) {\n    entries = [];\n  }\n  if (!Array.isArray(entries) || entries.length === 0) {\n    entries = balanceIndex.filter(\n      (b) => String(b.row_index) === String(idx)\n    );\n  }\n\n  const lineUom = (smRow && (smRow.received_quantity_uom || smRow.quantity_uom)) || \"\";\n\n  for (const entry of entries) {\n    const sourceHuId = entry.handling_unit_id;\n    if (!sourceHuId) continue;\n    const qty = parseFloat(entry.sm_quantity || 0);\n    if (qty <= 0) continue;\n\n    const newHu = huBySource.get(sourceHuId);\n    if (!newHu) continue;  // defensive — new HU not at default; skip\n\n    if (!unloadMap.has(newHu.id)) {\n      unloadMap.set(newHu.id, {\n        handling_unit_id: newHu.id,\n        plant_id: receivingPlantId,\n        organization_id: organizationId,\n        location_id: receivingDefaultLoc,\n        storage_location_id: receivingDefaultStorage,\n        items: [],\n      });\n    }\n    unloadMap.get(newHu.id).items.push({\n      material_id: entry.material_id,\n      material_uom: entry.material_uom || lineUom,\n      balance_id: \"\",\n      batch_id: entry.batch_id || \"\",\n      quantity: qty,\n    });\n  }\n}\n\nconst huUnloads = Array.from(unloadMap.values()).map((u) => ({\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huUnloads: huUnloads, huUnloadsLength: huUnloads.length };"
                         },
                         "response_json": [
                           {
@@ -2622,7 +2622,7 @@
                         "name": "Aggregate Cancel HU Loads",
                         "script": {
                           "type": "javascript",
-                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst sourcePlantId = allData.issuing_operation_faci;\n\n// Refill the source HU back at issuing plant + source bin (undoing the Issued unload)\nconst reloadMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n  const qty = parseFloat(entry.sm_quantity || 0);\n  if (qty <= 0) continue;\n\n  if (!reloadMap.has(sourceHuId)) {\n    reloadMap.set(sourceHuId, {\n      handling_unit_id: sourceHuId,\n      plant_id: sourcePlantId,\n      organization_id: organizationId,\n      location_id: entry.location_id,\n      storage_location_id: entry.storage_location_id || \"\",\n      items: [],\n    });\n  }\n  reloadMap.get(sourceHuId).items.push({\n    material_id: entry.material_id,\n    material_uom: entry.material_uom,\n    balance_id: entry.balance_id || \"\",\n    batch_id: entry.batch_id || \"\",\n    quantity: qty,\n    location_id: entry.location_id,\n  });\n}\n\nconst huLoads = Array.from(reloadMap.values()).map((u) => ({\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huLoads: huLoads, huLoadsLength: huLoads.length };"
+                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst sourcePlantId = allData.issuing_operation_faci;\n\n// Refill the source HU back at issuing plant + source bin (undoing the Issued unload)\nconst reloadMap = new Map();\nfor (const [idx, smRow] of stockMovement.entries()) {\n  // Prefer temp_qty_data per line; fall back to balance_index entries for this row\n  let entries = [];\n  try {\n    entries = JSON.parse(smRow.temp_qty_data || \"[]\");\n  } catch (e) {\n    entries = [];\n  }\n  if (!Array.isArray(entries) || entries.length === 0) {\n    entries = balanceIndex.filter(\n      (b) => String(b.row_index) === String(idx)\n    );\n  }\n\n  const lineUom = (smRow && (smRow.received_quantity_uom || smRow.quantity_uom)) || \"\";\n\n  for (const entry of entries) {\n    const sourceHuId = entry.handling_unit_id;\n    if (!sourceHuId) continue;\n    const qty = parseFloat(entry.sm_quantity || 0);\n    if (qty <= 0) continue;\n\n    if (!reloadMap.has(sourceHuId)) {\n      reloadMap.set(sourceHuId, {\n        handling_unit_id: sourceHuId,\n        plant_id: sourcePlantId,\n        organization_id: organizationId,\n        location_id: entry.location_id,\n        storage_location_id: entry.storage_location_id || \"\",\n        items: [],\n      });\n    }\n    reloadMap.get(sourceHuId).items.push({\n      material_id: entry.material_id,\n      material_uom: entry.material_uom || lineUom,\n      balance_id: entry.balance_id || \"\",\n      batch_id: entry.batch_id || \"\",\n      quantity: qty,\n      location_id: entry.location_id,\n    });\n  }\n}\n\nconst huLoads = Array.from(reloadMap.values()).map((u) => ({\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huLoads: huLoads, huLoadsLength: huLoads.length };"
                         },
                         "response_json": [
                           {
@@ -12774,7 +12774,7 @@
                                 "name": "Aggregate HU Moves",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\nconst targetLocationId = {{node:get_node_WtFOLdKB.data.data.id}};\nconst targetStorageLocId = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\nconst huMovesMap = new Map();\nfor (const entry of balanceIndex) {\n  const huId = entry.handling_unit_id;\n  if (!huId) continue;\n  if (huMovesMap.has(huId)) continue;\n  huMovesMap.set(huId, {\n    handling_unit_id: huId,\n    plant_id: targetPlantId,\n    organization_id: organizationId,\n    location_id: targetLocationId,\n    storage_location_id: targetStorageLocId,\n  });\n}\n\nconst huMoves = Array.from(huMovesMap.values());\nreturn { huMoves: huMoves, huMovesLength: huMoves.length };"
+                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\nconst targetLocationId = {{node:get_node_WtFOLdKB.data.data.id}};\nconst targetStorageLocId = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\nconst huMovesMap = new Map();\nfor (const [idx, smRow] of stockMovement.entries()) {\n  // Prefer temp_qty_data per line; fall back to balance_index entries for this row\n  let entries = [];\n  try {\n    entries = JSON.parse(smRow.temp_qty_data || \"[]\");\n  } catch (e) {\n    entries = [];\n  }\n  if (!Array.isArray(entries) || entries.length === 0) {\n    entries = balanceIndex.filter(\n      (b) => String(b.row_index) === String(idx)\n    );\n  }\n\n  for (const entry of entries) {\n    const huId = entry.handling_unit_id;\n    if (!huId) continue;\n    if (huMovesMap.has(huId)) continue;\n    huMovesMap.set(huId, {\n      handling_unit_id: huId,\n      plant_id: targetPlantId,\n      organization_id: organizationId,\n      location_id: targetLocationId,\n      storage_location_id: targetStorageLocId,\n    });\n  }\n}\n\nconst huMoves = Array.from(huMovesMap.values());\nreturn { huMoves: huMoves, huMovesLength: huMoves.length };"
                                 },
                                 "response_json": [
                                   {
@@ -13188,7 +13188,7 @@
                                 "name": "Aggregate HU Unloads",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst balanceIndex = allData.balance_index || [];\nconst plantId = allData.issuing_operation_faci;\nconst organizationId = allData.organization_id;\n\nconst huUnloadsMap = new Map();\nfor (const entry of balanceIndex) {\n  const huId = entry.handling_unit_id;\n  if (!huId) continue;\n  const qty = parseFloat(entry.sm_quantity || 0);\n  if (qty <= 0) continue;\n\n  if (!huUnloadsMap.has(huId)) {\n    huUnloadsMap.set(huId, {\n      handling_unit_id: huId,\n      plant_id: plantId,\n      organization_id: organizationId,\n      location_id: entry.location_id,\n      storage_location_id: entry.storage_location_id || \"\",\n      items: [],\n    });\n  }\n\n  const u = huUnloadsMap.get(huId);\n  const existing = u.items.find((it) =>\n    it.material_id === entry.material_id &&\n    (it.balance_id || \"\") === (entry.balance_id || \"\") &&\n    (it.batch_id || \"\") === (entry.batch_id || \"\")\n  );\n  if (existing) {\n    existing.quantity = (parseFloat(existing.quantity) || 0) + qty;\n  } else {\n    u.items.push({\n      material_id: entry.material_id,\n      material_uom: entry.material_uom,\n      balance_id: entry.balance_id || \"\",\n      batch_id: entry.batch_id || \"\",\n      quantity: qty,\n      location_id: entry.location_id,\n    });\n  }\n}\n\nconst huUnloads = Array.from(huUnloadsMap.values()).map((u) => ({\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huUnloads: huUnloads, huUnloadsLength: huUnloads.length };"
+                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst plantId = allData.issuing_operation_faci;\nconst organizationId = allData.organization_id;\n\nconst huUnloadsMap = new Map();\nfor (const [idx, smRow] of stockMovement.entries()) {\n  // Prefer temp_qty_data per line; fall back to balance_index entries for this row\n  let entries = [];\n  try {\n    entries = JSON.parse(smRow.temp_qty_data || \"[]\");\n  } catch (e) {\n    entries = [];\n  }\n  if (!Array.isArray(entries) || entries.length === 0) {\n    entries = balanceIndex.filter(\n      (b) => String(b.row_index) === String(idx)\n    );\n  }\n\n  const lineUom = (smRow && (smRow.received_quantity_uom || smRow.quantity_uom)) || \"\";\n\n  for (const entry of entries) {\n    const huId = entry.handling_unit_id;\n    if (!huId) continue;\n    const qty = parseFloat(entry.sm_quantity || 0);\n    if (qty <= 0) continue;\n\n    if (!huUnloadsMap.has(huId)) {\n      huUnloadsMap.set(huId, {\n        handling_unit_id: huId,\n        plant_id: plantId,\n        organization_id: organizationId,\n        location_id: entry.location_id,\n        storage_location_id: entry.storage_location_id || \"\",\n        items: [],\n      });\n    }\n\n    const u = huUnloadsMap.get(huId);\n    const existing = u.items.find((it) =>\n      it.material_id === entry.material_id &&\n      (it.balance_id || \"\") === (entry.balance_id || \"\") &&\n      (it.batch_id || \"\") === (entry.batch_id || \"\")\n    );\n    if (existing) {\n      existing.quantity = (parseFloat(existing.quantity) || 0) + qty;\n    } else {\n      u.items.push({\n        material_id: entry.material_id,\n        material_uom: entry.material_uom || lineUom,\n        balance_id: entry.balance_id || \"\",\n        batch_id: entry.batch_id || \"\",\n        quantity: qty,\n        location_id: entry.location_id,\n      });\n    }\n  }\n}\n\nconst huUnloads = Array.from(huUnloadsMap.values()).map((u) => ({\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huUnloads: huUnloads, huUnloadsLength: huUnloads.length };"
                                 },
                                 "response_json": [
                                   {
@@ -13597,6 +13597,81 @@
                               ]
                             },
                             {
+                              "id": "code_node_r5aSEG0t",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "Extract Source HU IDs",
+                                "isValidator": true,
+                                "nodeName": "Extract Source HU IDs",
+                                "name": "Extract Source HU IDs",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "const stockMovement = {{node:code_node_37LA0tgq.data.allData.stock_movement}} || [];\nconst balanceIndex = {{node:code_node_37LA0tgq.data.allData.balance_index}} || [];\n\n// Prefer temp_qty_data per line; fall back to balance_index entries scoped to that row\nconst entries = [];\nfor (const [idx, smRow] of stockMovement.entries()) {\n  let parsed = [];\n  try {\n    parsed = JSON.parse(smRow.temp_qty_data || \"[]\");\n  } catch (e) {\n    parsed = [];\n  }\n  if (Array.isArray(parsed) && parsed.length > 0) {\n    entries.push(...parsed);\n  } else {\n    const fallback = balanceIndex.filter(\n      (b) => String(b.row_index) === String(idx)\n    );\n    entries.push(...fallback);\n  }\n}\n\nconst sourceHuIds = [\n  ...new Set(\n    entries\n      .map((e) => e.handling_unit_id)\n      .filter((id) => id != null && id !== \"\")\n  ),\n];\nreturn { sourceHuIds: sourceHuIds };"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "esrchuids",
+                                    "name": "sourceHuIds",
+                                    "title": "sourceHuIds",
+                                    "description": "",
+                                    "bsonType": "array",
+                                    "isExpand": true,
+                                    "children": [
+                                      {
+                                        "key": "esrchuidc",
+                                        "name": "items",
+                                        "title": "",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false,
+                                        "isArrayItem": true,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "search_node_tBwsc1WZ",
+                              "type": "search-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Handling Unit:Table:2036736671686529026",
+                                  "rules": {
+                                    "collectionId": "2036736671686529026",
+                                    "list": [
+                                      {
+                                        "id": 1778823846984,
+                                        "parentId": 1778823846983,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_r5aSEG0t.data.sourceHuIds}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "limit": 100,
+                                "title": "Get Source HUs at Issuing",
+                                "isValidator": true,
+                                "nodeName": "Get Source HUs at Issuing",
+                                "name": "Get Source HUs at Issuing"
+                              },
+                              "blocks": []
+                            },
+                            {
                               "id": "code_node_SDfzbJQw",
                               "type": "code-node",
                               "data": {
@@ -13609,7 +13684,7 @@
                                 "name": "Aggregate HU Loads",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\nconst targetLocationId = {{node:get_node_WtFOLdKB.data.data.id}};\nconst targetStorageLocId = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\nconst huLoadsMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n  const qty = parseFloat(entry.sm_quantity || 0);\n  if (qty <= 0) continue;\n\n  const rowIdx = parseInt(entry.row_index, 10);\n  const smRow = stockMovement[rowIdx];\n\n  if (!huLoadsMap.has(sourceHuId)) {\n    huLoadsMap.set(sourceHuId, {\n      transfer_source_hu_id: sourceHuId,\n      plant_id: targetPlantId,\n      organization_id: organizationId,\n      location_id: targetLocationId,\n      storage_location_id: targetStorageLocId,\n      items: [],\n    });\n  }\n\n  const u = huLoadsMap.get(sourceHuId);\n  const existing = u.items.find((it) => it.material_id === entry.material_id);\n  if (existing) {\n    existing.quantity = (parseFloat(existing.quantity) || 0) + qty;\n  } else {\n    u.items.push({\n      material_id: entry.material_id,\n      material_uom: (smRow && (smRow.received_quantity_uom || smRow.quantity_uom)) || \"\",\n      batch_id: entry.batch_id || \"\",\n      batch_no: (smRow && smRow.batch_no) || \"\",\n      quantity: qty,\n      location_id: targetLocationId,\n    });\n  }\n}\n\nconst huLoads = Array.from(huLoadsMap.values()).map((u) => ({\n  handling_unit_id: \"\",\n  handling_no: \"Auto-generated number\",\n  transfer_source_hu_id: u.transfer_source_hu_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huLoads: huLoads, huLoadsLength: huLoads.length };"
+                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\nconst targetLocationId = {{node:get_node_WtFOLdKB.data.data.id}};\nconst targetStorageLocId = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\n// Source HUs at issuing plant (matched by id from search node)\nlet sourceHus = {{node:search_node_tBwsc1WZ.data.data}} || [];\nif (!Array.isArray(sourceHus)) sourceHus = [sourceHus];\nconst sourceHuById = new Map(\n  sourceHus.map((h) => [String(h.id), h])\n);\n\nconst huLoadsMap = new Map();\nfor (const [idx, smRow] of stockMovement.entries()) {\n  // Prefer temp_qty_data per line; fall back to balance_index entries for this row\n  let entries = [];\n  try {\n    entries = JSON.parse(smRow.temp_qty_data || \"[]\");\n  } catch (e) {\n    entries = [];\n  }\n  if (!Array.isArray(entries) || entries.length === 0) {\n    entries = balanceIndex.filter(\n      (b) => String(b.row_index) === String(idx)\n    );\n  }\n\n  for (const entry of entries) {\n    const sourceHuId = entry.handling_unit_id;\n    if (!sourceHuId) continue;\n    const qty = parseFloat(entry.sm_quantity || 0);\n    if (qty <= 0) continue;\n\n    const sourceHu = sourceHuById.get(String(sourceHuId)) || {};\n\n    if (!huLoadsMap.has(sourceHuId)) {\n      huLoadsMap.set(sourceHuId, {\n        transfer_source_hu_id: sourceHuId,\n        plant_id: targetPlantId,\n        organization_id: organizationId,\n        location_id: targetLocationId,\n        storage_location_id: targetStorageLocId,\n        hu_material_id: sourceHu.hu_material_id || \"\",\n        hu_type: sourceHu.hu_type || \"\",\n        hu_uom: sourceHu.hu_uom || \"\",\n        items: [],\n      });\n    }\n\n    const u = huLoadsMap.get(sourceHuId);\n    const existing = u.items.find((it) => it.material_id === entry.material_id);\n    if (existing) {\n      existing.quantity = (parseFloat(existing.quantity) || 0) + qty;\n    } else {\n      u.items.push({\n        material_id: entry.material_id,\n        material_uom: (smRow && (smRow.received_quantity_uom || smRow.quantity_uom)) || \"\",\n        batch_id: entry.batch_id || \"\",\n        batch_no: (smRow && smRow.batch_no) || \"\",\n        quantity: qty,\n        location_id: targetLocationId,\n      });\n    }\n  }\n}\n\nconst huLoads = Array.from(huLoadsMap.values()).map((u) => ({\n  handling_unit_id: \"\",\n  handling_no: \"Auto-generated number\",\n  transfer_source_hu_id: u.transfer_source_hu_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  hu_material_id: u.hu_material_id,\n  hu_type: u.hu_type,\n  hu_uom: u.hu_uom,\n  table_hu_items: u.items,\n}));\n\nreturn { huLoads: huLoads, huLoadsLength: huLoads.length };"
                                 },
                                 "response_json": [
                                   {
@@ -13743,7 +13818,7 @@
                                             "name": "Pick HU Load",
                                             "script": {
                                               "type": "javascript",
-                                              "code": "const u = {{node:loop_4kLP1ORi}};\nreturn {\n  handling_unit_id: u.handling_unit_id,\n  handling_no: u.handling_no,\n  transfer_source_hu_id: u.transfer_source_hu_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.table_hu_items,\n};"
+                                              "code": "const u = {{node:loop_4kLP1ORi}};\nreturn {\n  handling_unit_id: u.handling_unit_id,\n  handling_no: u.handling_no,\n  transfer_source_hu_id: u.transfer_source_hu_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  hu_material_id: u.hu_material_id,\n  hu_type: u.hu_type,\n  hu_uom: u.hu_uom,\n  table_hu_items: u.table_hu_items,\n};"
                                             },
                                             "response_json": [
                                               {
@@ -13818,6 +13893,30 @@
                                                 "key": "y4icpfp0",
                                                 "name": "transfer_source_hu_id",
                                                 "title": "transfer_source_hu_id",
+                                                "description": "",
+                                                "bsonType": "string",
+                                                "isExpand": false
+                                              },
+                                              {
+                                                "key": "phl0humat",
+                                                "name": "hu_material_id",
+                                                "title": "hu_material_id",
+                                                "description": "",
+                                                "bsonType": "string",
+                                                "isExpand": false
+                                              },
+                                              {
+                                                "key": "phl0hutyp",
+                                                "name": "hu_type",
+                                                "title": "hu_type",
+                                                "description": "",
+                                                "bsonType": "string",
+                                                "isExpand": false
+                                              },
+                                              {
+                                                "key": "phl0huuom",
+                                                "name": "hu_uom",
+                                                "title": "hu_uom",
                                                 "description": "",
                                                 "bsonType": "string",
                                                 "isExpand": false
@@ -13938,6 +14037,36 @@
                                                   "valueType": "value",
                                                   "valueTypeLabel": "",
                                                   "value": "load",
+                                                  "valueLabel": ""
+                                                },
+                                                {
+                                                  "prop": "hu_material_id",
+                                                  "propLabel": "hu_material_id",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:code_node_anTdo1md.data.hu_material_id}}",
+                                                  "valueLabel": ""
+                                                },
+                                                {
+                                                  "prop": "hu_type",
+                                                  "propLabel": "hu_type",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:code_node_anTdo1md.data.hu_type}}",
+                                                  "valueLabel": ""
+                                                },
+                                                {
+                                                  "prop": "hu_uom",
+                                                  "propLabel": "hu_uom",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "field",
+                                                  "valueTypeLabel": "",
+                                                  "value": "{{node:code_node_anTdo1md.data.hu_uom}}",
                                                   "valueLabel": ""
                                                 },
                                                 {
@@ -14114,7 +14243,7 @@
                         "name": "Aggregate HU Final Moves",
                         "script": {
                           "type": "javascript",
-                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\n\nlet husAtReceiving = {{node:search_node_oOEYwCue.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\n\n// Branch A: HU was moved at Issued, same id at receiving\n// Branch B: a NEW HU was created at receiving with transfer_source_hu_id pointing back\nconst huById = new Map(husAtReceiving.map((h) => [h.id, h.id]));\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h.id]));\n\n// balance_index carries the source HU id and row_index back to its stock_movement line.\n// The line's chosen bin (location_id + storage_location_id) is the target.\n// Pass table_hu_items along so the move workflow preserves HU contents.\nconst huMovesMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n\n  const huToMove = huById.get(sourceHuId) || huBySource.get(sourceHuId);\n  if (!huToMove) continue;\n\n  const rowIndex = parseInt(entry.row_index, 10);\n  const smRow = Number.isInteger(rowIndex) ? stockMovement[rowIndex] : null;\n  if (!smRow || !smRow.location_id || !smRow.storage_location_id) continue;\n\n  if (!huMovesMap.has(huToMove)) {\n    huMovesMap.set(huToMove, {\n      handling_unit_id: huToMove,\n      plant_id: targetPlantId,\n      organization_id: organizationId,\n      location_id: smRow.location_id,\n      storage_location_id: smRow.storage_location_id,\n      items: [],\n    });\n  }\n\n  huMovesMap.get(huToMove).items.push({\n    material_id: entry.material_id,\n    material_uom: smRow.received_quantity_uom || smRow.quantity_uom || \"\",\n    batch_id: entry.batch_id || \"\",\n    batch_no: smRow.batch_no || \"\",\n    quantity: parseFloat(entry.sm_quantity || 0),\n    location_id: smRow.location_id,\n  });\n}\n\nconst huMoves = Array.from(huMovesMap.values()).map((u) => ({\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\nreturn { huMoves: huMoves, huMovesLength: huMoves.length };"
+                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\n\nlet husAtReceiving = {{node:search_node_oOEYwCue.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\n\n// Branch A: HU was moved at Issued, same id at receiving\n// Branch B: a NEW HU was created at receiving with transfer_source_hu_id pointing back\nconst huById = new Map(husAtReceiving.map((h) => [h.id, h.id]));\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h.id]));\n\n// Prefer temp_qty_data per line; fall back to balance_index entries for this row.\n// The line's chosen bin (location_id + storage_location_id) is the target.\n// Pass table_hu_items along so the move workflow preserves HU contents.\nconst huMovesMap = new Map();\nfor (const [idx, smRow] of stockMovement.entries()) {\n  if (!smRow || !smRow.location_id || !smRow.storage_location_id) continue;\n\n  let entries = [];\n  try {\n    entries = JSON.parse(smRow.temp_qty_data || \"[]\");\n  } catch (e) {\n    entries = [];\n  }\n  if (!Array.isArray(entries) || entries.length === 0) {\n    entries = balanceIndex.filter(\n      (b) => String(b.row_index) === String(idx)\n    );\n  }\n\n  const lineUom = smRow.received_quantity_uom || smRow.quantity_uom || \"\";\n\n  for (const entry of entries) {\n    const sourceHuId = entry.handling_unit_id;\n    if (!sourceHuId) continue;\n\n    const huToMove = huById.get(sourceHuId) || huBySource.get(sourceHuId);\n    if (!huToMove) continue;\n\n    if (!huMovesMap.has(huToMove)) {\n      huMovesMap.set(huToMove, {\n        handling_unit_id: huToMove,\n        plant_id: targetPlantId,\n        organization_id: organizationId,\n        location_id: smRow.location_id,\n        storage_location_id: smRow.storage_location_id,\n        items: [],\n      });\n    }\n\n    huMovesMap.get(huToMove).items.push({\n      material_id: entry.material_id,\n      material_uom: entry.material_uom || lineUom,\n      batch_id: entry.batch_id || \"\",\n      batch_no: smRow.batch_no || \"\",\n      quantity: parseFloat(entry.sm_quantity || 0),\n      location_id: smRow.location_id,\n    });\n  }\n}\n\nconst huMoves = Array.from(huMovesMap.values()).map((u) => ({\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\nreturn { huMoves: huMoves, huMovesLength: huMoves.length };"
                         },
                         "response_json": [
                           {
