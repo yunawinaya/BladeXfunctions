@@ -1,0 +1,258 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "code_node_yrSiOiir",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Determine Params",
+        "isValidator": true,
+        "nodeName": "Determine Params",
+        "name": "Determine Params",
+        "script": {
+          "type": "javascript",
+          "code": "const phone = {{workflowparams:phone_number}};\nconst phoneStr = (phone == null ? \"\" : String(phone)).trim();\nconst lookupBy = phoneStr ? \"phone\" : \"email\";\n\nreturn { lookupBy };"
+        },
+        "response_json": [
+          {
+            "key": "13yc7d15",
+            "name": "lookupBy",
+            "title": "Lookup By",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "condition_or_nejpjlWv",
+      "type": "condition-or-node",
+      "data": {
+        "title": "Condition",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_or_node_item_9YeMA5FN",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Phone Number",
+            "filter": {
+              "list": [
+                {
+                  "id": 1778834460813,
+                  "parentId": 1778834460812,
+                  "isTop": true,
+                  "prop": "node.code_node_yrSiOiir.data.lookupBy",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "phone",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "Lookup By",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
+            },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Phone Number",
+            "name": "Phone Number",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "get_node_THuA8VPh",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Contact List(Customer):Table:1942869939031912450",
+                  "rules": {
+                    "collectionId": "1942869939031912450",
+                    "list": [
+                      {
+                        "id": 1778834454269,
+                        "parentId": 1778834454268,
+                        "isTop": true,
+                        "prop": "mobile_number",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{workflowparams:phone_number}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Mobile",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Customer ID",
+                "isValidator": true,
+                "nodeName": "Get Customer ID",
+                "name": "Get Customer ID"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_or_node_item_nNG5300D",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Email",
+            "isDefault": true,
+            "filter": { "list": [] },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.otherCondition"
+          },
+          "blocks": [
+            {
+              "id": "get_node_814fnfzT",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Contact List(Customer):Table:1942869939031912450",
+                  "rules": {
+                    "collectionId": "1942869939031912450",
+                    "list": [
+                      {
+                        "id": 1778834454269,
+                        "parentId": 1778834454268,
+                        "isTop": true,
+                        "prop": "person_email",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{workflowparams:email}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Email",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Customer ID",
+                "isValidator": true,
+                "nodeName": "Get Customer ID",
+                "name": "Get Customer ID"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_Eg4cGg3h",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Customer ID",
+        "isValidator": true,
+        "nodeName": "Customer ID",
+        "name": "Customer ID",
+        "script": {
+          "type": "javascript",
+          "code": "const phoneRes = {{node:get_node_THuA8VPh.data}};\nconst emailRes = {{node:get_node_814fnfzT.data}};\n\nconst extractRecord = (res) => {\n  if (!res || !res.count || res.count <= 0) return null;\n  const d = res.data;\n  if (Array.isArray(d)) return d.length > 0 ? d[0] : null;\n  if (d && typeof d === \"object\") return d;\n  return null;\n};\n\nconst record = extractRecord(phoneRes) || extractRecord(emailRes);\nconst customer_id = (record && record.Customer_id) ? record.Customer_id : \"\";\n\nreturn { customer_id };"
+        },
+        "response_json": [
+          {
+            "key": "q75bym3j",
+            "name": "customer_id",
+            "title": "customer_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_ays8qZRF",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+          "list": [
+            {
+              "prop": "customer_id",
+              "propLabel": "Customer ID",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_Eg4cGg3h.data.customer_id}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "ans8t7hx",
+      "name": "phone_number",
+      "title": "Phone Number",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "iozn2oas",
+      "name": "email",
+      "title": "email",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "jy97hoqk",
+      "name": "customer_id",
+      "title": "Customer ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}
