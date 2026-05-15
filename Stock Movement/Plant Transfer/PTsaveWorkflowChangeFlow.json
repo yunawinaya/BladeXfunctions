@@ -10251,7 +10251,7 @@
                                     "name": "BalanceIndex Preparation",
                                     "script": {
                                       "type": "javascript",
-                                      "code": "const currentIndexRaw = {{node:get_cache_node_6O6yMS6l.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst balance_index = {{node:code_node_37LA0tgq.data.allData.balance_index}}\n\nconst filteredBalanceIndex = balance_index.filter((balance) => balance.row_index === index)\n\n\nreturn {\n  filteredBalanceIndex\n};"
+                                      "code": "const currentIndexRaw = {{node:get_cache_node_6O6yMS6l.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst allData = {{node:code_node_37LA0tgq.data.allData}};\nconst item = (allData.stock_movement || [])[index] || {};\n\nlet lineTemp = [];\ntry {\n  lineTemp = JSON.parse(item.temp_qty_data || \"[]\");\n} catch (e) {\n  lineTemp = [];\n}\nif (!Array.isArray(lineTemp)) lineTemp = [];\n\nconst filteredBalanceIndex = lineTemp.filter(\n  (b) => b && b.sm_quantity && parseFloat(b.sm_quantity) > 0\n);\n\nreturn { filteredBalanceIndex };"
                                     },
                                     "response_json": [
                                       {
