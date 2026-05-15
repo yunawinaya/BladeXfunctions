@@ -3,7 +3,10 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": { "isValidator": true, "title": "Start Node" },
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
       "blocks": []
     },
     {
@@ -19,7 +22,7 @@
         "name": "Determine Params",
         "script": {
           "type": "javascript",
-          "code": "const mobile = {{workflowparams:mobile_number}};\nconst mobileStr = (mobile == null ? \"\" : String(mobile)).trim();\nconst lookupBy = mobileStr ? \"phone\" : \"email\";\n\nconst variants = new Set();\nif (mobileStr) {\n  variants.add(mobileStr);\n  const stripped = mobileStr.startsWith(\"+\") ? mobileStr.slice(1) : mobileStr;\n  variants.add(stripped);\n  if (stripped.startsWith(\"0\")) {\n    const local = stripped.slice(1);\n    const codes = [\"60\", \"62\", \"65\", \"66\"];\n    for (const cc of codes) {\n      variants.add(cc + local);\n      variants.add(\"+\" + cc + local);\n    }\n  } else {\n    variants.add(\"+\" + stripped);\n  }\n}\nconst mobileVariants = Array.from(variants);\n\nreturn { lookupBy, mobileVariants };"
+          "code": "const mobile = {{workflowparams:mobile_number}};\nconst mobileStr = (mobile == null ? \"\" : String(mobile)).trim();\nconst lookupBy = mobileStr ? \"phone\" : \"email\";\n\n// SE Asia mobile patterns (national subscriber portion only, no leading 0 / CC).\n// Add countries here: { cc, nationalRe, hasNationalZero }.\nconst COUNTRIES = [\n  { cc: \"60\", nationalRe: /^1\\d{8,9}$/, hasNationalZero: true },\n  { cc: \"65\", nationalRe: /^[89]\\d{7}$/, hasNationalZero: false },\n  { cc: \"66\", nationalRe: /^[689]\\d{8}$/, hasNationalZero: true },\n  { cc: \"62\", nationalRe: /^8\\d{8,11}$/, hasNationalZero: true }\n];\n\nconst detectCountries = (s) => {\n  if (!s) return [];\n  const sorted = COUNTRIES.slice().sort((a, b) => b.cc.length - a.cc.length);\n  const out = [];\n  if (s.startsWith(\"+\")) {\n    const digits = s.slice(1);\n    for (const c of sorted) {\n      if (digits.startsWith(c.cc) && c.nationalRe.test(digits.slice(c.cc.length))) {\n        out.push({ cc: c.cc, national: digits.slice(c.cc.length) });\n      }\n    }\n    return out;\n  }\n  for (const c of sorted) {\n    if (s.startsWith(c.cc) && c.nationalRe.test(s.slice(c.cc.length))) {\n      out.push({ cc: c.cc, national: s.slice(c.cc.length) });\n    }\n  }\n  if (out.length > 0) return out;\n  if (s.startsWith(\"0\")) {\n    const candidate = s.slice(1);\n    for (const c of sorted) {\n      if (c.hasNationalZero && c.nationalRe.test(candidate)) {\n        out.push({ cc: c.cc, national: candidate });\n      }\n    }\n  } else {\n    for (const c of sorted) {\n      if (!c.hasNationalZero && c.nationalRe.test(s)) {\n        out.push({ cc: c.cc, national: s });\n      }\n    }\n  }\n  return out;\n};\n\nconst variants = new Set();\nif (mobileStr) {\n  variants.add(mobileStr);\n  const stripped = mobileStr.startsWith(\"+\") ? mobileStr.slice(1) : mobileStr;\n  variants.add(stripped);\n  const candidates = detectCountries(mobileStr);\n  for (const c of candidates) {\n    variants.add(c.cc + c.national);\n    variants.add(\"+\" + c.cc + c.national);\n    const meta = COUNTRIES.find(x => x.cc === c.cc);\n    if (meta && meta.hasNationalZero) variants.add(\"0\" + c.national);\n  }\n}\nconst mobileVariants = Array.from(variants);\n\nreturn { lookupBy, mobileVariants };"
         },
         "response_json": [
           {
@@ -48,8 +51,12 @@
       "type": "condition-or-node",
       "data": {
         "title": "Condition",
-        "filter": { "list": [] },
-        "expression": { "code": "" },
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
         "displayContent": "sdk.form.setCondition"
       },
       "blocks": [
@@ -76,7 +83,9 @@
                 }
               ]
             },
-            "expression": { "code": "" },
+            "expression": {
+              "code": ""
+            },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Phone Number",
@@ -126,8 +135,12 @@
           "data": {
             "title": "Email",
             "isDefault": true,
-            "filter": { "list": [] },
-            "expression": { "code": "" },
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            },
             "displayContent": "sdk.form.otherCondition"
           },
           "blocks": [
@@ -278,7 +291,10 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],
