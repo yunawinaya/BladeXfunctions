@@ -19,7 +19,7 @@
         "name": "Determine Params",
         "script": {
           "type": "javascript",
-          "code": "const phone = {{workflowparams:phone_number}};\nconst phoneStr = (phone == null ? \"\" : String(phone)).trim();\nconst lookupBy = phoneStr ? \"phone\" : \"email\";\n\nreturn { lookupBy };"
+          "code": "const mobile = {{workflowparams:mobile_number}};\nconst mobileStr = (mobile == null ? \"\" : String(mobile)).trim();\nconst lookupBy = mobileStr ? \"phone\" : \"email\";\n\nconst variants = new Set();\nif (mobileStr) {\n  variants.add(mobileStr);\n  const stripped = mobileStr.startsWith(\"+\") ? mobileStr.slice(1) : mobileStr;\n  variants.add(stripped);\n  if (stripped.startsWith(\"0\")) {\n    const local = stripped.slice(1);\n    const codes = [\"60\", \"62\", \"65\", \"66\"];\n    for (const cc of codes) {\n      variants.add(cc + local);\n      variants.add(\"+\" + cc + local);\n    }\n  } else {\n    variants.add(\"+\" + stripped);\n  }\n}\nconst mobileVariants = Array.from(variants);\n\nreturn { lookupBy, mobileVariants };"
         },
         "response_json": [
           {
@@ -29,6 +29,15 @@
             "description": "",
             "bsonType": "string",
             "isExpand": false
+          },
+          {
+            "key": "rwrsb6xj",
+            "name": "mobileVariants",
+            "title": "mobileVariants",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
           }
         ]
       },
@@ -89,14 +98,14 @@
                         "parentId": 1778834454268,
                         "isTop": true,
                         "prop": "mobile_number",
-                        "operator": "equal",
+                        "operator": "in",
                         "valueType": "field",
-                        "value": "{{workflowparams:phone_number}}",
+                        "value": "{{node:code_node_yrSiOiir.data.mobileVariants}}",
                         "type": "leaf",
                         "level": 1,
                         "propLabel": "Mobile",
                         "valueLabel": "",
-                        "operatorLabel": "Equal"
+                        "operatorLabel": "In"
                       }
                     ]
                   }
@@ -277,8 +286,8 @@
   "request_json": [
     {
       "key": "ans8t7hx",
-      "name": "phone_number",
-      "title": "Phone Number",
+      "name": "mobile_number",
+      "title": "Mobile Number",
       "description": "",
       "bsonType": "any",
       "isExpand": false,
