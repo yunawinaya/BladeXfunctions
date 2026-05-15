@@ -189,6 +189,40 @@
       "blocks": []
     },
     {
+      "id": "get_node_h9IHH6H7",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Customer:Table:1902779099617804290",
+          "rules": {
+            "collectionId": "1902779099617804290",
+            "list": [
+              {
+                "id": 1778838392819,
+                "parentId": 1778838392818,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_Eg4cGg3h.data.customer_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get Customer Data",
+        "isValidator": true,
+        "nodeName": "Get Customer Data",
+        "name": "Get Customer Data"
+      },
+      "blocks": []
+    },
+    {
       "id": "return_node_ays8qZRF",
       "type": "return-node",
       "data": {
@@ -209,6 +243,22 @@
               "valueTypeLabel": "",
               "value": "{{node:code_node_Eg4cGg3h.data.customer_id}}",
               "valueLabel": ""
+            },
+            {
+              "prop": "customer_code",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:get_node_h9IHH6H7.data.data.customer_id}}",
+              "valueLabel": "",
+              "propLabel": "Customer Code"
+            },
+            {
+              "prop": "customer_name",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:get_node_h9IHH6H7.data.data.customer_com_name}}",
+              "valueLabel": "",
+              "propLabel": "Customer Name"
             }
           ]
         },
@@ -249,6 +299,22 @@
       "key": "jy97hoqk",
       "name": "customer_id",
       "title": "Customer ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "mhrto2ik",
+      "name": "customer_code",
+      "title": "Customer Code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "qqoibzn7",
+      "name": "customer_name",
+      "title": "Customer Name",
       "description": "",
       "bsonType": "string",
       "isExpand": false
