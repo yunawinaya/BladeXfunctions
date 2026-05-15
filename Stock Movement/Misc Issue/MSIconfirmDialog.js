@@ -380,8 +380,38 @@
       .join("\n");
   };
 
-  const formatHuDetails = (filteredHuList) =>
-    filteredHuList
+  const formatHuDetails = async (filteredHuList) => {
+    const batchIds = [
+      ...new Set(
+        filteredHuList
+          .map((item) => item.batch_id)
+          .filter((batchId) => batchId != null && batchId !== ""),
+      ),
+    ];
+
+    const batchPromises = batchIds.map(async (batchId) => {
+      try {
+        const resBatch = await db
+          .collection("batch")
+          .where({ id: batchId })
+          .get();
+        return {
+          id: batchId,
+          name: resBatch.data?.[0]?.batch_number || `Batch ID: ${batchId}`,
+        };
+      } catch (error) {
+        console.error(`Error fetching batch ${batchId}:`, error);
+        return { id: batchId, name: `${batchId} (Error)` };
+      }
+    });
+
+    const batches = await Promise.all(batchPromises);
+    const batchMap = batches.reduce((map, batch) => {
+      map[batch.id] = batch.name;
+      return map;
+    }, {});
+
+    return filteredHuList
       .map((item, index) => {
         const huHeader = huData.find(
           (row) =>
@@ -391,11 +421,13 @@
         const huName = huHeader?.handling_no || item.handling_unit_id;
         let detail = `${index + 1}. ${huName}: ${item.sm_quantity} ${gdUOM}`;
         if (item.batch_id) {
-          detail += `\n   [Batch: ${item.batch_id}]`;
+          const batchName = batchMap[item.batch_id] || item.batch_id;
+          detail += `\n   [Batch: ${batchName}]`;
         }
         return detail;
       })
       .join("\n");
+  };
 
   const filteredLoose = processedTemporaryData.filter(
     (item) => (item.sm_quantity || 0) > 0,
@@ -406,11 +438,11 @@
 
   let formattedString;
   if (hasHu && hasLoose) {
-    formattedString = `Total: ${totalCombined} ${gdUOM}\n\nLOOSE STOCK:\n${looseDetails}\n\nHANDLING UNIT:\n${formatHuDetails(
+    formattedString = `Total: ${totalCombined} ${gdUOM}\n\nLOOSE STOCK:\n${looseDetails}\n\nHANDLING UNIT:\n${await formatHuDetails(
       filteredHuData,
     )}`;
   } else if (hasHu) {
-    formattedString = `Total: ${totalHuQuantity} ${gdUOM}\n\nHANDLING UNIT:\n${formatHuDetails(
+    formattedString = `Total: ${totalHuQuantity} ${gdUOM}\n\nHANDLING UNIT:\n${await formatHuDetails(
       filteredHuData,
     )}`;
   } else {

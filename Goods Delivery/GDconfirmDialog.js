@@ -528,6 +528,37 @@
 
     // HU section
     formattedString += `\n\nHANDLING UNIT:\n`;
+
+    const huBatchIds = [
+      ...new Set(
+        filteredHuData
+          .map((item) => item.batch_id)
+          .filter((batchId) => batchId != null && batchId !== ""),
+      ),
+    ];
+
+    const huBatchPromises = huBatchIds.map(async (batchId) => {
+      try {
+        const resBatch = await db
+          .collection("batch")
+          .where({ id: batchId })
+          .get();
+        return {
+          id: batchId,
+          name: resBatch.data?.[0]?.batch_number || `Batch ID: ${batchId}`,
+        };
+      } catch (error) {
+        console.error(`Error fetching batch ${batchId}:`, error);
+        return { id: batchId, name: `${batchId} (Error)` };
+      }
+    });
+
+    const huBatches = await Promise.all(huBatchPromises);
+    const huBatchMap = huBatches.reduce((map, batch) => {
+      map[batch.id] = batch.name;
+      return map;
+    }, {});
+
     const huDetails = filteredHuData
       .map((item, index) => {
         const huHeader = huData.find(
@@ -538,7 +569,8 @@
         const huName = huHeader?.handling_no || item.handling_unit_id;
         let detail = `${index + 1}. ${huName}: ${item.deliver_quantity} ${gdUOM}`;
         if (item.batch_id) {
-          detail += `\n   [Batch: ${item.batch_id}]`;
+          const batchName = huBatchMap[item.batch_id] || item.batch_id;
+          detail += `\n   [Batch: ${batchName}]`;
         }
         return detail;
       })
