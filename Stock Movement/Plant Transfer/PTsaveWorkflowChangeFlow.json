@@ -13609,7 +13609,7 @@
                                 "name": "Aggregate HU Loads",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\nconst targetLocationId = {{node:get_node_WtFOLdKB.data.data.id}};\nconst targetStorageLocId = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\nconst huLoadsMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n  const qty = parseFloat(entry.sm_quantity || 0);\n  if (qty <= 0) continue;\n\n  const rowIdx = parseInt(entry.row_index, 10);\n  const smRow = stockMovement[rowIdx];\n\n  if (!huLoadsMap.has(sourceHuId)) {\n    huLoadsMap.set(sourceHuId, {\n      transfer_source_hu_id: sourceHuId,\n      plant_id: targetPlantId,\n      organization_id: organizationId,\n      location_id: targetLocationId,\n      storage_location_id: targetStorageLocId,\n      items: [],\n    });\n  }\n\n  const u = huLoadsMap.get(sourceHuId);\n  const existing = u.items.find((it) => it.material_id === entry.material_id);\n  if (existing) {\n    existing.quantity = (parseFloat(existing.quantity) || 0) + qty;\n  } else {\n    u.items.push({\n      material_id: entry.material_id,\n      material_uom: entry.material_uom,\n      batch_id: \"\",\n      batch_no: (smRow && smRow.batch_no) || \"\",\n      quantity: qty,\n      location_id: targetLocationId,\n    });\n  }\n}\n\nconst huLoads = Array.from(huLoadsMap.values()).map((u) => ({\n  handling_unit_id: \"\",\n  handling_no: \"Auto-generated number\",\n  transfer_source_hu_id: u.transfer_source_hu_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huLoads: huLoads, huLoadsLength: huLoads.length };"
+                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\nconst targetLocationId = {{node:get_node_WtFOLdKB.data.data.id}};\nconst targetStorageLocId = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\nconst huLoadsMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n  const qty = parseFloat(entry.sm_quantity || 0);\n  if (qty <= 0) continue;\n\n  const rowIdx = parseInt(entry.row_index, 10);\n  const smRow = stockMovement[rowIdx];\n\n  if (!huLoadsMap.has(sourceHuId)) {\n    huLoadsMap.set(sourceHuId, {\n      transfer_source_hu_id: sourceHuId,\n      plant_id: targetPlantId,\n      organization_id: organizationId,\n      location_id: targetLocationId,\n      storage_location_id: targetStorageLocId,\n      items: [],\n    });\n  }\n\n  const u = huLoadsMap.get(sourceHuId);\n  const existing = u.items.find((it) => it.material_id === entry.material_id);\n  if (existing) {\n    existing.quantity = (parseFloat(existing.quantity) || 0) + qty;\n  } else {\n    u.items.push({\n      material_id: entry.material_id,\n      material_uom: (smRow && (smRow.received_quantity_uom || smRow.quantity_uom)) || \"\",\n      batch_id: entry.batch_id || \"\",\n      batch_no: (smRow && smRow.batch_no) || \"\",\n      quantity: qty,\n      location_id: targetLocationId,\n    });\n  }\n}\n\nconst huLoads = Array.from(huLoadsMap.values()).map((u) => ({\n  handling_unit_id: \"\",\n  handling_no: \"Auto-generated number\",\n  transfer_source_hu_id: u.transfer_source_hu_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huLoads: huLoads, huLoadsLength: huLoads.length };"
                                 },
                                 "response_json": [
                                   {
@@ -14114,7 +14114,7 @@
                         "name": "Aggregate HU Final Moves",
                         "script": {
                           "type": "javascript",
-                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\n\nlet husAtReceiving = {{node:search_node_oOEYwCue.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\n\n// Branch A: HU was moved at Issued, same id at receiving\n// Branch B: a NEW HU was created at receiving with transfer_source_hu_id pointing back\nconst huById = new Map(husAtReceiving.map((h) => [h.id, h.id]));\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h.id]));\n\n// balance_index carries the source HU id and row_index back to its stock_movement line.\n// The line's chosen bin (location_id + storage_location_id) is the target.\nconst huMovesMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n\n  const huToMove = huById.get(sourceHuId) || huBySource.get(sourceHuId);\n  if (!huToMove) continue;\n  if (huMovesMap.has(huToMove)) continue;\n\n  const rowIndex = parseInt(entry.row_index, 10);\n  const smRow = Number.isInteger(rowIndex) ? stockMovement[rowIndex] : null;\n  if (!smRow || !smRow.location_id || !smRow.storage_location_id) continue;\n\n  huMovesMap.set(huToMove, {\n    handling_unit_id: huToMove,\n    plant_id: targetPlantId,\n    organization_id: organizationId,\n    location_id: smRow.location_id,\n    storage_location_id: smRow.storage_location_id,\n  });\n}\n\nconst huMoves = Array.from(huMovesMap.values());\nreturn { huMoves: huMoves, huMovesLength: huMoves.length };"
+                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst targetPlantId = allData.receiving_operation_faci;\n\nlet husAtReceiving = {{node:search_node_oOEYwCue.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\n\n// Branch A: HU was moved at Issued, same id at receiving\n// Branch B: a NEW HU was created at receiving with transfer_source_hu_id pointing back\nconst huById = new Map(husAtReceiving.map((h) => [h.id, h.id]));\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h.id]));\n\n// balance_index carries the source HU id and row_index back to its stock_movement line.\n// The line's chosen bin (location_id + storage_location_id) is the target.\n// Pass table_hu_items along so the move workflow preserves HU contents.\nconst huMovesMap = new Map();\nfor (const entry of balanceIndex) {\n  const sourceHuId = entry.handling_unit_id;\n  if (!sourceHuId) continue;\n\n  const huToMove = huById.get(sourceHuId) || huBySource.get(sourceHuId);\n  if (!huToMove) continue;\n\n  const rowIndex = parseInt(entry.row_index, 10);\n  const smRow = Number.isInteger(rowIndex) ? stockMovement[rowIndex] : null;\n  if (!smRow || !smRow.location_id || !smRow.storage_location_id) continue;\n\n  if (!huMovesMap.has(huToMove)) {\n    huMovesMap.set(huToMove, {\n      handling_unit_id: huToMove,\n      plant_id: targetPlantId,\n      organization_id: organizationId,\n      location_id: smRow.location_id,\n      storage_location_id: smRow.storage_location_id,\n      items: [],\n    });\n  }\n\n  huMovesMap.get(huToMove).items.push({\n    material_id: entry.material_id,\n    material_uom: smRow.received_quantity_uom || smRow.quantity_uom || \"\",\n    batch_id: entry.batch_id || \"\",\n    batch_no: smRow.batch_no || \"\",\n    quantity: parseFloat(entry.sm_quantity || 0),\n    location_id: smRow.location_id,\n  });\n}\n\nconst huMoves = Array.from(huMovesMap.values()).map((u) => ({\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\nreturn { huMoves: huMoves, huMovesLength: huMoves.length };"
                         },
                         "response_json": [
                           {
@@ -14245,7 +14245,7 @@
                                     "name": "Pick HU Final Move",
                                     "script": {
                                       "type": "javascript",
-                                      "code": "const u = {{node:loop_lkQzfXGR}};\nreturn {\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n};"
+                                      "code": "const u = {{node:loop_lkQzfXGR}};\nreturn {\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.table_hu_items,\n};"
                                     },
                                     "response_json": [
                                       {
@@ -14287,6 +14287,26 @@
                                         "description": "",
                                         "bsonType": "string",
                                         "isExpand": false
+                                      },
+                                      {
+                                        "key": "phm1tabit",
+                                        "name": "table_hu_items",
+                                        "title": "table_hu_items",
+                                        "description": "",
+                                        "bsonType": "array",
+                                        "isExpand": true,
+                                        "children": [
+                                          {
+                                            "key": "phm1tabch",
+                                            "name": "items",
+                                            "title": "",
+                                            "description": "",
+                                            "bsonType": "any",
+                                            "isExpand": false,
+                                            "isArrayItem": true,
+                                            "children": []
+                                          }
+                                        ]
                                       }
                                     ]
                                   },
@@ -14381,9 +14401,9 @@
                                           "propLabel": "table_hu_items",
                                           "operator": "",
                                           "operatorLabel": "",
-                                          "valueType": "value",
+                                          "valueType": "field",
                                           "valueTypeLabel": "",
-                                          "value": "[]",
+                                          "value": "{{node:code_node_Zhp3pnkN.data.table_hu_items}}",
                                           "valueLabel": ""
                                         },
                                         {
