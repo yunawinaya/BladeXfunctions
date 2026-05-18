@@ -16,6 +16,84 @@ const validateForm = (data, requiredFields) => {
   return missingFields;
 };
 
+const validateContactList = async (contactList, currentCustomerId) => {
+  const list = contactList || [];
+
+  for (let i = 0; i < list.length; i++) {
+    const name = list[i].person_name;
+    if (!name || (typeof name === "string" && name.trim() === "")) {
+      return {
+        ok: false,
+        message: `Contact at row ${i + 1} is missing a person name`,
+      };
+    }
+  }
+
+  const stripLeadingZero = (m) => {
+    const s = (m || "").toString();
+    return s.startsWith("0") ? s.slice(1) : s;
+  };
+
+  const seen = new Map();
+  for (let i = 0; i < list.length; i++) {
+    const c = list[i];
+    if (!c.mobile_number) continue;
+    const key = (c.country_code || "") + "|" + stripLeadingZero(c.mobile_number);
+    if (seen.has(key)) {
+      return {
+        ok: false,
+        message: `Duplicate mobile number ${c.mobile_number} in contacts (rows ${
+          seen.get(key) + 1
+        } and ${i + 1})`,
+      };
+    }
+    seen.set(key, i);
+  }
+
+  const contactsWithMobile = list.filter((c) => c.mobile_number);
+  if (contactsWithMobile.length === 0) return { ok: true };
+
+  const variants = new Set();
+  for (const c of contactsWithMobile) {
+    const noLead = stripLeadingZero(c.mobile_number);
+    variants.add(noLead);
+    variants.add("0" + noLead);
+  }
+  const mobileFilter = new Filter()
+    .in("mobile_number", Array.from(variants))
+    .build();
+  const dbResult = await db
+    .collection("customer_wyjlo2tg_sub")
+    .filter(mobileFilter)
+    .get();
+
+  const activeRows = (dbResult.data || []).filter((r) => r.is_deleted === 0);
+  const inMemoryIds = new Set(
+    list.filter((c) => c.id).map((c) => c.id),
+  );
+
+  for (const c of contactsWithMobile) {
+    const noLead = stripLeadingZero(c.mobile_number);
+    const collision = activeRows.find(
+      (r) =>
+        !inMemoryIds.has(r.id) &&
+        r.country_code === c.country_code &&
+        stripLeadingZero(r.mobile_number) === noLead,
+    );
+    if (collision) {
+      const sameCustomer = collision.Customer_id === currentCustomerId;
+      return {
+        ok: false,
+        message: sameCustomer
+          ? `Mobile number ${c.mobile_number} already exists in this customer's other contacts`
+          : `Mobile number ${c.mobile_number} is already registered to another customer`,
+      };
+    }
+  }
+
+  return { ok: true };
+};
+
 const getPrefixData = async (organizationId) => {
   const prefixEntry = await db
     .collection("prefix_configuration")
@@ -108,6 +186,16 @@ const findFieldMessage = (obj) => {
     const missingFields = await validateForm(data, requiredFields);
 
     if (missingFields.length === 0) {
+      const contactValidation = await validateContactList(
+        data.contact_list,
+        this.getValue("id"),
+      );
+      if (!contactValidation.ok) {
+        this.hideLoading();
+        this.$message.error(contactValidation.message);
+        return;
+      }
+
       const page_status = data.page_status;
 
       let organizationId = this.getVarGlobal("deptParentId");
