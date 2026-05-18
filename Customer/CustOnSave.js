@@ -67,16 +67,44 @@ const updateEntry = async (entry, customerId) => {
   }
 };
 
+const findFieldMessage = (obj) => {
+  // Base case: if current object has the structure we want
+  if (obj && typeof obj === "object") {
+    if (obj.field && obj.message) {
+      return obj.message;
+    }
+
+    // Check array elements
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = findFieldMessage(item);
+        if (found) return found;
+      }
+    }
+
+    // Check all object properties
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const found = findFieldMessage(obj[key]);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
+};
+
 (async () => {
   try {
     this.showLoading();
     const data = this.getValues();
+    let entry = data;
     const requiredFields = [
       { name: "customer_status", label: "Customer Status" },
       { name: "customer_id", label: "Customer Code" },
       { name: "customer_com_name", label: "Company Name" },
     ];
 
+    await this.validate("customer_id");
     const missingFields = await validateForm(data, requiredFields);
 
     if (missingFields.length === 0) {
@@ -86,79 +114,6 @@ const updateEntry = async (entry, customerId) => {
       if (organizationId === "0") {
         organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
-
-      const {
-        customer_status,
-        customer_type,
-        customer_id,
-        customer_com_name,
-        business_type_id,
-        customer_irbm_id,
-        created_date,
-        customer_com_reg_no,
-        customer_com_old_reg_no,
-        customer_area_id,
-        customer_agent_id,
-        customer_currency_id,
-        customer_tax_rate_id,
-        customer_tin_no,
-        customer_credit_limit,
-        overdue_limit,
-        outstanding_balance,
-        overdue_inv_total_amount,
-        is_accurate,
-        control_type_list,
-        customer_payment_term_id,
-        customer_sst_sales_no,
-        customer_sst_service_no,
-        is_exceed_limit,
-        address_list,
-        contact_list,
-        customer_twitter,
-        customer_linkedin,
-        customer_facebook,
-        customer_website,
-        customer_instagram,
-        customer_remark,
-        attachment,
-      } = data;
-
-      const entry = {
-        customer_status,
-        organization_id: organizationId,
-        customer_type,
-        customer_id,
-        customer_com_name,
-        business_type_id,
-        customer_irbm_id,
-        created_date,
-        customer_com_reg_no,
-        customer_com_old_reg_no,
-        customer_area_id,
-        customer_agent_id,
-        customer_currency_id,
-        customer_tax_rate_id,
-        customer_tin_no,
-        customer_credit_limit,
-        customer_payment_term_id,
-        customer_sst_sales_no,
-        customer_sst_service_no,
-        overdue_limit,
-        outstanding_balance,
-        overdue_inv_total_amount,
-        is_accurate,
-        control_type_list,
-        is_exceed_limit,
-        address_list,
-        contact_list,
-        customer_twitter,
-        customer_linkedin,
-        customer_facebook,
-        customer_website,
-        customer_instagram,
-        customer_remark,
-        attachment,
-      };
 
       if (page_status === "Add") {
         await addEntry(organizationId, entry);
@@ -174,6 +129,17 @@ const updateEntry = async (entry, customerId) => {
       this.$message.error(`Missing required fields: ${missingFieldNames}`);
     }
   } catch (error) {
-    this.$message.error(error);
+    this.hideLoading();
+
+    let errorMessage = "";
+
+    if (error && typeof error === "object") {
+      errorMessage = findFieldMessage(error) || "An error occurred";
+    } else {
+      errorMessage = error;
+    }
+
+    this.$message.error(errorMessage);
+    console.error(errorMessage);
   }
 })();
