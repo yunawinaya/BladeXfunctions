@@ -3,6 +3,7 @@
     const rowIndex = Number(arguments[0].rowIndex);
     const mobileNumber = arguments[0].value;
     const countryCode = arguments[0].row && arguments[0].row.country_code;
+    const rowId = arguments[0].row && arguments[0].row.id;
 
     if (!mobileNumber) return;
 
@@ -40,16 +41,19 @@
       .filter(mobileFilter)
       .get();
 
-    const externalRows = (dbResult.data || []).filter(
+    const collisions = (dbResult.data || []).filter(
       (r) =>
         r.country_code === countryCode &&
         r.is_deleted === 0 &&
-        r.Customer_id !== currentCustomerId,
+        r.id !== rowId,
     );
 
-    if (externalRows.length > 0) {
+    if (collisions.length > 0) {
+      const sameCustomer = collisions[0].Customer_id === currentCustomerId;
       this.$message.error(
-        "Mobile number is already registered to another customer",
+        sameCustomer
+          ? "Mobile number already exists in this customer's other contacts"
+          : "Mobile number is already registered to another customer",
       );
     }
   } catch (error) {

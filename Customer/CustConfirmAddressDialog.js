@@ -26,22 +26,41 @@
   const addressCountryCode = data.dialog_add_new_address.address_country_code;
   const currentCustomerId = this.getValue("id");
 
+  const isEditing = data.dialog_add_new_address.rowIndex !== "-1";
+  const oldAddress = isEditing
+    ? data.address_list[parseInt(data.dialog_add_new_address.rowIndex)]
+    : null;
+  const oldMobile = oldAddress ? oldAddress.address_mobile : null;
+
+  // "0178890665" and "178890665" are the same number — compare leading-0-stripped forms.
+  const stripZero = (m) => {
+    const s = (m || "").toString();
+    return s.startsWith("0") ? s.slice(1) : s;
+  };
+
   if (addressMobile) {
-    // "0178890665" and "178890665" are the same number — compare leading-0-stripped forms.
-    const stripLeadingZero = (m) => {
-      const s = (m || "").toString();
-      return s.startsWith("0") ? s.slice(1) : s;
-    };
-    const mobileNoLeading = stripLeadingZero(addressMobile);
+    const mobileNoLeading = stripZero(addressMobile);
     const mobileVariants = Array.from(
       new Set([mobileNoLeading, "0" + mobileNoLeading]),
     );
 
     const contactList = this.getValue("contact_list") || [];
+
+    // When editing, exclude the contact previously synced to this address's old mobile
+    // so re-saving the same address doesn't false-positive against its own auto-synced contact.
+    let excludeContactIdx = -1;
+    if (oldMobile) {
+      const oldNoLead = stripZero(oldMobile);
+      excludeContactIdx = contactList.findIndex(
+        (c) => stripZero(c.mobile_number) === oldNoLead,
+      );
+    }
+
     const inMemoryDup = contactList.some(
-      (c) =>
+      (c, i) =>
+        i !== excludeContactIdx &&
         c.country_code === addressCountryCode &&
-        stripLeadingZero(c.mobile_number) === mobileNoLeading,
+        stripZero(c.mobile_number) === mobileNoLeading,
     );
 
     if (inMemoryDup) {
@@ -206,6 +225,52 @@
     this.setData({
       address_list: data.address_list,
     });
+
+    if (addressMobile) {
+      const currentContacts = this.getValue("contact_list") || [];
+      const syncedContact = {
+        person_name: data.dialog_add_new_address.address_name,
+        country_code: addressCountryCode,
+        mobile_number: addressMobile,
+        person_email: data.dialog_add_new_address.address_email,
+        phone_number: data.dialog_add_new_address.address_phone,
+      };
+
+      // In edit mode, find the contact previously synced from this address (matched by old mobile).
+      let targetIdx = -1;
+      if (isEditing && oldMobile) {
+        const oldNoLead = stripZero(oldMobile);
+        targetIdx = currentContacts.findIndex(
+          (c) => stripZero(c.mobile_number) === oldNoLead,
+        );
+      }
+
+      if (targetIdx !== -1) {
+        currentContacts[targetIdx] = {
+          ...currentContacts[targetIdx],
+          ...syncedContact,
+        };
+        this.setData({ contact_list: currentContacts });
+      } else {
+        const newNoLead = stripZero(addressMobile);
+        const alreadyExists = currentContacts.some(
+          (c) =>
+            c.country_code === addressCountryCode &&
+            stripZero(c.mobile_number) === newNoLead,
+        );
+        if (!alreadyExists) {
+          const emptyContactIdx = currentContacts.findIndex(
+            (c) => !c.person_name && !c.mobile_number && !c.person_email,
+          );
+          if (emptyContactIdx !== -1) {
+            currentContacts[emptyContactIdx] = syncedContact;
+          } else {
+            currentContacts.push(syncedContact);
+          }
+          this.setData({ contact_list: currentContacts });
+        }
+      }
+    }
   });
 
   this.triggerEvent("func_reset_dialog_address");
