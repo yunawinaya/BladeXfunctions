@@ -1191,6 +1191,17 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   soId = [...new Set(latestTableGD.map((gr) => gr.line_so_id))];
   salesOrderNumber = [...new Set(latestTableGD.map((gr) => gr.line_so_no))];
+  const uniqueSalesPerson = [
+    ...new Set(
+      currentItemArray.map((so) =>
+        referenceType === "Document"
+          ? so.sales_person
+          : so.sales_order.so_sales_person,
+      ),
+    ),
+  ];
+
+  console.log("uniqueSalesPerson", uniqueSalesPerson);
 
   await this.setData({
     currency_code:
@@ -1201,6 +1212,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
       referenceType === "Document"
         ? currentItemArray[0].customer_id
         : currentItemArray[0].customer_id.id,
+    sales_person: uniqueSalesPerson,
     table_gd: latestTableGD,
     so_no: salesOrderNumber.join(", "),
     so_id: soId,
