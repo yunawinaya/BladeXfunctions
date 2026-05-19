@@ -31,14 +31,48 @@ const runPPWorkflow = async (data) => {
     console.log("selectedRecords", selectedRecords);
 
     if (selectedRecords && selectedRecords.length > 0) {
-      let pickingPlanData = selectedRecords.filter(
+      const createdPickingPlans = selectedRecords.filter(
         (item) => item.to_status === "Created",
       );
 
-      if (pickingPlanData.length === 0) {
+      if (createdPickingPlans.length === 0) {
         this.$message.error("Please select at least one created picking plan.");
         throw new Error();
       }
+
+      // Block cancellation when picking has already started/completed.
+      // Allowed picking_status values: empty/null/undefined or "Created".
+      const blockedByPickingStatus = createdPickingPlans.filter(
+        (item) =>
+          item.picking_status &&
+          item.picking_status !== "Created",
+      );
+
+      if (blockedByPickingStatus.length > 0) {
+        const blockedList = blockedByPickingStatus
+          .map(
+            (item) =>
+              `${item.to_no} (Picking Status: ${item.picking_status})`,
+          )
+          .join(", ");
+
+        if (blockedByPickingStatus.length === createdPickingPlans.length) {
+          this.$message.error(
+            `Cannot cancel: picking already started or completed for ${blockedList}`,
+          );
+          this.hideLoading();
+          return;
+        }
+
+        this.$message.warning(
+          `Skipping picking plans with active picking: ${blockedList}`,
+        );
+      }
+
+      const pickingPlanData = createdPickingPlans.filter(
+        (item) =>
+          !item.picking_status || item.picking_status === "Created",
+      );
 
       const pickingPlanNumbers = pickingPlanData.map((item) => item.to_no);
 
@@ -130,8 +164,20 @@ const runPPWorkflow = async (data) => {
                       (item) => item.line_status === "Cancelled",
                     );
 
+                  const updatePayload = {
+                    table_picking_items: pickingData.table_picking_items,
+                    to_status: pickingData.to_status,
+                  };
+
                   if (isAllPPCancelled) {
-                    pickingData.to_status = "Cancelled";
+                    updatePayload.to_status = "Cancelled";
+                    if (
+                      pickingData.to_id &&
+                      !pickingData.to_id.endsWith("-Cancelled")
+                    ) {
+                      updatePayload.to_id =
+                        pickingData.to_id + "-Cancelled";
+                    }
                   }
 
                   console.log("pickingData", pickingData);
@@ -139,10 +185,7 @@ const runPPWorkflow = async (data) => {
                   await db
                     .collection("transfer_order")
                     .doc(pickingData.id)
-                    .update({
-                      table_picking_items: pickingData.table_picking_items,
-                      to_status: pickingData.to_status,
-                    });
+                    .update(updatePayload);
                 }
               }
             }
