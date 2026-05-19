@@ -371,6 +371,34 @@
                             "propLabel": "Plant ID",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1773373339481,
+                            "parentId": 1773373339477,
+                            "isTop": false,
+                            "prop": "location_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:location_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Location ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1773373339482,
+                            "parentId": 1773373339477,
+                            "isTop": false,
+                            "prop": "batch_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:batch_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Batch ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
                           }
                         ]
                       }
@@ -454,6 +482,20 @@
                             "propLabel": "Organization",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1773373498539,
+                            "parentId": 1773373498535,
+                            "isTop": false,
+                            "prop": "location_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:location_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Location ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
                           }
                         ]
                       }
@@ -486,7 +528,7 @@
         "name": "Check Inventory",
         "script": {
           "type": "javascript",
-          "code": "// Global Inventory Check (no allocation)\n\nconst material_id = {{workflowparams:material_id}};\nconst quantity = {{workflowparams:quantity}};\nconst plant_id = {{workflowparams:plant_id}};\nconst orderUomId = {{workflowparams:orderUomId}} || \"\";\nconst includeReservedQty = {{workflowparams:includeReservedQty}} || 0;\nconst includeInTransit = {{workflowparams:includeInTransit}} || 0;\nconst existingAllocationData = {{workflowparams:existingAllocationData}} || [];\nconst itemData = {{node:get_node_xgWUnZRj.data.data}};\n\n// Items flagged as no-stock-control always pass the check\nif (itemData.stock_control === 0) {\n  return {\n    code: \"200\",\n    message: \"Stock control disabled for this item\",\n    totalAvailable: 0,\n  };\n}\n\n// UOM conversion: convert requested qty to base UOM for comparison\nlet conversionFactor = 1;\nif (orderUomId && Array.isArray(itemData.table_uom_conversion)) {\n  const uomConversion = itemData.table_uom_conversion.find(\n    (conv) => conv.alt_uom_id === orderUomId\n  );\n  if (uomConversion && uomConversion.base_qty) {\n    conversionFactor = parseFloat(uomConversion.base_qty);\n  }\n}\nconst baseQuantity = parseFloat((quantity * conversionFactor).toFixed(3));\n\n// Pick the right balance collection\nconst balanceData =\n  itemData.item_batch_management === 1\n    ? ({{node:search_node_ARAmvXyd.data.data}} || [])\n    : ({{node:search_node_mb8Vv8fZ.data.data}} || []);\n\n// Sum available stock per the toggles\nlet totalAvailableBase = 0;\nfor (const b of balanceData) {\n  totalAvailableBase += parseFloat(b.unrestricted_qty) || 0;\n  if (includeReservedQty === 1) {\n    totalAvailableBase += parseFloat(b.reserved_qty) || 0;\n  }\n  if (includeInTransit === 1) {\n    totalAvailableBase += parseFloat(b.intransit_qty) || 0;\n  }\n}\n\n// Deduct any already-counted quantity from prior line checks (convert to base UOM)\nlet existingBase = 0;\nif (Array.isArray(existingAllocationData)) {\n  for (const existing of existingAllocationData) {\n    existingBase += (parseFloat(existing.quantity) || 0) * conversionFactor;\n  }\n}\nconst effectiveAvailableBase = Math.max(0, totalAvailableBase - existingBase);\n\n// Report totalAvailable in order UOM (matches caller's quantity frame)\nconst reverseFactor = conversionFactor !== 0 ? 1 / conversionFactor : 1;\nconst totalAvailable = parseFloat((effectiveAvailableBase * reverseFactor).toFixed(3));\n\nif (effectiveAvailableBase >= baseQuantity) {\n  return {\n    code: \"200\",\n    message: \"Sufficient stock\",\n    totalAvailable,\n  };\n}\n\nreturn {\n  code: \"400\",\n  message: `Insufficient stock for item ${itemData.material_code || material_id}. Available: ${totalAvailable}, Requested: ${quantity}`,\n  totalAvailable,\n};\n"
+          "code": "// Global Inventory Check (no allocation)\n\nconst material_id = {{workflowparams:material_id}};\nconst quantity = {{workflowparams:quantity}};\nconst plant_id = {{workflowparams:plant_id}};\nconst orderUomId = {{workflowparams:orderUomId}} || \"\";\nconst location_id = {{workflowparams:location_id}} || \"\";\nconst batch_id = {{workflowparams:batch_id}} || \"\";\nconst includeReservedQty = {{workflowparams:includeReservedQty}} || 0;\nconst includeInTransit = {{workflowparams:includeInTransit}} || 0;\nconst existingAllocationData = {{workflowparams:existingAllocationData}} || [];\nconst itemData = {{node:get_node_xgWUnZRj.data.data}};\n\n// Items flagged as no-stock-control always pass the check\nif (itemData.stock_control === 0) {\n  return {\n    code: \"200\",\n    message: \"Stock control disabled for this item\",\n    totalAvailable: 0,\n  };\n}\n\n// UOM conversion: convert requested qty to base UOM for comparison\nlet conversionFactor = 1;\nif (orderUomId && Array.isArray(itemData.table_uom_conversion)) {\n  const uomConversion = itemData.table_uom_conversion.find(\n    (conv) => conv.alt_uom_id === orderUomId\n  );\n  if (uomConversion && uomConversion.base_qty) {\n    conversionFactor = parseFloat(uomConversion.base_qty);\n  }\n}\nconst baseQuantity = parseFloat((quantity * conversionFactor).toFixed(3));\n\n// Pick the right balance collection (already filtered by material/plant/org/location/batch in WHERE)\nconst balanceData =\n  itemData.item_batch_management === 1\n    ? ({{node:search_node_ARAmvXyd.data.data}} || [])\n    : ({{node:search_node_mb8Vv8fZ.data.data}} || []);\n\n// Sum available stock per the toggles\nlet totalAvailableBase = 0;\nfor (const b of balanceData) {\n  totalAvailableBase += parseFloat(b.unrestricted_qty) || 0;\n  if (includeReservedQty === 1) {\n    totalAvailableBase += parseFloat(b.reserved_qty) || 0;\n  }\n  if (includeInTransit === 1) {\n    totalAvailableBase += parseFloat(b.intransit_qty) || 0;\n  }\n}\n\n// Deduct any already-counted quantity from prior line checks (convert to base UOM)\nlet existingBase = 0;\nif (Array.isArray(existingAllocationData)) {\n  for (const existing of existingAllocationData) {\n    existingBase += (parseFloat(existing.quantity) || 0) * conversionFactor;\n  }\n}\nconst effectiveAvailableBase = Math.max(0, totalAvailableBase - existingBase);\n\n// Report totalAvailable in order UOM (matches caller's quantity frame)\nconst reverseFactor = conversionFactor !== 0 ? 1 / conversionFactor : 1;\nconst totalAvailable = parseFloat((effectiveAvailableBase * reverseFactor).toFixed(3));\n\nif (effectiveAvailableBase >= baseQuantity) {\n  return {\n    code: \"200\",\n    message: \"Sufficient stock\",\n    totalAvailable,\n  };\n}\n\nreturn {\n  code: \"400\",\n  message: `Insufficient stock for item ${itemData.material_code || material_id}. Available: ${totalAvailable}, Requested: ${quantity}`,\n  totalAvailable,\n};\n"
         },
         "response_json": [
           {
@@ -600,6 +642,22 @@
       "key": "mrj7g6bb",
       "name": "organization_id",
       "title": "organization_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "loc8mx2k",
+      "name": "location_id",
+      "title": "location_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "bat6kw3n",
+      "name": "batch_id",
+      "title": "batch_id",
       "description": "",
       "bsonType": "string",
       "isExpand": false
