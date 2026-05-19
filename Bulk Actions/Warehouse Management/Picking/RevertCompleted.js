@@ -35,8 +35,7 @@
     if (deliveredPickings.length > 0) {
       const deliveredList = deliveredPickings
         .map(
-          (item) =>
-            `${item.to_id} (Delivery Status: ${item.delivery_status})`,
+          (item) => `${item.to_id} (Delivery Status: ${item.delivery_status})`,
         )
         .join(", ");
 
@@ -183,8 +182,16 @@
             ? toFetch.data[0]
             : pickingItem;
 
-        const toNoArray = fullPicking.to_no || [];
-        const ppIds = toNoArray.map((pp) => pp.id);
+        // to_no shape differs between the grid (resolved objects {id, to_no})
+        // and the DB fetch (often raw id strings). Prefer the grid's resolved
+        // version if available; otherwise normalize whatever DB gives us.
+        const rawToNo =
+          (pickingItem.to_no && pickingItem.to_no.length > 0
+            ? pickingItem.to_no
+            : fullPicking.to_no) || [];
+        const ppIds = rawToNo
+          .map((pp) => (typeof pp === "string" ? pp : pp && pp.id))
+          .filter(Boolean);
         const pickingItems = fullPicking.table_picking_items || [];
         const pickingRecords = fullPicking.table_picking_records || [];
 
@@ -332,7 +339,9 @@
             const uom = ppLine.to_uom || "PCS";
 
             // ===== Subtract session from picked_temp_qty_data (Bugs 2, 3) =====
-            const existingPickedArr = parseQtyArray(ppLine.picked_temp_qty_data);
+            const existingPickedArr = parseQtyArray(
+              ppLine.picked_temp_qty_data,
+            );
             const pickedMap = new Map();
             for (const item of existingPickedArr) {
               const key = pickedKey(
@@ -350,8 +359,7 @@
               );
               if (pickedMap.has(key)) {
                 const cur = pickedMap.get(key);
-                cur.to_quantity =
-                  (cur.to_quantity || 0) - entry.to_quantity;
+                cur.to_quantity = (cur.to_quantity || 0) - entry.to_quantity;
                 if (cur.to_quantity <= 0) {
                   pickedMap.delete(key);
                 }
@@ -426,10 +434,8 @@
                 if (sourceIdx !== -1) {
                   const s = newTempArr[sourceIdx];
                   s.to_quantity = (s.to_quantity || 0) + move.qty;
-                  s.unrestricted_qty =
-                    (s.unrestricted_qty || 0) + move.qty;
-                  s.balance_quantity =
-                    (s.balance_quantity || 0) + move.qty;
+                  s.unrestricted_qty = (s.unrestricted_qty || 0) + move.qty;
+                  s.balance_quantity = (s.balance_quantity || 0) + move.qty;
                 } else {
                   // Source entry was fully consumed by forward move — recreate
                   newTempArr.push({
