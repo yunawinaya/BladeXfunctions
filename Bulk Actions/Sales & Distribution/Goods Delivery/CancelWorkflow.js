@@ -109,8 +109,12 @@ const runGDWorkflow = async (data) => {
             resultCode === 200 ||
             workflowResult.data.success === true
           ) {
-            // Handle picking status update
-            if (gdItem.picking_status) {
+            // Handle picking status update.
+            // Skip for GDPP: the source Picking exists independently of this GD
+            // (no gd_no back-reference) and can be claimed by other GDs.
+            // reserved_qty release on the picking record is handled by the
+            // inventory sub-workflow already.
+            if (gdItem.is_select_picking !== 1 && gdItem.picking_status) {
               const pickingFilter = new Filter().in("gd_no", [id]).build();
 
               const resPicking = await db

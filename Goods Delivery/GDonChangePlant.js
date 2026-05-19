@@ -127,7 +127,6 @@ const resetFormData = () => {
       } else if (pickingSetupResponse.data[0].picking_after === "Sales Order") {
         this.setData({ is_select_picking: 1 });
         this.display("to_no");
-        this.hide("button_save_as_created");
       }
 
       // Store split_policy for inventory dialog use
