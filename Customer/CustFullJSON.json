@@ -6192,7 +6192,7 @@
                   "type": "custom",
                   "novalid": {},
                   "key": "zecfr2zp",
-                  "model": "country_code",
+                  "model": "calling_code",
                   "rules": []
                 },
                 {
@@ -6220,7 +6220,7 @@
                     "validator": "",
                     "placeholder": "",
                     "customClass": "",
-                    "disabled": "{{arguments[0].row.country_code === ''}}",
+                    "disabled": "{{arguments[0].row.calling_code === ''}}",
                     "labelWidth": 100,
                     "isLabelWidth": false,
                     "hidden": false,
@@ -8725,7 +8725,7 @@
                           "type": "custom",
                           "novalid": {},
                           "key": "j9a8jmz1",
-                          "model": "address_country_code",
+                          "model": "address_calling_code",
                           "rules": []
                         }
                       ],
@@ -8792,7 +8792,7 @@
                             "validator": "",
                             "placeholder": "",
                             "customClass": "",
-                            "disabled": "{{{{value:dialog_add_new_address.address_country_code}} === \"\"}}",
+                            "disabled": "{{{{value:dialog_add_new_address.address_calling_code}} === \"\"}}",
                             "labelWidth": 100,
                             "isLabelWidth": false,
                             "hidden": false,

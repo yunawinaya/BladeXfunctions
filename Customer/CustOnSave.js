@@ -38,7 +38,8 @@ const validateContactList = async (contactList, currentCustomerId) => {
   for (let i = 0; i < list.length; i++) {
     const c = list[i];
     if (!c.mobile_number) continue;
-    const key = (c.country_code || "") + "|" + stripLeadingZero(c.mobile_number);
+    const key =
+      (c.calling_code || "") + "|" + stripLeadingZero(c.mobile_number);
     if (seen.has(key)) {
       return {
         ok: false,
@@ -68,16 +69,14 @@ const validateContactList = async (contactList, currentCustomerId) => {
     .get();
 
   const activeRows = (dbResult.data || []).filter((r) => r.is_deleted === 0);
-  const inMemoryIds = new Set(
-    list.filter((c) => c.id).map((c) => c.id),
-  );
+  const inMemoryIds = new Set(list.filter((c) => c.id).map((c) => c.id));
 
   for (const c of contactsWithMobile) {
     const noLead = stripLeadingZero(c.mobile_number);
     const collision = activeRows.find(
       (r) =>
         !inMemoryIds.has(r.id) &&
-        r.country_code === c.country_code &&
+        r.calling_code === c.calling_code &&
         stripLeadingZero(r.mobile_number) === noLead,
     );
     if (collision) {

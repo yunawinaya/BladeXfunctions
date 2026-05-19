@@ -16,7 +16,7 @@
     address_phone: data.dialog_add_new_address.address_phone,
     address_postal_code: data.dialog_add_new_address.address_postal_code,
     address_phone2: data.dialog_add_new_address.address_phone2,
-    address_country_code: data.dialog_add_new_address.address_country_code,
+    address_calling_code: data.dialog_add_new_address.address_calling_code,
     address_mobile: data.dialog_add_new_address.address_mobile,
     address_email: data.dialog_add_new_address.address_email,
     address_fax_no2: data.dialog_add_new_address.address_fax_no2,
@@ -24,7 +24,7 @@
   };
 
   const addressMobile = data.dialog_add_new_address.address_mobile;
-  const addressCountryCode = data.dialog_add_new_address.address_country_code;
+  const addressCallingCode = data.dialog_add_new_address.address_calling_code;
   const currentCustomerId = this.getValue("id");
 
   const isEditing = data.dialog_add_new_address.rowIndex !== "-1";
@@ -60,7 +60,7 @@
     const inMemoryDup = contactList.some(
       (c, i) =>
         i !== excludeContactIdx &&
-        c.country_code === addressCountryCode &&
+        c.calling_code === addressCallingCode &&
         stripZero(c.mobile_number) === mobileNoLeading,
     );
 
@@ -81,7 +81,7 @@
 
     const externalRows = (dbResult.data || []).filter(
       (r) =>
-        r.country_code === addressCountryCode &&
+        r.calling_code === addressCallingCode &&
         r.is_deleted === 0 &&
         r.Customer_id !== currentCustomerId,
     );
@@ -231,7 +231,7 @@
       const currentContacts = this.getValue("contact_list") || [];
       const syncedContact = {
         person_name: data.dialog_add_new_address.address_name,
-        country_code: addressCountryCode,
+        calling_code: addressCallingCode,
         mobile_number: addressMobile,
         person_email: data.dialog_add_new_address.address_email,
         phone_number: data.dialog_add_new_address.address_phone,
@@ -256,7 +256,7 @@
         const newNoLead = stripZero(addressMobile);
         const alreadyExists = currentContacts.some(
           (c) =>
-            c.country_code === addressCountryCode &&
+            c.calling_code === addressCallingCode &&
             stripZero(c.mobile_number) === newNoLead,
         );
         if (!alreadyExists) {
