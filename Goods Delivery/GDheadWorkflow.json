@@ -4532,30 +4532,6 @@
                                       "propLabel": "Reference Type"
                                     },
                                     {
-                                      "prop": "vess_chassis",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_IyJHrBst.data.allData.vess_chassis}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Chasis No / Reg No"
-                                    },
-                                    {
-                                      "prop": "vess_car_model",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_IyJHrBst.data.allData.vess_car_model}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Car Model"
-                                    },
-                                    {
-                                      "prop": "vess_color",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_IyJHrBst.data.allData.vess_color}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Color"
-                                    },
-                                    {
                                       "prop": "gd_ref_doc",
                                       "operator": "",
                                       "valueType": "field",
@@ -5395,30 +5371,6 @@
                                       "value": "{{node:code_node_IyJHrBst.data.allData.reference_type}}",
                                       "valueLabel": "",
                                       "propLabel": "Reference Type"
-                                    },
-                                    {
-                                      "prop": "vess_chassis",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_IyJHrBst.data.allData.vess_chassis}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Chasis No / Reg No"
-                                    },
-                                    {
-                                      "prop": "vess_car_model",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_IyJHrBst.data.allData.vess_car_model}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Car Model"
-                                    },
-                                    {
-                                      "prop": "vess_color",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_IyJHrBst.data.allData.vess_color}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Color"
                                     },
                                     {
                                       "prop": "gd_ref_doc",
@@ -6276,30 +6228,6 @@
                               "value": "{{node:code_node_IyJHrBst.data.allData.reference_type}}",
                               "valueLabel": "",
                               "propLabel": "Reference Type"
-                            },
-                            {
-                              "prop": "vess_chassis",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_IyJHrBst.data.allData.vess_chassis}}",
-                              "valueLabel": "",
-                              "propLabel": "Chasis No / Reg No"
-                            },
-                            {
-                              "prop": "vess_car_model",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_IyJHrBst.data.allData.vess_car_model}}",
-                              "valueLabel": "",
-                              "propLabel": "Car Model"
-                            },
-                            {
-                              "prop": "vess_color",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_IyJHrBst.data.allData.vess_color}}",
-                              "valueLabel": "",
-                              "propLabel": "Color"
                             },
                             {
                               "prop": "gd_ref_doc",
@@ -9444,30 +9372,6 @@
                               "propLabel": "Reference Type"
                             },
                             {
-                              "prop": "vess_chassis",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_IyJHrBst.data.allData.vess_chassis}}",
-                              "valueLabel": "",
-                              "propLabel": "Chasis No / Reg No"
-                            },
-                            {
-                              "prop": "vess_car_model",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_IyJHrBst.data.allData.vess_car_model}}",
-                              "valueLabel": "",
-                              "propLabel": "Car Model"
-                            },
-                            {
-                              "prop": "vess_color",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_IyJHrBst.data.allData.vess_color}}",
-                              "valueLabel": "",
-                              "propLabel": "Color"
-                            },
-                            {
                               "prop": "gd_ref_doc",
                               "operator": "",
                               "valueType": "field",
@@ -10261,30 +10165,6 @@
                               "value": "{{node:code_node_IyJHrBst.data.allData.reference_type}}",
                               "valueLabel": "",
                               "propLabel": "Reference Type"
-                            },
-                            {
-                              "prop": "vess_chassis",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_IyJHrBst.data.allData.vess_chassis}}",
-                              "valueLabel": "",
-                              "propLabel": "Chasis No / Reg No"
-                            },
-                            {
-                              "prop": "vess_car_model",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_IyJHrBst.data.allData.vess_car_model}}",
-                              "valueLabel": "",
-                              "propLabel": "Car Model"
-                            },
-                            {
-                              "prop": "vess_color",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_IyJHrBst.data.allData.vess_color}}",
-                              "valueLabel": "",
-                              "propLabel": "Color"
                             },
                             {
                               "prop": "gd_ref_doc",
