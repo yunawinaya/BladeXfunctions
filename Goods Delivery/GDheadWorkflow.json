@@ -5124,6 +5124,14 @@
                                       "propLabel": "Driver Name"
                                     },
                                     {
+                                      "prop": "sales_person",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_IyJHrBst.data.allData.sales_person}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Sales Representative"
+                                    },
+                                    {
                                       "prop": "delivery_no",
                                       "operator": "",
                                       "valueType": "field",
@@ -5979,6 +5987,14 @@
                                       "value": "{{node:code_node_IyJHrBst.data.allData.tpt_driver_name}}",
                                       "valueLabel": "",
                                       "propLabel": "Driver Name"
+                                    },
+                                    {
+                                      "prop": "sales_person",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_IyJHrBst.data.allData.sales_person}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Sales Representative"
                                     }
                                   ]
                                 }
@@ -6828,6 +6844,14 @@
                               "value": "{{node:code_node_IyJHrBst.data.allData.tpt_driver_name}}",
                               "valueLabel": "",
                               "propLabel": "Driver Name"
+                            },
+                            {
+                              "prop": "sales_person",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.sales_person}}",
+                              "valueLabel": "",
+                              "propLabel": "Sales Representative"
                             }
                           ]
                         }
@@ -9954,6 +9978,14 @@
                               "value": "{{node:code_node_IyJHrBst.data.allData.tpt_driver_name}}",
                               "valueLabel": "",
                               "propLabel": "Driver Name"
+                            },
+                            {
+                              "prop": "sales_person",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.sales_person}}",
+                              "valueLabel": "",
+                              "propLabel": "Sales Representative"
                             }
                           ]
                         }
@@ -10765,6 +10797,14 @@
                               "value": "{{node:code_node_IyJHrBst.data.allData.tpt_driver_name}}",
                               "valueLabel": "",
                               "propLabel": "Driver Name"
+                            },
+                            {
+                              "prop": "sales_person",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.sales_person}}",
+                              "valueLabel": "",
+                              "propLabel": "Sales Representative"
                             }
                           ]
                         }
