@@ -16,6 +16,7 @@
     address_phone: data.dialog_add_new_address.address_phone,
     address_postal_code: data.dialog_add_new_address.address_postal_code,
     address_phone2: data.dialog_add_new_address.address_phone2,
+    address_country_code: data.dialog_add_new_address.address_country_code,
     address_mobile: data.dialog_add_new_address.address_mobile,
     address_email: data.dialog_add_new_address.address_email,
     address_fax_no2: data.dialog_add_new_address.address_fax_no2,
