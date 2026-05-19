@@ -24,7 +24,7 @@
         "name": "fillbackHeaderFields",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nfor (const [index, smLineItem] of allData.stock_movement.entries()) {\n  if (!smLineItem.total_quantity || parseFloat(smLineItem.total_quantity) === 0) {\n    continue;\n  }\n  // Format qty and price fields\n  smLineItem.requested_qty = formatNumber(smLineItem.requested_qty);\n  smLineItem.total_quantity = formatNumber(smLineItem.total_quantity);\n  smLineItem.unit_price = formatNumber(smLineItem.unit_price);\n\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  smLineItem.line_index = index + 1;\n\n  updatedSM.push(smLineItem)\n}\n\nallData.stock_movement = updatedSM\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\"\n}\n\nif (saveAs === \"Draft\") {\n  if(allData.stock_movement_no_type !== -9999 && (\n  !allData.stock_movement_no || allData.stock_movement_no === null || allData.stock_movement_no === ''\n)) {\n  allData.stock_movement_no = 'draft'\n  }\n} else {\n  if (\n  allData.stock_movement_no_type !== -9999 &&\n  (!allData.stock_movement_no ||\n    allData.stock_movement_no === null ||\n    allData.stock_movement_no === \"\" ||\n    allData.stock_movement_status !== \"In Progress\")\n) {\n  allData.stock_movement_no = 'issued'\n  }\n}\n\nif (allData.acc_integration_type !== \"No Accounting Integration\") {\n  allData.posted_status = \"Unposted\";\n} else {\n  allData.posted_status = \"\";\n}\n\nreturn {\n  allData: allData,\n  stock_movement_status: allData.stock_movement_status,\n}\n"
+          "code": "let allData = {{workflowparams:allData}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nfor (const [index, smLineItem] of allData.stock_movement.entries()) {\n  if (!smLineItem.total_quantity || parseFloat(smLineItem.total_quantity) === 0) {\n    continue;\n  }\n  // Format qty and price fields\n  smLineItem.requested_qty = formatNumber(smLineItem.requested_qty);\n  smLineItem.total_quantity = formatNumber(smLineItem.total_quantity);\n  smLineItem.unit_price = formatNumber(smLineItem.unit_price);\n\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  smLineItem.line_index = index + 1;\n\n  updatedSM.push(smLineItem)\n}\n\nallData.stock_movement = updatedSM\nallData.po_id = [...new Set(updatedSM.map((sm) => sm.po_id).filter(poID => poID))]\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\"\n}\n\nif (saveAs === \"Draft\") {\n  if(allData.stock_movement_no_type !== -9999 && (\n  !allData.stock_movement_no || allData.stock_movement_no === null || allData.stock_movement_no === ''\n)) {\n  allData.stock_movement_no = 'draft'\n  }\n} else {\n  if (\n  allData.stock_movement_no_type !== -9999 &&\n  (!allData.stock_movement_no ||\n    allData.stock_movement_no === null ||\n    allData.stock_movement_no === \"\" ||\n    allData.stock_movement_status !== \"In Progress\")\n) {\n  allData.stock_movement_no = 'issued'\n  }\n}\n\nif (allData.acc_integration_type !== \"No Accounting Integration\") {\n  allData.posted_status = \"Unposted\";\n} else {\n  allData.posted_status = \"\";\n}\n\nreturn {\n  allData: allData,\n  stock_movement_status: allData.stock_movement_status,\n}\n"
         },
         "response_json": [
           {
@@ -385,6 +385,598 @@
       ]
     },
     {
+      "id": "if_97wNb6kg",
+      "type": "if",
+      "data": {
+        "title": "IF Completed",
+        "isValidator": true,
+        "nodeName": "IF Completed",
+        "name": "IF Completed",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1779094402878,
+              "parentId": 1779094402879,
+              "isTop": true,
+              "prop": "",
+              "operator": "all",
+              "valueType": "",
+              "value": "",
+              "type": "branch",
+              "level": 1,
+              "children": [
+                {
+                  "id": 1736695973613,
+                  "parentId": 1779094402878,
+                  "isTop": false,
+                  "prop": "node.code_node_ISWz5KGY.data.stock_movement_status",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "Draft",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "stock_movement_status",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                },
+                {
+                  "id": 1779094402880,
+                  "parentId": 1779094402878,
+                  "isTop": false,
+                  "prop": "workflowparams.saveAs",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "Completed",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "saveAs",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_DNEJ0kWM",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "loop_C4YuLV2v",
+              "type": "loop",
+              "data": {
+                "title": "Loop SubForm",
+                "isValidator": true,
+                "nodeName": "Loop SubForm",
+                "name": "Loop SubForm",
+                "loopType": "Var",
+                "loopSeletSource": {
+                  "datasource": {
+                    "rules": {
+                      "collectionId": "",
+                      "list": [
+                        {
+                          "id": 1723795236686,
+                          "parentId": 1723795236685,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    }
+                  },
+                  "auto_refresh": 1,
+                  "auto_refresh_debounce": 100,
+                  "options": [],
+                  "props": {
+                    "value": "",
+                    "label": "",
+                    "image": "",
+                    "icon": "",
+                    "explain": ""
+                  },
+                  "remote": false,
+                  "remoteType": "datasource",
+                  "limit_count": ""
+                },
+                "loopSeletVar": {
+                  "type": "markdown",
+                  "code": "{{node:code_node_ISWz5KGY.data.allData.stock_movement}}"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "code_node_XjTCgixo",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "Subform Preparation",
+                    "isValidator": true,
+                    "nodeName": "Subform Preparation",
+                    "name": "Subform Preparation",
+                    "script": {
+                      "type": "javascript",
+                      "code": "const page_status = {{workflowparams:pageStatus}};\nconst allData = {{node:code_node_ISWz5KGY.data.allData}}\n\nconst subformData = allData.stock_movement;\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst doc_date = allData.issue_date;\n\nconst item = {{node:loop_C4YuLV2v}};\nconst material_id = item.item_selection;\nconst material_uom = item.quantity_uom || item.received_quantity_uom;\nconst total_quantity = item.total_quantity;\nconst location_id = item.location_id;\nconst batch_id = item.batch_id || null;\nconst inventory_category = \"Unrestricted\";\n\nlet balancesToProcess = [];\nconst tempData = item.temp_qty_data;\nif (tempData) {\n  try {\n    const parsed = JSON.parse(tempData);\n    if (Array.isArray(parsed)) {\n      balancesToProcess = parsed.filter(\n        (entry) => entry.sm_quantity && parseFloat(entry.sm_quantity) > 0\n      );\n    }\n  } catch (e) {\n    balancesToProcess = [];\n  }\n}\n\nreturn {\n  plant_id: plant_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  location_id: location_id,\n  batch_id: batch_id,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  balancesToProcess: balancesToProcess\n};"
+                    },
+                    "response_json": [
+                      {
+                        "key": "zdxudxha",
+                        "name": "plant_id",
+                        "title": "plant_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "2ws0ts3g",
+                        "name": "organization_id",
+                        "title": "organization_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "vxssymf6",
+                        "name": "stock_movement_no",
+                        "title": "stock_movement_no",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "i5dj6wnw",
+                        "name": "page_status",
+                        "title": "page_status",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "7ov84m0t",
+                        "name": "material_id",
+                        "title": "material_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "zb6bluhl",
+                        "name": "material_uom",
+                        "title": "material_uom",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "7ld9inhs",
+                        "name": "total_quantity",
+                        "title": "total_quantity",
+                        "description": "",
+                        "bsonType": "decimal",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "k7uxm2ho",
+                        "name": "location_id",
+                        "title": "location_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "e9vrax1r",
+                        "name": "batch_id",
+                        "title": "batch_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "7fcekfmp",
+                        "name": "inventory_category",
+                        "title": "inventory_category",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "0ghbcfxr",
+                        "name": "balancesToProcess",
+                        "title": "balancesToProcess",
+                        "description": "",
+                        "bsonType": "array",
+                        "isExpand": true,
+                        "children": [
+                          {
+                            "key": "1xi1jyaq",
+                            "name": "items",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "isArrayItem": true,
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "key": "4ccj2hbx",
+                        "name": "doc_date",
+                        "title": "doc_date",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "7ikb4eui",
+                        "name": "manufacturing_date",
+                        "title": "manufacturing_date",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "vswnsj98",
+                        "name": "expired_date",
+                        "title": "expired_date",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false
+                      }
+                    ]
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "loop_9XodkC0Z",
+                  "type": "loop",
+                  "data": {
+                    "title": "Loop balancesToProcess",
+                    "isValidator": true,
+                    "nodeName": "Loop balancesToProcess",
+                    "name": "Loop balancesToProcess",
+                    "loopType": "Var",
+                    "loopSeletSource": {
+                      "datasource": {
+                        "rules": {
+                          "collectionId": "",
+                          "list": [
+                            {
+                              "id": 1723795236686,
+                              "parentId": 1723795236685,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        }
+                      },
+                      "auto_refresh": 1,
+                      "auto_refresh_debounce": 100,
+                      "options": [],
+                      "props": {
+                        "value": "",
+                        "label": "",
+                        "image": "",
+                        "icon": "",
+                        "explain": ""
+                      },
+                      "remote": false,
+                      "remoteType": "datasource",
+                      "limit_count": ""
+                    },
+                    "loopSeletVar": {
+                      "type": "markdown",
+                      "code": "{{node:code_node_XjTCgixo.data.balancesToProcess}}"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "code_node_l7SCHo67",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Balance Preparation",
+                        "isValidator": true,
+                        "nodeName": "Balance Preparation",
+                        "name": "Balance Preparation",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const balance = {{node:loop_9XodkC0Z}};\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "aoq5c177",
+                            "name": "batch_id",
+                            "title": "batch_id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "oi7nghug",
+                            "name": "location_id",
+                            "title": "location_id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "308d2nob",
+                            "name": "quantity",
+                            "title": "quantity",
+                            "description": "",
+                            "bsonType": "decimal",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "43m22w3m",
+                            "name": "inventory_category",
+                            "title": "inventory_category",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "6uixt627",
+                            "name": "manufacturing_date",
+                            "title": "manufacturing_date",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "riagl68c",
+                            "name": "expired_date",
+                            "title": "expired_date",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "csr4y4op",
+                            "name": "handling_unit_id",
+                            "title": "handling_unit_id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "workflow_node_oSKZaqxU",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Check Inventory",
+                        "isValidator": true,
+                        "nodeName": "Check Inventory",
+                        "name": "Check Inventory",
+                        "workflow": {
+                          "source": "GLOBAL_INVENTORY_VALIDATION:Workflow:2056291728334573570",
+                          "rules": {
+                            "collectionId": "2056291728334573570",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "material_id",
+                              "propLabel": "material_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_XjTCgixo.data.material_id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "quantity",
+                              "propLabel": "quantity",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_l7SCHo67.data.quantity}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "plant_id",
+                              "propLabel": "plant_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_XjTCgixo.data.plant_id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "organization_id",
+                              "propLabel": "organization_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_XjTCgixo.data.organization_id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "location_id",
+                              "propLabel": "location_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_l7SCHo67.data.location_id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "batch_id",
+                              "propLabel": "batch_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_l7SCHo67.data.batch_id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "orderUomId",
+                              "propLabel": "orderUomId",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_XjTCgixo.data.material_uom}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": " category",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_l7SCHo67.data.inventory_category}}",
+                              "valueLabel": "",
+                              "propLabel": " category"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_CTm9JRpu",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Check Failed",
+                        "isValidator": true,
+                        "nodeName": "IF Check Failed",
+                        "name": "IF Check Failed",
+                        "condition_type": "ConditionRule",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1736695973613,
+                              "parentId": 1736695973612,
+                              "isTop": true,
+                              "prop": "node.workflow_node_oSKZaqxU.data.code",
+                              "operator": "equal",
+                              "valueType": "value",
+                              "value": "400",
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "code",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                            }
+                          ]
+                        },
+                        "expression": { "type": "javascript", "code": "" }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_zHEPbzix",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "return_node_ljfQ70jk",
+                              "type": "return-node",
+                              "data": {
+                                "return_data": {},
+                                "status_code": 200,
+                                "title": "Return Data",
+                                "isValidator": true,
+                                "nodeName": "Return Data",
+                                "name": "Return Data",
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "code",
+                                      "propLabel": "code",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:workflow_node_oSKZaqxU.data.code}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "message",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:workflow_node_oSKZaqxU.data.message}}",
+                                      "valueLabel": "",
+                                      "propLabel": "message"
+                                    }
+                                  ]
+                                },
+                                "return_raw_data": 0
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_LoWlIKEq",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_bI0SzYgD",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "if_udhr9AIF",
       "type": "if",
       "data": {
@@ -498,6 +1090,14 @@
                               "propLabel": "Stock Movement Status"
                             },
                             {
+                              "prop": "custom_fields_56oh0ovf",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
+                              "valueLabel": "",
+                              "propLabel": "Custom Fields"
+                            },
+                            {
                               "prop": "issuing_operation_faci",
                               "operator": "",
                               "valueType": "field",
@@ -512,6 +1112,30 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.issue_date}}",
                               "valueLabel": "",
                               "propLabel": "Issue Date"
+                            },
+                            {
+                              "prop": "msi_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.msi_type}}",
+                              "valueLabel": "",
+                              "propLabel": "Type"
+                            },
+                            {
+                              "prop": "reference_from",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.reference_from}}",
+                              "valueLabel": "",
+                              "propLabel": "Reference From"
+                            },
+                            {
+                              "prop": "po_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.po_id}}",
+                              "valueLabel": "",
+                              "propLabel": "PO ID"
                             },
                             {
                               "prop": "movement_type",
@@ -735,6 +1359,14 @@
                               "propLabel": "Stock Movement Status"
                             },
                             {
+                              "prop": "custom_fields_56oh0ovf",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
+                              "valueLabel": "",
+                              "propLabel": "Custom Fields"
+                            },
+                            {
                               "prop": "issuing_operation_faci",
                               "operator": "",
                               "valueType": "field",
@@ -757,6 +1389,30 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.stock_movement_no}}",
                               "valueLabel": "",
                               "propLabel": "Location Transfer No"
+                            },
+                            {
+                              "prop": "msi_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.msi_type}}",
+                              "valueLabel": "",
+                              "propLabel": "Type"
+                            },
+                            {
+                              "prop": "reference_from",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.reference_from}}",
+                              "valueLabel": "",
+                              "propLabel": "Reference From"
+                            },
+                            {
+                              "prop": "po_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.po_id}}",
+                              "valueLabel": "",
+                              "propLabel": "PO ID"
                             },
                             {
                               "prop": "movement_type",
@@ -885,6 +1541,14 @@
                               "value": "Unposted",
                               "valueLabel": "",
                               "propLabel": "Posted Status"
+                            },
+                            {
+                              "prop": "custom_fields_56oh0ovf",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
+                              "valueLabel": "",
+                              "propLabel": "Custom Fields"
                             }
                           ]
                         }
@@ -985,7 +1649,7 @@
                     "name": "Subform Preparation",
                     "script": {
                       "type": "javascript",
-                      "code": "const page_status = {{workflowparams:pageStatus}};\nconst stock_movement_status = {{node:code_node_ISWz5KGY.data.stock_movement_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_1p1Kdkhz.data}}\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_7CFMbGI0.data.data}}\n} else {\n  allData = {{node:code_node_ISWz5KGY.data.allData}}\n}\n\nconst subformData = allData.stock_movement;\nconst currentIndexRaw = {{node:get_cache_node_cFQ0jK2S.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst doc_date = allData.issue_date;\n\nconst item = subformData[index];\nconst material_id = item.item_selection;\nconst material_uom = item.quantity_uom || item.received_quantity_uom;\nconst total_quantity = item.total_quantity;\nconst location_id = item.location_id;\nconst batch_id = item.batch_id || null;\nconst remark = item.item_remark || null;\nconst remark2 = item.item_remark_2 || null;\nconst remark3 = item.item_remark_3 || null;\nconst inventory_category = \"Unrestricted\";\n\nlet balancesToProcess = [];\nconst tempData = item.temp_qty_data;\nif (tempData) {\n  try {\n    const parsed = JSON.parse(tempData);\n    if (Array.isArray(parsed)) {\n      balancesToProcess = parsed.filter(\n        (entry) => entry.sm_quantity && parseFloat(entry.sm_quantity) > 0\n      );\n    }\n  } catch (e) {\n    balancesToProcess = [];\n  }\n}\n\nreturn {\n  plant_id: plant_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  location_id: location_id,\n  batch_id: batch_id,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  balancesToProcess: balancesToProcess,\n  index: index,\n  nextIndex: index + 1\n};"
+                      "code": "const page_status = {{workflowparams:pageStatus}};\nconst stock_movement_status = {{node:code_node_ISWz5KGY.data.stock_movement_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_1p1Kdkhz.data}}\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_7CFMbGI0.data.data}}\n} else {\n  allData = {{node:code_node_ISWz5KGY.data.allData}}\n}\n\nconst subformData = allData.stock_movement;\nconst currentIndexRaw = {{node:get_cache_node_cFQ0jK2S.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst doc_date = allData.issue_date;\n\nconst item = subformData[index];\nconst material_id = item.item_selection;\nconst material_uom = item.quantity_uom || item.received_quantity_uom;\nconst total_quantity = item.total_quantity;\nconst location_id = item.location_id;\nconst batch_id = item.batch_id || null;\nconst remark = item.item_remark || null;\nconst remark2 = item.item_remark_2 || null;\nconst remark3 = item.item_remark_3 || null;\nconst poNO = item.po_no || null;\nconst inventory_category = \"Unrestricted\";\n\nlet balancesToProcess = [];\nconst tempData = item.temp_qty_data;\nif (tempData) {\n  try {\n    const parsed = JSON.parse(tempData);\n    if (Array.isArray(parsed)) {\n      balancesToProcess = parsed.filter(\n        (entry) => entry.sm_quantity && parseFloat(entry.sm_quantity) > 0\n      );\n    }\n  } catch (e) {\n    balancesToProcess = [];\n  }\n}\n\n// Map poNO into each balance entry\nbalancesToProcess = balancesToProcess.map(entry => ({\n  ...entry,\n  po_no: poNO\n}));\n\nreturn {\n  plant_id: plant_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  location_id: location_id,\n  batch_id: batch_id,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  balancesToProcess: balancesToProcess,\n  index: index,\n  nextIndex: index + 1\n};"
                     },
                     "response_json": [
                       {
@@ -1283,7 +1947,7 @@
                         "name": "Balance Preparation",
                         "script": {
                           "type": "javascript",
-                          "code": "const balancesToProcess = {{node:code_node_PeidsgXa.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_V3E6xZfN.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_ISWz5KGY.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nlet inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1\n};\n\n"
+                          "code": "const balancesToProcess = {{node:code_node_PeidsgXa.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_V3E6xZfN.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_ISWz5KGY.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nlet inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst po_no = balance.po_no || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1,\n  po_no: po_no\n};\n\n"
                         },
                         "response_json": [
                           {
@@ -1349,6 +2013,14 @@
                             "key": "riagl68c",
                             "name": "expired_date",
                             "title": "expired_date",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "lmubn9lh",
+                            "name": "po_no",
+                            "title": "po_no",
                             "description": "",
                             "bsonType": "string",
                             "isExpand": false
@@ -1512,6 +2184,14 @@
                               "value": "{{node:code_node_PeidsgXa.data.doc_date}}",
                               "valueLabel": "",
                               "propLabel": "Doc Date"
+                            },
+                            {
+                              "prop": "parent_trx_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_SXZuEFWW.data.po_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Parent Trx No"
                             }
                           ]
                         }
@@ -2089,6 +2769,14 @@
                               "propLabel": "Stock Movement Status"
                             },
                             {
+                              "prop": "custom_fields_56oh0ovf",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
+                              "valueLabel": "",
+                              "propLabel": "Custom Fields"
+                            },
+                            {
                               "prop": "issuing_operation_faci",
                               "operator": "",
                               "valueType": "field",
@@ -2111,6 +2799,30 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.movement_type}}",
                               "valueLabel": "",
                               "propLabel": "Movement Type"
+                            },
+                            {
+                              "prop": "msi_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.msi_type}}",
+                              "valueLabel": "",
+                              "propLabel": "Type"
+                            },
+                            {
+                              "prop": "reference_from",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.reference_from}}",
+                              "valueLabel": "",
+                              "propLabel": "Reference From"
+                            },
+                            {
+                              "prop": "po_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.po_id}}",
+                              "valueLabel": "",
+                              "propLabel": "PO ID"
                             },
                             {
                               "prop": "movement_type_id",
@@ -2260,6 +2972,14 @@
                               "propLabel": "Stock Movement Status"
                             },
                             {
+                              "prop": "custom_fields_56oh0ovf",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
+                              "valueLabel": "",
+                              "propLabel": "Custom Fields"
+                            },
+                            {
                               "prop": "issuing_operation_faci",
                               "operator": "",
                               "valueType": "field",
@@ -2282,6 +3002,30 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.stock_movement_no}}",
                               "valueLabel": "",
                               "propLabel": "Location Transfer No"
+                            },
+                            {
+                              "prop": "msi_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.msi_type}}",
+                              "valueLabel": "",
+                              "propLabel": "Type"
+                            },
+                            {
+                              "prop": "reference_from",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.reference_from}}",
+                              "valueLabel": "",
+                              "propLabel": "Reference From"
+                            },
+                            {
+                              "prop": "po_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.po_id}}",
+                              "valueLabel": "",
+                              "propLabel": "PO ID"
                             },
                             {
                               "prop": "movement_type",
@@ -2394,6 +3138,14 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.stock_movement_no_type}}",
                               "valueLabel": "",
                               "propLabel": "规则"
+                            },
+                            {
+                              "prop": "custom_fields_56oh0ovf",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
+                              "valueLabel": "",
+                              "propLabel": "Custom Fields"
                             }
                           ]
                         }
