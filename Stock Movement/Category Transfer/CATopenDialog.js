@@ -553,12 +553,13 @@
 
     const allHUs = huRes.data || [];
 
-    // Derive each HU's current category from the matching item_balance row(s).
-    // CAT-only constraint: only show HUs whose stock is purely Unrestricted or
-    // purely Blocked. Reject HUs that:
-    //   - Have non-zero qty in any of Reserved / QI / In Transit buckets
-    //   - Have non-zero qty in multiple buckets on the same row (mixed category)
-    //   - Have different categories across multiple balance rows of the same HU
+    // ---- HU-side CAT: TEMPORARILY DISABLED ----
+    // Cannot reliably derive an HU's current inventory_category from current
+    // data: item_balance does not carry handling_unit_id, and HU items don't
+    // carry inventory_category. Re-enable once one of those collections grows
+    // the missing field. The huCategoryMap build + buildHandlingUnits HU
+    // category stamping below are kept (commented) for fast re-enablement.
+    /*
     const ALLOWED_HU_CATEGORIES = new Set(["Unrestricted", "Blocked"]);
     const CATEGORY_FIELDS = [
       ["Unrestricted", "unrestricted_qty"],
@@ -598,6 +599,7 @@
       }
       huCategoryMap.set(row.handling_unit_id, rowCategory);
     }
+    */
 
     // Stamp CAT defaults on each loose row. Preserves any temp-merged values
     // (re-open case); only fills missing ones. category_to defaults to the
@@ -761,8 +763,11 @@
       });
     }
 
-    // ============= HU TABLE =============
-
+    // ============= HU TABLE — TEMPORARILY DISABLED =============
+    // Same reason as the huCategoryMap block above: we can't derive an HU's
+    // category from current data. The HU tab is always hidden; loose tab is
+    // the only path. Restore the block below when the data model supports it.
+    /*
     // Other stock_movement lines' HU allocations for same material — to deduct
     const otherLinesHuAllocations = [];
     if (Array.isArray(allData.stock_movement)) {
@@ -842,6 +847,14 @@
     } else if (hasLoose) {
       activateTab("loose");
     }
+    */
+
+    // Loose-only path while HU is disabled
+    hideTab("handling_unit");
+    const hasLoose = looseRowCount > 0;
+    showTab("loose");
+    if (hasLoose) activateTab("loose");
+    else hideTab("loose");
   } catch (error) {
     console.error("Error in LOT inventory dialog:", error);
   } finally {
