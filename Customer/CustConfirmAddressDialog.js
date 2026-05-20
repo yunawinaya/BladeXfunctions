@@ -231,6 +231,7 @@
       const currentContacts = this.getValue("contact_list") || [];
       const syncedContact = {
         person_name: data.dialog_add_new_address.address_name,
+        calling_code_id: data.dialog_add_new_address.address_calling_code_id,
         calling_code: addressCallingCode,
         mobile_number: addressMobile,
         person_email: data.dialog_add_new_address.address_email,

@@ -179,6 +179,8 @@ const findFieldMessage = (obj) => {
       { name: "customer_status", label: "Customer Status" },
       { name: "customer_id", label: "Customer Code" },
       { name: "customer_com_name", label: "Company Name" },
+      { name: "customer_currency_id", label: "Currency" },
+      { name: "customer_payment_term_id", label: "Payment Terms" },
     ];
 
     await this.validate("customer_id");
