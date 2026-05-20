@@ -186,9 +186,13 @@
 
     // Sum HU-bound qty by location/batch for current material — used to subtract
     // from loose item_balance display so the same physical stock isn't pickable both ways
-    const buildHuQtyMap = (allHUs, matId, isBatchManaged) => {
+    const buildHuQtyMap = (allHUs, matId, isBatchManaged, reservedHuIdSet) => {
       const huQtyMap = new Map();
       for (const hu of allHUs) {
+        // Skip reserved HUs: their qty is logically committed to a GD and
+        // doesn't sit in the Unrestricted bucket of item_balance, so it
+        // shouldn't be deducted from the loose Unrestricted display.
+        if (reservedHuIdSet && reservedHuIdSet.has(hu.id)) continue;
         const items = (hu.table_hu_items || []).filter(
           (item) => item.is_deleted !== 1 && item.material_id === matId,
         );
