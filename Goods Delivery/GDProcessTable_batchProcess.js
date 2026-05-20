@@ -37,6 +37,37 @@ const {
   isLoadingBay
 } = batchData;
 
+// GDPP-Created is a no-inventory middle state: skip on_reserved_gd writes and
+// stock movements entirely. The picking-record reserved_qty stamp is handled
+// downstream by the existing pickings-update branch (now reserved-aware).
+//
+// Both PP-form and GD-from-PP send isGDPP=1 + saveAs="Created" through this
+// same sub-workflow, so isGDPP alone is NOT enough. Discriminate at the item
+// level: GD-from-PP rows carry pp_line_item_id (or picking_plan_line_id after
+// batchFetch enrichment) referencing the source PP line, while PP-form rows
+// have it empty. Also require a line_to_id (Picking ID) to be safe.
+const isGdFromPp = (processedTableData || []).some(
+  (row) =>
+    (row.picking_plan_line_id && row.picking_plan_line_id !== "") ||
+    (row.item && (
+      (row.item.pp_line_item_id && row.item.pp_line_item_id !== "") ||
+      (row.item.line_to_id && row.item.line_to_id !== "")
+    ))
+);
+if (isGDPP === 1 && saveAs === "Created" && isGdFromPp) {
+  return {
+    recordsToUpdate: [],
+    recordsToUpdateLength: 0,
+    recordsToCreate: [],
+    recordsToCreateLength: 0,
+    inventoryMovements: [],
+    inventoryMovementsLength: 0,
+    huUpdates: [],
+    huUpdatesLength: 0,
+    message: "Skipped inventory processing: GDPP-Created (middle state)"
+  };
+}
+
 // Create item lookup Map from array (workflow platform can't pass object maps)
 const itemDataMap = {};
 for (const item of allItemsData) {
