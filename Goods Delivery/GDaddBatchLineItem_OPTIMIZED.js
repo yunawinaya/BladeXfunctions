@@ -1193,15 +1193,15 @@ const createTableGdWithBaseUOM = async (allItems) => {
   salesOrderNumber = [...new Set(latestTableGD.map((gr) => gr.line_so_no))];
   const uniqueSalesPerson = [
     ...new Set(
-      currentItemArray.map((so) =>
-        referenceType === "Document"
-          ? so.sales_person
-          : so.sales_order.so_sales_person,
-      ),
+      currentItemArray
+        .map((so) =>
+          referenceType === "Document"
+            ? so.sales_person
+            : so.sales_order.so_sales_person,
+        )
+        .filter((sp) => sp),
     ),
   ];
-
-  console.log("uniqueSalesPerson", uniqueSalesPerson);
 
   await this.setData({
     currency_code:
