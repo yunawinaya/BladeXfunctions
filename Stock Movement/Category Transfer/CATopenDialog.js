@@ -204,6 +204,15 @@
       return huQtyMap;
     };
 
+    // Default `category_to` is the opposite of `category_from` for the
+    // Unrestricted ↔ Blocked pair; for other source categories, fall back to
+    // "Unrestricted" so the user picks an explicit target.
+    const oppositeCategory = (cat) => {
+      if (cat === "Unrestricted") return "Blocked";
+      if (cat === "Blocked") return "Unrestricted";
+      return "Unrestricted";
+    };
+
     // Build HU table from pre-fetched HU data. "No mixed item HU" rule: only show
     // HUs whose every active item matches the current row's material (foreign-item
     // HUs are skipped entirely).
@@ -215,6 +224,7 @@
       altUOM,
       otherLinesHuAllocations,
       reservedHuIdSet,
+      huCategoryMap,
     ) => {
       // Map for O(1) other-line allocation lookup (preserves first-match behavior of .find())
       const huAllocMap = new Map();
@@ -240,7 +250,17 @@
         );
         if (!allMatch) continue;
 
-        // Header row placeholder — item_quantity updated after items are added
+        // CAT only: skip HUs whose balance isn't purely Unrestricted or Blocked
+        // (covers Reserved / QI / In Transit, mixed-category rows, and HUs with
+        // no balance entry for this material).
+        if (!huCategoryMap || !huCategoryMap.has(hu.id)) continue;
+
+        // Header row placeholder — item_quantity updated after items are added.
+        // CAT: category_from is derived from the matching item_balance row's
+        // non-zero bucket (read-only on the UI). category_to defaults to the
+        // opposite of category_from.
+        const huCategoryFrom =
+          (huCategoryMap && huCategoryMap.get(hu.id)) || "Unrestricted";
         const headerRow = {
           row_type: "header",
           handling_unit_id: hu.id,
@@ -254,6 +274,8 @@
           sm_quantity: 0,
           remark: hu.remark || "",
           balance_id: "",
+          category_from: huCategoryFrom,
+          category_to: oppositeCategory(huCategoryFrom),
         };
         huTableData.push(headerRow);
 
@@ -333,16 +355,24 @@
             }
           }
         }
-        // LOT enforces NO_SPLIT: set hu_select = 1 on headers whose HU has any
-        // restored allocation, so the checkbox state matches the item rows.
-        if (huIdsWithAllocation.size > 0) {
-          for (const row of filtered) {
-            if (
-              row.row_type === "header" &&
-              huIdsWithAllocation.has(row.handling_unit_id)
-            ) {
-              row.hu_select = 1;
-            }
+        // NO_SPLIT: set hu_select = 1 on headers whose HU has any restored
+        // allocation, so the checkbox state matches the item rows.
+        // CAT: also restore each header's user-picked category_to from its
+        // saved header row in temp_hu_data (category_from stays derived).
+        const tempHeaderMap = new Map();
+        for (const tempItem of parsedTempHu) {
+          if (tempItem.row_type === "header") {
+            tempHeaderMap.set(tempItem.handling_unit_id, tempItem);
+          }
+        }
+        for (const row of filtered) {
+          if (row.row_type !== "header") continue;
+          if (huIdsWithAllocation.has(row.handling_unit_id)) {
+            row.hu_select = 1;
+          }
+          const savedHeader = tempHeaderMap.get(row.handling_unit_id);
+          if (savedHeader && savedHeader.category_to) {
+            row.category_to = savedHeader.category_to;
           }
         }
       }
@@ -374,19 +404,15 @@
 
     // ============= MAIN =============
 
-    // Hide category-from/to + serial column. hu_select stays visible — LOT enforces
-    // NO_SPLIT (whole-HU pick) and the checkbox on header rows is the picker.
-    this.hide([
-      "sm_item_balance.table_item_balance.category_from",
-      "sm_item_balance.table_item_balance.category_to",
-      "sm_item_balance.table_item_balance.serial_number",
-    ]);
+    // Hide serial column only. category_from / category_to are visible on loose
+    // rows and on HU header rows (CAT moves stock between category buckets).
+    // hu_select stays visible — NO_SPLIT (whole-HU pick), checkbox on headers.
+    this.hide(["sm_item_balance.table_item_balance.serial_number"]);
 
-    // Reset tables and clear category default
+    // Reset tables
     this.setData({
       "sm_item_balance.table_item_balance": [],
       "sm_item_balance.table_hu": [],
-      "sm_item_balance.table_item_balance.category": undefined,
     });
 
     let itemData;
@@ -527,6 +553,66 @@
 
     const allHUs = huRes.data || [];
 
+    // Derive each HU's current category from the matching item_balance row(s).
+    // CAT-only constraint: only show HUs whose stock is purely Unrestricted or
+    // purely Blocked. Reject HUs that:
+    //   - Have non-zero qty in any of Reserved / QI / In Transit buckets
+    //   - Have non-zero qty in multiple buckets on the same row (mixed category)
+    //   - Have different categories across multiple balance rows of the same HU
+    const ALLOWED_HU_CATEGORIES = new Set(["Unrestricted", "Blocked"]);
+    const CATEGORY_FIELDS = [
+      ["Unrestricted", "unrestricted_qty"],
+      ["Blocked", "block_qty"],
+      ["Quality Inspection", "qualityinsp_qty"],
+      ["Reserved", "reserved_qty"],
+      ["In Transit", "intransit_qty"],
+    ];
+    const huCategoryMap = new Map();
+    const huRejectedSet = new Set();
+    for (const row of balanceRes.data || []) {
+      if (!row.handling_unit_id) continue;
+      if (huRejectedSet.has(row.handling_unit_id)) continue;
+
+      let rowCategory = null;
+      let nonZeroCount = 0;
+      for (const [cat, field] of CATEGORY_FIELDS) {
+        if (parseFloat(row[field] || 0) > 0) {
+          rowCategory = cat;
+          nonZeroCount++;
+        }
+      }
+
+      if (nonZeroCount === 0) continue;
+
+      if (nonZeroCount > 1 || !ALLOWED_HU_CATEGORIES.has(rowCategory)) {
+        huRejectedSet.add(row.handling_unit_id);
+        huCategoryMap.delete(row.handling_unit_id);
+        continue;
+      }
+
+      const existing = huCategoryMap.get(row.handling_unit_id);
+      if (existing && existing !== rowCategory) {
+        huRejectedSet.add(row.handling_unit_id);
+        huCategoryMap.delete(row.handling_unit_id);
+        continue;
+      }
+      huCategoryMap.set(row.handling_unit_id, rowCategory);
+    }
+
+    // Stamp CAT defaults on each loose row. Preserves any temp-merged values
+    // (re-open case); only fills missing ones. category_to defaults to the
+    // opposite of category_from for the Unrestricted ↔ Blocked pair.
+    const stampLooseCategoryDefaults = (rows) => {
+      for (const row of rows) {
+        if (!row.category_from) row.category_from = "Unrestricted";
+        if (!row.category_to) {
+          row.category_to =
+            row.category_from === "Unrestricted" ? "Blocked" : "Unrestricted";
+        }
+      }
+      return rows;
+    };
+
     let looseRowCount = 0;
 
     // Filter out HU-bound records from temp_qty_data — those belong to table_hu.
@@ -605,7 +691,9 @@
         ]);
       }
 
-      const filteredData = processBalanceData(balanceRes.data || [], itemData);
+      const filteredData = stampLooseCategoryDefaults(
+        processBalanceData(balanceRes.data || [], itemData),
+      );
       looseRowCount = filteredData.length;
 
       this.setData({
@@ -643,7 +731,9 @@
           })();
 
       const deducted = applyLooseDeduction(mappedData);
-      const filteredData = processBalanceData(deducted, itemData);
+      const filteredData = stampLooseCategoryDefaults(
+        processBalanceData(deducted, itemData),
+      );
       looseRowCount = filteredData.length;
 
       this.setData({
@@ -659,7 +749,9 @@
 
       const dbData = balanceRes.data || [];
       const deducted = applyLooseDeduction(dbData);
-      const filteredData = processBalanceData(deducted, itemData);
+      const filteredData = stampLooseCategoryDefaults(
+        processBalanceData(deducted, itemData),
+      );
       looseRowCount = filteredData.length;
 
       this.setData({
@@ -707,6 +799,7 @@
       quantityUOM,
       otherLinesHuAllocations,
       reservedHuIds,
+      huCategoryMap,
     );
 
     // Reset both tabs to visible — clears any stale hide from a previous open
@@ -723,11 +816,15 @@
       // scale (~10K rows = 10K sync UI mutations on main thread).
       // NO_SPLIT UI: sm_quantity is auto-driven by hu_select on the header,
       // never user-editable on any row. hu_select is only clickable on headers.
+      // CAT: category_from is derived (read-only) on every HU row; category_to
+      // is editable only on header rows.
       const disabledPaths = [];
       for (let idx = 0; idx < huTableData.length; idx++) {
         disabledPaths.push(`sm_item_balance.table_hu.${idx}.sm_quantity`);
+        disabledPaths.push(`sm_item_balance.table_hu.${idx}.category_from`);
         if (huTableData[idx].row_type === "item") {
           disabledPaths.push(`sm_item_balance.table_hu.${idx}.hu_select`);
+          disabledPaths.push(`sm_item_balance.table_hu.${idx}.category_to`);
         }
       }
       if (disabledPaths.length > 0) {
