@@ -10,7 +10,7 @@ const rowIndex = {{node:code_node_SOBNriDH.data.nextIndex}};
 const gd_status = {{node:code_node_IyJHrBst.data.gd_status}};
 const saveAs = {{workflowparams:saveAs}};
 const isGDPP = {{workflowparams:allData.is_select_picking}} || 0;
-const splitPolicy = {{workflowparams:allData.split_policy}} || "ALLOW_SPLIT";
+const splitPolicy = {{node:get_node_iFPuvJX2.data.data.split_policy}} || "ALLOW_SPLIT";
 
 const orderLimit = (gdItem.gd_order_quantity * (100 + (itemData.over_delivery_tolerance || 0))) / 100;
 const deliveredQty = soItem.delivered_qty || 0;
