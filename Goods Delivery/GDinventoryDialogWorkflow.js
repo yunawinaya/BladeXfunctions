@@ -705,6 +705,7 @@
       plantId,
       organizationId,
       isBatchManaged,
+      currentDocId,
     ) => {
       try {
         // Query sub-collection by material — bypasses 5000-row cap on handling_unit
@@ -746,6 +747,41 @@
           huLocationMap.set(hu.id, hu.location_id);
         }
 
+        // Build cross-GD HU reservation map (mirrors fetchHandlingUnits' filter):
+        // status=Allocated, current GD excluded so its own reservations don't
+        // double-deduct. Key: `${huId}|${batch_id}` → reserved base qty. The
+        // reserved portion of an HU item is logically Reserved (overlay), not
+        // Unrestricted, so it shouldn't be deducted from the loose display.
+        const huReservedMap = new Map();
+        try {
+          const huReservationRes = await db
+            .collection("on_reserved_gd")
+            .where({
+              plant_id: plantId,
+              organization_id: organizationId,
+              material_id: materialId,
+              status: "Allocated",
+              is_deleted: 0,
+            })
+            .get();
+          for (const r of huReservationRes.data || []) {
+            if (!r.handling_unit_id) continue;
+            if (parseFloat(r.open_qty) <= 0) continue;
+            if (currentDocId && r.doc_id === currentDocId) continue;
+            const key = `${r.handling_unit_id}|${r.batch_id || ""}`;
+            huReservedMap.set(
+              key,
+              (huReservedMap.get(key) || 0) + parseFloat(r.open_qty || 0),
+            );
+          }
+        } catch (resErr) {
+          console.error(
+            "Error fetching on_reserved_gd in fetchHuQtyByLocation:",
+            resErr,
+          );
+          // Fall through with empty map — equivalent to pre-fix behavior for safety
+        }
+
         const huQtyMap = new Map();
         for (const item of subRows) {
           // Skip sub-rows whose parent HU isn't in this plant/org (or deleted)
@@ -756,7 +792,15 @@
           const key = isBatchManaged
             ? `${locationId}-${item.batch_id || "no_batch"}`
             : `${locationId}`;
-          const qty = parseFloat(item.quantity) || 0;
+
+          // Subtract this sub-row's cross-GD reserved portion before summing.
+          // Reserved-HU qty is logically Reserved, not Unrestricted, so it
+          // shouldn't deduct against the loose Unrestricted display.
+          const reservedKey = `${item.handling_unit_id}|${item.batch_id || ""}`;
+          const reservedQty = huReservedMap.get(reservedKey) || 0;
+          const qty = Math.max(0, (parseFloat(item.quantity) || 0) - reservedQty);
+          if (qty <= 0) continue;
+
           huQtyMap.set(key, (huQtyMap.get(key) || 0) + qty);
         }
         return huQtyMap;
@@ -800,6 +844,7 @@
             plantId,
             data.organization_id,
             isBatchManaged,
+            data.id || "",
           );
 
           for (const row of freshDbData) {
