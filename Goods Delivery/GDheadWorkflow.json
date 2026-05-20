@@ -659,6 +659,41 @@
                       "blocks": []
                     },
                     {
+                      "id": "search_node_D8ZGHKZI",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Items(Handling Unit):Table:2036977712276639745",
+                          "rules": {
+                            "collectionId": "2036977712276639745",
+                            "list": [
+                              {
+                                "id": 1779252800831,
+                                "parentId": 1779252800830,
+                                "isTop": true,
+                                "prop": "material_id",
+                                "operator": "numberEqual",
+                                "valueType": "field",
+                                "value": "{{node:code_node_kJx9p9Nh.data.rowsNeedingAllocation.materialId}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "Item Code",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "Get HU Table",
+                        "isValidator": true,
+                        "nodeName": "Get HU Table",
+                        "name": "Get HU Table"
+                      },
+                      "blocks": []
+                    },
+                    {
                       "id": "search_node_l8oiJ60B",
                       "type": "search-node",
                       "data": {
@@ -705,6 +740,20 @@
                                     "propLabel": "Organization",
                                     "valueLabel": "",
                                     "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1779253244686,
+                                    "parentId": 1775038804146,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:search_node_D8ZGHKZI.data.data.handling_unit_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "主键ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "In"
                                   }
                                 ]
                               }
