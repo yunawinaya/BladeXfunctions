@@ -186,7 +186,7 @@
 
     // Sum HU-bound qty by location/batch for current material — used to subtract
     // from loose item_balance display so the same physical stock isn't pickable both ways
-    const buildHuQtyMap = (allHUs, matId, isBatchManaged) => {
+    const buildHuQtyMap = (allHUs, matId, isBatchManaged, huReservedMap) => {
       const huQtyMap = new Map();
       for (const hu of allHUs) {
         const items = (hu.table_hu_items || []).filter(
@@ -197,7 +197,15 @@
           const key = isBatchManaged
             ? `${locationId}-${item.batch_id || "no_batch"}`
             : `${locationId}`;
-          const qty = parseFloat(item.quantity) || 0;
+          // Subtract reserved portion of this HU item: the reserved qty is
+          // logically Reserved (via on_reserved_gd overlay), not Unrestricted,
+          // so only the unreserved portion sits in item_balance.unrestricted_qty
+          // and should be deducted from the loose display.
+          const reservedKey = `${hu.id}|${item.batch_id || ""}`;
+          const reservedQty =
+            (huReservedMap && huReservedMap.get(reservedKey)) || 0;
+          const qty = Math.max(0, (parseFloat(item.quantity) || 0) - reservedQty);
+          if (qty <= 0) continue;
           huQtyMap.set(key, (huQtyMap.get(key) || 0) + qty);
         }
       }
@@ -544,7 +552,12 @@
     // Now sync — uses already-fetched HU data instead of re-querying.
     const applyLooseDeduction = (freshDbData) => {
       if (isSerial) return freshDbData;
-      const huQtyMap = buildHuQtyMap(allHUs, materialId, isBatchManaged);
+      const huQtyMap = buildHuQtyMap(
+        allHUs,
+        materialId,
+        isBatchManaged,
+        huReservedMap,
+      );
       for (const row of freshDbData) {
         const key = isBatchManaged
           ? `${row.location_id}-${row.batch_id || "no_batch"}`

@@ -180,6 +180,7 @@
       plantId,
       orgId,
       isBatchManaged,
+      huReservedMap,
     ) => {
       try {
         const huRes = await db
@@ -201,7 +202,15 @@
             const key = isBatchManaged
               ? `${locationId}-${item.batch_id || "no_batch"}`
               : `${locationId}`;
-            const qty = parseFloat(item.quantity) || 0;
+            // Subtract reserved portion of this HU item: the reserved qty is
+            // logically Reserved (via on_reserved_gd overlay), not Unrestricted,
+            // so only the unreserved portion sits in item_balance.unrestricted_qty
+            // and should be deducted from the loose display.
+            const reservedKey = `${hu.id}|${item.batch_id || ""}`;
+            const reservedQty =
+              (huReservedMap && huReservedMap.get(reservedKey)) || 0;
+            const qty = Math.max(0, (parseFloat(item.quantity) || 0) - reservedQty);
+            if (qty <= 0) continue;
             huQtyMap.set(key, (huQtyMap.get(key) || 0) + qty);
           }
         }
@@ -508,6 +517,7 @@
         plant_id,
         organizationId,
         isBatchManaged,
+        huReservedMap,
       );
       for (const row of freshDbData) {
         const key = isBatchManaged

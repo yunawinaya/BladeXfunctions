@@ -565,7 +565,12 @@
     // Now sync — uses already-fetched HU data instead of re-querying.
     const applyLooseDeduction = (freshDbData) => {
       if (isSerial) return freshDbData;
-      const huQtyMap = buildHuQtyMap(allHUs, materialId, isBatchManaged);
+      const huQtyMap = buildHuQtyMap(
+        allHUs,
+        materialId,
+        isBatchManaged,
+        reservedHuIds,
+      );
       for (const row of freshDbData) {
         const key = isBatchManaged
           ? `${row.location_id}-${row.batch_id || "no_batch"}`

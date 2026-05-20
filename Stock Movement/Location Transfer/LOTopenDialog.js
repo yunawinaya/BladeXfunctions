@@ -176,6 +176,7 @@
     plantId,
     orgId,
     isBatchManaged,
+    reservedHuIdSet,
   ) => {
     try {
       // Query sub-collection by material — bypasses 5000-row cap on handling_unit
@@ -221,6 +222,12 @@
       for (const item of subRows) {
         // Skip sub-rows whose parent HU isn't in this plant/org (or deleted)
         if (!huLocationMap.has(item.handling_unit_id)) continue;
+
+        // Skip reserved HUs: their qty is logically committed to a GD and
+        // doesn't sit in the Unrestricted bucket of item_balance, so it
+        // shouldn't be deducted from the loose Unrestricted display.
+        if (reservedHuIdSet && reservedHuIdSet.has(item.handling_unit_id))
+          continue;
 
         const locationId =
           item.location_id || huLocationMap.get(item.handling_unit_id);
@@ -576,6 +583,7 @@
       plant_id,
       organizationId,
       isBatchManaged,
+      reservedHuIds,
     );
     for (const row of freshDbData) {
       const key = isBatchManaged
