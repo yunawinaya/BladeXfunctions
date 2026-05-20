@@ -114,6 +114,7 @@ const disabledField = async (status, pickingStatus) => {
         "gd_delivery_method",
         "document_description",
         "gd_area_id",
+        "sales_person",
         "order_tnc",
         "order_payment_details",
         "order_delivery_term",
@@ -379,8 +380,10 @@ const fetchDeliveredQuantity = async () => {
         Math.round((orderQty - totalDeliveredQuantity) * 1000) / 1000;
       return {
         ...item,
-        gd_undelivered_qty:
+        gd_undelivered_qty: Math.max(
+          0,
           Math.round((maxDeliverableQty - item.gd_qty) * 1000) / 1000,
+        ),
         gd_initial_delivered_qty: totalDeliveredQuantity,
       };
     });

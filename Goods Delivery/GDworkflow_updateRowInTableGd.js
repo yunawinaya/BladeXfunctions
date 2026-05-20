@@ -34,7 +34,7 @@ if (tableGD[rowIndex]) {
 
   tableGD[rowIndex].gd_delivered_qty = initialDeliveredQty + gdQty;
   tableGD[rowIndex].gd_undelivered_qty =
-    orderedQty - (initialDeliveredQty + gdQty);
+    Math.max(0, orderedQty - (initialDeliveredQty + gdQty));
 }
 
 // Apply cross-line distribution updates from whole-HU policies
