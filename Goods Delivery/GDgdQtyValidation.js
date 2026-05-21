@@ -102,7 +102,19 @@ for (let i = 0; i < data.table_gd.length; i++) {
       currentItemQtyTotalBase,
     });
 
-    // Skip validation if stock control is disabled
+    // Description-only row (non-stock + not shown in delivery): mirror no-material_id branch
+    if (itemData.stock_control === 0 && itemData.show_delivery === 0) {
+      if (quantity > gdUndeliveredQty) {
+        window.validationState[index] = false;
+        callback("Quantity exceed delivered limit.");
+      } else {
+        window.validationState[index] = true;
+        callback();
+      }
+      return;
+    }
+
+    // Skip inventory validation when stock_control=0 but show_delivery=1
     if (itemData.stock_control === 0) {
       console.log(
         `Stock control disabled for item ${materialId}, skipping inventory validation`,
