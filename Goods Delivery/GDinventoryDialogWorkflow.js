@@ -833,9 +833,14 @@
 
         const freshDbData = response.data || [];
 
-        // Deduct HU-bound qty from loose stock so the Inventory tab shows
-        // only non-HU stock. HU contents are double-counted in item_balance
-        // because reservations don't decrement unrestricted_qty.
+        // Deduct unreserved HU qty from item_balance.unrestricted_qty so the
+        // Inventory tab shows only loose (non-HU) stock. item_balance includes
+        // physical HU contents in unrestricted_qty, so without this deduction
+        // HU stock would appear pickable both ways.
+        // Allocated reservations are already bucket-shifted to reserved_qty on
+        // item_balance at save time, so they don't need separate loose deduction
+        // here — fetchHuQtyByLocation excludes reserved HU portions to keep the
+        // math aligned with the bucket-shifted unrestricted_qty.
         // Skip serialized items — HU items don't carry serial_number.
         if (itemData.serial_number_management !== 1) {
           const isBatchManaged = itemData.item_batch_management === 1;

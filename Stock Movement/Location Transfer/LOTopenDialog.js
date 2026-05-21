@@ -510,38 +510,26 @@
         is_deleted: 0,
       })
       .get();
+    // Only Allocated overlays deduct from unrestricted display. Pending records
+    // already moved their qty from unrestricted to reserved bucket on
+    // item_balance (at SO save), so subtracting them again would double-deduct.
+    // Delivered records are excluded implicitly via the open_qty > 0 guard.
     activeReservations = (reservationRes.data || []).filter(
-      (r) => parseFloat(r.open_qty || 0) > 0 && r.status !== "Cancelled",
+      (r) => parseFloat(r.open_qty || 0) > 0 && r.status === "Allocated",
     );
   } catch (error) {
     console.error("Error fetching on_reserved_gd:", error);
   }
 
-  const convertReservedToBase = (qty, item_uom) => {
-    if (!item_uom || item_uom === itemData.based_uom) return qty;
-    const conv = itemData.table_uom_conversion?.find(
-      (c) => c.alt_uom_id === item_uom,
-    );
-    if (conv && conv.base_qty) return qty * conv.base_qty;
-    return qty;
-  };
-
+  // Allocated reservations bucket-shift unrestricted_qty → reserved_qty on
+  // item_balance at write time, so item_balance.unrestricted_qty is already
+  // net of all loose Allocated reservations — no further loose deduction
+  // needed here. reservedHuIds is still tracked: used to skip reserved HUs
+  // in fetchHuQtyByLocation and to hide reserved HUs from the HU tab.
   const reservedHuIds = new Set();
-  const looseReservedMap = new Map();
   for (const r of activeReservations) {
     if (r.handling_unit_id) {
       reservedHuIds.add(r.handling_unit_id);
-    } else {
-      const locId = r.bin_location;
-      if (!locId) continue;
-      const key = isBatchManaged
-        ? `${locId}-${r.batch_id || "no_batch"}`
-        : `${locId}`;
-      const qtyBase = convertReservedToBase(
-        parseFloat(r.open_qty || 0),
-        r.item_uom,
-      );
-      looseReservedMap.set(key, (looseReservedMap.get(key) || 0) + qtyBase);
     }
   }
 
@@ -573,8 +561,9 @@
     );
   };
 
-  // item_balance includes stock physically inside HUs and stock reserved by other
-  // GDs — deduct both so loose display reflects what's actually available to LOT.
+  // item_balance.unrestricted_qty is already net of all Allocated loose
+  // reservations (bucket-shifted to reserved_qty on save), so only unreserved
+  // HU qty needs deducting here to isolate truly-loose stock.
   // Skip serialized items: HU items don't carry serial_number.
   const applyLooseDeduction = async (freshDbData) => {
     if (isSerial) return freshDbData;
@@ -590,8 +579,7 @@
         ? `${row.location_id}-${row.batch_id || "no_batch"}`
         : `${row.location_id}`;
       const huQty = huQtyMap.get(key) || 0;
-      const reservedQty = looseReservedMap.get(key) || 0;
-      const totalDeduct = huQty + reservedQty;
+      const totalDeduct = huQty;
       if (totalDeduct > 0) {
         row.unrestricted_qty = Math.max(
           0,
