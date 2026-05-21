@@ -582,6 +582,20 @@
                             "propLabel": "Plant ID",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1779334100001,
+                            "parentId": 1773384737251,
+                            "isTop": false,
+                            "prop": "status",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Pending",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Status",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
                           }
                         ]
                       }
