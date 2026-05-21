@@ -52,8 +52,46 @@ for (const r of huReservedData) {
   huReservedMap[key] = (huReservedMap[key] || 0) + parseFloat(r.open_qty) * conversionFactor;
 }
 
-// Inject HU items into balance pool as virtual balance records
-// Deduct already-reserved quantities from on_reserved_gd
+// item_balance.unrestricted_qty includes physical HU stock (unreserved
+// portion only; reserved was bucket-shifted to reserved_qty). Before
+// injecting HU as virtual balance records below, subtract the same HU
+// contribution from the loose balance rows to avoid double-counting the
+// same physical stock.
+if (Array.isArray(huData) && huData.length > 0) {
+  const huQtyByLocation = {};
+  for (const huItem of huData) {
+    if (huItem.row_type !== "item") continue;
+    const reservedKey = `${huItem.handling_unit_id}|${huItem.batch_id || ""}`;
+    const reservedQty = huReservedMap[reservedKey] || 0;
+    const unreservedQty = Math.max(
+      0,
+      (parseFloat(huItem.item_quantity) || 0) - reservedQty
+    );
+    if (unreservedQty <= 0) continue;
+    const locKey = `${huItem.location_id}|${huItem.batch_id || ""}`;
+    huQtyByLocation[locKey] = (huQtyByLocation[locKey] || 0) + unreservedQty;
+  }
+  for (const b of balanceData) {
+    const locKey = `${b.location_id}|${b.batch_id || ""}`;
+    const deduct = huQtyByLocation[locKey] || 0;
+    if (deduct > 0) {
+      b.unrestricted_qty = Math.max(
+        0,
+        (parseFloat(b.unrestricted_qty) || 0) - deduct
+      );
+      if (b.balance_quantity != null) {
+        b.balance_quantity = Math.max(
+          0,
+          (parseFloat(b.balance_quantity) || 0) - deduct
+        );
+      }
+    }
+  }
+}
+
+// Inject HU items into balance pool as virtual balance records.
+// Deduct already-reserved quantities from on_reserved_gd so virtual record
+// reflects unreserved HU portion (same portion just subtracted from loose).
 if (Array.isArray(huData) && huData.length > 0) {
   for (const huItem of huData) {
     if (huItem.row_type !== "item") continue;
