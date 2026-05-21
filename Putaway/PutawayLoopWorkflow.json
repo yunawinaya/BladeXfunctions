@@ -1569,7 +1569,7 @@
                     "name": "Putaway Data to Create",
                     "script": {
                       "type": "javascript",
-                      "code": "const pageStatus = {{workflowparams:pageStatus}}\n\nlet putawayData = {{node:code_node_kku8SAT9.data.data}}\n  \nif (pageStatus === 'Add') {\n  const rawData = {{node:add_node_sjzNkA59.data}}\n  putawayData = rawData[0]\n  putawayData.table_putaway_item = {{node:search_node_hrs91pu9.data}}\n} else {\n  putawayData = {{node:get_node_gbE86P3e.data.data}}\n}\n\nconst grId = putawayData.gr_id\n\nconst filteredPutawayItems = putawayData.table_putaway_item.filter((item) => item.line_status !== \"Cancelled\",);\n\nreturn {\n  grId,\n  filteredPutawayItems,\n}"
+                      "code": "const pageStatus = {{workflowparams:pageStatus}}\n\nlet putawayData = {{node:code_node_kku8SAT9.data.data}}\n  \nif (pageStatus === 'Add') {\n  const rawData = {{node:add_node_sjzNkA59.data}}\n  putawayData = rawData[0]\n  putawayData.table_putaway_item = {{node:search_node_hrs91pu9.data.data}}\n} else {\n  putawayData = {{node:get_node_gbE86P3e.data.data}}\n}\n\nconst grId = putawayData.gr_id\n\nconst filteredPutawayItems = putawayData.table_putaway_item.filter((item) => item.line_status !== \"Cancelled\",);\n\nreturn {\n  grId,\n  filteredPutawayItems,\n}"
                     },
                     "response_json": [
                       {
