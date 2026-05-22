@@ -295,7 +295,7 @@ const createDraftStockAdjustment = async (
     const stockAdjustmentDoc = {
       stock_adjustment_status: "Draft",
       organization_id: organizationId,
-      adjustment_no: "issued",
+      adjustment_no: "draft",
       adjustment_no_type: saPrefixID?.data[0]?.id || null,
       stock_count_id: stockCountId,
       adjustment_date: new Date().toISOString().split("T")[0],
