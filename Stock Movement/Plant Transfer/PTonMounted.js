@@ -209,10 +209,17 @@ const filterPTReceivingCategory = async () => {
     allowedCategories.includes(category.dict_key),
   );
 
-  for (const [rowIndex, _sm] of stockMovement.entries()) {
+  for (const [rowIndex, sm] of stockMovement.entries()) {
     await this.setOptionData(
       [`stock_movement.${rowIndex}.category`],
       filteredCategories,
+    );
+
+    // Blocked stock stays Blocked on arrival — lock the field so the
+    // receiving user can't re-classify it; other categories remain editable.
+    await this.disabled(
+      [`stock_movement.${rowIndex}.category`],
+      sm.category === "Blocked",
     );
   }
 };
