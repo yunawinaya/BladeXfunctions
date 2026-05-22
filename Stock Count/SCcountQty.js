@@ -7,7 +7,6 @@
 
     let varianceQty = 0;
     if (
-      countQty &&
       countQty !== null &&
       countQty !== undefined &&
       countQty !== ""
