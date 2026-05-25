@@ -3188,24 +3188,25 @@
                                 "isValidator": true,
                                 "nodeName": "IF Picking not Completed",
                                 "name": "IF Picking not Completed",
-                                "condition_type": "ConditionRule",
+                                "condition_type": "Expression",
                                 "filter": {
                                   "list": [
                                     {
-                                      "id": 1736695973613,
-                                      "parentId": 1736695973612,
+                                      "id": 1779414796680,
+                                      "parentId": 1779414796679,
                                       "isTop": true,
-                                      "prop": "node.code_node_IyJHrBst.data.picking_status",
-                                      "operator": "notEqual",
-                                      "valueType": "value",
-                                      "value": "Completed",
+                                      "prop": "",
+                                      "operator": "",
+                                      "valueType": "",
+                                      "value": "",
                                       "type": "leaf",
-                                      "level": 1,
-                                      "propLabel": "picking_status",
-                                      "valueLabel": "",
-                                      "operatorLabel": "Not Equal"
+                                      "level": 1
                                     }
                                   ]
+                                },
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "'{{workflowparams:allData.picking_status}}' != 'Completed'"
                                 }
                               },
                               "blocks": [
@@ -5105,6 +5106,22 @@
                                       "propLabel": "Fax"
                                     },
                                     {
+                                      "prop": "billing_address_code",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_IyJHrBst.data.allData.billing_address_code}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Address Code"
+                                    },
+                                    {
+                                      "prop": "shipping_address_code",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_IyJHrBst.data.allData.shipping_address_code}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Address Code"
+                                    },
+                                    {
                                       "prop": "shipping_address_fax",
                                       "operator": "",
                                       "valueType": "field",
@@ -5952,6 +5969,22 @@
                                       "value": "{{node:code_node_IyJHrBst.data.allData.billing_address_fax}}",
                                       "valueLabel": "",
                                       "propLabel": "Fax"
+                                    },
+                                    {
+                                      "prop": "billing_address_code",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_IyJHrBst.data.allData.billing_address_code}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Address Code"
+                                    },
+                                    {
+                                      "prop": "shipping_address_code",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_IyJHrBst.data.allData.shipping_address_code}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Address Code"
                                     },
                                     {
                                       "prop": "shipping_address_fax",
@@ -6817,6 +6850,22 @@
                               "value": "{{node:code_node_IyJHrBst.data.allData.billing_address_fax}}",
                               "valueLabel": "",
                               "propLabel": "Fax"
+                            },
+                            {
+                              "prop": "billing_address_code",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.billing_address_code}}",
+                              "valueLabel": "",
+                              "propLabel": "Address Code"
+                            },
+                            {
+                              "prop": "shipping_address_code",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.shipping_address_code}}",
+                              "valueLabel": "",
+                              "propLabel": "Address Code"
                             },
                             {
                               "prop": "shipping_address_fax",
@@ -9999,6 +10048,22 @@
                               "propLabel": "Fax"
                             },
                             {
+                              "prop": "billing_address_code",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.billing_address_code}}",
+                              "valueLabel": "",
+                              "propLabel": "Address Code"
+                            },
+                            {
+                              "prop": "shipping_address_code",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.shipping_address_code}}",
+                              "valueLabel": "",
+                              "propLabel": "Address Code"
+                            },
+                            {
                               "prop": "shipping_address_fax",
                               "operator": "",
                               "valueType": "field",
@@ -10784,6 +10849,22 @@
                               "value": "{{node:code_node_IyJHrBst.data.allData.billing_address_fax}}",
                               "valueLabel": "",
                               "propLabel": "Fax"
+                            },
+                            {
+                              "prop": "billing_address_code",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.billing_address_code}}",
+                              "valueLabel": "",
+                              "propLabel": "Address Code"
+                            },
+                            {
+                              "prop": "shipping_address_code",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.shipping_address_code}}",
+                              "valueLabel": "",
+                              "propLabel": "Address Code"
                             },
                             {
                               "prop": "shipping_address_fax",
