@@ -303,7 +303,7 @@
                       "id": 1736695973613,
                       "parentId": 1736695973612,
                       "isTop": true,
-                      "prop": "node.get_node_cnqECQ8X.data.data.stock_control",
+                      "prop": "node.get_node_MuNnpfmj.data.data.stock_control",
                       "operator": "numberEqual",
                       "valueType": "value",
                       "value": 0,
@@ -2224,7 +2224,7 @@
                                         "name": "Sequence Number",
                                         "script": {
                                           "type": "javascript",
-                                          "code": "const fifoResponse = {{node:search_node_RjYmYDlj.data}}\n// Determine next sequence number\nlet sequenceNumber = 1;\n\nif (\n  fifoResponse.data &&\n  Array.isArray(fifoResponse.data) &&\n  fifoResponse.data.length > 0\n) {\n  const existingSequences = fifoResponse.data.map((doc) =>\n    parseInt(doc.fifo_sequence || 0, 10)\n  );\n  sequenceNumber = Math.max(...existingSequences, 0) + 1;\n}\n\nreturn {\n  sequenceNumber: sequenceNumber\n}\n"
+                                          "code": "const fifoResponse = {{node:search_node_lPUQktoS.data}}\n// Determine next sequence number\nlet sequenceNumber = 1;\n\nif (\n  fifoResponse.data &&\n  Array.isArray(fifoResponse.data) &&\n  fifoResponse.data.length > 0\n) {\n  const existingSequences = fifoResponse.data.map((doc) =>\n    parseInt(doc.fifo_sequence || 0, 10)\n  );\n  sequenceNumber = Math.max(...existingSequences, 0) + 1;\n}\n\nreturn {\n  sequenceNumber: sequenceNumber\n}\n"
                                         },
                                         "response_json": [
                                           {
@@ -2315,7 +2315,7 @@
                                               "prop": "fifo_sequence",
                                               "operator": "",
                                               "valueType": "field",
-                                              "value": "{{node:code_node_EbBqqUx8.data.sequenceNumber}}",
+                                              "value": "{{node:code_node_wFHVEysj.data.sequenceNumber}}",
                                               "valueLabel": "",
                                               "propLabel": "Sequence"
                                             },
@@ -2626,7 +2626,7 @@
                                                         "name": "Calculate WA",
                                                         "script": {
                                                           "type": "javascript",
-                                                          "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst waData = {{node:search_node_sE4TyFdE.data.data}}\nconst baseQty ={{node:code_node_mvszWJ8p.data.baseQty}}\n\n// Sort records by date, newest first\nwaData.sort((a, b) => {\n  if (a.created_at && b.created_at) {\n    return new Date(b.created_at) - new Date(a.created_at);\n  }\n  return 0;\n});\n\nconst latestWa = waData[0];\nconst waCostPrice = roundPrice(latestWa.wa_cost_price);\nconst waQuantity = roundQty(latestWa.wa_quantity);\nconst newWaQuantity = roundQty(waQuantity + baseQty);\n\nconst costPrice = {{node:code_node_BzebhJnQ.data.unitPrice}}\n\nconst calculatedWaCostPrice = roundPrice(\n  (waCostPrice * waQuantity + costPrice * baseQty) / newWaQuantity\n);\n\nconst newWaCostPrice = roundPrice(calculatedWaCostPrice);\n\nreturn {\n  newWaQuantity: newWaQuantity,\n  newWaCostPrice: newWaCostPrice,\n  latestWaId: latestWa.id\n}\n"
+                                                          "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst waData = {{node:search_node_EhZwGMYs.data.data}}\nconst baseQty ={{node:code_node_mvszWJ8p.data.baseQty}}\n\n// Sort records by date, newest first\nwaData.sort((a, b) => {\n  if (a.created_at && b.created_at) {\n    return new Date(b.created_at) - new Date(a.created_at);\n  }\n  return 0;\n});\n\nconst latestWa = waData[0];\nconst waCostPrice = roundPrice(latestWa.wa_cost_price);\nconst waQuantity = roundQty(latestWa.wa_quantity);\nconst newWaQuantity = roundQty(waQuantity + baseQty);\n\nconst costPrice = {{node:code_node_BzebhJnQ.data.unitPrice}}\n\nconst calculatedWaCostPrice = roundPrice(\n  (waCostPrice * waQuantity + costPrice * baseQty) / newWaQuantity\n);\n\nconst newWaCostPrice = roundPrice(calculatedWaCostPrice);\n\nreturn {\n  newWaQuantity: newWaQuantity,\n  newWaCostPrice: newWaCostPrice,\n  latestWaId: latestWa.id\n}\n"
                                                         },
                                                         "response_json": [
                                                           {
@@ -2675,7 +2675,7 @@
                                                                 "prop": "id",
                                                                 "operator": "in",
                                                                 "valueType": "field",
-                                                                "value": "{{node:code_node_40n1pYig.data.latestWaId}}",
+                                                                "value": "{{node:code_node_BmARJUfl.data.latestWaId}}",
                                                                 "type": "leaf",
                                                                 "level": 1,
                                                                 "propLabel": "主键ID",
@@ -2697,7 +2697,7 @@
                                                             {
                                                               "prop": "wa_cost_price",
                                                               "valueType": "field",
-                                                              "value": "{{node:code_node_40n1pYig.data.newWaCostPrice}}",
+                                                              "value": "{{node:code_node_BmARJUfl.data.newWaCostPrice}}",
                                                               "operator": "",
                                                               "valueLabel": "",
                                                               "propLabel": "Cost Price"
@@ -2706,7 +2706,7 @@
                                                               "prop": "wa_quantity",
                                                               "operator": "",
                                                               "valueType": "field",
-                                                              "value": "{{node:code_node_40n1pYig.data.newWaQuantity}}",
+                                                              "value": "{{node:code_node_BmARJUfl.data.newWaQuantity}}",
                                                               "valueLabel": "",
                                                               "propLabel": "Quantity"
                                                             }

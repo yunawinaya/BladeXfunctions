@@ -305,7 +305,7 @@
                         "condition_type": "ConditionRule",
                         "expression": {
                           "type": "javascript",
-                          "code": "{{node:get_node_cnqECQ8X.data.count}} == 0"
+                          "code": "{{node:get_node_BWe6rbru.data.count}} == 0"
                         },
                         "filter": {
                           "list": [
@@ -453,7 +453,7 @@
                       "id": 1736695973613,
                       "parentId": 1736695973612,
                       "isTop": true,
-                      "prop": "node.get_node_cnqECQ8X.data.data.stock_control",
+                      "prop": "node.get_node_BWe6rbru.data.data.stock_control",
                       "operator": "numberEqual",
                       "valueType": "value",
                       "value": 0,

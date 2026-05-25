@@ -309,7 +309,7 @@
                       "id": 1736695973613,
                       "parentId": 1736695973612,
                       "isTop": true,
-                      "prop": "node.get_node_cnqECQ8X.data.data.stock_control",
+                      "prop": "node.get_node_ZGsF9gxG.data.data.stock_control",
                       "operator": "numberEqual",
                       "valueType": "value",
                       "value": 0,
@@ -1208,7 +1208,7 @@
                                       "id": 1769487885697,
                                       "parentId": 1769487923071,
                                       "isTop": false,
-                                      "prop": "node.search_node_FGjULf7c.data.total",
+                                      "prop": "node.search_node_7bvv7f8g.data.total",
                                       "operator": "greaterThan",
                                       "valueType": "value",
                                       "value": 0,
@@ -1230,7 +1230,7 @@
                                       "propLabel": "总条数",
                                       "valueLabel": "",
                                       "operatorLabel": "Greater Than",
-                                      "prop": "node.search_node_L50IlXls.data.total"
+                                      "prop": "node.search_node_NCi8U4My.data.total"
                                     }
                                   ]
                                 }
@@ -1673,7 +1673,7 @@
                                           "id": 1769488419609,
                                           "parentId": 1769488419608,
                                           "isTop": false,
-                                          "prop": "node.search_node_L50IlXls.data.total",
+                                          "prop": "node.search_node_NCi8U4My.data.total",
                                           "operator": "numberEqual",
                                           "valueType": "value",
                                           "value": 0,
@@ -1687,7 +1687,7 @@
                                           "id": 1769488419612,
                                           "parentId": 1769488419608,
                                           "isTop": false,
-                                          "prop": "node.search_node_FGjULf7c.data.total",
+                                          "prop": "node.search_node_7bvv7f8g.data.total",
                                           "operator": "greaterThan",
                                           "valueType": "value",
                                           "value": 0,
@@ -1725,7 +1725,7 @@
                                           "id": 1769488419611,
                                           "parentId": 1769488419610,
                                           "isTop": false,
-                                          "prop": "node.search_node_FGjULf7c.data.total",
+                                          "prop": "node.search_node_7bvv7f8g.data.total",
                                           "operator": "numberEqual",
                                           "valueType": "value",
                                           "value": 0,
@@ -1739,7 +1739,7 @@
                                           "id": 1769488419613,
                                           "parentId": 1769488419610,
                                           "isTop": false,
-                                          "prop": "node.search_node_L50IlXls.data.total",
+                                          "prop": "node.search_node_NCi8U4My.data.total",
                                           "operator": "greaterThan",
                                           "valueType": "value",
                                           "value": 0,
@@ -3119,7 +3119,7 @@
                                                 "prop": "id",
                                                 "operator": "in",
                                                 "valueType": "field",
-                                                "value": "{{node:code_node_JuWVegvU.data.updates.id}}",
+                                                "value": "{{node:code_node_XLW4aVTn.data.updates.id}}",
                                                 "type": "leaf",
                                                 "level": 1,
                                                 "propLabel": "主键ID",
@@ -3141,7 +3141,7 @@
                                             {
                                               "prop": "fifo_available_quantity",
                                               "valueType": "field",
-                                              "value": "{{node:code_node_JuWVegvU.data.updates.fifo_available_quantity}}",
+                                              "value": "{{node:code_node_XLW4aVTn.data.updates.fifo_available_quantity}}",
                                               "operator": "",
                                               "valueLabel": "",
                                               "propLabel": "Available Quantity"
@@ -3150,7 +3150,7 @@
                                               "prop": "id",
                                               "operator": "",
                                               "valueType": "field",
-                                              "value": "{{node:code_node_JuWVegvU.data.updates.id}}",
+                                              "value": "{{node:code_node_XLW4aVTn.data.updates.id}}",
                                               "valueLabel": "",
                                               "propLabel": "主键ID"
                                             }
@@ -3256,7 +3256,7 @@
                                                 "prop": "id",
                                                 "operator": "numberEqual",
                                                 "valueType": "field",
-                                                "value": "{{node:code_node_4yvZMf0Q.data.id}}",
+                                                "value": "{{node:code_node_fVEv7HuP.data.id}}",
                                                 "type": "leaf",
                                                 "level": 1,
                                                 "propLabel": "主键ID",
@@ -3278,7 +3278,7 @@
                                             {
                                               "prop": "wa_quantity",
                                               "valueType": "field",
-                                              "value": "{{node:code_node_4yvZMf0Q.data.wa_quantity}}",
+                                              "value": "{{node:code_node_fVEv7HuP.data.wa_quantity}}",
                                               "operator": "",
                                               "valueLabel": "",
                                               "propLabel": "Quantity"
