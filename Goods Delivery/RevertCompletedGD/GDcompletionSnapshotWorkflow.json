@@ -1,0 +1,300 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "code_node_zRrqNcLM",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Extract IDs",
+        "isValidator": true,
+        "nodeName": "Extract IDs",
+        "name": "Extract IDs",
+        "script": { "type": "javascript", "code": "" },
+        "response_json": []
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_K8tDhBp1",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "",
+          "rules": { "collectionId": "", "list": [] }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get SO Lines",
+        "isValidator": true,
+        "nodeName": "Get SO Lines",
+        "name": "Get SO Lines"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_NPrwt0qv",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "",
+          "rules": { "collectionId": "", "list": [] }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get Allocated On Reserved GD",
+        "isValidator": true,
+        "nodeName": "Get Allocated On Reserved GD",
+        "name": "Get Allocated On Reserved GD"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_8xeGAzs2",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "",
+          "rules": { "collectionId": "", "list": [] }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get Pending On Reserved GD",
+        "isValidator": true,
+        "nodeName": "Get Pending On Reserved GD",
+        "name": "Get Pending On Reserved GD"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_FYpwfTbu",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "",
+          "rules": { "collectionId": "", "list": [] }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get Picking Records",
+        "isValidator": true,
+        "nodeName": "Get Picking Records",
+        "name": "Get Picking Records"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_VCdHgKjQ",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "",
+          "rules": { "collectionId": "", "list": [] }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get PP Headers",
+        "isValidator": true,
+        "nodeName": "Get PP Headers",
+        "name": "Get PP Headers"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_LmqRjzFE",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "",
+          "rules": { "collectionId": "", "list": [] }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get HU",
+        "isValidator": true,
+        "nodeName": "Get HU",
+        "name": "Get HU"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_oUkPx4Vi",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "",
+          "rules": { "collectionId": "", "list": [] }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get HU Lines",
+        "isValidator": true,
+        "nodeName": "Get HU Lines",
+        "name": "Get HU Lines"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_RxN5tWmA",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Build Snapshot",
+        "isValidator": true,
+        "nodeName": "Build Snapshot",
+        "name": "Build Snapshot",
+        "script": { "type": "javascript", "code": "" },
+        "response_json": []
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_eFhDcAt6",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "",
+          "rules": { "collectionId": "", "list": [] }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Find Existing Active Snapshot",
+        "isValidator": true,
+        "nodeName": "Find Existing Active Snapshot",
+        "name": "Find Existing Active Snapshot"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_LkVjMnP7",
+      "type": "if",
+      "data": {
+        "title": "IF Existing Snapshot Found",
+        "isValidator": true,
+        "nodeName": "IF Existing Snapshot Found",
+        "name": "IF Existing Snapshot Found",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": { "list": [] }
+      },
+      "blocks": [
+        {
+          "id": "if_block_t0L2Tcnf",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_TlGcZbV4",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "",
+                  "rules": { "collectionId": "", "list": [] }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Mark Old Snapshot Stale",
+                "isValidator": true,
+                "nodeName": "Mark Old Snapshot Stale",
+                "name": "Mark Old Snapshot Stale",
+                "props": { "modelName": "", "list": [] }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_q9XfWdSe",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "add_node_AmPbHxKj",
+      "type": "add-node",
+      "data": {
+        "table_id": {
+          "source": "",
+          "rules": { "collectionId": "", "list": [] }
+        },
+        "fields": [],
+        "title": "Add Snapshot",
+        "isValidator": true,
+        "nodeName": "Add Snapshot",
+        "name": "Add Snapshot",
+        "props": { "modelName": "", "list": [] }
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_ZsRq8vXM",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Snapshot Success",
+        "isValidator": true,
+        "nodeName": "Return Snapshot Success",
+        "name": "Return Snapshot Success",
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "12179db9",
+      "name": "allData",
+      "title": "allData",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "mtsr4pk6",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "7nkvnclq",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "zkne344t",
+      "name": "snapshot_id",
+      "title": "snapshot_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}
