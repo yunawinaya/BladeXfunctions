@@ -1524,13 +1524,13 @@
                                         "language": "javascript",
                                         "code": "",
                                         "timeout": 30000,
-                                        "title": "Remark Checking",
+                                        "title": "Remark Checking & Final Balance Qty",
                                         "isValidator": true,
-                                        "nodeName": "Remark Checking",
-                                        "name": "Remark Checking",
+                                        "nodeName": "Remark Checking & Final Balance Qty",
+                                        "name": "Remark Checking & Final Balance Qty",
                                         "script": {
                                           "type": "javascript",
-                                          "code": "const rawItemBatch = {{node:get_node_OppesjaR.data.data}}\nconst itemBatchData = Array.isArray(rawItemBatch) ? rawItemBatch[0] : rawItemBatch\n\nconst getRemarkValue = (newValue, existingValue) => {\n  return (newValue !== null && newValue !== existingValue) ? newValue : existingValue\n}\n\nconst remark = getRemarkValue({{workflowparams:remark}}, itemBatchData.remark)\nconst remark2 = getRemarkValue({{workflowparams:remark2}}, itemBatchData.remark2)\nconst remark3 = getRemarkValue({{workflowparams:remark3}}, itemBatchData.remark3)\n\nreturn {\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3\n}\n"
+                                          "code": "const roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\nconst rawItemBatch = {{node:get_node_OppesjaR.data.data}}\nconst itemBatchData = (Array.isArray(rawItemBatch) ? rawItemBatch[0] : rawItemBatch) || {}\n\nconst getRemarkValue = (newValue, existingValue) => {\n  return (newValue !== null && newValue !== existingValue) ? newValue : existingValue\n}\n\nconst remark = getRemarkValue({{workflowparams:remark}}, itemBatchData.remark)\nconst remark2 = getRemarkValue({{workflowparams:remark2}}, itemBatchData.remark2)\nconst remark3 = getRemarkValue({{workflowparams:remark3}}, itemBatchData.remark3)\n\n// Final batch qty values (current + add) for the Update Batch Balance Data node\nconst balanceData = {{node:code_node_aFO7peip.data}}\n\nconst block_qty = roundQty(roundQty(itemBatchData.block_qty || 0) + roundQty(balanceData.block_qty || 0))\nconst reserved_qty = roundQty(roundQty(itemBatchData.reserved_qty || 0) + roundQty(balanceData.reserved_qty || 0))\nconst unrestricted_qty = roundQty(roundQty(itemBatchData.unrestricted_qty || 0) + roundQty(balanceData.unrestricted_qty || 0))\nconst qualityinsp_qty = roundQty(roundQty(itemBatchData.qualityinsp_qty || 0) + roundQty(balanceData.qualityinsp_qty || 0))\nconst intransit_qty = roundQty(roundQty(itemBatchData.intransit_qty || 0) + roundQty(balanceData.intransit_qty || 0))\nconst balance_quantity = roundQty(roundQty(itemBatchData.balance_quantity || 0) + roundQty(balanceData.balance_quantity || 0))\n\nreturn {\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  block_qty: block_qty,\n  reserved_qty: reserved_qty,\n  unrestricted_qty: unrestricted_qty,\n  qualityinsp_qty: qualityinsp_qty,\n  intransit_qty: intransit_qty,\n  balance_quantity: balance_quantity\n}\n"
                                         },
                                         "response_json": [
                                           {
@@ -1556,14 +1556,68 @@
                                             "description": "",
                                             "bsonType": "string",
                                             "isExpand": false
+                                          },
+                                          {
+                                            "key": "bq5n7m1a",
+                                            "name": "block_qty",
+                                            "title": "block_qty",
+                                            "description": "",
+                                            "bsonType": "decimal",
+                                            "isExpand": false,
+                                            "children": []
+                                          },
+                                          {
+                                            "key": "rv4k8w2c",
+                                            "name": "reserved_qty",
+                                            "title": "reserved_qty",
+                                            "description": "",
+                                            "bsonType": "decimal",
+                                            "isExpand": false,
+                                            "children": []
+                                          },
+                                          {
+                                            "key": "un9p3xy7",
+                                            "name": "unrestricted_qty",
+                                            "title": "unrestricted_qty",
+                                            "description": "",
+                                            "bsonType": "decimal",
+                                            "isExpand": false,
+                                            "children": []
+                                          },
+                                          {
+                                            "key": "qi2t6gh3",
+                                            "name": "qualityinsp_qty",
+                                            "title": "qualityinsp_qty",
+                                            "description": "",
+                                            "bsonType": "decimal",
+                                            "isExpand": false,
+                                            "children": []
+                                          },
+                                          {
+                                            "key": "in7s4dj9",
+                                            "name": "intransit_qty",
+                                            "title": "intransit_qty",
+                                            "description": "",
+                                            "bsonType": "decimal",
+                                            "isExpand": false,
+                                            "children": []
+                                          },
+                                          {
+                                            "key": "bq8c2vf6",
+                                            "name": "balance_quantity",
+                                            "title": "balance_quantity",
+                                            "description": "",
+                                            "bsonType": "decimal",
+                                            "isExpand": false,
+                                            "children": []
                                           }
                                         ]
                                       },
                                       "blocks": []
                                     },
                                     {
-                                      "id": "atomic_count_node_zOAAp1u8",
-                                      "type": "atomic-count-node",
+                                      "id": "update_node_gttvPERZ",
+                                      "type": "update-node",
                                       "data": {
                                         "table_id": {
                                           "source": "Item Batch Balance:Table:1902718803880558594",
@@ -1571,8 +1625,8 @@
                                             "collectionId": "1902718803880558594",
                                             "list": [
                                               {
-                                                "id": 1768545940571,
-                                                "parentId": 1768545940570,
+                                                "id": 1779684276034,
+                                                "parentId": 1779684276033,
                                                 "isTop": true,
                                                 "prop": "id",
                                                 "operator": "in",
@@ -1589,54 +1643,58 @@
                                         },
                                         "fields": [],
                                         "condition": {},
+                                        "title": "Update Batch Balance Data",
+                                        "isValidator": true,
+                                        "nodeName": "Update Batch Balance Data",
+                                        "name": "Update Batch Balance Data",
                                         "props": {
                                           "modelName": "",
                                           "list": [
                                             {
                                               "prop": "block_qty",
+                                              "valueType": "field",
+                                              "value": "{{node:code_node_YUVUnD8B.data.block_qty}}",
                                               "operator": "",
-                                              "valueType": "formula",
-                                              "value": "plus({{node:code_node_aFO7peip.data.block_qty}})",
                                               "valueLabel": "",
                                               "propLabel": "Blocked Quantity"
                                             },
                                             {
                                               "prop": "reserved_qty",
                                               "operator": "",
-                                              "valueType": "formula",
-                                              "value": "plus({{node:code_node_aFO7peip.data.reserved_qty}})",
+                                              "valueType": "field",
+                                              "value": "{{node:code_node_YUVUnD8B.data.reserved_qty}}",
                                               "valueLabel": "",
                                               "propLabel": "Reserved Quantity"
                                             },
                                             {
                                               "prop": "unrestricted_qty",
                                               "operator": "",
-                                              "valueType": "formula",
-                                              "value": "plus({{node:code_node_aFO7peip.data.unrestricted_qty}})",
+                                              "valueType": "field",
+                                              "value": "{{node:code_node_YUVUnD8B.data.unrestricted_qty}}",
                                               "valueLabel": "",
                                               "propLabel": "Unrestricted Quantity"
                                             },
                                             {
                                               "prop": "qualityinsp_qty",
                                               "operator": "",
-                                              "valueType": "formula",
-                                              "value": "plus({{node:code_node_aFO7peip.data.qualityinsp_qty}})",
+                                              "valueType": "field",
+                                              "value": "{{node:code_node_YUVUnD8B.data.qualityinsp_qty}}",
                                               "valueLabel": "",
                                               "propLabel": "Quality Inspection Quantity"
                                             },
                                             {
                                               "prop": "intransit_qty",
                                               "operator": "",
-                                              "valueType": "formula",
-                                              "value": "plus({{node:code_node_aFO7peip.data.intransit_qty}})",
+                                              "valueType": "field",
+                                              "value": "{{node:code_node_YUVUnD8B.data.intransit_qty}}",
                                               "valueLabel": "",
                                               "propLabel": "In Transit Quantity"
                                             },
                                             {
                                               "prop": "balance_quantity",
                                               "operator": "",
-                                              "valueType": "formula",
-                                              "value": "plus({{node:code_node_aFO7peip.data.balance_quantity}})",
+                                              "valueType": "field",
+                                              "value": "{{node:code_node_YUVUnD8B.data.balance_quantity}}",
                                               "valueLabel": "",
                                               "propLabel": "Balance Quantity"
                                             },
@@ -1665,19 +1723,7 @@
                                               "propLabel": "Remark 3"
                                             }
                                           ]
-                                        },
-                                        "title": "Update Batch Balance Data",
-                                        "isValidator": true,
-                                        "nodeName": "Update Batch Balance Data",
-                                        "name": "Update Batch Balance Data",
-                                        "sorts": [],
-                                        "is_custom_error": 0,
-                                        "err_lock_acquire_failed": "",
-                                        "err_config_invalid": "",
-                                        "err_data_not_found": "",
-                                        "err_stock_insufficient": "",
-                                        "err_concurrent_conflict": "",
-                                        "err_deduct_incomplete": ""
+                                        }
                                       },
                                       "blocks": []
                                     }
@@ -2007,8 +2053,82 @@
                           "data": { "title": "true" },
                           "blocks": [
                             {
-                              "id": "atomic_count_node_yKBhj3oV",
-                              "type": "atomic-count-node",
+                              "id": "code_node_t7V3DsPG",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "Final Balance Qty",
+                                "isValidator": true,
+                                "nodeName": "Final Balance Qty",
+                                "name": "Final Balance Qty",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "const roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\nconst rawBalance = {{node:get_node_c4YkI6sb.data.data}}\nconst existingBalance = (Array.isArray(rawBalance) ? rawBalance[0] : rawBalance) || {}\n\nconst balanceData = {{node:code_node_aFO7peip.data}}\n\nconst block_qty = roundQty(roundQty(existingBalance.block_qty || 0) + roundQty(balanceData.block_qty || 0))\nconst reserved_qty = roundQty(roundQty(existingBalance.reserved_qty || 0) + roundQty(balanceData.reserved_qty || 0))\nconst unrestricted_qty = roundQty(roundQty(existingBalance.unrestricted_qty || 0) + roundQty(balanceData.unrestricted_qty || 0))\nconst qualityinsp_qty = roundQty(roundQty(existingBalance.qualityinsp_qty || 0) + roundQty(balanceData.qualityinsp_qty || 0))\nconst intransit_qty = roundQty(roundQty(existingBalance.intransit_qty || 0) + roundQty(balanceData.intransit_qty || 0))\nconst balance_quantity = roundQty(roundQty(existingBalance.balance_quantity || 0) + roundQty(balanceData.balance_quantity || 0))\n\nreturn {\n  block_qty: block_qty,\n  reserved_qty: reserved_qty,\n  unrestricted_qty: unrestricted_qty,\n  qualityinsp_qty: qualityinsp_qty,\n  intransit_qty: intransit_qty,\n  balance_quantity: balance_quantity\n}\n"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "i6m0elvj",
+                                    "name": "block_qty",
+                                    "title": "block_qty",
+                                    "description": "",
+                                    "bsonType": "decimal",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "fb2r7nw5",
+                                    "name": "reserved_qty",
+                                    "title": "reserved_qty",
+                                    "description": "",
+                                    "bsonType": "decimal",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "fb3u9pz8",
+                                    "name": "unrestricted_qty",
+                                    "title": "unrestricted_qty",
+                                    "description": "",
+                                    "bsonType": "decimal",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "fb4q5htm",
+                                    "name": "qualityinsp_qty",
+                                    "title": "qualityinsp_qty",
+                                    "description": "",
+                                    "bsonType": "decimal",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "fb5i8sjd",
+                                    "name": "intransit_qty",
+                                    "title": "intransit_qty",
+                                    "description": "",
+                                    "bsonType": "decimal",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "fb6b4cvg",
+                                    "name": "balance_quantity",
+                                    "title": "balance_quantity",
+                                    "description": "",
+                                    "bsonType": "decimal",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "update_node_gJbvuAjp",
+                              "type": "update-node",
                               "data": {
                                 "table_id": {
                                   "source": "Item Balance:Table:1902698977724317697",
@@ -2016,8 +2136,8 @@
                                     "collectionId": "1902698977724317697",
                                     "list": [
                                       {
-                                        "id": 1768546751804,
-                                        "parentId": 1768546751803,
+                                        "id": 1779684290980,
+                                        "parentId": 1779684290979,
                                         "isTop": true,
                                         "prop": "id",
                                         "operator": "in",
@@ -2034,71 +2154,63 @@
                                 },
                                 "fields": [],
                                 "condition": {},
+                                "title": "Update Balance Data",
+                                "isValidator": true,
+                                "nodeName": "Update Balance Data",
+                                "name": "Update Balance Data",
                                 "props": {
                                   "modelName": "",
                                   "list": [
                                     {
                                       "prop": "block_qty",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_t7V3DsPG.data.block_qty}}",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "plus({{node:code_node_aFO7peip.data.block_qty}})",
                                       "valueLabel": "",
                                       "propLabel": "Blocked Quantity"
                                     },
                                     {
                                       "prop": "reserved_qty",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "plus({{node:code_node_aFO7peip.data.reserved_qty}})",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_t7V3DsPG.data.reserved_qty}}",
                                       "valueLabel": "",
                                       "propLabel": "Reserved Quantity"
                                     },
                                     {
                                       "prop": "unrestricted_qty",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "plus({{node:code_node_aFO7peip.data.unrestricted_qty}})",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_t7V3DsPG.data.unrestricted_qty}}",
                                       "valueLabel": "",
                                       "propLabel": "Unrestricted Quantity"
                                     },
                                     {
                                       "prop": "qualityinsp_qty",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "plus({{node:code_node_aFO7peip.data.qualityinsp_qty}})",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_t7V3DsPG.data.qualityinsp_qty}}",
                                       "valueLabel": "",
                                       "propLabel": "Quality Inspection Quantity"
                                     },
                                     {
                                       "prop": "intransit_qty",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "plus({{node:code_node_aFO7peip.data.intransit_qty}})",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_t7V3DsPG.data.intransit_qty}}",
                                       "valueLabel": "",
                                       "propLabel": "In Transit Quantity"
                                     },
                                     {
                                       "prop": "balance_quantity",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "plus({{node:code_node_aFO7peip.data.balance_quantity}})",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_t7V3DsPG.data.balance_quantity}}",
                                       "valueLabel": "",
                                       "propLabel": "Balance Quantity"
                                     }
                                   ]
-                                },
-                                "title": "Update Balance Data",
-                                "isValidator": true,
-                                "nodeName": "Update Balance Data",
-                                "name": "Update Balance Data",
-                                "sorts": [],
-                                "is_custom_error": 0,
-                                "err_lock_acquire_failed": "",
-                                "err_config_invalid": "",
-                                "err_data_not_found": "",
-                                "err_stock_insufficient": "",
-                                "err_concurrent_conflict": "",
-                                "err_deduct_incomplete": ""
+                                }
                               },
                               "blocks": []
                             }
