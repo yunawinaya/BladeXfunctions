@@ -2385,7 +2385,7 @@
                         "name": "calculatedUnitPrice & Quantities",
                         "script": {
                           "type": "javascript",
-                          "code": "// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\n// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\nlet calculatedUnitPrice = 0\nconst costingMethod = {{node:code_node_wBfvXM2G.data.costingMethod}}\nconst deductQty = {{node:code_node_wBfvXM2G.data.baseQty}}\nconst categoryField = {{node:code_node_TC1cqaOy.data.categoryField}}\nconst isMovingInv = {{node:code_node_TC1cqaOy.data.isMovingInv}} ?? 0;\n\nif (isMovingInv === 1 && {{workflowparams:unit_price}}) {\n  calculatedUnitPrice = roundPrice({{workflowparams:unit_price}});\n} else {\n  if (costingMethod === \"First In First Out\") {\n    calculatedUnitPrice = {{node:code_node_BnKFTznr.data.calculatedUnitPrice}}\n  } else if (costingMethod === \"Weighted Average\") {\n    calculatedUnitPrice = {{node:code_node_7l9u4Zca.data.calculatedUnitPrice}}\n  } else if (costingMethod === \"Fixed Cost\") {\n    calculatedUnitPrice = {{node:code_node_XQVptQ8K.data.calculatedUnitPrice}}\n  }\n}\n\ntotalPrice = roundPrice(calculatedUnitPrice * {{node:code_node_wBfvXM2G.data.baseQty}});\n\nlet batchUnrestrictedQty = 0\nlet batchReservedQty = 0\nlet batchBlockedQty = 0\nlet batchQualityInspectionQty = 0\nlet batchInTransitQty = 0\nlet batchBalanceQty = 0\nlet unrestrictedQty = 0\nlet reservedQty = 0\nlet blockedQty = 0\nlet qualityInspectionQty = 0\nlet inTransitQty = 0\nlet balanceQty = deductQty\n\n// Set the quantity for the matching category\nif (categoryField === \"unrestricted_qty\") {\n  unrestrictedQty = deductQty\n} else if (categoryField === \"reserved_qty\") {\n  reservedQty = deductQty\n} else if (categoryField === \"block_qty\") {\n  blockedQty = deductQty\n} else if (categoryField === \"qualityinsp_qty\") {\n  qualityInspectionQty = deductQty\n} else if (categoryField === \"intransit_qty\") {\n  inTransitQty = deductQty\n}\n\nif ({{workflowparams:batch_id}} && {{workflowparams:batch_id}} !== \"\") {\n  batchBalanceQty = deductQty\n  \n  // Set batch quantity for matching category\n  if (categoryField === \"unrestricted_qty\") {\n    batchUnrestrictedQty = deductQty\n  } else if (categoryField === \"reserved_qty\") {\n    batchReservedQty = deductQty\n  } else if (categoryField === \"block_qty\") {\n    batchBlockedQty = deductQty\n  } else if (categoryField === \"qualityinsp_qty\") {\n    batchQualityInspectionQty = deductQty\n  } else if (categoryField === \"intransit_qty\") {\n    batchInTransitQty = deductQty\n  }\n}\n\nreturn {\n  calculatedUnitPrice: calculatedUnitPrice,\n  totalPrice: totalPrice,\n  batchUnrestrictedQty: batchUnrestrictedQty,\n  batchReservedQty: batchReservedQty,\n  batchBlockedQty: batchBlockedQty,\n  batchQualityInspectionQty: batchQualityInspectionQty,\n  batchInTransitQty: batchInTransitQty,\n  batchBalanceQty: batchBalanceQty,\n  unrestrictedQty: unrestrictedQty,\n  reservedQty: reservedQty,\n  blockedQty: blockedQty,\n  qualityInspectionQty: qualityInspectionQty,\n  inTransitQty: inTransitQty,\n  balanceQty: balanceQty,\n}\n"
+                          "code": "// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\n// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\nlet calculatedUnitPrice = 0\nconst costingMethod = {{node:code_node_wBfvXM2G.data.costingMethod}}\nconst deductQty = {{node:code_node_wBfvXM2G.data.baseQty}}\nconst categoryField = {{node:code_node_TC1cqaOy.data.categoryField}}\nconst isMovingInv = {{node:code_node_TC1cqaOy.data.isMovingInv}} ?? 0;\n\nif (isMovingInv === 1 && {{workflowparams:unit_price}}) {\n  calculatedUnitPrice = roundPrice({{workflowparams:unit_price}});\n} else {\n  if (costingMethod === \"First In First Out\") {\n    calculatedUnitPrice = {{node:code_node_BnKFTznr.data.calculatedUnitPrice}}\n  } else if (costingMethod === \"Weighted Average\") {\n    calculatedUnitPrice = {{node:code_node_7l9u4Zca.data.calculatedUnitPrice}}\n  } else if (costingMethod === \"Fixed Cost\") {\n    calculatedUnitPrice = {{node:code_node_XQVptQ8K.data.calculatedUnitPrice}}\n  }\n}\n\ntotalPrice = roundPrice(calculatedUnitPrice * {{node:code_node_wBfvXM2G.data.baseQty}});\n\n// Returns the post-deduction value for a field; only the matching category is deducted\nconst computeUpdated = (existing, field) => {\n  const current = roundQty(existing[field] || 0);\n  const deduct = field === categoryField ? deductQty : 0;\n  return roundQty(current - deduct);\n};\n\n// Item Balance (always fetched upstream)\nconst existingBalance = {{node:get_node_uaq6Z1ej.data.data}} || {}\nconst unrestrictedQty = computeUpdated(existingBalance, \"unrestricted_qty\")\nconst reservedQty = computeUpdated(existingBalance, \"reserved_qty\")\nconst blockedQty = computeUpdated(existingBalance, \"block_qty\")\nconst qualityInspectionQty = computeUpdated(existingBalance, \"qualityinsp_qty\")\nconst inTransitQty = computeUpdated(existingBalance, \"intransit_qty\")\nconst balanceQty = roundQty(roundQty(existingBalance.balance_quantity || 0) - deductQty)\n\n// Item Batch Balance (only when batch_id is provided)\nlet batchUnrestrictedQty = 0\nlet batchReservedQty = 0\nlet batchBlockedQty = 0\nlet batchQualityInspectionQty = 0\nlet batchInTransitQty = 0\nlet batchBalanceQty = 0\n\nif ({{workflowparams:batch_id}} && {{workflowparams:batch_id}} !== \"\") {\n  const existingBatchBalance = {{node:get_node_GjRiq3dT.data.data}} || {}\n  batchUnrestrictedQty = computeUpdated(existingBatchBalance, \"unrestricted_qty\")\n  batchReservedQty = computeUpdated(existingBatchBalance, \"reserved_qty\")\n  batchBlockedQty = computeUpdated(existingBatchBalance, \"block_qty\")\n  batchQualityInspectionQty = computeUpdated(existingBatchBalance, \"qualityinsp_qty\")\n  batchInTransitQty = computeUpdated(existingBatchBalance, \"intransit_qty\")\n  batchBalanceQty = roundQty(roundQty(existingBatchBalance.balance_quantity || 0) - deductQty)\n}\n\nreturn {\n  calculatedUnitPrice: calculatedUnitPrice,\n  totalPrice: totalPrice,\n  batchUnrestrictedQty: batchUnrestrictedQty,\n  batchReservedQty: batchReservedQty,\n  batchBlockedQty: batchBlockedQty,\n  batchQualityInspectionQty: batchQualityInspectionQty,\n  batchInTransitQty: batchInTransitQty,\n  batchBalanceQty: batchBalanceQty,\n  unrestrictedQty: unrestrictedQty,\n  reservedQty: reservedQty,\n  blockedQty: blockedQty,\n  qualityInspectionQty: qualityInspectionQty,\n  inTransitQty: inTransitQty,\n  balanceQty: balanceQty,\n}"
                         },
                         "response_json": [
                           {
@@ -2771,8 +2771,8 @@
                           },
                           "blocks": [
                             {
-                              "id": "atomic_count_node_4UndHU8Q",
-                              "type": "atomic-count-node",
+                              "id": "update_node_IIozt9TE",
+                              "type": "update-node",
                               "data": {
                                 "table_id": {
                                   "source": "Item Balance:Table:1902698977724317697",
@@ -2780,8 +2780,8 @@
                                     "collectionId": "1902698977724317697",
                                     "list": [
                                       {
-                                        "id": 1768546751804,
-                                        "parentId": 1768546751803,
+                                        "id": 1779680928237,
+                                        "parentId": 1779680928236,
                                         "isTop": true,
                                         "prop": "id",
                                         "operator": "in",
@@ -2798,71 +2798,63 @@
                                 },
                                 "fields": [],
                                 "condition": {},
+                                "title": "Update Balance Data",
+                                "isValidator": true,
+                                "nodeName": "Update Balance Data",
+                                "name": "Update Balance Data",
                                 "props": {
                                   "modelName": "",
                                   "list": [
                                     {
-                                      "prop": "block_qty",
-                                      "operator": "",
-                                      "valueType": "formula",
-                                      "value": "minus({{node:code_node_mQnskse9.data.blockedQty}})",
-                                      "valueLabel": "",
-                                      "propLabel": "Blocked Quantity"
-                                    },
-                                    {
-                                      "prop": "reserved_qty",
-                                      "operator": "",
-                                      "valueType": "formula",
-                                      "value": "minus({{node:code_node_mQnskse9.data.reservedQty}})",
-                                      "valueLabel": "",
-                                      "propLabel": "Reserved Quantity"
-                                    },
-                                    {
                                       "prop": "unrestricted_qty",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_mQnskse9.data.unrestrictedQty}}",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "minus({{node:code_node_mQnskse9.data.unrestrictedQty}})",
                                       "valueLabel": "",
                                       "propLabel": "Unrestricted Quantity"
                                     },
                                     {
+                                      "prop": "reserved_qty",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_mQnskse9.data.reservedQty}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Reserved Quantity"
+                                    },
+                                    {
+                                      "prop": "block_qty",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_mQnskse9.data.blockedQty}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Block Quantity"
+                                    },
+                                    {
                                       "prop": "qualityinsp_qty",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "minus({{node:code_node_mQnskse9.data.qualityInspectionQty}})",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_mQnskse9.data.qualityInspectionQty}}",
                                       "valueLabel": "",
                                       "propLabel": "Quality Inspection Quantity"
                                     },
                                     {
                                       "prop": "intransit_qty",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "minus({{node:code_node_mQnskse9.data.inTransitQty}})",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_mQnskse9.data.inTransitQty}}",
                                       "valueLabel": "",
                                       "propLabel": "In Transit Quantity"
                                     },
                                     {
                                       "prop": "balance_quantity",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "minus({{node:code_node_mQnskse9.data.balanceQty}})",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_mQnskse9.data.balanceQty}}",
                                       "valueLabel": "",
                                       "propLabel": "Balance Quantity"
                                     }
                                   ]
-                                },
-                                "title": "Update Balance Data",
-                                "isValidator": true,
-                                "nodeName": "Update Balance Data",
-                                "name": "Update Balance Data",
-                                "sorts": [],
-                                "is_custom_error": 0,
-                                "err_lock_acquire_failed": "",
-                                "err_config_invalid": "",
-                                "err_data_not_found": "",
-                                "err_stock_insufficient": "",
-                                "err_concurrent_conflict": "",
-                                "err_deduct_incomplete": ""
+                                }
                               },
                               "blocks": []
                             }
@@ -2900,8 +2892,8 @@
                           },
                           "blocks": [
                             {
-                              "id": "atomic_count_node_v4EAi630",
-                              "type": "atomic-count-node",
+                              "id": "update_node_GZ3n96Jq",
+                              "type": "update-node",
                               "data": {
                                 "table_id": {
                                   "source": "Item Batch Balance:Table:1902718803880558594",
@@ -2909,8 +2901,8 @@
                                     "collectionId": "1902718803880558594",
                                     "list": [
                                       {
-                                        "id": 1768545940571,
-                                        "parentId": 1768545940570,
+                                        "id": 1779681061898,
+                                        "parentId": 1779681061897,
                                         "isTop": true,
                                         "prop": "id",
                                         "operator": "in",
@@ -2927,71 +2919,63 @@
                                 },
                                 "fields": [],
                                 "condition": {},
+                                "title": "Update Batch Balance Data",
+                                "isValidator": true,
+                                "nodeName": "Update Batch Balance Data",
+                                "name": "Update Batch Balance Data",
                                 "props": {
                                   "modelName": "",
                                   "list": [
                                     {
-                                      "prop": "block_qty",
-                                      "operator": "",
-                                      "valueType": "formula",
-                                      "value": "minus({{node:code_node_mQnskse9.data.batchBlockedQty}})",
-                                      "valueLabel": "",
-                                      "propLabel": "Blocked Quantity"
-                                    },
-                                    {
-                                      "prop": "reserved_qty",
-                                      "operator": "",
-                                      "valueType": "formula",
-                                      "value": "minus({{node:code_node_mQnskse9.data.batchReservedQty}})",
-                                      "valueLabel": "",
-                                      "propLabel": "Reserved Quantity"
-                                    },
-                                    {
                                       "prop": "unrestricted_qty",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_mQnskse9.data.batchUnrestrictedQty}}",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "minus({{node:code_node_mQnskse9.data.batchUnrestrictedQty}})",
                                       "valueLabel": "",
                                       "propLabel": "Unrestricted Quantity"
                                     },
                                     {
+                                      "prop": "reserved_qty",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_mQnskse9.data.batchReservedQty}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Reserved Quantity"
+                                    },
+                                    {
+                                      "prop": "block_qty",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_mQnskse9.data.batchBlockedQty}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Block Quantity"
+                                    },
+                                    {
                                       "prop": "qualityinsp_qty",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "minus({{node:code_node_mQnskse9.data.batchQualityInspectionQty}})",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_mQnskse9.data.batchQualityInspectionQty}}",
                                       "valueLabel": "",
                                       "propLabel": "Quality Inspection Quantity"
                                     },
                                     {
                                       "prop": "intransit_qty",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "minus({{node:code_node_mQnskse9.data.batchInTransitQty}})",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_mQnskse9.data.batchInTransitQty}}",
                                       "valueLabel": "",
                                       "propLabel": "In Transit Quantity"
                                     },
                                     {
                                       "prop": "balance_quantity",
                                       "operator": "",
-                                      "valueType": "formula",
-                                      "value": "minus({{node:code_node_mQnskse9.data.batchBalanceQty}})",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_mQnskse9.data.batchBalanceQty}}",
                                       "valueLabel": "",
                                       "propLabel": "Balance Quantity"
                                     }
                                   ]
-                                },
-                                "title": "Update Batch Balance Data",
-                                "isValidator": true,
-                                "nodeName": "Update Batch Balance Data",
-                                "name": "Update Batch Balance Data",
-                                "sorts": [],
-                                "is_custom_error": 0,
-                                "err_lock_acquire_failed": "",
-                                "err_config_invalid": "",
-                                "err_data_not_found": "",
-                                "err_stock_insufficient": "",
-                                "err_concurrent_conflict": "",
-                                "err_deduct_incomplete": ""
+                                }
                               },
                               "blocks": []
                             }
