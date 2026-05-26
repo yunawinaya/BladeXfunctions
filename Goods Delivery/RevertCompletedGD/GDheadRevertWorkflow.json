@@ -165,13 +165,15 @@
         "name": "Parse Snapshot",
         "script": {
           "type": "javascript",
-          "code": "// search-node returns data.data as an array (possibly empty).\nconst raw = {{node:search_node_hrFindSnap.data.data}} || [];\nconst arr = Array.isArray(raw) ? raw : [];\n\nif (arr.length === 0) {\n  return {\n    snapshotFound: 0,\n    snapshotId: \"\",\n    preSoLines: [],\n    hasSoLines: 0,\n  };\n}\n\n// If multiple Actives somehow exist, take the most recently created.\nconst snapshot = arr.length === 1 ? arr[0] : arr.slice().sort((a, b) => {\n  const at = new Date(a.create_time || 0).getTime();\n  const bt = new Date(b.create_time || 0).getTime();\n  return bt - at;\n})[0];\n\nconst parse = (raw, def) => {\n  if (raw === null || raw === undefined || raw === \"\") return def;\n  if (typeof raw === \"string\") {\n    try { return JSON.parse(raw); } catch (e) { return def; }\n  }\n  return raw;\n};\n\nconst preSoLines = parse(snapshot.pre_so_lines, []);\n\nreturn {\n  snapshotFound: 1,\n  snapshotId: snapshot.id,\n  preSoLines,\n  hasSoLines: preSoLines.length > 0 ? 1 : 0,\n};\n"
+          "code": "// search-node returns data.data as an array (possibly empty).\nconst raw = {{node:search_node_hrFindSnap.data.data}} || [];\nconst arr = Array.isArray(raw) ? raw : [];\n\nif (arr.length === 0) {\n  return {\n    snapshotFound: 0,\n    snapshotId: \"\",\n    preSoLines: [],\n    preSoHeaders: [],\n    hasSoLines: 0,\n    hasSoHeaders: 0,\n  };\n}\n\n// If multiple Actives somehow exist, take the most recently created.\nconst snapshot = arr.length === 1 ? arr[0] : arr.slice().sort((a, b) => {\n  const at = new Date(a.create_time || 0).getTime();\n  const bt = new Date(b.create_time || 0).getTime();\n  return bt - at;\n})[0];\n\nconst parse = (raw, def) => {\n  if (raw === null || raw === undefined || raw === \"\") return def;\n  if (typeof raw === \"string\") {\n    try { return JSON.parse(raw); } catch (e) { return def; }\n  }\n  return raw;\n};\n\nconst preSoLines = parse(snapshot.pre_so_lines, []);\nconst preSoHeaders = parse(snapshot.pre_so_headers, []);\n\nreturn {\n  snapshotFound: 1,\n  snapshotId: snapshot.id,\n  preSoLines,\n  preSoHeaders,\n  hasSoLines: preSoLines.length > 0 ? 1 : 0,\n  hasSoHeaders: preSoHeaders.length > 0 ? 1 : 0,\n};\n"
         },
         "response_json": [
           { "key": "hp1snfd01", "name": "snapshotFound", "title": "snapshotFound", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
           { "key": "hp2snid02", "name": "snapshotId", "title": "snapshotId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
           { "key": "hp3psln03", "name": "preSoLines", "title": "preSoLines", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
-          { "key": "hp4hsln04", "name": "hasSoLines", "title": "hasSoLines", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
+          { "key": "hp5psoh05", "name": "preSoHeaders", "title": "preSoHeaders", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "hp4hsln04", "name": "hasSoLines", "title": "hasSoLines", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "hp6hsoh06", "name": "hasSoHeaders", "title": "hasSoHeaders", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
         ]
       },
       "blocks": []
@@ -305,6 +307,86 @@
         },
         {
           "id": "if_block_hrHasSoLinesFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_hrHasSoHeaders",
+      "type": "if",
+      "data": {
+        "title": "IF Has SO Headers To Restore",
+        "isValidator": true,
+        "nodeName": "IF Has SO Headers To Restore",
+        "name": "IF Has SO Headers To Restore",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            { "id": 1779334301001, "parentId": 1779334301000, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_hrParseSnap.data.hasSoHeaders}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_hrHasSoHeadersTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_hrRestoreSoHeaders",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Order:Table:1902773735979597826",
+                  "rules": {
+                    "collectionId": "1902773735979597826",
+                    "list": [
+                      {
+                        "id": 1779334301101,
+                        "parentId": 1779334301100,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_hrParseSnap.data.preSoHeaders.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Restore SO Headers",
+                "isValidator": true,
+                "nodeName": "Restore SO Headers",
+                "name": "Restore SO Headers",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    { "prop": "id", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoHeaders.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
+                    { "prop": "so_status", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoHeaders.so_status}}", "operator": "", "valueLabel": "", "propLabel": "SO Status" },
+                    { "prop": "gd_status", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoHeaders.gd_status}}", "operator": "", "valueLabel": "", "propLabel": "GD Status" },
+                    { "prop": "partially_delivered", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoHeaders.partially_delivered}}", "operator": "", "valueLabel": "", "propLabel": "Partially Delivered" },
+                    { "prop": "fully_delivered", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoHeaders.fully_delivered}}", "operator": "", "valueLabel": "", "propLabel": "Fully Delivered" }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_hrHasSoHeadersFalse",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
