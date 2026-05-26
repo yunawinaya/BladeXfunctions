@@ -73,7 +73,10 @@ const createTableGdWithBaseUOM = async (allItems) => {
     const soOrderedQty = parseFloat(item.orderedQty) || 0; // to_order_quantity (10)
     const pickedQty = parseFloat(item.pickedQty) || 0; // to_qty (8)
     const alreadyDelivered = parseFloat(item.deliveredQty) || 0; // gd_delivered_qty from PP (5 after first GD)
-    const remainingToDeliver = roundQty(pickedQty - alreadyDelivered); // 8 - 5 = 3
+    const reservedByOthers = parseFloat(item.reservedQty) || 0; // reserved_qty stamped by other in-flight GD-Created docs
+    const remainingToDeliver = roundQty(
+      pickedQty - alreadyDelivered - reservedByOthers,
+    ); // claimable = picked - delivered - reserved
     const undeliveredQty = roundQty(soOrderedQty - pickedQty); // 10 - 8 = 2
 
     // If serialized, convert to base UOM
@@ -460,18 +463,21 @@ const createTableGdWithBaseUOM = async (allItems) => {
         );
 
         for (const record of pickingRecords) {
-          // Skip fully delivered records
+          // Skip fully claimed records (delivered + reserved-by-other-GDs >= store_out)
           const storeOutQty = parseFloat(record.store_out_qty || 0);
           const deliveredQty = parseFloat(record.delivered_qty || 0);
-          if (deliveredQty >= storeOutQty) {
+          const reservedQty = parseFloat(record.reserved_qty || 0);
+          if (deliveredQty + reservedQty >= storeOutQty) {
             console.log(
-              `Skipping ${record.item_name}: fully delivered (${deliveredQty}/${storeOutQty})`,
+              `Skipping ${record.item_name}: fully claimed (${deliveredQty}+${reservedQty}/${storeOutQty})`,
             );
             continue;
           }
 
           const groupKey = `${record.to_line_id}|${record.item_code}`;
-          const remainingQty = roundQty(storeOutQty - deliveredQty);
+          const remainingQty = roundQty(
+            storeOutQty - deliveredQty - reservedQty,
+          );
           const batchId = record.batch_no || record.target_batch;
 
           const tempEntry = {
@@ -496,6 +502,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
               orderedQty: parseFloat(orderedQty),
               pickedQty: storeOutQty,
               deliveredQty: deliveredQty,
+              reservedQty: reservedQty,
               altUOM: record.item_uom,
               baseUOM: record.item_uom,
               sourceItem: record,
@@ -525,6 +532,9 @@ const createTableGdWithBaseUOM = async (allItems) => {
             existing.deliveredQty = roundQty(
               existing.deliveredQty + deliveredQty,
             );
+            existing.reservedQty = roundQty(
+              (existing.reservedQty || 0) + reservedQty,
+            );
             existing.tempEntries.push(tempEntry);
             existing.locationBatchInfo.push({
               locationId: record.target_location,
@@ -552,6 +562,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
           orderedQty: group.orderedQty,
           pickedQty: group.pickedQty,
           deliveredQty: group.deliveredQty,
+          reservedQty: group.reservedQty || 0,
           altUOM: group.altUOM,
           baseUOM: group.baseUOM,
           sourceItem: group.sourceItem,
@@ -576,12 +587,13 @@ const createTableGdWithBaseUOM = async (allItems) => {
       for (const pickingItem of currentItemArray) {
         console.log("pickingItem (Item mode)", pickingItem);
 
-        // Skip fully delivered records
+        // Skip fully claimed records (delivered + reserved-by-other-GDs >= store_out)
         const storeOutQty = parseFloat(pickingItem.store_out_qty || 0);
         const deliveredQty = parseFloat(pickingItem.delivered_qty || 0);
-        if (deliveredQty >= storeOutQty) {
+        const reservedQty = parseFloat(pickingItem.reserved_qty || 0);
+        if (deliveredQty + reservedQty >= storeOutQty) {
           console.log(
-            `Skipping ${pickingItem.item?.material_code}: fully delivered`,
+            `Skipping ${pickingItem.item?.material_code}: fully claimed (${deliveredQty}+${reservedQty}/${storeOutQty})`,
           );
           continue;
         }
@@ -590,7 +602,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         const itemId = pickingItem.item?.id || "";
         const groupKey = `${ppLineId}|${itemId}`;
 
-        const remainingQty = roundQty(storeOutQty - deliveredQty);
+        const remainingQty = roundQty(storeOutQty - deliveredQty - reservedQty);
         const batchId = pickingItem.batch_no;
 
         const tempEntry = {
@@ -615,6 +627,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
             orderedQty: parseFloat(orderedQty),
             pickedQty: storeOutQty,
             deliveredQty: deliveredQty,
+            reservedQty: reservedQty,
             altUOM: pickingItem.uom_id,
             baseUOM: pickingItem.uom_id,
             sourceItem: pickingItem,
@@ -644,6 +657,9 @@ const createTableGdWithBaseUOM = async (allItems) => {
           existing.deliveredQty = roundQty(
             existing.deliveredQty + deliveredQty,
           );
+          existing.reservedQty = roundQty(
+            (existing.reservedQty || 0) + reservedQty,
+          );
           existing.tempEntries.push(tempEntry);
           existing.locationBatchInfo.push({
             locationId: pickingItem.location_id,
@@ -670,6 +686,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
           orderedQty: group.orderedQty,
           pickedQty: group.pickedQty,
           deliveredQty: group.deliveredQty,
+          reservedQty: group.reservedQty || 0,
           altUOM: group.altUOM,
           baseUOM: group.baseUOM,
           sourceItem: group.sourceItem,
@@ -691,10 +708,11 @@ const createTableGdWithBaseUOM = async (allItems) => {
   console.log("allItems", allItems);
 
   // Filter out items that:
-  // 1. Are fully delivered (deliveredQty >= pickedQty)
+  // 1. Are fully claimed (deliveredQty + reservedQty >= pickedQty)
   // 2. Are already in the existing GD (match by picking_record_id in temp_qty_data to avoid duplicates)
   allItems = allItems.filter((item) => {
-    const fullyDelivered = item.deliveredQty >= item.pickedQty;
+    const fullyDelivered =
+      item.deliveredQty + (item.reservedQty || 0) >= item.pickedQty;
 
     // Get all picking_record_ids from this item's temp_qty_data
     let itemPickingRecordIds = [];
