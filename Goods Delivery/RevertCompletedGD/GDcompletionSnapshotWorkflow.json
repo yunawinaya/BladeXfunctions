@@ -17,8 +17,28 @@
         "isValidator": true,
         "nodeName": "Extract IDs",
         "name": "Extract IDs",
-        "script": { "type": "javascript", "code": "" },
-        "response_json": []
+        "script": {
+          "type": "javascript",
+          "code": "// Extract scalars and ID arrays from allData for downstream queries.\nconst allData = {{workflowparams:allData}} || {};\n\nconst gd_id = allData.id || \"\";\nconst gd_no = allData.delivery_no || allData.gd_no || \"\";\nconst organization_id = allData.organization_id || \"\";\nconst plant_id = allData.plant_id || \"\";\nconst completed_by = allData.update_user || allData.gd_created_by || \"\";\nconst completed_at = new Date().getTime();\n\nconst table_gd = Array.isArray(allData.table_gd) ? allData.table_gd : [];\n\nconst materialIdsSet = new Set();\nconst parentLineIdsSet = new Set();\nconst pickingRecordIdsSet = new Set();\nconst ppHeaderIdsSet = new Set();\nconst handlingUnitIdsSet = new Set();\n\nconst parseTempData = (raw) => {\n  if (!raw) return [];\n  if (typeof raw === \"string\") {\n    try { return JSON.parse(raw); } catch (e) { return []; }\n  }\n  return Array.isArray(raw) ? raw : [];\n};\n\nfor (const item of table_gd) {\n  if (item.material_id) materialIdsSet.add(item.material_id);\n  if (item.so_line_item_id) parentLineIdsSet.add(item.so_line_item_id);\n  if (item.line_to_id) ppHeaderIdsSet.add(item.line_to_id);\n\n  const tempData = parseTempData(item.temp_qty_data);\n  for (const t of tempData) {\n    if (t.picking_record_id) pickingRecordIdsSet.add(t.picking_record_id);\n    if (t.handling_unit_id) handlingUnitIdsSet.add(t.handling_unit_id);\n  }\n}\n\nconst materialIds = [...materialIdsSet];\nconst parentLineIds = [...parentLineIdsSet];\nconst pickingRecordIds = [...pickingRecordIdsSet];\nconst ppHeaderIds = [...ppHeaderIdsSet];\nconst handlingUnitIds = [...handlingUnitIdsSet];\n\nreturn {\n  gd_id,\n  gd_no,\n  organization_id,\n  plant_id,\n  completed_by,\n  completed_at,\n  materialIds,\n  parentLineIds,\n  pickingRecordIds,\n  ppHeaderIds,\n  handlingUnitIds,\n  hasMaterials: materialIds.length > 0 ? 1 : 0,\n  hasParentLines: parentLineIds.length > 0 ? 1 : 0,\n  hasPickingRecords: pickingRecordIds.length > 0 ? 1 : 0,\n  hasPPHeaders: ppHeaderIds.length > 0 ? 1 : 0,\n  hasHandlingUnits: handlingUnitIds.length > 0 ? 1 : 0,\n};\n"
+        },
+        "response_json": [
+          { "key": "ex1gdid01", "name": "gd_id", "title": "gd_id", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "ex2gdno02", "name": "gd_no", "title": "gd_no", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "ex3orgi03", "name": "organization_id", "title": "organization_id", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "ex4plnt04", "name": "plant_id", "title": "plant_id", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "ex5cmby05", "name": "completed_by", "title": "completed_by", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "ex6cmat06", "name": "completed_at", "title": "completed_at", "description": "", "bsonType": "decimal", "isExpand": false, "children": [] },
+          { "key": "ex7mati07", "name": "materialIds", "title": "materialIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "ex8plni08", "name": "parentLineIds", "title": "parentLineIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "ex9prki09", "name": "pickingRecordIds", "title": "pickingRecordIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "exappgi10", "name": "ppHeaderIds", "title": "ppHeaderIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "exbhuni11", "name": "handlingUnitIds", "title": "handlingUnitIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "exchmat12", "name": "hasMaterials", "title": "hasMaterials", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "exdhpln13", "name": "hasParentLines", "title": "hasParentLines", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "exehprk14", "name": "hasPickingRecords", "title": "hasPickingRecords", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "exfhppg15", "name": "hasPPHeaders", "title": "hasPPHeaders", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "exghhun16", "name": "hasHandlingUnits", "title": "hasHandlingUnits", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
+        ]
       },
       "blocks": []
     },
@@ -27,11 +47,29 @@
       "type": "search-node",
       "data": {
         "table_id": {
-          "source": "",
-          "rules": { "collectionId": "", "list": [] }
+          "source": "sales_order_axszx8cj_sub:Table:1939903359943024642",
+          "rules": {
+            "collectionId": "1939903359943024642",
+            "list": [
+              {
+                "id": 1779334100101,
+                "parentId": 1779334100100,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_zRrqNcLM.data.parentLineIds}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
         },
         "condition": {},
-        "limit": 100,
+        "limit": 500,
         "title": "Get SO Lines",
         "isValidator": true,
         "nodeName": "Get SO Lines",
@@ -44,11 +82,29 @@
       "type": "search-node",
       "data": {
         "table_id": {
-          "source": "",
-          "rules": { "collectionId": "", "list": [] }
+          "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+          "rules": {
+            "collectionId": "1935880014687440897",
+            "list": [
+              {
+                "id": 1779334100201,
+                "parentId": 1779334100200,
+                "isTop": true,
+                "prop": "target_gd_id",
+                "operator": "equal",
+                "valueType": "field",
+                "value": "{{node:code_node_zRrqNcLM.data.gd_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Target Goods Delivery ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
         },
         "condition": {},
-        "limit": 100,
+        "limit": 500,
         "title": "Get Allocated On Reserved GD",
         "isValidator": true,
         "nodeName": "Get Allocated On Reserved GD",
@@ -61,11 +117,98 @@
       "type": "search-node",
       "data": {
         "table_id": {
-          "source": "",
-          "rules": { "collectionId": "", "list": [] }
+          "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+          "rules": {
+            "collectionId": "1935880014687440897",
+            "list": [
+              {
+                "id": 1779334100301,
+                "parentId": 1779334100300,
+                "isTop": true,
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1779334100302,
+                    "parentId": 1779334100301,
+                    "isTop": false,
+                    "prop": "status",
+                    "operator": "equal",
+                    "valueType": "value",
+                    "value": "Pending",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Status",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1779334100303,
+                    "parentId": 1779334100301,
+                    "isTop": false,
+                    "prop": "organization_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{node:code_node_zRrqNcLM.data.organization_id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Organization ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1779334100304,
+                    "parentId": 1779334100301,
+                    "isTop": false,
+                    "prop": "plant_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{node:code_node_zRrqNcLM.data.plant_id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Plant ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1779334100305,
+                    "parentId": 1779334100301,
+                    "isTop": false,
+                    "prop": "material_id",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:code_node_zRrqNcLM.data.materialIds}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Material ID",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                  },
+                  {
+                    "id": 1779334100306,
+                    "parentId": 1779334100301,
+                    "isTop": false,
+                    "prop": "parent_line_id",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:code_node_zRrqNcLM.data.parentLineIds}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Parent Line ID",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                  }
+                ]
+              }
+            ]
+          }
         },
         "condition": {},
-        "limit": 100,
+        "limit": 500,
         "title": "Get Pending On Reserved GD",
         "isValidator": true,
         "nodeName": "Get Pending On Reserved GD",
@@ -78,11 +221,29 @@
       "type": "search-node",
       "data": {
         "table_id": {
-          "source": "",
-          "rules": { "collectionId": "", "list": [] }
+          "source": "Picking Items(Transfer Order Picking):Table:1939915130372202497",
+          "rules": {
+            "collectionId": "1939915130372202497",
+            "list": [
+              {
+                "id": 1779334100401,
+                "parentId": 1779334100400,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_zRrqNcLM.data.pickingRecordIds}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
         },
         "condition": {},
-        "limit": 100,
+        "limit": 500,
         "title": "Get Picking Records",
         "isValidator": true,
         "nodeName": "Get Picking Records",
@@ -95,11 +256,29 @@
       "type": "search-node",
       "data": {
         "table_id": {
-          "source": "",
-          "rules": { "collectionId": "", "list": [] }
+          "source": "Transfer Order Picking:Table:1935556443668959233",
+          "rules": {
+            "collectionId": "1935556443668959233",
+            "list": [
+              {
+                "id": 1779334100501,
+                "parentId": 1779334100500,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_zRrqNcLM.data.ppHeaderIds}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
         },
         "condition": {},
-        "limit": 100,
+        "limit": 200,
         "title": "Get PP Headers",
         "isValidator": true,
         "nodeName": "Get PP Headers",
@@ -112,11 +291,29 @@
       "type": "search-node",
       "data": {
         "table_id": {
-          "source": "",
-          "rules": { "collectionId": "", "list": [] }
+          "source": "Handling Unit:Table:2036736671686529026",
+          "rules": {
+            "collectionId": "2036736671686529026",
+            "list": [
+              {
+                "id": 1779334100601,
+                "parentId": 1779334100600,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_zRrqNcLM.data.handlingUnitIds}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
         },
         "condition": {},
-        "limit": 100,
+        "limit": 500,
         "title": "Get HU",
         "isValidator": true,
         "nodeName": "Get HU",
@@ -129,11 +326,29 @@
       "type": "search-node",
       "data": {
         "table_id": {
-          "source": "",
-          "rules": { "collectionId": "", "list": [] }
+          "source": "Items(Handling Unit):Table:2036977712276639745",
+          "rules": {
+            "collectionId": "2036977712276639745",
+            "list": [
+              {
+                "id": 1779334100701,
+                "parentId": 1779334100700,
+                "isTop": true,
+                "prop": "handling_unit_id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_zRrqNcLM.data.handlingUnitIds}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Handling Unit ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
         },
         "condition": {},
-        "limit": 100,
+        "limit": 1000,
         "title": "Get HU Lines",
         "isValidator": true,
         "nodeName": "Get HU Lines",
@@ -152,8 +367,19 @@
         "isValidator": true,
         "nodeName": "Build Snapshot",
         "name": "Build Snapshot",
-        "script": { "type": "javascript", "code": "" },
-        "response_json": []
+        "script": {
+          "type": "javascript",
+          "code": "// Assemble the minimal snapshot payload from search results.\nconst soLines = {{node:search_node_K8tDhBp1.data.data}} || [];\nconst allocatedReserved = {{node:search_node_NPrwt0qv.data.data}} || [];\nconst pendingReserved = {{node:search_node_8xeGAzs2.data.data}} || [];\nconst pickingRecords = {{node:search_node_FYpwfTbu.data.data}} || [];\nconst ppHeaders = {{node:search_node_VCdHgKjQ.data.data}} || [];\nconst huList = {{node:search_node_LmqRjzFE.data.data}} || [];\nconst huLines = {{node:search_node_oUkPx4Vi.data.data}} || [];\n\nconst toNum = (v) => parseFloat(v || 0);\nconst asArray = (v) => (Array.isArray(v) ? v : (v ? [v] : []));\n\n// pre_so_lines: SO line state pre-completion (id + qty fields + line_status).\nconst pre_so_lines = asArray(soLines).map((r) => ({\n  id: r.id,\n  planned_qty: toNum(r.planned_qty),\n  delivered_qty: toNum(r.delivered_qty),\n  outstanding_quantity: toNum(r.outstanding_quantity),\n  line_status: r.line_status || \"\",\n}));\n\n// pre_pending_state: minimal Pending state for merge-delta detection at revert.\nconst pre_pending_state = asArray(pendingReserved).map((r) => ({\n  id: r.id,\n  reserved_qty: toNum(r.reserved_qty),\n  open_qty: toNum(r.open_qty),\n}));\n\n// pre_on_reserved_gd_ids: ALL ids in scope (allocated targeting this GD + pending in scope).\n// Used by revert for mark-and-sweep fragment detection.\nconst pre_on_reserved_gd_ids = [\n  ...asArray(allocatedReserved).map((r) => r.id),\n  ...asArray(pendingReserved).map((r) => r.id),\n];\n\n// pp_restamp_map: capture original PP linkage for PP-sourced Allocated records.\n// Completion's processDeliveredAllocation rewrites these to GD identity on full-take.\nconst pp_restamp_map = {};\nfor (const r of asArray(allocatedReserved)) {\n  if (r.doc_type === \"Picking Plan\") {\n    pp_restamp_map[r.id] = {\n      doc_type: r.doc_type,\n      doc_id: r.doc_id || \"\",\n      doc_no: r.doc_no || \"\",\n      doc_line_id: r.doc_line_id || \"\",\n      target_gd_id: r.target_gd_id || \"\",\n    };\n  }\n}\n\n// pre_picking_records: reserved/delivered stamps that completion will adjust.\n// transfer_order_id is the FK from a picking record to its Transfer Order Picking header.\nconst pre_picking_records = asArray(pickingRecords).map((r) => ({\n  id: r.id,\n  header_id: r.transfer_order_id || \"\",\n  reserved_qty: toNum(r.reserved_qty),\n  delivered_qty: toNum(r.delivered_qty),\n}));\n\n// pre_pp_headers: header delivery_status that may flip to Completed.\nconst pre_pp_headers = asArray(ppHeaders).map((h) => ({\n  id: h.id,\n  delivery_status: h.delivery_status || \"\",\n}));\n\n// pre_hu_state: HU totals + per-line item_handling_unit quantities.\nconst pre_hu_state = {\n  hus: asArray(huList).map((h) => ({\n    id: h.id,\n    total_quantity: toNum(h.total_quantity),\n  })),\n  lines: asArray(huLines).map((l) => ({\n    id: l.id,\n    handling_unit_id: l.handling_unit_id || \"\",\n    material_id: l.material_id || \"\",\n    batch_id: l.batch_id || null,\n    quantity: toNum(l.quantity),\n  })),\n};\n\nreturn {\n  pre_so_lines: JSON.stringify(pre_so_lines),\n  pre_pending_state: JSON.stringify(pre_pending_state),\n  pre_on_reserved_gd_ids: JSON.stringify(pre_on_reserved_gd_ids),\n  pre_picking_records: JSON.stringify(pre_picking_records),\n  pre_pp_headers: JSON.stringify(pre_pp_headers),\n  pre_hu_state: JSON.stringify(pre_hu_state),\n  pp_restamp_map: JSON.stringify(pp_restamp_map),\n};\n"
+        },
+        "response_json": [
+          { "key": "bs1soln01", "name": "pre_so_lines", "title": "pre_so_lines", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "bs2pnst02", "name": "pre_pending_state", "title": "pre_pending_state", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "bs3orid03", "name": "pre_on_reserved_gd_ids", "title": "pre_on_reserved_gd_ids", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "bs4prkr04", "name": "pre_picking_records", "title": "pre_picking_records", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "bs5ppph05", "name": "pre_pp_headers", "title": "pre_pp_headers", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "bs6hust06", "name": "pre_hu_state", "title": "pre_hu_state", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "bs7ppmp07", "name": "pp_restamp_map", "title": "pp_restamp_map", "description": "", "bsonType": "string", "isExpand": false, "children": [] }
+        ]
       },
       "blocks": []
     },
@@ -162,8 +388,53 @@
       "type": "search-node",
       "data": {
         "table_id": {
-          "source": "",
-          "rules": { "collectionId": "", "list": [] }
+          "source": "GD Completion Snapshot:Table:2058814896563986434",
+          "rules": {
+            "collectionId": "2058814896563986434",
+            "list": [
+              {
+                "id": 1779334100801,
+                "parentId": 1779334100800,
+                "isTop": true,
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1779334100802,
+                    "parentId": 1779334100801,
+                    "isTop": false,
+                    "prop": "gd_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{node:code_node_zRrqNcLM.data.gd_id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "GD ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1779334100803,
+                    "parentId": 1779334100801,
+                    "isTop": false,
+                    "prop": "snapshot_status",
+                    "operator": "equal",
+                    "valueType": "value",
+                    "value": "Active",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Snapshot Status",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            ]
+          }
         },
         "condition": {},
         "limit": 100,
@@ -182,9 +453,26 @@
         "isValidator": true,
         "nodeName": "IF Existing Snapshot Found",
         "name": "IF Existing Snapshot Found",
-        "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
-        "filter": { "list": [] }
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1779334100901,
+              "parentId": 1779334100900,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "({{node:search_node_eFhDcAt6.data.count}} || 0) > 0"
+        }
       },
       "blocks": [
         {
@@ -197,8 +485,26 @@
               "type": "update-node",
               "data": {
                 "table_id": {
-                  "source": "",
-                  "rules": { "collectionId": "", "list": [] }
+                  "source": "GD Completion Snapshot:Table:2058814896563986434",
+                  "rules": {
+                    "collectionId": "2058814896563986434",
+                    "list": [
+                      {
+                        "id": 1779334101001,
+                        "parentId": 1779334101000,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:search_node_eFhDcAt6.data.data.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
                 },
                 "fields": [],
                 "condition": {},
@@ -206,7 +512,19 @@
                 "isValidator": true,
                 "nodeName": "Mark Old Snapshot Stale",
                 "name": "Mark Old Snapshot Stale",
-                "props": { "modelName": "", "list": [] }
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "snapshot_status",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "Stale",
+                      "valueLabel": "",
+                      "propLabel": "Snapshot Status"
+                    }
+                  ]
+                }
               },
               "blocks": []
             }
@@ -225,15 +543,138 @@
       "type": "add-node",
       "data": {
         "table_id": {
-          "source": "",
-          "rules": { "collectionId": "", "list": [] }
+          "source": "GD Completion Snapshot:Table:2058814896563986434",
+          "rules": {
+            "collectionId": "2058814896563986434",
+            "list": [
+              {
+                "id": 1779334101101,
+                "parentId": 1779334101100,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          }
         },
         "fields": [],
         "title": "Add Snapshot",
         "isValidator": true,
         "nodeName": "Add Snapshot",
         "name": "Add Snapshot",
-        "props": { "modelName": "", "list": [] }
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "gd_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_zRrqNcLM.data.gd_id}}",
+              "valueLabel": "",
+              "propLabel": "GD ID"
+            },
+            {
+              "prop": "organization_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_zRrqNcLM.data.organization_id}}",
+              "valueLabel": "",
+              "propLabel": "Organization ID"
+            },
+            {
+              "prop": "plant_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_zRrqNcLM.data.plant_id}}",
+              "valueLabel": "",
+              "propLabel": "Plant ID"
+            },
+            {
+              "prop": "completed_at",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_zRrqNcLM.data.completed_at}}",
+              "valueLabel": "",
+              "propLabel": "Completed At"
+            },
+            {
+              "prop": "completed_by",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_zRrqNcLM.data.completed_by}}",
+              "valueLabel": "",
+              "propLabel": "Completed By"
+            },
+            {
+              "prop": "snapshot_status",
+              "operator": "",
+              "valueType": "value",
+              "value": "Active",
+              "valueLabel": "",
+              "propLabel": "Snapshot Status"
+            },
+            {
+              "prop": "pre_so_lines",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_RxN5tWmA.data.pre_so_lines}}",
+              "valueLabel": "",
+              "propLabel": "Pre SO Lines"
+            },
+            {
+              "prop": "pre_pending_state",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_RxN5tWmA.data.pre_pending_state}}",
+              "valueLabel": "",
+              "propLabel": "Pre Pending State"
+            },
+            {
+              "prop": "pre_on_reserved_gd_ids",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_RxN5tWmA.data.pre_on_reserved_gd_ids}}",
+              "valueLabel": "",
+              "propLabel": "Pre On Reserved GD IDs"
+            },
+            {
+              "prop": "pre_picking_records",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_RxN5tWmA.data.pre_picking_records}}",
+              "valueLabel": "",
+              "propLabel": "Pre Picking Records"
+            },
+            {
+              "prop": "pre_pp_headers",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_RxN5tWmA.data.pre_pp_headers}}",
+              "valueLabel": "",
+              "propLabel": "Pre PP Headers"
+            },
+            {
+              "prop": "pre_hu_state",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_RxN5tWmA.data.pre_hu_state}}",
+              "valueLabel": "",
+              "propLabel": "Pre HU State"
+            },
+            {
+              "prop": "pp_restamp_map",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_RxN5tWmA.data.pp_restamp_map}}",
+              "valueLabel": "",
+              "propLabel": "PP Restamp Map"
+            }
+          ]
+        }
       },
       "blocks": []
     },
@@ -247,6 +688,34 @@
         "isValidator": true,
         "nodeName": "Return Snapshot Success",
         "name": "Return Snapshot Success",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "operator": "",
+              "valueType": "value",
+              "value": "200",
+              "valueLabel": "",
+              "propLabel": "code"
+            },
+            {
+              "prop": "message",
+              "operator": "",
+              "valueType": "value",
+              "value": "Snapshot written",
+              "valueLabel": "",
+              "propLabel": "message"
+            },
+            {
+              "prop": "snapshot_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:add_node_AmPbHxKj.data.id}}",
+              "valueLabel": "",
+              "propLabel": "snapshot_id"
+            }
+          ]
+        },
         "return_raw_data": 0
       },
       "blocks": []

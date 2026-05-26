@@ -1,0 +1,1482 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "code_node_inExtract",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Extract Inputs",
+        "isValidator": true,
+        "nodeName": "Extract Inputs",
+        "name": "Extract Inputs",
+        "script": {
+          "type": "javascript",
+          "code": "// Normalize inputs. snapshot_id may arrive as a string OR an array (the add-node\n// in GDcompletionSnapshotWorkflow returns it wrapped in a one-element array).\nconst snapshotIdRaw = {{workflowparams:snapshot_id}};\nconst docId = {{workflowparams:doc_id}} || \"\";\nconst gdNo = {{workflowparams:gd_no}} || \"\";\nconst plantId = {{workflowparams:plant_id}} || \"\";\nconst organizationId = {{workflowparams:organization_id}} || \"\";\nconst tableData = {{workflowparams:tableData}} || [];\n\nlet snapshotId = \"\";\nif (Array.isArray(snapshotIdRaw)) {\n  snapshotId = snapshotIdRaw[0] || \"\";\n} else {\n  snapshotId = snapshotIdRaw || \"\";\n}\n\n// Extract material ids from tableData for item master fetch.\nconst materialIdsSet = new Set();\nfor (const item of tableData) {\n  if (item && item.material_id) materialIdsSet.add(item.material_id);\n}\nconst materialIds = [...materialIdsSet];\n\nreturn {\n  snapshotId,\n  docId,\n  gdNo,\n  plantId,\n  organizationId,\n  materialIds,\n  hasSnapshotId: snapshotId ? 1 : 0,\n  hasMaterials: materialIds.length > 0 ? 1 : 0,\n};\n"
+        },
+        "response_json": [
+          { "key": "in1snid01", "name": "snapshotId", "title": "snapshotId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "in2docd02", "name": "docId", "title": "docId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "in3gdno03", "name": "gdNo", "title": "gdNo", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "in4plnt04", "name": "plantId", "title": "plantId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "in5orgi05", "name": "organizationId", "title": "organizationId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "in6mati06", "name": "materialIds", "title": "materialIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "in7hsni07", "name": "hasSnapshotId", "title": "hasSnapshotId", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "in8hmat08", "name": "hasMaterials", "title": "hasMaterials", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_inSnapIdMiss",
+      "type": "if",
+      "data": {
+        "title": "IF Snapshot ID Missing",
+        "isValidator": true,
+        "nodeName": "IF Snapshot ID Missing",
+        "name": "IF Snapshot ID Missing",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1779334200001,
+              "parentId": 1779334200000,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_inExtract.data.hasSnapshotId}}' == '0'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_inSnapIdMissTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_inSnapIdMiss",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Snapshot ID Missing",
+                "isValidator": true,
+                "nodeName": "Return Snapshot ID Missing",
+                "name": "Return Snapshot ID Missing",
+                "response_value": {
+                  "list": [
+                    { "prop": "code", "operator": "", "valueType": "value", "value": "400", "valueLabel": "", "propLabel": "code" },
+                    { "prop": "message", "operator": "", "valueType": "value", "value": "snapshot_id required for revert (reconstruction mode not yet implemented)", "valueLabel": "", "propLabel": "message" },
+                    { "prop": "conflicts", "operator": "", "valueType": "value", "value": "[]", "valueLabel": "", "propLabel": "conflicts" }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_inSnapIdMissFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "get_node_inSnapshot",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "GD Completion Snapshot:Table:2058814896563986434",
+          "rules": {
+            "collectionId": "2058814896563986434",
+            "list": [
+              {
+                "id": 1779334200101,
+                "parentId": 1779334200100,
+                "isTop": true,
+                "prop": "id",
+                "operator": "equal",
+                "valueType": "field",
+                "value": "{{node:code_node_inExtract.data.snapshotId}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get Snapshot",
+        "isValidator": true,
+        "nodeName": "Get Snapshot",
+        "name": "Get Snapshot"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_inParseSnap",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Parse Snapshot",
+        "isValidator": true,
+        "nodeName": "Parse Snapshot",
+        "name": "Parse Snapshot",
+        "script": {
+          "type": "javascript",
+          "code": "// get-node returns single object when count=1, array when count>1, null when count=0.\nconst raw = {{node:get_node_inSnapshot.data}};\nconst count = {{node:get_node_inSnapshot.data.count}} || 0;\n\nlet snapshot = null;\nif (raw && raw.data) {\n  // get-node may wrap result; try to unwrap\n  snapshot = Array.isArray(raw.data) ? raw.data[0] : raw.data;\n} else if (raw && !Array.isArray(raw) && raw.id) {\n  snapshot = raw;\n} else if (Array.isArray(raw) && raw.length > 0) {\n  snapshot = raw[0];\n}\n\nif (!snapshot || !snapshot.id || snapshot.snapshot_status !== \"Active\") {\n  return {\n    snapshotFound: 0,\n    snapshotStatus: snapshot ? snapshot.snapshot_status : \"\",\n    pre_so_lines: [],\n    pre_pending_state: [],\n    pre_on_reserved_gd_ids: [],\n    pre_picking_records: [],\n    pre_pp_headers: [],\n    pre_hu_state: { hus: [], lines: [] },\n    pp_restamp_map: {},\n    pendingIds: [],\n    pickingRecordIds: [],\n    ppHeaderIds: [],\n    huIds: [],\n    huLineIds: [],\n    hasPendings: 0,\n    hasPickingRecords: 0,\n    hasPpHeaders: 0,\n    hasHus: 0,\n    hasHuLines: 0,\n  };\n}\n\nconst parse = (raw, def) => {\n  if (raw === null || raw === undefined || raw === \"\") return def;\n  if (typeof raw === \"string\") {\n    try { return JSON.parse(raw); } catch (e) { return def; }\n  }\n  return raw;\n};\n\nconst pre_so_lines = parse(snapshot.pre_so_lines, []);\nconst pre_pending_state = parse(snapshot.pre_pending_state, []);\nconst pre_on_reserved_gd_ids = parse(snapshot.pre_on_reserved_gd_ids, []);\nconst pre_picking_records = parse(snapshot.pre_picking_records, []);\nconst pre_pp_headers = parse(snapshot.pre_pp_headers, []);\nconst pre_hu_state = parse(snapshot.pre_hu_state, { hus: [], lines: [] });\nconst pp_restamp_map = parse(snapshot.pp_restamp_map, {});\n\nconst pendingIds = pre_pending_state.map((p) => p.id);\nconst pickingRecordIds = pre_picking_records.map((r) => r.id);\nconst ppHeaderIds = pre_pp_headers.map((h) => h.id);\nconst huIds = (pre_hu_state.hus || []).map((h) => h.id);\nconst huLineIds = (pre_hu_state.lines || []).map((l) => l.id);\n\nreturn {\n  snapshotFound: 1,\n  snapshotStatus: \"Active\",\n  snapshotRecordId: snapshot.id,\n  pre_so_lines,\n  pre_pending_state,\n  pre_on_reserved_gd_ids,\n  pre_picking_records,\n  pre_pp_headers,\n  pre_hu_state,\n  pp_restamp_map,\n  pendingIds,\n  pickingRecordIds,\n  ppHeaderIds,\n  huIds,\n  huLineIds,\n  hasPendings: pendingIds.length > 0 ? 1 : 0,\n  hasPickingRecords: pickingRecordIds.length > 0 ? 1 : 0,\n  hasPpHeaders: ppHeaderIds.length > 0 ? 1 : 0,\n  hasHus: huIds.length > 0 ? 1 : 0,\n  hasHuLines: huLineIds.length > 0 ? 1 : 0,\n};\n"
+        },
+        "response_json": [
+          { "key": "ps1snfd01", "name": "snapshotFound", "title": "snapshotFound", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "ps2snst02", "name": "snapshotStatus", "title": "snapshotStatus", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "ps3snri03", "name": "snapshotRecordId", "title": "snapshotRecordId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "ps4soln04", "name": "pre_so_lines", "title": "pre_so_lines", "description": "", "bsonType": "any", "isExpand": false, "children": [] },
+          { "key": "ps5pnst05", "name": "pre_pending_state", "title": "pre_pending_state", "description": "", "bsonType": "any", "isExpand": false, "children": [] },
+          { "key": "ps6orid06", "name": "pre_on_reserved_gd_ids", "title": "pre_on_reserved_gd_ids", "description": "", "bsonType": "any", "isExpand": false, "children": [] },
+          { "key": "ps7prkr07", "name": "pre_picking_records", "title": "pre_picking_records", "description": "", "bsonType": "any", "isExpand": false, "children": [] },
+          { "key": "ps8ppph08", "name": "pre_pp_headers", "title": "pre_pp_headers", "description": "", "bsonType": "any", "isExpand": false, "children": [] },
+          { "key": "ps9hust09", "name": "pre_hu_state", "title": "pre_hu_state", "description": "", "bsonType": "any", "isExpand": false, "children": [] },
+          { "key": "psapprm10", "name": "pp_restamp_map", "title": "pp_restamp_map", "description": "", "bsonType": "any", "isExpand": false, "children": [] },
+          { "key": "psbpnid11", "name": "pendingIds", "title": "pendingIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "pscprki12", "name": "pickingRecordIds", "title": "pickingRecordIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "psdppgi13", "name": "ppHeaderIds", "title": "ppHeaderIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "psehuid14", "name": "huIds", "title": "huIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "psfhuli15", "name": "huLineIds", "title": "huLineIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "psghpnd16", "name": "hasPendings", "title": "hasPendings", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "pshhprk17", "name": "hasPickingRecords", "title": "hasPickingRecords", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "psihpph18", "name": "hasPpHeaders", "title": "hasPpHeaders", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "psjhhus19", "name": "hasHus", "title": "hasHus", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "pskhhul20", "name": "hasHuLines", "title": "hasHuLines", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_inSnapMissing",
+      "type": "if",
+      "data": {
+        "title": "IF Snapshot Not Found Or Inactive",
+        "isValidator": true,
+        "nodeName": "IF Snapshot Not Found Or Inactive",
+        "name": "IF Snapshot Not Found Or Inactive",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1779334200201,
+              "parentId": 1779334200200,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_inParseSnap.data.snapshotFound}}' == '0'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_inSnapMissTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_inSnapMiss",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Snapshot Not Active",
+                "isValidator": true,
+                "nodeName": "Return Snapshot Not Active",
+                "name": "Return Snapshot Not Active",
+                "response_value": {
+                  "list": [
+                    { "prop": "code", "operator": "", "valueType": "value", "value": "400", "valueLabel": "", "propLabel": "code" },
+                    { "prop": "message", "operator": "", "valueType": "value", "value": "Active snapshot not found for the given snapshot_id; revert cannot proceed", "valueLabel": "", "propLabel": "message" },
+                    { "prop": "conflicts", "operator": "", "valueType": "value", "value": "[]", "valueLabel": "", "propLabel": "conflicts" }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_inSnapMissFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "search_node_inCurReserved",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+          "rules": {
+            "collectionId": "1935880014687440897",
+            "list": [
+              {
+                "id": 1779334200301,
+                "parentId": 1779334200300,
+                "isTop": true,
+                "prop": "target_gd_id",
+                "operator": "equal",
+                "valueType": "field",
+                "value": "{{node:code_node_inExtract.data.docId}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Target Goods Delivery ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 500,
+        "title": "Get Current Reserved Records",
+        "isValidator": true,
+        "nodeName": "Get Current Reserved Records",
+        "name": "Get Current Reserved Records"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_inCurPending",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+          "rules": {
+            "collectionId": "1935880014687440897",
+            "list": [
+              {
+                "id": 1779334200401,
+                "parentId": 1779334200400,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_inParseSnap.data.pendingIds}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 500,
+        "title": "Get Current Pending Records",
+        "isValidator": true,
+        "nodeName": "Get Current Pending Records",
+        "name": "Get Current Pending Records"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_inCurPicking",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Picking Items(Transfer Order Picking):Table:1939915130372202497",
+          "rules": {
+            "collectionId": "1939915130372202497",
+            "list": [
+              {
+                "id": 1779334200501,
+                "parentId": 1779334200500,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_inParseSnap.data.pickingRecordIds}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 500,
+        "title": "Get Current Picking Records",
+        "isValidator": true,
+        "nodeName": "Get Current Picking Records",
+        "name": "Get Current Picking Records"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_inCurPpHdr",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Transfer Order Picking:Table:1935556443668959233",
+          "rules": {
+            "collectionId": "1935556443668959233",
+            "list": [
+              {
+                "id": 1779334200601,
+                "parentId": 1779334200600,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_inParseSnap.data.ppHeaderIds}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 200,
+        "title": "Get Current PP Headers",
+        "isValidator": true,
+        "nodeName": "Get Current PP Headers",
+        "name": "Get Current PP Headers"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_inCurHu",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Handling Unit:Table:2036736671686529026",
+          "rules": {
+            "collectionId": "2036736671686529026",
+            "list": [
+              {
+                "id": 1779334200701,
+                "parentId": 1779334200700,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_inParseSnap.data.huIds}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 500,
+        "title": "Get Current HU",
+        "isValidator": true,
+        "nodeName": "Get Current HU",
+        "name": "Get Current HU"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_inCurHuLn",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Items(Handling Unit):Table:2036977712276639745",
+          "rules": {
+            "collectionId": "2036977712276639745",
+            "list": [
+              {
+                "id": 1779334200801,
+                "parentId": 1779334200800,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_inParseSnap.data.huLineIds}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 1000,
+        "title": "Get Current HU Lines",
+        "isValidator": true,
+        "nodeName": "Get Current HU Lines",
+        "name": "Get Current HU Lines"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_inItems",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Item:Table:1901546842240438273",
+          "rules": {
+            "collectionId": "1901546842240438273",
+            "list": [
+              {
+                "id": 1779334202301,
+                "parentId": 1779334202300,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_inExtract.data.materialIds}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 500,
+        "title": "Get Item Masters",
+        "isValidator": true,
+        "nodeName": "Get Item Masters",
+        "name": "Get Item Masters"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_inConflictBatch",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Conflict Detect + Build Reverses",
+        "isValidator": true,
+        "nodeName": "Conflict Detect + Build Reverses",
+        "name": "Conflict Detect + Build Reverses",
+        "script": {
+          "type": "javascript",
+          "code": "// Inputs: snapshot parsed data + current state of all touched records.\nconst snap = {{node:code_node_inParseSnap.data}};\nconst currentReserved = {{node:search_node_inCurReserved.data.data}} || [];\nconst currentPending = {{node:search_node_inCurPending.data.data}} || [];\nconst currentPicking = {{node:search_node_inCurPicking.data.data}} || [];\nconst currentPpHeaders = {{node:search_node_inCurPpHdr.data.data}} || [];\nconst currentHus = {{node:search_node_inCurHu.data.data}} || [];\nconst currentHuLines = {{node:search_node_inCurHuLn.data.data}} || [];\nconst itemsData = {{node:search_node_inItems.data.data}} || [];\nconst tableData = {{workflowparams:tableData}} || [];\nconst docId = {{node:code_node_inExtract.data.docId}} || \"\";\n\n// Build item master lookup with the subset of fields ADD_INVENTORY_NEW needs.\nconst filterItemData = (it) => {\n  if (!it) return null;\n  return {\n    stock_control: it.stock_control,\n    based_uom: it.based_uom,\n    table_uom_conversion: it.table_uom_conversion,\n    material_costing_method: it.material_costing_method,\n    purchase_unit_price: it.purchase_unit_price,\n    item_batch_management: it.item_batch_management,\n    material_code: it.material_code,\n    material_name: it.material_name,\n    material_desc: it.material_desc,\n  };\n};\nconst itemDataMap = {};\nfor (const it of itemsData) {\n  if (it && it.id) itemDataMap[it.id] = filterItemData(it);\n}\n\nconst roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst asArr = (v) => (Array.isArray(v) ? v : (v ? [v] : []));\n\nconst pre_pending_state = asArr(snap.pre_pending_state);\nconst pre_on_reserved_gd_ids = asArr(snap.pre_on_reserved_gd_ids);\nconst pre_picking_records = asArr(snap.pre_picking_records);\nconst pre_pp_headers = asArr(snap.pre_pp_headers);\nconst pre_hu_state = snap.pre_hu_state || { hus: [], lines: [] };\nconst pp_restamp_map = snap.pp_restamp_map || {};\n\n// ============ CONFLICT DETECTION ============\nconst conflicts = [];\n\nconst preReservedIdSet = new Set(pre_on_reserved_gd_ids.map(String));\nconst currentReservedById = new Map();\nfor (const r of currentReserved) currentReservedById.set(String(r.id), r);\n\n// 1. Identify fragments = current ids NOT in pre set\nconst fragmentIds = [];\nfor (const r of currentReserved) {\n  if (!preReservedIdSet.has(String(r.id))) fragmentIds.push(r.id);\n}\n\n// 2. Fragments must still be in expected post-completion state.\n// Completion creates them as Cancelled (GD-source fragments) or Pending (SO/Production remainders),\n// always with delivered_qty=0. If anything else, another process touched them — refuse.\nfor (const fid of fragmentIds) {\n  const r = currentReservedById.get(String(fid));\n  if (!r) continue;\n  const okStatus = r.status === \"Cancelled\" || r.status === \"Pending\";\n  const okDelivered = roundQty(r.delivered_qty) === 0;\n  if (!okStatus || !okDelivered) {\n    conflicts.push({\n      type: \"fragment_touched\",\n      id: r.id,\n      message: \"Fragment record \" + r.id + \" was modified post-completion (status=\" + r.status + \", delivered_qty=\" + r.delivered_qty + \")\",\n    });\n  }\n}\n\n// 3. PP restamp conflict: restamped records must currently be doc_type=Good Delivery\n// targeting our GD. If reshaped further by another process, refuse.\nfor (const restampId of Object.keys(pp_restamp_map)) {\n  const r = currentReservedById.get(String(restampId));\n  if (!r) {\n    conflicts.push({\n      type: \"pp_restamp_missing\",\n      id: restampId,\n      message: \"PP-restamped record \" + restampId + \" not found at revert time\",\n    });\n    continue;\n  }\n  if (r.doc_type !== \"Good Delivery\" || String(r.target_gd_id) !== String(docId)) {\n    conflicts.push({\n      type: \"pp_restamp_drift\",\n      id: restampId,\n      message: \"PP-restamped record \" + restampId + \" was re-modified (doc_type=\" + r.doc_type + \", target_gd_id=\" + r.target_gd_id + \")\",\n    });\n  }\n}\n\n// 4. Pending underflow: if current Pending.open_qty < snapshot.open_qty,\n// another process consumed from it — we cannot safely restore.\nconst currentPendingById = new Map();\nfor (const p of currentPending) currentPendingById.set(String(p.id), p);\nfor (const pre of pre_pending_state) {\n  const cur = currentPendingById.get(String(pre.id));\n  if (!cur) {\n    conflicts.push({\n      type: \"pending_missing\",\n      id: pre.id,\n      message: \"Pending record \" + pre.id + \" not found at revert time\",\n    });\n    continue;\n  }\n  if (roundQty(cur.open_qty) < roundQty(pre.open_qty)) {\n    conflicts.push({\n      type: \"pending_consumed\",\n      id: pre.id,\n      message: \"Pending record \" + pre.id + \" consumed by another process (current.open_qty=\" + cur.open_qty + \" < snapshot.open_qty=\" + pre.open_qty + \")\",\n    });\n  }\n}\n\n// 5. HU missing\nconst currentHuById = new Map();\nfor (const h of currentHus) currentHuById.set(String(h.id), h);\nfor (const preHu of (pre_hu_state.hus || [])) {\n  if (!currentHuById.has(String(preHu.id))) {\n    conflicts.push({\n      type: \"hu_missing\",\n      id: preHu.id,\n      message: \"HU \" + preHu.id + \" not found at revert time\",\n    });\n  }\n}\n\n// 6. Picking record drift: current.delivered_qty should be >= snapshot.delivered_qty\n// (completion only adds; if current is less, something subtracted post-completion).\nconst currentPickingById = new Map();\nfor (const p of currentPicking) currentPickingById.set(String(p.id), p);\nfor (const pre of pre_picking_records) {\n  const cur = currentPickingById.get(String(pre.id));\n  if (!cur) {\n    conflicts.push({\n      type: \"picking_record_missing\",\n      id: pre.id,\n      message: \"Picking record \" + pre.id + \" not found at revert time\",\n    });\n    continue;\n  }\n  if (roundQty(cur.delivered_qty) < roundQty(pre.delivered_qty)) {\n    conflicts.push({\n      type: \"picking_record_drift\",\n      id: pre.id,\n      message: \"Picking record \" + pre.id + \" delivered_qty decreased since snapshot (current=\" + cur.delivered_qty + \" < snapshot=\" + pre.delivered_qty + \")\",\n    });\n  }\n}\n\nif (conflicts.length > 0) {\n  return {\n    hasConflicts: 1,\n    conflictCount: conflicts.length,\n    conflicts,\n    reservedUpdates: [],\n    fragmentSoftDeletes: [],\n    pendingRestores: [],\n    pickingRecUpdates: [],\n    pickingHdrUpdates: [],\n    huUpdates: [],\n    inventoryMovements: [],\n    hasReservedUpdates: 0,\n    hasFragments: 0,\n    hasPendingRestores: 0,\n    hasPickingRecUpdates: 0,\n    hasPickingHdrUpdates: 0,\n    hasHuUpdates: 0,\n    hasInventoryMovements: 0,\n  };\n}\n\n// ============ BUILD REVERSE BATCHES ============\n\n// 1. Reserved updates: flip Delivered → Allocated. Restore PP restamp linkage if applicable.\n// Also emit an inventory ADD movement (qty back to Reserved bucket) for each.\nconst reservedUpdates = [];\nconst inventoryMovements = [];\nfor (const r of currentReserved) {\n  if (!preReservedIdSet.has(String(r.id))) continue; // skip fragments\n  if (r.status !== \"Delivered\") continue;\n\n  const deliveredQty = roundQty(r.delivered_qty);\n  const update = {\n    id: r.id,\n    status: \"Allocated\",\n    reserved_qty: deliveredQty,\n    open_qty: deliveredQty,\n    delivered_qty: 0,\n  };\n\n  const restampOrig = pp_restamp_map[String(r.id)];\n  if (restampOrig) {\n    update.doc_type = restampOrig.doc_type;\n    update.doc_id = restampOrig.doc_id;\n    update.doc_no = restampOrig.doc_no;\n    update.doc_line_id = restampOrig.doc_line_id;\n    update.target_gd_id = restampOrig.target_gd_id;\n  }\n\n  reservedUpdates.push(update);\n\n  // Build the inverse stock movement: ADD to Reserved bucket at same bin/batch/HU.\n  // Completion emitted SUBTRACT_INVENTORY_NEW with inventory_category=Reserved when\n  // flipping this record from Allocated → Delivered, so we reverse with ADD.\n  if (deliveredQty > 0) {\n    inventoryMovements.push({\n      material_id: String(r.material_id),\n      quantity: deliveredQty,\n      material_uom: r.item_uom != null ? String(r.item_uom) : \"\",\n      location_id: r.bin_location != null ? String(r.bin_location) : \"\",\n      batch_id: r.batch_id != null ? String(r.batch_id) : null,\n      handling_unit_id: r.handling_unit_id != null ? String(r.handling_unit_id) : null,\n      inventory_category: \"Reserved\",\n      parent_no: r.parent_no || \"\",\n      itemData: itemDataMap[String(r.material_id)] || null,\n      index: inventoryMovements.length,\n    });\n  }\n}\n\n// 2. Fragment soft-deletes\nconst fragmentSoftDeletes = fragmentIds.map((id) => ({\n  id,\n  is_deleted: 1,\n  status: \"Cancelled\",\n  open_qty: 0,\n}));\n\n// 3. Pending restores: overwrite current with snapshot values\nconst pendingRestores = pre_pending_state.map((pre) => ({\n  id: pre.id,\n  reserved_qty: roundQty(pre.reserved_qty),\n  open_qty: roundQty(pre.open_qty),\n}));\n\n// 4. Picking record reverse: restore reserved_qty + delivered_qty to snapshot baseline.\n// We're conservative — overwrite to snapshot, even if completion's delta isn't isolated.\n// Conflict gate above already verified no other process delivered against these.\nconst pickingRecUpdates = pre_picking_records.map((pre) => ({\n  id: pre.id,\n  reserved_qty: roundQty(pre.reserved_qty),\n  delivered_qty: roundQty(pre.delivered_qty),\n}));\n\n// 5. Picking header reverse: restore delivery_status to snapshot\nconst pickingHdrUpdates = pre_pp_headers.map((pre) => ({\n  id: pre.id,\n  delivery_status: pre.delivery_status,\n}));\n\n// 6. HU updates: re-increment HU.total_quantity and item_handling_unit.quantity by gd_quantity.\n// Source of truth = tableData's temp_qty_data (what completion decremented).\nconst huUpdatesMap = new Map();\nfor (const item of tableData) {\n  if (!item.material_id) continue;\n  let temps = [];\n  try {\n    temps = typeof item.temp_qty_data === \"string\" ? JSON.parse(item.temp_qty_data) : (item.temp_qty_data || []);\n  } catch (e) {}\n  for (const t of temps) {\n    if (!t.handling_unit_id) continue;\n    const qty = roundQty(t.gd_quantity || 0);\n    if (qty <= 0) continue;\n    const key = t.handling_unit_id + \"|\" + item.material_id + \"|\" + (t.batch_id || \"\");\n    huUpdatesMap.set(key, roundQty((huUpdatesMap.get(key) || 0) + qty));\n  }\n}\nconst huUpdates = [];\nfor (const [key, qty] of huUpdatesMap) {\n  const [handling_unit_id, material_id, batch_id_raw] = key.split(\"|\");\n  huUpdates.push({\n    handling_unit_id,\n    material_id,\n    batch_id: batch_id_raw || null,\n    increment_quantity: qty,\n  });\n}\n\nreturn {\n  hasConflicts: 0,\n  conflictCount: 0,\n  conflicts: [],\n  reservedUpdates,\n  fragmentSoftDeletes,\n  pendingRestores,\n  pickingRecUpdates,\n  pickingHdrUpdates,\n  huUpdates,\n  inventoryMovements,\n  hasReservedUpdates: reservedUpdates.length > 0 ? 1 : 0,\n  hasFragments: fragmentSoftDeletes.length > 0 ? 1 : 0,\n  hasPendingRestores: pendingRestores.length > 0 ? 1 : 0,\n  hasPickingRecUpdates: pickingRecUpdates.length > 0 ? 1 : 0,\n  hasPickingHdrUpdates: pickingHdrUpdates.length > 0 ? 1 : 0,\n  hasHuUpdates: huUpdates.length > 0 ? 1 : 0,\n  hasInventoryMovements: inventoryMovements.length > 0 ? 1 : 0,\n};\n"
+        },
+        "response_json": [
+          { "key": "cb1cnft01", "name": "hasConflicts", "title": "hasConflicts", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "cb2cnct02", "name": "conflictCount", "title": "conflictCount", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "cb3cnfl03", "name": "conflicts", "title": "conflicts", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "cb4rsvu04", "name": "reservedUpdates", "title": "reservedUpdates", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "cb5frsd05", "name": "fragmentSoftDeletes", "title": "fragmentSoftDeletes", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "cb6pndr06", "name": "pendingRestores", "title": "pendingRestores", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "cb7prku07", "name": "pickingRecUpdates", "title": "pickingRecUpdates", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "cb8phdu08", "name": "pickingHdrUpdates", "title": "pickingHdrUpdates", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "cb9huup09", "name": "huUpdates", "title": "huUpdates", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "cbainvm10", "name": "inventoryMovements", "title": "inventoryMovements", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "cbbhrsu11", "name": "hasReservedUpdates", "title": "hasReservedUpdates", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "cbchfrg12", "name": "hasFragments", "title": "hasFragments", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "cbdhpnd13", "name": "hasPendingRestores", "title": "hasPendingRestores", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "cbehprk14", "name": "hasPickingRecUpdates", "title": "hasPickingRecUpdates", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "cbfhphd15", "name": "hasPickingHdrUpdates", "title": "hasPickingHdrUpdates", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "cbghhuu16", "name": "hasHuUpdates", "title": "hasHuUpdates", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "cbhhinv17", "name": "hasInventoryMovements", "title": "hasInventoryMovements", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_inConflicts",
+      "type": "if",
+      "data": {
+        "title": "IF Has Conflicts",
+        "isValidator": true,
+        "nodeName": "IF Has Conflicts",
+        "name": "IF Has Conflicts",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1779334200901,
+              "parentId": 1779334200900,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_inConflictBatch.data.hasConflicts}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_inConflictsTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_inConflicts",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Conflicts 409",
+                "isValidator": true,
+                "nodeName": "Return Conflicts 409",
+                "name": "Return Conflicts 409",
+                "response_value": {
+                  "list": [
+                    { "prop": "code", "operator": "", "valueType": "value", "value": "409", "valueLabel": "", "propLabel": "code" },
+                    { "prop": "message", "operator": "", "valueType": "value", "value": "Revert blocked: state has changed since completion. Resolve conflicts manually.", "valueLabel": "", "propLabel": "message" },
+                    { "prop": "conflicts", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.conflicts}}", "valueLabel": "", "propLabel": "conflicts" }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_inConflictsFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_inReservedUp",
+      "type": "if",
+      "data": {
+        "title": "IF Has Reserved Updates",
+        "isValidator": true,
+        "nodeName": "IF Has Reserved Updates",
+        "name": "IF Has Reserved Updates",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            { "id": 1779334201001, "parentId": 1779334201000, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_inConflictBatch.data.hasReservedUpdates}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_inReservedUpTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_inReservedRevert",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                  "rules": {
+                    "collectionId": "1935880014687440897",
+                    "list": [
+                      {
+                        "id": 1779334201101,
+                        "parentId": 1779334201100,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_inConflictBatch.data.reservedUpdates.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Revert Reserved Records",
+                "isValidator": true,
+                "nodeName": "Revert Reserved Records",
+                "name": "Revert Reserved Records",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    { "prop": "id", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.reservedUpdates.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
+                    { "prop": "status", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.reservedUpdates.status}}", "valueLabel": "", "propLabel": "Status" },
+                    { "prop": "reserved_qty", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.reservedUpdates.reserved_qty}}", "valueLabel": "", "propLabel": "Reserved Quantity" },
+                    { "prop": "open_qty", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.reservedUpdates.open_qty}}", "valueLabel": "", "propLabel": "Open Quantity" },
+                    { "prop": "delivered_qty", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.reservedUpdates.delivered_qty}}", "valueLabel": "", "propLabel": "Delivered Quantity" },
+                    { "prop": "doc_type", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.reservedUpdates.doc_type}}", "valueLabel": "", "propLabel": "Document Type" },
+                    { "prop": "doc_id", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.reservedUpdates.doc_id}}", "valueLabel": "", "propLabel": "Document ID" },
+                    { "prop": "doc_no", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.reservedUpdates.doc_no}}", "valueLabel": "", "propLabel": "Document Number" },
+                    { "prop": "doc_line_id", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.reservedUpdates.doc_line_id}}", "valueLabel": "", "propLabel": "Document Line ID" },
+                    { "prop": "target_gd_id", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.reservedUpdates.target_gd_id}}", "valueLabel": "", "propLabel": "Target Goods Delivery ID" }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_inReservedUpFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_inFragments",
+      "type": "if",
+      "data": {
+        "title": "IF Has Fragments",
+        "isValidator": true,
+        "nodeName": "IF Has Fragments",
+        "name": "IF Has Fragments",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            { "id": 1779334201201, "parentId": 1779334201200, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_inConflictBatch.data.hasFragments}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_inFragmentsTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_inFragSoftDel",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                  "rules": {
+                    "collectionId": "1935880014687440897",
+                    "list": [
+                      {
+                        "id": 1779334201301,
+                        "parentId": 1779334201300,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_inConflictBatch.data.fragmentSoftDeletes.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Soft Delete Fragments",
+                "isValidator": true,
+                "nodeName": "Soft Delete Fragments",
+                "name": "Soft Delete Fragments",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    { "prop": "id", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.fragmentSoftDeletes.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
+                    { "prop": "is_deleted", "operator": "", "valueType": "value", "value": "1", "valueLabel": "", "propLabel": "Is Deleted" },
+                    { "prop": "status", "operator": "", "valueType": "value", "value": "Cancelled", "valueLabel": "", "propLabel": "Status" },
+                    { "prop": "open_qty", "operator": "", "valueType": "value", "value": "0", "valueLabel": "", "propLabel": "Open Quantity" }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_inFragmentsFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_inPendingRestore",
+      "type": "if",
+      "data": {
+        "title": "IF Has Pending Restores",
+        "isValidator": true,
+        "nodeName": "IF Has Pending Restores",
+        "name": "IF Has Pending Restores",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            { "id": 1779334201401, "parentId": 1779334201400, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_inConflictBatch.data.hasPendingRestores}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_inPendingRestoreTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_inPendingRestore",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                  "rules": {
+                    "collectionId": "1935880014687440897",
+                    "list": [
+                      {
+                        "id": 1779334201501,
+                        "parentId": 1779334201500,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_inConflictBatch.data.pendingRestores.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Restore Pending Records",
+                "isValidator": true,
+                "nodeName": "Restore Pending Records",
+                "name": "Restore Pending Records",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    { "prop": "id", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.pendingRestores.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
+                    { "prop": "reserved_qty", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.pendingRestores.reserved_qty}}", "valueLabel": "", "propLabel": "Reserved Quantity" },
+                    { "prop": "open_qty", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.pendingRestores.open_qty}}", "valueLabel": "", "propLabel": "Open Quantity" }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_inPendingRestoreFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_inPickingRec",
+      "type": "if",
+      "data": {
+        "title": "IF Has Picking Record Updates",
+        "isValidator": true,
+        "nodeName": "IF Has Picking Record Updates",
+        "name": "IF Has Picking Record Updates",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            { "id": 1779334201601, "parentId": 1779334201600, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_inConflictBatch.data.hasPickingRecUpdates}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_inPickingRecTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_inPickingRec",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Picking Items(Transfer Order Picking):Table:1939915130372202497",
+                  "rules": {
+                    "collectionId": "1939915130372202497",
+                    "list": [
+                      {
+                        "id": 1779334201701,
+                        "parentId": 1779334201700,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_inConflictBatch.data.pickingRecUpdates.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Revert Picking Records",
+                "isValidator": true,
+                "nodeName": "Revert Picking Records",
+                "name": "Revert Picking Records",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    { "prop": "id", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.pickingRecUpdates.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
+                    { "prop": "reserved_qty", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.pickingRecUpdates.reserved_qty}}", "valueLabel": "", "propLabel": "Reserved Quantity" },
+                    { "prop": "delivered_qty", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.pickingRecUpdates.delivered_qty}}", "valueLabel": "", "propLabel": "Delivered Quantity" }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_inPickingRecFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_inPickingHdr",
+      "type": "if",
+      "data": {
+        "title": "IF Has Picking Header Updates",
+        "isValidator": true,
+        "nodeName": "IF Has Picking Header Updates",
+        "name": "IF Has Picking Header Updates",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            { "id": 1779334201801, "parentId": 1779334201800, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_inConflictBatch.data.hasPickingHdrUpdates}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_inPickingHdrTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_inPickingHdr",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Transfer Order Picking:Table:1935556443668959233",
+                  "rules": {
+                    "collectionId": "1935556443668959233",
+                    "list": [
+                      {
+                        "id": 1779334201901,
+                        "parentId": 1779334201900,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_inConflictBatch.data.pickingHdrUpdates.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Revert Picking Headers",
+                "isValidator": true,
+                "nodeName": "Revert Picking Headers",
+                "name": "Revert Picking Headers",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    { "prop": "id", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.pickingHdrUpdates.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
+                    { "prop": "delivery_status", "operator": "", "valueType": "field", "value": "{{node:code_node_inConflictBatch.data.pickingHdrUpdates.delivery_status}}", "valueLabel": "", "propLabel": "Delivery Status" }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_inPickingHdrFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_inHuLoop",
+      "type": "if",
+      "data": {
+        "title": "IF Has HU Updates",
+        "isValidator": true,
+        "nodeName": "IF Has HU Updates",
+        "name": "IF Has HU Updates",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            { "id": 1779334202001, "parentId": 1779334202000, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_inConflictBatch.data.hasHuUpdates}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_inHuLoopTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "loop_inHuUpdates",
+              "type": "loop",
+              "data": {
+                "title": "Loop HU Updates",
+                "isValidator": true,
+                "nodeName": "Loop HU Updates",
+                "name": "Loop HU Updates",
+                "loopType": "Var",
+                "loopSeletVar": {
+                  "type": "markdown",
+                  "code": "{{node:code_node_inConflictBatch.data.huUpdates}}"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "atomic_count_node_inHuInc",
+                  "type": "atomic-count-node",
+                  "data": {
+                    "title": "Atomic HU Increment",
+                    "isValidator": true,
+                    "nodeName": "Atomic HU Increment",
+                    "name": "Atomic HU Increment",
+                    "table_id": {
+                      "source": "Handling Unit:Table:2036736671686529026",
+                      "rules": {
+                        "collectionId": "2036736671686529026",
+                        "list": [
+                          {
+                            "id": 1779334202101,
+                            "parentId": 1779334202100,
+                            "isTop": true,
+                            "prop": "id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:loop_inHuUpdates.handling_unit_id}}",
+                            "type": "leaf",
+                            "level": 1,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    },
+                    "props": {
+                      "modelName": "",
+                      "list": [
+                        {
+                          "prop": "total_quantity",
+                          "operator": "plus",
+                          "valueType": "field",
+                          "value": "{{node:loop_inHuUpdates.increment_quantity}}",
+                          "valueLabel": "",
+                          "propLabel": "Total Quantity"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "atomic_count_node_inHuLnInc",
+                  "type": "atomic-count-node",
+                  "data": {
+                    "title": "Atomic HU Line Increment",
+                    "isValidator": true,
+                    "nodeName": "Atomic HU Line Increment",
+                    "name": "Atomic HU Line Increment",
+                    "table_id": {
+                      "source": "Items(Handling Unit):Table:2036977712276639745",
+                      "rules": {
+                        "collectionId": "2036977712276639745",
+                        "list": [
+                          {
+                            "id": 1779334202201,
+                            "parentId": 1779334202200,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "all",
+                            "valueType": "",
+                            "value": "",
+                            "type": "branch",
+                            "level": 1,
+                            "children": [
+                              {
+                                "id": 1779334202202,
+                                "parentId": 1779334202201,
+                                "isTop": false,
+                                "prop": "handling_unit_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{node:loop_inHuUpdates.handling_unit_id}}",
+                                "type": "leaf",
+                                "level": 2,
+                                "propLabel": "Handling Unit ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              },
+                              {
+                                "id": 1779334202203,
+                                "parentId": 1779334202201,
+                                "isTop": false,
+                                "prop": "material_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{node:loop_inHuUpdates.material_id}}",
+                                "type": "leaf",
+                                "level": 2,
+                                "propLabel": "Material ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              },
+                              {
+                                "id": 1779334202204,
+                                "parentId": 1779334202201,
+                                "isTop": false,
+                                "prop": "batch_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{node:loop_inHuUpdates.batch_id}}",
+                                "type": "leaf",
+                                "level": 2,
+                                "propLabel": "Batch ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "props": {
+                      "modelName": "",
+                      "list": [
+                        {
+                          "prop": "quantity",
+                          "operator": "plus",
+                          "valueType": "field",
+                          "value": "{{node:loop_inHuUpdates.increment_quantity}}",
+                          "valueLabel": "",
+                          "propLabel": "Quantity"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_block_inHuLoopFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_inInvMov",
+      "type": "if",
+      "data": {
+        "title": "IF Has Inventory Movements",
+        "isValidator": true,
+        "nodeName": "IF Has Inventory Movements",
+        "name": "IF Has Inventory Movements",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            { "id": 1779334203001, "parentId": 1779334203000, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_inConflictBatch.data.hasInventoryMovements}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_inInvMovTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "loop_inInvMovements",
+              "type": "loop",
+              "data": {
+                "title": "Loop Inventory Movements",
+                "isValidator": true,
+                "nodeName": "Loop Inventory Movements",
+                "name": "Loop Inventory Movements",
+                "loopType": "Var",
+                "loopSeletVar": {
+                  "type": "markdown",
+                  "code": "{{node:code_node_inConflictBatch.data.inventoryMovements}}"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "workflow_node_inAddInv",
+                  "type": "workflow-node",
+                  "data": {
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "Add Inventory Workflow",
+                    "isValidator": true,
+                    "nodeName": "Add Inventory Workflow",
+                    "name": "Add Inventory Workflow",
+                    "workflow": {
+                      "source": "ADD_INVENTORY_NEW:Workflow:2031995315136184322",
+                      "rules": {
+                        "collectionId": "2031995315136184322",
+                        "list": [
+                          {
+                            "id": 1779334203101,
+                            "parentId": 1779334203100,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
+                      "list": [
+                        { "prop": "plant_id", "operator": "", "valueType": "field", "value": "{{workflowparams:plant_id}}", "valueLabel": "", "propLabel": "Plant ID" },
+                        { "prop": "organization_id", "operator": "", "valueType": "field", "value": "{{workflowparams:organization_id}}", "valueLabel": "", "propLabel": "Organization ID" },
+                        { "prop": "material_id", "operator": "", "valueType": "field", "value": "{{node:loop_inInvMovements.material_id}}", "valueLabel": "", "propLabel": "Material ID" },
+                        { "prop": "quantity", "operator": "", "valueType": "field", "value": "{{node:loop_inInvMovements.quantity}}", "valueLabel": "", "propLabel": "Quantity" },
+                        { "prop": "material_uom", "operator": "", "valueType": "field", "value": "{{node:loop_inInvMovements.material_uom}}", "valueLabel": "", "propLabel": "Material UOM" },
+                        { "prop": "transaction_type", "operator": "", "valueType": "field", "value": "{{workflowparams:transaction_type}}", "valueLabel": "", "propLabel": "Transaction Type" },
+                        { "prop": "trx_no", "operator": "", "valueType": "field", "value": "{{workflowparams:gd_no}}", "valueLabel": "", "propLabel": "Transaction Number" },
+                        { "prop": "parent_trx_no", "operator": "", "valueType": "field", "value": "{{node:loop_inInvMovements.parent_no}}", "valueLabel": "", "propLabel": "Parent Transaction Number" },
+                        { "prop": "inventory_category", "operator": "", "valueType": "field", "value": "{{node:loop_inInvMovements.inventory_category}}", "valueLabel": "", "propLabel": "Inventory Category" },
+                        { "prop": "location_id", "operator": "", "valueType": "field", "value": "{{node:loop_inInvMovements.location_id}}", "valueLabel": "", "propLabel": "Location ID" },
+                        { "prop": "batch_id", "operator": "", "valueType": "field", "value": "{{node:loop_inInvMovements.batch_id}}", "valueLabel": "", "propLabel": "Batch ID" },
+                        { "prop": "handling_unit_id", "operator": "", "valueType": "field", "value": "{{node:loop_inInvMovements.handling_unit_id}}", "valueLabel": "", "propLabel": "Handling Unit ID" },
+                        { "prop": "index", "operator": "", "valueType": "field", "value": "{{node:loop_inInvMovements.index}}", "valueLabel": "", "propLabel": "Index" },
+                        { "prop": "itemData", "operator": "", "valueType": "field", "value": "{{node:loop_inInvMovements.itemData}}", "valueLabel": "", "propLabel": "Item Data" },
+                        { "prop": "isMovingInv", "operator": "", "valueType": "value", "value": "1", "valueLabel": "", "propLabel": "Is Moving Inventory" },
+                        { "prop": "doc_date", "operator": "", "valueType": "field", "value": "{{workflowparams:doc_date}}", "valueLabel": "", "propLabel": "Document Date" }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "if_inAddInvFailed",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Add Inventory Failed",
+                    "isValidator": true,
+                    "nodeName": "IF Add Inventory Failed",
+                    "name": "IF Add Inventory Failed",
+                    "condition_type": "Expression",
+                    "filter": {
+                      "list": [
+                        { "id": 1779334203201, "parentId": 1779334203200, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+                      ]
+                    },
+                    "expression": {
+                      "type": "javascript",
+                      "code": "'{{node:workflow_node_inAddInv.data.code}}' == '400'"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_block_inAddInvFailedTrue",
+                      "type": "ifBlock",
+                      "data": { "title": "true" },
+                      "blocks": [
+                        {
+                          "id": "return_node_inAddInvFailed",
+                          "type": "return-node",
+                          "data": {
+                            "return_data": {},
+                            "status_code": 200,
+                            "title": "Return Add Inventory Failed",
+                            "isValidator": true,
+                            "nodeName": "Return Add Inventory Failed",
+                            "name": "Return Add Inventory Failed",
+                            "response_value": {
+                              "list": [
+                                { "prop": "code", "operator": "", "valueType": "value", "value": "409", "valueLabel": "", "propLabel": "code" },
+                                { "prop": "message", "operator": "", "valueType": "field", "value": "{{node:workflow_node_inAddInv.data.message}}", "valueLabel": "", "propLabel": "message" },
+                                { "prop": "conflicts", "operator": "", "valueType": "value", "value": "[]", "valueLabel": "", "propLabel": "conflicts" }
+                              ]
+                            },
+                            "return_raw_data": 0
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_block_inAddInvFailedFalse",
+                      "type": "ifBlock",
+                      "data": { "title": "false" },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_block_inInvMovFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "return_node_inSuccess",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Revert Success",
+        "isValidator": true,
+        "nodeName": "Return Revert Success",
+        "name": "Return Revert Success",
+        "response_value": {
+          "list": [
+            { "prop": "code", "operator": "", "valueType": "value", "value": "200", "valueLabel": "", "propLabel": "code" },
+            { "prop": "message", "operator": "", "valueType": "value", "value": "Inventory reversal complete", "valueLabel": "", "propLabel": "message" },
+            { "prop": "conflicts", "operator": "", "valueType": "value", "value": "[]", "valueLabel": "", "propLabel": "conflicts" }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "21tst0zj",
+      "name": "doc_id",
+      "title": "doc_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "vqafmtl8",
+      "name": "gd_no",
+      "title": "gd_no",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "uykgwc8o",
+      "name": "plant_id",
+      "title": "plant_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "hu8wwden",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "svhpsw8s",
+      "name": "snapshot_id",
+      "title": "snapshot_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "kvvkemfq",
+      "name": "tableData",
+      "title": "tableData",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "zznqmuea",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "isArrayItem": true,
+          "children": []
+        }
+      ]
+    },
+    {
+      "key": "rv1trxty",
+      "name": "transaction_type",
+      "title": "transaction_type",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "rv2docdt",
+      "name": "doc_date",
+      "title": "doc_date",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "0lct65up",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "7rbn6ybm",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "bqnt4qzg",
+      "name": "conflicts",
+      "title": "conflicts",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "q2z1qj0r",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "isArrayItem": true,
+          "children": []
+        }
+      ]
+    }
+  ],
+  "config": {}
+}

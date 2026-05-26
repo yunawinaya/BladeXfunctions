@@ -1,0 +1,609 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "code_node_hrExtract",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Extract GD Scalars",
+        "isValidator": true,
+        "nodeName": "Extract GD Scalars",
+        "name": "Extract GD Scalars",
+        "script": {
+          "type": "javascript",
+          "code": "// Extract the scalars + tableData we need for SO restore + downstream inventory revert call.\nconst allData = {{workflowparams:allData}} || {};\n\nconst gdId = allData.id || \"\";\nconst gdNo = allData.delivery_no || allData.gd_no || \"\";\nconst gdStatus = allData.gd_status || \"\";\nconst plantId = allData.plant_id || \"\";\nconst organizationId = allData.organization_id || \"\";\nconst tableData = Array.isArray(allData.table_gd) ? allData.table_gd : [];\n\n// Format current date as 'YYYY-MM-DD HH:mm:ss' for the doc_date param sent to ADD_INVENTORY_NEW.\nconst pad = (n) => (n < 10 ? \"0\" + n : \"\" + n);\nconst d = new Date();\nconst docDate = d.getFullYear() + \"-\" + pad(d.getMonth() + 1) + \"-\" + pad(d.getDate()) + \" \" + pad(d.getHours()) + \":\" + pad(d.getMinutes()) + \":\" + pad(d.getSeconds());\n\nreturn {\n  gdId,\n  gdNo,\n  gdStatus,\n  plantId,\n  organizationId,\n  tableData,\n  transactionType: \"Goods Delivery Revert\",\n  docDate,\n  isCompleted: gdStatus === \"Completed\" ? 1 : 0,\n};\n"
+        },
+        "response_json": [
+          { "key": "hr1gdid01", "name": "gdId", "title": "gdId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "hr2gdno02", "name": "gdNo", "title": "gdNo", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "hr3gdst03", "name": "gdStatus", "title": "gdStatus", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "hr4plnt04", "name": "plantId", "title": "plantId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "hr5orgi05", "name": "organizationId", "title": "organizationId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "hr6tabl06", "name": "tableData", "title": "tableData", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "hr7trxt07", "name": "transactionType", "title": "transactionType", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "hr8docd08", "name": "docDate", "title": "docDate", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "hr9iscm09", "name": "isCompleted", "title": "isCompleted", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_hrNotCompleted",
+      "type": "if",
+      "data": {
+        "title": "IF GD Not Completed",
+        "isValidator": true,
+        "nodeName": "IF GD Not Completed",
+        "name": "IF GD Not Completed",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            { "id": 1779334300001, "parentId": 1779334300000, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_hrExtract.data.isCompleted}}' != '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_hrNotCompletedTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_hrNotCompleted",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Not Completed",
+                "isValidator": true,
+                "nodeName": "Return Not Completed",
+                "name": "Return Not Completed",
+                "response_value": {
+                  "list": [
+                    { "prop": "code", "operator": "", "valueType": "value", "value": "400", "valueLabel": "", "propLabel": "code" },
+                    { "prop": "message", "operator": "", "valueType": "value", "value": "Only Completed Goods Deliveries can be reverted", "valueLabel": "", "propLabel": "message" }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_hrNotCompletedFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "search_node_hrFindSnap",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "GD Completion Snapshot:Table:2058814896563986434",
+          "rules": {
+            "collectionId": "2058814896563986434",
+            "list": [
+              {
+                "id": 1779334300101,
+                "parentId": 1779334300100,
+                "isTop": true,
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1779334300102,
+                    "parentId": 1779334300101,
+                    "isTop": false,
+                    "prop": "gd_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{node:code_node_hrExtract.data.gdId}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "GD ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1779334300103,
+                    "parentId": 1779334300101,
+                    "isTop": false,
+                    "prop": "snapshot_status",
+                    "operator": "equal",
+                    "valueType": "value",
+                    "value": "Active",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Snapshot Status",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 10,
+        "title": "Find Active Snapshot",
+        "isValidator": true,
+        "nodeName": "Find Active Snapshot",
+        "name": "Find Active Snapshot"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_hrParseSnap",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Parse Snapshot",
+        "isValidator": true,
+        "nodeName": "Parse Snapshot",
+        "name": "Parse Snapshot",
+        "script": {
+          "type": "javascript",
+          "code": "// search-node returns data.data as an array (possibly empty).\nconst raw = {{node:search_node_hrFindSnap.data.data}} || [];\nconst arr = Array.isArray(raw) ? raw : [];\n\nif (arr.length === 0) {\n  return {\n    snapshotFound: 0,\n    snapshotId: \"\",\n    preSoLines: [],\n    hasSoLines: 0,\n  };\n}\n\n// If multiple Actives somehow exist, take the most recently created.\nconst snapshot = arr.length === 1 ? arr[0] : arr.slice().sort((a, b) => {\n  const at = new Date(a.create_time || 0).getTime();\n  const bt = new Date(b.create_time || 0).getTime();\n  return bt - at;\n})[0];\n\nconst parse = (raw, def) => {\n  if (raw === null || raw === undefined || raw === \"\") return def;\n  if (typeof raw === \"string\") {\n    try { return JSON.parse(raw); } catch (e) { return def; }\n  }\n  return raw;\n};\n\nconst preSoLines = parse(snapshot.pre_so_lines, []);\n\nreturn {\n  snapshotFound: 1,\n  snapshotId: snapshot.id,\n  preSoLines,\n  hasSoLines: preSoLines.length > 0 ? 1 : 0,\n};\n"
+        },
+        "response_json": [
+          { "key": "hp1snfd01", "name": "snapshotFound", "title": "snapshotFound", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "hp2snid02", "name": "snapshotId", "title": "snapshotId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
+          { "key": "hp3psln03", "name": "preSoLines", "title": "preSoLines", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "hp4hsln04", "name": "hasSoLines", "title": "hasSoLines", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_hrSnapMissing",
+      "type": "if",
+      "data": {
+        "title": "IF Snapshot Missing",
+        "isValidator": true,
+        "nodeName": "IF Snapshot Missing",
+        "name": "IF Snapshot Missing",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            { "id": 1779334300201, "parentId": 1779334300200, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_hrParseSnap.data.snapshotFound}}' == '0'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_hrSnapMissTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_hrSnapMissing",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Snapshot Missing",
+                "isValidator": true,
+                "nodeName": "Return Snapshot Missing",
+                "name": "Return Snapshot Missing",
+                "response_value": {
+                  "list": [
+                    { "prop": "code", "operator": "", "valueType": "value", "value": "400", "valueLabel": "", "propLabel": "code" },
+                    { "prop": "message", "operator": "", "valueType": "value", "value": "No active snapshot found for this Goods Delivery; revert not possible (snapshot may have expired, been consumed by a previous revert, or this GD was completed before snapshots were enabled).", "valueLabel": "", "propLabel": "message" }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_hrSnapMissFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_hrHasSoLines",
+      "type": "if",
+      "data": {
+        "title": "IF Has SO Lines To Restore",
+        "isValidator": true,
+        "nodeName": "IF Has SO Lines To Restore",
+        "name": "IF Has SO Lines To Restore",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            { "id": 1779334300301, "parentId": 1779334300300, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_hrParseSnap.data.hasSoLines}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_hrHasSoLinesTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_hrRestoreSoLines",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "sales_order_axszx8cj_sub:Table:1939903359943024642",
+                  "rules": {
+                    "collectionId": "1939903359943024642",
+                    "list": [
+                      {
+                        "id": 1779334300401,
+                        "parentId": 1779334300400,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_hrParseSnap.data.preSoLines.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Restore SO Lines",
+                "isValidator": true,
+                "nodeName": "Restore SO Lines",
+                "name": "Restore SO Lines",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    { "prop": "id", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoLines.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
+                    { "prop": "planned_qty", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoLines.planned_qty}}", "operator": "", "valueLabel": "", "propLabel": "Planned Quantity" },
+                    { "prop": "delivered_qty", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoLines.delivered_qty}}", "operator": "", "valueLabel": "", "propLabel": "Delivered Quantity" },
+                    { "prop": "outstanding_quantity", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoLines.outstanding_quantity}}", "operator": "", "valueLabel": "", "propLabel": "Outstanding Quantity" },
+                    { "prop": "line_status", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoLines.line_status}}", "operator": "", "valueLabel": "", "propLabel": "Line Status" }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_hrHasSoLinesFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "workflow_node_hrCallInvRevert",
+      "type": "workflow-node",
+      "data": {
+        "workflow_id": "",
+        "workflow_name": "",
+        "input_params": {},
+        "title": "Call Inventory Revert Workflow",
+        "isValidator": true,
+        "nodeName": "Call Inventory Revert Workflow",
+        "name": "Call Inventory Revert Workflow",
+        "workflow": {
+          "source": "GD_PROCESS_REVERT:Workflow:2058820005398224897",
+          "rules": {
+            "collectionId": "2058820005398224897",
+            "list": [
+              { "id": 1779334300501, "parentId": 1779334300500, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+            ]
+          }
+        },
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "body_params": {
+          "list": [
+            { "prop": "snapshot_id", "operator": "", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.snapshotId}}", "valueLabel": "", "propLabel": "Snapshot ID" },
+            { "prop": "doc_id", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.gdId}}", "valueLabel": "", "propLabel": "Document ID" },
+            { "prop": "gd_no", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.gdNo}}", "valueLabel": "", "propLabel": "GD Number" },
+            { "prop": "plant_id", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.plantId}}", "valueLabel": "", "propLabel": "Plant ID" },
+            { "prop": "organization_id", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.organizationId}}", "valueLabel": "", "propLabel": "Organization ID" },
+            { "prop": "transaction_type", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.transactionType}}", "valueLabel": "", "propLabel": "Transaction Type" },
+            { "prop": "doc_date", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.docDate}}", "valueLabel": "", "propLabel": "Document Date" },
+            { "prop": "tableData", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.tableData}}", "valueLabel": "", "propLabel": "Table Data" }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_hrInvRevertConflict",
+      "type": "if",
+      "data": {
+        "title": "IF Inventory Revert Conflict",
+        "isValidator": true,
+        "nodeName": "IF Inventory Revert Conflict",
+        "name": "IF Inventory Revert Conflict",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            { "id": 1779334300601, "parentId": 1779334300600, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:workflow_node_hrCallInvRevert.data.code}}' == '409'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_hrInvConflictTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_hrInvConflict",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Inventory Conflict 409",
+                "isValidator": true,
+                "nodeName": "Return Inventory Conflict 409",
+                "name": "Return Inventory Conflict 409",
+                "response_value": {
+                  "list": [
+                    { "prop": "code", "operator": "", "valueType": "value", "value": "409", "valueLabel": "", "propLabel": "code" },
+                    { "prop": "message", "operator": "", "valueType": "field", "value": "{{node:workflow_node_hrCallInvRevert.data.message}}", "valueLabel": "", "propLabel": "message" }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_hrInvConflictFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_hrInvRevertError",
+      "type": "if",
+      "data": {
+        "title": "IF Inventory Revert Error",
+        "isValidator": true,
+        "nodeName": "IF Inventory Revert Error",
+        "name": "IF Inventory Revert Error",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            { "id": 1779334300701, "parentId": 1779334300700, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:workflow_node_hrCallInvRevert.data.code}}' == '400'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_hrInvErrorTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_hrInvError",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Inventory Error 400",
+                "isValidator": true,
+                "nodeName": "Return Inventory Error 400",
+                "name": "Return Inventory Error 400",
+                "response_value": {
+                  "list": [
+                    { "prop": "code", "operator": "", "valueType": "value", "value": "400", "valueLabel": "", "propLabel": "code" },
+                    { "prop": "message", "operator": "", "valueType": "field", "value": "{{node:workflow_node_hrCallInvRevert.data.message}}", "valueLabel": "", "propLabel": "message" }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_hrInvErrorFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "update_node_hrRestoreGdStatus",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Goods Delivery:Table:1902054888473481218",
+          "rules": {
+            "collectionId": "1902054888473481218",
+            "list": [
+              {
+                "id": 1779334300801,
+                "parentId": 1779334300800,
+                "isTop": true,
+                "prop": "id",
+                "operator": "equal",
+                "valueType": "field",
+                "value": "{{node:code_node_hrExtract.data.gdId}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Restore GD Status",
+        "isValidator": true,
+        "nodeName": "Restore GD Status",
+        "name": "Restore GD Status",
+        "props": {
+          "modelName": "",
+          "list": [
+            { "prop": "gd_status", "operator": "", "valueType": "value", "value": "Created", "valueLabel": "", "propLabel": "GD Status" }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "update_node_hrMarkSnapReverted",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "GD Completion Snapshot:Table:2058814896563986434",
+          "rules": {
+            "collectionId": "2058814896563986434",
+            "list": [
+              {
+                "id": 1779334300901,
+                "parentId": 1779334300900,
+                "isTop": true,
+                "prop": "id",
+                "operator": "equal",
+                "valueType": "field",
+                "value": "{{node:code_node_hrParseSnap.data.snapshotId}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Mark Snapshot Reverted",
+        "isValidator": true,
+        "nodeName": "Mark Snapshot Reverted",
+        "name": "Mark Snapshot Reverted",
+        "props": {
+          "modelName": "",
+          "list": [
+            { "prop": "snapshot_status", "operator": "", "valueType": "value", "value": "Reverted", "valueLabel": "", "propLabel": "Snapshot Status" }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_hrSuccess",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Revert Success",
+        "isValidator": true,
+        "nodeName": "Return Revert Success",
+        "name": "Return Revert Success",
+        "response_value": {
+          "list": [
+            { "prop": "code", "operator": "", "valueType": "value", "value": "200", "valueLabel": "", "propLabel": "code" },
+            { "prop": "message", "operator": "", "valueType": "value", "value": "Goods Delivery reverted to Created successfully", "valueLabel": "", "propLabel": "message" }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "sihd3q6g",
+      "name": "allData",
+      "title": "allData",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "35hbuxp5",
+      "name": "pageStatus",
+      "title": "pageStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "tmhvw60d",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "08xy9haf",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}
