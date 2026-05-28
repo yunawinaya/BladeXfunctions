@@ -387,10 +387,7 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": {
-        "isValidator": true,
-        "title": "结束节点"
-      },
+      "data": { "isValidator": true, "title": "结束节点" },
       "blocks": []
     }
   ],
