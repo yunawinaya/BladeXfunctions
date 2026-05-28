@@ -396,6 +396,38 @@ const PickingPlan = async (pickingSetup) => {
   }
 };
 
+// A Picking converted from a Goods Delivery carries over the GD's delivery
+// method + details (pre-filled by GDconvertToPicking). Reveal the section that
+// matches the pre-filled delivery_method, mirroring onChangeDeliveryMethod's
+// visibility logic but WITHOUT triggering func_reset_delivery_method (which
+// would wipe the carried-over values).
+const revealDeliveryMethodSection = async () => {
+  const sections = [
+    "self_pickup",
+    "courier_service",
+    "company_truck",
+    "shipping_service",
+    "third_party_transporter",
+  ];
+  const deliveryMethod = this.getValue("delivery_method");
+  if (!deliveryMethod) {
+    await this.hide(sections);
+    return;
+  }
+  const visibilityMap = {
+    "Self Pickup": "self_pickup",
+    "Courier Service": "courier_service",
+    "Company Truck": "company_truck",
+    "Shipping Service": "shipping_service",
+    "3rd Party Transporter": "third_party_transporter",
+  };
+  const selected = visibilityMap[deliveryMethod] || null;
+  for (const f of sections) {
+    if (f === selected) await this.display(f);
+    else await this.hide(f);
+  }
+};
+
 // Main execution function
 (async () => {
   try {
@@ -442,6 +474,7 @@ const PickingPlan = async (pickingSetup) => {
           await createHeaderRows();
           await applyHUVisibility();
           await PickingPlan(pickingSetup);
+          await revealDeliveryMethodSection();
         }
         break;
 
@@ -467,6 +500,7 @@ const PickingPlan = async (pickingSetup) => {
           await createHeaderRows();
           await applyHUVisibility();
           await PickingPlan(pickingSetup);
+          await revealDeliveryMethodSection();
         }
         break;
 
@@ -486,6 +520,7 @@ const PickingPlan = async (pickingSetup) => {
           await createHeaderRows();
           await applyHUVisibility();
           await PickingPlan(pickingSetup);
+          await revealDeliveryMethodSection();
         }
         break;
     }
