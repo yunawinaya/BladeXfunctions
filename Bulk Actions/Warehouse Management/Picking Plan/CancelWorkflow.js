@@ -41,11 +41,10 @@ const runPPWorkflow = async (data) => {
       }
 
       // Block cancellation when picking has already started/completed.
-      // Allowed picking_status values: empty/null/undefined or "Created".
       const blockedByPickingStatus = createdPickingPlans.filter(
         (item) =>
-          item.picking_status &&
-          item.picking_status !== "Created",
+          item.picking_status === "In Progress" ||
+          item.picking_status === "Completed",
       );
 
       if (blockedByPickingStatus.length > 0) {
@@ -71,7 +70,8 @@ const runPPWorkflow = async (data) => {
 
       const pickingPlanData = createdPickingPlans.filter(
         (item) =>
-          !item.picking_status || item.picking_status === "Created",
+          item.picking_status !== "In Progress" &&
+          item.picking_status !== "Completed",
       );
 
       const pickingPlanNumbers = pickingPlanData.map((item) => item.to_no);
