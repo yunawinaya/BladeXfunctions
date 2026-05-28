@@ -38,10 +38,10 @@ const processData = async (tableGR, invCategoryData, putawaySetupData) => {
           [`table_gr.${index}.inv_category`]: "Unrestricted",
         });
       } else if (putawaySetupData && putawaySetupData.putaway_required === 1) {
-        const invCategoryOption = invCategoryData.filter(
-          (cat) =>
-            cat.dict_key === "In Transit" ||
-            cat.dict_key === "Unrestricted",
+        const invCategoryOption = invCategoryData.filter((cat) =>
+          putawayCategory === "In Transit"
+            ? cat.dict_key === "In Transit"
+            : cat.dict_key === "In Transit" || cat.dict_key === "Unrestricted",
         );
         this.setOptionData(`table_gr.${index}.inv_category`, invCategoryOption);
 
