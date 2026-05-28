@@ -19,7 +19,7 @@
         "name": "Extract GD Scalars",
         "script": {
           "type": "javascript",
-          "code": "// Extract the scalars + tableData we need for SO restore + downstream inventory revert call.\nconst allData = {{workflowparams:allData}} || {};\n\nconst gdId = allData.id || \"\";\nconst gdNo = allData.delivery_no || allData.gd_no || \"\";\nconst gdStatus = allData.gd_status || \"\";\nconst plantId = allData.plant_id || \"\";\nconst organizationId = allData.organization_id || \"\";\nconst tableData = Array.isArray(allData.table_gd) ? allData.table_gd : [];\n\n// Format current date as 'YYYY-MM-DD HH:mm:ss' for the doc_date param sent to ADD_INVENTORY_NEW.\nconst pad = (n) => (n < 10 ? \"0\" + n : \"\" + n);\nconst d = new Date();\nconst docDate = d.getFullYear() + \"-\" + pad(d.getMonth() + 1) + \"-\" + pad(d.getDate()) + \" \" + pad(d.getHours()) + \":\" + pad(d.getMinutes()) + \":\" + pad(d.getSeconds());\n\nreturn {\n  gdId,\n  gdNo,\n  gdStatus,\n  plantId,\n  organizationId,\n  tableData,\n  transactionType: \"GDL-R\",\n  docDate,\n  isCompleted: gdStatus === \"Completed\" ? 1 : 0,\n};\n"
+          "code": "// Extract the scalars + tableData we need for SO restore + downstream inventory revert call.\nconst allData = {{workflowparams:allData}} || {};\n\nconst gdId = allData.id || \"\";\nconst gdNo = allData.delivery_no || allData.gd_no || \"\";\nconst gdStatus = allData.gd_status || \"\";\nconst plantId = allData.plant_id || \"\";\nconst organizationId = allData.organization_id || \"\";\nconst tableData = Array.isArray(allData.table_gd) ? allData.table_gd : [];\n\n// Extract SO line + SO header ids for current-state fetch (additive revert math).\nconst soLineItemIdsSet = new Set();\nconst soHeaderIdsSet = new Set();\nfor (const row of tableData) {\n  if (row.so_line_item_id) soLineItemIdsSet.add(row.so_line_item_id);\n  if (row.line_so_id) soHeaderIdsSet.add(row.line_so_id);\n}\nconst soLineItemIds = [...soLineItemIdsSet];\nconst soHeaderIds = [...soHeaderIdsSet];\n\n// Format current date as 'YYYY-MM-DD HH:mm:ss' for the doc_date param sent to ADD_INVENTORY_NEW.\nconst pad = (n) => (n < 10 ? \"0\" + n : \"\" + n);\nconst d = new Date();\nconst docDate = d.getFullYear() + \"-\" + pad(d.getMonth() + 1) + \"-\" + pad(d.getDate()) + \" \" + pad(d.getHours()) + \":\" + pad(d.getMinutes()) + \":\" + pad(d.getSeconds());\n\nreturn {\n  gdId,\n  gdNo,\n  gdStatus,\n  plantId,\n  organizationId,\n  tableData,\n  soLineItemIds,\n  soHeaderIds,\n  transactionType: \"GDL-R\",\n  docDate,\n  isCompleted: gdStatus === \"Completed\" ? 1 : 0,\n  hasSoLineItemIds: soLineItemIds.length > 0 ? 1 : 0,\n  hasSoHeaderIds: soHeaderIds.length > 0 ? 1 : 0,\n};\n"
         },
         "response_json": [
           { "key": "hr1gdid01", "name": "gdId", "title": "gdId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
@@ -30,7 +30,11 @@
           { "key": "hr6tabl06", "name": "tableData", "title": "tableData", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
           { "key": "hr7trxt07", "name": "transactionType", "title": "transactionType", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
           { "key": "hr8docd08", "name": "docDate", "title": "docDate", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
-          { "key": "hr9iscm09", "name": "isCompleted", "title": "isCompleted", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
+          { "key": "hr9iscm09", "name": "isCompleted", "title": "isCompleted", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "hra0soli10", "name": "soLineItemIds", "title": "soLineItemIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "hrb1sohi11", "name": "soHeaderIds", "title": "soHeaderIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "hrc2hsli12", "name": "hasSoLineItemIds", "title": "hasSoLineItemIds", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "hrd3hshi13", "name": "hasSoHeaderIds", "title": "hasSoHeaderIds", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
         ]
       },
       "blocks": []
@@ -234,6 +238,100 @@
       ]
     },
     {
+      "id": "search_node_hrCurSoLines",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "sales_order_axszx8cj_sub:Table:1939903359943024642",
+          "rules": {
+            "collectionId": "1939903359943024642",
+            "list": [
+              {
+                "id": 1779334300251,
+                "parentId": 1779334300250,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_hrExtract.data.soLineItemIds}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 500,
+        "title": "Find Current SO Lines",
+        "isValidator": true,
+        "nodeName": "Find Current SO Lines",
+        "name": "Find Current SO Lines"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_hrCurSoHdr",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Sales Order:Table:1902773735979597826",
+          "rules": {
+            "collectionId": "1902773735979597826",
+            "list": [
+              {
+                "id": 1779334300261,
+                "parentId": 1779334300260,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_hrExtract.data.soHeaderIds}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 500,
+        "title": "Find Current SO Headers",
+        "isValidator": true,
+        "nodeName": "Find Current SO Headers",
+        "name": "Find Current SO Headers"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_hrComputeSoUpdates",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Compute Additive SO Updates",
+        "isValidator": true,
+        "nodeName": "Compute Additive SO Updates",
+        "name": "Compute Additive SO Updates",
+        "script": {
+          "type": "javascript",
+          "code": "// Compute additive SO line + aggregated SO header updates for revert.\n// Math mirrors completion's inverse: delivered -= gdQty, planned += gdQty.\n// This preserves other GDs' contributions when multiple GDs target the same SO.\n\nconst tableData = {{node:code_node_hrExtract.data.tableData}} || [];\nconst curSoLinesRaw = {{node:search_node_hrCurSoLines.data.data}} || [];\nconst curSoHdrsRaw = {{node:search_node_hrCurSoHdr.data.data}} || [];\nconst curSoLines = Array.isArray(curSoLinesRaw) ? curSoLinesRaw : [curSoLinesRaw];\nconst curSoHdrs = Array.isArray(curSoHdrsRaw) ? curSoHdrsRaw : [curSoHdrsRaw];\n\nconst roundQty = (v) => {\n  if (v === null || v === undefined || v === \"\") return 0;\n  return Math.round(parseFloat(v) * 1000) / 1000;\n};\nconst formatNumber = (v) => {\n  if (v === null || v === undefined || v === \"\") return \"0.000\";\n  return parseFloat(v).toFixed(3);\n};\n\n// Aggregate this GD's gd_qty contribution per so_line_item_id (handles multiple\n// GD rows targeting the same SO line — rare but possible).\nconst gdQtyBySoLine = {};\nfor (const row of tableData) {\n  if (!row.so_line_item_id) continue;\n  const qty = parseFloat(row.gd_qty) || 0;\n  gdQtyBySoLine[row.so_line_item_id] = roundQty((gdQtyBySoLine[row.so_line_item_id] || 0) + qty);\n}\n\n// Build SO line updates (additive reverse of completion).\nconst soLineUpdates = [];\nconst newLineStateById = {}; // for header aggregation\nfor (const soLine of curSoLines) {\n  const lineId = soLine.id;\n  const gdQty = gdQtyBySoLine[lineId] || 0;\n  const curDelivered = parseFloat(soLine.delivered_qty) || 0;\n  const curPlanned = parseFloat(soLine.planned_qty) || 0;\n  const soQuantity = parseFloat(soLine.so_quantity) || 0;\n  const newDelivered = Math.max(0, roundQty(curDelivered - gdQty));\n  const newPlanned = roundQty(curPlanned + gdQty);\n  const newOutstanding = Math.max(0, roundQty(soQuantity - newDelivered));\n\n  // line_status recompute:\n  // - newDelivered >= soQuantity > 0 → \"Completed\" (other GDs still cover it)\n  // - newDelivered > 0 → \"Processing\" (partial)\n  // - newDelivered === 0 → empty (back to pre-delivery state)\n  let newLineStatus;\n  if (soQuantity > 0 && newDelivered >= soQuantity) {\n    newLineStatus = \"Completed\";\n  } else if (newDelivered > 0) {\n    newLineStatus = \"Processing\";\n  } else {\n    newLineStatus = \"\";\n  }\n\n  soLineUpdates.push({\n    id: lineId,\n    planned_qty: formatNumber(newPlanned),\n    delivered_qty: formatNumber(newDelivered),\n    outstanding_quantity: formatNumber(newOutstanding),\n    line_status: newLineStatus,\n  });\n  newLineStateById[lineId] = {\n    delivered_qty: newDelivered,\n    so_quantity: soQuantity,\n    line_status: newLineStatus,\n  };\n}\n\n// Build SO header aggregated updates. Mirror of completion's code_node_lwB2FVe0\n// (Completed branch): count fully/partially delivered across ALL table_so lines,\n// using newLineStateById for lines we just updated and existing values for others.\nconst soHeaderUpdates = [];\nfor (const soHdr of curSoHdrs) {\n  const tableSo = Array.isArray(soHdr.table_so) ? soHdr.table_so : [];\n  const totalItems = tableSo.length;\n  let partiallyDeliveredItems = 0;\n  let fullyDeliveredItems = 0;\n\n  for (const soItem of tableSo) {\n    const updated = newLineStateById[soItem.id];\n    const lineToCheck = updated || soItem;\n    const deliveredQty = parseFloat(lineToCheck.delivered_qty || 0);\n    const soQty = parseFloat(lineToCheck.so_quantity || 0);\n    const lineStatus = lineToCheck.line_status;\n\n    if (lineStatus === \"Completed\" || (deliveredQty >= soQty && soQty > 0)) {\n      partiallyDeliveredItems++;\n      fullyDeliveredItems++;\n    } else if (deliveredQty > 0) {\n      partiallyDeliveredItems++;\n    }\n  }\n\n  const allItemsComplete = fullyDeliveredItems === totalItems && totalItems > 0;\n  const anyItemProcessing = partiallyDeliveredItems > 0;\n\n  // Derive SO header status from new line state:\n  // - all delivered → so_status=\"Completed\", gd_status=\"Fully Delivered\"\n  // - any partial → so_status=\"Processing\", gd_status=\"Partially Delivered\"\n  // - none delivered → so_status=\"Issued\" (revert to pre-delivery), gd_status=\"Created\"\n  //   (any GD still tied to this SO leaves gd_status=\"Created\"; we don't know about\n  //   other Created/Completed GDs here, so default to \"Created\" — completion's\n  //   own Created-path also sets \"Created\" when prev was empty/Cancelled.)\n  let newSoStatus;\n  let newGdStatus;\n  if (allItemsComplete) {\n    newSoStatus = \"Completed\";\n    newGdStatus = \"Fully Delivered\";\n  } else if (anyItemProcessing) {\n    newSoStatus = \"Processing\";\n    newGdStatus = \"Partially Delivered\";\n  } else {\n    newSoStatus = \"Issued\";\n    newGdStatus = \"Created\";\n  }\n\n  soHeaderUpdates.push({\n    id: soHdr.id,\n    so_status: newSoStatus,\n    gd_status: newGdStatus,\n    partially_delivered: totalItems > 0 ? (partiallyDeliveredItems + \" / \" + totalItems) : \"0 / 0\",\n    fully_delivered: totalItems > 0 ? (fullyDeliveredItems + \" / \" + totalItems) : \"0 / 0\",\n  });\n}\n\nreturn {\n  soLineUpdates,\n  soHeaderUpdates,\n  hasSoLineUpdates: soLineUpdates.length > 0 ? 1 : 0,\n  hasSoHeaderUpdates: soHeaderUpdates.length > 0 ? 1 : 0,\n};\n"
+        },
+        "response_json": [
+          { "key": "hcs1lupd01", "name": "soLineUpdates", "title": "soLineUpdates", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "hcs2hupd02", "name": "soHeaderUpdates", "title": "soHeaderUpdates", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
+          { "key": "hcs3hsli03", "name": "hasSoLineUpdates", "title": "hasSoLineUpdates", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
+          { "key": "hcs4hshi04", "name": "hasSoHeaderUpdates", "title": "hasSoHeaderUpdates", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
+        ]
+      },
+      "blocks": []
+    },
+    {
       "id": "if_hrHasSoLines",
       "type": "if",
       "data": {
@@ -249,7 +347,7 @@
         },
         "expression": {
           "type": "javascript",
-          "code": "'{{node:code_node_hrParseSnap.data.hasSoLines}}' == '1'"
+          "code": "'{{node:code_node_hrComputeSoUpdates.data.hasSoLineUpdates}}' == '1'"
         }
       },
       "blocks": [
@@ -274,7 +372,7 @@
                         "prop": "id",
                         "operator": "in",
                         "valueType": "field",
-                        "value": "{{node:code_node_hrParseSnap.data.preSoLines.id}}",
+                        "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.id}}",
                         "type": "leaf",
                         "level": 1,
                         "propLabel": "主键ID",
@@ -293,11 +391,11 @@
                 "props": {
                   "modelName": "",
                   "list": [
-                    { "prop": "id", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoLines.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
-                    { "prop": "planned_qty", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoLines.planned_qty}}", "operator": "", "valueLabel": "", "propLabel": "Planned Quantity" },
-                    { "prop": "delivered_qty", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoLines.delivered_qty}}", "operator": "", "valueLabel": "", "propLabel": "Delivered Quantity" },
-                    { "prop": "outstanding_quantity", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoLines.outstanding_quantity}}", "operator": "", "valueLabel": "", "propLabel": "Outstanding Quantity" },
-                    { "prop": "line_status", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoLines.line_status}}", "operator": "", "valueLabel": "", "propLabel": "Line Status" }
+                    { "prop": "id", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
+                    { "prop": "planned_qty", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.planned_qty}}", "operator": "", "valueLabel": "", "propLabel": "Planned Quantity" },
+                    { "prop": "delivered_qty", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.delivered_qty}}", "operator": "", "valueLabel": "", "propLabel": "Delivered Quantity" },
+                    { "prop": "outstanding_quantity", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.outstanding_quantity}}", "operator": "", "valueLabel": "", "propLabel": "Outstanding Quantity" },
+                    { "prop": "line_status", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.line_status}}", "operator": "", "valueLabel": "", "propLabel": "Line Status" }
                   ]
                 }
               },
@@ -329,7 +427,7 @@
         },
         "expression": {
           "type": "javascript",
-          "code": "'{{node:code_node_hrParseSnap.data.hasSoHeaders}}' == '1'"
+          "code": "'{{node:code_node_hrComputeSoUpdates.data.hasSoHeaderUpdates}}' == '1'"
         }
       },
       "blocks": [
@@ -354,7 +452,7 @@
                         "prop": "id",
                         "operator": "in",
                         "valueType": "field",
-                        "value": "{{node:code_node_hrParseSnap.data.preSoHeaders.id}}",
+                        "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.id}}",
                         "type": "leaf",
                         "level": 1,
                         "propLabel": "主键ID",
@@ -373,11 +471,11 @@
                 "props": {
                   "modelName": "",
                   "list": [
-                    { "prop": "id", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoHeaders.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
-                    { "prop": "so_status", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoHeaders.so_status}}", "operator": "", "valueLabel": "", "propLabel": "SO Status" },
-                    { "prop": "gd_status", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoHeaders.gd_status}}", "operator": "", "valueLabel": "", "propLabel": "GD Status" },
-                    { "prop": "partially_delivered", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoHeaders.partially_delivered}}", "operator": "", "valueLabel": "", "propLabel": "Partially Delivered" },
-                    { "prop": "fully_delivered", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.preSoHeaders.fully_delivered}}", "operator": "", "valueLabel": "", "propLabel": "Fully Delivered" }
+                    { "prop": "id", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
+                    { "prop": "so_status", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.so_status}}", "operator": "", "valueLabel": "", "propLabel": "SO Status" },
+                    { "prop": "gd_status", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.gd_status}}", "operator": "", "valueLabel": "", "propLabel": "GD Status" },
+                    { "prop": "partially_delivered", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.partially_delivered}}", "operator": "", "valueLabel": "", "propLabel": "Partially Delivered" },
+                    { "prop": "fully_delivered", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.fully_delivered}}", "operator": "", "valueLabel": "", "propLabel": "Fully Delivered" }
                   ]
                 }
               },
