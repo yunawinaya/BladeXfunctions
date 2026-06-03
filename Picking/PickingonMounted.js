@@ -197,9 +197,13 @@ const setSerialNumber = async () => {
               serialNumbers,
           });
 
-          // Disable picked_qty field for serialized items
+          // Disable picked_qty + Pick UOM for serialized items (qty is driven
+          // by the serial-number count, so UOM switching is meaningless here)
           await this.disabled(
-            [`table_picking_items.${index}.picked_qty`],
+            [
+              `table_picking_items.${index}.picked_qty`,
+              `table_picking_items.${index}.picking_uom`,
+            ],
             true,
           );
 
@@ -238,6 +242,7 @@ const disabledPickedQtyField = async () => {
           this.disabled(
             [
               `table_picking_items.${index}.picked_qty`,
+              `table_picking_items.${index}.picking_uom`,
               `table_picking_items.${index}.remark`,
               `table_picking_items.${index}.select_serial_number`,
             ],
@@ -246,6 +251,154 @@ const disabledPickedQtyField = async () => {
         }, 100);
       }
     }
+  }
+};
+
+// --- Pick UOM conversion helpers (mirror of GDdialogUOMchange.js) ----------
+const convertBaseToAlt = (baseQty, tableUomConversion, uom) => {
+  if (
+    !Array.isArray(tableUomConversion) ||
+    tableUomConversion.length === 0 ||
+    !uom
+  ) {
+    return baseQty;
+  }
+  const conv = tableUomConversion.find((c) => c.alt_uom_id === uom);
+  if (!conv || !conv.base_qty) return baseQty;
+  return Math.round((baseQty / conv.base_qty) * 1000) / 1000;
+};
+
+const convertQuantityFromTo = (
+  value,
+  tableUomConversion,
+  fromUOM,
+  toUOM,
+  baseUOM,
+) => {
+  if (!value || fromUOM === toUOM) return value;
+  // current UOM -> base UOM
+  let baseQty = value;
+  if (fromUOM !== baseUOM) {
+    const fromConv = (tableUomConversion || []).find(
+      (c) => c.alt_uom_id === fromUOM,
+    );
+    if (fromConv && fromConv.base_qty) {
+      baseQty = value * fromConv.base_qty;
+    }
+  }
+  // base UOM -> target UOM
+  return convertBaseToAlt(baseQty, tableUomConversion, toUOM);
+};
+
+// Base-UOM units per 1 unit of `uom` (the conversion factor; 1 when uom is the
+// base UOM itself or has no conversion entry). The workflow funnel uses the
+// order/picking pair (picking_base_qty / order_base_qty) to convert the picked
+// qty back to the order UOM exactly, without re-fetching the item master.
+const getBaseQtyForUom = (uom, basedUom, tableUomConversion) => {
+  if (!uom) return 1;
+  if (String(uom) === String(basedUom)) return 1;
+  const c = (tableUomConversion || []).find((x) => x.alt_uom_id === uom);
+  return c && c.base_qty ? c.base_qty : 1;
+};
+
+// Fetch the item master + UOM names for every distinct material in the picking
+// table, cache the conversion data on window.pickingUOMCache (read by the
+// validator / onChange handlers), populate the per-row Pick UOM dropdown with
+// the item's valid UOMs (base + alternates), and seed the read-only alt-UOM
+// display columns (to_pick_alt / pending_alt). Quantities themselves stay in
+// the order UOM — only the picker-facing display is in the chosen Pick UOM.
+const enrichPickingUOM = async () => {
+  try {
+    const rows = this.getValue("table_picking_items") || [];
+    if (rows.length === 0) return;
+
+    const materialIds = [
+      ...new Set(
+        rows
+          .filter((r) => r.row_type !== "header" && r.item_code)
+          .map((r) => String(r.item_code)),
+      ),
+    ];
+    if (materialIds.length === 0) return;
+
+    // Batched item master fetch (one doc().get() per distinct material).
+    const itemResults = await Promise.all(
+      materialIds.map((id) =>
+        db
+          .collection("Item")
+          .doc(id)
+          .get()
+          .catch(() => null),
+      ),
+    );
+
+    // Cache each item's conversion data (base UOM + conversion table) on
+    // window.pickingUOMCache. The picking_uom DROPDOWN OPTIONS are populated by
+    // the form's own item-bound datasource, so we don't build/override them
+    // here — this cache only feeds the conversion math used by the validator,
+    // the Pick UOM onChange handler, hu_select, and the scalars/displays below.
+    if (!window.pickingUOMCache) window.pickingUOMCache = {};
+    itemResults.forEach((res, i) => {
+      const item = res && res.data && res.data[0] ? res.data[0] : null;
+      if (!item) return;
+      window.pickingUOMCache[materialIds[i]] = {
+        based_uom: item.based_uom,
+        table_uom_conversion: Array.isArray(item.table_uom_conversion)
+          ? item.table_uom_conversion
+          : [],
+      };
+    });
+
+    // Apply per-row: default Pick UOM, conversion scalars, alt-UOM displays.
+    const updates = {};
+    for (const [i, row] of rows.entries()) {
+      if (row.row_type === "header" || !row.item_code) continue;
+      const matId = String(row.item_code);
+      const cache = window.pickingUOMCache[matId];
+      if (!cache) continue;
+
+      const orderUom = String(row.item_uom);
+      const pickingUom = row.picking_uom ? String(row.picking_uom) : orderUom;
+
+      if (!row.picking_uom) {
+        updates[`table_picking_items.${i}.picking_uom`] = orderUom;
+      }
+
+      // Exact conversion factors carried to the workflow funnel (see comment on
+      // getBaseQtyForUom). order_base_qty is fixed per line (item_uom never
+      // changes); picking_base_qty tracks the chosen Pick UOM.
+      updates[`table_picking_items.${i}.order_base_qty`] = getBaseQtyForUom(
+        orderUom,
+        cache.based_uom,
+        cache.table_uom_conversion,
+      );
+      updates[`table_picking_items.${i}.picking_base_qty`] = getBaseQtyForUom(
+        pickingUom,
+        cache.based_uom,
+        cache.table_uom_conversion,
+      );
+
+      updates[`table_picking_items.${i}.to_pick_alt`] = convertQuantityFromTo(
+        parseFloat(row.qty_to_pick) || 0,
+        cache.table_uom_conversion,
+        orderUom,
+        pickingUom,
+        cache.based_uom,
+      );
+      updates[`table_picking_items.${i}.pending_alt`] = convertQuantityFromTo(
+        parseFloat(row.pending_process_qty) || 0,
+        cache.table_uom_conversion,
+        orderUom,
+        pickingUom,
+        cache.based_uom,
+      );
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await this.setData(updates);
+    }
+  } catch (error) {
+    console.error("enrichPickingUOM error:", error);
   }
 };
 
@@ -332,7 +485,7 @@ const applyHUVisibility = async () => {
 
   // picked_qty has a validator rule and remark accepts input — disable them
   // on header rows so they don't trigger validation or accept input while hidden
-  const HEADER_DISABLE_FIELDS = ["picked_qty", "remark"];
+  const HEADER_DISABLE_FIELDS = ["picked_qty", "picking_uom", "remark"];
 
   for (const [i, row] of rows.entries()) {
     if (row.row_type === "header") {
@@ -361,7 +514,13 @@ const applyHUVisibility = async () => {
   if (huSelectEnabled) {
     for (const [i, row] of rows.entries()) {
       if (row.row_type !== "header" && row.handling_unit_id) {
-        await this.disabled(`table_picking_items.${i}.picked_qty`, true);
+        await this.disabled(
+          [
+            `table_picking_items.${i}.picked_qty`,
+            `table_picking_items.${i}.picking_uom`,
+          ],
+          true,
+        );
       }
     }
   }
@@ -473,6 +632,7 @@ const revealDeliveryMethodSection = async () => {
           const pickingSetup = await fetchPickingSetup();
           await createHeaderRows();
           await applyHUVisibility();
+          await enrichPickingUOM();
           await PickingPlan(pickingSetup);
           await revealDeliveryMethodSection();
         }
@@ -499,6 +659,7 @@ const revealDeliveryMethodSection = async () => {
           const pickingSetup = await fetchPickingSetup();
           await createHeaderRows();
           await applyHUVisibility();
+          await enrichPickingUOM();
           await PickingPlan(pickingSetup);
           await revealDeliveryMethodSection();
         }
@@ -519,6 +680,7 @@ const revealDeliveryMethodSection = async () => {
           const pickingSetup = await fetchPickingSetup();
           await createHeaderRows();
           await applyHUVisibility();
+          await enrichPickingUOM();
           await PickingPlan(pickingSetup);
           await revealDeliveryMethodSection();
         }

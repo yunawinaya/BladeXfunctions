@@ -41,6 +41,10 @@ allData.table_gd.forEach((item, gdLineIndex) => {
             item_batch_id: tempItem.batch_id ? String(tempItem.batch_id) : null,
             qty_to_pick: 0,
             item_uom: String(item.gd_order_uom_id),
+            // Pick UOM defaults to the GD order UOM (identity). onMounted later
+            // enriches the row with the item's valid UOM options + conversion
+            // data so the picker can switch to an alternate UOM.
+            picking_uom: String(item.gd_order_uom_id),
             pending_process_qty: 0,
             source_bin: String(tempItem.location_id),
             line_status: "Open",

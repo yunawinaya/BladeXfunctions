@@ -1,0 +1,366 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "search_node_zLieZ0R4",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Picking Plan:Table:1982744224777474050",
+          "rules": {
+            "collectionId": "1982744224777474050",
+            "list": [
+              {
+                "id": 1772177613835,
+                "parentId": 1772177613834,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:pp_ids}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get PP Data",
+        "isValidator": true,
+        "nodeName": "Get PP Data",
+        "name": "Get PP Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_8MJPH5aT",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Picking Data",
+        "isValidator": true,
+        "nodeName": "Map Picking Data",
+        "name": "Map Picking Data",
+        "script": {
+          "type": "javascript",
+          "code": "const mapLineItem = (toData) => {\n  let tablePickingItems = [];\n  const pickingItemGroups = new Map();\n\n  for (const item of toData.table_to) {\n    if (!item.material_id || !item.temp_qty_data) continue;\n    if (item.picking_status === 'Completed') continue;\n\n    let tempArr = [];\n    try { tempArr = JSON.parse(item.temp_qty_data); } catch (e) { tempArr = []; }\n    let pickedArr = [];\n    try {\n      pickedArr = item.picked_temp_qty_data ? JSON.parse(item.picked_temp_qty_data) : [];\n    } catch (e) { pickedArr = []; }\n\n    const keyOf = (e) =>\n      (e.location_id || 'no-loc') + '_' +\n      (e.batch_id || 'no-batch') + '_' +\n      (e.handling_unit_id || 'no-hu');\n\n    // Sum already-picked qty per (location, batch, HU)\n    const pickedByKey = new Map();\n    for (const p of pickedArr) {\n      const k = keyOf(p);\n      pickedByKey.set(k, (pickedByKey.get(k) || 0) + parseFloat(p.to_quantity || 0));\n    }\n\n    for (const tempItem of tempArr) {\n      const used = pickedByKey.get(keyOf(tempItem)) || 0;\n      const remainingQty = parseFloat(tempItem.to_quantity || 0) - used;\n      if (remainingQty <= 0) continue;\n\n      const materialId = String(tempItem.material_id) || String(item.material_id);\n      const groupKey = `${item.id}_${materialId}_${\n        tempItem.batch_id || \"no-batch\"\n      }_${tempItem.location_id}`;\n\n      if (!pickingItemGroups.has(groupKey)) {\n        pickingItemGroups.set(groupKey, {\n          item_code: String(materialId),\n          item_name: item.material_name,\n          item_desc: item.to_material_desc || \"\",\n          more_desc: item.more_desc || \"\",\n          batch_no: tempItem.batch_id ? String(tempItem.batch_id) : null,\n          qty_to_pick: 0,\n          item_uom: String(item.to_order_uom_id),\n          picking_uom: String(item.to_order_uom_id),\n          source_bin: String(tempItem.location_id),\n          pending_process_qty: 0,\n          line_status: \"Open\",\n          so_no: item.line_so_no,\n          so_id: String(item.line_so_id),\n          so_line_id: String(item.so_line_item_id),\n          to_id: String(toData.id),\n          to_line_id: String(item.id),\n          serial_numbers: [],\n          is_serialized_item: 0,\n        });\n      }\n\n      const group = pickingItemGroups.get(groupKey);\n      group.qty_to_pick += remainingQty;\n      group.pending_process_qty += remainingQty;\n\n      if (tempItem.serial_number) {\n        group.serial_numbers.push(String(tempItem.serial_number));\n        group.is_serialized_item = 1;\n      }\n    }\n  }\n\n  for (const group of pickingItemGroups.values()) {\n    if (group.serial_numbers.length > 0) {\n      group.serial_numbers = group.serial_numbers.join(\", \");\n    } else {\n      delete group.serial_numbers;\n    }\n    tablePickingItems.push({ ...group });\n  }\n\n  return tablePickingItems;\n};\n\nconst mapToPickingData = (\n  pickingLineItemPromises,\n  toIDs,\n  soNos,\n  toCustomers,\n  plantID\n) => {\n  return {\n    so_no: soNos,\n    to_no: toIDs,\n    ref_doc_type: \"Picking Plan\",\n    table_picking_items: pickingLineItemPromises,\n    customer_id: toCustomers,\n    plant_id: plantID,\n  };\n};\n\nlet toData = {{node:search_node_zLieZ0R4.data.data}};\ntoData = toData.map((item) => ({\n  ...item,\n  table_to: item.table_to.filter((toItem) => toItem.picking_status !== 'Completed')\n}));\n\nconst toIDs = toData.map((to) => String(to.id));\nconst soNos = [\n  ...new Set(toData.flatMap((to) => to.so_no.split(', ')))\n].join(', ');\nconst toCustomers = [...new Set(toData.map((to) => String(to.customer_name)))];\nconst plantID = {{workflowparams:plant_id}};\nlet pickingLineItemPromises = [];\n\nfor (const to of toData) {\n  const lineItemPromise = mapLineItem(to);\n  pickingLineItemPromises.push(...lineItemPromise);\n}\n\nconst pickingData = mapToPickingData(pickingLineItemPromises, toIDs, soNos, toCustomers, plantID);\n\nreturn pickingData;\n"
+        },
+        "response_json": [
+          {
+            "key": "22jrgwnb",
+            "name": "so_no",
+            "title": "SO No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "l8wtscoz",
+            "name": "to_no",
+            "title": "TO IDs",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "vwdnzlnr",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
+            ]
+          },
+          {
+            "key": "ksn3gbax",
+            "name": "customer_id",
+            "title": "Customer IDs",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "3f8qqiof",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
+            ]
+          },
+          {
+            "key": "5xjz9yfr",
+            "name": "plant_id",
+            "title": "Plant ID",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "430dg6wm",
+            "name": "table_picking_items",
+            "title": "Table Picking Item",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "969yem15",
+                "name": "items",
+                "title": "Items",
+                "description": "",
+                "bsonType": "object",
+                "isExpand": true,
+                "isArrayItem": true,
+                "children": [
+                  {
+                    "key": "788io7ro",
+                    "name": "item_code",
+                    "title": "Item Code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "x9ipl49o",
+                    "name": "item_name",
+                    "title": "Item Name",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "tyzhwp0k",
+                    "name": "item_desc",
+                    "title": "Item Desc",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "r713o15c",
+                    "name": "batch_no",
+                    "title": "Batch No",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "34bmw0bg",
+                    "name": "qty_to_pick",
+                    "title": "Qty to Pick",
+                    "description": "",
+                    "bsonType": "decimal",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "307qgcfk",
+                    "name": "item_uom",
+                    "title": "Item UOM",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "7bt74jua",
+                    "name": "source_bin",
+                    "title": "Source Bin",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "4yxvn7fe",
+                    "name": "pending_process_qty",
+                    "title": "Pending Process Qty",
+                    "description": "",
+                    "bsonType": "decimal",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "g4dcfe42",
+                    "name": "line_status",
+                    "title": "Line Status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "qy2md0sj",
+                    "name": "so_no",
+                    "title": "SO No",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "53yl259i",
+                    "name": "so_id",
+                    "title": "SO ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "yywh6azp",
+                    "name": "so_line_id",
+                    "title": "SO Line ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "2yv53t3l",
+                    "name": "to_id",
+                    "title": "TO ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "34l0yauo",
+                    "name": "to_line_id",
+                    "title": "TO Line ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "erdmi2vm",
+                    "name": "serial_numbers",
+                    "title": "Serial Numbers",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "8r8e1ogi",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "isArrayItem": true
+                      }
+                    ]
+                  },
+                  {
+                    "key": "xvyp7xnk",
+                    "name": "is_serialized_item",
+                    "title": "Is Serialized Item",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "b268r55u",
+            "name": "ref_doc_type",
+            "title": "ref_doc_type",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_QHnIBcf9",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+          "list": [
+            {
+              "prop": "data",
+              "propLabel": "Data",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_8MJPH5aT.data}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "uqfgos4g",
+      "name": "pp_ids",
+      "title": "pp_ids",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "8rpxn9nu",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "isArrayItem": true,
+          "children": []
+        }
+      ]
+    },
+    {
+      "key": "l3xtm37h",
+      "name": "plant_id",
+      "title": "plant_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "nf5v5bwo",
+      "name": "data",
+      "title": "data",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}

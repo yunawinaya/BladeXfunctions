@@ -21,6 +21,26 @@
 
     const isSelected = value === 1 || value === true;
 
+    // picked_qty is expressed in the row's picking_uom, while pending_process_qty
+    // is canonical (order UOM = item_uom). For HU item rows picking_uom is forced
+    // to item_uom (atomic HU pick), so this is identity today; the conversion is
+    // kept for safety in case HU rows ever allow an alternate Pick UOM.
+    const convertBaseToAlt = (baseQty, conv, uom) => {
+      if (!Array.isArray(conv) || conv.length === 0 || !uom) return baseQty;
+      const c = conv.find((x) => x.alt_uom_id === uom);
+      if (!c || !c.base_qty) return baseQty;
+      return Math.round((baseQty / c.base_qty) * 1000) / 1000;
+    };
+    const convertQuantityFromTo = (val, conv, fromUOM, toUOM, baseUOM) => {
+      if (!val || fromUOM === toUOM) return val;
+      let baseQty = val;
+      if (fromUOM !== baseUOM) {
+        const fromConv = (conv || []).find((x) => x.alt_uom_id === fromUOM);
+        if (fromConv && fromConv.base_qty) baseQty = val * fromConv.base_qty;
+      }
+      return convertBaseToAlt(baseQty, conv, toUOM);
+    };
+
     const updates = {};
     rows.forEach((row, idx) => {
       if (
@@ -28,8 +48,21 @@
         row.handling_unit_id === handlingUnitId
       ) {
         if (isSelected) {
+          const pending = parseFloat(row.pending_process_qty) || 0;
+          const orderUom = String(row.item_uom);
+          const pickingUom = row.picking_uom ? String(row.picking_uom) : orderUom;
+          const cache =
+            (window.pickingUOMCache &&
+              window.pickingUOMCache[String(row.item_code)]) ||
+            null;
           updates[`table_picking_items.${idx}.picked_qty`] =
-            parseFloat(row.pending_process_qty) || 0;
+            convertQuantityFromTo(
+              pending,
+              cache ? cache.table_uom_conversion : [],
+              orderUom,
+              pickingUom,
+              cache ? cache.based_uom : orderUom,
+            );
         } else {
           updates[`table_picking_items.${idx}.picked_qty`] = 0;
         }

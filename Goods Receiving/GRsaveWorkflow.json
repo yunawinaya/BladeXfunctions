@@ -189,18 +189,45 @@
             "collectionId": "1937437989915992066",
             "list": [
               {
-                "id": 1772610515657,
-                "parentId": 1772610515656,
+                "id": 1778551507336,
+                "parentId": 1778551507337,
                 "isTop": true,
-                "type": "leaf",
-                "operator": "equal",
-                "prop": "organization_id",
-                "valueType": "field",
-                "value": "{{workflowparams:allData.organization_id}}",
+                "type": "branch",
+                "operator": "all",
+                "prop": "",
+                "valueType": "",
+                "value": "",
                 "level": 1,
-                "propLabel": "Organization ID",
-                "valueLabel": "",
-                "operatorLabel": "Equal"
+                "children": [
+                  {
+                    "id": 1772610515657,
+                    "parentId": 1778551507336,
+                    "isTop": false,
+                    "type": "leaf",
+                    "operator": "equal",
+                    "prop": "organization_id",
+                    "valueType": "field",
+                    "value": "{{workflowparams:allData.organization_id}}",
+                    "level": 2,
+                    "propLabel": "Organization ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1778551507338,
+                    "parentId": 1778551507336,
+                    "isTop": false,
+                    "prop": "plant_id",
+                    "operator": "numberEqual",
+                    "valueType": "field",
+                    "value": "{{workflowparams:allData.plant_id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Plant ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
               }
             ]
           }
@@ -3209,8 +3236,8 @@
                           "blocks": []
                         },
                         {
-                          "id": "atomic_count_node_830i0Vw5",
-                          "type": "atomic-count-node",
+                          "id": "get_node_K8mPq3Rt",
+                          "type": "get-node",
                           "data": {
                             "table_id": {
                               "source": "On Order Purchase Order:Table:1902627276974047233",
@@ -3218,8 +3245,80 @@
                                 "collectionId": "1902627276974047233",
                                 "list": [
                                   {
-                                    "id": 1772680749144,
-                                    "parentId": 1772680749143,
+                                    "id": 1790372613149,
+                                    "parentId": 1790372613148,
+                                    "isTop": true,
+                                    "prop": "po_line_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_D9IbUV8t.data.po_line_id}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "PO Line ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            },
+                            "condition": {},
+                            "title": "Get On Order PO",
+                            "isValidator": true,
+                            "nodeName": "Get On Order PO",
+                            "name": "Get On Order PO"
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "code_node_W4nXz7Yb",
+                          "type": "code-node",
+                          "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "On Order PO Data",
+                            "isValidator": true,
+                            "nodeName": "On Order PO Data",
+                            "name": "On Order PO Data",
+                            "script": {
+                              "type": "javascript",
+                              "code": "const toNumber = (value) => {\n  const num = Number(value)\n  return Number.isFinite(num) ? num : 0\n}\n\nconst orderData = {{node:get_node_K8mPq3Rt.data.data}} || {}\n\nconst openQty = toNumber(orderData.open_qty)\nconst receivedQty = toNumber(orderData.received_qty)\nconst orderQty = toNumber({{node:code_node_D9IbUV8t.data.onOrderQty}})\n\nconst updatedOpenQty = openQty - orderQty\nconst updatedReceivedQty = receivedQty + orderQty\n\nreturn {\n  updatedOpenQty,\n  updatedReceivedQty\n}"
+                            },
+                            "response_json": [
+                              {
+                                "key": "31a7mvri",
+                                "name": "updatedOpenQty",
+                                "title": "updatedOpenQty",
+                                "description": "",
+                                "bsonType": "decimal",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "9u805gae",
+                                "name": "updatedReceivedQty",
+                                "title": "updatedReceivedQty",
+                                "description": "",
+                                "bsonType": "decimal",
+                                "isExpand": false,
+                                "children": []
+                              }
+                            ]
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "update_node_J2vH9sLc",
+                          "type": "update-node",
+                          "data": {
+                            "table_id": {
+                              "source": "On Order Purchase Order:Table:1902627276974047233",
+                              "rules": {
+                                "collectionId": "1902627276974047233",
+                                "list": [
+                                  {
+                                    "id": 1790373231426,
+                                    "parentId": 1790373231425,
                                     "isTop": true,
                                     "prop": "po_line_id",
                                     "operator": "numberEqual",
@@ -3236,41 +3335,31 @@
                             },
                             "fields": [],
                             "condition": {},
+                            "title": "Update On Order PO",
+                            "isValidator": true,
+                            "nodeName": "Update On Order PO",
+                            "name": "Update On Order PO",
                             "props": {
                               "modelName": "",
                               "list": [
                                 {
-                                  "prop": "received_qty",
-                                  "propLabel": "Received Quantity",
-                                  "operator": "",
-                                  "operatorLabel": "",
-                                  "valueType": "formula",
-                                  "valueTypeLabel": "",
-                                  "value": "plus({{node:code_node_D9IbUV8t.data.onOrderQty}})",
-                                  "valueLabel": ""
-                                },
-                                {
                                   "prop": "open_qty",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_W4nXz7Yb.data.updatedOpenQty}}",
                                   "operator": "",
-                                  "valueType": "formula",
-                                  "value": "minus({{node:code_node_D9IbUV8t.data.onOrderQty}})",
                                   "valueLabel": "",
                                   "propLabel": "Open Quantity"
+                                },
+                                {
+                                  "prop": "received_qty",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_W4nXz7Yb.data.updatedReceivedQty}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Received Quantity"
                                 }
                               ]
-                            },
-                            "title": "Atomic Update On Order PO",
-                            "isValidator": true,
-                            "nodeName": "Atomic Update On Order PO",
-                            "name": "Atomic Update On Order PO",
-                            "sorts": [],
-                            "is_custom_error": 0,
-                            "err_lock_acquire_failed": "",
-                            "err_config_invalid": "",
-                            "err_data_not_found": "",
-                            "err_stock_insufficient": "",
-                            "err_concurrent_conflict": "",
-                            "err_deduct_incomplete": ""
+                            }
                           },
                           "blocks": []
                         }
@@ -5719,8 +5808,8 @@
                                   "blocks": []
                                 },
                                 {
-                                  "id": "atomic_count_node_xlmn3bLi",
-                                  "type": "atomic-count-node",
+                                  "id": "get_node_zDVn6pSQ",
+                                  "type": "get-node",
                                   "data": {
                                     "table_id": {
                                       "source": "On Order Purchase Order:Table:1902627276974047233",
@@ -5728,8 +5817,80 @@
                                         "collectionId": "1902627276974047233",
                                         "list": [
                                           {
-                                            "id": 1772680749144,
-                                            "parentId": 1772680749143,
+                                            "id": 1780372613149,
+                                            "parentId": 1780372613148,
+                                            "isTop": true,
+                                            "prop": "po_line_id",
+                                            "operator": "numberEqual",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_D9IbUV8t.data.po_line_id}}",
+                                            "type": "leaf",
+                                            "level": 1,
+                                            "propLabel": "PO Line ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "condition": {},
+                                    "title": "Get On Order PO",
+                                    "isValidator": true,
+                                    "nodeName": "Get On Order PO",
+                                    "name": "Get On Order PO"
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "code_node_LiGvAEaG",
+                                  "type": "code-node",
+                                  "data": {
+                                    "language": "javascript",
+                                    "code": "",
+                                    "timeout": 30000,
+                                    "title": "On Order PO Data",
+                                    "isValidator": true,
+                                    "nodeName": "On Order PO Data",
+                                    "name": "On Order PO Data",
+                                    "script": {
+                                      "type": "javascript",
+                                      "code": "const toNumber = (value) => {\n  const num = Number(value)\n  return Number.isFinite(num) ? num : 0\n}\n\nconst orderData = {{node:get_node_zDVn6pSQ.data.data}} || {}\n\nconst openQty = toNumber(orderData.open_qty)\nconst receivedQty = toNumber(orderData.received_qty)\nconst orderQty = toNumber({{node:code_node_D9IbUV8t.data.onOrderQty}})\n\nconst updatedOpenQty = openQty - orderQty\nconst updatedReceivedQty = receivedQty + orderQty\n\nreturn {\n  updatedOpenQty,\n  updatedReceivedQty\n}"
+                                    },
+                                    "response_json": [
+                                      {
+                                        "key": "31a7mvri",
+                                        "name": "updatedOpenQty",
+                                        "title": "updatedOpenQty",
+                                        "description": "",
+                                        "bsonType": "decimal",
+                                        "isExpand": false,
+                                        "children": []
+                                      },
+                                      {
+                                        "key": "9u805gae",
+                                        "name": "updatedReceivedQty",
+                                        "title": "updatedReceivedQty",
+                                        "description": "",
+                                        "bsonType": "decimal",
+                                        "isExpand": false,
+                                        "children": []
+                                      }
+                                    ]
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "update_node_EZ7AyqP9",
+                                  "type": "update-node",
+                                  "data": {
+                                    "table_id": {
+                                      "source": "On Order Purchase Order:Table:1902627276974047233",
+                                      "rules": {
+                                        "collectionId": "1902627276974047233",
+                                        "list": [
+                                          {
+                                            "id": 1780373231426,
+                                            "parentId": 1780373231425,
                                             "isTop": true,
                                             "prop": "po_line_id",
                                             "operator": "numberEqual",
@@ -5746,41 +5907,31 @@
                                     },
                                     "fields": [],
                                     "condition": {},
+                                    "title": "Update On Order PO",
+                                    "isValidator": true,
+                                    "nodeName": "Update On Order PO",
+                                    "name": "Update On Order PO",
                                     "props": {
                                       "modelName": "",
                                       "list": [
                                         {
-                                          "prop": "received_qty",
-                                          "propLabel": "Received Quantity",
-                                          "operator": "",
-                                          "operatorLabel": "",
-                                          "valueType": "formula",
-                                          "valueTypeLabel": "",
-                                          "value": "plus({{node:code_node_D9IbUV8t.data.onOrderQty}})",
-                                          "valueLabel": ""
-                                        },
-                                        {
                                           "prop": "open_qty",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_LiGvAEaG.data.updatedOpenQty}}",
                                           "operator": "",
-                                          "valueType": "formula",
-                                          "value": "minus({{node:code_node_D9IbUV8t.data.onOrderQty}})",
                                           "valueLabel": "",
                                           "propLabel": "Open Quantity"
+                                        },
+                                        {
+                                          "prop": "received_qty",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_LiGvAEaG.data.updatedReceivedQty}}",
+                                          "valueLabel": "",
+                                          "propLabel": "Received Quantity"
                                         }
                                       ]
-                                    },
-                                    "title": "Atomic Update On Order PO",
-                                    "isValidator": true,
-                                    "nodeName": "Atomic Update On Order PO",
-                                    "name": "Atomic Update On Order PO",
-                                    "sorts": [],
-                                    "is_custom_error": 0,
-                                    "err_lock_acquire_failed": "",
-                                    "err_config_invalid": "",
-                                    "err_data_not_found": "",
-                                    "err_stock_insufficient": "",
-                                    "err_concurrent_conflict": "",
-                                    "err_deduct_incomplete": ""
+                                    }
                                   },
                                   "blocks": []
                                 },

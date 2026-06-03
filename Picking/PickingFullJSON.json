@@ -6365,6 +6365,180 @@
                   "rules": []
                 },
                 {
+                  "type": "number",
+                  "name": "To Pick (Pick UOM)",
+                  "icon": "icon-number",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-number",
+                  "options": {
+                    "width": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "defaultValue": 0,
+                    "min": 0,
+                    "step": 1,
+                    "disabled": true,
+                    "controls": false,
+                    "controlsPosition": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "precision": 3,
+                    "customProps": {
+                      "progressColor": "",
+                      "dividingNumber": "",
+                      "showNumber": "",
+                      "viewMode": "",
+                      "format": "rmb",
+                      "cacheProp": true
+                    },
+                    "tip": "",
+                    "remoteFunc": "func_os2t9dym",
+                    "remoteOption": "option_os2t9dym",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "novalid": {},
+                  "key": "y6m7wby5",
+                  "model": "to_pick_alt",
+                  "rules": []
+                },
+                {
+                  "type": "number",
+                  "name": "Order Base Qty",
+                  "icon": "icon-number",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-number",
+                  "options": {
+                    "width": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "defaultValue": 0,
+                    "min": 0,
+                    "step": 1,
+                    "disabled": true,
+                    "controls": false,
+                    "controlsPosition": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": true,
+                    "dataBind": true,
+                    "precision": 3,
+                    "customProps": {
+                      "progressColor": "",
+                      "dividingNumber": "",
+                      "showNumber": "",
+                      "viewMode": "",
+                      "format": "rmb",
+                      "cacheProp": true
+                    },
+                    "tip": "",
+                    "remoteFunc": "func_os2t9dym",
+                    "remoteOption": "option_os2t9dym",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "novalid": {},
+                  "key": "stg4v0ob",
+                  "model": "order_base_qty",
+                  "rules": []
+                },
+                {
+                  "type": "number",
+                  "name": "Picking Base Qty",
+                  "icon": "icon-number",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-number",
+                  "options": {
+                    "width": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "defaultValue": 0,
+                    "min": 0,
+                    "step": 1,
+                    "disabled": true,
+                    "controls": false,
+                    "controlsPosition": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": true,
+                    "dataBind": true,
+                    "precision": 3,
+                    "customProps": {
+                      "progressColor": "",
+                      "dividingNumber": "",
+                      "showNumber": "",
+                      "viewMode": "",
+                      "format": "rmb",
+                      "cacheProp": true
+                    },
+                    "tip": "",
+                    "remoteFunc": "func_os2t9dym",
+                    "remoteOption": "option_os2t9dym",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "novalid": {},
+                  "key": "2fdr1b6a",
+                  "model": "picking_base_qty",
+                  "rules": []
+                },
+                {
                   "type": "select",
                   "mainIcon": "下拉单选",
                   "typeIcon": "下拉单选",
@@ -6410,7 +6584,8 @@
                       "cascade": "",
                       "children": "",
                       "image": "",
-                      "icon": ""
+                      "icon": "",
+                      "explain": ""
                     },
                     "remoteFunc": "func_fnmc4ypo",
                     "customClass": "",
@@ -6441,7 +6616,17 @@
                         ]
                       }
                     },
-                    "more_fields": []
+                    "more_fields": [],
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100,
+                    "paging_enabled": 1,
+                    "page_size": 10,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
                   },
                   "events": {
                     "onChange": "",
@@ -6452,6 +6637,108 @@
                   "novalid": {},
                   "key": "hjfjayml",
                   "model": "item_uom",
+                  "rules": []
+                },
+                {
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": false,
+                    "clearable": false,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_fnmc4ypo",
+                    "filterable": false,
+                    "pagingEnabled": true,
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "id",
+                      "label": "uom_name",
+                      "cascade": "",
+                      "children": "",
+                      "image": "",
+                      "icon": "",
+                      "explain": ""
+                    },
+                    "remoteFunc": "func_fnmc4ypo",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": true,
+                    "subform": false,
+                    "datasource": {
+                      "source": "UOM:Table:1901805375573839874",
+                      "rules": {
+                        "collectionId": "1901805375573839874",
+                        "list": [
+                          {
+                            "id": 1750316826576,
+                            "parentId": 1750316826575,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "more_fields": [],
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100,
+                    "paging_enabled": 1,
+                    "page_size": 10,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "sorts": []
+                  },
+                  "events": {
+                    "onChange": "a9nyylol",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "name": "Picking UOM",
+                  "novalid": {},
+                  "key": "tutfs0pf",
+                  "model": "picking_uom",
                   "rules": []
                 },
                 {
@@ -6898,6 +7185,64 @@
                   "rules": []
                 },
                 {
+                  "type": "number",
+                  "name": "Pending (Pick UOM)",
+                  "icon": "icon-number",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-number",
+                  "options": {
+                    "width": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "defaultValue": 0,
+                    "min": 0,
+                    "step": 1,
+                    "disabled": true,
+                    "controls": false,
+                    "controlsPosition": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "precision": 3,
+                    "customProps": {
+                      "progressColor": "",
+                      "dividingNumber": "",
+                      "showNumber": "",
+                      "viewMode": "",
+                      "format": "rmb",
+                      "cacheProp": true
+                    },
+                    "tip": "",
+                    "remoteFunc": "func_os2t9dym",
+                    "remoteOption": "option_os2t9dym",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "novalid": {},
+                  "key": "2ogpzfsr",
+                  "model": "pending_alt",
+                  "rules": []
+                },
+                {
                   "type": "textarea",
                   "mainIcon": "多行文本",
                   "typeIcon": "多行文本",
@@ -7056,7 +7401,7 @@
                     "disabled": false,
                     "dataBind": true,
                     "required": false,
-                    "validator": "const data = this.getValues();\nconst fieldParts = rule.field.split(\".\");\nconst index = fieldParts[1];\n\nconst pending_process_qty = parseFloat(\n  data.table_picking_items[index].pending_process_qty || 0\n);\n\nif (!window.validationState) {\n  window.validationState = {};\n}\n\nconst parsedValue = parseFloat(value);\n\nif (pending_process_qty < parsedValue) {\n  window.validationState[index] = false;\n  callback(\"Quantity is not enough to pick\");\n} else {\n  // Clear validation error\n  window.validationState[index] = true;\n  callback();\n}\n",
+                    "validator": "const data = this.getValues();\nconst fieldParts = rule.field.split(\".\");\nconst index = fieldParts[1];\n\nconst row = data.table_picking_items[index] || {};\n\nconst pending_process_qty = parseFloat(row.pending_process_qty || 0);\n\nif (!window.validationState) {\n  window.validationState = {};\n}\n\n// picked_qty (value) is entered in the row's picking_uom; pending_process_qty\n// is canonical (order UOM = item_uom). Convert the entered value back to the\n// order UOM before comparing. Conversion data is cached by enrichPickingUOM\n// (PickingOnMounted); identity fallback keeps behaviour unchanged when no\n// alternate UOM is in play.\nconst convertBaseToAlt = (baseQty, conv, uom) => {\n  if (!Array.isArray(conv) || conv.length === 0 || !uom) return baseQty;\n  const c = conv.find((x) => x.alt_uom_id === uom);\n  if (!c || !c.base_qty) return baseQty;\n  return Math.round((baseQty / c.base_qty) * 1000) / 1000;\n};\nconst convertQuantityFromTo = (val, conv, fromUOM, toUOM, baseUOM) => {\n  if (!val || fromUOM === toUOM) return val;\n  let baseQty = val;\n  if (fromUOM !== baseUOM) {\n    const fromConv = (conv || []).find((x) => x.alt_uom_id === fromUOM);\n    if (fromConv && fromConv.base_qty) baseQty = val * fromConv.base_qty;\n  }\n  return convertBaseToAlt(baseQty, conv, toUOM);\n};\n\nconst orderUom = String(row.item_uom);\nconst pickingUom = row.picking_uom ? String(row.picking_uom) : orderUom;\nconst cache =\n  (window.pickingUOMCache && window.pickingUOMCache[String(row.item_code)]) ||\n  null;\n\nconst parsedValue = parseFloat(value) || 0;\nconst pickedInOrderUom = convertQuantityFromTo(\n  parsedValue,\n  cache ? cache.table_uom_conversion : [],\n  pickingUom,\n  orderUom,\n  cache ? cache.based_uom : orderUom,\n);\n\nif (pending_process_qty < pickedInOrderUom) {\n  window.validationState[index] = false;\n  callback(\"Quantity is not enough to pick\");\n} else {\n  // Clear validation error\n  window.validationState[index] = true;\n  callback();\n}",
                     "hideLabel": false,
                     "placeholder": "",
                     "min": 0,
@@ -7109,7 +7454,7 @@
                   "model": "picked_qty",
                   "rules": [
                     {
-                      "func": "const data = this.getValues();\nconst fieldParts = rule.field.split(\".\");\nconst index = fieldParts[1];\n\nconst pending_process_qty = parseFloat(\n  data.table_picking_items[index].pending_process_qty || 0\n);\n\nif (!window.validationState) {\n  window.validationState = {};\n}\n\nconst parsedValue = parseFloat(value);\n\nif (pending_process_qty < parsedValue) {\n  window.validationState[index] = false;\n  callback(\"Quantity is not enough to pick\");\n} else {\n  // Clear validation error\n  window.validationState[index] = true;\n  callback();\n}\n"
+                      "func": "const data = this.getValues();\nconst fieldParts = rule.field.split(\".\");\nconst index = fieldParts[1];\n\nconst row = data.table_picking_items[index] || {};\n\nconst pending_process_qty = parseFloat(row.pending_process_qty || 0);\n\nif (!window.validationState) {\n  window.validationState = {};\n}\n\n// picked_qty (value) is entered in the row's picking_uom; pending_process_qty\n// is canonical (order UOM = item_uom). Convert the entered value back to the\n// order UOM before comparing. Conversion data is cached by enrichPickingUOM\n// (PickingOnMounted); identity fallback keeps behaviour unchanged when no\n// alternate UOM is in play.\nconst convertBaseToAlt = (baseQty, conv, uom) => {\n  if (!Array.isArray(conv) || conv.length === 0 || !uom) return baseQty;\n  const c = conv.find((x) => x.alt_uom_id === uom);\n  if (!c || !c.base_qty) return baseQty;\n  return Math.round((baseQty / c.base_qty) * 1000) / 1000;\n};\nconst convertQuantityFromTo = (val, conv, fromUOM, toUOM, baseUOM) => {\n  if (!val || fromUOM === toUOM) return val;\n  let baseQty = val;\n  if (fromUOM !== baseUOM) {\n    const fromConv = (conv || []).find((x) => x.alt_uom_id === fromUOM);\n    if (fromConv && fromConv.base_qty) baseQty = val * fromConv.base_qty;\n  }\n  return convertBaseToAlt(baseQty, conv, toUOM);\n};\n\nconst orderUom = String(row.item_uom);\nconst pickingUom = row.picking_uom ? String(row.picking_uom) : orderUom;\nconst cache =\n  (window.pickingUOMCache && window.pickingUOMCache[String(row.item_code)]) ||\n  null;\n\nconst parsedValue = parseFloat(value) || 0;\nconst pickedInOrderUom = convertQuantityFromTo(\n  parsedValue,\n  cache ? cache.table_uom_conversion : [],\n  pickingUom,\n  orderUom,\n  cache ? cache.based_uom : orderUom,\n);\n\nif (pending_process_qty < pickedInOrderUom) {\n  window.validationState[index] = false;\n  callback(\"Quantity is not enough to pick\");\n} else {\n  // Clear validation error\n  window.validationState[index] = true;\n  callback();\n}"
                     }
                   ]
                 },
@@ -9549,6 +9894,64 @@
                 },
                 {
                   "type": "number",
+                  "name": "Picked Alt Qty",
+                  "icon": "icon-number",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-number",
+                  "options": {
+                    "width": "200px",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "defaultValue": 0,
+                    "min": 0,
+                    "step": 1,
+                    "disabled": true,
+                    "controls": false,
+                    "controlsPosition": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "precision": 3,
+                    "customProps": {
+                      "progressColor": "",
+                      "dividingNumber": "",
+                      "showNumber": "",
+                      "viewMode": "",
+                      "format": "rmb",
+                      "cacheProp": true
+                    },
+                    "tip": "",
+                    "remoteFunc": "func_os2t9dym",
+                    "remoteOption": "option_os2t9dym",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "novalid": {},
+                  "key": "7ld2v0h4",
+                  "model": "picked_qty_alt",
+                  "rules": []
+                },
+                {
+                  "type": "number",
                   "name": "Delivered Quantity",
                   "icon": "icon-number",
                   "mainIcon": "数字",
@@ -9709,7 +10112,8 @@
                       "cascade": "",
                       "children": "",
                       "image": "",
-                      "icon": ""
+                      "icon": "",
+                      "explain": ""
                     },
                     "remoteFunc": "func_fnmc4ypo",
                     "customClass": "",
@@ -9760,6 +10164,106 @@
                   "novalid": {},
                   "key": "s4ek15f2",
                   "model": "item_uom",
+                  "rules": []
+                },
+                {
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": true,
+                    "clearable": false,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "200px",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_fnmc4ypo",
+                    "filterable": false,
+                    "pagingEnabled": true,
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "id",
+                      "label": "uom_name",
+                      "cascade": "",
+                      "children": "",
+                      "image": "",
+                      "icon": "",
+                      "explain": ""
+                    },
+                    "remoteFunc": "func_fnmc4ypo",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": true,
+                    "subform": false,
+                    "datasource": {
+                      "source": "UOM:Table:1901805375573839874",
+                      "rules": {
+                        "collectionId": "1901805375573839874",
+                        "list": [
+                          {
+                            "id": 1750316826576,
+                            "parentId": 1750316826575,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "more_fields": [],
+                    "paging_enabled": 0,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "auto_refresh": 1,
+                    "auto_refresh_debounce": 100
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "name": "Picked UOM",
+                  "novalid": {},
+                  "key": "47mx4z2e",
+                  "model": "picked_uom",
                   "rules": []
                 },
                 {
@@ -10435,7 +10939,7 @@
             "labelWidth": 100,
             "isLabelWidth": false,
             "hideLabel": true,
-            "hidden": true,
+            "hidden": false,
             "buttonSize": "default",
             "buttonType": "info",
             "buttonPlain": true,
@@ -10617,7 +11121,7 @@
       {
         "key": "mounted",
         "name": "mounted",
-        "func": "// Helper functions\nconst showStatusHTML = (status) => {\n  switch (status) {\n    case \"Draft\":\n      this.display([\"draft_status\"]);\n      break;\n    case \"Created\":\n      this.display([\"created_status\"]);\n      break;\n    case \"In Progress\":\n      this.display([\"processing_status\"]);\n      break;\n    case \"Completed\":\n      this.display([\"completed_status\"]);\n      break;\n    case \"Cancelled\":\n      this.display([\"cancelled_status\"]);\n      break;\n    default:\n      break;\n  }\n};\n\nconst disabledField = async (status) => {\n  if (status === \"Completed\") {\n    this.disabled(\n      [\n        \"to_status\",\n        \"plant_id\",\n        \"to_id\",\n        \"movement_type\",\n        \"ref_doc_type\",\n        \"gd_no\",\n        \"delivery_no\",\n        \"so_no\",\n        \"assigned_to\",\n        \"created_by\",\n        \"created_at\",\n        \"organization_id\",\n        \"ref_doc\",\n        \"table_picking_items\",\n        \"table_picking_records\",\n        \"remarks\",\n      ],\n      true,\n    );\n\n    this.hide([\n      \"button_save_as_draft\",\n      \"button_inprogress\",\n      \"button_completed\",\n    ]);\n\n    // Disable table rows\n    disableTableRows();\n  } else {\n    if (status === \"Created\") {\n      this.hide([\"button_save_as_draft\"]);\n    }\n    this.disabled([\"ref_doc\"], false);\n  }\n};\n\nconst disableTableRows = () => {\n  setTimeout(() => {\n    const data = this.getValues();\n    const rows = data.table_picking_items || [];\n\n    rows.forEach((row, index) => {\n      const fieldNames = Object.keys(row).filter((key) => key !== \"picked_qty\");\n\n      const fieldsToDisable = fieldNames.map(\n        (field) => `table_picking_items.${index}.${field}`,\n      );\n\n      this.disabled(fieldsToDisable, true);\n    });\n  }, 1000);\n};\n\nconst setPlant = async (organizationId) => {\n  const deptId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  let plantId = \"\";\n  const plant = this.getValue(\"plant_id\");\n\n  if (!plant) {\n    if (deptId === organizationId) {\n      const resPlant = await db\n        .collection(\"blade_dept\")\n        .where({ parent_id: deptId })\n        .get();\n\n      if (!resPlant && resPlant.data.length === 0) {\n        plantId = deptId;\n      } else {\n        plantId = \"\";\n      }\n    } else {\n      plantId = deptId;\n    }\n  }\n\n  this.setData({\n    organization_id: organizationId,\n    ...(!plant ? { plant_id: plantId } : {}),\n    created_at: new Date().toISOString().split(\"T\")[0],\n  });\n};\n\nconst viewSerialNumber = async () => {\n  const table_picking_items = this.getValue(\"table_picking_items\");\n  const table_picking_records = this.getValue(\"table_picking_records\");\n  if (table_picking_items.length > 0) {\n    for (const picking of table_picking_items) {\n      if (picking.is_serialized_item === 1) {\n        await this.display([\n          \"table_picking_items.select_serial_number\",\n          \"table_picking_items.serial_numbers\",\n        ]);\n      }\n    }\n  }\n  if (table_picking_records.length > 0) {\n    for (const picking of table_picking_records) {\n      if (picking.serial_numbers !== \"\" && picking.serial_numbers !== null) {\n        await this.display(\"table_picking_records.serial_numbers\");\n      }\n    }\n  }\n};\n\nconst setSerialNumber = async () => {\n  try {\n    const table_picking_items = this.getValue(\"table_picking_items\");\n\n    // Check if table_picking_items exists and is an array\n    if (\n      !Array.isArray(table_picking_items) ||\n      table_picking_items.length === 0\n    ) {\n      console.log(\"No picking items found or invalid data structure\");\n      return;\n    }\n\n    for (const [index, picking] of table_picking_items.entries()) {\n      try {\n        // Check if item is serialized\n        if (picking.is_serialized_item === 1) {\n          console.log(\n            `Processing serialized item at index ${index}:`,\n            picking.item_code || picking.id,\n          );\n\n          // Check if serial_numbers exists and is not empty\n          if (\n            !picking.serial_numbers ||\n            picking.serial_numbers === null ||\n            picking.serial_numbers === undefined ||\n            typeof picking.serial_numbers !== \"string\" ||\n            picking.serial_numbers.trim() === \"\"\n          ) {\n            console.warn(\n              `No valid serial numbers found for item at index ${index}`,\n            );\n            continue;\n          }\n\n          console.log(\"Picking Serial Numbers\", picking.serial_numbers);\n\n          // Split and clean serial numbers\n          const serialNumbers = picking.serial_numbers\n            .split(\",\")\n            .map((sn) => sn.trim())\n            .filter((sn) => sn !== \"\");\n\n          if (serialNumbers.length === 0) {\n            console.warn(\n              `No valid serial numbers after processing for item at index ${index}`,\n            );\n            continue;\n          }\n\n          console.log(\n            `Setting ${serialNumbers.length} serial numbers for item at index ${index}:`,\n            serialNumbers,\n          );\n\n          // Set option data for select dropdown\n          await this.setOptionData(\n            [`table_picking_items.${index}.select_serial_number`],\n            serialNumbers,\n          );\n\n          // Set the actual data\n          await this.setData({\n            [`table_picking_items.${index}.select_serial_number`]:\n              serialNumbers,\n          });\n\n          // Disable picked_qty field for serialized items\n          await this.disabled(\n            [`table_picking_items.${index}.picked_qty`],\n            true,\n          );\n\n          console.log(\n            `Successfully set serial numbers for item at index ${index}`,\n          );\n        }\n      } catch (itemError) {\n        console.error(`Error processing item at index ${index}:`, itemError);\n        // Continue with next item instead of breaking the entire function\n        continue;\n      }\n    }\n  } catch (error) {\n    console.error(\"Error in setSerialNumber function:\", error);\n    // Don't throw error to prevent breaking the entire onMounted flow\n  }\n};\n\nconst disabledPickedQtyField = async () => {\n  const gdIDs = await this.getValue(\"gd_no\");\n\n  const resGD = await Promise.all(\n    gdIDs.map((gdId) => db.collection(\"goods_delivery\").doc(gdId).get()),\n  );\n\n  const gdData = resGD.map((gd) => gd.data[0]);\n  const cancelledGD = gdData.filter((gd) => gd.picking_status === \"Cancelled\");\n  const tablePickingItems = this.getValue(\"table_picking_items\");\n  if (tablePickingItems.length > 0) {\n    for (const [index, picking] of tablePickingItems.entries()) {\n      const cancelGD = cancelledGD.find((gd) => gd.id === picking.gd_id);\n      console.log(\"cancelGD\", cancelGD);\n      if (picking.line_status === \"Cancelled\" || cancelGD) {\n        setTimeout(async () => {\n          this.disabled(\n            [\n              `table_picking_items.${index}.picked_qty`,\n              `table_picking_items.${index}.remark`,\n              `table_picking_items.${index}.select_serial_number`,\n            ],\n            true,\n          );\n        }, 100);\n      }\n    }\n  }\n};\n\nconst HU_SELECT_ALLOWED_POLICIES = [\"FULL_HU_PICK\", \"NO_SPLIT\"];\n\nconst fetchPickingSetup = async () => {\n  try {\n    const res = await db\n      .collection(\"picking_setup\")\n      .where({\n        plant_id: this.getValue(\"plant_id\"),\n        picking_required: 1,\n      })\n      .get();\n    return res.data && res.data.length > 0 ? res.data[0] : null;\n  } catch (error) {\n    console.error(\"fetchPickingSetup error:\", error);\n    return null;\n  }\n};\n\nconst createHeaderRows = async () => {\n  const rows = this.getValue(\"table_picking_items\") || [];\n  if (rows.length === 0) return;\n\n  if (rows.some((r) => r.row_type === \"header\")) return;\n\n  const newRows = [];\n  let lastHuId = null;\n\n  for (const row of rows) {\n    const huId = row.handling_unit_id;\n    if (huId && huId !== lastHuId) {\n      newRows.push({\n        row_type: \"header\",\n        handling_unit_id: huId,\n        hu_select: 0,\n      });\n      lastHuId = huId;\n    } else if (!huId) {\n      lastHuId = null;\n    }\n    newRows.push({ ...row, row_type: \"item\" });\n  }\n\n  if (newRows.length !== rows.length) {\n    await this.setData({ table_picking_items: newRows });\n  }\n};\n\nconst applyHUVisibility = async () => {\n  const rows = this.getValue(\"table_picking_items\") || [];\n  if (rows.length === 0) return;\n\n  // No row carries a handling_unit_id — hide the HU column and skip the rest.\n  if (!rows.some((r) => r.handling_unit_id)) {\n    await this.hide(\"table_picking_items.handling_unit_id\");\n    return;\n  }\n\n  // HUs are atomic packaging units — once an HU is selected to pick, all of\n  // its contents move together. Manual partial entry on HU items would let a\n  // user pick half an HU, which corrupts downstream Packing state (Packing's\n  // \"Pick HU\" snapshots the whole HU). Force atomic HU selection for every\n  // split_policy. The HU_SELECT_ALLOWED_POLICIES const is kept for reference\n  // but no longer gates the UI.\n  const huSelectEnabled = true;\n\n  // handling_unit_id + hu_select: enable column-wide so they can be shown\n  // on header rows; we then per-row hide them on item rows. (Some platforms\n  // require column-level display before per-row display takes effect.)\n  await this.display(\"table_picking_items.handling_unit_id\");\n  if (huSelectEnabled) {\n    await this.display(\"table_picking_items.hu_select\");\n  }\n\n  const HU_FIELDS = [\"handling_unit_id\", \"hu_select\"];\n  const sampleItem = rows.find((r) => r.row_type !== \"header\");\n  const itemFields = sampleItem\n    ? Object.keys(sampleItem).filter(\n        (k) => !HU_FIELDS.includes(k) && k !== \"row_type\",\n      )\n    : [];\n\n  // picked_qty has a validator rule and remark accepts input — disable them\n  // on header rows so they don't trigger validation or accept input while hidden\n  const HEADER_DISABLE_FIELDS = [\"picked_qty\", \"remark\"];\n\n  for (const [i, row] of rows.entries()) {\n    if (row.row_type === \"header\") {\n      for (const f of itemFields) {\n        await this.hide(`table_picking_items.${i}.${f}`);\n      }\n      if (huSelectEnabled) {\n        await this.display(`table_picking_items.${i}.hu_select`);\n      }\n      for (const f of HEADER_DISABLE_FIELDS) {\n        await this.disabled(`table_picking_items.${i}.${f}`, true);\n      }\n    } else {\n      await this.hide(`table_picking_items.${i}.handling_unit_id`);\n      if (huSelectEnabled) {\n        // hu_select column was just enabled at column level; explicitly hide\n        // on item rows so the checkbox only renders on HU header rows.\n        await this.hide(`table_picking_items.${i}.hu_select`);\n      }\n    }\n  }\n\n  // Under whole-HU policies, picked_qty on HU-allocated item rows is driven\n  // by the header's hu_select — disable manual entry. Loose item rows (no\n  // handling_unit_id) stay editable. Header rows were already disabled above.\n  if (huSelectEnabled) {\n    for (const [i, row] of rows.entries()) {\n      if (row.row_type !== \"header\" && row.handling_unit_id) {\n        await this.disabled(`table_picking_items.${i}.picked_qty`, true);\n      }\n    }\n  }\n};\n\nconst PickingPlan = async (pickingSetup) => {\n  try {\n    if (!pickingSetup) return;\n\n    if (pickingSetup.picking_after === \"Goods Delivery\") {\n      await this.display([\"button_completed\"]);\n    } else if (pickingSetup.picking_after === \"Sales Order\") {\n      await this.display([\"to_validity_period\", \"to_no\"]);\n      await this.hide([\"gd_no\", \"delivery_no\"]);\n    } else {\n      await this.display([\"button_completed\"]);\n    }\n\n    const isLoadingBay = pickingSetup.is_loading_bay;\n    await this.setData({\n      is_loading_bay: isLoadingBay,\n    });\n    if (isLoadingBay) {\n      await this.display([\n        \"table_picking_items.storage_location\",\n        \"table_picking_items.target_location\",\n      ]);\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n};\n\n// A Picking converted from a Goods Delivery carries over the GD's delivery\n// method + details (pre-filled by GDconvertToPicking). Reveal the section that\n// matches the pre-filled delivery_method, mirroring onChangeDeliveryMethod's\n// visibility logic but WITHOUT triggering func_reset_delivery_method (which\n// would wipe the carried-over values).\nconst revealDeliveryMethodSection = async () => {\n  const sections = [\n    \"self_pickup\",\n    \"courier_service\",\n    \"company_truck\",\n    \"shipping_service\",\n    \"third_party_transporter\",\n  ];\n  const deliveryMethod = this.getValue(\"delivery_method\");\n  if (!deliveryMethod) {\n    await this.hide(sections);\n    return;\n  }\n  const visibilityMap = {\n    \"Self Pickup\": \"self_pickup\",\n    \"Courier Service\": \"courier_service\",\n    \"Company Truck\": \"company_truck\",\n    \"Shipping Service\": \"shipping_service\",\n    \"3rd Party Transporter\": \"third_party_transporter\",\n  };\n  const selected = visibilityMap[deliveryMethod] || null;\n  for (const f of sections) {\n    if (f === selected) await this.display(f);\n    else await this.hide(f);\n  }\n};\n\n// Main execution function\n(async () => {\n  try {\n    let pageStatus = \"\";\n    const status = await this.getValue(\"to_status\");\n    console.log(\"Debug\", status, this.getValues());\n\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else if (this.isCopy) pageStatus = \"Clone\";\n    else throw new Error(\"Invalid page state\");\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    console.log(\"pageStatus\", pageStatus);\n    await this.setData({ page_status: pageStatus });\n    console.log(\"pageStatusData\", this.getValue(\"page_status\"));\n\n    switch (pageStatus) {\n      case \"Add\":\n        // Add mode\n        this.display([\"draft_status\"]);\n        this.disabled(\"assigned_to\", false);\n        this.setData({\n          page_status: pageStatus,\n          created_by: this.getVarGlobal(\"nickname\"),\n          movement_type: \"Picking\",\n        });\n\n        await setPlant(organizationId);\n\n        const convertFromGD = this.getValue(\"plant_id\");\n\n        if (convertFromGD) {\n          await viewSerialNumber();\n          await setSerialNumber();\n        }\n        {\n          const pickingSetup = await fetchPickingSetup();\n          await createHeaderRows();\n          await applyHUVisibility();\n          await PickingPlan(pickingSetup);\n          await revealDeliveryMethodSection();\n        }\n        break;\n\n      case \"Edit\":\n        // this.setData({\n        //   \"table_picking_items.picked_qty\": 0,\n        //   \"table_picking_items.remark\": \"\",\n        // });\n        if (status !== \"Draft\") {\n          this.hide([\"gd_no\", \"button_save_as_draft\", \"button_created\"]);\n        }\n        await disabledField(status);\n        await showStatusHTML(status);\n        await disabledPickedQtyField();\n        await viewSerialNumber();\n        await setSerialNumber();\n        console.log(\n          \"table_picking_item onMounted\",\n          this.getValue(\"table_picking_items\"),\n        );\n        {\n          const pickingSetup = await fetchPickingSetup();\n          await createHeaderRows();\n          await applyHUVisibility();\n          await PickingPlan(pickingSetup);\n          await revealDeliveryMethodSection();\n        }\n        break;\n\n      case \"View\":\n        this.hide([\"gd_no\"]);\n        this.display([\"delivery_no\"]);\n        await showStatusHTML(status);\n        this.hide([\n          \"button_save_as_draft\",\n          \"button_created\",\n          \"button_inprogress\",\n          \"button_completed\",\n        ]);\n        await viewSerialNumber();\n        {\n          const pickingSetup = await fetchPickingSetup();\n          await createHeaderRows();\n          await applyHUVisibility();\n          await PickingPlan(pickingSetup);\n          await revealDeliveryMethodSection();\n        }\n        break;\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n\nsetTimeout(async () => {\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"to_id_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n  var params = this.getComponent(\"to_id\");\n  const { options } = params;\n\n  const optionsData = this.getOptionData(\"to_id_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n  if (options?.canManualInput) {\n    this.setOptionData(\"to_id_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n    if (this.isAdd) {\n      this.setData({\n        to_id_type: defaultData ? defaultData.value : -9999,\n      });\n    }\n  } else if (defaultData) {\n    if (this.isAdd) {\n      this.setData({ to_id_type: defaultData.value });\n    }\n  }\n}, 200);\n",
+        "func": "// Helper functions\nconst showStatusHTML = (status) => {\n  switch (status) {\n    case \"Draft\":\n      this.display([\"draft_status\"]);\n      break;\n    case \"Created\":\n      this.display([\"created_status\"]);\n      break;\n    case \"In Progress\":\n      this.display([\"processing_status\"]);\n      break;\n    case \"Completed\":\n      this.display([\"completed_status\"]);\n      break;\n    case \"Cancelled\":\n      this.display([\"cancelled_status\"]);\n      break;\n    default:\n      break;\n  }\n};\n\nconst disabledField = async (status) => {\n  if (status === \"Completed\") {\n    this.disabled(\n      [\n        \"to_status\",\n        \"plant_id\",\n        \"to_id\",\n        \"movement_type\",\n        \"ref_doc_type\",\n        \"gd_no\",\n        \"delivery_no\",\n        \"so_no\",\n        \"assigned_to\",\n        \"created_by\",\n        \"created_at\",\n        \"organization_id\",\n        \"ref_doc\",\n        \"table_picking_items\",\n        \"table_picking_records\",\n        \"remarks\",\n      ],\n      true,\n    );\n\n    this.hide([\n      \"button_save_as_draft\",\n      \"button_inprogress\",\n      \"button_completed\",\n    ]);\n\n    // Disable table rows\n    disableTableRows();\n  } else {\n    if (status === \"Created\") {\n      this.hide([\"button_save_as_draft\"]);\n    }\n    this.disabled([\"ref_doc\"], false);\n  }\n};\n\nconst disableTableRows = () => {\n  setTimeout(() => {\n    const data = this.getValues();\n    const rows = data.table_picking_items || [];\n\n    rows.forEach((row, index) => {\n      const fieldNames = Object.keys(row).filter((key) => key !== \"picked_qty\");\n\n      const fieldsToDisable = fieldNames.map(\n        (field) => `table_picking_items.${index}.${field}`,\n      );\n\n      this.disabled(fieldsToDisable, true);\n    });\n  }, 1000);\n};\n\nconst setPlant = async (organizationId) => {\n  const deptId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  let plantId = \"\";\n  const plant = this.getValue(\"plant_id\");\n\n  if (!plant) {\n    if (deptId === organizationId) {\n      const resPlant = await db\n        .collection(\"blade_dept\")\n        .where({ parent_id: deptId })\n        .get();\n\n      if (!resPlant && resPlant.data.length === 0) {\n        plantId = deptId;\n      } else {\n        plantId = \"\";\n      }\n    } else {\n      plantId = deptId;\n    }\n  }\n\n  this.setData({\n    organization_id: organizationId,\n    ...(!plant ? { plant_id: plantId } : {}),\n    created_at: new Date().toISOString().split(\"T\")[0],\n  });\n};\n\nconst viewSerialNumber = async () => {\n  const table_picking_items = this.getValue(\"table_picking_items\");\n  const table_picking_records = this.getValue(\"table_picking_records\");\n  if (table_picking_items.length > 0) {\n    for (const picking of table_picking_items) {\n      if (picking.is_serialized_item === 1) {\n        await this.display([\n          \"table_picking_items.select_serial_number\",\n          \"table_picking_items.serial_numbers\",\n        ]);\n      }\n    }\n  }\n  if (table_picking_records.length > 0) {\n    for (const picking of table_picking_records) {\n      if (picking.serial_numbers !== \"\" && picking.serial_numbers !== null) {\n        await this.display(\"table_picking_records.serial_numbers\");\n      }\n    }\n  }\n};\n\nconst setSerialNumber = async () => {\n  try {\n    const table_picking_items = this.getValue(\"table_picking_items\");\n\n    // Check if table_picking_items exists and is an array\n    if (\n      !Array.isArray(table_picking_items) ||\n      table_picking_items.length === 0\n    ) {\n      console.log(\"No picking items found or invalid data structure\");\n      return;\n    }\n\n    for (const [index, picking] of table_picking_items.entries()) {\n      try {\n        // Check if item is serialized\n        if (picking.is_serialized_item === 1) {\n          console.log(\n            `Processing serialized item at index ${index}:`,\n            picking.item_code || picking.id,\n          );\n\n          // Check if serial_numbers exists and is not empty\n          if (\n            !picking.serial_numbers ||\n            picking.serial_numbers === null ||\n            picking.serial_numbers === undefined ||\n            typeof picking.serial_numbers !== \"string\" ||\n            picking.serial_numbers.trim() === \"\"\n          ) {\n            console.warn(\n              `No valid serial numbers found for item at index ${index}`,\n            );\n            continue;\n          }\n\n          console.log(\"Picking Serial Numbers\", picking.serial_numbers);\n\n          // Split and clean serial numbers\n          const serialNumbers = picking.serial_numbers\n            .split(\",\")\n            .map((sn) => sn.trim())\n            .filter((sn) => sn !== \"\");\n\n          if (serialNumbers.length === 0) {\n            console.warn(\n              `No valid serial numbers after processing for item at index ${index}`,\n            );\n            continue;\n          }\n\n          console.log(\n            `Setting ${serialNumbers.length} serial numbers for item at index ${index}:`,\n            serialNumbers,\n          );\n\n          // Set option data for select dropdown\n          await this.setOptionData(\n            [`table_picking_items.${index}.select_serial_number`],\n            serialNumbers,\n          );\n\n          // Set the actual data\n          await this.setData({\n            [`table_picking_items.${index}.select_serial_number`]:\n              serialNumbers,\n          });\n\n          // Disable picked_qty + Pick UOM for serialized items (qty is driven\n          // by the serial-number count, so UOM switching is meaningless here)\n          await this.disabled(\n            [\n              `table_picking_items.${index}.picked_qty`,\n              `table_picking_items.${index}.picking_uom`,\n            ],\n            true,\n          );\n\n          console.log(\n            `Successfully set serial numbers for item at index ${index}`,\n          );\n        }\n      } catch (itemError) {\n        console.error(`Error processing item at index ${index}:`, itemError);\n        // Continue with next item instead of breaking the entire function\n        continue;\n      }\n    }\n  } catch (error) {\n    console.error(\"Error in setSerialNumber function:\", error);\n    // Don't throw error to prevent breaking the entire onMounted flow\n  }\n};\n\nconst disabledPickedQtyField = async () => {\n  const gdIDs = await this.getValue(\"gd_no\");\n\n  const resGD = await Promise.all(\n    gdIDs.map((gdId) => db.collection(\"goods_delivery\").doc(gdId).get()),\n  );\n\n  const gdData = resGD.map((gd) => gd.data[0]);\n  const cancelledGD = gdData.filter((gd) => gd.picking_status === \"Cancelled\");\n  const tablePickingItems = this.getValue(\"table_picking_items\");\n  if (tablePickingItems.length > 0) {\n    for (const [index, picking] of tablePickingItems.entries()) {\n      const cancelGD = cancelledGD.find((gd) => gd.id === picking.gd_id);\n      console.log(\"cancelGD\", cancelGD);\n      if (picking.line_status === \"Cancelled\" || cancelGD) {\n        setTimeout(async () => {\n          this.disabled(\n            [\n              `table_picking_items.${index}.picked_qty`,\n              `table_picking_items.${index}.picking_uom`,\n              `table_picking_items.${index}.remark`,\n              `table_picking_items.${index}.select_serial_number`,\n            ],\n            true,\n          );\n        }, 100);\n      }\n    }\n  }\n};\n\n// --- Pick UOM conversion helpers (mirror of GDdialogUOMchange.js) ----------\nconst convertBaseToAlt = (baseQty, tableUomConversion, uom) => {\n  if (\n    !Array.isArray(tableUomConversion) ||\n    tableUomConversion.length === 0 ||\n    !uom\n  ) {\n    return baseQty;\n  }\n  const conv = tableUomConversion.find((c) => c.alt_uom_id === uom);\n  if (!conv || !conv.base_qty) return baseQty;\n  return Math.round((baseQty / conv.base_qty) * 1000) / 1000;\n};\n\nconst convertQuantityFromTo = (\n  value,\n  tableUomConversion,\n  fromUOM,\n  toUOM,\n  baseUOM,\n) => {\n  if (!value || fromUOM === toUOM) return value;\n  // current UOM -> base UOM\n  let baseQty = value;\n  if (fromUOM !== baseUOM) {\n    const fromConv = (tableUomConversion || []).find(\n      (c) => c.alt_uom_id === fromUOM,\n    );\n    if (fromConv && fromConv.base_qty) {\n      baseQty = value * fromConv.base_qty;\n    }\n  }\n  // base UOM -> target UOM\n  return convertBaseToAlt(baseQty, tableUomConversion, toUOM);\n};\n\n// Base-UOM units per 1 unit of `uom` (the conversion factor; 1 when uom is the\n// base UOM itself or has no conversion entry). The workflow funnel uses the\n// order/picking pair (picking_base_qty / order_base_qty) to convert the picked\n// qty back to the order UOM exactly, without re-fetching the item master.\nconst getBaseQtyForUom = (uom, basedUom, tableUomConversion) => {\n  if (!uom) return 1;\n  if (String(uom) === String(basedUom)) return 1;\n  const c = (tableUomConversion || []).find((x) => x.alt_uom_id === uom);\n  return c && c.base_qty ? c.base_qty : 1;\n};\n\n// Fetch the item master + UOM names for every distinct material in the picking\n// table, cache the conversion data on window.pickingUOMCache (read by the\n// validator / onChange handlers), populate the per-row Pick UOM dropdown with\n// the item's valid UOMs (base + alternates), and seed the read-only alt-UOM\n// display columns (to_pick_alt / pending_alt). Quantities themselves stay in\n// the order UOM — only the picker-facing display is in the chosen Pick UOM.\nconst enrichPickingUOM = async () => {\n  try {\n    const rows = this.getValue(\"table_picking_items\") || [];\n    if (rows.length === 0) return;\n\n    const materialIds = [\n      ...new Set(\n        rows\n          .filter((r) => r.row_type !== \"header\" && r.item_code)\n          .map((r) => String(r.item_code)),\n      ),\n    ];\n    if (materialIds.length === 0) return;\n\n    // Batched item master fetch (one doc().get() per distinct material).\n    const itemResults = await Promise.all(\n      materialIds.map((id) =>\n        db\n          .collection(\"Item\")\n          .doc(id)\n          .get()\n          .catch(() => null),\n      ),\n    );\n\n    const itemById = {};\n    const uomIdSet = new Set();\n    itemResults.forEach((res, i) => {\n      const item = res && res.data && res.data[0] ? res.data[0] : null;\n      if (!item) return;\n      const conversions = Array.isArray(item.table_uom_conversion)\n        ? item.table_uom_conversion\n        : [];\n      itemById[materialIds[i]] = {\n        based_uom: item.based_uom,\n        table_uom_conversion: conversions,\n      };\n      if (item.based_uom) uomIdSet.add(String(item.based_uom));\n      conversions.forEach((c) => {\n        if (c.alt_uom_id) uomIdSet.add(String(c.alt_uom_id));\n      });\n    });\n\n    // Resolve UOM names for the dropdown labels.\n    const uomIds = [...uomIdSet];\n    const uomResults = await Promise.all(\n      uomIds.map((id) =>\n        db\n          .collection(\"UOM\")\n          .doc(id)\n          .get()\n          .catch(() => null),\n      ),\n    );\n    const uomNameById = {};\n    uomResults.forEach((res, i) => {\n      const uom = res && res.data && res.data[0] ? res.data[0] : null;\n      uomNameById[uomIds[i]] = uom ? uom.uom_name : uomIds[i];\n    });\n\n    // Build the per-material cache + dropdown options.\n    if (!window.pickingUOMCache) window.pickingUOMCache = {};\n    for (const matId of materialIds) {\n      const info = itemById[matId];\n      if (!info) continue;\n      const validIds = [];\n      if (info.based_uom) validIds.push(String(info.based_uom));\n      info.table_uom_conversion.forEach((c) => {\n        if (c.alt_uom_id && !validIds.includes(String(c.alt_uom_id))) {\n          validIds.push(String(c.alt_uom_id));\n        }\n      });\n      const options = validIds.map((id) => ({\n        value: id,\n        label: uomNameById[id] || id,\n      }));\n      window.pickingUOMCache[matId] = {\n        based_uom: info.based_uom,\n        table_uom_conversion: info.table_uom_conversion,\n        options,\n      };\n    }\n\n    // Apply per-row: default Pick UOM, dropdown options, alt-UOM displays.\n    const updates = {};\n    for (const [i, row] of rows.entries()) {\n      if (row.row_type === \"header\" || !row.item_code) continue;\n      const matId = String(row.item_code);\n      const cache = window.pickingUOMCache[matId];\n      if (!cache) continue;\n\n      const orderUom = String(row.item_uom);\n      const pickingUom = row.picking_uom ? String(row.picking_uom) : orderUom;\n\n      // Ensure the order UOM itself is always a selectable option.\n      let options = cache.options.slice();\n      if (orderUom && !options.some((o) => o.value === orderUom)) {\n        options.unshift({ value: orderUom, label: uomNameById[orderUom] || orderUom });\n      }\n      await this.setOptionData(\n        [`table_picking_items.${i}.picking_uom`],\n        options,\n      );\n\n      if (!row.picking_uom) {\n        updates[`table_picking_items.${i}.picking_uom`] = orderUom;\n      }\n\n      // Exact conversion factors carried to the workflow funnel (see comment on\n      // getBaseQtyForUom). order_base_qty is fixed per line (item_uom never\n      // changes); picking_base_qty tracks the chosen Pick UOM.\n      updates[`table_picking_items.${i}.order_base_qty`] = getBaseQtyForUom(\n        orderUom,\n        cache.based_uom,\n        cache.table_uom_conversion,\n      );\n      updates[`table_picking_items.${i}.picking_base_qty`] = getBaseQtyForUom(\n        pickingUom,\n        cache.based_uom,\n        cache.table_uom_conversion,\n      );\n\n      updates[`table_picking_items.${i}.to_pick_alt`] = convertQuantityFromTo(\n        parseFloat(row.qty_to_pick) || 0,\n        cache.table_uom_conversion,\n        orderUom,\n        pickingUom,\n        cache.based_uom,\n      );\n      updates[`table_picking_items.${i}.pending_alt`] = convertQuantityFromTo(\n        parseFloat(row.pending_process_qty) || 0,\n        cache.table_uom_conversion,\n        orderUom,\n        pickingUom,\n        cache.based_uom,\n      );\n    }\n\n    if (Object.keys(updates).length > 0) {\n      await this.setData(updates);\n    }\n  } catch (error) {\n    console.error(\"enrichPickingUOM error:\", error);\n  }\n};\n\nconst HU_SELECT_ALLOWED_POLICIES = [\"FULL_HU_PICK\", \"NO_SPLIT\"];\n\nconst fetchPickingSetup = async () => {\n  try {\n    const res = await db\n      .collection(\"picking_setup\")\n      .where({\n        plant_id: this.getValue(\"plant_id\"),\n        picking_required: 1,\n      })\n      .get();\n    return res.data && res.data.length > 0 ? res.data[0] : null;\n  } catch (error) {\n    console.error(\"fetchPickingSetup error:\", error);\n    return null;\n  }\n};\n\nconst createHeaderRows = async () => {\n  const rows = this.getValue(\"table_picking_items\") || [];\n  if (rows.length === 0) return;\n\n  if (rows.some((r) => r.row_type === \"header\")) return;\n\n  const newRows = [];\n  let lastHuId = null;\n\n  for (const row of rows) {\n    const huId = row.handling_unit_id;\n    if (huId && huId !== lastHuId) {\n      newRows.push({\n        row_type: \"header\",\n        handling_unit_id: huId,\n        hu_select: 0,\n      });\n      lastHuId = huId;\n    } else if (!huId) {\n      lastHuId = null;\n    }\n    newRows.push({ ...row, row_type: \"item\" });\n  }\n\n  if (newRows.length !== rows.length) {\n    await this.setData({ table_picking_items: newRows });\n  }\n};\n\nconst applyHUVisibility = async () => {\n  const rows = this.getValue(\"table_picking_items\") || [];\n  if (rows.length === 0) return;\n\n  // No row carries a handling_unit_id — hide the HU column and skip the rest.\n  if (!rows.some((r) => r.handling_unit_id)) {\n    await this.hide(\"table_picking_items.handling_unit_id\");\n    return;\n  }\n\n  // HUs are atomic packaging units — once an HU is selected to pick, all of\n  // its contents move together. Manual partial entry on HU items would let a\n  // user pick half an HU, which corrupts downstream Packing state (Packing's\n  // \"Pick HU\" snapshots the whole HU). Force atomic HU selection for every\n  // split_policy. The HU_SELECT_ALLOWED_POLICIES const is kept for reference\n  // but no longer gates the UI.\n  const huSelectEnabled = true;\n\n  // handling_unit_id + hu_select: enable column-wide so they can be shown\n  // on header rows; we then per-row hide them on item rows. (Some platforms\n  // require column-level display before per-row display takes effect.)\n  await this.display(\"table_picking_items.handling_unit_id\");\n  if (huSelectEnabled) {\n    await this.display(\"table_picking_items.hu_select\");\n  }\n\n  const HU_FIELDS = [\"handling_unit_id\", \"hu_select\"];\n  const sampleItem = rows.find((r) => r.row_type !== \"header\");\n  const itemFields = sampleItem\n    ? Object.keys(sampleItem).filter(\n        (k) => !HU_FIELDS.includes(k) && k !== \"row_type\",\n      )\n    : [];\n\n  // picked_qty has a validator rule and remark accepts input — disable them\n  // on header rows so they don't trigger validation or accept input while hidden\n  const HEADER_DISABLE_FIELDS = [\"picked_qty\", \"picking_uom\", \"remark\"];\n\n  for (const [i, row] of rows.entries()) {\n    if (row.row_type === \"header\") {\n      for (const f of itemFields) {\n        await this.hide(`table_picking_items.${i}.${f}`);\n      }\n      if (huSelectEnabled) {\n        await this.display(`table_picking_items.${i}.hu_select`);\n      }\n      for (const f of HEADER_DISABLE_FIELDS) {\n        await this.disabled(`table_picking_items.${i}.${f}`, true);\n      }\n    } else {\n      await this.hide(`table_picking_items.${i}.handling_unit_id`);\n      if (huSelectEnabled) {\n        // hu_select column was just enabled at column level; explicitly hide\n        // on item rows so the checkbox only renders on HU header rows.\n        await this.hide(`table_picking_items.${i}.hu_select`);\n      }\n    }\n  }\n\n  // Under whole-HU policies, picked_qty on HU-allocated item rows is driven\n  // by the header's hu_select — disable manual entry. Loose item rows (no\n  // handling_unit_id) stay editable. Header rows were already disabled above.\n  if (huSelectEnabled) {\n    for (const [i, row] of rows.entries()) {\n      if (row.row_type !== \"header\" && row.handling_unit_id) {\n        await this.disabled(\n          [\n            `table_picking_items.${i}.picked_qty`,\n            `table_picking_items.${i}.picking_uom`,\n          ],\n          true,\n        );\n      }\n    }\n  }\n};\n\nconst PickingPlan = async (pickingSetup) => {\n  try {\n    if (!pickingSetup) return;\n\n    if (pickingSetup.picking_after === \"Goods Delivery\") {\n      await this.display([\"button_completed\"]);\n    } else if (pickingSetup.picking_after === \"Sales Order\") {\n      await this.display([\"to_validity_period\", \"to_no\"]);\n      await this.hide([\"gd_no\", \"delivery_no\"]);\n    } else {\n      await this.display([\"button_completed\"]);\n    }\n\n    const isLoadingBay = pickingSetup.is_loading_bay;\n    await this.setData({\n      is_loading_bay: isLoadingBay,\n    });\n    if (isLoadingBay) {\n      await this.display([\n        \"table_picking_items.storage_location\",\n        \"table_picking_items.target_location\",\n      ]);\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n};\n\n// A Picking converted from a Goods Delivery carries over the GD's delivery\n// method + details (pre-filled by GDconvertToPicking). Reveal the section that\n// matches the pre-filled delivery_method, mirroring onChangeDeliveryMethod's\n// visibility logic but WITHOUT triggering func_reset_delivery_method (which\n// would wipe the carried-over values).\nconst revealDeliveryMethodSection = async () => {\n  const sections = [\n    \"self_pickup\",\n    \"courier_service\",\n    \"company_truck\",\n    \"shipping_service\",\n    \"third_party_transporter\",\n  ];\n  const deliveryMethod = this.getValue(\"delivery_method\");\n  if (!deliveryMethod) {\n    await this.hide(sections);\n    return;\n  }\n  const visibilityMap = {\n    \"Self Pickup\": \"self_pickup\",\n    \"Courier Service\": \"courier_service\",\n    \"Company Truck\": \"company_truck\",\n    \"Shipping Service\": \"shipping_service\",\n    \"3rd Party Transporter\": \"third_party_transporter\",\n  };\n  const selected = visibilityMap[deliveryMethod] || null;\n  for (const f of sections) {\n    if (f === selected) await this.display(f);\n    else await this.hide(f);\n  }\n};\n\n// Main execution function\n(async () => {\n  try {\n    let pageStatus = \"\";\n    const status = await this.getValue(\"to_status\");\n    console.log(\"Debug\", status, this.getValues());\n\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else if (this.isCopy) pageStatus = \"Clone\";\n    else throw new Error(\"Invalid page state\");\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    console.log(\"pageStatus\", pageStatus);\n    await this.setData({ page_status: pageStatus });\n    console.log(\"pageStatusData\", this.getValue(\"page_status\"));\n\n    switch (pageStatus) {\n      case \"Add\":\n        // Add mode\n        this.display([\"draft_status\"]);\n        this.disabled(\"assigned_to\", false);\n        this.setData({\n          page_status: pageStatus,\n          created_by: this.getVarGlobal(\"nickname\"),\n          movement_type: \"Picking\",\n        });\n\n        await setPlant(organizationId);\n\n        const convertFromGD = this.getValue(\"plant_id\");\n\n        if (convertFromGD) {\n          await viewSerialNumber();\n          await setSerialNumber();\n        }\n        {\n          const pickingSetup = await fetchPickingSetup();\n          await createHeaderRows();\n          await applyHUVisibility();\n          await enrichPickingUOM();\n          await PickingPlan(pickingSetup);\n          await revealDeliveryMethodSection();\n        }\n        break;\n\n      case \"Edit\":\n        // this.setData({\n        //   \"table_picking_items.picked_qty\": 0,\n        //   \"table_picking_items.remark\": \"\",\n        // });\n        if (status !== \"Draft\") {\n          this.hide([\"gd_no\", \"button_save_as_draft\", \"button_created\"]);\n        }\n        await disabledField(status);\n        await showStatusHTML(status);\n        await disabledPickedQtyField();\n        await viewSerialNumber();\n        await setSerialNumber();\n        console.log(\n          \"table_picking_item onMounted\",\n          this.getValue(\"table_picking_items\"),\n        );\n        {\n          const pickingSetup = await fetchPickingSetup();\n          await createHeaderRows();\n          await applyHUVisibility();\n          await enrichPickingUOM();\n          await PickingPlan(pickingSetup);\n          await revealDeliveryMethodSection();\n        }\n        break;\n\n      case \"View\":\n        this.hide([\"gd_no\"]);\n        this.display([\"delivery_no\"]);\n        await showStatusHTML(status);\n        this.hide([\n          \"button_save_as_draft\",\n          \"button_created\",\n          \"button_inprogress\",\n          \"button_completed\",\n        ]);\n        await viewSerialNumber();\n        {\n          const pickingSetup = await fetchPickingSetup();\n          await createHeaderRows();\n          await applyHUVisibility();\n          await enrichPickingUOM();\n          await PickingPlan(pickingSetup);\n          await revealDeliveryMethodSection();\n        }\n        break;\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n\nsetTimeout(async () => {\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"to_id_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n  var params = this.getComponent(\"to_id\");\n  const { options } = params;\n\n  const optionsData = this.getOptionData(\"to_id_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n  if (options?.canManualInput) {\n    this.setOptionData(\"to_id_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n    if (this.isAdd) {\n      this.setData({\n        to_id_type: defaultData ? defaultData.value : -9999,\n      });\n    }\n  } else if (defaultData) {\n    if (this.isAdd) {\n      this.setData({ to_id_type: defaultData.value });\n    }\n  }\n}, 200);\n",
         "type": "js"
       },
       {
@@ -10774,7 +11278,7 @@
       {
         "key": "sfapqmwb",
         "name": "onHuSelectChange",
-        "func": "// PickingOnChangeHuSelect.js\n// onChange handler for hu_select checkbox on HU header rows in table_picking_items.\n// When checked (1): sets picked_qty = pending_process_qty for every item row in this HU.\n// When unchecked (0): resets picked_qty to 0 for those item rows.\n// Only active when picking_setup.split_policy is FULL_HU_PICK or NO_SPLIT;\n// under ALLOW_SPLIT the hu_select column is hidden by applyHUVisibility anyway.\n\n(async () => {\n  try {\n    const data = this.getValues();\n    const { rowIndex, value } = arguments[0];\n\n    const rows = data.table_picking_items || [];\n    const currentRow = rows[rowIndex];\n\n    // Only header rows respond\n    if (!currentRow || currentRow.row_type !== \"header\") return;\n\n    const handlingUnitId = currentRow.handling_unit_id;\n    if (!handlingUnitId) return;\n\n    const isSelected = value === 1 || value === true;\n\n    const updates = {};\n    rows.forEach((row, idx) => {\n      if (\n        row.row_type === \"item\" &&\n        row.handling_unit_id === handlingUnitId\n      ) {\n        if (isSelected) {\n          updates[`table_picking_items.${idx}.picked_qty`] =\n            parseFloat(row.pending_process_qty) || 0;\n        } else {\n          updates[`table_picking_items.${idx}.picked_qty`] = 0;\n        }\n      }\n    });\n\n    if (Object.keys(updates).length > 0) {\n      await this.setData(updates);\n    }\n  } catch (error) {\n    console.error(\"PickingOnChangeHuSelect error:\", error);\n  }\n})();\n",
+        "func": "// PickingOnChangeHuSelect.js\n// onChange handler for hu_select checkbox on HU header rows in table_picking_items.\n// When checked (1): sets picked_qty = pending_process_qty for every item row in this HU.\n// When unchecked (0): resets picked_qty to 0 for those item rows.\n// Only active when picking_setup.split_policy is FULL_HU_PICK or NO_SPLIT;\n// under ALLOW_SPLIT the hu_select column is hidden by applyHUVisibility anyway.\n\n(async () => {\n  try {\n    const data = this.getValues();\n    const { rowIndex, value } = arguments[0];\n\n    const rows = data.table_picking_items || [];\n    const currentRow = rows[rowIndex];\n\n    // Only header rows respond\n    if (!currentRow || currentRow.row_type !== \"header\") return;\n\n    const handlingUnitId = currentRow.handling_unit_id;\n    if (!handlingUnitId) return;\n\n    const isSelected = value === 1 || value === true;\n\n    // picked_qty is expressed in the row's picking_uom, while pending_process_qty\n    // is canonical (order UOM = item_uom). For HU item rows picking_uom is forced\n    // to item_uom (atomic HU pick), so this is identity today; the conversion is\n    // kept for safety in case HU rows ever allow an alternate Pick UOM.\n    const convertBaseToAlt = (baseQty, conv, uom) => {\n      if (!Array.isArray(conv) || conv.length === 0 || !uom) return baseQty;\n      const c = conv.find((x) => x.alt_uom_id === uom);\n      if (!c || !c.base_qty) return baseQty;\n      return Math.round((baseQty / c.base_qty) * 1000) / 1000;\n    };\n    const convertQuantityFromTo = (val, conv, fromUOM, toUOM, baseUOM) => {\n      if (!val || fromUOM === toUOM) return val;\n      let baseQty = val;\n      if (fromUOM !== baseUOM) {\n        const fromConv = (conv || []).find((x) => x.alt_uom_id === fromUOM);\n        if (fromConv && fromConv.base_qty) baseQty = val * fromConv.base_qty;\n      }\n      return convertBaseToAlt(baseQty, conv, toUOM);\n    };\n\n    const updates = {};\n    rows.forEach((row, idx) => {\n      if (\n        row.row_type === \"item\" &&\n        row.handling_unit_id === handlingUnitId\n      ) {\n        if (isSelected) {\n          const pending = parseFloat(row.pending_process_qty) || 0;\n          const orderUom = String(row.item_uom);\n          const pickingUom = row.picking_uom ? String(row.picking_uom) : orderUom;\n          const cache =\n            (window.pickingUOMCache &&\n              window.pickingUOMCache[String(row.item_code)]) ||\n            null;\n          updates[`table_picking_items.${idx}.picked_qty`] =\n            convertQuantityFromTo(\n              pending,\n              cache ? cache.table_uom_conversion : [],\n              orderUom,\n              pickingUom,\n              cache ? cache.based_uom : orderUom,\n            );\n        } else {\n          updates[`table_picking_items.${idx}.picked_qty`] = 0;\n        }\n      }\n    });\n\n    if (Object.keys(updates).length > 0) {\n      await this.setData(updates);\n    }\n  } catch (error) {\n    console.error(\"PickingOnChangeHuSelect error:\", error);\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -10788,6 +11292,12 @@
         "key": "orznes1q",
         "name": "func_reset_delivery_method",
         "func": "this.setData({\n    'delivery_method_text': '',\n\n    'driver_name': '',\n    'ic_no': '',\n    'driver_contact_no': '',\n    'sp_vehicle_no': '',\n    'pickup_date': '',\n    'validity_of_collection': '',\n\n    'courier_company': '',\n    'shipping_date': '',\n    'tracking_number': '',\n    'est_arrival_date': '',\n    'freight_charges': '',\n\n    'ct_driver_name': '',\n    'ct_driver_contact_no': '',\n    'ct_ic_no': '',\n    'vehicle_no': '',\n    'est_delivery_date': '',\n    'delivery_cost': '',\n\n    'shipping_company': '',\n    'ss_shipping_date': '',\n    'ss_freight_charges': '',\n    'shipping_method': '',\n    'ss_est_arrival_date': '',\n    'ss_tracking_number': '',\n\n    'tpt_vehicle_number': '',\n    'tpt_transport_name': '',\n    'tpt_ic_no': '',\n    'tpt_driver_contact_no': '',\n\n    'select_vehicle_id': '',\n    'gd_vehicle_type': '',\n    'gd_vehicle_capacity': '',\n    'gd_vehicle_cap_uom': '',\n    'select_driver_id': '',\n    'gd_driver_contact': '',\n    'gd_driver_ic': '',\n})",
+        "type": "js"
+      },
+      {
+        "key": "a9nyylol",
+        "name": "onPickingUomChange",
+        "func": "// PickingOnChangePickingUOM.js\n// onChange handler for the \"picking_uom\" (Pick UOM) select on item rows in\n// table_picking_items.\n//\n// Picking quantities are CANONICALLY stored in the GD order UOM (item_uom):\n// qty_to_pick / pending_process_qty / picked_qty all flow back to the GD in\n// that UOM, and Handling Unit + Packing inherit it. The Pick UOM is purely a\n// picker-facing convenience for COUNTING in an alternate unit (e.g. base Unit\n// instead of Box). The authoritative conversion of the entered picked qty back\n// to the order UOM happens in the PickingProcessWorkflow \"Create Table Picking\n// Records\" funnel. Here we only:\n//   1. refresh the read-only alt-UOM display columns (to_pick_alt / pending_alt)\n//   2. reset picked_qty to 0 (a value entered in the previous UOM would be\n//      misread once the UOM changes)\n//\n// Conversion data is cached on window.pickingUOMCache by PickingOnMounted's\n// enrichPickingUOM(); we fall back to identity (no conversion) if it is absent.\n\n(async () => {\n  try {\n    const { rowIndex, value } = arguments[0];\n    if (rowIndex === undefined || rowIndex === null) return;\n\n    const data = this.getValues();\n    const rows = data.table_picking_items || [];\n    const row = rows[rowIndex];\n    if (!row || row.row_type === \"header\") return;\n\n    const newUom = value ? String(value) : String(row.item_uom);\n    const orderUom = String(row.item_uom);\n\n    const convertBaseToAlt = (baseQty, conv, uom) => {\n      if (!Array.isArray(conv) || conv.length === 0 || !uom) return baseQty;\n      const c = conv.find((x) => x.alt_uom_id === uom);\n      if (!c || !c.base_qty) return baseQty;\n      return Math.round((baseQty / c.base_qty) * 1000) / 1000;\n    };\n    const convertQuantityFromTo = (val, conv, fromUOM, toUOM, baseUOM) => {\n      if (!val || fromUOM === toUOM) return val;\n      let baseQty = val;\n      if (fromUOM !== baseUOM) {\n        const fromConv = (conv || []).find((x) => x.alt_uom_id === fromUOM);\n        if (fromConv && fromConv.base_qty) baseQty = val * fromConv.base_qty;\n      }\n      return convertBaseToAlt(baseQty, conv, toUOM);\n    };\n\n    const cache =\n      (window.pickingUOMCache && window.pickingUOMCache[String(row.item_code)]) ||\n      null;\n    const conv = cache ? cache.table_uom_conversion : [];\n    const baseUom = cache ? cache.based_uom : orderUom;\n\n    // Refresh the exact conversion factor for the workflow funnel.\n    const getBaseQtyForUom = (uom) => {\n      if (!uom) return 1;\n      if (String(uom) === String(baseUom)) return 1;\n      const c = (conv || []).find((x) => x.alt_uom_id === uom);\n      return c && c.base_qty ? c.base_qty : 1;\n    };\n    const pickingBaseQty = getBaseQtyForUom(newUom);\n\n    const toPickAlt = convertQuantityFromTo(\n      parseFloat(row.qty_to_pick) || 0,\n      conv,\n      orderUom,\n      newUom,\n      baseUom,\n    );\n    const pendingAlt = convertQuantityFromTo(\n      parseFloat(row.pending_process_qty) || 0,\n      conv,\n      orderUom,\n      newUom,\n      baseUom,\n    );\n\n    await this.setData({\n      [`table_picking_items.${rowIndex}.to_pick_alt`]: toPickAlt,\n      [`table_picking_items.${rowIndex}.pending_alt`]: pendingAlt,\n      [`table_picking_items.${rowIndex}.picking_base_qty`]: pickingBaseQty,\n      // Reset the picker input — its previous value was in the old UOM.\n      [`table_picking_items.${rowIndex}.picked_qty`]: 0,\n    });\n  } catch (error) {\n    console.error(\"PickingOnChangePickingUOM error:\", error);\n  }\n})();\n",
         "type": "js"
       }
     ],
