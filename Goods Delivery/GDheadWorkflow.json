@@ -7303,256 +7303,6 @@
               ]
             },
             {
-              "id": "workflow_node_hRMvSe8u",
-              "type": "workflow-node",
-              "data": {
-                "workflow_id": "",
-                "workflow_name": "",
-                "input_params": {},
-                "title": "Run GD Process Table",
-                "isValidator": true,
-                "nodeName": "Run GD Process Table",
-                "name": "Run GD Process Table",
-                "workflow": {
-                  "rules": {
-                    "collectionId": "2032273338771128322",
-                    "list": [
-                      {
-                        "id": 1774939611092,
-                        "parentId": 1774939611091,
-                        "isTop": true,
-                        "prop": "",
-                        "operator": "",
-                        "valueType": "",
-                        "value": "",
-                        "type": "leaf",
-                        "level": 1
-                      }
-                    ]
-                  },
-                  "source": "GD_UNUSED_FN_NEW:Workflow:2032273338771128322"
-                },
-                "remote": true,
-                "remoteType": "innerdatasource",
-                "body_params": {
-                  "list": [
-                    {
-                      "prop": "doc_id",
-                      "propLabel": "GD ID",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "field",
-                      "valueTypeLabel": "",
-                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.id}}",
-                      "valueLabel": ""
-                    },
-                    {
-                      "prop": "plant_id",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.plant_id}}",
-                      "valueLabel": "",
-                      "propLabel": "Plant ID"
-                    },
-                    {
-                      "prop": "organization_id",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.organization_id}}",
-                      "valueLabel": "",
-                      "propLabel": "Organization ID"
-                    },
-                    {
-                      "prop": "page_status",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{workflowparams:pageStatus}}",
-                      "valueLabel": "",
-                      "propLabel": "Page Status"
-                    },
-                    {
-                      "prop": "saveAs",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{workflowparams:saveAs}}",
-                      "valueLabel": "",
-                      "propLabel": "Save As"
-                    },
-                    {
-                      "prop": "doc_no",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.delivery_no}}",
-                      "valueLabel": "",
-                      "propLabel": "GD Number"
-                    },
-                    {
-                      "prop": "parent_id",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.so_id}}",
-                      "valueLabel": "",
-                      "propLabel": "SO ID"
-                    },
-                    {
-                      "prop": "parent_no",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.so_no}}",
-                      "valueLabel": "",
-                      "propLabel": "SO Number"
-                    },
-                    {
-                      "prop": "tableData",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.table_gd}}",
-                      "valueLabel": "",
-                      "propLabel": "Table GD"
-                    },
-                    {
-                      "prop": "doc_status",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:code_node_IyJHrBst.data.gd_status}}",
-                      "valueLabel": "",
-                      "propLabel": "GD Status"
-                    },
-                    {
-                      "prop": "doc_date",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.delivery_date}}",
-                      "valueLabel": "",
-                      "propLabel": "GD Date"
-                    },
-                    {
-                      "prop": "isGDPP",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:code_node_Pgtw6zFL.data.isGDPP}}",
-                      "valueLabel": "",
-                      "propLabel": "isGDPP"
-                    },
-                    {
-                      "prop": "picking_plan_id",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:code_node_Pgtw6zFL.data.picking_plan_id}}",
-                      "valueLabel": "",
-                      "propLabel": "PP ID"
-                    },
-                    {
-                      "prop": "transaction_type",
-                      "operator": "",
-                      "valueType": "value",
-                      "value": "GDL",
-                      "valueLabel": "",
-                      "propLabel": "Trx Type"
-                    },
-                    {
-                      "prop": "isPacking",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{workflowparams:isPacking}}",
-                      "valueLabel": "",
-                      "propLabel": "isPacking"
-                    },
-                    {
-                      "prop": "isLoadingBay",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{workflowparams:isLoadingBay}}",
-                      "valueLabel": "",
-                      "propLabel": "isLoadingBay"
-                    }
-                  ]
-                }
-              },
-              "blocks": []
-            },
-            {
-              "id": "if_fLWMe4c5",
-              "type": "if",
-              "data": {
-                "title": "IF Error",
-                "isValidator": true,
-                "nodeName": "IF Error",
-                "name": "IF Error",
-                "condition_type": "Expression",
-                "expression": {
-                  "type": "javascript",
-                  "code": "'{{node:workflow_node_hRMvSe8u.data.code}}' == '400'"
-                },
-                "filter": {
-                  "list": [
-                    {
-                      "id": 1736695973613,
-                      "parentId": 1736695973612,
-                      "isTop": true,
-                      "prop": "",
-                      "operator": "",
-                      "valueType": "",
-                      "value": "",
-                      "type": "leaf",
-                      "level": 1
-                    }
-                  ]
-                }
-              },
-              "blocks": [
-                {
-                  "id": "if_block_k4FcBxBQ",
-                  "type": "ifBlock",
-                  "data": { "title": "true" },
-                  "blocks": [
-                    {
-                      "id": "return_node_DsdVYe5J",
-                      "type": "return-node",
-                      "data": {
-                        "return_data": {},
-                        "status_code": 200,
-                        "title": "Return Data",
-                        "isValidator": true,
-                        "nodeName": "Return Data",
-                        "name": "Return Data",
-                        "response_value": {
-                          "list": [
-                            {
-                              "prop": "code",
-                              "propLabel": "code",
-                              "operator": "",
-                              "operatorLabel": "",
-                              "valueType": "field",
-                              "valueTypeLabel": "",
-                              "value": "{{node:workflow_node_hRMvSe8u.data.code}}",
-                              "valueLabel": ""
-                            },
-                            {
-                              "prop": "message",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:workflow_node_hRMvSe8u.data.message}}",
-                              "valueLabel": "",
-                              "propLabel": "message"
-                            }
-                          ]
-                        },
-                        "return_raw_data": 0
-                      },
-                      "blocks": []
-                    }
-                  ]
-                },
-                {
-                  "id": "if_block_M-nbn7Ln",
-                  "type": "ifBlock",
-                  "data": { "title": "false" },
-                  "blocks": []
-                }
-              ]
-            },
-            {
               "id": "if_JqMwMUYp",
               "type": "if",
               "data": {
@@ -8053,6 +7803,256 @@
                 }
               },
               "blocks": []
+            },
+            {
+              "id": "workflow_node_hRMvSe8u",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Run GD Process Table",
+                "isValidator": true,
+                "nodeName": "Run GD Process Table",
+                "name": "Run GD Process Table",
+                "workflow": {
+                  "rules": {
+                    "collectionId": "2032273338771128322",
+                    "list": [
+                      {
+                        "id": 1774939611092,
+                        "parentId": 1774939611091,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  },
+                  "source": "GD_UNUSED_FN_NEW:Workflow:2032273338771128322"
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "doc_id",
+                      "propLabel": "GD ID",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "plant_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.plant_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Plant ID"
+                    },
+                    {
+                      "prop": "organization_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.organization_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Organization ID"
+                    },
+                    {
+                      "prop": "page_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:pageStatus}}",
+                      "valueLabel": "",
+                      "propLabel": "Page Status"
+                    },
+                    {
+                      "prop": "saveAs",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:saveAs}}",
+                      "valueLabel": "",
+                      "propLabel": "Save As"
+                    },
+                    {
+                      "prop": "doc_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.delivery_no}}",
+                      "valueLabel": "",
+                      "propLabel": "GD Number"
+                    },
+                    {
+                      "prop": "parent_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.so_id}}",
+                      "valueLabel": "",
+                      "propLabel": "SO ID"
+                    },
+                    {
+                      "prop": "parent_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.so_no}}",
+                      "valueLabel": "",
+                      "propLabel": "SO Number"
+                    },
+                    {
+                      "prop": "tableData",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.table_gd}}",
+                      "valueLabel": "",
+                      "propLabel": "Table GD"
+                    },
+                    {
+                      "prop": "doc_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_IyJHrBst.data.gd_status}}",
+                      "valueLabel": "",
+                      "propLabel": "GD Status"
+                    },
+                    {
+                      "prop": "doc_date",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_Pgtw6zFL.data.gdData.delivery_date}}",
+                      "valueLabel": "",
+                      "propLabel": "GD Date"
+                    },
+                    {
+                      "prop": "isGDPP",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_Pgtw6zFL.data.isGDPP}}",
+                      "valueLabel": "",
+                      "propLabel": "isGDPP"
+                    },
+                    {
+                      "prop": "picking_plan_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_Pgtw6zFL.data.picking_plan_id}}",
+                      "valueLabel": "",
+                      "propLabel": "PP ID"
+                    },
+                    {
+                      "prop": "transaction_type",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "GDL",
+                      "valueLabel": "",
+                      "propLabel": "Trx Type"
+                    },
+                    {
+                      "prop": "isPacking",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:isPacking}}",
+                      "valueLabel": "",
+                      "propLabel": "isPacking"
+                    },
+                    {
+                      "prop": "isLoadingBay",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:isLoadingBay}}",
+                      "valueLabel": "",
+                      "propLabel": "isLoadingBay"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_fLWMe4c5",
+              "type": "if",
+              "data": {
+                "title": "IF Error",
+                "isValidator": true,
+                "nodeName": "IF Error",
+                "name": "IF Error",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:workflow_node_hRMvSe8u.data.code}}' == '400'"
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973613,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_k4FcBxBQ",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "return_node_DsdVYe5J",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Data",
+                        "isValidator": true,
+                        "nodeName": "Return Data",
+                        "name": "Return Data",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:workflow_node_hRMvSe8u.data.code}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:workflow_node_hRMvSe8u.data.message}}",
+                              "valueLabel": "",
+                              "propLabel": "message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_M-nbn7Ln",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
             },
             {
               "id": "if_9xhwui06",
