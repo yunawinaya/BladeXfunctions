@@ -3282,7 +3282,7 @@
                             "name": "On Order PO Data",
                             "script": {
                               "type": "javascript",
-                              "code": "const toNumber = (value) => {\n  const num = Number(value)\n  return Number.isFinite(num) ? num : 0\n}\n\nconst orderData = {{node:get_node_K8mPq3Rt.data.data}} || {}\n\nconst openQty = toNumber(orderData.open_qty)\nconst receivedQty = toNumber(orderData.received_qty)\nconst orderQty = toNumber({{node:code_node_D9IbUV8t.data.onOrderQty}})\n\nconst updatedOpenQty = openQty - orderQty\nconst updatedReceivedQty = receivedQty + orderQty\n\nreturn {\n  updatedOpenQty,\n  updatedReceivedQty\n}"
+                              "code": "const toNumber = (value) => {\n  const num = Number(value)\n  return Number.isFinite(num) ? num : 0\n}\n\nconst orderData = {{node:get_node_K8mPq3Rt.data.data}} || {}\n\nconst openQty = toNumber(orderData.open_qty)\nconst receivedQty = toNumber(orderData.received_qty)\nconst orderQty = toNumber({{node:code_node_D9IbUV8t.data.onOrderQty}})\n\nconst updatedOpenQty = Math.max(0, openQty - orderQty)\nconst updatedReceivedQty = receivedQty + orderQty\n\nreturn {\n  updatedOpenQty,\n  updatedReceivedQty\n}"
                             },
                             "response_json": [
                               {
@@ -5854,7 +5854,7 @@
                                     "name": "On Order PO Data",
                                     "script": {
                                       "type": "javascript",
-                                      "code": "const toNumber = (value) => {\n  const num = Number(value)\n  return Number.isFinite(num) ? num : 0\n}\n\nconst orderData = {{node:get_node_zDVn6pSQ.data.data}} || {}\n\nconst openQty = toNumber(orderData.open_qty)\nconst receivedQty = toNumber(orderData.received_qty)\nconst orderQty = toNumber({{node:code_node_D9IbUV8t.data.onOrderQty}})\n\nconst updatedOpenQty = openQty - orderQty\nconst updatedReceivedQty = receivedQty + orderQty\n\nreturn {\n  updatedOpenQty,\n  updatedReceivedQty\n}"
+                                      "code": "const toNumber = (value) => {\n  const num = Number(value)\n  return Number.isFinite(num) ? num : 0\n}\n\nconst orderData = {{node:get_node_zDVn6pSQ.data.data}} || {}\n\nconst openQty = toNumber(orderData.open_qty)\nconst receivedQty = toNumber(orderData.received_qty)\nconst orderQty = toNumber({{node:code_node_D9IbUV8t.data.onOrderQty}})\n\nconst updatedOpenQty = Math.max(0, openQty - orderQty)\nconst updatedReceivedQty = receivedQty + orderQty\n\nreturn {\n  updatedOpenQty,\n  updatedReceivedQty\n}"
                                     },
                                     "response_json": [
                                       {
