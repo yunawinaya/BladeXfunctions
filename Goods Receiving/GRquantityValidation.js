@@ -7,7 +7,8 @@ const fieldParts = rule.field.split(".");
 const index = fieldParts[1];
 
 const materialId = table_gr[index].item_id;
-const initialReceivedQty = parseFloat(table_gr[index].initial_received_qty) || 0;
+const initialReceivedQty =
+  parseFloat(table_gr[index].initial_received_qty) || 0;
 const orderQty = parseFloat(table_gr[index].ordered_qty) || 0;
 const baseOrderedQty = parseFloat(table_gr[index].base_ordered_qty) || 0;
 const uomConversion = parseFloat(table_gr[index].uom_conversion) || 0;
@@ -69,28 +70,32 @@ const parsedValue = parseFloat(value);
 
     if (uomConversion > 0) {
       // UOM conversion path - validate at base level
-      const baseInitialReceivedQty = roundQty(initialReceivedQty * uomConversion);
+      const baseInitialReceivedQty = roundQty(
+        initialReceivedQty * uomConversion,
+      );
       const maxAllowedBaseQty = roundQty(
-        (baseOrderedQty * (100 + overReceiveTolerance)) / 100
+        (baseOrderedQty * (100 + overReceiveTolerance)) / 100,
       );
       const baseReceivedQty = roundQty(parsedValue * uomConversion);
 
-      if (roundQty(baseReceivedQty + baseInitialReceivedQty) > maxAllowedBaseQty) {
+      if (
+        roundQty(baseReceivedQty + baseInitialReceivedQty) > maxAllowedBaseQty
+      ) {
         const maxAllowedQty = roundQty(
-          (maxAllowedBaseQty - baseInitialReceivedQty) / uomConversion
+          (maxAllowedBaseQty - baseInitialReceivedQty) / uomConversion,
         );
 
         // Cap the quantity to max allowed
         await this.setData({
           [`table_gr.${index}.received_qty`]: maxAllowedQty,
           [`table_gr.${index}.base_received_qty`]: roundQty(
-            maxAllowedBaseQty - baseInitialReceivedQty
+            maxAllowedBaseQty - baseInitialReceivedQty,
           ),
           [`table_gr.${index}.to_received_qty`]: 0,
         });
 
         this.$message.warning(
-          `Received quantity adjusted to maximum allowed: ${maxAllowedQty} (${overReceiveTolerance}% over-receive tolerance).`
+          `Received quantity adjusted to maximum allowed: ${maxAllowedQty} (${overReceiveTolerance}% over-receive tolerance).`,
         );
         window.validationState[index] = false;
         callback("Quantity is not enough to receive");
@@ -99,7 +104,7 @@ const parsedValue = parseFloat(value);
     } else {
       // No UOM conversion path
       const maxAllowedQty = roundQty(
-        (remainingQty * (100 + overReceiveTolerance)) / 100
+        (remainingQty * (100 + overReceiveTolerance)) / 100,
       );
 
       if (parsedValue > maxAllowedQty) {
@@ -111,7 +116,7 @@ const parsedValue = parseFloat(value);
         });
 
         this.$message.warning(
-          `Received quantity adjusted to maximum allowed: ${maxAllowedQty} (${overReceiveTolerance}% over-receive tolerance).`
+          `Received quantity adjusted to maximum allowed: ${maxAllowedQty} (${overReceiveTolerance}% over-receive tolerance).`,
         );
         window.validationState[index] = false;
         callback("Quantity is not enough to receive");
