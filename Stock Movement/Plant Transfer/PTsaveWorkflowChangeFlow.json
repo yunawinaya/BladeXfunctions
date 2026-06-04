@@ -3753,6 +3753,564 @@
           "data": { "title": "true" },
           "blocks": [
             {
+              "id": "set_cache_node_BGIDXinit",
+              "type": "set-cache-node",
+              "data": {
+                "cache_key": "",
+                "cache_value": "",
+                "expire_time": 3600,
+                "title": "Init Batch Gen Index",
+                "isValidator": true,
+                "nodeName": "Init Batch Gen Index",
+                "name": "Init Batch Gen Index",
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "0"
+                },
+                "redis_key": "batchGenIndex_{{workflowparams:allData.issued_by}}"
+              },
+              "blocks": []
+            },
+            {
+              "id": "set_cache_node_BGARRinit",
+              "type": "set-cache-node",
+              "data": {
+                "cache_key": "",
+                "cache_value": "",
+                "expire_time": 3600,
+                "title": "Init Generated Batches",
+                "isValidator": true,
+                "nodeName": "Init Generated Batches",
+                "name": "Init Generated Batches",
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "[]"
+                },
+                "redis_key": "generatedBatches_{{workflowparams:allData.issued_by}}"
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_GenNewBatch",
+              "type": "if",
+              "data": {
+                "title": "IF Generate New Batch",
+                "isValidator": true,
+                "nodeName": "IF Generate New Batch",
+                "name": "IF Generate New Batch",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:get_node_tt0natxw.data.data.generate_new_batch}}' == '1'"
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973613,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_GenNewBatch_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "loop_BatchGen",
+                      "type": "loop",
+                      "data": {
+                        "title": "Loop Generate Batch",
+                        "isValidator": true,
+                        "nodeName": "Loop Generate Batch",
+                        "name": "Loop Generate Batch",
+                        "loopType": "Var",
+                        "loopSeletSource": {
+                          "datasource": {
+                            "rules": {
+                              "collectionId": "",
+                              "list": [
+                                {
+                                  "id": 1723795236686,
+                                  "parentId": 1723795236685,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            }
+                          },
+                          "auto_refresh": 1,
+                          "auto_refresh_debounce": 100,
+                          "options": [],
+                          "props": {
+                            "value": "",
+                            "label": "",
+                            "image": "",
+                            "icon": "",
+                            "explain": ""
+                          },
+                          "remote": false,
+                          "remoteType": "datasource",
+                          "limit_count": ""
+                        },
+                        "loopSeletVar": {
+                          "type": "markdown",
+                          "code": "{{node:code_node_37LA0tgq.data.allData.stock_movement}}"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "get_cache_node_BGIDXget",
+                          "type": "get-cache-node",
+                          "data": {
+                            "cache_key": "",
+                            "title": "Get Batch Gen Index",
+                            "isValidator": true,
+                            "nodeName": "Get Batch Gen Index",
+                            "name": "Get Batch Gen Index",
+                            "redis_key": "batchGenIndex_{{workflowparams:allData.issued_by}}"
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "code_node_BatchGenPrep",
+                          "type": "code-node",
+                          "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "Batch Gen Prep",
+                            "isValidator": true,
+                            "nodeName": "Batch Gen Prep",
+                            "name": "Batch Gen Prep",
+                            "script": {
+                              "type": "javascript",
+                              "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst subformData = allData.stock_movement || [];\nconst currentIndexRaw = {{node:get_cache_node_BGIDXget.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst item = subformData[index] || {};\n\n// Generate for any auto-batch row (Plant Transfer has no split rows)\nconst needsGen = (item.batch_no === \"Auto-generated batch number\") ? 1 : 0;\n\nreturn {\n  item_id: item.item_selection || \"\",\n  needsGen: needsGen,\n  index: index,\n  nextIndex: index + 1\n};"
+                            },
+                            "response_json": [
+                              {
+                                "key": "item_id",
+                                "name": "item_id",
+                                "title": "item_id",
+                                "description": "",
+                                "bsonType": "string",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "needsGen",
+                                "name": "needsGen",
+                                "title": "needsGen",
+                                "description": "",
+                                "bsonType": "number",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "index",
+                                "name": "index",
+                                "title": "index",
+                                "description": "",
+                                "bsonType": "number",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "nextInde",
+                                "name": "nextIndex",
+                                "title": "nextIndex",
+                                "description": "",
+                                "bsonType": "number",
+                                "isExpand": false,
+                                "children": []
+                              }
+                            ]
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "if_NeedsGen",
+                          "type": "if",
+                          "data": {
+                            "title": "IF needsGen",
+                            "isValidator": true,
+                            "nodeName": "IF needsGen",
+                            "name": "IF needsGen",
+                            "condition_type": "Expression",
+                            "expression": {
+                              "type": "javascript",
+                              "code": "{{node:code_node_BatchGenPrep.data.needsGen}} == 1"
+                            },
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1736695973613,
+                                  "parentId": 1736695973612,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": [
+                            {
+                              "id": "if_NeedsGen_t",
+                              "type": "ifBlock",
+                              "data": {
+                                "title": "true"
+                              },
+                              "blocks": [
+                                {
+                                  "id": "workflow_node_GenBatch",
+                                  "type": "workflow-node",
+                                  "data": {
+                                    "workflow_id": "",
+                                    "workflow_name": "",
+                                    "input_params": {},
+                                    "title": "Generate Batch",
+                                    "isValidator": true,
+                                    "nodeName": "Generate Batch",
+                                    "name": "Generate Batch",
+                                    "workflow": {
+                                      "source": "GENERATE_BATCH:Workflow:2060178784435535873",
+                                      "rules": {
+                                        "collectionId": "2060178784435535873",
+                                        "list": [
+                                          {
+                                            "id": 1763010683443,
+                                            "parentId": 1763010683442,
+                                            "isTop": true,
+                                            "prop": "",
+                                            "operator": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "type": "leaf",
+                                            "level": 1
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "remote": true,
+                                    "remoteType": "innerdatasource",
+                                    "body_params": {
+                                      "list": [
+                                        {
+                                          "prop": "item_id",
+                                          "propLabel": "Item ID",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_BatchGenPrep.data.item_id}}",
+                                          "valueLabel": ""
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "code_node_NormalizeBatch",
+                                  "type": "code-node",
+                                  "data": {
+                                    "language": "javascript",
+                                    "code": "",
+                                    "timeout": 30000,
+                                    "title": "Normalize Batch Result",
+                                    "isValidator": true,
+                                    "nodeName": "Normalize Batch Result",
+                                    "name": "Normalize Batch Result",
+                                    "script": {
+                                      "type": "javascript",
+                                      "code": "const data = {{node:workflow_node_GenBatch.data}} || {};\nconst batchNumber = data.batch_number || \"\";\nconst isError = batchNumber ? 0 : 1;\nconst message = data.message || data.msg || \"Failed to generate batch number. Please ensure a Batch Number Configuration is set up for this item or organization.\";\n\nreturn { batchNumber, isError, message };"
+                                    },
+                                    "response_json": [
+                                      {
+                                        "key": "batchNum",
+                                        "name": "batchNumber",
+                                        "title": "batchNumber",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false,
+                                        "children": []
+                                      },
+                                      {
+                                        "key": "isError",
+                                        "name": "isError",
+                                        "title": "isError",
+                                        "description": "",
+                                        "bsonType": "int",
+                                        "isExpand": false,
+                                        "children": []
+                                      },
+                                      {
+                                        "key": "message",
+                                        "name": "message",
+                                        "title": "message",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false,
+                                        "children": []
+                                      }
+                                    ]
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "if_BatchErr",
+                                  "type": "if",
+                                  "data": {
+                                    "title": "IF Batch Error",
+                                    "isValidator": true,
+                                    "nodeName": "IF Batch Error",
+                                    "name": "IF Batch Error",
+                                    "condition_type": "Expression",
+                                    "expression": {
+                                      "type": "javascript",
+                                      "code": "{{node:code_node_NormalizeBatch.data.isError}} == 1"
+                                    },
+                                    "filter": {
+                                      "list": [
+                                        {
+                                          "id": 1736695973613,
+                                          "parentId": 1736695973612,
+                                          "isTop": true,
+                                          "prop": "",
+                                          "operator": "",
+                                          "valueType": "",
+                                          "value": "",
+                                          "type": "leaf",
+                                          "level": 1
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "if_BatchErr_t",
+                                      "type": "ifBlock",
+                                      "data": {
+                                        "title": "true"
+                                      },
+                                      "blocks": [
+                                        {
+                                          "id": "return_node_BatchErr",
+                                          "type": "return-node",
+                                          "data": {
+                                            "return_data": {},
+                                            "status_code": 200,
+                                            "title": "Return Data",
+                                            "isValidator": true,
+                                            "nodeName": "Return Data",
+                                            "name": "Return Data",
+                                            "response_value": {
+                                              "list": [
+                                                {
+                                                  "prop": "code",
+                                                  "propLabel": "code",
+                                                  "operator": "",
+                                                  "operatorLabel": "",
+                                                  "valueType": "value",
+                                                  "valueTypeLabel": "",
+                                                  "value": "400",
+                                                  "valueLabel": ""
+                                                },
+                                                {
+                                                  "prop": "message",
+                                                  "operator": "",
+                                                  "valueType": "field",
+                                                  "value": "{{node:code_node_NormalizeBatch.data.message}}",
+                                                  "valueLabel": "",
+                                                  "propLabel": "message"
+                                                }
+                                              ]
+                                            },
+                                            "return_raw_data": 0
+                                          },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "if_BatchErr_f",
+                                      "type": "ifBlock",
+                                      "data": {
+                                        "title": "false"
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "get_cache_node_BGARRget",
+                                  "type": "get-cache-node",
+                                  "data": {
+                                    "cache_key": "",
+                                    "title": "Get Generated Batches",
+                                    "isValidator": true,
+                                    "nodeName": "Get Generated Batches",
+                                    "name": "Get Generated Batches",
+                                    "redis_key": "generatedBatches_{{workflowparams:allData.issued_by}}"
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "code_node_AppendBatch",
+                                  "type": "code-node",
+                                  "data": {
+                                    "language": "javascript",
+                                    "code": "",
+                                    "timeout": 30000,
+                                    "title": "Append Generated Batch",
+                                    "isValidator": true,
+                                    "nodeName": "Append Generated Batch",
+                                    "name": "Append Generated Batch",
+                                    "script": {
+                                      "type": "javascript",
+                                      "code": "const arr = JSON.parse({{node:get_cache_node_BGARRget.data}}) || [];\nconst index = {{node:code_node_BatchGenPrep.data.index}};\nconst batchNumber = {{node:code_node_NormalizeBatch.data.batchNumber}};\n\narr.push({ index: index, batch_number: batchNumber });\n\nreturn { generatedBatches: arr };"
+                                    },
+                                    "response_json": [
+                                      {
+                                        "key": "generate",
+                                        "name": "generatedBatches",
+                                        "title": "generatedBatches",
+                                        "description": "",
+                                        "bsonType": "any",
+                                        "isExpand": false,
+                                        "children": []
+                                      }
+                                    ]
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "set_cache_node_BGARRset",
+                                  "type": "set-cache-node",
+                                  "data": {
+                                    "cache_key": "",
+                                    "cache_value": "",
+                                    "expire_time": 3600,
+                                    "title": "Set Generated Batches",
+                                    "isValidator": true,
+                                    "nodeName": "Set Generated Batches",
+                                    "name": "Set Generated Batches",
+                                    "custom_wkbocgni": {
+                                      "type": "javascript",
+                                      "code": "{{node:code_node_AppendBatch.data.generatedBatches}}"
+                                    },
+                                    "redis_key": "generatedBatches_{{workflowparams:allData.issued_by}}"
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_NeedsGen_f",
+                              "type": "ifBlock",
+                              "data": {
+                                "title": "false"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "set_cache_node_BGIDXset",
+                          "type": "set-cache-node",
+                          "data": {
+                            "cache_key": "",
+                            "cache_value": "",
+                            "expire_time": 3600,
+                            "title": "Set Batch Gen Next Index",
+                            "isValidator": true,
+                            "nodeName": "Set Batch Gen Next Index",
+                            "name": "Set Batch Gen Next Index",
+                            "custom_wkbocgni": {
+                              "type": "javascript",
+                              "code": "{{node:code_node_BatchGenPrep.data.nextIndex}}"
+                            },
+                            "redis_key": "batchGenIndex_{{workflowparams:allData.issued_by}}"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "if_GenNewBatch_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "get_cache_node_BGARRfinal",
+              "type": "get-cache-node",
+              "data": {
+                "cache_key": "",
+                "title": "Get Generated Batches Final",
+                "isValidator": true,
+                "nodeName": "Get Generated Batches Final",
+                "name": "Get Generated Batches Final",
+                "redis_key": "generatedBatches_{{workflowparams:allData.issued_by}}"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_ApplyBatches",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Apply Generated Batches",
+                "isValidator": true,
+                "nodeName": "Apply Generated Batches",
+                "name": "Apply Generated Batches",
+                "script": {
+                  "type": "javascript",
+                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst tableSM = allData.stock_movement || [];\nlet generated = [];\ntry { generated = JSON.parse({{node:get_cache_node_BGARRfinal.data}}) || []; }\ncatch (e) { generated = []; }\nif (!Array.isArray(generated)) generated = [];\n\n// Overlay generated batch numbers onto their rows by index\nconst genMap = {};\nfor (const g of generated) {\n  genMap[g.index] = g.batch_number;\n}\nfor (let i = 0; i < tableSM.length; i++) {\n  if (genMap[i] !== undefined && genMap[i] !== null) {\n    tableSM[i].batch_no = genMap[i];\n  }\n}\n\nreturn { stock_movement: tableSM };"
+                },
+                "response_json": [
+                  {
+                    "key": "stock_mo",
+                    "name": "stock_movement",
+                    "title": "stock_movement",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
               "id": "if_BZvAhHVQ",
               "type": "if",
               "data": {
@@ -8489,7 +9047,7 @@
                                       "prop": "stock_movement",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_37LA0tgq.data.allData.stock_movement}}",
+                                      "value": "{{node:code_node_ApplyBatches.data.stock_movement}}",
                                       "valueLabel": "",
                                       "propLabel": "Stock Movement Table"
                                     },
@@ -9078,7 +9636,7 @@
                                       "prop": "stock_movement",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_37LA0tgq.data.allData.stock_movement}}",
+                                      "value": "{{node:code_node_ApplyBatches.data.stock_movement}}",
                                       "valueLabel": "",
                                       "propLabel": "Stock Movement Table"
                                     },
