@@ -150,7 +150,10 @@ const setGrItemData = async (
         .toFixed(3),
     );
 
-    const toReceivedQty = splitDialogData.to_received_qty;
+    // Validate against ordered qty (not remaining), accounting for prior receipts
+    const orderedQty = parseFloat(tableGR[rowIndex].ordered_qty) || 0;
+    const initialReceivedQty =
+      parseFloat(tableGR[rowIndex].initial_received_qty) || 0;
 
     // Get the item's over_receive_tolerance
     const itemId = tableGR[rowIndex].item_id;
@@ -166,16 +169,19 @@ const setGrItemData = async (
       }
     }
 
-    // Calculate maximum allowed quantity with tolerance
-    const maxAllowedQty = parseFloat(
-      ((toReceivedQty * (100 + overReceiveTolerance)) / 100).toFixed(3),
+    // Maximum allowed total qty with tolerance (ordered qty based)
+    const maxAllowedTotalQty = parseFloat(
+      ((orderedQty * (100 + overReceiveTolerance)) / 100).toFixed(3),
     );
 
     if (totalSplitQty <= 0) {
       throw new Error("Total split quantity must be greater than 0.");
     }
 
-    if (totalSplitQty > maxAllowedQty) {
+    if (totalSplitQty + initialReceivedQty > maxAllowedTotalQty) {
+      const maxAllowedQty = parseFloat(
+        (maxAllowedTotalQty - initialReceivedQty).toFixed(3),
+      );
       throw new Error(
         `Total split quantity (${totalSplitQty}) exceeds maximum allowed quantity (${maxAllowedQty}) based on tolerance.`,
       );

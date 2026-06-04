@@ -15,8 +15,6 @@ const uomConversion = parseFloat(table_gr[index].uom_conversion) || 0;
 const isSplit = table_gr[index].is_split;
 const parentOrChild = table_gr[index].parent_or_child;
 
-const remainingQty = orderQty - initialReceivedQty;
-
 if (!window.validationState) {
   window.validationState = {};
 }
@@ -102,12 +100,16 @@ const parsedValue = parseFloat(value);
         return;
       }
     } else {
-      // No UOM conversion path
-      const maxAllowedQty = roundQty(
-        (remainingQty * (100 + overReceiveTolerance)) / 100,
+      // No UOM conversion path - validate against ordered qty (not remaining)
+      const maxAllowedTotalQty = roundQty(
+        (orderQty * (100 + overReceiveTolerance)) / 100,
       );
 
-      if (parsedValue > maxAllowedQty) {
+      if (roundQty(parsedValue + initialReceivedQty) > maxAllowedTotalQty) {
+        const maxAllowedQty = roundQty(
+          maxAllowedTotalQty - initialReceivedQty,
+        );
+
         // Cap the quantity to max allowed
         await this.setData({
           [`table_gr.${index}.received_qty`]: maxAllowedQty,

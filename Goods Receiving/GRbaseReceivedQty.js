@@ -93,11 +93,13 @@ const roundQty = (value) => {
           row.parent_index === parentIndex,
       );
 
+      // Effective received qty (received UOM) - capped if over tolerance
+      let effectiveReceivedQty = receivedQty;
+
       if (parentRow) {
         const parentOrderedQty = parseFloat(parentRow.ordered_qty) || 0;
         const parentInitialReceivedQty =
           parseFloat(parentRow.initial_received_qty) || 0;
-        const parentRemainingQty = parentOrderedQty - parentInitialReceivedQty;
 
         // Get all sibling children (excluding current row)
         const siblingChildren = tableGR.filter(
@@ -130,25 +132,42 @@ const roundQty = (value) => {
           }
         }
 
-        // Calculate max allowed with tolerance
-        const maxAllowedQty = roundQty(
-          (parentRemainingQty * (100 + overReceiveTolerance)) / 100,
+        // Max allowed total (ordered qty based, not remaining)
+        const maxAllowedTotalQty = roundQty(
+          (parentOrderedQty * (100 + overReceiveTolerance)) / 100,
+        );
+        // Max this child may take (never below 0)
+        const maxThisChild = roundQty(
+          Math.max(
+            0,
+            maxAllowedTotalQty - parentInitialReceivedQty - siblingsTotal,
+          ),
         );
 
-        // Validate
-        if (totalChildrenQty > maxAllowedQty) {
+        // Validate and hard-block: cap this child's qty when over tolerance
+        if (totalChildrenQty + parentInitialReceivedQty > maxAllowedTotalQty) {
+          effectiveReceivedQty = maxThisChild;
           this.$message.warning(
-            `Total split quantity (${totalChildrenQty}) exceeds maximum allowed (${maxAllowedQty}).`,
+            `Received quantity adjusted to maximum allowed: ${maxThisChild} (${overReceiveTolerance}% over-receive tolerance).`,
           );
         }
       }
 
       const currentChildReceivedQty =
         this.getValue(`table_gr.${rowIndex}.received_qty`) || 0;
-      if (currentChildReceivedQty !== receivedQty) {
-        await this.setData({
-          [`table_gr.${rowIndex}.received_qty`]: receivedQty,
-        });
+      const childUpdates = {};
+      if (currentChildReceivedQty !== effectiveReceivedQty) {
+        childUpdates[`table_gr.${rowIndex}.received_qty`] = effectiveReceivedQty;
+      }
+      // If capped, also reset the edited base field to reflect the cap
+      if (effectiveReceivedQty !== receivedQty) {
+        childUpdates[`table_gr.${rowIndex}.base_received_qty`] =
+          uomConversion > 0
+            ? roundQty(effectiveReceivedQty * uomConversion)
+            : effectiveReceivedQty;
+      }
+      if (Object.keys(childUpdates).length > 0) {
+        await this.setData(childUpdates);
       }
       return;
     }
