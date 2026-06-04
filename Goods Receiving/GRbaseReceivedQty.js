@@ -29,7 +29,7 @@ const roundQty = (value) => {
       const tempHuData = JSON.parse(tempHuDataStr);
       const totalStoreInQty = tempHuData.reduce(
         (sum, hu) => sum + (parseFloat(hu.store_in_quantity) || 0),
-        0
+        0,
       );
 
       // Convert totalStoreInQty to base UOM for comparison
@@ -45,7 +45,7 @@ const roundQty = (value) => {
               confirmButtonText: "Yes",
               cancelButtonText: "No",
               type: "warning",
-            }
+            },
           );
 
           // User confirmed - clear temp_hu_data and view_hu
@@ -79,7 +79,7 @@ const roundQty = (value) => {
       const uomConversion =
         this.getValue(`table_gr.${rowIndex}.uom_conversion`) || 0;
       const receivedQty = roundQty(
-        uomConversion > 0 ? quantity / uomConversion : quantity
+        uomConversion > 0 ? quantity / uomConversion : quantity,
       );
 
       const parentIndex = this.getValue(`table_gr.${rowIndex}.parent_index`);
@@ -90,7 +90,7 @@ const roundQty = (value) => {
         (row) =>
           row.is_split === "Yes" &&
           row.parent_or_child === "Parent" &&
-          row.parent_index === parentIndex
+          row.parent_index === parentIndex,
       );
 
       if (parentRow) {
@@ -104,13 +104,13 @@ const roundQty = (value) => {
           (row, idx) =>
             row.parent_or_child === "Child" &&
             row.parent_index === parentIndex &&
-            idx !== rowIndex
+            idx !== rowIndex,
         );
 
         // Sum siblings' received_qty
         const siblingsTotal = siblingChildren.reduce(
           (sum, child) => sum + (parseFloat(child.received_qty) || 0),
-          0
+          0,
         );
 
         // Total with new value
@@ -132,13 +132,13 @@ const roundQty = (value) => {
 
         // Calculate max allowed with tolerance
         const maxAllowedQty = roundQty(
-          (parentRemainingQty * (100 + overReceiveTolerance)) / 100
+          (parentRemainingQty * (100 + overReceiveTolerance)) / 100,
         );
 
         // Validate
         if (totalChildrenQty > maxAllowedQty) {
           this.$message.warning(
-            `Total split quantity (${totalChildrenQty}) exceeds maximum allowed (${maxAllowedQty}).`
+            `Total split quantity (${totalChildrenQty}) exceeds maximum allowed (${maxAllowedQty}).`,
           );
         }
       }
@@ -210,7 +210,7 @@ const roundQty = (value) => {
 
     // Calculate max allowed base qty with over-receive tolerance
     const maxAllowedBaseQty = roundQty(
-      (baseOrderedQty * (100 + overReceiveTolerance)) / 100
+      (baseOrderedQty * (100 + overReceiveTolerance)) / 100,
     );
 
     // Validate and cap if exceeds max allowed
@@ -220,11 +220,11 @@ const roundQty = (value) => {
       effectiveBaseQty = roundQty(maxAllowedBaseQty - baseInitialReceivedQty);
 
       console.warn(
-        `Base quantity (${quantity}) exceeds max allowed (${maxAllowedBaseQty - baseInitialReceivedQty}) with ${overReceiveTolerance}% tolerance`
+        `Base quantity (${quantity}) exceeds max allowed (${maxAllowedBaseQty - baseInitialReceivedQty}) with ${overReceiveTolerance}% tolerance`,
       );
 
       this.$message.warning(
-        `Base received quantity adjusted to maximum allowed: ${effectiveBaseQty} (${overReceiveTolerance}% over-receive tolerance).`
+        `Base received quantity adjusted to maximum allowed: ${effectiveBaseQty} (${overReceiveTolerance}% over-receive tolerance).`,
       );
 
       await this.setData({
@@ -234,16 +234,17 @@ const roundQty = (value) => {
 
     // Convert base to alt UOM
     const receivedQty = roundQty(
-      uomConversion > 0 ? effectiveBaseQty / uomConversion : effectiveBaseQty
+      uomConversion > 0 ? effectiveBaseQty / uomConversion : effectiveBaseQty,
     );
 
     // Calculate remaining qty in alt UOM
     const toReceivedQty = roundQty(
-      orderedQty - receivedQty - initialReceivedQty
+      orderedQty - receivedQty - initialReceivedQty,
     );
 
     const updates = {
-      [`table_gr.${rowIndex}.to_received_qty`]: toReceivedQty < 0 ? 0 : toReceivedQty,
+      [`table_gr.${rowIndex}.to_received_qty`]:
+        toReceivedQty < 0 ? 0 : toReceivedQty,
     };
     if (currentReceivedQty !== receivedQty) {
       updates[`table_gr.${rowIndex}.received_qty`] = receivedQty;
