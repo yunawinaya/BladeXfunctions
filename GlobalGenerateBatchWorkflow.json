@@ -1,0 +1,783 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "get_node_25gj7Z38",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Item:Table:1901546842240438273",
+          "rules": {
+            "collectionId": "1901546842240438273",
+            "list": [
+              {
+                "id": 1780020066397,
+                "parentId": 1780020066396,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:item_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Primary Key ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get Item Data",
+        "isValidator": true,
+        "nodeName": "Get Item Data",
+        "name": "Get Item Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "get_node_Mx1xwOKd",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Batch Number Configuration:Table:2058765580973846530",
+          "rules": {
+            "collectionId": "2058765580973846530",
+            "list": [
+              {
+                "id": 1780019978960,
+                "parentId": 1780019978961,
+                "isTop": true,
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1780019978961,
+                    "parentId": 1780019978960,
+                    "isTop": false,
+                    "prop": "organization_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{global:firstLvDeptId}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Organization ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1780019978962,
+                    "parentId": 1780019978960,
+                    "isTop": false,
+                    "prop": "item_id",
+                    "operator": "isNull",
+                    "valueType": "value",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Item",
+                    "valueLabel": "",
+                    "operatorLabel": "Is Null"
+                  },
+                  {
+                    "id": 1780019978963,
+                    "parentId": 1780019978960,
+                    "isTop": false,
+                    "prop": "item_category_id",
+                    "operator": "isNull",
+                    "valueType": "value",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Item Category",
+                    "valueLabel": "",
+                    "operatorLabel": "Is Null"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get Default Batch",
+        "isValidator": true,
+        "nodeName": "Get Default Batch",
+        "name": "Get Default Batch"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_Ih_2Fobu",
+      "type": "if",
+      "data": {
+        "title": "IF no default batch",
+        "isValidator": true,
+        "nodeName": "IF no default batch",
+        "name": "IF no default batch",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "{{node:get_node_Mx1xwOKd.data.count}} == 0"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_ywoMFaTq",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "code_node_YUZZfLYF",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "No Default Batch err msg",
+                "isValidator": true,
+                "nodeName": "No Default Batch err msg",
+                "name": "No Default Batch err msg",
+                "script": {
+                  "type": "javascript",
+                  "code": "return {\n  message: 'No default batch found.'\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "ybnculsz",
+                    "name": "message",
+                    "title": "Message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "end_V6FjNjwG",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 401,
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_YUZZfLYF.data.message}}"
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_YR9siWTg",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "condition_or_NfQIHXdQ",
+      "type": "condition-or-node",
+      "data": {
+        "title": "Condition",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_or_node_item_9lobTlFe",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Item Level",
+            "filter": {
+              "list": [
+                {
+                  "id": 1780020047757,
+                  "parentId": 1780020047756,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "{{node:get_node_Mx1xwOKd.data.count}} == 1 && '{{node:get_node_Mx1xwOKd.data.data.batch_level_selection}}' == 'Item Level'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Item Level",
+            "name": "Item Level",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "get_node_DNJctx3t",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Batch Number Configuration:Table:2058765580973846530",
+                  "rules": {
+                    "collectionId": "2058765580973846530",
+                    "list": [
+                      {
+                        "id": 1780020275922,
+                        "parentId": 1780020275923,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1780020275925,
+                            "parentId": 1780020275922,
+                            "isTop": false,
+                            "prop": "item_id.id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{workflowparams:item_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "In"
+                          },
+                          {
+                            "id": 1780020275924,
+                            "parentId": 1780020275922,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{global:firstLvDeptId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Item Batch",
+                "isValidator": true,
+                "nodeName": "Get Item Batch",
+                "name": "Get Item Batch"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_92Bgde9z",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Get Batch Config",
+                "isValidator": true,
+                "nodeName": "Get Batch Config",
+                "name": "Get Batch Config",
+                "script": {
+                  "type": "javascript",
+                  "code": "const itemBatchConfig = {{node:get_node_DNJctx3t.data.data}};\nconst defaultBatchConfig = {{node:get_node_Mx1xwOKd.data.data}};\n\nif(itemBatchConfig && Object.keys(itemBatchConfig).length !== 0) {\n  return {\n    batchConfig: itemBatchConfig\n  }\n} else {\n  return {\n    batchConfig: defaultBatchConfig\n  }\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "6fbdlow1",
+                    "name": "batchConfig",
+                    "title": "batchConfig",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_WJsBb8lJ",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Generate Item Batch",
+                "isValidator": true,
+                "nodeName": "Generate Batch",
+                "name": "Generate Batch",
+                "script": {
+                  "type": "javascript",
+                  "code": "const batchConfig = {{node:code_node_92Bgde9z.data.batchConfig}};\nconst format = batchConfig.batch_format;\nconst effectiveDate = new Date();\nlet preview = format;\nconst is12HourFormat = format.includes(\"aa\");\n\n// Helper function to check if reset is needed\nconst needsReset = (lastResetDate, resetFrequency, currentDate) => {\n  if (!lastResetDate) return true;\n  \n  const lastReset = new Date(lastResetDate);\n  const currentYear = currentDate.getFullYear();\n  const currentMonth = currentDate.getMonth();\n  \n  if (resetFrequency === \"Reset Monthly\") {\n    // Check if last reset was in a different month/year\n    return lastReset.getFullYear() !== currentYear || \n           lastReset.getMonth() !== currentMonth;\n  } else if (resetFrequency === \"Reset Yearly\") {\n    // Check if last reset was in a different year\n    return lastReset.getFullYear() !== currentYear;\n  }\n  \n  return false; // Never Reset\n};\n\n// Get the current running number to use\nlet currentRunningNumber = batchConfig.running_number || 0;\nlet needsResetFlag = false;\n\n// Check reset frequency logic\nif (batchConfig.reset_frequency === \"Reset Monthly\" || \n    batchConfig.reset_frequency === \"Reset Yearly\") {\n  \n  const needsResetValue = needsReset(\n    batchConfig.last_reset_date,\n    batchConfig.reset_frequency,\n    effectiveDate\n  );\n  \n  if (needsResetValue) {\n    // Use initial_value instead of running_number\n    currentRunningNumber = batchConfig.initial_value || 0;\n    needsResetFlag = true;\n  }\n}\n\n// Format date tokens\nconst dateFormats = [\n  { pattern: \"aa\", value: effectiveDate.getHours() >= 12 ? \"PM\" : \"AM\" },\n  {\n    pattern: \"MMMM\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { month: \"long\" }),\n  },\n  {\n    pattern: \"dddd\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { weekday: \"long\" }),\n  },\n  { pattern: \"yyyy\", value: effectiveDate.getFullYear().toString() },\n  {\n    pattern: \"MMM\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { month: \"short\" }),\n  },\n  {\n    pattern: \"ddd\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { weekday: \"short\" }),\n  },\n  { pattern: \"yy\", value: effectiveDate.getFullYear().toString().slice(-2) },\n  {\n    pattern: \"MM\",\n    value: String(effectiveDate.getMonth() + 1).padStart(2, \"0\"),\n  },\n  { pattern: \"dd\", value: String(effectiveDate.getDate()).padStart(2, \"0\") },\n  {\n    pattern: \"hh\",\n    value: is12HourFormat\n      ? String(effectiveDate.getHours() % 12 || 12).padStart(2, \"0\")\n      : String(effectiveDate.getHours()).padStart(2, \"0\"),\n  },\n  { pattern: \"mm\", value: String(effectiveDate.getMinutes()).padStart(2, \"0\") },\n  { pattern: \"ss\", value: String(effectiveDate.getSeconds()).padStart(2, \"0\") },\n];\n\n// Replace date patterns\ndateFormats.forEach(({ pattern, value }) => {\n  const regex = new RegExp(pattern, \"g\");\n  preview = preview.replace(regex, value);\n});\n\n// Replace zero-padding patterns\nconst zeroPaddingMatches = format.match(/%\\d+d/g) || [];\nzeroPaddingMatches.forEach((padding) => {\n  const length = parseInt(padding.match(/\\d+/)[0]);\n  const paddedNumber = String(currentRunningNumber).padStart(length, \"0\");\n  preview = preview.replace(padding, paddedNumber);\n});\n\n// Calculate new running number (always increment by 1)\nlet newRunningNumber = currentRunningNumber + 1;\n\n// If reset occurred, also update last_reset_date\nlet updatedLastResetDate = batchConfig.last_reset_date;\nif (needsResetFlag && (batchConfig.reset_frequency === \"Reset Monthly\" || batchConfig.reset_frequency === \"Reset Yearly\")) {\n  updatedLastResetDate = effectiveDate.toISOString();\n}\n\nconst result = {\n  id: batchConfig.id,\n  preview: preview,\n  running_number: newRunningNumber,\n  previous_running_number: currentRunningNumber,\n  reset_occurred: needsResetFlag,\n  last_reset_date: updatedLastResetDate,\n  generated_at: effectiveDate.toISOString()\n}\n\nreturn { result };"
+                },
+                "response_json": [
+                  {
+                    "key": "415au8k3",
+                    "name": "result",
+                    "title": "Result",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_or_item_G7r4sj7l",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Item Category Level",
+            "filter": {
+              "list": [
+                {
+                  "id": 1780020053482,
+                  "parentId": 1780020053481,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "{{node:get_node_Mx1xwOKd.data.count}} == 1 && '{{node:get_node_Mx1xwOKd.data.data.batch_level_selection}}' == 'Item Category Level'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "__index": 2,
+            "isDefault": false,
+            "isValidator": true,
+            "nodeName": "Item Category Level",
+            "name": "Item Category Level",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "get_node_YX3D4xFA",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Batch Number Configuration:Table:2058765580973846530",
+                  "rules": {
+                    "collectionId": "2058765580973846530",
+                    "list": [
+                      {
+                        "id": 1780020275922,
+                        "parentId": 1780020275923,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1780020275925,
+                            "parentId": 1780020275922,
+                            "isTop": false,
+                            "prop": "item_category_id.id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:get_node_25gj7Z38.data.data.item_category}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "In"
+                          },
+                          {
+                            "id": 1780020275924,
+                            "parentId": 1780020275922,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{global:firstLvDeptId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Item Category Batch",
+                "isValidator": true,
+                "nodeName": "Get Item Category Batch",
+                "name": "Get Item Category Batch"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_kZJz9AXm",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Get Batch Config",
+                "isValidator": true,
+                "nodeName": "Get Batch Config",
+                "name": "Get Batch Config",
+                "script": {
+                  "type": "javascript",
+                  "code": "const itemCategoryBatchConfig ={{node:get_node_YX3D4xFA.data.data}};\nconst defaultBatchConfig = {{node:get_node_Mx1xwOKd.data.data}};\n\nif(itemCategoryBatchConfig && Object.keys(itemCategoryBatchConfig).length !== 0) {\n  return {\n    batchConfig: itemCategoryBatchConfig\n  }\n} else {\n  return {\n    batchConfig: defaultBatchConfig\n  }\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "6fbdlow1",
+                    "name": "batchConfig",
+                    "title": "batchConfig",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_1CHkL2vY",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Generate Category Batch",
+                "isValidator": true,
+                "nodeName": "Generate Batch",
+                "name": "Generate Batch",
+                "script": {
+                  "type": "javascript",
+                  "code": "const batchConfig = {{node:code_node_kZJz9AXm.data.batchConfig}};\nconst format = batchConfig.batch_format;\nconst effectiveDate = new Date();\nlet preview = format;\nconst is12HourFormat = format.includes(\"aa\");\n\n// Helper function to check if reset is needed\nconst needsReset = (lastResetDate, resetFrequency, currentDate) => {\n  if (!lastResetDate) return true;\n  \n  const lastReset = new Date(lastResetDate);\n  const currentYear = currentDate.getFullYear();\n  const currentMonth = currentDate.getMonth();\n  \n  if (resetFrequency === \"Reset Monthly\") {\n    // Check if last reset was in a different month/year\n    return lastReset.getFullYear() !== currentYear || \n           lastReset.getMonth() !== currentMonth;\n  } else if (resetFrequency === \"Reset Yearly\") {\n    // Check if last reset was in a different year\n    return lastReset.getFullYear() !== currentYear;\n  }\n  \n  return false; // Never Reset\n};\n\n// Get the current running number to use\nlet currentRunningNumber = batchConfig.running_number || 0;\nlet needsResetFlag = false;\n\n// Check reset frequency logic\nif (batchConfig.reset_frequency === \"Reset Monthly\" || \n    batchConfig.reset_frequency === \"Reset Yearly\") {\n  \n  const needsResetValue = needsReset(\n    batchConfig.last_reset_date,\n    batchConfig.reset_frequency,\n    effectiveDate\n  );\n  \n  if (needsResetValue) {\n    // Use initial_value instead of running_number\n    currentRunningNumber = batchConfig.initial_value || 0;\n    needsResetFlag = true;\n  }\n}\n\n// Format date tokens\nconst dateFormats = [\n  { pattern: \"aa\", value: effectiveDate.getHours() >= 12 ? \"PM\" : \"AM\" },\n  {\n    pattern: \"MMMM\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { month: \"long\" }),\n  },\n  {\n    pattern: \"dddd\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { weekday: \"long\" }),\n  },\n  { pattern: \"yyyy\", value: effectiveDate.getFullYear().toString() },\n  {\n    pattern: \"MMM\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { month: \"short\" }),\n  },\n  {\n    pattern: \"ddd\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { weekday: \"short\" }),\n  },\n  { pattern: \"yy\", value: effectiveDate.getFullYear().toString().slice(-2) },\n  {\n    pattern: \"MM\",\n    value: String(effectiveDate.getMonth() + 1).padStart(2, \"0\"),\n  },\n  { pattern: \"dd\", value: String(effectiveDate.getDate()).padStart(2, \"0\") },\n  {\n    pattern: \"hh\",\n    value: is12HourFormat\n      ? String(effectiveDate.getHours() % 12 || 12).padStart(2, \"0\")\n      : String(effectiveDate.getHours()).padStart(2, \"0\"),\n  },\n  { pattern: \"mm\", value: String(effectiveDate.getMinutes()).padStart(2, \"0\") },\n  { pattern: \"ss\", value: String(effectiveDate.getSeconds()).padStart(2, \"0\") },\n];\n\n// Replace date patterns\ndateFormats.forEach(({ pattern, value }) => {\n  const regex = new RegExp(pattern, \"g\");\n  preview = preview.replace(regex, value);\n});\n\n// Replace zero-padding patterns\nconst zeroPaddingMatches = format.match(/%\\d+d/g) || [];\nzeroPaddingMatches.forEach((padding) => {\n  const length = parseInt(padding.match(/\\d+/)[0]);\n  const paddedNumber = String(currentRunningNumber).padStart(length, \"0\");\n  preview = preview.replace(padding, paddedNumber);\n});\n\n// Calculate new running number (always increment by 1)\nlet newRunningNumber = currentRunningNumber + 1;\n\n// If reset occurred, also update last_reset_date\nlet updatedLastResetDate = batchConfig.last_reset_date;\nif (needsResetFlag && (batchConfig.reset_frequency === \"Reset Monthly\" || batchConfig.reset_frequency === \"Reset Yearly\")) {\n  updatedLastResetDate = effectiveDate.toISOString();\n}\n\nconst result = {\n  id: batchConfig.id,\n  preview: preview,\n  running_number: newRunningNumber,\n  previous_running_number: currentRunningNumber,\n  reset_occurred: needsResetFlag,\n  last_reset_date: updatedLastResetDate,\n  generated_at: effectiveDate.toISOString()\n}\n\nreturn { result };"
+                },
+                "response_json": [
+                  {
+                    "key": "415au8k3",
+                    "name": "result",
+                    "title": "Result",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_or_item_gO3xwZZm",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Organization Level",
+            "filter": {
+              "list": [
+                {
+                  "id": 1780020087945,
+                  "parentId": 1780020087944,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "{{node:get_node_Mx1xwOKd.data.count}} == 1 && '{{node:get_node_Mx1xwOKd.data.data.batch_level_selection}}' == 'Organization Level'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "__index": 3,
+            "isDefault": false,
+            "isValidator": true,
+            "nodeName": "Organization Level",
+            "name": "Organization Level",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "code_node_rdnJWmbU",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Generate Batch",
+                "isValidator": true,
+                "nodeName": "Generate Batch",
+                "name": "Generate Batch",
+                "script": {
+                  "type": "javascript",
+                  "code": "const batchConfig = {{node:code_node_kZJz9AXm.data.batchConfig}};\nconst format = batchConfig.batch_format;\nconst effectiveDate = new Date();\nlet preview = format;\nconst is12HourFormat = format.includes(\"aa\");\n\n// Helper function to check if reset is needed\nconst needsReset = (lastResetDate, resetFrequency, currentDate) => {\n  if (!lastResetDate) return true;\n  \n  const lastReset = new Date(lastResetDate);\n  const currentYear = currentDate.getFullYear();\n  const currentMonth = currentDate.getMonth();\n  \n  if (resetFrequency === \"Reset Monthly\") {\n    // Check if last reset was in a different month/year\n    return lastReset.getFullYear() !== currentYear || \n           lastReset.getMonth() !== currentMonth;\n  } else if (resetFrequency === \"Reset Yearly\") {\n    // Check if last reset was in a different year\n    return lastReset.getFullYear() !== currentYear;\n  }\n  \n  return false; // Never Reset\n};\n\n// Get the current running number to use\nlet currentRunningNumber = batchConfig.running_number || 0;\nlet needsResetFlag = false;\n\n// Check reset frequency logic\nif (batchConfig.reset_frequency === \"Reset Monthly\" || \n    batchConfig.reset_frequency === \"Reset Yearly\") {\n  \n  const needsResetValue = needsReset(\n    batchConfig.last_reset_date,\n    batchConfig.reset_frequency,\n    effectiveDate\n  );\n  \n  if (needsResetValue) {\n    // Use initial_value instead of running_number\n    currentRunningNumber = batchConfig.initial_value || 0;\n    needsResetFlag = true;\n  }\n}\n\n// Format date tokens\nconst dateFormats = [\n  { pattern: \"aa\", value: effectiveDate.getHours() >= 12 ? \"PM\" : \"AM\" },\n  {\n    pattern: \"MMMM\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { month: \"long\" }),\n  },\n  {\n    pattern: \"dddd\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { weekday: \"long\" }),\n  },\n  { pattern: \"yyyy\", value: effectiveDate.getFullYear().toString() },\n  {\n    pattern: \"MMM\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { month: \"short\" }),\n  },\n  {\n    pattern: \"ddd\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { weekday: \"short\" }),\n  },\n  { pattern: \"yy\", value: effectiveDate.getFullYear().toString().slice(-2) },\n  {\n    pattern: \"MM\",\n    value: String(effectiveDate.getMonth() + 1).padStart(2, \"0\"),\n  },\n  { pattern: \"dd\", value: String(effectiveDate.getDate()).padStart(2, \"0\") },\n  {\n    pattern: \"hh\",\n    value: is12HourFormat\n      ? String(effectiveDate.getHours() % 12 || 12).padStart(2, \"0\")\n      : String(effectiveDate.getHours()).padStart(2, \"0\"),\n  },\n  { pattern: \"mm\", value: String(effectiveDate.getMinutes()).padStart(2, \"0\") },\n  { pattern: \"ss\", value: String(effectiveDate.getSeconds()).padStart(2, \"0\") },\n];\n\n// Replace date patterns\ndateFormats.forEach(({ pattern, value }) => {\n  const regex = new RegExp(pattern, \"g\");\n  preview = preview.replace(regex, value);\n});\n\n// Replace zero-padding patterns\nconst zeroPaddingMatches = format.match(/%\\d+d/g) || [];\nzeroPaddingMatches.forEach((padding) => {\n  const length = parseInt(padding.match(/\\d+/)[0]);\n  const paddedNumber = String(currentRunningNumber).padStart(length, \"0\");\n  preview = preview.replace(padding, paddedNumber);\n});\n\n// Calculate new running number (always increment by 1)\nlet newRunningNumber = currentRunningNumber + 1;\n\n// If reset occurred, also update last_reset_date\nlet updatedLastResetDate = batchConfig.last_reset_date;\nif (needsResetFlag && (batchConfig.reset_frequency === \"Reset Monthly\" || batchConfig.reset_frequency === \"Reset Yearly\")) {\n  updatedLastResetDate = effectiveDate.toISOString();\n}\n\nconst result = {\n  id: batchConfig.id,\n  preview: preview,\n  running_number: newRunningNumber,\n  previous_running_number: currentRunningNumber,\n  reset_occurred: needsResetFlag,\n  last_reset_date: updatedLastResetDate,\n  generated_at: effectiveDate.toISOString()\n}\n\nreturn { result };"
+                },
+                "response_json": [
+                  {
+                    "key": "415au8k3",
+                    "name": "result",
+                    "title": "Result",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_or_node_item_oyrmCwEY",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "No default batch found",
+            "isDefault": true,
+            "filter": { "list": [] },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.otherCondition"
+          },
+          "blocks": [
+            {
+              "id": "code_node_jtOVVrdi",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "No Default Batch err msg",
+                "isValidator": true,
+                "nodeName": "No Default Batch err msg",
+                "name": "No Default Batch err msg",
+                "script": {
+                  "type": "javascript",
+                  "code": "return {\n  message: 'No default batch found.'\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "ybnculsz",
+                    "name": "message",
+                    "title": "Message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "end_CBp2SOHq",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 401,
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_jtOVVrdi.data.message}}"
+                }
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_KEYxy1GI",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Latest Batch Config",
+        "isValidator": true,
+        "nodeName": "Map Latest Batch Config",
+        "name": "Map Latest Batch Config",
+        "script": {
+          "type": "javascript",
+          "code": "const defaultBatch = {{node:get_node_Mx1xwOKd.data.data}};\nconst itemBatch = {{node:code_node_WJsBb8lJ.data.result}};\nconst itemCategoryBatch = {{node:code_node_1CHkL2vY.data.result}};\nconst organizationBatch = {{node:code_node_rdnJWmbU.data.result}};\n\nswitch(defaultBatch.batch_level_selection) {\n  case 'Item Level': \n    return {\n      latestBatchConfig: itemBatch\n    }\n    break;\n  case 'Item Category Level': \n    return {\n      latestBatchConfig: itemCategoryBatch\n    }\n    break;\n  case 'Organization Level': \n    return {\n      latestBatchConfig: organizationBatch\n    }\n    break;\n}"
+        },
+        "response_json": [
+          {
+            "key": "uu0ii8ek",
+            "name": "latestBatchConfig",
+            "title": "latestBatchConfig",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "update_node_ei9zHKCf",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Batch Number Configuration:Table:2058765580973846530",
+          "rules": {
+            "collectionId": "2058765580973846530",
+            "list": [
+              {
+                "id": 1780021202747,
+                "parentId": 1780021202746,
+                "isTop": true,
+                "prop": "id",
+                "operator": "numberEqual",
+                "valueType": "field",
+                "value": "{{node:code_node_KEYxy1GI.data.latestBatchConfig.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Update Batch Config",
+        "isValidator": true,
+        "nodeName": "Update Batch Config",
+        "name": "Update Batch Config",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "id",
+              "valueType": "field",
+              "value": "{{node:code_node_KEYxy1GI.data.latestBatchConfig.id}}",
+              "operator": "",
+              "valueLabel": "",
+              "propLabel": "主键ID"
+            },
+            {
+              "prop": "running_number",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_KEYxy1GI.data.latestBatchConfig.running_number}}",
+              "valueLabel": "",
+              "propLabel": "Running Number"
+            },
+            {
+              "prop": "last_reset_date",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_KEYxy1GI.data.latestBatchConfig.last_reset_date}}",
+              "valueLabel": "",
+              "propLabel": "Last Reset Date"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node",
+        "nodeName": "End Node",
+        "name": "End Node",
+        "back_data_type": "OutputParams",
+        "code": 200,
+        "msg": { "type": "javascript", "code": "" },
+        "response_value": {
+          "list": [
+            {
+              "prop": "batch_number",
+              "propLabel": "Batch Number",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "value": "{{node:code_node_KEYxy1GI.data.latestBatchConfig.preview}}"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "kyeb988j",
+      "name": "item_id",
+      "title": "Item ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "n77k5lpj",
+      "name": "batch_number",
+      "title": "Batch Number",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}
