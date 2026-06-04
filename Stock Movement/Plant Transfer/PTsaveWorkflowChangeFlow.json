@@ -3608,6 +3608,14 @@
                               "valueTypeLabel": "",
                               "value": "{{node:code_node_kKbdho2k.data.material_uom}}",
                               "valueLabel": ""
+                            },
+                            {
+                              "prop": "category",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_6PYtwmi2.data.inventory_category}}",
+                              "valueLabel": "",
+                              "propLabel": "Category"
                             }
                           ]
                         }
@@ -3641,10 +3649,7 @@
                             }
                           ]
                         },
-                        "expression": {
-                          "type": "javascript",
-                          "code": ""
-                        }
+                        "expression": { "type": "javascript", "code": "" }
                       },
                       "blocks": [
                         {
