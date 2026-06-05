@@ -70,16 +70,18 @@
           },
           ...tableUOMConversion.slice(1),
         ],
-        table_packing_detail: [
-          {
-            packing_qty: 1,
-            packing_uom_id: based_uom,
-            quantity: 1,
-            uom_id: based_uom,
-            text_b4j8h211: "=",
-          },
-          ...tablePackingDetail.slice(1),
-        ],
+        table_packing_detail:
+          tablePackingDetail.length > 0
+            ? tablePackingDetail
+            : [
+                {
+                  packing_qty: 1,
+                  packing_uom_id: based_uom,
+                  quantity: 1,
+                  uom_id: based_uom,
+                  text_b4j8h211: "=",
+                },
+              ],
         previous_based_uom: based_uom,
         ...(data.previous_based_uom === data.purchase_default_uom
           ? { purchase_default_uom: "" }
@@ -128,17 +130,13 @@
         });
       });
 
-      data.table_packing_detail.forEach((uom, index) => {
+      // uom_id mirrors alt_uom_id, so only row 0 follows based_uom;
+      // other rows keep their own uom_id.
+      if (data.table_packing_detail.length > 0) {
         this.setData({
-          [`table_packing_detail.${index}.uom_id`]: based_uom,
+          [`table_packing_detail.0.uom_id`]: based_uom,
         });
-      });
-
-      data.table_packing_detail.forEach((uom, index) => {
-        this.setData({
-          [`table_packing_detail.${index}.uom_id`]: based_uom,
-        });
-      });
+      }
     } else if (based_uom === data.previous_based_uom) {
       data.table_uom_conversion.forEach((uom, index) => {
         this.setData({
@@ -146,22 +144,55 @@
         });
       });
 
-      data.table_packing_detail.forEach((uom, index) => {
+      // uom_id mirrors alt_uom_id, so only row 0 follows based_uom.
+      if (data.table_packing_detail.length > 0) {
         this.setData({
-          [`table_packing_detail.${index}.uom_id`]: based_uom,
+          [`table_packing_detail.0.uom_id`]: based_uom,
         });
-      });
+      }
+
+      // A uom_conversion row was added or removed (this handler fires on both
+      // onRowAdd and onRowRemove). Keep table_packing_detail in sync: same
+      // length as table_uom_conversion, in the same order, with uom_id
+      // mirroring each row's alt_uom_id. Matching by uom_id (not position)
+      // preserves existing packing rows even when a row is inserted/removed
+      // in the middle.
+      const tableUOMConversion = data.table_uom_conversion;
+      const tablePackingDetail = this.getValue("table_packing_detail");
+
+      if (tablePackingDetail.length !== tableUOMConversion.length) {
+        const used = new Array(tablePackingDetail.length).fill(false);
+        const reconciled = tableUOMConversion.map((conv) => {
+          const matchIndex = tablePackingDetail.findIndex(
+            (packing, i) => !used[i] && packing.uom_id === conv.alt_uom_id,
+          );
+          if (matchIndex === -1) {
+            return {
+              packing_qty: 1,
+              packing_uom_id: conv.alt_uom_id,
+              quantity: 1,
+              uom_id: conv.alt_uom_id,
+              text_b4j8h211: "=",
+            };
+          }
+          used[matchIndex] = true;
+          return { ...tablePackingDetail[matchIndex] };
+        });
+        this.setData({ table_packing_detail: reconciled });
+      }
     } else if (!based_uom) {
       data.table_uom_conversion.forEach((uom, index) => {
         this.setData({
           [`table_uom_conversion.${index}.base_uom_id`]: "",
         });
       });
-      data.table_packing_detail.forEach((uom, index) => {
+      // uom_id mirrors alt_uom_id; conversion rows keep their alt_uom_id, so
+      // only row 0 (the base row) is cleared here.
+      if (data.table_packing_detail.length > 0) {
         this.setData({
-          [`table_packing_detail.${index}.uom_id`]: "",
+          [`table_packing_detail.0.uom_id`]: "",
         });
-      });
+      }
       this.disabled(
         [
           "table_uom_conversion",

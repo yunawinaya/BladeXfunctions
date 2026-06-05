@@ -220,6 +220,35 @@ const validateUOMConversion = async (entry) => {
   return entry;
 };
 
+const validateUOMPackingMirror = async (entry) => {
+  // table_packing_detail must mirror table_uom_conversion: same number of
+  // (meaningful) rows, and each row's uom_id equals the matching alt_uom_id.
+  const uomConversion = (entry.table_uom_conversion || []).filter(
+    (item) => item.alt_uom_id && item.alt_uom_id !== "",
+  );
+  const packingDetail = (entry.table_packing_detail || []).filter(
+    (item) => item.uom_id && item.uom_id !== "",
+  );
+
+  const isMirrored =
+    uomConversion.length === packingDetail.length &&
+    uomConversion.every(
+      (item, index) => item.alt_uom_id === packingDetail[index].uom_id,
+    );
+
+  if (!isMirrored) {
+    await this.$alert(
+      "UOM Conversion and Packing Detail do not match. Each Alt UOM in UOM Conversion must mirror the UOM in Packing Detail.",
+      "Invalid Packing Detail",
+      {
+        confirmButtonText: "OK",
+        type: "error",
+      },
+    );
+    throw new Error("UOM Conversion and Packing Detail mismatch");
+  }
+};
+
 const findMissingPriceLine = async (table, name) => {
   console.log("table", table);
   const lineData = table.filter(
@@ -641,6 +670,7 @@ const createBatch = async (itemId, batchNumberConfig, materialCode) => {
 
       await validateFormula(entry);
       entry = await validateUOMConversion(entry);
+      await validateUOMPackingMirror(entry);
       await validatePurchaseAndSalesInformation(entry);
       await validateBatch(entry);
 
