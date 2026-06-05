@@ -151,6 +151,7 @@ const runGDWorkflow = async (data) => {
 
                   if (isAllGDCancelled) {
                     pickingData.to_status = "Cancelled";
+                    pickingData.to_id = `${pickingData.to_id}-Cancelled`;
                   }
 
                   console.log("pickingData", pickingData);
@@ -161,6 +162,7 @@ const runGDWorkflow = async (data) => {
                     .update({
                       table_picking_items: pickingData.table_picking_items,
                       to_status: pickingData.to_status,
+                      to_id: pickingData.to_id,
                     });
                 }
               }
