@@ -6106,7 +6106,13 @@
                 "remoteFunc": "func_j99r5ciu",
                 "remoteOption": "option_j99r5ciu",
                 "tableColumn": false,
-                "subform": false
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
               },
               "events": {
                 "onChange": "",
@@ -7865,7 +7871,7 @@
         "isLabelWidth": false,
         "hidden": false,
         "dataBind": true,
-        "col": 2,
+        "col": 3,
         "tip": "",
         "validatorCheck": false,
         "validator": "",
@@ -7886,7 +7892,7 @@
       "fields": [],
       "name": "Custom Fields",
       "key": "a73zusee",
-      "model": "custom_fields_a73zusee",
+      "model": "custom_fields",
       "rules": []
     },
     {
@@ -8484,7 +8490,9 @@
                     "pad": "*",
                     "desensitization_pattern": "",
                     "desensitization_replace": "",
-                    "sorts": []
+                    "sorts": [],
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100
                   },
                   "events": {
                     "onChange": "",
@@ -9150,6 +9158,341 @@
                   "novalid": {},
                   "key": "zgwkowhf",
                   "model": "view_stock",
+                  "rules": []
+                },
+                {
+                  "name": "Total Net Weight",
+                  "type": "number",
+                  "icon": "icon-number",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-number",
+                  "options": {
+                    "width": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "defaultValue": 0,
+                    "min": 0,
+                    "step": 1,
+                    "disabled": true,
+                    "controls": false,
+                    "controlsPosition": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "precision": 3,
+                    "customProps": {
+                      "progressColor": "",
+                      "dividingNumber": "",
+                      "showNumber": "",
+                      "viewMode": "",
+                      "format": "rmb",
+                      "cacheProp": true
+                    },
+                    "tip": "",
+                    "remoteFunc": "func_4ers6bfo",
+                    "remoteOption": "option_4ers6bfo",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "novalid": {},
+                  "key": "j74g4gkm",
+                  "model": "net_weight",
+                  "rules": []
+                },
+                {
+                  "name": "Net Weight / Unit",
+                  "type": "number",
+                  "icon": "icon-number",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-number",
+                  "options": {
+                    "width": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "defaultValue": 0,
+                    "min": 0,
+                    "step": 1,
+                    "disabled": false,
+                    "controls": false,
+                    "controlsPosition": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "precision": 3,
+                    "customProps": {
+                      "progressColor": "",
+                      "dividingNumber": "",
+                      "showNumber": "",
+                      "viewMode": "",
+                      "format": "rmb",
+                      "cacheProp": true
+                    },
+                    "tip": "",
+                    "remoteFunc": "func_4ers6bfo",
+                    "remoteOption": "option_4ers6bfo",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": "e62v491b"
+                  },
+                  "novalid": {},
+                  "key": "zrdhp5qv",
+                  "model": "weight_conversion",
+                  "rules": []
+                },
+                {
+                  "name": "Packing Qty",
+                  "type": "number",
+                  "icon": "icon-number",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-number",
+                  "options": {
+                    "width": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "defaultValue": 0,
+                    "min": 0,
+                    "step": 1,
+                    "disabled": true,
+                    "controls": false,
+                    "controlsPosition": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "precision": 3,
+                    "customProps": {
+                      "progressColor": "",
+                      "dividingNumber": "",
+                      "showNumber": "",
+                      "viewMode": "",
+                      "format": "rmb",
+                      "cacheProp": true
+                    },
+                    "tip": "",
+                    "remoteFunc": "func_4ers6bfo",
+                    "remoteOption": "option_4ers6bfo",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "novalid": {},
+                  "key": "qac20r9f",
+                  "model": "packing_qty",
+                  "rules": []
+                },
+                {
+                  "version": "1.0.0",
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": true,
+                    "clearable": false,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_zhg1uf0k",
+                    "filterable": false,
+                    "pagingEnabled": true,
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "id",
+                      "label": "uom_name",
+                      "image": "",
+                      "icon": "",
+                      "explain": "",
+                      "cascade": "",
+                      "children": ""
+                    },
+                    "remoteFunc": "func_zhg1uf0k",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": true,
+                    "subform": false,
+                    "datasource": {
+                      "rules": {
+                        "collectionId": "1901805375573839874",
+                        "list": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      },
+                      "source": "UOM:Table:1901805375573839874"
+                    },
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "sorts": [],
+                    "paging_enabled": 1,
+                    "page_size": 10
+                  },
+                  "events": {
+                    "onReady": "",
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "name": "Packing UOM",
+                  "novalid": {},
+                  "key": "q8k9c6sc",
+                  "model": "packing_uom",
+                  "rules": []
+                },
+                {
+                  "name": "Packing Conversion",
+                  "type": "number",
+                  "icon": "icon-number",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-number",
+                  "options": {
+                    "width": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "defaultValue": 0,
+                    "min": 0,
+                    "step": 1,
+                    "disabled": true,
+                    "controls": false,
+                    "controlsPosition": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "precision": 3,
+                    "customProps": {
+                      "progressColor": "",
+                      "dividingNumber": "",
+                      "showNumber": "",
+                      "viewMode": "",
+                      "format": "rmb",
+                      "cacheProp": true
+                    },
+                    "tip": "",
+                    "remoteFunc": "func_4ers6bfo",
+                    "remoteOption": "option_4ers6bfo",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "novalid": {},
+                  "key": "bvgrzq9n",
+                  "model": "packing_conversion",
                   "rules": []
                 },
                 {
@@ -12348,7 +12691,11 @@
                     "pad": "*",
                     "desensitization_pattern": "",
                     "desensitization_replace": "",
-                    "sorts": []
+                    "sorts": [],
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100,
+                    "paging_enabled": 1,
+                    "page_size": 10
                   },
                   "events": {
                     "onReady": "",
@@ -12400,7 +12747,7 @@
                   "name": "Custom Fields",
                   "novalid": {},
                   "key": "601ykybt",
-                  "model": "custom_fields_601ykybt",
+                  "model": "custom_fields",
                   "rules": []
                 }
               ],
@@ -27276,7 +27623,7 @@
       {
         "key": "vcsjwm65",
         "name": "onChange_soID",
-        "func": "(async () => {\n  const soIDs = arguments[0].value;\n\n  console.log(\"JN Debug 2\", soIDs);\n\n  if (soIDs.length > 0) {\n    const firstSO = soIDs[0];\n\n    console.log(\"firstSO\", firstSO);\n\n    const resSO = await db\n      .collection(\"sales_order\")\n      .where({ id: firstSO })\n      .get();\n\n    const soData = resSO.data[0];\n\n    await this.triggerEvent(\"func_reset_delivery_method\");\n    this.display(\"address_grid\");\n\n    await this.setData({\n      gd_delivery_method: soData.so_delivery_method,\n      delivery_method_text: soData.so_delivery_method,\n      // Main address fields (formatted addresses)\n      gd_billing_address: soData.cust_billing_address || \"\",\n      gd_shipping_address: soData.cust_shipping_address || \"\",\n\n      // Detailed billing address fields\n      billing_address_line_1: soData.billing_address_line_1 || \"\",\n      billing_address_line_2: soData.billing_address_line_2 || \"\",\n      billing_address_line_3: soData.billing_address_line_3 || \"\",\n      billing_address_line_4: soData.billing_address_line_4 || \"\",\n      billing_address_city: soData.billing_address_city || \"\",\n      billing_address_state: soData.billing_address_state || \"\",\n      billing_address_country: soData.billing_address_country || \"\",\n      billing_postal_code: soData.billing_postal_code || \"\",\n      billing_address_phone: soData.billing_address_phone || \"\",\n      billing_address_name: soData.billing_address_name || \"\",\n      billing_attention: soData.billing_attention || \"\",\n      billing_address_fax: soData.billing_address_fax || '',\n      billing_address_code: soData.billing_address_code || '',\n\n\n      // Detailed shipping address fields\n      shipping_address_line_1: soData.shipping_address_line_1 || \"\",\n      shipping_address_line_2: soData.shipping_address_line_2 || \"\",\n      shipping_address_line_3: soData.shipping_address_line_3 || \"\",\n      shipping_address_line_4: soData.shipping_address_line_4 || \"\",\n      shipping_address_city: soData.shipping_address_city || \"\",\n      shipping_address_state: soData.shipping_address_state || \"\",\n      shipping_address_country: soData.shipping_address_country || \"\",\n      shipping_postal_code: soData.shipping_postal_code || \"\",\n      shipping_address_name: soData.shipping_address_name || \"\",\n      shipping_address_phone: soData.shipping_address_phone || \"\",\n      shipping_attention: soData.shipping_attention || \"\",\n      shipping_address_fax: soData.shipping_address_fax || '',\n      shipping_address_code: soData.shipping_address_code || '',\n\n      gd_area_id: soData.so_area_id || '',\n      order_tnc: soData.so_tnc || \"\",\n      order_payment_details: soData.so_payment_details || \"\",\n      order_delivery_term: soData.so_delivery_term || \"\",\n      order_remark: soData.so_remarks || \"\",\n      order_remark2: soData.so_remarks2 || \"\",\n      order_remark3: soData.so_remarks3 || \"\",\n      order_remark4: soData.so_remarks4 || \"\",\n      order_remark5: soData.so_remarks5 || \"\",\n      sales_person: so_sales_person || ''\n    });\n\n    const visibilityMap = {\n      \"Self Pickup\": \"self_pickup\",\n      \"Courier Service\": \"courier_service\",\n      \"Company Truck\": \"company_truck\",\n      \"Shipping Service\": \"shipping_service\",\n      \"3rd Party Transporter\": \"third_party_transporter\",\n    };\n\n    const selectedField = visibilityMap[soData.so_delivery_method] || null;\n    const fields = [\n      \"self_pickup\",\n      \"courier_service\",\n      \"company_truck\",\n      \"shipping_service\",\n      \"third_party_transporter\",\n    ];\n\n    fields.forEach((field) => {\n      field === selectedField ? this.display(field) : this.hide(field);\n    });\n\n    switch (soData.so_delivery_method) {\n      case \"Self Pickup\":\n        setTimeout(() => {\n          this.setData({\n            driver_name: soData.cp_driver_name,\n            ic_no: soData.cp_ic_no,\n            driver_contact_no: soData.cp_driver_contact_no,\n            sp_vehicle_no: soData.cp_vehicle_number,\n            pickup_date: soData.cp_pickup_date,\n            validity_of_collection: soData.validity_of_collection,\n          });\n        }, 100);\n        break;\n\n      case \"Courier Service\":\n        setTimeout(() => {\n          this.setData({\n            courier_company: soData.cs_courier_company,\n            shipping_date: soData.cs_shipping_date,\n            tracking_number: soData.cs_tracking_number,\n            est_arrival_date: soData.est_arrival_date,\n            freight_charges: soData.cs_freight_charges,\n          });\n        }, 100);\n        break;\n\n      case \"Company Truck\":\n        setTimeout(() => {\n          this.setData({\n            driver_name: soData.ct_driver_name,\n            driver_contact_no: soData.ct_driver_contact_no,\n            ic_no: soData.ct_ic_no,\n            sp_vehicle_no: soData.ct_vehicle_number,\n            est_delivery_date: soData.ct_est_delivery_date,\n            delivery_cost: soData.ct_delivery_cost,\n          });\n        }, 100);\n        break;\n\n      case \"Shipping Service\":\n        setTimeout(() => {\n          this.setData({\n            shipping_company: soData.ss_shipping_company,\n            shipping_date: soData.ss_shippping_date,\n            freight_charges: soData.ss_freight_charges,\n            shipping_method: soData.ss_shipping_method,\n            est_arrival_date: soData.ss_est_arrival_date,\n            tracking_number: soData.ss_tracking_number,\n          });\n        }, 100);\n        break;\n\n      case \"3rd Party Transporter\":\n        setTimeout(() => {\n          this.setData({\n            tpt_vehicle_number: soData.tpt_vehicle_number,\n            tpt_transport_name: soData.tpt_transport_name,\n            tpt_ic_no: soData.tpt_ic_no,\n            tpt_driver_contact_no: soData.tpt_driver_contact_no,\n            tpt_driver_name: soData.tpt_driver_name,\n          });\n        }, 100);\n        break;\n    }\n  } else {\n    await this.triggerEvent(\"func_reset_delivery_method\");\n    this.hide([\n      \"address_grid\",\n      \"self_pickup\",\n      \"courier_service\",\n      \"company_truck\",\n      \"shipping_service\",\n      \"third_party_transporter\",\n    ]);\n\n    await this.setData({\n      gd_delivery_method: \"\",\n      delivery_method_text: \"\",\n      // Main address fields (formatted addresses)\n      gd_billing_address: \"\",\n      gd_shipping_address: \"\",\n\n      // Detailed billing address fields\n      billing_address_line_1: \"\",\n      billing_address_line_2: \"\",\n      billing_address_line_3: \"\",\n      billing_address_line_4: \"\",\n      billing_address_city: \"\",\n      billing_address_state: \"\",\n      billing_address_country: \"\",\n      billing_postal_code: \"\",\n      billing_address_phone: \"\",\n      billing_address_name: \"\",\n      billing_attention: \"\",\n      billing_address_fax: '',\n\n      // Detailed shipping address fields\n      shipping_address_line_1: \"\",\n      shipping_address_line_2: \"\",\n      shipping_address_line_3: \"\",\n      shipping_address_line_4: \"\",\n      shipping_address_city: \"\",\n      shipping_address_state: \"\",\n      shipping_address_country: \"\",\n      shipping_postal_code: \"\",\n      shipping_address_name: \"\",\n      shipping_address_phone: \"\",\n      shipping_attention: \"\",\n      shipping_address_fax: '',\n\n      gd_area_id: '',\n      order_tnc: \"\",\n      order_payment_details: \"\",\n      order_delivery_term: \"\",\n      order_remark: \"\",\n      order_remark2: \"\",\n      order_remark3: \"\",\n      order_remark4: \"\",\n      order_remark5: \"\",\n      sales_person: '',\n    });\n  }\n})();\n",
+        "func": "(async () => {\n  const soIDs = arguments[0].value;\n\n  console.log(\"JN Debug 2\", soIDs);\n\n  if (soIDs.length > 0) {\n    const firstSO = soIDs[0];\n\n    console.log(\"firstSO\", firstSO);\n\n    const resSO = await db\n      .collection(\"sales_order\")\n      .where({ id: firstSO })\n      .get();\n\n    const soData = resSO.data[0];\n\n    await this.triggerEvent(\"func_reset_delivery_method\");\n    this.display(\"address_grid\");\n\n    await this.setData({\n      gd_delivery_method: soData.so_delivery_method,\n      delivery_method_text: soData.so_delivery_method,\n      // Main address fields (formatted addresses)\n      gd_billing_address: soData.cust_billing_address || \"\",\n      gd_shipping_address: soData.cust_shipping_address || \"\",\n\n      // Detailed billing address fields\n      billing_address_line_1: soData.billing_address_line_1 || \"\",\n      billing_address_line_2: soData.billing_address_line_2 || \"\",\n      billing_address_line_3: soData.billing_address_line_3 || \"\",\n      billing_address_line_4: soData.billing_address_line_4 || \"\",\n      billing_address_city: soData.billing_address_city || \"\",\n      billing_address_state: soData.billing_address_state || \"\",\n      billing_address_country: soData.billing_address_country || \"\",\n      billing_postal_code: soData.billing_postal_code || \"\",\n      billing_address_phone: soData.billing_address_phone || \"\",\n      billing_address_name: soData.billing_address_name || \"\",\n      billing_attention: soData.billing_attention || \"\",\n      billing_address_fax: soData.billing_address_fax || '',\n      billing_address_code: soData.billing_address_code || '',\n\n\n      // Detailed shipping address fields\n      shipping_address_line_1: soData.shipping_address_line_1 || \"\",\n      shipping_address_line_2: soData.shipping_address_line_2 || \"\",\n      shipping_address_line_3: soData.shipping_address_line_3 || \"\",\n      shipping_address_line_4: soData.shipping_address_line_4 || \"\",\n      shipping_address_city: soData.shipping_address_city || \"\",\n      shipping_address_state: soData.shipping_address_state || \"\",\n      shipping_address_country: soData.shipping_address_country || \"\",\n      shipping_postal_code: soData.shipping_postal_code || \"\",\n      shipping_address_name: soData.shipping_address_name || \"\",\n      shipping_address_phone: soData.shipping_address_phone || \"\",\n      shipping_attention: soData.shipping_attention || \"\",\n      shipping_address_fax: soData.shipping_address_fax || '',\n      shipping_address_code: soData.shipping_address_code || '',\n\n      gd_area_id: soData.so_area_id || '',\n      order_tnc: soData.so_tnc || \"\",\n      order_payment_details: soData.so_payment_details || \"\",\n      order_delivery_term: soData.so_delivery_term || \"\",\n      order_remark: soData.so_remarks || \"\",\n      order_remark2: soData.so_remarks2 || \"\",\n      order_remark3: soData.so_remarks3 || \"\",\n      order_remark4: soData.so_remarks4 || \"\",\n      order_remark5: soData.so_remarks5 || \"\",\n      sales_person: [so_sales_person] || []\n    });\n\n    const visibilityMap = {\n      \"Self Pickup\": \"self_pickup\",\n      \"Courier Service\": \"courier_service\",\n      \"Company Truck\": \"company_truck\",\n      \"Shipping Service\": \"shipping_service\",\n      \"3rd Party Transporter\": \"third_party_transporter\",\n    };\n\n    const selectedField = visibilityMap[soData.so_delivery_method] || null;\n    const fields = [\n      \"self_pickup\",\n      \"courier_service\",\n      \"company_truck\",\n      \"shipping_service\",\n      \"third_party_transporter\",\n    ];\n\n    fields.forEach((field) => {\n      field === selectedField ? this.display(field) : this.hide(field);\n    });\n\n    switch (soData.so_delivery_method) {\n      case \"Self Pickup\":\n        setTimeout(() => {\n          this.setData({\n            driver_name: soData.cp_driver_name,\n            ic_no: soData.cp_ic_no,\n            driver_contact_no: soData.cp_driver_contact_no,\n            sp_vehicle_no: soData.cp_vehicle_number,\n            pickup_date: soData.cp_pickup_date,\n            validity_of_collection: soData.validity_of_collection,\n          });\n        }, 100);\n        break;\n\n      case \"Courier Service\":\n        setTimeout(() => {\n          this.setData({\n            courier_company: soData.cs_courier_company,\n            shipping_date: soData.cs_shipping_date,\n            tracking_number: soData.cs_tracking_number,\n            est_arrival_date: soData.est_arrival_date,\n            freight_charges: soData.cs_freight_charges,\n          });\n        }, 100);\n        break;\n\n      case \"Company Truck\":\n        setTimeout(() => {\n          this.setData({\n            driver_name: soData.ct_driver_name,\n            driver_contact_no: soData.ct_driver_contact_no,\n            ic_no: soData.ct_ic_no,\n            sp_vehicle_no: soData.ct_vehicle_number,\n            est_delivery_date: soData.ct_est_delivery_date,\n            delivery_cost: soData.ct_delivery_cost,\n          });\n        }, 100);\n        break;\n\n      case \"Shipping Service\":\n        setTimeout(() => {\n          this.setData({\n            shipping_company: soData.ss_shipping_company,\n            shipping_date: soData.ss_shippping_date,\n            freight_charges: soData.ss_freight_charges,\n            shipping_method: soData.ss_shipping_method,\n            est_arrival_date: soData.ss_est_arrival_date,\n            tracking_number: soData.ss_tracking_number,\n          });\n        }, 100);\n        break;\n\n      case \"3rd Party Transporter\":\n        setTimeout(() => {\n          this.setData({\n            tpt_vehicle_number: soData.tpt_vehicle_number,\n            tpt_transport_name: soData.tpt_transport_name,\n            tpt_ic_no: soData.tpt_ic_no,\n            tpt_driver_contact_no: soData.tpt_driver_contact_no,\n            tpt_driver_name: soData.tpt_driver_name,\n          });\n        }, 100);\n        break;\n    }\n  } else {\n    await this.triggerEvent(\"func_reset_delivery_method\");\n    this.hide([\n      \"address_grid\",\n      \"self_pickup\",\n      \"courier_service\",\n      \"company_truck\",\n      \"shipping_service\",\n      \"third_party_transporter\",\n    ]);\n\n    await this.setData({\n      gd_delivery_method: \"\",\n      delivery_method_text: \"\",\n      // Main address fields (formatted addresses)\n      gd_billing_address: \"\",\n      gd_shipping_address: \"\",\n\n      // Detailed billing address fields\n      billing_address_line_1: \"\",\n      billing_address_line_2: \"\",\n      billing_address_line_3: \"\",\n      billing_address_line_4: \"\",\n      billing_address_city: \"\",\n      billing_address_state: \"\",\n      billing_address_country: \"\",\n      billing_postal_code: \"\",\n      billing_address_phone: \"\",\n      billing_address_name: \"\",\n      billing_attention: \"\",\n      billing_address_fax: '',\n\n      // Detailed shipping address fields\n      shipping_address_line_1: \"\",\n      shipping_address_line_2: \"\",\n      shipping_address_line_3: \"\",\n      shipping_address_line_4: \"\",\n      shipping_address_city: \"\",\n      shipping_address_state: \"\",\n      shipping_address_country: \"\",\n      shipping_postal_code: \"\",\n      shipping_address_name: \"\",\n      shipping_address_phone: \"\",\n      shipping_attention: \"\",\n      shipping_address_fax: '',\n\n      gd_area_id: '',\n      order_tnc: \"\",\n      order_payment_details: \"\",\n      order_delivery_term: \"\",\n      order_remark: \"\",\n      order_remark2: \"\",\n      order_remark3: \"\",\n      order_remark4: \"\",\n      order_remark5: \"\",\n      sales_person: [],\n    });\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -27502,6 +27849,12 @@
         "key": "1pqfor7n",
         "name": "onSoSalesPersonChange_1pqfor7n",
         "func": "(async () => {\n  const agentID = arguments[0].value;\n\n  const resAgent = await db.collection('agent').doc(agentID).get();\n  if(!resAgent || !resAgent.data || !resAgent.data.length === 0) return;\n\n  const agentData = resAgent.data[0];\n  this.setData({ so_agent_user_id: agentData.agent_user})\n})();",
+        "type": "js"
+      },
+      {
+        "key": "e62v491b",
+        "name": "onWeightConversionBlur",
+        "func": "(async () => {\n  const rowIndex = arguments[0].rowIndex;\n  const weightConversion = arguments[0].value;\n\n  // User manually edited the per-unit weight (weight_conversion). Recompute the\n  // line net weight from the current so_quantity: net_weight = gd_quantity *\n  // weight_conversion.\n  if (\n    weightConversion !== undefined &&\n    weightConversion !== null &&\n    weightConversion !== \"\"\n  ) {\n    const gdQuantity = this.getValue(`table_gd.${rowIndex}.gd_qty`) || 0;\n    const netWeight =\n      Math.round(Number(gdQuantity) * Number(weightConversion) * 1000) / 1000;\n    this.setData({ [`table_gd.${rowIndex}.net_weight`]: netWeight });\n  }\n})();\n",
         "type": "js"
       }
     ],
