@@ -1013,6 +1013,254 @@
                           "value": 0,
                           "valueLabel": "",
                           "propLabel": "Is Processing"
+                        },
+                        {
+                          "prop": "delivery_method",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.delivery_method}}",
+                          "valueLabel": "",
+                          "propLabel": "Delivery Method"
+                        },
+                        {
+                          "prop": "delivery_method_text",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.delivery_method_text}}",
+                          "valueLabel": "",
+                          "propLabel": "Delivery Method Text"
+                        },
+                        {
+                          "prop": "area_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.area_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Area"
+                        },
+                        {
+                          "prop": "driver_name",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.driver_name}}",
+                          "valueLabel": "",
+                          "propLabel": "Driver Name"
+                        },
+                        {
+                          "prop": "ic_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.ic_no}}",
+                          "valueLabel": "",
+                          "propLabel": "IC No"
+                        },
+                        {
+                          "prop": "driver_contact_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.driver_contact_no}}",
+                          "valueLabel": "",
+                          "propLabel": "Driver Contact No"
+                        },
+                        {
+                          "prop": "sp_vehicle_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.sp_vehicle_no}}",
+                          "valueLabel": "",
+                          "propLabel": "Vehicle No"
+                        },
+                        {
+                          "prop": "pickup_date",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.pickup_date}}",
+                          "valueLabel": "",
+                          "propLabel": "Pickup Date"
+                        },
+                        {
+                          "prop": "validity_of_collection",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.validity_of_collection}}",
+                          "valueLabel": "",
+                          "propLabel": "Validity of Collection"
+                        },
+                        {
+                          "prop": "courier_company",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.courier_company}}",
+                          "valueLabel": "",
+                          "propLabel": "Courier Company"
+                        },
+                        {
+                          "prop": "shipping_date",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.shipping_date}}",
+                          "valueLabel": "",
+                          "propLabel": "Shipping Date"
+                        },
+                        {
+                          "prop": "tracking_number",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.tracking_number}}",
+                          "valueLabel": "",
+                          "propLabel": "Tracking Number"
+                        },
+                        {
+                          "prop": "est_arrival_date",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.est_arrival_date}}",
+                          "valueLabel": "",
+                          "propLabel": "Est Arrival Date"
+                        },
+                        {
+                          "prop": "freight_charges",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.freight_charges}}",
+                          "valueLabel": "",
+                          "propLabel": "Freight Charges"
+                        },
+                        {
+                          "prop": "ct_driver_name",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.ct_driver_name}}",
+                          "valueLabel": "",
+                          "propLabel": "CT Driver Name"
+                        },
+                        {
+                          "prop": "ct_driver_contact_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.ct_driver_contact_no}}",
+                          "valueLabel": "",
+                          "propLabel": "CT Driver Contact No"
+                        },
+                        {
+                          "prop": "ct_ic_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.ct_ic_no}}",
+                          "valueLabel": "",
+                          "propLabel": "CT IC No"
+                        },
+                        {
+                          "prop": "vehicle_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.vehicle_no}}",
+                          "valueLabel": "",
+                          "propLabel": "Vehicle No (CT)"
+                        },
+                        {
+                          "prop": "est_delivery_date",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.est_delivery_date}}",
+                          "valueLabel": "",
+                          "propLabel": "Est Delivery Date"
+                        },
+                        {
+                          "prop": "delivery_cost",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.delivery_cost}}",
+                          "valueLabel": "",
+                          "propLabel": "Delivery Cost"
+                        },
+                        {
+                          "prop": "shipping_company",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.shipping_company}}",
+                          "valueLabel": "",
+                          "propLabel": "Shipping Company"
+                        },
+                        {
+                          "prop": "ss_shipping_date",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.ss_shipping_date}}",
+                          "valueLabel": "",
+                          "propLabel": "SS Shipping Date"
+                        },
+                        {
+                          "prop": "ss_freight_charges",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.ss_freight_charges}}",
+                          "valueLabel": "",
+                          "propLabel": "SS Freight Charges"
+                        },
+                        {
+                          "prop": "shipping_method",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.shipping_method}}",
+                          "valueLabel": "",
+                          "propLabel": "Shipping Method"
+                        },
+                        {
+                          "prop": "ss_est_arrival_date",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.ss_est_arrival_date}}",
+                          "valueLabel": "",
+                          "propLabel": "SS Est Arrival Date"
+                        },
+                        {
+                          "prop": "ss_tracking_number",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.ss_tracking_number}}",
+                          "valueLabel": "",
+                          "propLabel": "SS Tracking Number"
+                        },
+                        {
+                          "prop": "tpt_vehicle_number",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.tpt_vehicle_number}}",
+                          "valueLabel": "",
+                          "propLabel": "TPT Vehicle Number"
+                        },
+                        {
+                          "prop": "tpt_transport_name",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.tpt_transport_name}}",
+                          "valueLabel": "",
+                          "propLabel": "TPT Transport Name"
+                        },
+                        {
+                          "prop": "tpt_ic_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.tpt_ic_no}}",
+                          "valueLabel": "",
+                          "propLabel": "TPT IC No"
+                        },
+                        {
+                          "prop": "tpt_driver_contact_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.tpt_driver_contact_no}}",
+                          "valueLabel": "",
+                          "propLabel": "TPT Driver Contact No"
+                        },
+                        {
+                          "prop": "tpt_driver_name",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.tpt_driver_name}}",
+                          "valueLabel": "",
+                          "propLabel": "TPT Driver Name"
                         }
                       ]
                     }
@@ -1290,6 +1538,254 @@
                                   "value": "{{node:code_node_hjAwTKzF.data.data.remarks}}",
                                   "valueLabel": "",
                                   "propLabel": "Remarks"
+                                },
+                                {
+                                  "prop": "delivery_method",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.delivery_method}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Delivery Method"
+                                },
+                                {
+                                  "prop": "delivery_method_text",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.delivery_method_text}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Delivery Method Text"
+                                },
+                                {
+                                  "prop": "area_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.area_id}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Area"
+                                },
+                                {
+                                  "prop": "driver_name",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.driver_name}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Driver Name"
+                                },
+                                {
+                                  "prop": "ic_no",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.ic_no}}",
+                                  "valueLabel": "",
+                                  "propLabel": "IC No"
+                                },
+                                {
+                                  "prop": "driver_contact_no",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.driver_contact_no}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Driver Contact No"
+                                },
+                                {
+                                  "prop": "sp_vehicle_no",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.sp_vehicle_no}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Vehicle No"
+                                },
+                                {
+                                  "prop": "pickup_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.pickup_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Pickup Date"
+                                },
+                                {
+                                  "prop": "validity_of_collection",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.validity_of_collection}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Validity of Collection"
+                                },
+                                {
+                                  "prop": "courier_company",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.courier_company}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Courier Company"
+                                },
+                                {
+                                  "prop": "shipping_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.shipping_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Shipping Date"
+                                },
+                                {
+                                  "prop": "tracking_number",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.tracking_number}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Tracking Number"
+                                },
+                                {
+                                  "prop": "est_arrival_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.est_arrival_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Est Arrival Date"
+                                },
+                                {
+                                  "prop": "freight_charges",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.freight_charges}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Freight Charges"
+                                },
+                                {
+                                  "prop": "ct_driver_name",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.ct_driver_name}}",
+                                  "valueLabel": "",
+                                  "propLabel": "CT Driver Name"
+                                },
+                                {
+                                  "prop": "ct_driver_contact_no",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.ct_driver_contact_no}}",
+                                  "valueLabel": "",
+                                  "propLabel": "CT Driver Contact No"
+                                },
+                                {
+                                  "prop": "ct_ic_no",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.ct_ic_no}}",
+                                  "valueLabel": "",
+                                  "propLabel": "CT IC No"
+                                },
+                                {
+                                  "prop": "vehicle_no",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.vehicle_no}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Vehicle No (CT)"
+                                },
+                                {
+                                  "prop": "est_delivery_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.est_delivery_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Est Delivery Date"
+                                },
+                                {
+                                  "prop": "delivery_cost",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.delivery_cost}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Delivery Cost"
+                                },
+                                {
+                                  "prop": "shipping_company",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.shipping_company}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Shipping Company"
+                                },
+                                {
+                                  "prop": "ss_shipping_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.ss_shipping_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "SS Shipping Date"
+                                },
+                                {
+                                  "prop": "ss_freight_charges",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.ss_freight_charges}}",
+                                  "valueLabel": "",
+                                  "propLabel": "SS Freight Charges"
+                                },
+                                {
+                                  "prop": "shipping_method",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.shipping_method}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Shipping Method"
+                                },
+                                {
+                                  "prop": "ss_est_arrival_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.ss_est_arrival_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "SS Est Arrival Date"
+                                },
+                                {
+                                  "prop": "ss_tracking_number",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.ss_tracking_number}}",
+                                  "valueLabel": "",
+                                  "propLabel": "SS Tracking Number"
+                                },
+                                {
+                                  "prop": "tpt_vehicle_number",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.tpt_vehicle_number}}",
+                                  "valueLabel": "",
+                                  "propLabel": "TPT Vehicle Number"
+                                },
+                                {
+                                  "prop": "tpt_transport_name",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.tpt_transport_name}}",
+                                  "valueLabel": "",
+                                  "propLabel": "TPT Transport Name"
+                                },
+                                {
+                                  "prop": "tpt_ic_no",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.tpt_ic_no}}",
+                                  "valueLabel": "",
+                                  "propLabel": "TPT IC No"
+                                },
+                                {
+                                  "prop": "tpt_driver_contact_no",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.tpt_driver_contact_no}}",
+                                  "valueLabel": "",
+                                  "propLabel": "TPT Driver Contact No"
+                                },
+                                {
+                                  "prop": "tpt_driver_name",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.tpt_driver_name}}",
+                                  "valueLabel": "",
+                                  "propLabel": "TPT Driver Name"
                                 }
                               ]
                             }

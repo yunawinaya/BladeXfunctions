@@ -234,23 +234,10 @@ const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
           "stock_movement.manufacturing_date",
           "stock_movement.expired_date",
         ]);
-        await this.disabled(
-          [
-            `stock_movement.${index}.manufacturing_date`,
-            `stock_movement.${index}.expired_date`,
-          ],
-          false,
-        );
       } else {
-        await this.disabled(
-          [
-            `stock_movement.${index}.manufacturing_date`,
-            `stock_movement.${index}.expired_date`,
-          ],
-          true,
-        );
-        if (!item.batch_no)
+        if (item.batch_no === "" || !item.batch_no) {
           await this.disabled(`stock_movement.${index}.batch_no`, false);
+        }
       }
     }
   } else if (pageStatus === "View" || status === "Completed") {
