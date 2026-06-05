@@ -1737,10 +1737,10 @@
       "id": "if_PYPLDh47",
       "type": "if",
       "data": {
-        "title": "IF saveAs In Progress / Completed",
+        "title": "IF In Progress / Completed",
         "isValidator": true,
-        "nodeName": "IF saveAs In Progress / Completed",
-        "name": "IF saveAs In Progress / Completed",
+        "nodeName": "IF In Progress / Completed",
+        "name": "IF In Progress / Completed",
         "condition_type": "ConditionRule",
         "expression": { "type": "javascript", "code": "" },
         "filter": {
@@ -2334,6 +2334,14 @@
                               "valueTypeLabel": "",
                               "value": "{{node:code_node_rRxs3rTR.data.material_uom}}",
                               "valueLabel": ""
+                            },
+                            {
+                              "prop": "category",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_Ebvm6rxW.data.inventory_category}}",
+                              "valueLabel": "",
+                              "propLabel": "Category"
                             }
                           ]
                         }
@@ -5554,7 +5562,7 @@
                         "name": "Balance Preparation",
                         "script": {
                           "type": "javascript",
-                          "code": "const balancesToProcess = {{node:code_node_u2hr0fnP.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_xwvcaiWQ.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_yPlLXIZW.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nlet inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nif (saveAs === \"Completed\" && stock_movement_status === \"In Progress\") {\n  inventory_category = \"In Transit\"\n}\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n  index: index,\n  nextIndex: index + 1\n};\n\n"
+                          "code": "const balancesToProcess = {{node:code_node_u2hr0fnP.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_xwvcaiWQ.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_yPlLXIZW.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nlet subtractCategory;\nlet addCategory;\n\nif (saveAs === \"Completed\" && stock_movement_status === \"In Progress\") {\n  subtractCategory = \"In Transit\";\n  addCategory = balance.category;\n} else if (saveAs === \"In Progress\" && stock_movement_status === \"Draft\") {\n  subtractCategory = balance.category;\n  addCategory = \"In Transit\";\n} else {\n  subtractCategory = balance.category;\n  addCategory = balance.category;\n}\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n  index: index,\n  nextIndex: index + 1,\n  subtractCategory: subtractCategory,\n  addCategory: addCategory\n};\n\n"
                         },
                         "response_json": [
                           {
@@ -5581,14 +5589,6 @@
                             "bsonType": "decimal",
                             "isExpand": false,
                             "children": []
-                          },
-                          {
-                            "key": "43m22w3m",
-                            "name": "inventory_category",
-                            "title": "inventory_category",
-                            "description": "",
-                            "bsonType": "string",
-                            "isExpand": false
                           },
                           {
                             "key": "2odwbcz5",
@@ -5628,6 +5628,22 @@
                             "key": "bpgks99m",
                             "name": "handling_unit_id",
                             "title": "handling_unit_id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "nz3lc2mr",
+                            "name": "subtractCategory",
+                            "title": "subtractCategory",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "9he0fn9y",
+                            "name": "addCategory",
+                            "title": "addCategory",
                             "description": "",
                             "bsonType": "string",
                             "isExpand": false
@@ -5732,7 +5748,7 @@
                               "prop": "inventory_category",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{node:code_node_i5zTBWq2.data.inventory_category}}",
+                              "value": "{{node:code_node_i5zTBWq2.data.subtractCategory}}",
                               "valueLabel": "",
                               "propLabel": "Inventory Category"
                             },
@@ -5895,628 +5911,292 @@
                       ]
                     },
                     {
-                      "id": "if_zb-4mJpk",
+                      "id": "workflow_node_PajjZ0PU",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Add Inventory Workflow",
+                        "isValidator": true,
+                        "nodeName": "Add Inventory Workflow",
+                        "name": "Add Inventory Workflow",
+                        "workflow": {
+                          "source": "ADD_INVENTORY:Workflow:2012005532688723970",
+                          "rules": {
+                            "collectionId": "2012005532688723970",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "plant_id",
+                              "propLabel": "Plant ID",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_u2hr0fnP.data.plant_id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "organization_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_u2hr0fnP.data.organization_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Organization ID"
+                            },
+                            {
+                              "prop": "material_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_u2hr0fnP.data.material_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Material ID"
+                            },
+                            {
+                              "prop": "quantity",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_i5zTBWq2.data.quantity}}",
+                              "valueLabel": "",
+                              "propLabel": "Quantity"
+                            },
+                            {
+                              "prop": "material_uom",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_u2hr0fnP.data.material_uom}}",
+                              "valueLabel": "",
+                              "propLabel": "UOM"
+                            },
+                            {
+                              "prop": "transaction_type",
+                              "operator": "",
+                              "valueType": "value",
+                              "value": "LOT",
+                              "valueLabel": "",
+                              "propLabel": "Transaction Type"
+                            },
+                            {
+                              "prop": "trx_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_u2hr0fnP.data.stock_movement_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Trx No"
+                            },
+                            {
+                              "prop": "inventory_category",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_i5zTBWq2.data.addCategory}}",
+                              "valueLabel": "",
+                              "propLabel": "Inventory Category"
+                            },
+                            {
+                              "prop": "location_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_u2hr0fnP.data.location_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Location ID"
+                            },
+                            {
+                              "prop": "batch_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_i5zTBWq2.data.batch_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Batch ID"
+                            },
+                            {
+                              "prop": "doc_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_u2hr0fnP.data.doc_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Doc Date"
+                            },
+                            {
+                              "prop": "manufacturing_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_i5zTBWq2.data.manufacturing_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Manufacturing Date"
+                            },
+                            {
+                              "prop": "expired_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_i5zTBWq2.data.expired_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Expired Date"
+                            },
+                            {
+                              "prop": "index",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_u2hr0fnP.data.index}}",
+                              "valueLabel": "",
+                              "propLabel": "Index"
+                            },
+                            {
+                              "prop": "itemData",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:get_node_49pBwFQ8.data.data}}",
+                              "valueLabel": "",
+                              "propLabel": "Item Data"
+                            },
+                            {
+                              "prop": "unit_price",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:workflow_node_0W7dSqBu.data.unit_price}}",
+                              "valueLabel": "",
+                              "propLabel": "Unit Price"
+                            },
+                            {
+                              "prop": "remark",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_u2hr0fnP.data.remark}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark"
+                            },
+                            {
+                              "prop": "remark2",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_u2hr0fnP.data.remark2}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark 2"
+                            },
+                            {
+                              "prop": "remark3",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_u2hr0fnP.data.remark3}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark 3"
+                            },
+                            {
+                              "prop": "isMovingInv",
+                              "operator": "",
+                              "valueType": "value",
+                              "value": 1,
+                              "valueLabel": "",
+                              "propLabel": "Moving Inventory?"
+                            },
+                            {
+                              "prop": "handling_unit_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_i5zTBWq2.data.handling_unit_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Handling Unit ID"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_pyIVkPdB",
                       "type": "if",
                       "data": {
-                        "title": "IF In Progress",
+                        "title": "IF addInventory Failed",
                         "isValidator": true,
-                        "nodeName": "IF In Progress",
-                        "name": "IF In Progress",
-                        "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "nodeName": "IF addInventory Failed",
+                        "name": "IF addInventory Failed",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:workflow_node_PajjZ0PU.data.code}}' == '400'"
+                        },
                         "filter": {
                           "list": [
                             {
                               "id": 1736695973613,
-                              "parentId": 1768888539001,
+                              "parentId": 1736695973612,
                               "isTop": true,
-                              "prop": "workflowparams.saveAs",
-                              "operator": "equal",
-                              "valueType": "value",
-                              "value": "In Progress",
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
                               "type": "leaf",
-                              "level": 1,
-                              "propLabel": "saveAs",
-                              "valueLabel": "",
-                              "operatorLabel": "Equal"
+                              "level": 1
                             }
                           ]
                         }
                       },
                       "blocks": [
                         {
-                          "id": "if_block__v7L_vjq",
+                          "id": "if_block_p_MXpvzP",
                           "type": "ifBlock",
                           "data": { "title": "true" },
                           "blocks": [
                             {
-                              "id": "workflow_node_gAAAwZnn",
-                              "type": "workflow-node",
+                              "id": "return_node_uD0XPooe",
+                              "type": "return-node",
                               "data": {
-                                "workflow_id": "",
-                                "workflow_name": "",
-                                "input_params": {},
-                                "title": "Add Inventory Workflow",
+                                "return_data": {},
+                                "status_code": 200,
+                                "title": "Return Data",
                                 "isValidator": true,
-                                "nodeName": "Add Inventory Workflow",
-                                "name": "Add Inventory Workflow",
-                                "workflow": {
-                                  "source": "ADD_INVENTORY:Workflow:2012005532688723970",
-                                  "rules": {
-                                    "collectionId": "2012005532688723970",
-                                    "list": [
-                                      {
-                                        "id": 1723795236686,
-                                        "parentId": 1723795236685,
-                                        "isTop": true,
-                                        "prop": "",
-                                        "operator": "",
-                                        "valueType": "",
-                                        "value": "",
-                                        "type": "leaf",
-                                        "level": 1
-                                      }
-                                    ]
-                                  }
-                                },
-                                "remote": true,
-                                "remoteType": "innerdatasource",
-                                "body_params": {
+                                "nodeName": "Return Data",
+                                "name": "Return Data",
+                                "response_value": {
                                   "list": [
                                     {
-                                      "prop": "plant_id",
-                                      "propLabel": "Plant ID",
+                                      "prop": "code",
+                                      "propLabel": "code",
                                       "operator": "",
                                       "operatorLabel": "",
                                       "valueType": "field",
                                       "valueTypeLabel": "",
-                                      "value": "{{node:code_node_u2hr0fnP.data.plant_id}}",
+                                      "value": "{{node:workflow_node_PajjZ0PU.data.code}}",
                                       "valueLabel": ""
                                     },
                                     {
-                                      "prop": "organization_id",
+                                      "prop": "message",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.organization_id}}",
+                                      "value": "{{node:workflow_node_PajjZ0PU.data.errorMessage}}",
                                       "valueLabel": "",
-                                      "propLabel": "Organization ID"
-                                    },
-                                    {
-                                      "prop": "material_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.material_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Material ID"
-                                    },
-                                    {
-                                      "prop": "quantity",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_i5zTBWq2.data.quantity}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Quantity"
-                                    },
-                                    {
-                                      "prop": "material_uom",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.material_uom}}",
-                                      "valueLabel": "",
-                                      "propLabel": "UOM"
-                                    },
-                                    {
-                                      "prop": "transaction_type",
-                                      "operator": "",
-                                      "valueType": "value",
-                                      "value": "LOT",
-                                      "valueLabel": "",
-                                      "propLabel": "Transaction Type"
-                                    },
-                                    {
-                                      "prop": "trx_no",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.stock_movement_no}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Trx No"
-                                    },
-                                    {
-                                      "prop": "inventory_category",
-                                      "operator": "",
-                                      "valueType": "value",
-                                      "value": "In Transit",
-                                      "valueLabel": "",
-                                      "propLabel": "Inventory Category"
-                                    },
-                                    {
-                                      "prop": "location_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_i5zTBWq2.data.location_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Location ID"
-                                    },
-                                    {
-                                      "prop": "batch_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_i5zTBWq2.data.batch_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Batch ID"
-                                    },
-                                    {
-                                      "prop": "doc_date",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.doc_date}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Doc Date"
-                                    },
-                                    {
-                                      "prop": "manufacturing_date",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_i5zTBWq2.data.manufacturing_date}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Manufacturing Date"
-                                    },
-                                    {
-                                      "prop": "expired_date",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_i5zTBWq2.data.expired_date}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Expired Date"
-                                    },
-                                    {
-                                      "prop": "index",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.index}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Index"
-                                    },
-                                    {
-                                      "prop": "itemData",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:get_node_49pBwFQ8.data.data}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Item Data"
-                                    },
-                                    {
-                                      "prop": "unit_price",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:workflow_node_0W7dSqBu.data.unit_price}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Unit Price"
-                                    },
-                                    {
-                                      "prop": "remark",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.remark}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Remark"
-                                    },
-                                    {
-                                      "prop": "remark2",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.remark2}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Remark 2"
-                                    },
-                                    {
-                                      "prop": "remark3",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.remark3}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Remark 3"
-                                    },
-                                    {
-                                      "prop": "isMovingInv",
-                                      "operator": "",
-                                      "valueType": "value",
-                                      "value": 1,
-                                      "valueLabel": "",
-                                      "propLabel": "Moving Inventory?"
-                                    },
-                                    {
-                                      "prop": "handling_unit_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_i5zTBWq2.data.handling_unit_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Handling Unit ID"
+                                      "propLabel": "message"
                                     }
                                   ]
-                                }
+                                },
+                                "return_raw_data": 0
                               },
                               "blocks": []
-                            },
-                            {
-                              "id": "if_Q3l7iO5d",
-                              "type": "if",
-                              "data": {
-                                "title": "IF addInventory Failed",
-                                "isValidator": true,
-                                "nodeName": "IF addInventory Failed",
-                                "name": "IF addInventory Failed",
-                                "condition_type": "Expression",
-                                "expression": {
-                                  "type": "javascript",
-                                  "code": "'{{node:workflow_node_gAAAwZnn.data.code}}' == '400'"
-                                },
-                                "filter": {
-                                  "list": [
-                                    {
-                                      "id": 1736695973613,
-                                      "parentId": 1736695973612,
-                                      "isTop": true,
-                                      "prop": "",
-                                      "operator": "",
-                                      "valueType": "",
-                                      "value": "",
-                                      "type": "leaf",
-                                      "level": 1
-                                    }
-                                  ]
-                                }
-                              },
-                              "blocks": [
-                                {
-                                  "id": "ifBlock_m6cVAWku",
-                                  "type": "ifBlock",
-                                  "data": { "title": "true" },
-                                  "blocks": [
-                                    {
-                                      "id": "return_node_VWzV6tj6",
-                                      "type": "return-node",
-                                      "data": {
-                                        "return_data": {},
-                                        "status_code": 200,
-                                        "title": "Return Data",
-                                        "isValidator": true,
-                                        "nodeName": "Return Data",
-                                        "name": "Return Data",
-                                        "response_value": {
-                                          "list": [
-                                            {
-                                              "prop": "code",
-                                              "propLabel": "code",
-                                              "operator": "",
-                                              "operatorLabel": "",
-                                              "valueType": "field",
-                                              "valueTypeLabel": "",
-                                              "value": "{{node:workflow_node_gAAAwZnn.data.code}}",
-                                              "valueLabel": ""
-                                            },
-                                            {
-                                              "prop": "message",
-                                              "operator": "",
-                                              "valueType": "field",
-                                              "value": "{{node:workflow_node_gAAAwZnn.data.errorMessage}}",
-                                              "valueLabel": "",
-                                              "propLabel": "message"
-                                            }
-                                          ]
-                                        },
-                                        "return_raw_data": 0
-                                      },
-                                      "blocks": []
-                                    }
-                                  ]
-                                },
-                                {
-                                  "id": "ifBlock_QUcwcbfc",
-                                  "type": "ifBlock",
-                                  "data": { "title": "false" },
-                                  "blocks": []
-                                }
-                              ]
                             }
                           ]
                         },
                         {
-                          "id": "if_block_KOPGe7Ag",
+                          "id": "if_block_s2l2uSkW",
                           "type": "ifBlock",
                           "data": { "title": "false" },
-                          "blocks": [
-                            {
-                              "id": "workflow_node_PajjZ0PU",
-                              "type": "workflow-node",
-                              "data": {
-                                "workflow_id": "",
-                                "workflow_name": "",
-                                "input_params": {},
-                                "title": "Add Inventory Workflow",
-                                "isValidator": true,
-                                "nodeName": "Add Inventory Workflow",
-                                "name": "Add Inventory Workflow",
-                                "workflow": {
-                                  "source": "ADD_INVENTORY:Workflow:2012005532688723970",
-                                  "rules": {
-                                    "collectionId": "2012005532688723970",
-                                    "list": [
-                                      {
-                                        "id": 1723795236686,
-                                        "parentId": 1723795236685,
-                                        "isTop": true,
-                                        "prop": "",
-                                        "operator": "",
-                                        "valueType": "",
-                                        "value": "",
-                                        "type": "leaf",
-                                        "level": 1
-                                      }
-                                    ]
-                                  }
-                                },
-                                "remote": true,
-                                "remoteType": "innerdatasource",
-                                "body_params": {
-                                  "list": [
-                                    {
-                                      "prop": "plant_id",
-                                      "propLabel": "Plant ID",
-                                      "operator": "",
-                                      "operatorLabel": "",
-                                      "valueType": "field",
-                                      "valueTypeLabel": "",
-                                      "value": "{{node:code_node_u2hr0fnP.data.plant_id}}",
-                                      "valueLabel": ""
-                                    },
-                                    {
-                                      "prop": "organization_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.organization_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Organization ID"
-                                    },
-                                    {
-                                      "prop": "material_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.material_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Material ID"
-                                    },
-                                    {
-                                      "prop": "quantity",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_i5zTBWq2.data.quantity}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Quantity"
-                                    },
-                                    {
-                                      "prop": "material_uom",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.material_uom}}",
-                                      "valueLabel": "",
-                                      "propLabel": "UOM"
-                                    },
-                                    {
-                                      "prop": "transaction_type",
-                                      "operator": "",
-                                      "valueType": "value",
-                                      "value": "LOT",
-                                      "valueLabel": "",
-                                      "propLabel": "Transaction Type"
-                                    },
-                                    {
-                                      "prop": "trx_no",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.stock_movement_no}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Trx No"
-                                    },
-                                    {
-                                      "prop": "inventory_category",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.inventory_category}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Inventory Category"
-                                    },
-                                    {
-                                      "prop": "location_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.location_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Location ID"
-                                    },
-                                    {
-                                      "prop": "batch_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_i5zTBWq2.data.batch_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Batch ID"
-                                    },
-                                    {
-                                      "prop": "doc_date",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.doc_date}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Doc Date"
-                                    },
-                                    {
-                                      "prop": "manufacturing_date",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_i5zTBWq2.data.manufacturing_date}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Manufacturing Date"
-                                    },
-                                    {
-                                      "prop": "expired_date",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_i5zTBWq2.data.expired_date}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Expired Date"
-                                    },
-                                    {
-                                      "prop": "index",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.index}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Index"
-                                    },
-                                    {
-                                      "prop": "itemData",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:get_node_49pBwFQ8.data.data}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Item Data"
-                                    },
-                                    {
-                                      "prop": "unit_price",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:workflow_node_0W7dSqBu.data.unit_price}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Unit Price"
-                                    },
-                                    {
-                                      "prop": "remark",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.remark}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Remark"
-                                    },
-                                    {
-                                      "prop": "remark2",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.remark2}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Remark 2"
-                                    },
-                                    {
-                                      "prop": "remark3",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_u2hr0fnP.data.remark3}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Remark 3"
-                                    },
-                                    {
-                                      "prop": "isMovingInv",
-                                      "operator": "",
-                                      "valueType": "value",
-                                      "value": 1,
-                                      "valueLabel": "",
-                                      "propLabel": "Moving Inventory?"
-                                    },
-                                    {
-                                      "prop": "handling_unit_id",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_i5zTBWq2.data.handling_unit_id}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Handling Unit ID"
-                                    }
-                                  ]
-                                }
-                              },
-                              "blocks": []
-                            },
-                            {
-                              "id": "if_pyIVkPdB",
-                              "type": "if",
-                              "data": {
-                                "title": "IF addInventory Failed",
-                                "isValidator": true,
-                                "nodeName": "IF addInventory Failed",
-                                "name": "IF addInventory Failed",
-                                "condition_type": "Expression",
-                                "expression": {
-                                  "type": "javascript",
-                                  "code": "'{{node:workflow_node_PajjZ0PU.data.code}}' == '400'"
-                                },
-                                "filter": {
-                                  "list": [
-                                    {
-                                      "id": 1736695973613,
-                                      "parentId": 1736695973612,
-                                      "isTop": true,
-                                      "prop": "",
-                                      "operator": "",
-                                      "valueType": "",
-                                      "value": "",
-                                      "type": "leaf",
-                                      "level": 1
-                                    }
-                                  ]
-                                }
-                              },
-                              "blocks": [
-                                {
-                                  "id": "if_block_p_MXpvzP",
-                                  "type": "ifBlock",
-                                  "data": { "title": "true" },
-                                  "blocks": [
-                                    {
-                                      "id": "return_node_uD0XPooe",
-                                      "type": "return-node",
-                                      "data": {
-                                        "return_data": {},
-                                        "status_code": 200,
-                                        "title": "Return Data",
-                                        "isValidator": true,
-                                        "nodeName": "Return Data",
-                                        "name": "Return Data",
-                                        "response_value": {
-                                          "list": [
-                                            {
-                                              "prop": "code",
-                                              "propLabel": "code",
-                                              "operator": "",
-                                              "operatorLabel": "",
-                                              "valueType": "field",
-                                              "valueTypeLabel": "",
-                                              "value": "{{node:workflow_node_PajjZ0PU.data.code}}",
-                                              "valueLabel": ""
-                                            },
-                                            {
-                                              "prop": "message",
-                                              "operator": "",
-                                              "valueType": "field",
-                                              "value": "{{node:workflow_node_PajjZ0PU.data.errorMessage}}",
-                                              "valueLabel": "",
-                                              "propLabel": "message"
-                                            }
-                                          ]
-                                        },
-                                        "return_raw_data": 0
-                                      },
-                                      "blocks": []
-                                    }
-                                  ]
-                                },
-                                {
-                                  "id": "if_block_s2l2uSkW",
-                                  "type": "ifBlock",
-                                  "data": { "title": "false" },
-                                  "blocks": []
-                                }
-                              ]
-                            }
-                          ]
+                          "blocks": []
                         }
                       ]
                     },
