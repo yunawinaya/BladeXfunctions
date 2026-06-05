@@ -4,13 +4,13 @@ const generatePrefix = (runNumber, now, prefixData) => {
   generated = generated.replace("suffix", prefixData.suffix_value);
   generated = generated.replace(
     "month",
-    String(now.getMonth() + 1).padStart(2, "0")
+    String(now.getMonth() + 1).padStart(2, "0"),
   );
   generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
   generated = generated.replace("year", now.getFullYear());
   generated = generated.replace(
     "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0")
+    String(runNumber).padStart(prefixData.padding_zeroes, "0"),
   );
   return generated;
 };
@@ -42,7 +42,7 @@ const findUniquePrefix = async (prefixData, organizationId) => {
 
   if (!isUnique) {
     throw new Error(
-      "Could not generate a unique Item Code after maximum attempts"
+      "Could not generate a unique Item Code after maximum attempts",
     );
   }
   return { prefixToShow, runningNumber };
@@ -50,16 +50,20 @@ const findUniquePrefix = async (prefixData, organizationId) => {
 
 const setPrefix = async (organizationId) => {
   const prefixData = await getPrefixData(organizationId);
-  const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
-
-  if (prefixData.is_active === 0) {
+  if (!prefixData || Object.keys(prefixData).length === 0) {
     this.disabled(["material_code"], false);
-    this.setData({ material_code: "", item_current_prefix: prefixToShow });
   } else {
-    this.setData({
-      material_code: prefixToShow,
-      item_current_prefix: prefixToShow,
-    });
+    const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
+
+    if (prefixData.is_active === 0) {
+      this.disabled(["material_code"], false);
+      this.setData({ material_code: "", item_current_prefix: prefixToShow });
+    } else {
+      this.setData({
+        material_code: prefixToShow,
+        item_current_prefix: prefixToShow,
+      });
+    }
   }
 };
 
@@ -72,7 +76,7 @@ const getPrefixData = async (organizationId) => {
       organization_id: organizationId,
     })
     .get();
-  const prefixData = prefixEntry.data[0];
+  const prefixData = prefixEntry?.data[0] || {};
 
   return prefixData;
 };
@@ -131,14 +135,14 @@ const checkLastTransactionDate = async () => {
         "stock_control",
         "based_uom",
         `table_uom_conversion.alt_uom_id`,
-        `table_uom_conversion.alt_qty`,
+        `table_uom_conversion.base_qty`,
       ],
-      false
+      false,
     );
 
     this.disabled(
-      [`table_uom_conversion.0.alt_uom_id`, `table_uom_conversion.0.alt_qty`],
-      true
+      [`table_uom_conversion.0.alt_uom_id`, `table_uom_conversion.0.base_qty`],
+      true,
     );
 
     this.setData({ previous_based_uom: this.getValue("based_uom") });
@@ -149,6 +153,14 @@ const checkLastTransactionDate = async () => {
       this.disabled(["material_costing_method"], false);
     }
   } else {
+    const uomConversion = this.getValue("table_uom_conversion");
+    const fieldsToDisable = uomConversion.flatMap((_, index) => [
+      `table_uom_conversion.${index}.alt_uom_id`,
+      `table_uom_conversion.${index}.base_qty`,
+    ]);
+
+    console.log("fieldsToDisable", fieldsToDisable);
+    this.disabled(fieldsToDisable, true);
     this.disabled(
       [
         "item_batch_management",
@@ -157,15 +169,14 @@ const checkLastTransactionDate = async () => {
         "item_category",
         "stock_control",
         "based_uom",
-        `table_uom_conversion`,
       ],
-      true
+      true,
     );
   }
 
   document
     .querySelectorAll(
-      "#pane-tab_uom_conversion button.el-button--danger.el-button--small"
+      "#pane-tab_uom_conversion button.el-button--danger.el-button--small",
     )
     .forEach((button) => {
       button.disabled = true;
@@ -234,7 +245,7 @@ const rearrangeTableUOMConversion = async () => {
   const tableUOMConversion = this.getValue("table_uom_conversion");
 
   const basedUOMConversion = tableUOMConversion.find(
-    (uom) => uom.alt_uom_id === uom.base_uom_id
+    (uom) => uom.alt_uom_id === uom.base_uom_id,
   );
 
   if (basedUOMConversion) {
@@ -242,7 +253,7 @@ const rearrangeTableUOMConversion = async () => {
       table_uom_conversion: [
         basedUOMConversion,
         ...tableUOMConversion.filter(
-          (uom) => uom.alt_uom_id !== uom.base_uom_id
+          (uom) => uom.alt_uom_id !== uom.base_uom_id,
         ),
       ],
     });
@@ -286,9 +297,12 @@ const rearrangeTableUOMConversion = async () => {
             "table_supplier_price",
             "table_customer_price",
           ],
-          true
+          true,
         );
         this.disabled(["purchase_default_uom", "sales_default_uom"], false);
+        this.setData({
+          item_properties: "Default",
+        });
         break;
 
       case "Edit":
@@ -303,7 +317,6 @@ const rearrangeTableUOMConversion = async () => {
         this.disabled(
           [
             "material_type",
-            "material_code",
             "item_category",
             "material_costing_method",
             "stock_control",
@@ -311,7 +324,7 @@ const rearrangeTableUOMConversion = async () => {
             "barcode_number",
             "table_uom_conversion.0.alt_uom_id",
           ],
-          true
+          true,
         );
 
         await checkLastTransactionDate();

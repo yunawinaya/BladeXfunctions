@@ -68,7 +68,7 @@ const getPrefixData = async (organizationId) => {
     })
     .get();
 
-  const prefixData = await prefixEntry.data[0];
+  const prefixData = (await prefixEntry?.data[0]) || null;
 
   return prefixData;
 };
@@ -539,6 +539,72 @@ const createBOM = async (data) => {
   }
 };
 
+const validateBatch = async (entry) => {
+  if (
+    entry.item_batch_management === 1 &&
+    entry.batch_number_genaration === "According To System Settings"
+  ) {
+    const resDefaultBatchConfig = await db
+      .collection("batch_number_config")
+      .where({
+        organization_id: entry.organization_id,
+      })
+      .get();
+
+    if (resDefaultBatchConfig && resDefaultBatchConfig.data.length > 0) {
+      if (
+        resDefaultBatchConfig.data[0].batch_level_selection === "Item Level"
+      ) {
+        if (
+          !entry.batch_config ||
+          Object.keys(entry.batch_config).length === 0
+        ) {
+          await this.$alert("Please set batch configuration", "Invalid Data", {
+            confirmButtonText: "OK",
+            type: "error",
+          });
+
+          throw new Error("Batch configuration is required");
+        }
+      }
+    }
+  }
+};
+
+const createBatch = async (itemId, batchNumberConfig, materialCode) => {
+  if (!batchNumberConfig || Object.keys(batchNumberConfig).length === 0) {
+    return;
+  }
+
+  const batchConfig = {
+    ...batchNumberConfig,
+    batch_format: batchNumberConfig.batch_format.replace(
+      /\{itemCode\}/g,
+      materialCode || "",
+    ),
+  };
+
+  await this.runWorkflow(
+    "2058838457211068417",
+    { allData: { ...batchConfig, item_id: itemId } },
+    (res) => {
+      console.log("Batch creation result:", res);
+    },
+    async (err) => {
+      this.hideLoading();
+      if (err?.data?.code === 401) {
+        await this.$alert(err?.data?.msg, "Error saving batch config", {
+          confirmButtonText: "Ok",
+          type: "error",
+          dangerouslyUseHTMLString: true,
+        });
+
+        throw new Error(err?.data?.msg);
+      }
+    },
+  );
+};
+
 (async () => {
   try {
     this.showLoading();
@@ -576,6 +642,8 @@ const createBOM = async (data) => {
       await validateFormula(entry);
       entry = await validateUOMConversion(entry);
       await validatePurchaseAndSalesInformation(entry);
+      await validateBatch(entry);
+
       console.log("entry", entry);
       let resItem = entry;
 
@@ -585,7 +653,7 @@ const createBOM = async (data) => {
           if (entry.material_code === data.item_current_prefix) {
             const prefixData = await getPrefixData(organizationId);
 
-            if (prefixData.length !== 0) {
+            if (!prefixData || prefixData.length !== 0) {
               const { prefixToShow, runningNumber } =
                 await findUniquePrefix(prefixData);
 
@@ -597,6 +665,11 @@ const createBOM = async (data) => {
 
           resItem = await db.collection("Item").add(entry);
           await createBOM(resItem.data[0]);
+          await createBatch(
+            resItem.data[0].id,
+            entry.batch_config,
+            entry.material_code,
+          );
         } catch (error) {
           console.error("Error adding item:", error);
           this.hideLoading();
@@ -613,6 +686,7 @@ const createBOM = async (data) => {
 
           await db.collection("Item").doc(item_no).update(entry);
           await createBOM(entry);
+          await createBatch(entry.id, entry.batch_config, entry.material_code);
         } catch (error) {
           console.error("Error updating item:", error);
           this.hideLoading();
