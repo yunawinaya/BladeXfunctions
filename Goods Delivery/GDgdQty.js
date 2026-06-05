@@ -21,6 +21,22 @@
   const undeliveredQty = roundQty(orderedQty - initialDeliveredQty);
   const totalDeliveredQty = roundQty(quantity + initialDeliveredQty);
 
+  // Live-update packing qty + net weight from the delivery qty, using the
+  // line's stored packing_conversion / weight_conversion (seeded on add).
+  // The workflow recomputes these authoritatively on save as well.
+  const recalcPackingWeight = (qty) => {
+    const line = data.table_gd[rowIndex];
+    const packingConversion = parseFloat(line.packing_conversion) || 1;
+    const weightConversion = parseFloat(line.weight_conversion) || 0;
+    this.setData({
+      [`table_gd.${rowIndex}.packing_qty`]: packingConversion
+        ? roundQty(qty / packingConversion)
+        : 0,
+      [`table_gd.${rowIndex}.net_weight`]: roundQty(qty * weightConversion),
+    });
+  };
+  recalcPackingWeight(quantity);
+
   // GDPP mode: Update existing temp_qty_data proportionally
   if (isSelectPicking === 1) {
     console.log(
@@ -69,6 +85,7 @@
         this.setData({
           [`table_gd.${rowIndex}.gd_qty`]: totalToQuantity,
         });
+        recalcPackingWeight(totalToQuantity);
         alert(
           `Quantity cannot exceed picked quantity from Picking (${totalToQuantity})`,
         );

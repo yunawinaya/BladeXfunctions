@@ -849,6 +849,14 @@
   console.log("Price per item:", pricePerItem);
   console.log("Current row price:", currentRowPrice);
 
+  // Live-update packing qty + net weight from the confirmed delivery qty, using
+  // the line's stored packing_conversion / weight_conversion (seeded on add).
+  // The workflow recomputes these authoritatively on save as well.
+  const packingConversion =
+    parseFloat(data.table_gd[rowIndex].packing_conversion) || 1;
+  const weightConversion =
+    parseFloat(data.table_gd[rowIndex].weight_conversion) || 0;
+
   // Store the row-specific data first
   this.setData({
     [`table_gd.${rowIndex}.gd_delivered_qty`]: deliveredQty,
@@ -856,6 +864,12 @@
     [`table_gd.${rowIndex}.base_qty`]: totalGdQuantity,
     [`table_gd.${rowIndex}.gd_price`]: currentRowPrice,
     [`table_gd.${rowIndex}.price_per_item`]: pricePerItem,
+    [`table_gd.${rowIndex}.packing_qty`]: packingConversion
+      ? roundQty(totalGdQuantity / packingConversion)
+      : 0,
+    [`table_gd.${rowIndex}.net_weight`]: roundQty(
+      totalGdQuantity * weightConversion,
+    ),
     error_message: "", // Clear any error message
   });
 

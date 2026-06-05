@@ -333,6 +333,19 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
   return quantity;
 };
 
+// How many base UOM units make up 1 unit of the given UOM (1 for base UOM).
+const getBaseQty = (itemData, uom) => {
+  if (!itemData || !uom || uom === itemData.based_uom) {
+    return 1;
+  }
+
+  const uomConversion = itemData.table_uom_conversion?.find(
+    (conv) => conv.alt_uom_id === uom,
+  );
+
+  return uomConversion && uomConversion.base_qty ? uomConversion.base_qty : 1;
+};
+
 // ============================================================================
 // OPTIMIZED MAIN INVENTORY CHECK FUNCTION
 // ============================================================================
@@ -900,6 +913,51 @@ const checkInventoryWithDuplicates = async (
           }
         }
       });
+    }
+  }
+
+  // ========================================================================
+  // STEP 3.5: Seed packing + net weight for every processed row, based on its
+  // final delivery qty/uom (good_delivery_uom_id + gd_qty). Mirrors the SO
+  // packing/weight logic so values are consistent across modules.
+  // ========================================================================
+  for (const items of Object.values(materialGroups)) {
+    for (const item of items) {
+      const index = item.originalIndex;
+      const row = tableGdArray[index];
+      if (!row) continue;
+
+      const rowItemData = itemDataMap.get(row.material_id);
+      const uom = row.good_delivery_uom_id;
+      const qty = parseFloat(row.gd_qty) || 0;
+
+      const packingDetail =
+        (rowItemData?.table_packing_detail || []).find(
+          (p) => p.uom_id === uom,
+        ) || null;
+      const packingConversion = packingDetail?.quantity || 1;
+
+      // weight_conversion is taken from the SO line (the user can manually edit
+      // it there); fall back to deriving it from the item only when the source
+      // line does not carry a value (older SOs / other flows).
+      const baseQty = getBaseQty(rowItemData, uom);
+      const soWeightConversion =
+        item.sourceItem?.weight_conversion ?? item.weight_conversion;
+      const weightConversion =
+        soWeightConversion !== undefined &&
+        soWeightConversion !== null &&
+        soWeightConversion !== ""
+          ? Number(soWeightConversion)
+          : roundQty((Number(rowItemData?.net_weight) || 0) * baseQty);
+
+      tableGdArray[index] = {
+        ...row,
+        packing_uom: packingDetail?.packing_uom_id || "",
+        packing_conversion: packingConversion,
+        packing_qty: packingConversion ? roundQty(qty / packingConversion) : 0,
+        weight_conversion: weightConversion,
+        net_weight: roundQty(qty * weightConversion),
+      };
     }
   }
 
