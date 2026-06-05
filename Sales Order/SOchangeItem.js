@@ -34,14 +34,14 @@ const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
   }
 
   const uomConversion = table_uom_conversion.find(
-    (conv) => conv.alt_uom_id === uom
+    (conv) => conv.alt_uom_id === uom,
   );
 
   if (!uomConversion || !uomConversion.base_qty) {
     return baseQty;
   }
 
-  return Math.round(baseQty / uomConversion.base_qty * 1000) / 1000;
+  return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
 };
 
 const fetchUnrestrictedQty = async (
@@ -50,7 +50,7 @@ const fetchUnrestrictedQty = async (
   serial_number_management,
   stock_control,
   plantId,
-  organizationId
+  organizationId,
 ) => {
   try {
     let totalUnrestrictedQtyBase = 0;
@@ -70,7 +70,7 @@ const fetchUnrestrictedQty = async (
 
         totalUnrestrictedQtyBase = serialBalanceData.reduce(
           (sum, balance) => sum + (balance.unrestricted_qty || 0),
-          0
+          0,
         );
       }
     } else if (
@@ -92,7 +92,7 @@ const fetchUnrestrictedQty = async (
 
         totalUnrestrictedQtyBase = batchBalanceData.reduce(
           (sum, balance) => sum + (balance.unrestricted_qty || 0),
-          0
+          0,
         );
       }
     } else if (
@@ -114,7 +114,7 @@ const fetchUnrestrictedQty = async (
 
         totalUnrestrictedQtyBase = balanceData.reduce(
           (sum, balance) => sum + (balance.unrestricted_qty || 0),
-          0
+          0,
         );
       }
     } else {
@@ -128,8 +128,9 @@ const fetchUnrestrictedQty = async (
 };
 
 (async () => {
+  console.log(this);
   let rowIndex = arguments[0].rowIndex;
-
+  console.log("change item ", arguments[0]);
   if (arguments[0].index) {
     rowIndex = arguments[0].index;
   }
@@ -162,6 +163,8 @@ const fetchUnrestrictedQty = async (
       [`table_so.${rowIndex}.item_id`]: material_name,
       [`table_so.${rowIndex}.so_item_price`]: sales_unit_price,
       [`table_so.${rowIndex}.item_category_id`]: item_category,
+      [`table_so.${rowIndex}.custom_fields`]:
+        arguments[0].fieldModel.item.custom_fields,
     });
 
     if (mat_sales_tax_id) {
@@ -193,39 +196,39 @@ const fetchUnrestrictedQty = async (
       serial_number_management,
       stock_control,
       plantId,
-      organizationId
+      organizationId,
     );
 
     if (sales_default_uom) {
       const finalQty = await convertBaseToAlt(
         initialQty,
         table_uom_conversion,
-        sales_default_uom
+        sales_default_uom,
       );
 
       this.setData({
         [`table_so.${rowIndex}.so_item_uom`]: sales_default_uom,
         [`table_so.${rowIndex}.unrestricted_qty`]: parseFloat(
-          finalQty.toFixed(4)
+          finalQty.toFixed(4),
         ),
         [`table_so.${rowIndex}.base_unrestricted_qty`]: parseFloat(
-          initialQty.toFixed(4)
+          initialQty.toFixed(4),
         ),
       });
     } else {
       const finalQty = await convertBaseToAlt(
         initialQty,
         table_uom_conversion,
-        based_uom
+        based_uom,
       );
 
       this.setData({
         [`table_so.${rowIndex}.so_item_uom`]: based_uom,
         [`table_so.${rowIndex}.unrestricted_qty`]: parseFloat(
-          finalQty.toFixed(4)
+          finalQty.toFixed(4),
         ),
         [`table_so.${rowIndex}.base_unrestricted_qty`]: parseFloat(
-          initialQty.toFixed(4)
+          initialQty.toFixed(4),
         ),
       });
     }
@@ -246,24 +249,24 @@ const fetchUnrestrictedQty = async (
           itemData.serial_number_management,
           itemData.stock_control,
           plantId,
-          organizationId
+          organizationId,
         );
 
         if (soItem.so_item_uom) {
           const finalQty = await convertBaseToAlt(
             initialQty,
             itemData.table_uom_conversion,
-            soItem.so_item_uom
+            soItem.so_item_uom,
           );
 
           console.log("finalQty", finalQty);
           console.log("initialQty", initialQty);
           this.setData({
             [`table_so.${rowIndex}.unrestricted_qty`]: parseFloat(
-              finalQty.toFixed(4)
+              finalQty.toFixed(4),
             ),
             [`table_so.${rowIndex}.base_unrestricted_qty`]: parseFloat(
-              initialQty.toFixed(4)
+              initialQty.toFixed(4),
             ),
           });
         }
