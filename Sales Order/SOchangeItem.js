@@ -21,6 +21,11 @@ const resetData = async (rowIndex) => {
     [`table_so.${rowIndex}.unrestricted_qty`]: 0,
     [`table_so.${rowIndex}.base_unrestricted_qty`]: 0,
     [`table_so.${rowIndex}.table_uom_conversion`]: "",
+    [`table_so.${rowIndex}.packing_uom`]: "",
+    [`table_so.${rowIndex}.packing_conversion`]: 0,
+    [`table_so.${rowIndex}.packing_qty`]: 0,
+    [`table_so.${rowIndex}.weight_conversion`]: 0,
+    [`table_so.${rowIndex}.net_weight`]: 0,
   });
 };
 console.log("item_codechange");
@@ -42,6 +47,63 @@ const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
   }
 
   return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
+};
+
+// Find the packing detail row whose uom_id matches the selected UOM.
+const getPackingDetail = (table_packing_detail, uom) => {
+  if (
+    !Array.isArray(table_packing_detail) ||
+    table_packing_detail.length === 0 ||
+    !uom
+  ) {
+    return null;
+  }
+
+  return table_packing_detail.find((conv) => conv.uom_id === uom) || null;
+};
+
+// How many base UOM units make up 1 unit of the selected UOM.
+const getBaseQty = (table_uom_conversion, uom) => {
+  if (
+    !Array.isArray(table_uom_conversion) ||
+    table_uom_conversion.length === 0 ||
+    !uom
+  ) {
+    return 1;
+  }
+
+  const uomConversion = table_uom_conversion.find(
+    (conv) => conv.alt_uom_id === uom,
+  );
+
+  return uomConversion && uomConversion.base_qty ? uomConversion.base_qty : 1;
+};
+
+// Build the packing + net weight fields for a SO line. Mirrors SOonChangeUOM /
+// SOonBlurQty so the values are correct even though setData does not trigger
+// those handlers.
+const buildPackingWeightData = (rowIndex, item, uom, soQuantity) => {
+  const packingDetail = getPackingDetail(item.table_packing_detail, uom);
+  const packingConversion = packingDetail?.quantity || 1;
+  const packingUOM = packingDetail?.packing_uom_id || "";
+
+  const baseQty = getBaseQty(item.table_uom_conversion, uom);
+  const weightConversion =
+    Math.round((Number(item.net_weight) || 0) * baseQty * 1000) / 1000;
+
+  const qty = Number(soQuantity) || 0;
+  const packingQty = packingConversion
+    ? Math.round((qty / packingConversion) * 1000) / 1000
+    : 0;
+  const netWeight = Math.round(qty * weightConversion * 1000) / 1000;
+
+  return {
+    [`table_so.${rowIndex}.packing_uom`]: packingUOM,
+    [`table_so.${rowIndex}.packing_conversion`]: packingConversion,
+    [`table_so.${rowIndex}.packing_qty`]: packingQty,
+    [`table_so.${rowIndex}.weight_conversion`]: weightConversion,
+    [`table_so.${rowIndex}.net_weight`]: netWeight,
+  };
 };
 
 const fetchUnrestrictedQty = async (
@@ -232,6 +294,18 @@ const fetchUnrestrictedQty = async (
         ),
       });
     }
+
+    // setData above does not trigger SOonChangeUOM, so seed the packing + net
+    // weight fields for the chosen UOM here (so_quantity was reset to 0).
+    const chosenUom = sales_default_uom || based_uom;
+    this.setData(
+      buildPackingWeightData(
+        rowIndex,
+        arguments[0].fieldModel.item,
+        chosenUom,
+        0,
+      ),
+    );
   } else if (!arguments[0].fieldModel && soItem) {
     const rowIndex = arguments[0].index;
     if (soItem.item_name) {
@@ -269,6 +343,19 @@ const fetchUnrestrictedQty = async (
               initialQty.toFixed(4),
             ),
           });
+
+          // Seed packing + net weight using the line's current so_quantity
+          // (setData does not trigger SOonChangeUOM).
+          const soQuantity =
+            this.getValue(`table_so.${rowIndex}.so_quantity`) || 0;
+          this.setData(
+            buildPackingWeightData(
+              rowIndex,
+              itemData,
+              soItem.so_item_uom,
+              soQuantity,
+            ),
+          );
         }
       }
     }

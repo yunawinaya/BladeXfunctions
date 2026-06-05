@@ -45,6 +45,34 @@ const getLocalDate = () => {
   console.log("arguments[0]", arguments[0]);
   console.log("currentDate", currentDate);
 
+  // Recompute packing quantity from the packing_conversion already stored on
+  // the line by SOonChangeUOM (no Item fetch needed here): packing_qty =
+  // so_quantity / packing_conversion.
+  const packingConversion = this.getValue(
+    `table_so.${rowIndex}.packing_conversion`,
+  );
+  if (packingConversion && Number(packingConversion) > 0) {
+    const packingQty =
+      Math.round((quantity / Number(packingConversion)) * 1000) / 1000;
+    this.setData({ [`table_so.${rowIndex}.packing_qty`]: packingQty });
+  }
+
+  // Recompute net weight from the weight_conversion (per-unit weight in the
+  // SO's UOM) already stored on the line by SOonChangeUOM: net_weight =
+  // so_quantity * weight_conversion.
+  const weightConversion = this.getValue(
+    `table_so.${rowIndex}.weight_conversion`,
+  );
+  if (
+    weightConversion !== undefined &&
+    weightConversion !== null &&
+    weightConversion !== ""
+  ) {
+    const netWeight =
+      Math.round(quantity * Number(weightConversion) * 1000) / 1000;
+    this.setData({ [`table_so.${rowIndex}.net_weight`]: netWeight });
+  }
+
   if (customerID) {
     const resCustomer = await db
       .collection("Customer")

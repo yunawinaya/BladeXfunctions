@@ -18,6 +18,63 @@ const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
   return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
 };
 
+// Find the packing detail row whose uom_id matches the selected UOM.
+const getPackingDetail = (table_packing_detail, uom) => {
+  if (
+    !Array.isArray(table_packing_detail) ||
+    table_packing_detail.length === 0 ||
+    !uom
+  ) {
+    return null;
+  }
+
+  return table_packing_detail.find((conv) => conv.uom_id === uom) || null;
+};
+
+// How many base UOM units make up 1 unit of the selected UOM.
+const getBaseQty = (table_uom_conversion, uom) => {
+  if (
+    !Array.isArray(table_uom_conversion) ||
+    table_uom_conversion.length === 0 ||
+    !uom
+  ) {
+    return 1;
+  }
+
+  const uomConversion = table_uom_conversion.find(
+    (conv) => conv.alt_uom_id === uom,
+  );
+
+  return uomConversion && uomConversion.base_qty ? uomConversion.base_qty : 1;
+};
+
+// Build the packing + net weight fields for a SO line. Mirrors SOonChangeUOM /
+// SOonBlurQty so the values are correct even though setData does not trigger
+// those handlers.
+const buildPackingWeightData = (rowIndex, item, uom, soQuantity) => {
+  const packingDetail = getPackingDetail(item.table_packing_detail, uom);
+  const packingConversion = packingDetail?.quantity || 1;
+  const packingUOM = packingDetail?.packing_uom_id || "";
+
+  const baseQty = getBaseQty(item.table_uom_conversion, uom);
+  const weightConversion =
+    Math.round((Number(item.net_weight) || 0) * baseQty * 1000) / 1000;
+
+  const qty = Number(soQuantity) || 0;
+  const packingQty = packingConversion
+    ? Math.round((qty / packingConversion) * 1000) / 1000
+    : 0;
+  const netWeight = Math.round(qty * weightConversion * 1000) / 1000;
+
+  return {
+    [`table_so.${rowIndex}.packing_uom`]: packingUOM,
+    [`table_so.${rowIndex}.packing_conversion`]: packingConversion,
+    [`table_so.${rowIndex}.packing_qty`]: packingQty,
+    [`table_so.${rowIndex}.weight_conversion`]: weightConversion,
+    [`table_so.${rowIndex}.net_weight`]: netWeight,
+  };
+};
+
 const fetchUnrestrictedQty = async (
   itemId,
   item_batch_management,
@@ -198,6 +255,13 @@ const fetchUnrestrictedQty = async (
           ),
         });
       }
+
+      // setData above does not trigger SOonChangeUOM, so seed the packing + net
+      // weight fields for the chosen UOM (new lines start at so_quantity 0).
+      const chosenUom = item.sales_default_uom || item.based_uom;
+      await this.setData(
+        buildPackingWeightData(newIndex, item, chosenUom, 0),
+      );
     }
   }, 50);
 })();
