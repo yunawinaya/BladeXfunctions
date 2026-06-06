@@ -81,6 +81,9 @@
       [`table_picking_items.${rowIndex}.picking_base_qty`]: pickingBaseQty,
       // Reset the picker input — its previous value was in the old UOM.
       [`table_picking_items.${rowIndex}.picked_qty`]: 0,
+      // picked_qty reset to 0 → packing qty + net weight reset too.
+      [`table_picking_items.${rowIndex}.packing_qty`]: 0,
+      [`table_picking_items.${rowIndex}.net_weight`]: 0,
     });
   } catch (error) {
     console.error("PickingOnChangePickingUOM error:", error);

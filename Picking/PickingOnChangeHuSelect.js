@@ -47,6 +47,7 @@
         row.row_type === "item" &&
         row.handling_unit_id === handlingUnitId
       ) {
+        let pickedQty = 0;
         if (isSelected) {
           const pending = parseFloat(row.pending_process_qty) || 0;
           const orderUom = String(row.item_uom);
@@ -55,17 +56,24 @@
             (window.pickingUOMCache &&
               window.pickingUOMCache[String(row.item_code)]) ||
             null;
-          updates[`table_picking_items.${idx}.picked_qty`] =
-            convertQuantityFromTo(
-              pending,
-              cache ? cache.table_uom_conversion : [],
-              orderUom,
-              pickingUom,
-              cache ? cache.based_uom : orderUom,
-            );
-        } else {
-          updates[`table_picking_items.${idx}.picked_qty`] = 0;
+          pickedQty = convertQuantityFromTo(
+            pending,
+            cache ? cache.table_uom_conversion : [],
+            orderUom,
+            pickingUom,
+            cache ? cache.based_uom : orderUom,
+          );
         }
+        updates[`table_picking_items.${idx}.picked_qty`] = pickedQty;
+
+        // Live packing qty + net weight from the picked qty (the workflow
+        // recomputes these authoritatively on save).
+        const packingConversion = parseFloat(row.packing_conversion) || 1;
+        const weightConversion = parseFloat(row.weight_conversion) || 0;
+        updates[`table_picking_items.${idx}.packing_qty`] =
+          Math.round((pickedQty / packingConversion) * 1000) / 1000;
+        updates[`table_picking_items.${idx}.net_weight`] =
+          Math.round((pickedQty * weightConversion) * 1000) / 1000;
       }
     });
 
