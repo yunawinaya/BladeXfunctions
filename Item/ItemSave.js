@@ -670,7 +670,7 @@ const createBatch = async (itemId, batchNumberConfig, materialCode) => {
 
       await validateFormula(entry);
       entry = await validateUOMConversion(entry);
-      await validateUOMPackingMirror(entry);
+      // await validateUOMPackingMirror(entry);
       await validatePurchaseAndSalesInformation(entry);
       await validateBatch(entry);
       console.log("entry", entry);

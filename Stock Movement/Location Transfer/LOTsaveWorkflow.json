@@ -5562,7 +5562,7 @@
                         "name": "Balance Preparation",
                         "script": {
                           "type": "javascript",
-                          "code": "const balancesToProcess = {{node:code_node_u2hr0fnP.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_xwvcaiWQ.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_yPlLXIZW.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nlet subtractCategory;\nlet addCategory;\n\nif (saveAs === \"Completed\" && stock_movement_status === \"In Progress\") {\n  subtractCategory = \"In Transit\";\n  addCategory = balance.category;\n} else if (saveAs === \"In Progress\" && stock_movement_status === \"Draft\") {\n  subtractCategory = balance.category;\n  addCategory = \"In Transit\";\n} else {\n  subtractCategory = balance.category;\n  addCategory = balance.category;\n}\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n  index: index,\n  nextIndex: index + 1,\n  subtractCategory: subtractCategory,\n  addCategory: addCategory\n};\n\n"
+                          "code": "const balancesToProcess = {{node:code_node_u2hr0fnP.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_xwvcaiWQ.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_yPlLXIZW.data.stock_movement_status}}\nconst target_location_id = {{node:code_node_u2hr0fnP.data.location_id}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst source_location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nlet subtractCategory;\nlet addCategory;\nlet location_id;\nlet addLocation;\n\nif (saveAs === \"Completed\" && stock_movement_status === \"In Progress\") {\n  // In Progress to Completed: In Transit was staged at the source bin, so subtract it\n  // there and add the real category at the destination (the current target location).\n  subtractCategory = \"In Transit\";\n  addCategory = balance.category;\n  location_id = source_location_id;\n  addLocation = target_location_id;\n} else if (saveAs === \"In Progress\" && stock_movement_status === \"Draft\") {\n  // Draft to In Progress: stage the picked stock into In Transit at the source bin so a\n  // later target-location change does not strand the In Transit balance.\n  subtractCategory = balance.category;\n  addCategory = \"In Transit\";\n  location_id = source_location_id;\n  addLocation = source_location_id;\n} else {\n  // Draft to Completed (direct): straight move from source category to the destination.\n  subtractCategory = balance.category;\n  addCategory = balance.category;\n  location_id = source_location_id;\n  addLocation = target_location_id;\n}\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  addLocation: addLocation,\n  quantity: quantity,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n  index: index,\n  nextIndex: index + 1,\n  subtractCategory: subtractCategory,\n  addCategory: addCategory\n};\n\n"
                         },
                         "response_json": [
                           {
@@ -5644,6 +5644,14 @@
                             "key": "9he0fn9y",
                             "name": "addCategory",
                             "title": "addCategory",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "addloc1qx",
+                            "name": "addLocation",
+                            "title": "addLocation",
                             "description": "",
                             "bsonType": "string",
                             "isExpand": false
@@ -6014,7 +6022,7 @@
                               "prop": "location_id",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{node:code_node_u2hr0fnP.data.location_id}}",
+                              "value": "{{node:code_node_i5zTBWq2.data.addLocation}}",
                               "valueLabel": "",
                               "propLabel": "Location ID"
                             },
