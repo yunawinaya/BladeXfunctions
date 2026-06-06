@@ -287,7 +287,10 @@ const rearrangeTableUOMConversion = async () => {
 
         setTimeout(() => {
           const integrationType = this.getValue("acc_integration_type");
-          if (integrationType === "AutoCount Accounting") {
+          if (
+            integrationType === "AutoCount Accounting" ||
+            integrationType === "AutoCount Accounting V2"
+          ) {
             this.disabled(["material_costing_method"], false);
           }
         }, 50);
