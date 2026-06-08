@@ -1,5 +1,6 @@
 (async () => {
   try {
+    console.log("Trigger");
     const data = this.getValues();
     const based_uom = data.based_uom;
 

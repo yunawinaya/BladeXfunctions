@@ -1147,10 +1147,7 @@
                 "isValidator": true,
                 "nodeName": "Init Batch Gen Index",
                 "name": "Init Batch Gen Index",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "0"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "0" },
                 "redis_key": "batchGenIndex_{{node:code_node_LFPr1wQW.data.unique}}"
               },
               "blocks": []
@@ -1166,10 +1163,7 @@
                 "isValidator": true,
                 "nodeName": "Init Generated Batches",
                 "name": "Init Generated Batches",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "[]"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "[]" },
                 "redis_key": "generatedBatches_{{node:code_node_LFPr1wQW.data.unique}}"
               },
               "blocks": []
@@ -1248,7 +1242,7 @@
                     "name": "Batch Gen Prep",
                     "script": {
                       "type": "javascript",
-                      "code": "const allData = {{node:code_node_4r2Fv9G5.data.allData}};\nconst subformData = allData.table_gr || [];\nconst currentIndexRaw = {{node:get_cache_node_BGIDXget.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst item = subformData[index] || {};\n\n// Only generate for auto-batch rows that are NOT hierarchy children\n// (children inherit the parent batch number after the loop)\nconst needsGen = (item.item_batch_no === \"Auto-generated batch number\" && item.parent_or_child !== \"Child\") ? 1 : 0;\n\nreturn {\n  item_id: item.item_id || \"\",\n  needsGen: needsGen,\n  index: index,\n  nextIndex: index + 1\n};"
+                      "code": "const allData = {{node:code_node_4r2Fv9G5.data.allData}};\nconst subformData = allData.table_gr || [];\nconst currentIndexRaw = {{node:get_cache_node_BGIDXget.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst item = subformData[index] || {};\n\n// Only generate for auto-batch rows that are NOT hierarchy children\n// (children inherit the parent batch number after the loop)\nconst needsGen = (item.item_batch_no === \"Auto-generated batch number\" && item.parent_or_child !== \"Child\") ? 1 : 0;\n\nreturn {\n  item_id: item.item_id || \"\",\n  needsGen: needsGen,\n  document_date: allData.gr_date || '',\n  manufacturing_date: item.manufacturing_date || '',\n  expired_date: item.expired_date || '',\n  index: index,\n  nextIndex: index + 1\n};"
                     },
                     "response_json": [
                       {
@@ -1284,6 +1278,33 @@
                         "title": "nextIndex",
                         "description": "",
                         "bsonType": "number",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "ucylfzhj",
+                        "name": "document_date",
+                        "title": "document_date",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "sexhbqnt",
+                        "name": "expired_date",
+                        "title": "expired_date",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "8f3zd2gs",
+                        "name": "manufacturing_date",
+                        "title": "manufacturing_date",
+                        "description": "",
+                        "bsonType": "any",
                         "isExpand": false,
                         "children": []
                       }
@@ -1324,9 +1345,7 @@
                     {
                       "id": "if_NeedsGen_t",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "workflow_node_GenBatch",
@@ -1371,6 +1390,30 @@
                                   "valueTypeLabel": "",
                                   "value": "{{node:code_node_BatchGenPrep.data.item_id}}",
                                   "valueLabel": ""
+                                },
+                                {
+                                  "prop": "document_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_BatchGenPrep.data.document_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Document Date"
+                                },
+                                {
+                                  "prop": "expired_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_BatchGenPrep.data.expired_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Expired Date"
+                                },
+                                {
+                                  "prop": "manufacturing_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_BatchGenPrep.data.manufacturing_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Manufacturing Date"
                                 }
                               ]
                             }
@@ -1457,9 +1500,7 @@
                             {
                               "id": "if_BatchErr_t",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "return_node_BatchErr",
@@ -1502,9 +1543,7 @@
                             {
                               "id": "if_BatchErr_f",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -1575,9 +1614,7 @@
                     {
                       "id": "if_NeedsGen_f",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]

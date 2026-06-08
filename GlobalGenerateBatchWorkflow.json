@@ -125,6 +125,23 @@
         "expression": {
           "type": "javascript",
           "code": "{{node:get_node_Mx1xwOKd.data.count}} == 0"
+        },
+        "filter": {
+          "list": [
+            {
+              "id": 1736695973613,
+              "parentId": 1736695973612,
+              "isTop": true,
+              "prop": "node.get_node_25gj7Z38",
+              "operator": "",
+              "valueType": "value",
+              "value": "",
+              "type": "leaf",
+              "level": 1,
+              "valueLabel": "",
+              "propLabel": "Get Item Data"
+            }
+          ]
         }
       },
       "blocks": [
@@ -324,6 +341,102 @@
               "blocks": []
             },
             {
+              "id": "code_node_hs092Lw8",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Check Date Format",
+                "isValidator": true,
+                "nodeName": "Check Date Format",
+                "name": "Check Date Format",
+                "script": {
+                  "type": "javascript",
+                  "code": "const defaultConfig = {{node:get_node_Mx1xwOKd.data.data}};\nconst documentDate = {{workflowparams:document_date}};\nconst expiredDate = {{workflowparams:expired_date}};\nconst manufacturingDate = {{workflowparams:manufacturing_date}};\nlet status = \"Failed\";\nlet message = \"\";\nlet dateToUse = \"\";\nswitch (defaultConfig.date_format) {\n  case \"Document Date\":\n    if (documentDate) {\n      status = \"Passed\";\n      dateToUse = documentDate;\n    } else {\n      message = \"Document Date is required.\";\n    }\n    break;\n  case \"Expired Date\":\n    if (expiredDate) {\n      status = \"Passed\";\n      dateToUse = expiredDate;\n    } else {\n      message = \"Expired Date is required.\";\n    }\n    break;\n  case \"Manufacturing Date\":\n    if (manufacturingDate) {\n      status = \"Passed\";\n      dateToUse = manufacturingDate;\n    } else {\n      message = \"Manufacturing Date is required.\";\n    }\n    break;\n  case \"Document Created Date\":\n    status = \"Passed\";\n    dateToUse = new Date();\n    break;\n  default:\n    message = \"Invalid date format configuration.\";\n}\n\nreturn {\n  status,\n  message,\n  dateToUse,\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "umk6qspj",
+                    "name": "status",
+                    "title": "Status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "700m6lb6",
+                    "name": "message",
+                    "title": "Message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "ip9llpmv",
+                    "name": "dateToUse",
+                    "title": "Date to Use",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_SnNmH8ix",
+              "type": "if",
+              "data": {
+                "title": "IF invalid date format?",
+                "isValidator": true,
+                "nodeName": "IF invalid date format?",
+                "name": "IF invalid date format?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_hs092Lw8.data.status}}' == 'Failed'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_NjR83Gg7",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_IIMoCxSr",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 401,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:code_node_hs092Lw8.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_oMK5kpRo",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "code_node_WJsBb8lJ",
               "type": "code-node",
               "data": {
@@ -332,11 +445,11 @@
                 "timeout": 30000,
                 "title": "Generate Item Batch",
                 "isValidator": true,
-                "nodeName": "Generate Batch",
-                "name": "Generate Batch",
+                "nodeName": "Generate Item Batch",
+                "name": "Generate Item Batch",
                 "script": {
                   "type": "javascript",
-                  "code": "const batchConfig = {{node:code_node_92Bgde9z.data.batchConfig}};\nconst format = batchConfig.batch_format;\nconst effectiveDate = new Date();\nlet preview = format;\nconst is12HourFormat = format.includes(\"aa\");\n\n// Helper function to check if reset is needed\nconst needsReset = (lastResetDate, resetFrequency, currentDate) => {\n  if (!lastResetDate) return true;\n  \n  const lastReset = new Date(lastResetDate);\n  const currentYear = currentDate.getFullYear();\n  const currentMonth = currentDate.getMonth();\n  \n  if (resetFrequency === \"Reset Monthly\") {\n    // Check if last reset was in a different month/year\n    return lastReset.getFullYear() !== currentYear || \n           lastReset.getMonth() !== currentMonth;\n  } else if (resetFrequency === \"Reset Yearly\") {\n    // Check if last reset was in a different year\n    return lastReset.getFullYear() !== currentYear;\n  }\n  \n  return false; // Never Reset\n};\n\n// Get the current running number to use\nlet currentRunningNumber = batchConfig.running_number || 0;\nlet needsResetFlag = false;\n\n// Check reset frequency logic\nif (batchConfig.reset_frequency === \"Reset Monthly\" || \n    batchConfig.reset_frequency === \"Reset Yearly\") {\n  \n  const needsResetValue = needsReset(\n    batchConfig.last_reset_date,\n    batchConfig.reset_frequency,\n    effectiveDate\n  );\n  \n  if (needsResetValue) {\n    // Use initial_value instead of running_number\n    currentRunningNumber = batchConfig.initial_value || 0;\n    needsResetFlag = true;\n  }\n}\n\n// Format date tokens\nconst dateFormats = [\n  { pattern: \"aa\", value: effectiveDate.getHours() >= 12 ? \"PM\" : \"AM\" },\n  {\n    pattern: \"MMMM\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { month: \"long\" }),\n  },\n  {\n    pattern: \"dddd\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { weekday: \"long\" }),\n  },\n  { pattern: \"yyyy\", value: effectiveDate.getFullYear().toString() },\n  {\n    pattern: \"MMM\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { month: \"short\" }),\n  },\n  {\n    pattern: \"ddd\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { weekday: \"short\" }),\n  },\n  { pattern: \"yy\", value: effectiveDate.getFullYear().toString().slice(-2) },\n  {\n    pattern: \"MM\",\n    value: String(effectiveDate.getMonth() + 1).padStart(2, \"0\"),\n  },\n  { pattern: \"dd\", value: String(effectiveDate.getDate()).padStart(2, \"0\") },\n  {\n    pattern: \"hh\",\n    value: is12HourFormat\n      ? String(effectiveDate.getHours() % 12 || 12).padStart(2, \"0\")\n      : String(effectiveDate.getHours()).padStart(2, \"0\"),\n  },\n  { pattern: \"mm\", value: String(effectiveDate.getMinutes()).padStart(2, \"0\") },\n  { pattern: \"ss\", value: String(effectiveDate.getSeconds()).padStart(2, \"0\") },\n];\n\n// Replace date patterns\ndateFormats.forEach(({ pattern, value }) => {\n  const regex = new RegExp(pattern, \"g\");\n  preview = preview.replace(regex, value);\n});\n\n// Replace zero-padding patterns\nconst zeroPaddingMatches = format.match(/%\\d+d/g) || [];\nzeroPaddingMatches.forEach((padding) => {\n  const length = parseInt(padding.match(/\\d+/)[0]);\n  const paddedNumber = String(currentRunningNumber).padStart(length, \"0\");\n  preview = preview.replace(padding, paddedNumber);\n});\n\n// Calculate new running number (always increment by 1)\nlet newRunningNumber = currentRunningNumber + 1;\n\n// If reset occurred, also update last_reset_date\nlet updatedLastResetDate = batchConfig.last_reset_date;\nif (needsResetFlag && (batchConfig.reset_frequency === \"Reset Monthly\" || batchConfig.reset_frequency === \"Reset Yearly\")) {\n  updatedLastResetDate = effectiveDate.toISOString();\n}\n\nconst result = {\n  id: batchConfig.id,\n  preview: preview,\n  running_number: newRunningNumber,\n  previous_running_number: currentRunningNumber,\n  reset_occurred: needsResetFlag,\n  last_reset_date: updatedLastResetDate,\n  generated_at: effectiveDate.toISOString()\n}\n\nreturn { result };"
+                  "code": "const batchConfig = {{node:code_node_92Bgde9z.data.batchConfig}};\nconst format = batchConfig.batch_format;\nconst dateToUse = {{node:code_node_hs092Lw8.data.dateToUse}};\nconst effectiveDate = new Date(dateToUse);\nlet preview = format;\nconst is12HourFormat = format.includes(\"aa\");\n\n// Helper function to get month name\nconst getMonthName = (date, format = \"long\") => {\n  const months = {\n    long: [\"January\", \"February\", \"March\", \"April\", \"May\", \"June\", \"July\", \"August\", \"September\", \"October\", \"November\", \"December\"],\n    short: [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"]\n  };\n  const monthIndex = date.getMonth();\n  return format === \"long\" ? months.long[monthIndex] : months.short[monthIndex];\n};\n\n// Helper function to get day name\nconst getDayName = (date, format = \"long\") => {\n  const days = {\n    long: [\"Sunday\", \"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\", \"Saturday\"],\n    short: [\"Sun\", \"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\"]\n  };\n  const dayIndex = date.getDay();\n  return format === \"long\" ? days.long[dayIndex] : days.short[dayIndex];\n};\n\n// Helper function to check if reset is needed\nconst needsReset = (lastResetDate, resetFrequency, currentDate) => {\n  if (!lastResetDate) return true;\n  \n  const lastReset = new Date(lastResetDate);\n  const currentYear = currentDate.getFullYear();\n  const currentMonth = currentDate.getMonth();\n  \n  if (resetFrequency === \"Reset Monthly\") {\n    // Check if last reset was in a different month/year\n    return lastReset.getFullYear() !== currentYear || \n           lastReset.getMonth() !== currentMonth;\n  } else if (resetFrequency === \"Reset Yearly\") {\n    // Check if last reset was in a different year\n    return lastReset.getFullYear() !== currentYear;\n  } else if (resetFrequency === \"Reset Quarterly\") {\n    const currentQuarter = Math.floor(currentMonth / 3);\n    const lastResetQuarter = Math.floor(lastReset.getMonth() / 3);\n    return lastReset.getFullYear() !== currentYear || lastResetQuarter !== currentQuarter;\n  }\n  \n  return false; // Never Reset\n};\n\n// Get the current running number to use\nlet currentRunningNumber = batchConfig.running_number || 0;\nlet needsResetFlag = false;\n\n// Check reset frequency logic\nif (batchConfig.reset_frequency === \"Reset Monthly\" || \n    batchConfig.reset_frequency === \"Reset Yearly\" || \n    batchConfig.reset_frequency === \"Reset Quarterly\") {\n  \n  const needsResetValue = needsReset(\n    batchConfig.last_reset_date,\n    batchConfig.reset_frequency,\n    effectiveDate\n  );\n  \n  if (needsResetValue) {\n    // Use initial_value instead of running_number\n    currentRunningNumber = batchConfig.initial_value || 0;\n    needsResetFlag = true;\n  }\n}\n\n// Format date tokens (using custom functions instead of toLocaleDateString)\nconst dateFormats = [\n  { pattern: \"aa\", value: effectiveDate.getHours() >= 12 ? \"PM\" : \"AM\" },\n  { pattern: \"MMMM\", value: getMonthName(effectiveDate, \"long\") },\n  { pattern: \"dddd\", value: getDayName(effectiveDate, \"long\") },\n  { pattern: \"yyyy\", value: effectiveDate.getFullYear().toString() },\n  { pattern: \"MMM\", value: getMonthName(effectiveDate, \"short\") },\n  { pattern: \"QQ\", value: `0${Math.floor(effectiveDate.getMonth() / 3) + 1}` },\n  { pattern: \"ddd\", value: getDayName(effectiveDate, \"short\") },\n  { pattern: \"yy\", value: effectiveDate.getFullYear().toString().slice(-2) },\n  { pattern: \"MM\", value: String(effectiveDate.getMonth() + 1).padStart(2, \"0\") },\n  { pattern: \"dd\", value: String(effectiveDate.getDate()).padStart(2, \"0\") },\n  { \n    pattern: \"hh\", \n    value: is12HourFormat\n      ? String(effectiveDate.getHours() % 12 || 12).padStart(2, \"0\")\n      : String(effectiveDate.getHours()).padStart(2, \"0\")\n  },\n  { pattern: \"mm\", value: String(effectiveDate.getMinutes()).padStart(2, \"0\") },\n  { pattern: \"ss\", value: String(effectiveDate.getSeconds()).padStart(2, \"0\") },\n];\n\n// Replace date patterns\ndateFormats.forEach(({ pattern, value }) => {\n  const regex = new RegExp(pattern, \"g\");\n  preview = preview.replace(regex, value);\n});\n\n// Replace zero-padding patterns\nconst zeroPaddingMatches = format.match(/%\\d+d/g) || [];\nzeroPaddingMatches.forEach((padding) => {\n  const length = parseInt(padding.match(/\\d+/)[0]);\n  const paddedNumber = String(currentRunningNumber).padStart(length, \"0\");\n  preview = preview.replace(padding, paddedNumber);\n});\n\n// Calculate new running number (always increment by 1)\nlet newRunningNumber = currentRunningNumber + 1;\n\n// If reset occurred, also update last_reset_date\nlet updatedLastResetDate = batchConfig.last_reset_date;\nif (needsResetFlag && (batchConfig.reset_frequency === \"Reset Monthly\" || batchConfig.reset_frequency === \"Reset Yearly\" || batchConfig.reset_frequency === \"Reset Quarterly\")) {\n  updatedLastResetDate = effectiveDate.toISOString();\n}\n\nconst result = {\n  id: batchConfig.id,\n  preview: preview,\n  running_number: newRunningNumber,\n  previous_running_number: currentRunningNumber,\n  reset_occurred: needsResetFlag,\n  last_reset_date: updatedLastResetDate,\n  generated_at: effectiveDate.toISOString()\n}\n\nreturn { result };"
                 },
                 "response_json": [
                   {
@@ -478,6 +591,102 @@
               "blocks": []
             },
             {
+              "id": "code_node_9IzMl1j4",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Check Date Format",
+                "isValidator": true,
+                "nodeName": "Check Date Format",
+                "name": "Check Date Format",
+                "script": {
+                  "type": "javascript",
+                  "code": "const defaultConfig = {{node:get_node_Mx1xwOKd.data.data}};\nconst documentDate = {{workflowparams:document_date}};\nconst expiredDate = {{workflowparams:expired_date}};\nconst manufacturingDate = {{workflowparams:manufacturing_date}};\nlet status = \"Failed\";\nlet message = \"\";\nlet dateToUse = \"\";\nswitch (defaultConfig.date_format) {\n  case \"Document Date\":\n    if (documentDate) {\n      status = \"Passed\";\n      dateToUse = documentDate;\n    } else {\n      message = \"Document Date is required.\";\n    }\n    break;\n  case \"Expired Date\":\n    if (expiredDate) {\n      status = \"Passed\";\n      dateToUse = expiredDate;\n    } else {\n      message = \"Expired Date is required.\";\n    }\n    break;\n  case \"Manufacturing Date\":\n    if (manufacturingDate) {\n      status = \"Passed\";\n      dateToUse = manufacturingDate;\n    } else {\n      message = \"Manufacturing Date is required.\";\n    }\n    break;\n  case \"Document Created Date\":\n    status = \"Passed\";\n    dateToUse = new Date();\n    break;\n  default:\n    message = \"Invalid date format configuration.\";\n}\n\nreturn {\n  status,\n  message,\n  dateToUse,\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "umk6qspj",
+                    "name": "status",
+                    "title": "Status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "700m6lb6",
+                    "name": "message",
+                    "title": "Message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "ip9llpmv",
+                    "name": "dateToUse",
+                    "title": "Date to Use",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_HQQPETWE",
+              "type": "if",
+              "data": {
+                "title": "IF invalid date format?",
+                "isValidator": true,
+                "nodeName": "IF invalid date format?",
+                "name": "IF invalid date format?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_9IzMl1j4.data.status}}' == 'Failed'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_z3WIbBBG",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_node_XtTtg8QW",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 401,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:code_node_9IzMl1j4.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FC6HgVGR",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "code_node_1CHkL2vY",
               "type": "code-node",
               "data": {
@@ -486,11 +695,11 @@
                 "timeout": 30000,
                 "title": "Generate Category Batch",
                 "isValidator": true,
-                "nodeName": "Generate Batch",
-                "name": "Generate Batch",
+                "nodeName": "Generate Category Batch",
+                "name": "Generate Category Batch",
                 "script": {
                   "type": "javascript",
-                  "code": "const batchConfig = {{node:code_node_kZJz9AXm.data.batchConfig}};\nconst format = batchConfig.batch_format;\nconst effectiveDate = new Date();\nlet preview = format;\nconst is12HourFormat = format.includes(\"aa\");\n\n// Helper function to check if reset is needed\nconst needsReset = (lastResetDate, resetFrequency, currentDate) => {\n  if (!lastResetDate) return true;\n  \n  const lastReset = new Date(lastResetDate);\n  const currentYear = currentDate.getFullYear();\n  const currentMonth = currentDate.getMonth();\n  \n  if (resetFrequency === \"Reset Monthly\") {\n    // Check if last reset was in a different month/year\n    return lastReset.getFullYear() !== currentYear || \n           lastReset.getMonth() !== currentMonth;\n  } else if (resetFrequency === \"Reset Yearly\") {\n    // Check if last reset was in a different year\n    return lastReset.getFullYear() !== currentYear;\n  }\n  \n  return false; // Never Reset\n};\n\n// Get the current running number to use\nlet currentRunningNumber = batchConfig.running_number || 0;\nlet needsResetFlag = false;\n\n// Check reset frequency logic\nif (batchConfig.reset_frequency === \"Reset Monthly\" || \n    batchConfig.reset_frequency === \"Reset Yearly\") {\n  \n  const needsResetValue = needsReset(\n    batchConfig.last_reset_date,\n    batchConfig.reset_frequency,\n    effectiveDate\n  );\n  \n  if (needsResetValue) {\n    // Use initial_value instead of running_number\n    currentRunningNumber = batchConfig.initial_value || 0;\n    needsResetFlag = true;\n  }\n}\n\n// Format date tokens\nconst dateFormats = [\n  { pattern: \"aa\", value: effectiveDate.getHours() >= 12 ? \"PM\" : \"AM\" },\n  {\n    pattern: \"MMMM\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { month: \"long\" }),\n  },\n  {\n    pattern: \"dddd\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { weekday: \"long\" }),\n  },\n  { pattern: \"yyyy\", value: effectiveDate.getFullYear().toString() },\n  {\n    pattern: \"MMM\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { month: \"short\" }),\n  },\n  {\n    pattern: \"ddd\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { weekday: \"short\" }),\n  },\n  { pattern: \"yy\", value: effectiveDate.getFullYear().toString().slice(-2) },\n  {\n    pattern: \"MM\",\n    value: String(effectiveDate.getMonth() + 1).padStart(2, \"0\"),\n  },\n  { pattern: \"dd\", value: String(effectiveDate.getDate()).padStart(2, \"0\") },\n  {\n    pattern: \"hh\",\n    value: is12HourFormat\n      ? String(effectiveDate.getHours() % 12 || 12).padStart(2, \"0\")\n      : String(effectiveDate.getHours()).padStart(2, \"0\"),\n  },\n  { pattern: \"mm\", value: String(effectiveDate.getMinutes()).padStart(2, \"0\") },\n  { pattern: \"ss\", value: String(effectiveDate.getSeconds()).padStart(2, \"0\") },\n];\n\n// Replace date patterns\ndateFormats.forEach(({ pattern, value }) => {\n  const regex = new RegExp(pattern, \"g\");\n  preview = preview.replace(regex, value);\n});\n\n// Replace zero-padding patterns\nconst zeroPaddingMatches = format.match(/%\\d+d/g) || [];\nzeroPaddingMatches.forEach((padding) => {\n  const length = parseInt(padding.match(/\\d+/)[0]);\n  const paddedNumber = String(currentRunningNumber).padStart(length, \"0\");\n  preview = preview.replace(padding, paddedNumber);\n});\n\n// Calculate new running number (always increment by 1)\nlet newRunningNumber = currentRunningNumber + 1;\n\n// If reset occurred, also update last_reset_date\nlet updatedLastResetDate = batchConfig.last_reset_date;\nif (needsResetFlag && (batchConfig.reset_frequency === \"Reset Monthly\" || batchConfig.reset_frequency === \"Reset Yearly\")) {\n  updatedLastResetDate = effectiveDate.toISOString();\n}\n\nconst result = {\n  id: batchConfig.id,\n  preview: preview,\n  running_number: newRunningNumber,\n  previous_running_number: currentRunningNumber,\n  reset_occurred: needsResetFlag,\n  last_reset_date: updatedLastResetDate,\n  generated_at: effectiveDate.toISOString()\n}\n\nreturn { result };"
+                  "code": "const batchConfig = {{node:code_node_kZJz9AXm.data.batchConfig}};\nconst format = batchConfig.batch_format;\nconst dateToUse = {{node:code_node_9IzMl1j4.data.dateToUse}};\nconst effectiveDate = new Date(dateToUse);\nlet preview = format;\nconst is12HourFormat = format.includes(\"aa\");\n\n// Helper function to get month name\nconst getMonthName = (date, format = \"long\") => {\n  const months = {\n    long: [\"January\", \"February\", \"March\", \"April\", \"May\", \"June\", \"July\", \"August\", \"September\", \"October\", \"November\", \"December\"],\n    short: [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"]\n  };\n  const monthIndex = date.getMonth();\n  return format === \"long\" ? months.long[monthIndex] : months.short[monthIndex];\n};\n\n// Helper function to get day name\nconst getDayName = (date, format = \"long\") => {\n  const days = {\n    long: [\"Sunday\", \"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\", \"Saturday\"],\n    short: [\"Sun\", \"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\"]\n  };\n  const dayIndex = date.getDay();\n  return format === \"long\" ? days.long[dayIndex] : days.short[dayIndex];\n};\n\n// Helper function to check if reset is needed\nconst needsReset = (lastResetDate, resetFrequency, currentDate) => {\n  if (!lastResetDate) return true;\n  \n  const lastReset = new Date(lastResetDate);\n  const currentYear = currentDate.getFullYear();\n  const currentMonth = currentDate.getMonth();\n  \n  if (resetFrequency === \"Reset Monthly\") {\n    // Check if last reset was in a different month/year\n    return lastReset.getFullYear() !== currentYear || \n           lastReset.getMonth() !== currentMonth;\n  } else if (resetFrequency === \"Reset Yearly\") {\n    // Check if last reset was in a different year\n    return lastReset.getFullYear() !== currentYear;\n  } else if (resetFrequency === \"Reset Quarterly\") {\n    const currentQuarter = Math.floor(currentMonth / 3);\n    const lastResetQuarter = Math.floor(lastReset.getMonth() / 3);\n    return lastReset.getFullYear() !== currentYear || lastResetQuarter !== currentQuarter;\n  }\n  \n  return false; // Never Reset\n};\n\n// Get the current running number to use\nlet currentRunningNumber = batchConfig.running_number || 0;\nlet needsResetFlag = false;\n\n// Check reset frequency logic\nif (batchConfig.reset_frequency === \"Reset Monthly\" || \n    batchConfig.reset_frequency === \"Reset Yearly\" || \n    batchConfig.reset_frequency === \"Reset Quarterly\") {\n  \n  const needsResetValue = needsReset(\n    batchConfig.last_reset_date,\n    batchConfig.reset_frequency,\n    effectiveDate\n  );\n  \n  if (needsResetValue) {\n    // Use initial_value instead of running_number\n    currentRunningNumber = batchConfig.initial_value || 0;\n    needsResetFlag = true;\n  }\n}\n\n// Format date tokens (using custom functions instead of toLocaleDateString)\nconst dateFormats = [\n  { pattern: \"aa\", value: effectiveDate.getHours() >= 12 ? \"PM\" : \"AM\" },\n  { pattern: \"MMMM\", value: getMonthName(effectiveDate, \"long\") },\n  { pattern: \"dddd\", value: getDayName(effectiveDate, \"long\") },\n  { pattern: \"yyyy\", value: effectiveDate.getFullYear().toString() },\n  { pattern: \"MMM\", value: getMonthName(effectiveDate, \"short\") },\n  { pattern: \"QQ\", value: `0${Math.floor(effectiveDate.getMonth() / 3) + 1}` },\n  { pattern: \"ddd\", value: getDayName(effectiveDate, \"short\") },\n  { pattern: \"yy\", value: effectiveDate.getFullYear().toString().slice(-2) },\n  { pattern: \"MM\", value: String(effectiveDate.getMonth() + 1).padStart(2, \"0\") },\n  { pattern: \"dd\", value: String(effectiveDate.getDate()).padStart(2, \"0\") },\n  { \n    pattern: \"hh\", \n    value: is12HourFormat\n      ? String(effectiveDate.getHours() % 12 || 12).padStart(2, \"0\")\n      : String(effectiveDate.getHours()).padStart(2, \"0\")\n  },\n  { pattern: \"mm\", value: String(effectiveDate.getMinutes()).padStart(2, \"0\") },\n  { pattern: \"ss\", value: String(effectiveDate.getSeconds()).padStart(2, \"0\") },\n];\n\n// Replace date patterns\ndateFormats.forEach(({ pattern, value }) => {\n  const regex = new RegExp(pattern, \"g\");\n  preview = preview.replace(regex, value);\n});\n\n// Replace zero-padding patterns\nconst zeroPaddingMatches = format.match(/%\\d+d/g) || [];\nzeroPaddingMatches.forEach((padding) => {\n  const length = parseInt(padding.match(/\\d+/)[0]);\n  const paddedNumber = String(currentRunningNumber).padStart(length, \"0\");\n  preview = preview.replace(padding, paddedNumber);\n});\n\n// Calculate new running number (always increment by 1)\nlet newRunningNumber = currentRunningNumber + 1;\n\n// If reset occurred, also update last_reset_date\nlet updatedLastResetDate = batchConfig.last_reset_date;\nif (needsResetFlag && (batchConfig.reset_frequency === \"Reset Monthly\" || batchConfig.reset_frequency === \"Reset Yearly\" || batchConfig.reset_frequency === \"Reset Quarterly\")) {\n  updatedLastResetDate = effectiveDate.toISOString();\n}\n\nconst result = {\n  id: batchConfig.id,\n  preview: preview,\n  running_number: newRunningNumber,\n  previous_running_number: currentRunningNumber,\n  reset_occurred: needsResetFlag,\n  last_reset_date: updatedLastResetDate,\n  generated_at: effectiveDate.toISOString()\n}\n\nreturn { result };"
                 },
                 "response_json": [
                   {
@@ -542,6 +751,102 @@
           },
           "blocks": [
             {
+              "id": "code_node_93lsgfQY",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Check Date Format",
+                "isValidator": true,
+                "nodeName": "Check Date Format",
+                "name": "Check Date Format",
+                "script": {
+                  "type": "javascript",
+                  "code": "const defaultConfig = {{node:get_node_Mx1xwOKd.data.data}};\nconst documentDate = {{workflowparams:document_date}};\nconst expiredDate = {{workflowparams:expired_date}};\nconst manufacturingDate = {{workflowparams:manufacturing_date}};\nlet status = \"Failed\";\nlet message = \"\";\nlet dateToUse = \"\";\nswitch (defaultConfig.date_format) {\n  case \"Document Date\":\n    if (documentDate) {\n      status = \"Passed\";\n      dateToUse = documentDate;\n    } else {\n      message = \"Document Date is required.\";\n    }\n    break;\n  case \"Expired Date\":\n    if (expiredDate) {\n      status = \"Passed\";\n      dateToUse = expiredDate;\n    } else {\n      message = \"Expired Date is required.\";\n    }\n    break;\n  case \"Manufacturing Date\":\n    if (manufacturingDate) {\n      status = \"Passed\";\n      dateToUse = manufacturingDate;\n    } else {\n      message = \"Manufacturing Date is required.\";\n    }\n    break;\n  case \"Document Created Date\":\n    status = \"Passed\";\n    dateToUse = new Date();\n    break;\n  default:\n    message = \"Invalid date format configuration.\";\n}\n\nreturn {\n  status,\n  message,\n  dateToUse,\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "umk6qspj",
+                    "name": "status",
+                    "title": "Status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "700m6lb6",
+                    "name": "message",
+                    "title": "Message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "ip9llpmv",
+                    "name": "dateToUse",
+                    "title": "Date to Use",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_0mvNwJ6I",
+              "type": "if",
+              "data": {
+                "title": "IF invalid date format?",
+                "isValidator": true,
+                "nodeName": "IF invalid date format?",
+                "name": "IF invalid date format?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_93lsgfQY.data.status}}' == 'Failed'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_tRSkUdFt",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_node_qmlSsQZq",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 401,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:code_node_93lsgfQY.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_H6DGkfSR",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "code_node_rdnJWmbU",
               "type": "code-node",
               "data": {
@@ -554,7 +859,7 @@
                 "name": "Generate Batch",
                 "script": {
                   "type": "javascript",
-                  "code": "const batchConfig = {{node:code_node_kZJz9AXm.data.batchConfig}};\nconst format = batchConfig.batch_format;\nconst effectiveDate = new Date();\nlet preview = format;\nconst is12HourFormat = format.includes(\"aa\");\n\n// Helper function to check if reset is needed\nconst needsReset = (lastResetDate, resetFrequency, currentDate) => {\n  if (!lastResetDate) return true;\n  \n  const lastReset = new Date(lastResetDate);\n  const currentYear = currentDate.getFullYear();\n  const currentMonth = currentDate.getMonth();\n  \n  if (resetFrequency === \"Reset Monthly\") {\n    // Check if last reset was in a different month/year\n    return lastReset.getFullYear() !== currentYear || \n           lastReset.getMonth() !== currentMonth;\n  } else if (resetFrequency === \"Reset Yearly\") {\n    // Check if last reset was in a different year\n    return lastReset.getFullYear() !== currentYear;\n  }\n  \n  return false; // Never Reset\n};\n\n// Get the current running number to use\nlet currentRunningNumber = batchConfig.running_number || 0;\nlet needsResetFlag = false;\n\n// Check reset frequency logic\nif (batchConfig.reset_frequency === \"Reset Monthly\" || \n    batchConfig.reset_frequency === \"Reset Yearly\") {\n  \n  const needsResetValue = needsReset(\n    batchConfig.last_reset_date,\n    batchConfig.reset_frequency,\n    effectiveDate\n  );\n  \n  if (needsResetValue) {\n    // Use initial_value instead of running_number\n    currentRunningNumber = batchConfig.initial_value || 0;\n    needsResetFlag = true;\n  }\n}\n\n// Format date tokens\nconst dateFormats = [\n  { pattern: \"aa\", value: effectiveDate.getHours() >= 12 ? \"PM\" : \"AM\" },\n  {\n    pattern: \"MMMM\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { month: \"long\" }),\n  },\n  {\n    pattern: \"dddd\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { weekday: \"long\" }),\n  },\n  { pattern: \"yyyy\", value: effectiveDate.getFullYear().toString() },\n  {\n    pattern: \"MMM\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { month: \"short\" }),\n  },\n  {\n    pattern: \"ddd\",\n    value: effectiveDate.toLocaleDateString(\"en-US\", { weekday: \"short\" }),\n  },\n  { pattern: \"yy\", value: effectiveDate.getFullYear().toString().slice(-2) },\n  {\n    pattern: \"MM\",\n    value: String(effectiveDate.getMonth() + 1).padStart(2, \"0\"),\n  },\n  { pattern: \"dd\", value: String(effectiveDate.getDate()).padStart(2, \"0\") },\n  {\n    pattern: \"hh\",\n    value: is12HourFormat\n      ? String(effectiveDate.getHours() % 12 || 12).padStart(2, \"0\")\n      : String(effectiveDate.getHours()).padStart(2, \"0\"),\n  },\n  { pattern: \"mm\", value: String(effectiveDate.getMinutes()).padStart(2, \"0\") },\n  { pattern: \"ss\", value: String(effectiveDate.getSeconds()).padStart(2, \"0\") },\n];\n\n// Replace date patterns\ndateFormats.forEach(({ pattern, value }) => {\n  const regex = new RegExp(pattern, \"g\");\n  preview = preview.replace(regex, value);\n});\n\n// Replace zero-padding patterns\nconst zeroPaddingMatches = format.match(/%\\d+d/g) || [];\nzeroPaddingMatches.forEach((padding) => {\n  const length = parseInt(padding.match(/\\d+/)[0]);\n  const paddedNumber = String(currentRunningNumber).padStart(length, \"0\");\n  preview = preview.replace(padding, paddedNumber);\n});\n\n// Calculate new running number (always increment by 1)\nlet newRunningNumber = currentRunningNumber + 1;\n\n// If reset occurred, also update last_reset_date\nlet updatedLastResetDate = batchConfig.last_reset_date;\nif (needsResetFlag && (batchConfig.reset_frequency === \"Reset Monthly\" || batchConfig.reset_frequency === \"Reset Yearly\")) {\n  updatedLastResetDate = effectiveDate.toISOString();\n}\n\nconst result = {\n  id: batchConfig.id,\n  preview: preview,\n  running_number: newRunningNumber,\n  previous_running_number: currentRunningNumber,\n  reset_occurred: needsResetFlag,\n  last_reset_date: updatedLastResetDate,\n  generated_at: effectiveDate.toISOString()\n}\n\nreturn { result };"
+                  "code": "const batchConfig = {{node:get_node_Mx1xwOKd.data.data}};\nconst format = batchConfig.batch_format;\nconst dateToUse = {{node:code_node_93lsgfQY.data.dateToUse}};\nconst effectiveDate = new Date(dateToUse);\nlet preview = format;\nconst is12HourFormat = format.includes(\"aa\");\n\n// Helper function to get month name\nconst getMonthName = (date, format = \"long\") => {\n  const months = {\n    long: [\"January\", \"February\", \"March\", \"April\", \"May\", \"June\", \"July\", \"August\", \"September\", \"October\", \"November\", \"December\"],\n    short: [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"]\n  };\n  const monthIndex = date.getMonth();\n  return format === \"long\" ? months.long[monthIndex] : months.short[monthIndex];\n};\n\n// Helper function to get day name\nconst getDayName = (date, format = \"long\") => {\n  const days = {\n    long: [\"Sunday\", \"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\", \"Saturday\"],\n    short: [\"Sun\", \"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\"]\n  };\n  const dayIndex = date.getDay();\n  return format === \"long\" ? days.long[dayIndex] : days.short[dayIndex];\n};\n\n// Helper function to check if reset is needed\nconst needsReset = (lastResetDate, resetFrequency, currentDate) => {\n  if (!lastResetDate) return true;\n  \n  const lastReset = new Date(lastResetDate);\n  const currentYear = currentDate.getFullYear();\n  const currentMonth = currentDate.getMonth();\n  \n  if (resetFrequency === \"Reset Monthly\") {\n    // Check if last reset was in a different month/year\n    return lastReset.getFullYear() !== currentYear || \n           lastReset.getMonth() !== currentMonth;\n  } else if (resetFrequency === \"Reset Yearly\") {\n    // Check if last reset was in a different year\n    return lastReset.getFullYear() !== currentYear;\n  } else if (resetFrequency === \"Reset Quarterly\") {\n    const currentQuarter = Math.floor(currentMonth / 3);\n    const lastResetQuarter = Math.floor(lastReset.getMonth() / 3);\n    return lastReset.getFullYear() !== currentYear || lastResetQuarter !== currentQuarter;\n  }\n  \n  return false; // Never Reset\n};\n\n// Get the current running number to use\nlet currentRunningNumber = batchConfig.running_number || 0;\nlet needsResetFlag = false;\n\n// Check reset frequency logic\nif (batchConfig.reset_frequency === \"Reset Monthly\" || \n    batchConfig.reset_frequency === \"Reset Yearly\" || \n    batchConfig.reset_frequency === \"Reset Quarterly\") {\n  \n  const needsResetValue = needsReset(\n    batchConfig.last_reset_date,\n    batchConfig.reset_frequency,\n    effectiveDate\n  );\n  \n  if (needsResetValue) {\n    // Use initial_value instead of running_number\n    currentRunningNumber = batchConfig.initial_value || 0;\n    needsResetFlag = true;\n  }\n}\n\n// Format date tokens (using custom functions instead of toLocaleDateString)\nconst dateFormats = [\n  { pattern: \"aa\", value: effectiveDate.getHours() >= 12 ? \"PM\" : \"AM\" },\n  { pattern: \"MMMM\", value: getMonthName(effectiveDate, \"long\") },\n  { pattern: \"dddd\", value: getDayName(effectiveDate, \"long\") },\n  { pattern: \"yyyy\", value: effectiveDate.getFullYear().toString() },\n  { pattern: \"MMM\", value: getMonthName(effectiveDate, \"short\") },\n  { pattern: \"QQ\", value: `0${Math.floor(effectiveDate.getMonth() / 3) + 1}` },\n  { pattern: \"ddd\", value: getDayName(effectiveDate, \"short\") },\n  { pattern: \"yy\", value: effectiveDate.getFullYear().toString().slice(-2) },\n  { pattern: \"MM\", value: String(effectiveDate.getMonth() + 1).padStart(2, \"0\") },\n  { pattern: \"dd\", value: String(effectiveDate.getDate()).padStart(2, \"0\") },\n  { \n    pattern: \"hh\", \n    value: is12HourFormat\n      ? String(effectiveDate.getHours() % 12 || 12).padStart(2, \"0\")\n      : String(effectiveDate.getHours()).padStart(2, \"0\")\n  },\n  { pattern: \"mm\", value: String(effectiveDate.getMinutes()).padStart(2, \"0\") },\n  { pattern: \"ss\", value: String(effectiveDate.getSeconds()).padStart(2, \"0\") },\n];\n\n// Replace date patterns\ndateFormats.forEach(({ pattern, value }) => {\n  const regex = new RegExp(pattern, \"g\");\n  preview = preview.replace(regex, value);\n});\n\n// Replace zero-padding patterns\nconst zeroPaddingMatches = format.match(/%\\d+d/g) || [];\nzeroPaddingMatches.forEach((padding) => {\n  const length = parseInt(padding.match(/\\d+/)[0]);\n  const paddedNumber = String(currentRunningNumber).padStart(length, \"0\");\n  preview = preview.replace(padding, paddedNumber);\n});\n\n// Calculate new running number (always increment by 1)\nlet newRunningNumber = currentRunningNumber + 1;\n\n// If reset occurred, also update last_reset_date\nlet updatedLastResetDate = batchConfig.last_reset_date;\nif (needsResetFlag && (batchConfig.reset_frequency === \"Reset Monthly\" || batchConfig.reset_frequency === \"Reset Yearly\" || batchConfig.reset_frequency === \"Reset Quarterly\")) {\n  updatedLastResetDate = effectiveDate.toISOString();\n}\n\nconst result = {\n  id: batchConfig.id,\n  preview: preview,\n  running_number: newRunningNumber,\n  previous_running_number: currentRunningNumber,\n  reset_occurred: needsResetFlag,\n  last_reset_date: updatedLastResetDate,\n  generated_at: effectiveDate.toISOString()\n}\n\nreturn { result };"
                 },
                 "response_json": [
                   {
@@ -666,6 +971,146 @@
       "blocks": []
     },
     {
+      "id": "get_node_HcPI9NET",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Batch:Table:1902719754154655746",
+          "rules": {
+            "collectionId": "1902719754154655746",
+            "list": [
+              {
+                "id": 1780646921239,
+                "parentId": 1780646921240,
+                "isTop": true,
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1780646921241,
+                    "parentId": 1780646921239,
+                    "isTop": false,
+                    "prop": "batch_number",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{node:code_node_KEYxy1GI.data.latestBatchConfig.preview}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Batch Number",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1780646921241,
+                    "parentId": 1780646921239,
+                    "isTop": false,
+                    "prop": "organization_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{global:firstLvDeptId}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Organization",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Check duplicate generated batch number",
+        "isValidator": true,
+        "nodeName": "Check duplicate generated batch number",
+        "name": "Check duplicate generated batch number"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_sNPiYNXO",
+      "type": "if",
+      "data": {
+        "title": "IF duplicate?",
+        "isValidator": true,
+        "nodeName": "IF duplicate?",
+        "name": "IF duplicate?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "{{node:get_node_HcPI9NET.data.count}} == 1"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_oJhRMWU2",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "code_node_ZpQi2VfY",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Duplicate Msg",
+                "isValidator": true,
+                "nodeName": "Duplicate Msg",
+                "name": "Duplicate Msg",
+                "script": {
+                  "type": "javascript",
+                  "code": "return {\n  message: 'Duplicate Batch Format found.'\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "asi1unl8",
+                    "name": "message",
+                    "title": "Message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "end_HkIi1leq",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 401,
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_ZpQi2VfY.data.message}}"
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_MkNzWCWK",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "update_node_ei9zHKCf",
       "type": "update-node",
       "data": {
@@ -767,6 +1212,33 @@
       "description": "",
       "bsonType": "string",
       "isExpand": false
+    },
+    {
+      "key": "sk7sje8b",
+      "name": "document_date",
+      "title": "Document Date",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "hsciio8l",
+      "name": "expired_date",
+      "title": "Expired Date",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "rwtxqbgi",
+      "name": "manufacturing_date",
+      "title": "Manufacturing Date",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
     }
   ],
   "response_json": [
