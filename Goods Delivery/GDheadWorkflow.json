@@ -8482,7 +8482,7 @@
                         "name": "Picking Create or Update",
                         "script": {
                           "type": "javascript",
-                          "code": "const preparedData = {{node:code_node_o35eZx2c.data}}\nconst isUpdate = preparedData.isUpdate;\nconst transferOrderData = preparedData.transferOrderData;\n\n// For UPDATE operation - prepare update fields\nconst updateFields = {\n  assigned_to: transferOrderData.assigned_to,\n  table_picking_items: transferOrderData.table_picking_items,\n  updated_by: transferOrderData.updated_by,\n  updated_at: transferOrderData.updated_at,\n  ref_doc: transferOrderData.ref_doc,\n  so_no: transferOrderData.so_no,\n  customer_id: transferOrderData.customer_id,\n};\n\n// For CREATE operation - use full transferOrderData\n\n// For GD status update\nconst gdUpdateFields = {\n  picking_status: preparedData.pickingStatus,\n};\n\nreturn {\n  isUpdate,\n  existingTOId: preparedData.existingTOId,\n  existingTONo: preparedData.existingTONo,\n  createData: transferOrderData,\n  updateData: updateFields,\n  gdId: preparedData.gdId,\n  gdUpdateData: gdUpdateFields,\n  deliveryNo: preparedData.deliveryNo,\n  removedUsers: preparedData.removedUsers,\n  addedUsers: preparedData.addedUsers,\n};\n"
+                          "code": "const preparedData = {{node:code_node_o35eZx2c.data}}\nconst isUpdate = preparedData.isUpdate;\nconst transferOrderData = preparedData.transferOrderData;\n\n// For UPDATE operation - prepare update fields\nconst updateFields = {\n  assigned_to: transferOrderData.assigned_to,\n  table_picking_items: transferOrderData.table_picking_items,\n  updated_by: transferOrderData.updated_by,\n  updated_at: transferOrderData.updated_at,\n  ref_doc: transferOrderData.ref_doc,\n  so_no: transferOrderData.so_no,\n  customer_id: transferOrderData.customer_id,\n};\n\n// Sync delivery method + details onto the existing Picking too. Without this,\n// GD edits to delivery_method/area_id/delivery_cost/etc. wouldn't propagate\n// to a Picking that was already created in a prior save.\nconst DELIVERY_FIELD_KEYS = [\n  \"delivery_method\", \"delivery_method_text\", \"area_id\",\n  \"driver_name\", \"ic_no\", \"driver_contact_no\", \"sp_vehicle_no\", \"pickup_date\", \"validity_of_collection\",\n  \"courier_company\", \"shipping_date\", \"tracking_number\", \"est_arrival_date\", \"freight_charges\",\n  \"ct_driver_name\", \"ct_driver_contact_no\", \"ct_ic_no\", \"vehicle_no\", \"est_delivery_date\", \"delivery_cost\",\n  \"shipping_company\", \"ss_shipping_date\", \"ss_freight_charges\", \"shipping_method\", \"ss_est_arrival_date\", \"ss_tracking_number\",\n  \"tpt_vehicle_number\", \"tpt_transport_name\", \"tpt_ic_no\", \"tpt_driver_contact_no\", \"tpt_driver_name\",\n];\nfor (const k of DELIVERY_FIELD_KEYS) {\n  updateFields[k] = transferOrderData[k];\n}\n\n// For CREATE operation - use full transferOrderData\n\n// For GD status update\nconst gdUpdateFields = {\n  picking_status: preparedData.pickingStatus,\n};\n\nreturn {\n  isUpdate,\n  existingTOId: preparedData.existingTOId,\n  existingTONo: preparedData.existingTONo,\n  createData: transferOrderData,\n  updateData: updateFields,\n  gdId: preparedData.gdId,\n  gdUpdateData: gdUpdateFields,\n  deliveryNo: preparedData.deliveryNo,\n  removedUsers: preparedData.removedUsers,\n  addedUsers: preparedData.addedUsers,\n};\n"
                         },
                         "response_json": [
                           {
@@ -8690,6 +8690,254 @@
                                       "value": "{{node:code_node_6L2Ozea8.data.updateData.ref_doc}}",
                                       "valueLabel": "",
                                       "propLabel": "Reference Document"
+                                    },
+                                    {
+                                      "prop": "delivery_method",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.delivery_method}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Delivery Method"
+                                    },
+                                    {
+                                      "prop": "delivery_method_text",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.delivery_method_text}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Delivery Method Text"
+                                    },
+                                    {
+                                      "prop": "area_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.area_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Area"
+                                    },
+                                    {
+                                      "prop": "driver_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.driver_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Name"
+                                    },
+                                    {
+                                      "prop": "ic_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.ic_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "IC No"
+                                    },
+                                    {
+                                      "prop": "driver_contact_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.driver_contact_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Contact No"
+                                    },
+                                    {
+                                      "prop": "sp_vehicle_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.sp_vehicle_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Vehicle No"
+                                    },
+                                    {
+                                      "prop": "pickup_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.pickup_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Pickup Date"
+                                    },
+                                    {
+                                      "prop": "validity_of_collection",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.validity_of_collection}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Validity of Collection"
+                                    },
+                                    {
+                                      "prop": "courier_company",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.courier_company}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Courier Company"
+                                    },
+                                    {
+                                      "prop": "shipping_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.shipping_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Date"
+                                    },
+                                    {
+                                      "prop": "tracking_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.tracking_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Tracking Number"
+                                    },
+                                    {
+                                      "prop": "est_arrival_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.est_arrival_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Arrival Date"
+                                    },
+                                    {
+                                      "prop": "freight_charges",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.freight_charges}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Freight Charges"
+                                    },
+                                    {
+                                      "prop": "ct_driver_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.ct_driver_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "CT Driver Name"
+                                    },
+                                    {
+                                      "prop": "ct_driver_contact_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.ct_driver_contact_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "CT Driver Contact No"
+                                    },
+                                    {
+                                      "prop": "ct_ic_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.ct_ic_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "CT IC No"
+                                    },
+                                    {
+                                      "prop": "vehicle_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.vehicle_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Vehicle No (CT)"
+                                    },
+                                    {
+                                      "prop": "est_delivery_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.est_delivery_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Delivery Date"
+                                    },
+                                    {
+                                      "prop": "delivery_cost",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.delivery_cost}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Delivery Cost"
+                                    },
+                                    {
+                                      "prop": "shipping_company",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.shipping_company}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Company"
+                                    },
+                                    {
+                                      "prop": "ss_shipping_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.ss_shipping_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "SS Shipping Date"
+                                    },
+                                    {
+                                      "prop": "ss_freight_charges",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.ss_freight_charges}}",
+                                      "valueLabel": "",
+                                      "propLabel": "SS Freight Charges"
+                                    },
+                                    {
+                                      "prop": "shipping_method",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.shipping_method}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Method"
+                                    },
+                                    {
+                                      "prop": "ss_est_arrival_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.ss_est_arrival_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "SS Est Arrival Date"
+                                    },
+                                    {
+                                      "prop": "ss_tracking_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.ss_tracking_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "SS Tracking Number"
+                                    },
+                                    {
+                                      "prop": "tpt_vehicle_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.tpt_vehicle_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "TPT Vehicle Number"
+                                    },
+                                    {
+                                      "prop": "tpt_transport_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.tpt_transport_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "TPT Transport Name"
+                                    },
+                                    {
+                                      "prop": "tpt_ic_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.tpt_ic_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "TPT IC No"
+                                    },
+                                    {
+                                      "prop": "tpt_driver_contact_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.tpt_driver_contact_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "TPT Driver Contact No"
+                                    },
+                                    {
+                                      "prop": "tpt_driver_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.tpt_driver_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "TPT Driver Name"
                                     }
                                   ]
                                 }
