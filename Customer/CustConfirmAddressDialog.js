@@ -1,6 +1,6 @@
 (async () => {
   const data = this.getValues();
-
+  await this.closeDialog("dialog_add_new_address");
   const newAddress = {
     switch_save_as_default: data.dialog_add_new_address.switch_save_as_default,
     address_purpose_id: data.dialog_add_new_address.address_purpose_id,
@@ -60,7 +60,6 @@
     const inMemoryDup = contactList.some(
       (c, i) =>
         i !== excludeContactIdx &&
-        c.calling_code === addressCallingCode &&
         stripZero(c.mobile_number) === mobileNoLeading,
     );
 
@@ -80,10 +79,7 @@
       .get();
 
     const externalRows = (dbResult.data || []).filter(
-      (r) =>
-        r.calling_code === addressCallingCode &&
-        r.is_deleted === 0 &&
-        r.Customer_id !== currentCustomerId,
+      (r) => r.is_deleted === 0 && r.Customer_id !== currentCustomerId,
     );
 
     if (externalRows.length > 0) {
@@ -94,12 +90,12 @@
     }
   }
 
-  Promise.all([
+  await Promise.all([
     db.collection("address_purpose").where({ purpose_name: "Billing" }).get(),
     db.collection("address_purpose").where({ purpose_name: "Shipping" }).get(),
     db.collection("country").where({ id: newAddress.address_country_id }).get(),
     db.collection("state").where({ id: newAddress.adddress_state }).get(),
-  ]).then(([resBilling, resShipping, resCountry, resState]) => {
+  ]).then(async ([resBilling, resShipping, resCountry, resState]) => {
     const billingAddrId = resBilling.data[0].id;
     const shippingAddrId = resShipping.data[0].id;
     const countryName = resCountry.data[0]?.country_name
@@ -223,9 +219,11 @@
       }
     }
 
-    this.setData({
+    await this.setData({
       address_list: data.address_list,
     });
+
+    this.refreshDynamicValue("address_list.address");
 
     if (addressMobile) {
       const currentContacts = this.getValue("contact_list") || [];
@@ -256,9 +254,7 @@
       } else {
         const newNoLead = stripZero(addressMobile);
         const alreadyExists = currentContacts.some(
-          (c) =>
-            c.calling_code === addressCallingCode &&
-            stripZero(c.mobile_number) === newNoLead,
+          (c) => stripZero(c.mobile_number) === newNoLead,
         );
         if (!alreadyExists) {
           const emptyContactIdx = currentContacts.findIndex(

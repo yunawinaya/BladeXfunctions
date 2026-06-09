@@ -38,8 +38,7 @@ const validateContactList = async (contactList, currentCustomerId) => {
   for (let i = 0; i < list.length; i++) {
     const c = list[i];
     if (!c.mobile_number) continue;
-    const key =
-      (c.calling_code || "") + "|" + stripLeadingZero(c.mobile_number);
+    const key = stripLeadingZero(c.mobile_number);
     if (seen.has(key)) {
       return {
         ok: false,
@@ -75,9 +74,7 @@ const validateContactList = async (contactList, currentCustomerId) => {
     const noLead = stripLeadingZero(c.mobile_number);
     const collision = activeRows.find(
       (r) =>
-        !inMemoryIds.has(r.id) &&
-        r.calling_code === c.calling_code &&
-        stripLeadingZero(r.mobile_number) === noLead,
+        !inMemoryIds.has(r.id) && stripLeadingZero(r.mobile_number) === noLead,
     );
     if (collision) {
       const sameCustomer = collision.Customer_id === currentCustomerId;

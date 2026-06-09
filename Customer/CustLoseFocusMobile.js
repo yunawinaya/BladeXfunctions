@@ -2,7 +2,6 @@
   try {
     const rowIndex = Number(arguments[0].rowIndex);
     const mobileNumber = arguments[0].value;
-    const countryCode = arguments[0].row && arguments[0].row.calling_code;
     const rowId = arguments[0].row && arguments[0].row.id;
 
     if (!mobileNumber) return;
@@ -21,9 +20,7 @@
     const contactList = this.getValue("contact_list") || [];
     const inMemoryDup = contactList.some(
       (c, i) =>
-        i !== rowIndex &&
-        c.calling_code === countryCode &&
-        stripLeadingZero(c.mobile_number) === mobileNoLeading,
+        i !== rowIndex && stripLeadingZero(c.mobile_number) === mobileNoLeading,
     );
 
     if (inMemoryDup) {
@@ -42,8 +39,7 @@
       .get();
 
     const collisions = (dbResult.data || []).filter(
-      (r) =>
-        r.calling_code === countryCode && r.is_deleted === 0 && r.id !== rowId,
+      (r) => r.is_deleted === 0 && r.id !== rowId,
     );
 
     if (collisions.length > 0) {
