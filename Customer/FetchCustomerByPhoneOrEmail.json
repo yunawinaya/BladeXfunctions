@@ -278,7 +278,7 @@
         "name": "Build Response",
         "script": {
           "type": "javascript",
-          "code": "const pairs = {{node:code_node_Eg4cGg3h.data.pairs}};\nconst customers = {{node:get_node_h9IHH6H7.data.data}} || [];\n\n// search-node returns the rows array directly at .data.data\nconst list = Array.isArray(customers) ? customers : [];\nconst custById = {};\nfor (const c of list) {\n  if (c && c.id != null) custById[String(c.id)] = c;\n}\n\nconst result = (pairs || []).map((p) => {\n  const c = p.customer_id ? custById[String(p.customer_id)] : null;\n  return {\n    mobile_number: p.mobile_number || \"\",\n    calling_code: p.calling_code || \"\",\n    customer_code: c && c.customer_id ? c.customer_id : \"\",\n    customer_name: c && c.customer_com_name ? c.customer_com_name : \"\"\n  };\n});\n\nreturn { result };"
+          "code": "const pairs = {{node:code_node_Eg4cGg3h.data.pairs}};\nconst customers = {{node:get_node_h9IHH6H7.data.data}} || [];\n\n// search-node returns the rows array directly at .data.data\nconst list = Array.isArray(customers) ? customers : [];\nconst custById = {};\nfor (const c of list) {\n  if (c && c.id != null) custById[String(c.id)] = c;\n}\n\n// Build a \"working\" full international number: calling_code + national, where\n// the national part has any leading 0 stripped.\n//\n// If the stored mobile already begins with a recognizable calling code, we\n// trust that embedded prefix and IGNORE the stored calling_code field (which\n// may be inconsistent). e.g. calling_code \"86\" but mobile \"60123456\" -> the\n// number already starts with \"60\", so we keep \"60123456\" and ignore the 86.\n// All ASEAN / SE Asia calling codes.\nconst KNOWN_CC = [\"60\", \"62\", \"63\", \"65\", \"66\", \"84\", \"95\", \"855\", \"856\", \"670\", \"673\"];\nconst toWorkingNumber = (m, cc) => {\n  m = (m == null ? \"\" : String(m)).trim();\n  if (!m) return \"\";\n  cc = (cc == null ? \"\" : String(cc)).trim();\n  if (m.charAt(0) === \"+\") m = m.slice(1);\n  // Already starts with the stored calling code -> leave as-is.\n  if (cc && m.indexOf(cc) === 0 && m.length > cc.length) return m;\n  // Already starts with any known calling code -> trust the embedded code.\n  for (const k of KNOWN_CC) {\n    if (m.indexOf(k) === 0 && m.length > k.length) return m;\n  }\n  if (!cc) return m;\n  const nat = m.charAt(0) === \"0\" ? m.slice(1) : m;\n  return cc + nat;\n};\n\nconst result = (pairs || []).map((p) => {\n  const c = p.customer_id ? custById[String(p.customer_id)] : null;\n  return {\n    mobile_number: toWorkingNumber(p.mobile_number, p.calling_code),\n    customer_code: c && c.customer_id ? c.customer_id : \"\",\n    customer_name: c && c.customer_com_name ? c.customer_com_name : \"\"\n  };\n});\n\nreturn { result };"
         },
         "response_json": [
           {
@@ -386,14 +386,6 @@
               "key": "fldmob01",
               "name": "mobile_number",
               "title": "Mobile Number",
-              "description": "",
-              "bsonType": "string",
-              "isExpand": false
-            },
-            {
-              "key": "fldcc001",
-              "name": "calling_code",
-              "title": "Calling Code",
               "description": "",
               "bsonType": "string",
               "isExpand": false
