@@ -3,10 +3,7 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": {
-        "isValidator": true,
-        "title": "Start Node"
-      },
+      "data": { "isValidator": true, "title": "Start Node" },
       "blocks": []
     },
     {
@@ -51,12 +48,8 @@
       "type": "condition-or-node",
       "data": {
         "title": "Condition",
-        "filter": {
-          "list": []
-        },
-        "expression": {
-          "code": ""
-        },
+        "filter": { "list": [] },
+        "expression": { "code": "" },
         "displayContent": "sdk.form.setCondition"
       },
       "blocks": [
@@ -83,9 +76,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Phone Number",
@@ -135,12 +126,8 @@
           "data": {
             "title": "Email",
             "isDefault": true,
-            "filter": {
-              "list": []
-            },
-            "expression": {
-              "code": ""
-            },
+            "filter": { "list": [] },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.otherCondition"
           },
           "blocks": [
@@ -291,10 +278,7 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": {
-        "isValidator": true,
-        "title": "End Node"
-      },
+      "data": { "isValidator": true, "title": "End Node" },
       "blocks": []
     }
   ],
