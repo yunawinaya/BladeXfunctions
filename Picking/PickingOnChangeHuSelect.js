@@ -48,8 +48,12 @@
         row.handling_unit_id === handlingUnitId
       ) {
         let pickedQty = 0;
+        // Order-UOM (item_uom) quantity being picked — packing/weight factors
+        // are defined per item_uom, so they use this, not the picking_uom value.
+        let pickedQtyOrder = 0;
         if (isSelected) {
           const pending = parseFloat(row.pending_process_qty) || 0;
+          pickedQtyOrder = pending;
           const orderUom = String(row.item_uom);
           const pickingUom = row.picking_uom ? String(row.picking_uom) : orderUom;
           const cache =
@@ -66,14 +70,14 @@
         }
         updates[`table_picking_items.${idx}.picked_qty`] = pickedQty;
 
-        // Live packing qty + net weight from the picked qty (the workflow
-        // recomputes these authoritatively on save).
+        // Live packing qty + net weight from the order-UOM picked qty (the
+        // workflow recomputes these authoritatively on save).
         const packingConversion = parseFloat(row.packing_conversion) || 1;
         const weightConversion = parseFloat(row.weight_conversion) || 0;
         updates[`table_picking_items.${idx}.packing_qty`] =
-          Math.round((pickedQty / packingConversion) * 1000) / 1000;
+          Math.round((pickedQtyOrder / packingConversion) * 1000) / 1000;
         updates[`table_picking_items.${idx}.net_weight`] =
-          Math.round((pickedQty * weightConversion) * 1000) / 1000;
+          Math.round((pickedQtyOrder * weightConversion) * 1000) / 1000;
       }
     });
 
