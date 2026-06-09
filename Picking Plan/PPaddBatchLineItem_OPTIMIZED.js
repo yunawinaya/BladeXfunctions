@@ -223,31 +223,6 @@ const fetchPickingSetup = async (plantId) => {
   }
 };
 
-const fetchPackingSetup = async (organizationId) => {
-  try {
-    const response = await db
-      .collection("packing_setup")
-      .where({ organization_id: organizationId })
-      .get();
-
-    if (!response?.data?.length) {
-      return {
-        packingRequired: 0,
-      };
-    }
-
-    const setup = response.data[0];
-    return {
-      packingRequired: setup.packing_required || 0,
-    };
-  } catch (error) {
-    console.error("Error fetching packing setup:", error);
-    return {
-      packingRequired: 0,
-    };
-  }
-};
-
 const batchFetchBinLocations = async (locationIds) => {
   if (!locationIds || locationIds.length === 0) return new Map();
   const uniqueIds = [...new Set(locationIds.filter((id) => id))];
@@ -1050,10 +1025,6 @@ const createTableToWithBaseUOM = async (allItems) => {
     return;
   }
 
-  const packingRequired = await fetchPackingSetup(
-    this.getValue("organization_id"),
-  );
-
   const uniqueCustomer = new Set(
     currentItemArray.map((so) =>
       referenceType === "Document" ? so.customer_id : so.customer_id.id,
@@ -1061,7 +1032,7 @@ const createTableToWithBaseUOM = async (allItems) => {
   );
   const allSameCustomer = uniqueCustomer.size === 1;
 
-  if (!allSameCustomer && packingRequired == 1) {
+  if (!allSameCustomer) {
     this.$alert(
       "Picking item(s) to more than two different customers is not allowed.",
       "Error",
@@ -1091,23 +1062,41 @@ const createTableToWithBaseUOM = async (allItems) => {
     existingTO = [];
   }
 
-  const newCustomerIds = [
-    ...new Set(
-      currentItemArray.map((so) =>
-        referenceType === "Document" ? so.customer_id : so.customer_id.id,
-      ),
-    ),
-  ];
+  // All selected SOs share one customer (enforced by the gate above).
+  const newCustomerId = [...uniqueCustomer][0];
 
-  const existingCustomerIds = customerName || [];
-  const allCustomerIds = [
-    ...new Set([
-      ...(Array.isArray(existingCustomerIds)
-        ? existingCustomerIds
-        : [existingCustomerIds]),
-      ...newCustomerIds,
-    ]),
-  ];
+  // Block adding a different customer than the one already on the document.
+  // existingTO is the source of truth: if it was already reset above (e.g.
+  // reference-type change), there is no prior customer to conflict with.
+  const existingCustomerIds = Array.isArray(customerName)
+    ? customerName
+    : customerName
+      ? [customerName]
+      : [];
+
+  if (
+    existingTO.length > 0 &&
+    existingCustomerIds.length > 0 &&
+    !existingCustomerIds.includes(newCustomerId)
+  ) {
+    await this.$confirm(
+      `You've selected a different customer than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,
+      "Different Customer Detected",
+      {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "error",
+        dangerouslyUseHTMLString: true,
+      },
+    ).catch(() => {
+      console.log("User clicked Cancel or closed the dialog");
+      throw new Error();
+    });
+
+    existingTO = [];
+  }
+
+  const allCustomerIds = [newCustomerId];
 
   this.closeDialog("dialog_select_item");
   this.showLoading();
