@@ -128,7 +128,7 @@
             "name": "Data Preparation",
             "script": {
               "type": "javascript",
-              "code": "const arrayData = {{workflowparams:arrayData}}\nconst currentIndexRaw = {{node:get_cache_node_hGFbHnzQ.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst pageStatus = {{workflowparams:pageStatus}}\n\nlet data = arrayData[index];\nlet invalidMessage = \"\";\n\n// Validation: For saveAs \"Completed\", at least one item must have picked_qty > 0\nif (saveAs === \"Completed\") {\n  const hasPickedQty = data.table_picking_items && data.table_picking_items.length > 0 &&\n    data.table_picking_items.some(item => item.picked_qty > 0);\n  \n  if (!hasPickedQty) {\n    invalidMessage = \"Cannot complete picking. At least one item must have picked quantity greater than 0.\";\n  }\n\n  if (data.to_status === \"Cancelled\") {\n    invalidMessage = \"Picking is cancelled. Unable to process picking.\"\n  }\n}\n\n// Validation: only a Created picking can be cancelled\nif (saveAs === \"Cancelled\") {\n  if (data.to_status === \"In Progress\" || data.to_status === \"Completed\") {\n    invalidMessage = \"Cannot cancel picking. Picking is already \" + data.to_status + \".\";\n  }\n\n  if (data.to_status === \"Cancelled\") {\n    invalidMessage = \"Picking is already cancelled.\";\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\")\n    ) {\n      data.to_id = \"draft\";\n    }\n  } else {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\" ||\n        data.to_status === \"Draft\")\n    ) {\n      data.to_id = \"issued\";\n    }\n  }\n}\n\n// Cancel of a Created picking: flag to_id so the document number can be reused\nif (\n  saveAs === \"Cancelled\" &&\n  data.to_status === \"Created\" &&\n  typeof data.to_id === \"string\" &&\n  data.to_id &&\n  !data.to_id.endsWith(\"-Cancelled\")\n) {\n  data.to_id = data.to_id + \"-Cancelled\";\n}\n\nlet updatedStatus = {{workflowparams:saveAs}}\nif (saveAs === \"Completed\" && pageStatus === \"Add\") {\n  updatedStatus = \"Created\"\n}\n\nreturn {\n  data,\n  updatedStatus,\n  nextIndex: index + 1,\n  invalidMessage,\n  isInvalid: invalidMessage === \"\" ? 0 : 1\n}\n"
+              "code": "const arrayData = {{workflowparams:arrayData}}\nconst currentIndexRaw = {{node:get_cache_node_hGFbHnzQ.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst pageStatus = {{workflowparams:pageStatus}}\nconst isForceComplete = {{workflowparams:isForceComplete}}\n\nlet data = arrayData[index];\nlet invalidMessage = \"\";\n\n// Validation: For saveAs \"Completed\", at least one item must have picked_qty > 0\nif (saveAs === \"Completed\" && !isForceComplete && isForceComplete !== 1) {\n  const hasPickedQty = data.table_picking_items && data.table_picking_items.length > 0 &&\n    data.table_picking_items.some(item => item.picked_qty > 0);\n  \n  if (!hasPickedQty) {\n    invalidMessage = \"Cannot complete picking. At least one item must have picked quantity greater than 0.\";\n  }\n\n  if (data.to_status === \"Cancelled\") {\n    invalidMessage = \"Picking is cancelled. Unable to process picking.\"\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\")\n    ) {\n      data.to_id = \"draft\";\n    }\n  } else {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\" ||\n        data.to_status === \"Draft\")\n    ) {\n      data.to_id = \"issued\";\n    }\n  }\n}\n\n// Cancel of a Created picking: flag to_id so the document number can be reused\nif (\n  saveAs === \"Cancelled\" &&\n  data.to_status === \"Created\" &&\n  typeof data.to_id === \"string\" &&\n  data.to_id &&\n  !data.to_id.endsWith(\"-Cancelled\")\n) {\n  data.to_id = data.to_id + \"-Cancelled\";\n}\n\nlet updatedStatus = {{workflowparams:saveAs}}\nif (saveAs === \"Completed\" && pageStatus === \"Add\") {\n  updatedStatus = \"Created\"\n}\n\nreturn {\n  data,\n  updatedStatus,\n  nextIndex: index + 1,\n  invalidMessage,\n  isInvalid: invalidMessage === \"\" ? 0 : 1\n}\n"
             },
             "response_json": [
               {
@@ -2794,13 +2794,110 @@
                       "code": "const pickingData = {{node:code_node_hjAwTKzF.data.data}} || {};\nconst isCreated = pickingData.to_status === \"Created\" ? 1 : 0;\nconst isPickingPlan = pickingData.ref_doc_type === \"Picking Plan\" ? 1 : 0;\nconst currentPickingId = pickingData.id;\nconst items = (pickingData.table_picking_items || []).filter((i) => i.line_status !== \"Cancelled\");\nconst uniq = (a) => [...new Set(a.filter((v) => v !== null && v !== undefined && v !== \"\"))];\nconst gdIds = isCreated ? uniq(items.map((i) => i.gd_id)) : [];\nconst gdLineIds = isCreated ? uniq(items.map((i) => i.gd_line_id)) : [];\nconst toIds = isCreated ? uniq(items.map((i) => i.to_id)) : [];\nconst toLineIds = isCreated ? uniq(items.map((i) => i.to_line_id)) : [];\n\nreturn { isCreated, isPickingPlan, currentPickingId, gdIds, gdLineIds, toIds, toLineIds };"
                     },
                     "response_json": [
-                      { "key": "cp_isc", "name": "isCreated", "title": "isCreated", "description": "", "bsonType": "int", "isExpand": false },
-                      { "key": "cp_ipp", "name": "isPickingPlan", "title": "isPickingPlan", "description": "", "bsonType": "int", "isExpand": false },
-                      { "key": "cp_cpid", "name": "currentPickingId", "title": "currentPickingId", "description": "", "bsonType": "any", "isExpand": false },
-                      { "key": "cp_gd", "name": "gdIds", "title": "gdIds", "description": "", "bsonType": "array", "isExpand": true, "children": [ { "key": "cp_gd_i", "name": "items", "title": "", "description": "", "bsonType": "any", "isExpand": false, "isArrayItem": true, "children": [] } ] },
-                      { "key": "cp_gdl", "name": "gdLineIds", "title": "gdLineIds", "description": "", "bsonType": "array", "isExpand": true, "children": [ { "key": "cp_gdl_i", "name": "items", "title": "", "description": "", "bsonType": "any", "isExpand": false, "isArrayItem": true, "children": [] } ] },
-                      { "key": "cp_to", "name": "toIds", "title": "toIds", "description": "", "bsonType": "array", "isExpand": true, "children": [ { "key": "cp_to_i", "name": "items", "title": "", "description": "", "bsonType": "any", "isExpand": false, "isArrayItem": true, "children": [] } ] },
-                      { "key": "cp_tol", "name": "toLineIds", "title": "toLineIds", "description": "", "bsonType": "array", "isExpand": true, "children": [ { "key": "cp_tol_i", "name": "items", "title": "", "description": "", "bsonType": "any", "isExpand": false, "isArrayItem": true, "children": [] } ] }
+                      {
+                        "key": "cp_isc",
+                        "name": "isCreated",
+                        "title": "isCreated",
+                        "description": "",
+                        "bsonType": "int",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "cp_ipp",
+                        "name": "isPickingPlan",
+                        "title": "isPickingPlan",
+                        "description": "",
+                        "bsonType": "int",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "cp_cpid",
+                        "name": "currentPickingId",
+                        "title": "currentPickingId",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false
+                      },
+                      {
+                        "key": "cp_gd",
+                        "name": "gdIds",
+                        "title": "gdIds",
+                        "description": "",
+                        "bsonType": "array",
+                        "isExpand": true,
+                        "children": [
+                          {
+                            "key": "cp_gd_i",
+                            "name": "items",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "isArrayItem": true,
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "key": "cp_gdl",
+                        "name": "gdLineIds",
+                        "title": "gdLineIds",
+                        "description": "",
+                        "bsonType": "array",
+                        "isExpand": true,
+                        "children": [
+                          {
+                            "key": "cp_gdl_i",
+                            "name": "items",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "isArrayItem": true,
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "key": "cp_to",
+                        "name": "toIds",
+                        "title": "toIds",
+                        "description": "",
+                        "bsonType": "array",
+                        "isExpand": true,
+                        "children": [
+                          {
+                            "key": "cp_to_i",
+                            "name": "items",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "isArrayItem": true,
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "key": "cp_tol",
+                        "name": "toLineIds",
+                        "title": "toLineIds",
+                        "description": "",
+                        "bsonType": "array",
+                        "isExpand": true,
+                        "children": [
+                          {
+                            "key": "cp_tol_i",
+                            "name": "items",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "isArrayItem": true,
+                            "children": []
+                          }
+                        ]
+                      }
                     ]
                   },
                   "blocks": []
@@ -2953,8 +3050,46 @@
                                       "code": "const currentPickingId = {{node:code_node_CancelPrep.data.currentPickingId}};\nconst toIds = {{node:code_node_CancelPrep.data.toIds}};\nconst toLineIds = {{node:code_node_CancelPrep.data.toLineIds}};\nconst raw = {{node:search_node_OtherPP.data.data}};\nconst rows = Array.isArray(raw) ? raw : (raw ? [raw] : []);\nconst others = rows.filter((r) => r.transfer_order_id !== currentPickingId && r.line_status !== \"Cancelled\");\nconst otherHeaders = new Set(others.map((r) => r.to_id));\nconst otherLines = new Set(others.map((r) => r.to_line_id));\nconst headersToReset = toIds.filter((id) => !otherHeaders.has(id));\nconst linesToReset = toLineIds.filter((id) => !otherLines.has(id));\n\nreturn {\n  headersToReset: headersToReset.length ? headersToReset : [\"__none__\"],\n  linesToReset: linesToReset.length ? linesToReset : [\"__none__\"]\n};"
                                     },
                                     "response_json": [
-                                      { "key": "ppr_h", "name": "headersToReset", "title": "headersToReset", "description": "", "bsonType": "array", "isExpand": true, "children": [ { "key": "ppr_h_i", "name": "items", "title": "", "description": "", "bsonType": "any", "isExpand": false, "isArrayItem": true, "children": [] } ] },
-                                      { "key": "ppr_l", "name": "linesToReset", "title": "linesToReset", "description": "", "bsonType": "array", "isExpand": true, "children": [ { "key": "ppr_l_i", "name": "items", "title": "", "description": "", "bsonType": "any", "isExpand": false, "isArrayItem": true, "children": [] } ] }
+                                      {
+                                        "key": "ppr_h",
+                                        "name": "headersToReset",
+                                        "title": "headersToReset",
+                                        "description": "",
+                                        "bsonType": "array",
+                                        "isExpand": true,
+                                        "children": [
+                                          {
+                                            "key": "ppr_h_i",
+                                            "name": "items",
+                                            "title": "",
+                                            "description": "",
+                                            "bsonType": "any",
+                                            "isExpand": false,
+                                            "isArrayItem": true,
+                                            "children": []
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "key": "ppr_l",
+                                        "name": "linesToReset",
+                                        "title": "linesToReset",
+                                        "description": "",
+                                        "bsonType": "array",
+                                        "isExpand": true,
+                                        "children": [
+                                          {
+                                            "key": "ppr_l_i",
+                                            "name": "items",
+                                            "title": "",
+                                            "description": "",
+                                            "bsonType": "any",
+                                            "isExpand": false,
+                                            "isArrayItem": true,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
                                     ]
                                   },
                                   "blocks": []
@@ -3194,8 +3329,46 @@
                                       "code": "const currentPickingId = {{node:code_node_CancelPrep.data.currentPickingId}};\nconst gdIds = {{node:code_node_CancelPrep.data.gdIds}};\nconst gdLineIds = {{node:code_node_CancelPrep.data.gdLineIds}};\nconst raw = {{node:search_node_OtherGD.data.data}};\nconst rows = Array.isArray(raw) ? raw : (raw ? [raw] : []);\nconst others = rows.filter((r) => r.transfer_order_id !== currentPickingId && r.line_status !== \"Cancelled\");\nconst otherHeaders = new Set(others.map((r) => r.gd_id));\nconst otherLines = new Set(others.map((r) => r.gd_line_id));\nconst headersToReset = gdIds.filter((id) => !otherHeaders.has(id));\nconst linesToReset = gdLineIds.filter((id) => !otherLines.has(id));\n\nreturn {\n  headersToReset: headersToReset.length ? headersToReset : [\"__none__\"],\n  linesToReset: linesToReset.length ? linesToReset : [\"__none__\"]\n};"
                                     },
                                     "response_json": [
-                                      { "key": "gdr_h", "name": "headersToReset", "title": "headersToReset", "description": "", "bsonType": "array", "isExpand": true, "children": [ { "key": "gdr_h_i", "name": "items", "title": "", "description": "", "bsonType": "any", "isExpand": false, "isArrayItem": true, "children": [] } ] },
-                                      { "key": "gdr_l", "name": "linesToReset", "title": "linesToReset", "description": "", "bsonType": "array", "isExpand": true, "children": [ { "key": "gdr_l_i", "name": "items", "title": "", "description": "", "bsonType": "any", "isExpand": false, "isArrayItem": true, "children": [] } ] }
+                                      {
+                                        "key": "gdr_h",
+                                        "name": "headersToReset",
+                                        "title": "headersToReset",
+                                        "description": "",
+                                        "bsonType": "array",
+                                        "isExpand": true,
+                                        "children": [
+                                          {
+                                            "key": "gdr_h_i",
+                                            "name": "items",
+                                            "title": "",
+                                            "description": "",
+                                            "bsonType": "any",
+                                            "isExpand": false,
+                                            "isArrayItem": true,
+                                            "children": []
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "key": "gdr_l",
+                                        "name": "linesToReset",
+                                        "title": "linesToReset",
+                                        "description": "",
+                                        "bsonType": "array",
+                                        "isExpand": true,
+                                        "children": [
+                                          {
+                                            "key": "gdr_l_i",
+                                            "name": "items",
+                                            "title": "",
+                                            "description": "",
+                                            "bsonType": "any",
+                                            "isExpand": false,
+                                            "isArrayItem": true,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
                                     ]
                                   },
                                   "blocks": []
