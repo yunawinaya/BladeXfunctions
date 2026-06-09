@@ -110,7 +110,7 @@ copy is wrong for the renames below.** Always read from these GD fields:
 | `ct_driver_name` | `driver_name` |
 | `ct_driver_contact_no` | `driver_contact_no` |
 | `ct_ic_no` | `ic_no` |
-| `vehicle_no` | `sp_vehicle_no` |
+| `vehicle_no` | `vehicle_no` (the `company_truck` section's own bound field — NOT `sp_vehicle_no`, which belongs to `self_pickup`) |
 | `est_delivery_date` | `est_delivery_date` |
 | `delivery_cost` | `delivery_cost` |
 
@@ -183,7 +183,7 @@ const buildDeliveryFields = (gdList) => {
       fields.ct_driver_name = gd.driver_name ?? "";
       fields.ct_driver_contact_no = gd.driver_contact_no ?? "";
       fields.ct_ic_no = gd.ic_no ?? "";
-      fields.vehicle_no = gd.sp_vehicle_no ?? "";
+      fields.vehicle_no = gd.vehicle_no ?? "";
       fields.est_delivery_date = gd.est_delivery_date ?? "";
       fields.delivery_cost = gd.delivery_cost ?? "";
       break;
@@ -257,45 +257,51 @@ so saved Pickings also display their section.
 
 ## Where this is wired on desktop (reference)
 
-The mobile change should mirror these three desktop touchpoints:
+The mobile change should mirror these five desktop touchpoints:
 
 | File | Role |
 |---|---|
 | [Goods Delivery/GDconvertToPicking.json](../Goods%20Delivery/GDconvertToPicking.json) | Bulk "Convert to Picking" workflow. `code_node_PYFZeGpr` builds `pickingData` (returned to the caller, which spreads it into the Picking add-form via `toView`). Helper + `...deliveryFields` spread already added; `response_json` declares all 31 keys (`dlvfld01`..`dlvfld31`). |
-| [Goods Delivery/GDheadWorkflow.json](../Goods%20Delivery/GDheadWorkflow.json) | GD save workflow. Under `if_9xhwui06` ("IF Auto Create Picking"), `code_node_o35eZx2c` builds `transferOrderData` and `add_node_rk182M1q` ("Add Picking") inserts it into the Picking collection. Helper + spread added in the code node; 31 prop mappings added on the add node (16 → 47 props). |
+| [Goods Delivery/GDheadWorkflow.json](../Goods%20Delivery/GDheadWorkflow.json) | GD save workflow. Under `if_9xhwui06` ("IF Auto Create Picking"): (a) **Create path** — `code_node_o35eZx2c` builds `transferOrderData` (helper + spread added), `add_node_rk182M1q` ("Add Picking") inserts it into the Picking collection (16 → 47 props). (b) **Update path** — when a Picking already exists for the GD, `code_node_6L2Ozea8` builds `updateFields` (extended with a `DELIVERY_FIELD_KEYS` loop that copies every delivery key from `transferOrderData`), then `update_node_4uzHPx7M` ("Update Picking") writes them (3 → 34 props). Without (b), GD edits to delivery fields wouldn't propagate to a previously-created Picking. |
 | [Picking/PickingLoopWorkflow.json](PickingLoopWorkflow.json) | Picking save workflow (`workflow_id = 2021065804251615233`, called by the Picking form's Save Draft / Save Created / Save Completed buttons). `add_node_j6HU6pFP` ("Add Picking") and `update_node_LKW2Upgf` ("Update Picking") got 31 new prop mappings each (21 → 52, 20 → 51) so the form values actually persist. Sources from `code_node_hjAwTKzF.data.data.<field>` (which is the form's `getValues()`). |
 | [Picking/PickingProcessWorkflow.json](PickingProcessWorkflow.json) | Picking-completion sub-workflow (`workflow_id = 2020683258347081730`, called from PickingLoopWorkflow's "Completed" branch). On **Edit → Save Completed**, PickingLoopWorkflow's `update_node_LKW2Upgf` is **skipped** (the `IF !Completed` gate is false) — so this sub-workflow is the ONLY writer. Both `update_node_JBvmArxy` (Picking Plan path) and `update_node_o19MykBA` (Goods Delivery path) got 31 new prop mappings each (5 → 36) sourcing from `{{workflowparams:allData.<field>}}`. Without this, delivery-field edits made on the same save-as-Completed click would silently drop. |
 | [Picking/PickingOnMounted.js](PickingOnMounted.js) | Picking add-form. `revealDeliveryMethodSection()` helper added and called in Add/Edit/View. |
 
-### Persistence is wired in two places — do BOTH on mobile
+### Persistence is wired in multiple places — do them ALL on mobile
 
-A common gotcha: binding the 30 fields as form models is **not enough** to save
-them. The Picking save workflow's add/update nodes must also map each delivery
-field, or the form values silently get dropped on save.
+A common gotcha: binding the 31 fields as form models is **not enough** to save
+them. Every workflow that creates OR updates a Picking record must map each
+delivery field as a prop entry, or the form values silently get dropped.
 
-For each delivery field, add a prop entry to the mobile Picking save
-workflow's "Add Picking" and "Update Picking" nodes, of this shape:
+For each delivery field, add a prop entry of this shape:
 
 ```json
 {
   "prop": "<picking_field_name>",
   "operator": "",
   "valueType": "field",
-  "value": "{{node:<form-data-node>.data.data.<picking_field_name>}}",
+  "value": "{{<source>.<picking_field_name>}}",
   "valueLabel": "",
   "propLabel": "<human label>"
 }
 ```
 
-For all 30 fields, `prop` and the trailing `.<field>` of `value` use the same
-Picking-side field name (the names in the table at the top of this doc). The
-`<form-data-node>` is whichever code-node in the mobile save workflow exposes
-the raw form values (in the desktop equivalent it's `code_node_hjAwTKzF`
-"Data Preparation").
+For all 31 fields, `prop` and the trailing `.<field>` of `value` use the same
+Picking-side field name (the names in the table at the top of this doc).
+`<source>` differs per workflow:
 
-The other two `Update Picking Processing` nodes in the desktop workflow only
-flip `is_processing` — they don't need delivery fields. The mobile workflow
-likely has the same pattern: only the main create/update nodes need the props.
+| Desktop workflow | Source pattern | Why |
+|---|---|---|
+| PickingLoopWorkflow (form Save) | `node:<form-data-node>.data.data.<field>` | The code-node passes the form's `getValues()` through |
+| PickingProcessWorkflow (Save Completed sub-workflow) | `workflowparams:allData.<field>` | The parent workflow passes the form data as `allData` |
+| GDheadWorkflow auto-create Picking | `node:<createData-node>.data.createData.<field>` | The code-node builds `createData = transferOrderData` (spread with deliveryFields) |
+| GDheadWorkflow auto-update Picking | `node:<updateData-node>.data.updateData.<field>` | The code-node builds `updateData` (extended to include all delivery keys via `DELIVERY_FIELD_KEYS` loop) |
+
+Skip prop maintenance only on **status-flag-only** nodes: in the desktop
+workflows, the two `Update Picking Processing` nodes write only `is_processing`,
+and the `Update Picking` force-complete node writes only `to_status` + 
+`table_picking_items`. Mobile workflows likely have the same minimal-update
+nodes — leave those alone.
 
 The collection the desktop Picking writes to is the same one the mobile
 Picking should target: **`1935556443668959233`** ("Transfer Order Picking").
@@ -316,10 +322,12 @@ and the right section is visible on the mobile Picking form.
   `tracking_number`, `est_arrival_date`, `freight_charges`. Convert → values
   land in Picking's Courier section. Section `courier_service` visible.
 - [ ] **Company Truck**: GD has Company Truck details stored under
-  `driver_name`/`driver_contact_no`/`ic_no`/`sp_vehicle_no` (shared names) +
-  `est_delivery_date`/`delivery_cost`. Convert → values land in Picking's
-  `ct_driver_name` / `ct_driver_contact_no` / `ct_ic_no` / `vehicle_no` /
-  `est_delivery_date` / `delivery_cost`. Section `company_truck` visible.
+  `driver_name`/`driver_contact_no`/`ic_no` (shared with Self Pickup section)
+  + `vehicle_no` (the `company_truck` section's own bound vehicle field — NOT
+  `sp_vehicle_no`) + `est_delivery_date`/`delivery_cost`. Convert → values land
+  in Picking's `ct_driver_name` / `ct_driver_contact_no` / `ct_ic_no` /
+  `vehicle_no` / `est_delivery_date` / `delivery_cost`. Section `company_truck`
+  visible.
 - [ ] **Shipping Service**: GD has `shipping_company` +
   `shipping_date`/`freight_charges`/`est_arrival_date`/`tracking_number`
   (shared names) + `shipping_method`. Convert → values land in Picking's
@@ -335,13 +343,24 @@ and the right section is visible on the mobile Picking form.
 
 ### Multi-GD scenario
 - [ ] Select 2+ GDs → Convert. Picking opens with `delivery_method`,
-  `area_id`, `delivery_method_text`, and all 27 detail fields **empty**. No
+  `area_id`, `delivery_method_text`, and all 28 detail fields **empty**. No
   section forced open.
 
 ### Auto-creation scenario (GD save with `auto_trigger_to = 1`)
 - [ ] Save a GD as Created with a delivery method + details. The auto-created
   Picking record has the same delivery fields populated. Open the Picking
   on mobile → the correct section is shown with the values.
+
+### Auto-update scenario (GD edit propagates to an existing Picking)
+- [ ] Save a GD that already has an auto-created Picking, after editing
+  `delivery_cost` (or any other delivery field) on the GD. The existing
+  Picking record should pick up the new value on next read — not stale.
+
+### Save-as-Completed scenario (PickingProcessWorkflow gate)
+- [ ] Open a Created Picking, edit a delivery field (e.g. `delivery_cost`),
+  then click Save Completed. The Picking record should reflect the new
+  value. This exercises the path where `PickingLoopWorkflow`'s update is
+  skipped and `PickingProcessWorkflow` is the only writer.
 
 ### Regression
 - [ ] Existing fields still carry over: `so_no`, `delivery_no`, `gd_no`,
