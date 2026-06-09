@@ -3,7 +3,10 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": { "isValidator": true, "title": "Start Node" },
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
       "blocks": []
     },
     {
@@ -19,7 +22,7 @@
         "name": "Determine Params",
         "script": {
           "type": "javascript",
-          "code": "const mobile = {{workflowparams:mobile_number}};\nconst mobileStr = (mobile == null ? \"\" : String(mobile)).trim();\nconst lookupBy = mobileStr ? \"phone\" : \"email\";\n\n// SE Asia mobile patterns (national subscriber portion only, no leading 0 / CC).\n// Add countries here: { cc, nationalRe, hasNationalZero }.\nconst COUNTRIES = [\n  { cc: \"60\", nationalRe: /^1\\d{8,9}$/, hasNationalZero: true },\n  { cc: \"65\", nationalRe: /^[89]\\d{7}$/, hasNationalZero: false },\n  { cc: \"66\", nationalRe: /^[689]\\d{8}$/, hasNationalZero: true },\n  { cc: \"62\", nationalRe: /^8\\d{8,11}$/, hasNationalZero: true }\n];\n\nconst detectCountries = (s) => {\n  if (!s) return [];\n  const sorted = COUNTRIES.slice().sort((a, b) => b.cc.length - a.cc.length);\n  const out = [];\n  if (s.startsWith(\"+\")) {\n    const digits = s.slice(1);\n    for (const c of sorted) {\n      if (digits.startsWith(c.cc) && c.nationalRe.test(digits.slice(c.cc.length))) {\n        out.push({ cc: c.cc, national: digits.slice(c.cc.length) });\n      }\n    }\n    return out;\n  }\n  for (const c of sorted) {\n    if (s.startsWith(c.cc) && c.nationalRe.test(s.slice(c.cc.length))) {\n      out.push({ cc: c.cc, national: s.slice(c.cc.length) });\n    }\n  }\n  if (out.length > 0) return out;\n  if (s.startsWith(\"0\")) {\n    const candidate = s.slice(1);\n    for (const c of sorted) {\n      if (c.hasNationalZero && c.nationalRe.test(candidate)) {\n        out.push({ cc: c.cc, national: candidate });\n      }\n    }\n  } else {\n    for (const c of sorted) {\n      if (!c.hasNationalZero && c.nationalRe.test(s)) {\n        out.push({ cc: c.cc, national: s });\n      }\n    }\n  }\n  return out;\n};\n\nconst variants = new Set();\nif (mobileStr) {\n  variants.add(mobileStr);\n  const stripped = mobileStr.startsWith(\"+\") ? mobileStr.slice(1) : mobileStr;\n  variants.add(stripped);\n  const candidates = detectCountries(mobileStr);\n  for (const c of candidates) {\n    variants.add(c.cc + c.national);\n    variants.add(\"+\" + c.cc + c.national);\n    const meta = COUNTRIES.find(x => x.cc === c.cc);\n    if (meta && meta.hasNationalZero) variants.add(\"0\" + c.national);\n  }\n}\nconst mobileVariants = Array.from(variants);\n\nreturn { lookupBy, mobileVariants };"
+          "code": "const rawMobile = {{workflowparams:mobile_number}};\n\n// Normalize mobile input into an array of trimmed, non-empty strings.\nlet mobileList = [];\nif (Array.isArray(rawMobile)) {\n  mobileList = rawMobile;\n} else if (rawMobile != null && rawMobile !== \"\") {\n  mobileList = [rawMobile];\n}\nmobileList = mobileList\n  .map((m) => (m == null ? \"\" : String(m)).trim())\n  .filter((m) => m !== \"\");\n\nconst lookupBy = mobileList.length > 0 ? \"phone\" : \"email\";\n\n// SE Asia mobile patterns (national subscriber portion only, no leading 0 / CC).\n// Add countries here: { cc, nationalRe, hasNationalZero }.\nconst COUNTRIES = [\n  { cc: \"60\", nationalRe: /^1\\d{8,9}$/, hasNationalZero: true },\n  { cc: \"65\", nationalRe: /^[89]\\d{7}$/, hasNationalZero: false },\n  { cc: \"66\", nationalRe: /^[689]\\d{8}$/, hasNationalZero: true },\n  { cc: \"62\", nationalRe: /^8\\d{8,11}$/, hasNationalZero: true }\n];\n\nconst detectCountries = (s) => {\n  if (!s) return [];\n  const sorted = COUNTRIES.slice().sort((a, b) => b.cc.length - a.cc.length);\n  const out = [];\n  if (s.startsWith(\"+\")) {\n    const digits = s.slice(1);\n    for (const c of sorted) {\n      if (digits.startsWith(c.cc) && c.nationalRe.test(digits.slice(c.cc.length))) {\n        out.push({ cc: c.cc, national: digits.slice(c.cc.length) });\n      }\n    }\n    return out;\n  }\n  for (const c of sorted) {\n    if (s.startsWith(c.cc) && c.nationalRe.test(s.slice(c.cc.length))) {\n      out.push({ cc: c.cc, national: s.slice(c.cc.length) });\n    }\n  }\n  if (out.length > 0) return out;\n  if (s.startsWith(\"0\")) {\n    const candidate = s.slice(1);\n    for (const c of sorted) {\n      if (c.hasNationalZero && c.nationalRe.test(candidate)) {\n        out.push({ cc: c.cc, national: candidate });\n      }\n    }\n  } else {\n    for (const c of sorted) {\n      if (!c.hasNationalZero && c.nationalRe.test(s)) {\n        out.push({ cc: c.cc, national: s });\n      }\n    }\n  }\n  return out;\n};\n\nconst buildVariants = (mobileStr) => {\n  const variants = new Set();\n  if (mobileStr) {\n    variants.add(mobileStr);\n    const stripped = mobileStr.startsWith(\"+\") ? mobileStr.slice(1) : mobileStr;\n    variants.add(stripped);\n    const candidates = detectCountries(mobileStr);\n    for (const c of candidates) {\n      variants.add(c.cc + c.national);\n      variants.add(\"+\" + c.cc + c.national);\n      const meta = COUNTRIES.find((x) => x.cc === c.cc);\n      if (meta && meta.hasNationalZero) variants.add(\"0\" + c.national);\n    }\n  }\n  return Array.from(variants);\n};\n\nconst inputMap = [];\nconst allVariantsSet = new Set();\nfor (const input of mobileList) {\n  const variants = buildVariants(input);\n  inputMap.push({ input, variants });\n  for (const v of variants) allVariantsSet.add(v);\n}\nconst allVariants = Array.from(allVariantsSet);\n\nreturn { lookupBy, allVariants, inputMap };"
         },
         "response_json": [
           {
@@ -32,8 +35,17 @@
           },
           {
             "key": "rwrsb6xj",
-            "name": "mobileVariants",
-            "title": "mobileVariants",
+            "name": "allVariants",
+            "title": "allVariants",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "inpmap01",
+            "name": "inputMap",
+            "title": "inputMap",
             "description": "",
             "bsonType": "any",
             "isExpand": false,
@@ -48,8 +60,12 @@
       "type": "condition-or-node",
       "data": {
         "title": "Condition",
-        "filter": { "list": [] },
-        "expression": { "code": "" },
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
         "displayContent": "sdk.form.setCondition"
       },
       "blocks": [
@@ -76,7 +92,9 @@
                 }
               ]
             },
-            "expression": { "code": "" },
+            "expression": {
+              "code": ""
+            },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Phone Number",
@@ -86,7 +104,7 @@
           "blocks": [
             {
               "id": "get_node_THuA8VPh",
-              "type": "get-node",
+              "type": "search-node",
               "data": {
                 "table_id": {
                   "source": "Contact List(Customer):Table:1942869939031912450",
@@ -100,7 +118,7 @@
                         "prop": "mobile_number",
                         "operator": "in",
                         "valueType": "field",
-                        "value": "{{node:code_node_yrSiOiir.data.mobileVariants}}",
+                        "value": "{{node:code_node_yrSiOiir.data.allVariants}}",
                         "type": "leaf",
                         "level": 1,
                         "propLabel": "Mobile",
@@ -114,7 +132,8 @@
                 "title": "Get Customer ID",
                 "isValidator": true,
                 "nodeName": "Get Customer ID",
-                "name": "Get Customer ID"
+                "name": "Get Customer ID",
+                "limit": 1000
               },
               "blocks": []
             }
@@ -126,8 +145,12 @@
           "data": {
             "title": "Email",
             "isDefault": true,
-            "filter": { "list": [] },
-            "expression": { "code": "" },
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            },
             "displayContent": "sdk.form.otherCondition"
           },
           "blocks": [
@@ -176,22 +199,32 @@
         "language": "javascript",
         "code": "",
         "timeout": 30000,
-        "title": "Customer ID",
+        "title": "Build Customer IDs",
         "isValidator": true,
-        "nodeName": "Customer ID",
-        "name": "Customer ID",
+        "nodeName": "Build Customer IDs",
+        "name": "Build Customer IDs",
         "script": {
           "type": "javascript",
-          "code": "const phoneRes = {{node:get_node_THuA8VPh.data}};\nconst emailRes = {{node:get_node_814fnfzT.data}};\n\nconst extractRecord = (res) => {\n  if (!res || !res.count || res.count <= 0) return null;\n  const d = res.data;\n  if (Array.isArray(d)) return d.length > 0 ? d[0] : null;\n  if (d && typeof d === \"object\") return d;\n  return null;\n};\n\nconst record = extractRecord(phoneRes) || extractRecord(emailRes);\nconst customer_id = (record && record.Customer_id) ? record.Customer_id : \"\";\n\nreturn { customer_id };"
+          "code": "const phoneContacts = {{node:get_node_THuA8VPh.data.data}} || [];\nconst emailRes = {{node:get_node_814fnfzT.data}};\nconst lookupBy = {{node:code_node_yrSiOiir.data.lookupBy}};\nconst inputMap = {{node:code_node_yrSiOiir.data.inputMap}};\n\n// get-node (email branch) data is a single object when count===1, an array otherwise.\nconst getNodeToArray = (res) => {\n  if (!res || !res.count || res.count <= 0) return [];\n  const dd = res.data;\n  if (Array.isArray(dd)) return dd;\n  if (dd && typeof dd === \"object\") return [dd];\n  return [];\n};\n\nconst pairs = [];\nconst customerIdSet = new Set();\n\nif (lookupBy === \"phone\") {\n  // search-node returns the rows array directly at .data.data\n  const contacts = Array.isArray(phoneContacts) ? phoneContacts : [];\n  // One output pair per input number, preserving 1:1 ordering.\n  for (const entry of (inputMap || [])) {\n    const variants = entry.variants || [];\n    const match = contacts.find(\n      (c) => c && variants.indexOf(String(c.mobile_number)) !== -1\n    );\n    if (match) {\n      const cid = match.Customer_id || \"\";\n      pairs.push({ mobile_number: match.mobile_number || entry.input, customer_id: cid });\n      if (cid) customerIdSet.add(cid);\n    } else {\n      pairs.push({ mobile_number: entry.input, customer_id: \"\" });\n    }\n  }\n} else {\n  // Email fallback: single record via get-node.\n  const contacts = getNodeToArray(emailRes);\n  const match = contacts.length > 0 ? contacts[0] : null;\n  if (match) {\n    const cid = match.Customer_id || \"\";\n    pairs.push({ mobile_number: match.mobile_number || \"\", customer_id: cid });\n    if (cid) customerIdSet.add(cid);\n  } else {\n    pairs.push({ mobile_number: \"\", customer_id: \"\" });\n  }\n}\n\nconst customerIds = Array.from(customerIdSet);\n\nreturn { pairs, customerIds };"
         },
         "response_json": [
           {
-            "key": "q75bym3j",
-            "name": "customer_id",
-            "title": "customer_id",
+            "key": "prs00001",
+            "name": "pairs",
+            "title": "pairs",
             "description": "",
-            "bsonType": "string",
-            "isExpand": false
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "cids0001",
+            "name": "customerIds",
+            "title": "customerIds",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
           }
         ]
       },
@@ -199,7 +232,7 @@
     },
     {
       "id": "get_node_h9IHH6H7",
-      "type": "get-node",
+      "type": "search-node",
       "data": {
         "table_id": {
           "source": "Customer:Table:1902779099617804290",
@@ -213,7 +246,7 @@
                 "prop": "id",
                 "operator": "in",
                 "valueType": "field",
-                "value": "{{node:code_node_Eg4cGg3h.data.customer_id}}",
+                "value": "{{node:code_node_Eg4cGg3h.data.customerIds}}",
                 "type": "leaf",
                 "level": 1,
                 "propLabel": "主键ID",
@@ -227,7 +260,48 @@
         "title": "Get Customer Data",
         "isValidator": true,
         "nodeName": "Get Customer Data",
-        "name": "Get Customer Data"
+        "name": "Get Customer Data",
+        "limit": 1000
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_RsP9KmT2",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Build Response",
+        "isValidator": true,
+        "nodeName": "Build Response",
+        "name": "Build Response",
+        "script": {
+          "type": "javascript",
+          "code": "const pairs = {{node:code_node_Eg4cGg3h.data.pairs}};\nconst customers = {{node:get_node_h9IHH6H7.data.data}} || [];\n\n// search-node returns the rows array directly at .data.data\nconst list = Array.isArray(customers) ? customers : [];\nconst custById = {};\nfor (const c of list) {\n  if (c && c.id != null) custById[String(c.id)] = c;\n}\n\nconst result = (pairs || []).map((p) => {\n  const c = p.customer_id ? custById[String(p.customer_id)] : null;\n  return {\n    mobile_number: p.mobile_number || \"\",\n    customer_code: c && c.customer_id ? c.customer_id : \"\",\n    customer_name: c && c.customer_com_name ? c.customer_com_name : \"\"\n  };\n});\n\nreturn { result };"
+        },
+        "response_json": [
+          {
+            "key": "rslt0001",
+            "name": "result",
+            "title": "result",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "rsltitm1",
+                "name": "",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          }
+        ]
       },
       "blocks": []
     },
@@ -244,30 +318,14 @@
         "response_value": {
           "list": [
             {
-              "prop": "customer_id",
-              "propLabel": "Customer ID",
+              "prop": "data",
+              "propLabel": "Data",
               "operator": "",
               "operatorLabel": "",
               "valueType": "field",
               "valueTypeLabel": "",
-              "value": "{{node:code_node_Eg4cGg3h.data.customer_id}}",
+              "value": "{{node:code_node_RsP9KmT2.data.result}}",
               "valueLabel": ""
-            },
-            {
-              "prop": "customer_code",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:get_node_h9IHH6H7.data.data.customer_id}}",
-              "valueLabel": "",
-              "propLabel": "Customer Code"
-            },
-            {
-              "prop": "customer_name",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:get_node_h9IHH6H7.data.data.customer_com_name}}",
-              "valueLabel": "",
-              "propLabel": "Customer Name"
             }
           ]
         },
@@ -278,7 +336,10 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],
@@ -305,28 +366,49 @@
   ],
   "response_json": [
     {
-      "key": "jy97hoqk",
-      "name": "customer_id",
-      "title": "Customer ID",
+      "key": "dataarr1",
+      "name": "data",
+      "title": "Data",
       "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "mhrto2ik",
-      "name": "customer_code",
-      "title": "Customer Code",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "qqoibzn7",
-      "name": "customer_name",
-      "title": "Customer Name",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "dataitm1",
+          "name": "",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "isArrayItem": true,
+          "children": [
+            {
+              "key": "fldmob01",
+              "name": "mobile_number",
+              "title": "Mobile Number",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "fldcod01",
+              "name": "customer_code",
+              "title": "Customer Code",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "fldnam01",
+              "name": "customer_name",
+              "title": "Customer Name",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            }
+          ]
+        }
+      ]
     }
   ],
   "config": {}
