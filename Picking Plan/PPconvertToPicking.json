@@ -78,9 +78,10 @@
                 "name": "items",
                 "title": "",
                 "description": "",
-                "bsonType": "string",
+                "bsonType": "any",
                 "isExpand": false,
-                "isArrayItem": true
+                "isArrayItem": true,
+                "children": []
               }
             ]
           },
@@ -99,7 +100,8 @@
                 "description": "",
                 "bsonType": "string",
                 "isExpand": false,
-                "isArrayItem": true
+                "isArrayItem": true,
+                "children": []
               }
             ]
           },
@@ -255,9 +257,10 @@
                         "name": "items",
                         "title": "",
                         "description": "",
-                        "bsonType": "string",
+                        "bsonType": "any",
                         "isExpand": false,
-                        "isArrayItem": true
+                        "isArrayItem": true,
+                        "children": []
                       }
                     ]
                   },
