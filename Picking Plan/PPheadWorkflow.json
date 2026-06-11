@@ -1005,7 +1005,7 @@
                                       }
                                     },
                                     "condition": {},
-                                    "limit": 100,
+                                    "limit": 500,
                                     "title": "Get Item Batch Balance",
                                     "isValidator": true,
                                     "nodeName": "Get Item Batch Balance",
@@ -1088,7 +1088,7 @@
                                       }
                                     },
                                     "condition": {},
-                                    "limit": 100,
+                                    "limit": 500,
                                     "title": "Get Item Balance",
                                     "isValidator": true,
                                     "nodeName": "Get Item Balance",

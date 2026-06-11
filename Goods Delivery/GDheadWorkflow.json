@@ -377,7 +377,7 @@
           }
         },
         "condition": {},
-        "limit": 100,
+        "limit": 500,
         "title": "Get Items",
         "isValidator": true,
         "nodeName": "Get Items",
@@ -664,7 +664,7 @@
                           }
                         },
                         "condition": {},
-                        "limit": 100,
+                        "limit": 500,
                         "title": "Get UOMs",
                         "isValidator": true,
                         "nodeName": "Get UOMs",
@@ -726,7 +726,7 @@
                           }
                         },
                         "condition": {},
-                        "limit": 100,
+                        "limit": 500,
                         "title": "Get BinLocations",
                         "isValidator": true,
                         "nodeName": "Get BinLocations",
@@ -761,7 +761,7 @@
                           }
                         },
                         "condition": {},
-                        "limit": 100,
+                        "limit": 500,
                         "title": "Get HU Table",
                         "isValidator": true,
                         "nodeName": "Get HU Table",
@@ -837,7 +837,7 @@
                           }
                         },
                         "condition": {},
-                        "limit": 100,
+                        "limit": 500,
                         "title": "Get HU Datas",
                         "isValidator": true,
                         "nodeName": "Get HU Datas",
@@ -1608,7 +1608,7 @@
                                       }
                                     },
                                     "condition": {},
-                                    "limit": 100,
+                                    "limit": 500,
                                     "title": "Get Batch No",
                                     "isValidator": true,
                                     "nodeName": "Get Batch No",
@@ -2296,7 +2296,7 @@
                   }
                 },
                 "condition": {},
-                "limit": 100,
+                "limit": 500,
                 "title": "Get Active Picking",
                 "isValidator": true,
                 "nodeName": "Get Active Picking",
@@ -4392,6 +4392,318 @@
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
+            {
+              "id": "workflow_node_PreflightChk01",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Run GD Inventory Check (Pre-flight)",
+                "isValidator": true,
+                "nodeName": "Run GD Inventory Check (Pre-flight)",
+                "name": "Run GD Inventory Check (Pre-flight)",
+                "workflow": {
+                  "rules": {
+                    "collectionId": "2032273338771128322",
+                    "list": [
+                      {
+                        "id": 1774939611092,
+                        "parentId": 1774939611091,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  },
+                  "source": "GD_UNUSED_FN_NEW:Workflow:2032273338771128322"
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "doc_id",
+                      "propLabel": "GD ID",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_IyJHrBst.data.allData.id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "plant_id",
+                      "propLabel": "Plant ID",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_IyJHrBst.data.allData.plant_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "organization_id",
+                      "propLabel": "Organization ID",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_IyJHrBst.data.allData.organization_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "page_status",
+                      "propLabel": "Page Status",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{workflowparams:pageStatus}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "saveAs",
+                      "propLabel": "Save As",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{workflowparams:saveAs}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "doc_no",
+                      "propLabel": "GD Number",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_IyJHrBst.data.allData.delivery_no}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "parent_id",
+                      "propLabel": "SO ID",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_IyJHrBst.data.allData.so_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "parent_no",
+                      "propLabel": "SO Number",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_IyJHrBst.data.allData.so_no}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "tableData",
+                      "propLabel": "Table GD",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_IyJHrBst.data.allData.table_gd}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "doc_status",
+                      "propLabel": "GD Status",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_IyJHrBst.data.gd_status}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "doc_date",
+                      "propLabel": "GD Date",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_IyJHrBst.data.allData.delivery_date}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "isGDPP",
+                      "propLabel": "isGDPP",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_IyJHrBst.data.allData.is_select_picking}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "picking_plan_id",
+                      "propLabel": "Picking Plan ID",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_IyJHrBst.data.allData.pp_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "transaction_type",
+                      "propLabel": "Transaction Type",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "GDL",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "isPacking",
+                      "propLabel": "isPacking",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{workflowparams:isPacking}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "isLoadingBay",
+                      "propLabel": "isLoadingBay",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{workflowparams:isLoadingBay}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "checkOnly",
+                      "propLabel": "checkOnly",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": 1,
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "response_json": [
+                  {
+                    "key": "pfc01",
+                    "name": "code",
+                    "title": "code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pfc02",
+                    "name": "message",
+                    "title": "message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_PreflightFail01",
+              "type": "if",
+              "data": {
+                "title": "IF Inventory Check Failed",
+                "isValidator": true,
+                "nodeName": "IF Inventory Check Failed",
+                "name": "IF Inventory Check Failed",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:workflow_node_PreflightChk01.data.code}}' == '400'"
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973613,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_PreflightFailTrue01",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "return_node_PreflightRet01",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Data",
+                        "isValidator": true,
+                        "nodeName": "Return Data",
+                        "name": "Return Data",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:workflow_node_PreflightChk01.data.code}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:workflow_node_PreflightChk01.data.message}}",
+                              "valueLabel": "",
+                              "propLabel": "message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_PreflightFailFalse01",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
             {
               "id": "if_yjDL1tIt",
               "type": "if",
@@ -7059,7 +7371,7 @@
                           }
                         },
                         "condition": {},
-                        "limit": 100,
+                        "limit": 500,
                         "title": "Get Table GD",
                         "isValidator": true,
                         "nodeName": "Get Table GD",
@@ -7404,7 +7716,7 @@
                           }
                         },
                         "condition": {},
-                        "limit": 100,
+                        "limit": 500,
                         "title": "Get SO Lines",
                         "isValidator": true,
                         "nodeName": "Get SO Lines",
@@ -7676,7 +7988,7 @@
                   }
                 },
                 "condition": {},
-                "limit": 100,
+                "limit": 500,
                 "title": "Get SO Datas",
                 "isValidator": true,
                 "nodeName": "Get SO Datas",
