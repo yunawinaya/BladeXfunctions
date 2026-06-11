@@ -689,6 +689,14 @@
       "description": "",
       "bsonType": "string",
       "isExpand": false
+    },
+    {
+      "key": "ir54jq6j",
+      "name": "category",
+      "title": "Category",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
     }
   ],
   "response_json": [
