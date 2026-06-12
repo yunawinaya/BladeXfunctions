@@ -95,6 +95,17 @@
 
         for (const gr of grs) {
           for (const grLine of gr.table_gr) {
+            // Skip hierarchy split-parent rows: their received_qty is the sum of
+            // their children, which are counted separately. created_received_qty
+            // was reserved from the children only, so counting the parent too
+            // would double-reverse.
+            if (
+              grLine.is_split === "Yes" &&
+              grLine.parent_or_child === "Parent"
+            ) {
+              continue;
+            }
+
             const lineId = grLine.po_line_item_id;
             const qty = parseFloat(grLine.received_qty || 0);
 

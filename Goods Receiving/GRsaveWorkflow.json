@@ -3629,7 +3629,7 @@
                             "name": "PO Data Preparation",
                             "script": {
                               "type": "javascript",
-                              "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst poLineData = {{node:get_node_T0BtCHSS.data.data}} || {}\n\nconst exchangeRate = {{node:get_node_SnZKYhVp.data.data.exchange_rate}} || 1;\nconst poQty = roundQty(poLineData.quantity) || 0;\nconst poAmount = roundPrice(poLineData.po_amount) || 0;\nconst grReceivedQty = roundQty({{node:code_node_D9IbUV8t.data.quantity}}) || 0\nconst newReceivedQty = roundQty(poLineData.received_qty + grReceivedQty) || 0\nconst newOutstandingQty = Math.max(0, roundQty(poQty - newReceivedQty)) || 0\nconst receivedRatio = poQty > 0 ? newReceivedQty / poQty : 0;\nconst lineStatus = newOutstandingQty <= 0 ? \"Completed\" : \"Processing\"\n\nreturn {\n  exchangeRate,\n  poQty,\n  poAmount,\n  newReceivedQty,\n  newOutstandingQty,\n  receivedRatio,\n  lineStatus\n}"
+                              "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst poLineData = {{node:get_node_T0BtCHSS.data.data}} || {}\n\nconst exchangeRate = {{node:get_node_SnZKYhVp.data.data.exchange_rate}} || 1;\nconst poQty = roundQty(poLineData.quantity) || 0;\nconst poAmount = roundPrice(poLineData.po_amount) || 0;\nconst grReceivedQty = roundQty({{node:code_node_D9IbUV8t.data.quantity}}) || 0\nconst newReceivedQty = roundQty(poLineData.received_qty + grReceivedQty) || 0\nconst newOutstandingQty = Math.max(0, roundQty(poQty - newReceivedQty)) || 0\nconst receivedRatio = poQty > 0 ? newReceivedQty / poQty : 0;\nconst lineStatus = newOutstandingQty <= 0 ? \"Completed\" : \"Processing\"\n\n// When a Created GR is completed, release the reservation it had added to created_received_qty\nconst fromCreated = {{node:code_node_4r2Fv9G5.data.allData.previous_status}} === \"Created\"\nconst newCreatedReceivedQty = fromCreated\n  ? Math.max(0, roundQty((poLineData.created_received_qty || 0) - grReceivedQty))\n  : roundQty(poLineData.created_received_qty || 0)\n\nreturn {\n  exchangeRate,\n  poQty,\n  poAmount,\n  newReceivedQty,\n  newOutstandingQty,\n  receivedRatio,\n  lineStatus,\n  newCreatedReceivedQty\n}"
                             },
                             "response_json": [
                               {
@@ -3692,6 +3692,14 @@
                                 "title": "lineStatus",
                                 "description": "",
                                 "bsonType": "string",
+                                "isExpand": false
+                              },
+                              {
+                                "key": "ncrq00001",
+                                "name": "newCreatedReceivedQty",
+                                "title": "newCreatedReceivedQty",
+                                "description": "",
+                                "bsonType": "decimal",
                                 "isExpand": false
                               }
                             ]
@@ -3775,6 +3783,14 @@
                                   "value": "{{node:code_node_H4Eg0oEI.data.lineStatus}}",
                                   "valueLabel": "",
                                   "propLabel": "Line Status"
+                                },
+                                {
+                                  "prop": "created_received_qty",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_H4Eg0oEI.data.newCreatedReceivedQty}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Created Received Qty"
                                 }
                               ]
                             }
@@ -5312,7 +5328,7 @@
                                     "name": "PO Data Preparation",
                                     "script": {
                                       "type": "javascript",
-                                      "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst poLineData = {{node:get_node_ELNVJH1I.data.data}} || {}\n\nconst exchangeRate = {{node:get_node_Pl5yXxcX.data.data.exchange_rate}} || 1;\nconst poQty = roundQty(poLineData.quantity) || 0;\nconst poAmount = roundPrice(poLineData.po_amount) || 0;\nconst grReceivedQty = roundQty({{node:code_node_D9IbUV8t.data.quantity}}) || 0\nconst newReceivedQty = roundQty(poLineData.received_qty + grReceivedQty) || 0\nconst newOutstandingQty = Math.max(0, roundQty(poQty - newReceivedQty)) || 0\nconst receivedRatio = poQty > 0 ? newReceivedQty / poQty : 0;\nconst lineStatus = newOutstandingQty <= 0 ? \"Completed\" : \"Processing\"\n\nreturn {\n  exchangeRate,\n  poQty,\n  poAmount,\n  newReceivedQty,\n  newOutstandingQty,\n  receivedRatio,\n  lineStatus\n}"
+                                      "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst poLineData = {{node:get_node_ELNVJH1I.data.data}} || {}\n\nconst exchangeRate = {{node:get_node_Pl5yXxcX.data.data.exchange_rate}} || 1;\nconst poQty = roundQty(poLineData.quantity) || 0;\nconst poAmount = roundPrice(poLineData.po_amount) || 0;\nconst grReceivedQty = roundQty({{node:code_node_D9IbUV8t.data.quantity}}) || 0\nconst newReceivedQty = roundQty(poLineData.received_qty + grReceivedQty) || 0\nconst newOutstandingQty = Math.max(0, roundQty(poQty - newReceivedQty)) || 0\nconst receivedRatio = poQty > 0 ? newReceivedQty / poQty : 0;\nconst lineStatus = newOutstandingQty <= 0 ? \"Completed\" : \"Processing\"\n\n// When a Created GR is completed, release the reservation it had added to created_received_qty\nconst fromCreated = {{node:code_node_4r2Fv9G5.data.allData.previous_status}} === \"Created\"\nconst newCreatedReceivedQty = fromCreated\n  ? Math.max(0, roundQty((poLineData.created_received_qty || 0) - grReceivedQty))\n  : roundQty(poLineData.created_received_qty || 0)\n\nreturn {\n  exchangeRate,\n  poQty,\n  poAmount,\n  newReceivedQty,\n  newOutstandingQty,\n  receivedRatio,\n  lineStatus,\n  newCreatedReceivedQty\n}"
                                     },
                                     "response_json": [
                                       {
@@ -5375,6 +5391,14 @@
                                         "title": "lineStatus",
                                         "description": "",
                                         "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "ncrq00001",
+                                        "name": "newCreatedReceivedQty",
+                                        "title": "newCreatedReceivedQty",
+                                        "description": "",
+                                        "bsonType": "decimal",
                                         "isExpand": false
                                       }
                                     ]
@@ -5439,6 +5463,14 @@
                                           "value": "{{node:code_node_Xp8tqNlL.data.lineStatus}}",
                                           "valueLabel": "",
                                           "propLabel": "Line Status"
+                                        },
+                                        {
+                                          "prop": "created_received_qty",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_Xp8tqNlL.data.newCreatedReceivedQty}}",
+                                          "valueLabel": "",
+                                          "propLabel": "Created Received Qty"
                                         }
                                       ]
                                     }
@@ -5567,7 +5599,7 @@
                                     "name": "PO Data Preparation",
                                     "script": {
                                       "type": "javascript",
-                                      "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst poLineData = {{node:get_node_m5sQXT4G.data.data}} || {}\n\nconst exchangeRate = {{node:get_node_gcfIajlR.data.data.exchange_rate}} || 1;\nconst poQty = roundQty(poLineData.quantity) || 0;\nconst poAmount = roundPrice(poLineData.po_amount) || 0;\nconst grReceivedQty = roundQty({{node:code_node_D9IbUV8t.data.quantity}}) || 0\nconst newReceivedQty = roundQty(poLineData.received_qty + grReceivedQty) || 0\nconst newOutstandingQty = Math.max(0, roundQty(poQty - newReceivedQty)) || 0\nconst receivedRatio = poQty > 0 ? newReceivedQty / poQty : 0;\nconst lineStatus = newOutstandingQty <= 0 ? \"Completed\" : \"Processing\"\n\nreturn {\n  exchangeRate,\n  poQty,\n  poAmount,\n  newReceivedQty,\n  newOutstandingQty,\n  receivedRatio,\n  lineStatus\n}"
+                                      "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst poLineData = {{node:get_node_m5sQXT4G.data.data}} || {}\n\nconst exchangeRate = {{node:get_node_gcfIajlR.data.data.exchange_rate}} || 1;\nconst poQty = roundQty(poLineData.quantity) || 0;\nconst poAmount = roundPrice(poLineData.po_amount) || 0;\nconst grReceivedQty = roundQty({{node:code_node_D9IbUV8t.data.quantity}}) || 0\nconst newReceivedQty = roundQty(poLineData.received_qty + grReceivedQty) || 0\nconst newOutstandingQty = Math.max(0, roundQty(poQty - newReceivedQty)) || 0\nconst receivedRatio = poQty > 0 ? newReceivedQty / poQty : 0;\nconst lineStatus = newOutstandingQty <= 0 ? \"Completed\" : \"Processing\"\n\n// When a Created GR is completed, release the reservation it had added to created_received_qty\nconst fromCreated = {{node:code_node_4r2Fv9G5.data.allData.previous_status}} === \"Created\"\nconst newCreatedReceivedQty = fromCreated\n  ? Math.max(0, roundQty((poLineData.created_received_qty || 0) - grReceivedQty))\n  : roundQty(poLineData.created_received_qty || 0)\n\nreturn {\n  exchangeRate,\n  poQty,\n  poAmount,\n  newReceivedQty,\n  newOutstandingQty,\n  receivedRatio,\n  lineStatus,\n  newCreatedReceivedQty\n}"
                                     },
                                     "response_json": [
                                       {
@@ -5630,6 +5662,14 @@
                                         "title": "lineStatus",
                                         "description": "",
                                         "bsonType": "string",
+                                        "isExpand": false
+                                      },
+                                      {
+                                        "key": "ncrq00001",
+                                        "name": "newCreatedReceivedQty",
+                                        "title": "newCreatedReceivedQty",
+                                        "description": "",
+                                        "bsonType": "decimal",
                                         "isExpand": false
                                       }
                                     ]
@@ -6347,6 +6387,14 @@
                                           "value": "{{node:code_node_hcGdVUEL.data.lineStatus}}",
                                           "valueLabel": "",
                                           "propLabel": "Line Status"
+                                        },
+                                        {
+                                          "prop": "created_received_qty",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_hcGdVUEL.data.newCreatedReceivedQty}}",
+                                          "valueLabel": "",
+                                          "propLabel": "Created Received Qty"
                                         }
                                       ]
                                     }
