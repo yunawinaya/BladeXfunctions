@@ -211,8 +211,15 @@
     // Then, update all GR statuses to Cancelled
     for (const gr of createdGRs) {
       try {
+        // Append "-Cancelled" to the GR number (frees the original number for reuse)
+        const cancelledGrNo =
+          gr.gr_no && !String(gr.gr_no).endsWith("-Cancelled")
+            ? `${gr.gr_no}-Cancelled`
+            : gr.gr_no;
+
         await db.collection("goods_receiving").doc(gr.id).update({
           gr_status: "Cancelled",
+          gr_no: cancelledGrNo,
         });
         successCount++;
         console.log(`Cancelled GR ${gr.gr_no}`);
