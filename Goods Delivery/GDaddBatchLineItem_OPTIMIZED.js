@@ -1252,16 +1252,21 @@ const createTableGdWithBaseUOM = async (allItems) => {
   const uniqueSalesPerson = [
     ...new Set(
       currentItemArray
-        .map((so) =>
-          referenceType === "Document"
-            ? so.sales_person
-            : so.sales_order.so_sales_person,
-        )
+        .map((so) => {
+          // Document: item_array entry already stores the agent id under
+          // `sales_person` (see rowClick_addSO). Item: read from the SO FK.
+          const sp =
+            referenceType === "Document"
+              ? so.sales_person
+              : so.sales_order.so_sales_person;
+          // Item mode may return an FK object; the field stores agent ids.
+          return sp && typeof sp === "object" ? sp.id : sp;
+        })
         .filter((sp) => sp),
     ),
   ];
 
-  await this.setData({
+  const headerData = {
     currency_code:
       referenceType === "Document"
         ? currentItemArray[0].currency
@@ -1270,7 +1275,6 @@ const createTableGdWithBaseUOM = async (allItems) => {
       referenceType === "Document"
         ? currentItemArray[0].customer_id
         : currentItemArray[0].customer_id.id,
-    sales_person: uniqueSalesPerson,
     table_gd: latestTableGD,
     so_no: salesOrderNumber.join(", "),
     so_id: soId,
@@ -1278,7 +1282,15 @@ const createTableGdWithBaseUOM = async (allItems) => {
     dialog_insufficient: {
       table_insufficient: [], // Will be populated by checkInventoryWithDuplicates
     },
-  });
+  };
+
+  // Only set sales_person when there's an actual value; setting an empty
+  // array/null forces the multi-select to render an empty [null] row.
+  if (uniqueSalesPerson.length > 0) {
+    headerData.sales_person = uniqueSalesPerson;
+  }
+
+  await this.setData(headerData);
 
   setTimeout(async () => {
     try {
