@@ -1102,6 +1102,122 @@
       ]
     },
     {
+      "id": "if_origReserved",
+      "type": "if",
+      "data": {
+        "title": "IF Edit (Reservation Release)",
+        "isValidator": true,
+        "nodeName": "IF Edit (Reservation Release)",
+        "name": "IF Edit (Reservation Release)",
+        "condition_type": "ConditionRule",
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
+        "filter": {
+          "list": [
+            {
+              "id": 1781000000001,
+              "parentId": 1781000000002,
+              "isTop": true,
+              "prop": "workflowparams.pageStatus",
+              "operator": "equal",
+              "valueType": "value",
+              "value": "Edit",
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "pageStatus",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_origReserved_t",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "search_origGRMain",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Receiving:Table:1901845517592285186",
+                  "rules": {
+                    "collectionId": "1901845517592285186",
+                    "list": [
+                      {
+                        "id": 1781000000003,
+                        "parentId": 1781000000004,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_4r2Fv9G5.data.allData.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "id",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "Get Original GR (Reservation)",
+                "isValidator": true,
+                "nodeName": "Get Original GR (Reservation)",
+                "name": "Get Original GR (Reservation)"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_origReserved_f",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_node_origReserved",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Original Reserved Qty",
+        "isValidator": true,
+        "nodeName": "Original Reserved Qty",
+        "name": "Original Reserved Qty",
+        "script": {
+          "type": "javascript",
+          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst origRaw = {{node:search_origGRMain.data.data}} || [];\nconst originalGR = Array.isArray(origRaw) ? (origRaw[0] || null) : origRaw;\nconst originalTableGR = (originalGR && originalGR.table_gr) ? originalGR.table_gr : [];\nconst isParent = (r) => r.is_split === \"Yes\" && r.parent_or_child === \"Parent\";\nconst origReserved = {};\nfor (const gr of originalTableGR) {\n  if (isParent(gr)) continue;\n  const lid = gr.po_line_item_id;\n  if (!lid) continue;\n  origReserved[lid] = roundQty((origReserved[lid] || 0) + parseFloat(gr.received_qty || 0));\n}\nreturn { origReserved };\n"
+        },
+        "response_json": [
+          {
+            "key": "origRsv",
+            "name": "origReserved",
+            "title": "origReserved",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
       "id": "if_A28AB0eJ",
       "type": "if",
       "data": {
@@ -3629,7 +3745,7 @@
                             "name": "PO Data Preparation",
                             "script": {
                               "type": "javascript",
-                              "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst poLineData = {{node:get_node_T0BtCHSS.data.data}} || {}\n\nconst exchangeRate = {{node:get_node_SnZKYhVp.data.data.exchange_rate}} || 1;\nconst poQty = roundQty(poLineData.quantity) || 0;\nconst poAmount = roundPrice(poLineData.po_amount) || 0;\nconst grReceivedQty = roundQty({{node:code_node_D9IbUV8t.data.quantity}}) || 0\nconst newReceivedQty = roundQty(poLineData.received_qty + grReceivedQty) || 0\nconst newOutstandingQty = Math.max(0, roundQty(poQty - newReceivedQty)) || 0\nconst receivedRatio = poQty > 0 ? newReceivedQty / poQty : 0;\nconst lineStatus = newOutstandingQty <= 0 ? \"Completed\" : \"Processing\"\n\n// When a Created GR is completed, release the reservation it had added to created_received_qty\nconst fromCreated = {{node:code_node_4r2Fv9G5.data.allData.previous_status}} === \"Created\"\nconst newCreatedReceivedQty = fromCreated\n  ? Math.max(0, roundQty((poLineData.created_received_qty || 0) - grReceivedQty))\n  : roundQty(poLineData.created_received_qty || 0)\n\nreturn {\n  exchangeRate,\n  poQty,\n  poAmount,\n  newReceivedQty,\n  newOutstandingQty,\n  receivedRatio,\n  lineStatus,\n  newCreatedReceivedQty\n}"
+                              "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst poLineData = {{node:get_node_T0BtCHSS.data.data}} || {}\n\nconst exchangeRate = {{node:get_node_SnZKYhVp.data.data.exchange_rate}} || 1;\nconst poQty = roundQty(poLineData.quantity) || 0;\nconst poAmount = roundPrice(poLineData.po_amount) || 0;\nconst grReceivedQty = roundQty({{node:code_node_D9IbUV8t.data.quantity}}) || 0\nconst newReceivedQty = roundQty(poLineData.received_qty + grReceivedQty) || 0\nconst newOutstandingQty = Math.max(0, roundQty(poQty - newReceivedQty)) || 0\nconst receivedRatio = poQty > 0 ? newReceivedQty / poQty : 0;\nconst lineStatus = newOutstandingQty <= 0 ? \"Completed\" : \"Processing\"\n\n// When a Created GR is completed, release the ORIGINAL reservation this GR added to\n// created_received_qty (its pre-edit received_qty for this PO line), not the new qty,\n// so a quantity change at completion does not leave a stranded reservation.\nconst fromCreated = {{node:code_node_4r2Fv9G5.data.allData.previous_status}} === \"Created\"\nconst origReservedMap = {{node:code_node_origReserved.data.origReserved}} || {}\nconst poLineKey = {{node:code_node_D9IbUV8t.data.po_line_id}}\nconst origReservedQty = roundQty((origReservedMap && origReservedMap[poLineKey]) || 0)\nconst newCreatedReceivedQty = fromCreated\n  ? Math.max(0, roundQty((poLineData.created_received_qty || 0) - origReservedQty))\n  : roundQty(poLineData.created_received_qty || 0)\n\nreturn {\n  exchangeRate,\n  poQty,\n  poAmount,\n  newReceivedQty,\n  newOutstandingQty,\n  receivedRatio,\n  lineStatus,\n  newCreatedReceivedQty\n}"
                             },
                             "response_json": [
                               {
@@ -5328,7 +5444,7 @@
                                     "name": "PO Data Preparation",
                                     "script": {
                                       "type": "javascript",
-                                      "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst poLineData = {{node:get_node_ELNVJH1I.data.data}} || {}\n\nconst exchangeRate = {{node:get_node_Pl5yXxcX.data.data.exchange_rate}} || 1;\nconst poQty = roundQty(poLineData.quantity) || 0;\nconst poAmount = roundPrice(poLineData.po_amount) || 0;\nconst grReceivedQty = roundQty({{node:code_node_D9IbUV8t.data.quantity}}) || 0\nconst newReceivedQty = roundQty(poLineData.received_qty + grReceivedQty) || 0\nconst newOutstandingQty = Math.max(0, roundQty(poQty - newReceivedQty)) || 0\nconst receivedRatio = poQty > 0 ? newReceivedQty / poQty : 0;\nconst lineStatus = newOutstandingQty <= 0 ? \"Completed\" : \"Processing\"\n\n// When a Created GR is completed, release the reservation it had added to created_received_qty\nconst fromCreated = {{node:code_node_4r2Fv9G5.data.allData.previous_status}} === \"Created\"\nconst newCreatedReceivedQty = fromCreated\n  ? Math.max(0, roundQty((poLineData.created_received_qty || 0) - grReceivedQty))\n  : roundQty(poLineData.created_received_qty || 0)\n\nreturn {\n  exchangeRate,\n  poQty,\n  poAmount,\n  newReceivedQty,\n  newOutstandingQty,\n  receivedRatio,\n  lineStatus,\n  newCreatedReceivedQty\n}"
+                                      "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst poLineData = {{node:get_node_ELNVJH1I.data.data}} || {}\n\nconst exchangeRate = {{node:get_node_Pl5yXxcX.data.data.exchange_rate}} || 1;\nconst poQty = roundQty(poLineData.quantity) || 0;\nconst poAmount = roundPrice(poLineData.po_amount) || 0;\nconst grReceivedQty = roundQty({{node:code_node_D9IbUV8t.data.quantity}}) || 0\nconst newReceivedQty = roundQty(poLineData.received_qty + grReceivedQty) || 0\nconst newOutstandingQty = Math.max(0, roundQty(poQty - newReceivedQty)) || 0\nconst receivedRatio = poQty > 0 ? newReceivedQty / poQty : 0;\nconst lineStatus = newOutstandingQty <= 0 ? \"Completed\" : \"Processing\"\n\n// When a Created GR is completed, release the ORIGINAL reservation this GR added to\n// created_received_qty (its pre-edit received_qty for this PO line), not the new qty,\n// so a quantity change at completion does not leave a stranded reservation.\nconst fromCreated = {{node:code_node_4r2Fv9G5.data.allData.previous_status}} === \"Created\"\nconst origReservedMap = {{node:code_node_origReserved.data.origReserved}} || {}\nconst poLineKey = {{node:code_node_D9IbUV8t.data.po_line_id}}\nconst origReservedQty = roundQty((origReservedMap && origReservedMap[poLineKey]) || 0)\nconst newCreatedReceivedQty = fromCreated\n  ? Math.max(0, roundQty((poLineData.created_received_qty || 0) - origReservedQty))\n  : roundQty(poLineData.created_received_qty || 0)\n\nreturn {\n  exchangeRate,\n  poQty,\n  poAmount,\n  newReceivedQty,\n  newOutstandingQty,\n  receivedRatio,\n  lineStatus,\n  newCreatedReceivedQty\n}"
                                     },
                                     "response_json": [
                                       {
@@ -5599,7 +5715,7 @@
                                     "name": "PO Data Preparation",
                                     "script": {
                                       "type": "javascript",
-                                      "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst poLineData = {{node:get_node_m5sQXT4G.data.data}} || {}\n\nconst exchangeRate = {{node:get_node_gcfIajlR.data.data.exchange_rate}} || 1;\nconst poQty = roundQty(poLineData.quantity) || 0;\nconst poAmount = roundPrice(poLineData.po_amount) || 0;\nconst grReceivedQty = roundQty({{node:code_node_D9IbUV8t.data.quantity}}) || 0\nconst newReceivedQty = roundQty(poLineData.received_qty + grReceivedQty) || 0\nconst newOutstandingQty = Math.max(0, roundQty(poQty - newReceivedQty)) || 0\nconst receivedRatio = poQty > 0 ? newReceivedQty / poQty : 0;\nconst lineStatus = newOutstandingQty <= 0 ? \"Completed\" : \"Processing\"\n\n// When a Created GR is completed, release the reservation it had added to created_received_qty\nconst fromCreated = {{node:code_node_4r2Fv9G5.data.allData.previous_status}} === \"Created\"\nconst newCreatedReceivedQty = fromCreated\n  ? Math.max(0, roundQty((poLineData.created_received_qty || 0) - grReceivedQty))\n  : roundQty(poLineData.created_received_qty || 0)\n\nreturn {\n  exchangeRate,\n  poQty,\n  poAmount,\n  newReceivedQty,\n  newOutstandingQty,\n  receivedRatio,\n  lineStatus,\n  newCreatedReceivedQty\n}"
+                                      "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\n// For prices - 4 decimal places\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nconst poLineData = {{node:get_node_m5sQXT4G.data.data}} || {}\n\nconst exchangeRate = {{node:get_node_gcfIajlR.data.data.exchange_rate}} || 1;\nconst poQty = roundQty(poLineData.quantity) || 0;\nconst poAmount = roundPrice(poLineData.po_amount) || 0;\nconst grReceivedQty = roundQty({{node:code_node_D9IbUV8t.data.quantity}}) || 0\nconst newReceivedQty = roundQty(poLineData.received_qty + grReceivedQty) || 0\nconst newOutstandingQty = Math.max(0, roundQty(poQty - newReceivedQty)) || 0\nconst receivedRatio = poQty > 0 ? newReceivedQty / poQty : 0;\nconst lineStatus = newOutstandingQty <= 0 ? \"Completed\" : \"Processing\"\n\n// When a Created GR is completed, release the ORIGINAL reservation this GR added to\n// created_received_qty (its pre-edit received_qty for this PO line), not the new qty,\n// so a quantity change at completion does not leave a stranded reservation.\nconst fromCreated = {{node:code_node_4r2Fv9G5.data.allData.previous_status}} === \"Created\"\nconst origReservedMap = {{node:code_node_origReserved.data.origReserved}} || {}\nconst poLineKey = {{node:code_node_D9IbUV8t.data.po_line_id}}\nconst origReservedQty = roundQty((origReservedMap && origReservedMap[poLineKey]) || 0)\nconst newCreatedReceivedQty = fromCreated\n  ? Math.max(0, roundQty((poLineData.created_received_qty || 0) - origReservedQty))\n  : roundQty(poLineData.created_received_qty || 0)\n\nreturn {\n  exchangeRate,\n  poQty,\n  poAmount,\n  newReceivedQty,\n  newOutstandingQty,\n  receivedRatio,\n  lineStatus,\n  newCreatedReceivedQty\n}"
                                     },
                                     "response_json": [
                                       {
