@@ -19,7 +19,7 @@ const closeDialog = () => {
 const updatePurchaseOrderStatus = async (
   purchaseOrderIds,
   tableGR,
-  isEditMode = false
+  isEditMode = false,
 ) => {
   console.log("Starting updatePurchaseOrderStatus", {
     purchaseOrderIds,
@@ -40,7 +40,7 @@ const updatePurchaseOrderStatus = async (
 
       try {
         const filteredGR = tableGR.filter(
-          (item) => item.line_po_id === purchaseOrderId
+          (item) => item.line_po_id === purchaseOrderId,
         );
         console.log(`Filtered GR for PO ${purchaseOrderId}`, {
           filteredGRCount: filteredGR.length,
@@ -81,7 +81,7 @@ const updatePurchaseOrderStatus = async (
           .map((item, index) => ({ ...item, originalIndex: index }))
           .filter((item) => item.item_id !== "" || item.item_desc !== "")
           .filter((item) =>
-            filteredGR.some((gr) => gr.po_line_item_id === item.id)
+            filteredGR.some((gr) => gr.po_line_item_id === item.id),
           );
         console.log(`Filtered PO items for ${purchaseOrderId}`, {
           filteredPOCount: filteredPO.length,
@@ -104,7 +104,7 @@ const updatePurchaseOrderStatus = async (
           // In edit mode, grReceivedQty is a delta (can be negative)
           // In add mode, grReceivedQty is the full quantity (always positive)
           const currentCreatedQty = parseFloat(
-            updatedPoItems[originalIndex].created_received_qty || 0
+            updatedPoItems[originalIndex].created_received_qty || 0,
           );
           const totalCreatedQty = currentCreatedQty + grReceivedQty;
 
@@ -126,7 +126,7 @@ const updatePurchaseOrderStatus = async (
       } catch (error) {
         console.error(
           `Error updating purchase order ${purchaseOrderId} status:`,
-          error
+          error,
         );
         return {
           poId: purchaseOrderId,
@@ -201,7 +201,7 @@ const validateForm = (data, requiredFields) => {
           const subValue = item[subField.name];
           if (validateField(subValue)) {
             missingFields.push(
-              `${subField.label} (in ${field.label} #${index + 1})`
+              `${subField.label} (in ${field.label} #${index + 1})`,
             );
           }
         });
@@ -218,116 +218,6 @@ const validateField = (value) => {
   if (Array.isArray(value)) return value.length === 0;
   if (typeof value === "object") return Object.keys(value).length === 0;
   return !value;
-};
-
-const getPrefixData = async (organizationId, documentTypes) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: documentTypes,
-      is_deleted: 0,
-      organization_id: organizationId,
-      is_active: 1,
-    })
-    .get();
-
-  const prefixData = await prefixEntry.data[0];
-
-  return prefixData;
-};
-
-const updatePrefix = async (organizationId, runningNumber, documentTypes) => {
-  try {
-    await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: documentTypes,
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
-  } catch (error) {
-    this.$message.error(error);
-  }
-};
-
-const generatePrefix = (runNumber, now, prefixData) => {
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0")
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0")
-  );
-  return generated;
-};
-
-const checkUniqueness = async (
-  generatedPrefix,
-  organizationId,
-  documentTypes
-) => {
-  if (documentTypes === "Goods Receiving") {
-    const existingDoc = await db
-      .collection("goods_receiving")
-      .where({ gr_no: generatedPrefix, organization_id: organizationId })
-      .get();
-
-    return existingDoc.data[0] ? false : true;
-  } else if (documentTypes === "Transfer Order (Putaway)") {
-    const existingDoc = await db
-      .collection("transfer_order_putaway")
-      .where({ to_id: generatedPrefix, organization_id: organizationId })
-      .get();
-
-    return existingDoc.data[0] ? false : true;
-  } else if (documentTypes === "Receiving Inspection") {
-    const existingDoc = await db
-      .collection("basic_inspection_lot")
-      .where({
-        inspection_lot_no: generatedPrefix,
-        organization_id: organizationId,
-      })
-      .get();
-
-    return existingDoc.data[0] ? false : true;
-  }
-};
-
-const findUniquePrefix = async (prefixData, organizationId, documentTypes) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(
-      prefixToShow,
-      organizationId,
-      documentTypes
-    );
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    this.$message.error(
-      `Could not generate a unique ${documentTypes} number after maximum attempts`
-    );
-  }
-
-  return { prefixToShow, runningNumber };
 };
 
 const processRow = async (item, organizationId) => {
@@ -351,7 +241,7 @@ const processRow = async (item, organizationId) => {
 
           if (!issueDate)
             throw new Error(
-              "Received Date is required for generating batch number."
+              "Received Date is required for generating batch number.",
             );
 
           console.log("issueDate", new Date(issueDate));
@@ -390,7 +280,7 @@ const processRow = async (item, organizationId) => {
 
           if (!manufacturingDate)
             throw new Error(
-              "Manufacturing Date is required for generating batch number."
+              "Manufacturing Date is required for generating batch number.",
             );
 
           manufacturingDate = new Date(manufacturingDate);
@@ -411,7 +301,7 @@ const processRow = async (item, organizationId) => {
 
           if (!expiredDate)
             throw new Error(
-              "Expired Date is required for generating batch number."
+              "Expired Date is required for generating batch number.",
             );
 
           expiredDate = new Date(expiredDate);
@@ -434,7 +324,7 @@ const processRow = async (item, organizationId) => {
         batchDate +
         String(batchConfigData.batch_running_number).padStart(
           batchConfigData.batch_padding_zeroes,
-          "0"
+          "0",
         );
 
       item.item_batch_no = generatedBatchNo;
@@ -484,7 +374,7 @@ const updateEntry = async (
   organizationId,
   entry,
   goodsReceivingId,
-  putAwaySetupData
+  putAwaySetupData,
 ) => {
   try {
     const prefixData = await getPrefixData(organizationId, "Goods Receiving");
@@ -493,7 +383,7 @@ const updateEntry = async (
       const { prefixToShow, runningNumber } = await findUniquePrefix(
         prefixData,
         organizationId,
-        "Goods Receiving"
+        "Goods Receiving",
       );
 
       await updatePrefix(organizationId, runningNumber, "Goods Receiving");
@@ -503,7 +393,7 @@ const updateEntry = async (
       const isUnique = await checkUniqueness(entry.gr_no, organizationId);
       if (!isUnique) {
         throw new Error(
-          `GR Number "${entry.gr_no}" already exists. Please use a different number.`
+          `GR Number "${entry.gr_no}" already exists. Please use a different number.`,
         );
       }
     }
@@ -523,7 +413,7 @@ const updateEntry = async (
     // Calculate quantity deltas for each line item
     const tableGRWithDeltas = entry.table_gr.map((newItem) => {
       const originalItem = originalTableGR.find(
-        (orig) => orig.po_line_item_id === newItem.po_line_item_id
+        (orig) => orig.po_line_item_id === newItem.po_line_item_id,
       );
 
       if (originalItem) {
@@ -540,7 +430,7 @@ const updateEntry = async (
     // Add deleted items with negative deltas
     originalTableGR.forEach((originalItem) => {
       const stillExists = entry.table_gr.find(
-        (item) => item.po_line_item_id === originalItem.po_line_item_id
+        (item) => item.po_line_item_id === originalItem.po_line_item_id,
       );
       if (!stillExists) {
         // Item was deleted - add negative delta
@@ -560,7 +450,7 @@ const updateEntry = async (
     await updatePurchaseOrderStatus(
       purchaseOrderIds,
       tableGRWithDeltas,
-      true // isEditMode = true (use deltas instead of adding)
+      true, // isEditMode = true (use deltas instead of adding)
     );
     this.$message.success("Update successfully");
     await closeDialog();
@@ -578,8 +468,8 @@ const fetchReceivedQuantity = async () => {
       db
         .collection("purchase_order_2ukyuanr_sub")
         .doc(item.po_line_item_id)
-        .get()
-    )
+        .get(),
+    ),
   );
 
   const poLineItemData = resPOLineData.map((response) => response.data[0]);
@@ -587,7 +477,7 @@ const fetchReceivedQuantity = async () => {
   const resItem = await Promise.all(
     tableGR
       .filter((item) => item.item_id !== null && item.item_id !== undefined)
-      .map((item) => db.collection("Item").doc(item.item_id).get())
+      .map((item) => db.collection("Item").doc(item.item_id).get()),
   );
 
   const itemData = resItem.map((response) => response.data[0]);
@@ -628,7 +518,7 @@ const fetchReceivedQuantity = async () => {
       {
         confirmButtonText: "OK",
         type: "error",
-      }
+      },
     );
 
     throw new Error("Invalid received quantity detected.");
@@ -644,8 +534,8 @@ const checkOverCommitmentWarning = async (originalTableGR = []) => {
       db
         .collection("purchase_order_2ukyuanr_sub")
         .doc(item.po_line_item_id)
-        .get()
-    )
+        .get(),
+    ),
   );
 
   const poLineItemData = resPOLineData.map((response) => response.data[0]);
@@ -653,7 +543,7 @@ const checkOverCommitmentWarning = async (originalTableGR = []) => {
   const resItem = await Promise.all(
     tableGR
       .filter((item) => item.item_id !== null && item.item_id !== undefined)
-      .map((item) => db.collection("Item").doc(item.item_id).get())
+      .map((item) => db.collection("Item").doc(item.item_id).get()),
   );
 
   const itemData = resItem.map((response) => response.data[0]);
@@ -675,10 +565,13 @@ const checkOverCommitmentWarning = async (originalTableGR = []) => {
       // to avoid double-counting (we're replacing the old quantity with the new one)
       if (pageStatus === "Edit" && originalTableGR.length > 0) {
         const originalItem = originalTableGR.find(
-          (orig) => orig.po_line_item_id === item.po_line_item_id
+          (orig) => orig.po_line_item_id === item.po_line_item_id,
         );
         if (originalItem) {
-          createdQty = Math.max(0, createdQty - (originalItem.received_qty || 0));
+          createdQty = Math.max(
+            0,
+            createdQty - (originalItem.received_qty || 0),
+          );
         }
       }
 
@@ -713,8 +606,8 @@ const checkOverCommitmentWarning = async (originalTableGR = []) => {
         `• In Created GRs: ${item.createdQty.toFixed(3)}<br>` +
         `• This GR: ${item.newGRQty.toFixed(3)}<br>` +
         `• Total would be: ${item.totalAfter.toFixed(
-          3
-        )} (Exceeds by ${item.overBy.toFixed(3)})`
+          3,
+        )} (Exceeds by ${item.overBy.toFixed(3)})`,
     );
 
     const proceed = await this.$confirm(
@@ -729,7 +622,7 @@ const checkOverCommitmentWarning = async (originalTableGR = []) => {
         cancelButtonText: "No, Go Back",
         type: "warning",
         dangerouslyUseHTMLString: true,
-      }
+      },
     );
 
     if (!proceed) {
@@ -784,12 +677,12 @@ const validateSerialNumberAllocation = async (tableGR) => {
       .join("\n");
 
     throw new Error(
-      `Serial number allocation is required for the following serialized items:\n\n${itemsList}\n\nPlease allocate serial numbers for all serialized items before saving.`
+      `Serial number allocation is required for the following serialized items:\n\n${itemsList}\n\nPlease allocate serial numbers for all serialized items before saving.`,
     );
   }
 
   console.log(
-    "Serial number allocation validation passed for all serialized items"
+    "Serial number allocation validation passed for all serialized items",
   );
   return true;
 };
@@ -822,7 +715,7 @@ const processGRLineItem = async (entry) => {
         cancelButtonText: "Cancel",
         type: "warning",
         dangerouslyUseHTMLString: false,
-      }
+      },
     )
       .then(async () => {
         console.log("User clicked OK");
@@ -857,7 +750,11 @@ const processGRLineItem = async (entry) => {
   return entry;
 };
 
-const saveGoodsReceiving = async (entry, putAwaySetupData, originalTableGR = []) => {
+const saveGoodsReceiving = async (
+  entry,
+  putAwaySetupData,
+  originalTableGR = [],
+) => {
   try {
     const status = this.getValue("gr_status");
     const pageStatus = this.getValue("page_status");
@@ -875,57 +772,11 @@ const saveGoodsReceiving = async (entry, putAwaySetupData, originalTableGR = [])
 
     // add status
     if (pageStatus === "Add") {
-      const prefixData = await getPrefixData(organizationId, "Goods Receiving");
-
-      if (prefixData !== null) {
-        const { prefixToShow, runningNumber } = await findUniquePrefix(
-          prefixData,
-          organizationId,
-          "Goods Receiving"
-        );
-
-        await updatePrefix(organizationId, runningNumber, "Goods Receiving");
-
-        entry.gr_no = prefixToShow;
-      } else {
-        const isUnique = await checkUniqueness(entry.gr_no, organizationId);
-        if (!isUnique) {
-          throw new Error(
-            `GR Number "${entry.gr_no}" already exists. Please use a different number.`
-          );
-        }
-      }
       const grResponse = await db.collection("goods_receiving").add(entry);
       grID = grResponse.data[0].id;
     }
     // edit status
     if (pageStatus === "Edit") {
-      // draft status
-      if (!status || status === "Draft") {
-        const prefixData = await getPrefixData(
-          organizationId,
-          "Goods Receiving"
-        );
-
-        if (prefixData !== null) {
-          const { prefixToShow, runningNumber } = await findUniquePrefix(
-            prefixData,
-            organizationId,
-            "Goods Receiving"
-          );
-
-          await updatePrefix(organizationId, runningNumber, "Goods Receiving");
-
-          entry.gr_no = prefixToShow;
-        } else {
-          const isUnique = await checkUniqueness(entry.gr_no, organizationId);
-          if (!isUnique) {
-            throw new Error(
-              `GR Number "${entry.gr_no}" already exists. Please use a different number.`
-            );
-          }
-        }
-      }
       await db.collection("goods_receiving").doc(grID).update(entry);
     }
 
@@ -939,7 +790,7 @@ const saveGoodsReceiving = async (entry, putAwaySetupData, originalTableGR = [])
       // Calculate quantity deltas for each line item
       const tableGRWithDeltas = entry.table_gr.map((newItem) => {
         const originalItem = originalTableGR.find(
-          (orig) => orig.po_line_item_id === newItem.po_line_item_id
+          (orig) => orig.po_line_item_id === newItem.po_line_item_id,
         );
 
         if (originalItem) {
@@ -956,7 +807,7 @@ const saveGoodsReceiving = async (entry, putAwaySetupData, originalTableGR = [])
       // Add deleted items with negative deltas
       originalTableGR.forEach((originalItem) => {
         const stillExists = entry.table_gr.find(
-          (item) => item.po_line_item_id === originalItem.po_line_item_id
+          (item) => item.po_line_item_id === originalItem.po_line_item_id,
         );
         if (!stillExists) {
           // Item was deleted - add negative delta
@@ -974,7 +825,7 @@ const saveGoodsReceiving = async (entry, putAwaySetupData, originalTableGR = [])
     await updatePurchaseOrderStatus(
       purchaseOrderIds,
       tableGRToUpdate,
-      pageStatus === "Edit" // isEditMode
+      pageStatus === "Edit", // isEditMode
     );
     this.hideLoading();
     closeDialog();
@@ -987,6 +838,9 @@ const saveGoodsReceiving = async (entry, putAwaySetupData, originalTableGR = [])
 (async () => {
   try {
     const data = this.getValues();
+    const page_status = this.getValue("page_status");
+    let entry = data;
+    entry.gr_status = "Created";
     this.showLoading("Saving Goods Receiving...");
 
     const requiredFields = [
@@ -1009,8 +863,18 @@ const saveGoodsReceiving = async (entry, putAwaySetupData, originalTableGR = [])
     for (const [index] of data.table_gr.entries()) {
       await this.validate(
         `table_gr.${index}.received_qty`,
-        `table_gr.${index}.item_batch_no`
+        `table_gr.${index}.item_batch_no`,
       );
+    }
+
+    if (
+      entry.gr_no_type !== -9999 &&
+      (!entry.gr_no ||
+        entry.gr_no === null ||
+        entry.gr_no === "" ||
+        entry.previous_status === "Draft")
+    ) {
+      entry.gr_no = "issued";
     }
 
     const resPutAwaySetup = await db
@@ -1022,8 +886,6 @@ const saveGoodsReceiving = async (entry, putAwaySetupData, originalTableGR = [])
     const missingFields = await validateForm(data, requiredFields);
 
     if (missingFields.length === 0) {
-      const page_status = this.getValue("page_status");
-
       let organizationId = this.getVarGlobal("deptParentId");
       if (organizationId === "0") {
         organizationId = this.getVarSystem("deptIds").split(",")[0];
@@ -1039,7 +901,7 @@ const saveGoodsReceiving = async (entry, putAwaySetupData, originalTableGR = [])
               cancelButtonText: "Cancel",
               type: "warning",
               dangerouslyUseHTMLString: false,
-            }
+            },
           ).catch(() => {
             console.log("User clicked Cancel or closed the dialog");
             this.hideLoading();
@@ -1058,19 +920,16 @@ const saveGoodsReceiving = async (entry, putAwaySetupData, originalTableGR = [])
         originalTableGR = originalGR.data[0]?.table_gr || [];
       }
 
-      let entry = data;
-      entry.gr_status = "Created";
-
       const latestGR = await processGRLineItem(entry);
 
       if (latestGR.table_gr.length === 0) {
         throw new Error(
-          "All Received Quantity must not be 0. Please add at lease one item with received quantity > 0."
+          "All Received Quantity must not be 0. Please add at lease one item with received quantity > 0.",
         );
       }
 
       console.log(
-        "Validating serial number allocation for serialized items..."
+        "Validating serial number allocation for serialized items...",
       );
       await validateSerialNumberAllocation(latestGR.table_gr);
 
