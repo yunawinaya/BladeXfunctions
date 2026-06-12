@@ -176,11 +176,16 @@
             return {
               ...itemWithoutId,
               balance_id: id,
+              category: item.category || "Unrestricted",
             };
           })
         : (() => {
             const { id, ...itemWithoutId } = itemBalanceData;
-            return { ...itemWithoutId, balance_id: id };
+            return {
+              ...itemWithoutId,
+              balance_id: id,
+              category: itemBalanceData.category || "Unrestricted",
+            };
           })();
     };
 
