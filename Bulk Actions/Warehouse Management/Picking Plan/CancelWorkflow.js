@@ -190,6 +190,16 @@ const runPPWorkflow = async (data) => {
               }
             }
 
+            await db
+              .collection("inventory_movement")
+              .where({
+                trx_no: toItem.to_no,
+                organization_id: toItem.organization_id,
+              })
+              .update({
+                trx_no: `${toItem.to_no}-Cancelled`,
+              });
+
             results.push({
               to_no: toItem.to_no,
               success: true,

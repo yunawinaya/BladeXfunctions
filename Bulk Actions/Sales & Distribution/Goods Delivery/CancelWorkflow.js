@@ -168,6 +168,16 @@ const runGDWorkflow = async (data) => {
               }
             }
 
+            await db
+              .collection("inventory_movement")
+              .where({
+                trx_no: gdItem.delivery_no,
+                organization_id: gdItem.organization_id,
+              })
+              .update({
+                trx_no: `${gdItem.delivery_no}-Cancelled`,
+              });
+
             results.push({
               delivery_no: gdItem.delivery_no,
               success: true,
