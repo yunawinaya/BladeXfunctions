@@ -1494,90 +1494,6 @@ const validateField = (value, _field) => {
   return !value;
 };
 
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Purchase Returns",
-      is_deleted: 0,
-      organization_id: organizationId,
-      is_active: 1,
-    })
-    .get();
-
-  const prefixData = await prefixEntry.data[0];
-
-  return prefixData;
-};
-
-const updatePrefix = async (organizationId, runningNumber) => {
-  try {
-    await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Purchase Returns",
-        is_deleted: 0,
-        organization_id: organizationId,
-      })
-      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
-  } catch (error) {
-    this.$message.error(error);
-  }
-};
-
-const generatePrefix = (runNumber, now, prefixData) => {
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0"),
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0"),
-  );
-  return generated;
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("purchase_return_head")
-    .where({
-      purchase_return_no: generatedPrefix,
-      organization_id: organizationId,
-    })
-    .get();
-  return existingDoc.data[0] ? false : true;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Purchase Return number after maximum attempts",
-    );
-  }
-  return { prefixToShow, runningNumber };
-};
-
 const updateGRandPOStatus = async (entry) => {
   const grIDs = Array.isArray(entry.gr_id) ? entry.gr_id : [entry.gr_id];
 
@@ -1696,27 +1612,6 @@ const updateGRandPOStatus = async (entry) => {
 
 const addEntry = async (organizationId, entry) => {
   try {
-    // Step 1: Prepare prefix data but don't update counter yet
-    const prefixData = await getPrefixData(organizationId);
-
-    if (prefixData !== null) {
-      const { prefixToShow } = await findUniquePrefix(
-        prefixData,
-        organizationId,
-      );
-      entry.purchase_return_no = prefixToShow;
-    } else {
-      const isUnique = await checkUniqueness(
-        entry.purchase_return_no,
-        organizationId,
-      );
-      if (!isUnique) {
-        throw new Error(
-          `PRT Number "${entry.purchase_return_no}" already exists. Please use a different number.`,
-        );
-      }
-    }
-
     // Step 2: VALIDATE SERIAL NUMBERS FIRST
     console.log("Validating serial numbers for Purchase Return");
     const validationResult = await validateSerialNumbersForReturn(
@@ -1740,19 +1635,10 @@ const addEntry = async (organizationId, entry) => {
     }
 
     // Step 3: Add the record ONLY after validation passes
-    await db.collection("purchase_return_head").add(entry);
-
-    // Step 4: Update prefix counter ONLY after record is successfully added
-    if (prefixData !== null) {
-      const { runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId,
-      );
-      await updatePrefix(organizationId, runningNumber);
-    }
+    const response = await db.collection("purchase_return_head").add(entry);
 
     // Step 5: Process inventory and update statuses
-    await updateInventory(entry, entry.plant, organizationId);
+    await updateInventory(response.data[0], entry.plant, organizationId);
     await updateGRandPOStatus(entry);
 
     this.$message.success("Add successfully");
@@ -1775,27 +1661,6 @@ const addEntry = async (organizationId, entry) => {
 
 const updateEntry = async (organizationId, entry, purchaseReturnId) => {
   try {
-    // Step 1: Prepare prefix data for Draft status but don't update counter yet
-    const prefixData = await getPrefixData(organizationId);
-
-    if (prefixData !== null) {
-      const { prefixToShow } = await findUniquePrefix(
-        prefixData,
-        organizationId,
-      );
-      entry.purchase_return_no = prefixToShow;
-    } else {
-      const isUnique = await checkUniqueness(
-        entry.purchase_return_no,
-        organizationId,
-      );
-      if (!isUnique) {
-        throw new Error(
-          `PRT Number "${entry.purchase_return_no}" already exists. Please use a different number.`,
-        );
-      }
-    }
-
     // Step 2: VALIDATE SERIAL NUMBERS FIRST
     console.log("Validating serial numbers for Purchase Return");
     const validationResult = await validateSerialNumbersForReturn(
@@ -1819,22 +1684,17 @@ const updateEntry = async (organizationId, entry, purchaseReturnId) => {
     }
 
     // Step 3: Update the record ONLY after validation passes
-    await db
+    const response = await db
       .collection("purchase_return_head")
       .doc(purchaseReturnId)
       .update(entry);
 
-    // Step 4: Update prefix counter ONLY after record is successfully updated
-    if (prefixData !== null) {
-      const { runningNumber } = await findUniquePrefix(
-        prefixData,
-        organizationId,
-      );
-      await updatePrefix(organizationId, runningNumber);
-    }
-
     // Step 5: Process inventory and update statuses
-    await updateInventory(entry, entry.plant, organizationId);
+    await updateInventory(
+      response.data.modifiedResults[0],
+      entry.plant,
+      organizationId,
+    );
     await updateGRandPOStatus(entry);
 
     this.$message.success("Update successfully");
@@ -1979,6 +1839,7 @@ const processPRTLineItem = async (entry) => {
     const data = this.getValues();
     this.showLoading();
 
+    let entry = data;
     const requiredFields = [
       { name: "purchase_return_no", label: "Return ID" },
       { name: "plant", label: "Plant" },
@@ -2001,154 +1862,17 @@ const processPRTLineItem = async (entry) => {
         organizationId = this.getVarSystem("deptIds").split(",")[0];
       }
 
-      const {
-        purchase_return_no,
-        po_id,
-        gr_id,
-        po_no_display,
-        gr_no_display,
-        supplier_id,
-        prt_billing_address,
-        prt_shipping_address,
-        gr_date,
-        plant,
-        organization_id,
-        purchase_return_date,
-        return_by,
-        return_delivery_method,
-        purchase_return_ref,
-        shipping_details,
-        reason_for_return,
-        pr_note,
-        remark,
-        remark2,
-        remark3,
-        reference_type,
+      entry.purchase_return_status = "Issued";
 
-        driver_name,
-        vehicle_no,
-        cp_ic_no,
-        driver_contact,
-        pickup_date,
-
-        courier_company,
-        shipping_date,
-        estimated_arrival,
-        shipping_method,
-        freight_charge,
-
-        driver_name2,
-        ct_ic_no,
-        driver_contact_no2,
-        estimated_arrival2,
-        vehicle_no2,
-        delivery_cost,
-
-        tpt_vehicle_number,
-        tpt_transport_name,
-        tpt_ic_no,
-        tpt_driver_contact_no,
-
-        table_prt,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_address_country,
-        billing_postal_code,
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_address_country,
-        shipping_postal_code,
-        billing_address_name,
-        billing_address_phone,
-        billing_attention,
-        shipping_address_name,
-        shipping_address_phone,
-        shipping_attention,
-        acc_integration_type,
-      } = data;
-
-      const entry = {
-        purchase_return_status: "Issued",
-        purchase_return_no,
-        po_id,
-        gr_id,
-        po_no_display,
-        gr_no_display,
-        supplier_id,
-        prt_billing_address,
-        prt_shipping_address,
-        gr_date,
-        plant,
-        organization_id,
-        purchase_return_date,
-        return_by,
-        return_delivery_method,
-        purchase_return_ref,
-        shipping_details,
-        reason_for_return,
-        pr_note,
-        remark,
-        remark2,
-        remark3,
-        reference_type,
-
-        driver_name,
-        vehicle_no,
-        cp_ic_no,
-        driver_contact,
-        pickup_date,
-
-        courier_company,
-        shipping_date,
-        estimated_arrival,
-        shipping_method,
-        freight_charge,
-
-        driver_name2,
-        ct_ic_no,
-        driver_contact_no2,
-        estimated_arrival2,
-        vehicle_no2,
-        delivery_cost,
-
-        tpt_vehicle_number,
-        tpt_transport_name,
-        tpt_ic_no,
-        tpt_driver_contact_no,
-
-        table_prt,
-        billing_address_line_1,
-        billing_address_line_2,
-        billing_address_line_3,
-        billing_address_line_4,
-        billing_address_city,
-        billing_address_state,
-        billing_address_country,
-        billing_postal_code,
-        shipping_address_line_1,
-        shipping_address_line_2,
-        shipping_address_line_3,
-        shipping_address_line_4,
-        shipping_address_city,
-        shipping_address_state,
-        shipping_address_country,
-        shipping_postal_code,
-        billing_address_name,
-        billing_address_phone,
-        billing_attention,
-        shipping_address_name,
-        shipping_address_phone,
-        shipping_attention,
-        acc_integration_type,
-      };
+      if (
+        entry.purchase_return_no_type !== -9999 &&
+        (!entry.purchase_return_no ||
+          entry.purchase_return_no === null ||
+          entry.purchase_return_no === "" ||
+          entry.previous_status === "Draft")
+      ) {
+        entry.purchase_return_no = "issued";
+      }
 
       const latestPRT = await processPRTLineItem(entry);
       latestPRT.table_prt = await fillbackHeaderFields(latestPRT);
